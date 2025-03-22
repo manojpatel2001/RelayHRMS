@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+﻿using HRMS_Core.DbContext;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 namespace HRMS_Core.Master.JobMaster
 {
     [Table("City")]
-    public class City
+    public class City : BaseModel
     {
         [Key]
         public int CityID { get; set; }     
