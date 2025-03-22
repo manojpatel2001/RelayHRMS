@@ -20,7 +20,7 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             _db = db;
         }
 
-        public async Task<bool> UpdateCity(City city)
+        public async Task<bool> UpdateCIty(City city)
         {
             var existingRecord = await _db.City.SingleOrDefaultAsync(asd => asd.CityID == city.CityID);
             if (existingRecord == null)
