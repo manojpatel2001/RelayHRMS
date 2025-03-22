@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Interface
 {
-    internal interface IUnitOfWork
+    public interface IUnitOfWork 
     {
     }
 }
