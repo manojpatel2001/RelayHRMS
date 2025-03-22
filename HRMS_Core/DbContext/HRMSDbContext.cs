@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using HRMS_Core.Master.JobMaster;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,17 @@ namespace HRMS_Core.DbContext
         }
 
         public DbSet<HRMSUserIdentity> HRMSUserIdentities { get; set; }
+
+
+
+        public DbSet<Branch> Branch { get; set; }
+        public DbSet<City> City { get; set; }
+        public DbSet<CityCategory> CityCategories { get; set; }
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<Designation> Designations { get; set; }
+        public DbSet<Grade> Grades { get; set; }
+        public DbSet<Reason> Reasons { get; set; }
+        public DbSet<State> States { get; set; }
 
     }
 }
