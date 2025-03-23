@@ -21,7 +21,7 @@ namespace HRMS_Core.Master.JobMaster
         [ValidateNever]
         public State? State { get; set; }   
          
-        public string? CityCategoryId { get; set; }
+        public int? CityCategoryId { get; set; }
         [ForeignKey(nameof(CityCategoryId))]
         public CityCategory? CityCategory { get; set; } 
 
