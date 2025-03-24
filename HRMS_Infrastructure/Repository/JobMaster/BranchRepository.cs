@@ -31,7 +31,10 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             existingRecord.BranchCode = branch.BranchCode;
             existingRecord.CompanyName = branch.CompanyName;
             existingRecord.Address = branch.Address;
-            existingRecord.CityId = branch.CityId;
+            //existingRecord.CityId = branch.CityId;
+            existingRecord.CityName = branch.CityName;
+            existingRecord.CountryName = branch.CountryName;
+            existingRecord.State = branch.State;    
             existingRecord.SalaryStartDate = branch.SalaryStartDate;
             existingRecord.ContractorBranch = branch.ContractorBranch;
             existingRecord.RegistrationCertificateNo = branch.RegistrationCertificateNo;

@@ -20,9 +20,9 @@ namespace HRMS_Core.Master.JobMaster
         public string? CompanyName { get; set; }
         public string? Address { get; set; }
 
-        public int? CityId { get; set; }
-        [ForeignKey(nameof(CityId))]
-        public City? City { get; set; }
+        public string? CityName { get; set; }
+        public string? CountryName { get; set; }   
+        public string? State { get; set; }   
 
         public DateTime SalaryStartDate { get; set; }
         public bool ContractorBranch { get; set; } =false;

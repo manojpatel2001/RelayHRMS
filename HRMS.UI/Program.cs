@@ -22,6 +22,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=JobMaster}/{action=State}/{id?}");
+    pattern: "{controller=JobMaster}/{action=ManageBranch}/{id?}");
 
 app.Run();
