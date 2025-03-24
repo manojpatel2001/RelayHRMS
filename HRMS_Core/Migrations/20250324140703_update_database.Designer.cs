@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250324140703_update_database")]
+    partial class update_database
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -134,17 +137,14 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("CensusNumber")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CityName")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("CityId")
+                        .HasColumnType("int");
 
                     b.Property<string>("CompanyName")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("ContractorBranch")
                         .HasColumnType("bit");
-
-                    b.Property<string>("CountryName")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -179,9 +179,6 @@ namespace HRMS_Core.Migrations
                     b.Property<DateTime>("SalaryStartDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("State")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -195,6 +192,8 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("BranchId");
+
+                    b.HasIndex("CityId");
 
                     b.ToTable("Branch");
                 });
@@ -701,6 +700,15 @@ namespace HRMS_Core.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.Master.JobMaster.Branch", b =>
+                {
+                    b.HasOne("HRMS_Core.Master.JobMaster.City", "City")
+                        .WithMany()
+                        .HasForeignKey("CityId");
+
+                    b.Navigation("City");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.City", b =>
