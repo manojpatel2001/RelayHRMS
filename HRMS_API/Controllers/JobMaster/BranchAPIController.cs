@@ -84,16 +84,42 @@ namespace HRMS_API.Controllers.JobMaster
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Branch details cannot be null" };
                 }
 
-                var isExists = await _unitOfWork.BranchRepository.GetAllAsync(asd => asd.BranchName.ToLower().Trim() == branch.BranchName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
-                if (isExists.Any())
+                if(branch.BranchId == 0)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{branch.BranchName}' already exists" };
-                }
-                branch.CreatedDate = DateTime.UtcNow;
-                await _unitOfWork.BranchRepository.AddAsync(branch);
-                await _unitOfWork.CommitAsync();
+                    var isExists = await _unitOfWork.BranchRepository.GetAllAsync(asd => asd.BranchName.ToLower().Trim() == branch.BranchName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
+                    if (isExists.Any())
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{branch.BranchName}' already exists" };
+                    }
+                    branch.CreatedDate = DateTime.UtcNow;
+                    await _unitOfWork.BranchRepository.AddAsync(branch);
+                    await _unitOfWork.CommitAsync();
 
-                return new APIResponse() { isSuccess = true, Data = branch, ResponseMessage = "The record has been saved successfully" };
+                    return new APIResponse() { isSuccess = true, Data = branch, ResponseMessage = "The record has been saved successfully" };
+                }
+                else
+                {
+                    var oldBranch = await _unitOfWork.BranchRepository.GetAsync(asd => asd.BranchId == branch.BranchId && asd.IsEnabled == true && asd.IsDeleted == false);
+
+                    if (oldBranch != null)
+                    {
+                        bool isDeleted = await _unitOfWork.BranchRepository.UpdateBranch(branch);
+                        if (!isDeleted)
+                        {
+                            return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
+                        }
+                        await _unitOfWork.CommitAsync();
+
+                        return new APIResponse() { isSuccess = true, Data = branch, ResponseMessage = "The record has been updated successfully" };
+                    }
+                    else
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
+                    }
+                }
+
+
+                
             }
             catch (Exception err)
             {
