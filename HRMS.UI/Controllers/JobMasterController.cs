@@ -13,7 +13,18 @@ namespace HRMS.UI.Controllers
             return View();
         }
 
+
+
+
         public IActionResult ManageBranch()
+        {
+            return View();  
+        }
+        public IActionResult ManageDepartment()
+        {
+            return View();  
+        }
+        public IActionResult ManageDesignation()
         {
             return View();  
         }
