@@ -27,7 +27,7 @@ namespace HRMS_API.Controllers.JobMaster
         {
             try
             {
-                var data = await _unitOfWork.DepartmentRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
+                var data = await _unitOfWork.DepartmentRepository.GetAllAsync();
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
@@ -87,16 +87,41 @@ namespace HRMS_API.Controllers.JobMaster
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Department details cannot be null" };
                 }
 
-                var isExists = await _unitOfWork.DepartmentRepository.GetAllAsync(asd => asd.DepartmentName.ToLower().Trim() == department.DepartmentName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
-                if (isExists.Any())
+                if(department.DepartmentId == 0)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{department.DepartmentName}' already exists" };
-                }
-                department.CreatedDate = DateTime.UtcNow;
-                await _unitOfWork.DepartmentRepository.AddAsync(department);
-                await _unitOfWork.CommitAsync();
+                    var isExists = await _unitOfWork.DepartmentRepository.GetAllAsync(asd => asd.DepartmentName.ToLower().Trim() == department.DepartmentName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
+                    if (isExists.Any())
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{department.DepartmentName}' already exists" };
+                    }
+                    department.CreatedDate = DateTime.UtcNow;
+                    await _unitOfWork.DepartmentRepository.AddAsync(department);
+                    await _unitOfWork.CommitAsync();
 
-                return new APIResponse() { isSuccess = true, Data = department, ResponseMessage = "The record has been saved successfully" };
+                    return new APIResponse() { isSuccess = true, Data = department, ResponseMessage = "The record has been saved successfully" };
+                }
+                else
+                {
+                    var olddepartment = await _unitOfWork.DepartmentRepository.GetAsync(asd => asd.DepartmentId == department.DepartmentId && asd.IsEnabled == true && asd.IsDeleted == false);
+
+                    if (department != null)
+                    {
+                        bool isDeleted = await _unitOfWork.DepartmentRepository.UpdateDepartment(department);
+                        if (!isDeleted)
+                        {
+                            return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
+                        }
+                        await _unitOfWork.CommitAsync();
+
+                        return new APIResponse() { isSuccess = true, Data = department, ResponseMessage = "The record has been updated successfully" };
+                    }
+                    else
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
+                    }
+                }
+
+               
             }
             catch (Exception err)
             {

@@ -26,7 +26,7 @@ namespace HRMS_API.Controllers.JobMaster
         {
             try
             {
-                var data = await _unitOfWork.DesignationRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
+                var data = await _unitOfWork.DesignationRepository.GetAllAsync();
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
@@ -86,16 +86,41 @@ namespace HRMS_API.Controllers.JobMaster
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Designation details cannot be null" };
                 }
 
-                var isExists = await _unitOfWork.DesignationRepository.GetAllAsync(asd => asd.DesignationName.ToLower().Trim() == designation.DesignationName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
-                if (isExists.Any())
+                if(designation.DesignationId == 0)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{designation.DesignationName}' already exists" };
-                }
-                designation.CreatedDate = DateTime.UtcNow;
-                await _unitOfWork.DesignationRepository.AddAsync(designation);
-                await _unitOfWork.CommitAsync();
+                    var isExists = await _unitOfWork.DesignationRepository.GetAllAsync(asd => asd.DesignationName.ToLower().Trim() == designation.DesignationName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
+                    if (isExists.Any())
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{designation.DesignationName}' already exists" };
+                    }
+                    designation.CreatedDate = DateTime.UtcNow;
+                    await _unitOfWork.DesignationRepository.AddAsync(designation);
+                    await _unitOfWork.CommitAsync();
 
-                return new APIResponse() { isSuccess = true, Data = designation, ResponseMessage = "The record has been saved successfully" };
+                    return new APIResponse() { isSuccess = true, Data = designation, ResponseMessage = "The record has been saved successfully" };
+                }
+                else
+                {
+                    var oldBranch = await _unitOfWork.DesignationRepository.GetAsync(asd => asd.DesignationId == designation.DesignationId);
+
+                    if (oldBranch != null)
+                    {
+                        bool isDeleted = await _unitOfWork.DesignationRepository.UpdateDesignation(designation);
+                        if (!isDeleted)
+                        {
+                            return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
+                        }
+                        await _unitOfWork.CommitAsync();
+
+                        return new APIResponse() { isSuccess = true, Data = designation, ResponseMessage = "The record has been updated successfully" };
+                    }
+                    else
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
+                    }
+                }
+
+               
             }
             catch (Exception err)
             {

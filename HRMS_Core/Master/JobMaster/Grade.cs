@@ -20,6 +20,7 @@ namespace HRMS_Core.Master.JobMaster
         public string? Description { get; set; }
         public int? BasicSalary { get; set; }
         public int? Govt_MinimumBasics { get; set; }
+        public int? Sorting_No	{ get; set; }
         public int? NoticePeriodDays { get; set; }
         public int? NoticePeriodWorkingDays { get; set; }
         public string? SalaryRange	{ get; set; }
