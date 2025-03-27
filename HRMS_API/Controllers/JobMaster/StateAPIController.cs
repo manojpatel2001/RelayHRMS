@@ -78,21 +78,44 @@ namespace HRMS_API.Controllers.JobMaster
         {
             try
             {
-                if (state == null)
+                if(state.StateId == 0)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "State details cannot be null" };
-                }
+                    if (state == null)
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = "State details cannot be null" };
+                    }
 
-                var isExists = await _unitOfWork.StateRepository.GetAllAsync(asd => asd.StateName.ToLower().Trim() == state.StateName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
-                if (isExists.Any())
+                    var isExists = await _unitOfWork.StateRepository.GetAllAsync(asd => asd.StateName.ToLower().Trim() == state.StateName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
+                    if (isExists.Any())
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{state.StateName}' already exists" };
+                    }
+                    state.CreatedDate = DateTime.UtcNow;
+                    await _unitOfWork.StateRepository.AddAsync(state);
+                    await _unitOfWork.CommitAsync();
+
+                    return new APIResponse() { isSuccess = true, Data = state, ResponseMessage = "The record has been saved successfully" };
+                }
+                else
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{state.StateName}' already exists" };
-                }
-                state.CreatedDate = DateTime.UtcNow;
-                await _unitOfWork.StateRepository.AddAsync(state);
-                await _unitOfWork.CommitAsync();
+                    var oldState = await _unitOfWork.StateRepository.GetAsync(asd => asd.StateId == state.StateId && asd.IsEnabled == true && asd.IsDeleted == false);
 
-                return new APIResponse() { isSuccess = true, Data = state, ResponseMessage = "The record has been saved successfully" };
+                    if (oldState != null)
+                    {
+                        bool isDeleted = await _unitOfWork.StateRepository.UpdateState(state);
+                        if (!isDeleted)
+                        {
+                            return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
+                        }
+                        await _unitOfWork.CommitAsync();
+
+                        return new APIResponse() { isSuccess = true, Data = state, ResponseMessage = "The record has been updated successfully" };
+                    }
+                    else
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
+                    }
+                }
             }
             catch (Exception err)
             {
