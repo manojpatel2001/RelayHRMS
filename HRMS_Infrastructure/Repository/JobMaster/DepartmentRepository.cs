@@ -47,6 +47,7 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             existingRecord.DepartmentName = department.DepartmentName;
             existingRecord.Code = department.Code;
             existingRecord.SortingNo = department.SortingNo;
+            existingRecord.IsEnabled = department.IsEnabled;
             existingRecord.MinimumWages = department.MinimumWages;
             existingRecord.OJTApplicable = department.OJTApplicable;
             existingRecord.UpdatedBy = department.UpdatedBy;

@@ -17,8 +17,8 @@ namespace HRMS_Core.Master.JobMaster
         public int DepartmentId { get; set; }
         public string? DepartmentName { get; set; }
         public string? Code { get; set; }
-        public int? SortingNo { get; set; }
-        public int? MinimumWages { get; set; }
+        public int? SortingNo { get; set; } = 0;
+        public int? MinimumWages { get; set; } = 0;
         public bool OJTApplicable { get; set; } = false;
 
 

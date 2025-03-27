@@ -20,6 +20,7 @@ namespace HRMS_Core.Master.JobMaster
         public bool ManagerialPost { get; set; } = false;
         public bool IsMain { get; set; } = false;
         public string? Allow_ReimEligibilityAmount { get; set; }
+        public bool? AbscondingReminderEmail { get; set; } = false;
 
     }
 }

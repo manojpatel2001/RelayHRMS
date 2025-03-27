@@ -24,7 +24,7 @@ namespace HRMS_API.Controllers.JobMaster
         {
             try
             {
-                var data = await _unitOfWork.GradeRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
+                var data = await _unitOfWork.GradeRepository.GetAllAsync();
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)

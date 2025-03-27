@@ -49,6 +49,7 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             existingRecord.SortingNo = designation.SortingNo;
             existingRecord.ManagerialPost = designation.ManagerialPost;
             existingRecord.IsMain = designation.IsMain;
+            existingRecord.IsEnabled = designation.IsEnabled;
             existingRecord.Allow_ReimEligibilityAmount = designation.Allow_ReimEligibilityAmount;
             existingRecord.UpdatedBy = designation.UpdatedBy;
             existingRecord.UpdatedDate = DateTime.UtcNow;
