@@ -22,6 +22,9 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    //pattern: "{controller=JobMaster}/{action=ManageBranch}/{id?}");
+    //pattern: "{controller=JobMaster}/{action=ManageDepartment}/{id?}");
+    //pattern: "{controller=JobMaster}/{action=ManageDesignation}/{id?}");
+    pattern: "{controller=JobMaster}/{action=ManageGrade}/{id?}");
 
 app.Run();
