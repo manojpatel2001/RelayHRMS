@@ -16,7 +16,8 @@ namespace HRMS_Infrastructure.Interface
         IGradeRepository GradeRepository { get; }   
         IReasonRepository ReasonRepository { get; } 
         IStateRepository StateRepository { get; }
-
+        IShiftBreakRepository ShiftBreakRepository { get; }
+        IShiftMasterRepository ShiftMasterRepository { get; }
         void Commit();
         Task CommitAsync();
     }

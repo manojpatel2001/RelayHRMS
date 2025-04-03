@@ -29,6 +29,8 @@ namespace HRMS_Core.DbContext
         public DbSet<Grade> Grades { get; set; }
         public DbSet<Reason> Reasons { get; set; }
         public DbSet<State> States { get; set; }
+        public DbSet<ShiftMaster> ShiftMasters { get; set; }
+        public DbSet<ShiftBreak> ShiftBreaks { get; set; }
 
     }
 }
