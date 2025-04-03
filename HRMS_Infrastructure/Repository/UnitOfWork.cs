@@ -18,12 +18,14 @@ namespace HRMS_Infrastructure.Repository
         {
             _dbContext = dbContext;
             BranchRepository = new BranchRepository(_dbContext);
-            CityRepository = new CityRepository(_dbContext);        
+            CityRepository = new CityRepository(_dbContext);
             DepartmentRepository = new DepartmentRepository(_dbContext);
-            DesignationRepository = new DesignationRepository(_dbContext); 
+            DesignationRepository = new DesignationRepository(_dbContext);
             GradeRepository = new GradeRepository(_dbContext);
-            ReasonRepository = new ReasonRepository(_dbContext); 
-            StateRepository = new StateRepository(_dbContext);      
+            ReasonRepository = new ReasonRepository(_dbContext);
+            StateRepository = new StateRepository(_dbContext);
+            ShiftBreakRepository = new ShiftBreakRepository(_dbContext);
+            ShiftMasterRepository = new ShiftMasterRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -34,11 +36,15 @@ namespace HRMS_Infrastructure.Repository
 
         public IDesignationRepository DesignationRepository { get; set; }
 
-        public IGradeRepository GradeRepository { get; set; }   
+        public IGradeRepository GradeRepository { get; set; }
 
         public IReasonRepository ReasonRepository { get; set; }
 
         public IStateRepository StateRepository { get; set; }
+
+        public IShiftBreakRepository ShiftBreakRepository { get; set; }
+
+        public IShiftMasterRepository ShiftMasterRepository { get; set; }
 
         public void Commit()
         {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HRMS_Core.DbContext;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 namespace HRMS_Core.Master.JobMaster
 {
     [Table("ShiftMaster")]
-    public class ShiftMaster
+    public class ShiftMaster : BaseModel
     {
         [Key]
         public int ShiftID { get; set; }

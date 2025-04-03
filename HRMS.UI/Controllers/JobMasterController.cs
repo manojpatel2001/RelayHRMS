@@ -30,5 +30,9 @@ namespace HRMS.UI.Controllers
             return View();  
         }
 
+        public IActionResult ManageShifts() {
+            return View();
+        }
+
     }
 }

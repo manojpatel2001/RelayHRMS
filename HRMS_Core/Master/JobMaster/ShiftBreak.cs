@@ -5,11 +5,12 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using HRMS_Core.DbContext;
 
 namespace HRMS_Core.Master.JobMaster
 {
     [Table("ShiftBreak")]
-    public class ShiftBreak
+    public class ShiftBreak : BaseModel
     {
         [Key]
         public int BreakID { get; set; }
