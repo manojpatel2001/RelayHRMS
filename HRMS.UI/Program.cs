@@ -25,6 +25,6 @@ app.MapControllerRoute(
     //pattern: "{controller=JobMaster}/{action=ManageBranch}/{id?}");
     //pattern: "{controller=JobMaster}/{action=ManageDepartment}/{id?}");
     //pattern: "{controller=JobMaster}/{action=ManageDesignation}/{id?}");
-    pattern: "{controller=JobMaster}/{action=ManageGrade}/{id?}");
+    pattern: "{controller=AuthManage}/{action=Index}/{id?}");
 
 app.Run();
