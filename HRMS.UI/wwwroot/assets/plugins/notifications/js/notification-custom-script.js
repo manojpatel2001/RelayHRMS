@@ -284,3 +284,42 @@ function anim5_noti() {
 		msg: 'Lorem ipsum dolor sit amet hears farmer indemnity inherent.'
 	});
 }
+/* Custom Notification Messages */
+function round_success_noti(strMsg) {
+	Lobibox.notify('success', {
+		pauseDelayOnHover: true,
+		size: 'mini',
+		rounded: true,
+		icon: 'bx bx-check-circle',
+		delayIndicator: false,
+		continueDelayOnInactiveTab: false,
+		position: 'top right',
+		msg: strMsg
+	});
+}
+
+function round_error_noti(strMsg) {
+	Lobibox.notify('error', {
+		pauseDelayOnHover: true,
+		size: 'mini',
+		rounded: true,
+		delayIndicator: false,
+		icon: 'bx bx-x-circle',
+		continueDelayOnInactiveTab: false,
+		position: 'top right',
+		msg: strMsg
+	});
+}
+
+function round_warning_noti(strMsg) {
+	Lobibox.notify('warning', {
+		pauseDelayOnHover: true,
+		size: 'mini',
+		rounded: true,
+		delayIndicator: false,
+		icon: 'bx bx-error',
+		continueDelayOnInactiveTab: false,
+		position: 'top right',
+		msg: strMsg
+	});
+}
