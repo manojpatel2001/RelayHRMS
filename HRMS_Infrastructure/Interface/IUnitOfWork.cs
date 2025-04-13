@@ -21,6 +21,8 @@ namespace HRMS_Infrastructure.Interface
         IShiftBreakRepository ShiftBreakRepository { get; }
         IShiftMasterRepository ShiftMasterRepository { get; }
         IOrganizationPolicyRepository OrganizationPolicyRepository { get; }
+        ITicketTypeRepository TicketTypeRepository { get; }
+        ITicketPriorityRepository TicketPriorityRepository { get; }
         void Commit();
         Task CommitAsync();
     }

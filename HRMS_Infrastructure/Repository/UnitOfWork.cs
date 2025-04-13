@@ -29,6 +29,8 @@ namespace HRMS_Infrastructure.Repository
             ShiftBreakRepository = new ShiftBreakRepository(_dbContext);
             ShiftMasterRepository = new ShiftMasterRepository(_dbContext);
             OrganizationPolicyRepository = new OrganizationPolicyRepository(_dbContext);
+            TicketTypeRepository = new TicketTypeRepository(_dbContext);
+            TicketPriorityRepository = new TicketPriorityRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -49,6 +51,8 @@ namespace HRMS_Infrastructure.Repository
 
         public IShiftMasterRepository ShiftMasterRepository { get; set; }
         public IOrganizationPolicyRepository OrganizationPolicyRepository { get; set; }
+        public ITicketTypeRepository TicketTypeRepository { get; set; }
+        public ITicketPriorityRepository TicketPriorityRepository { get; set; }
 
         public void Commit()
         {

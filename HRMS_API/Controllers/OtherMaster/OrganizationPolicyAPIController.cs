@@ -14,18 +14,18 @@ namespace HRMS_API.Controllers.OtherMaster
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OtherMasterAPIController : ControllerBase
+    public class OrganizationPolicyAPIController : ControllerBase
     {
 
         private readonly IUnitOfWork _unitOfWork;
 
-        public OtherMasterAPIController(IUnitOfWork unitOfWork)
+        public OrganizationPolicyAPIController(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }
 
         [HttpGet("GetAllOrganizationPolicy")]
-        public async Task<APIResponse> GetAllOrganizationPolicytAllBranch()
+        public async Task<APIResponse> GetAllOrganizationPolicy()
         {
             try
             {

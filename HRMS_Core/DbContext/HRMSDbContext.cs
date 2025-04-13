@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.OtherMaster;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -35,6 +36,8 @@ namespace HRMS_Core.DbContext
         public DbSet<ShiftBreak> ShiftBreaks { get; set; }
 
         public DbSet<OrganizationPolicy> OrganizationPolicy { get; set; }
+        public DbSet<TicketType> TicketType { get; set; }
+        public DbSet<TicketPriority> TicketPriority { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -42,6 +45,7 @@ namespace HRMS_Core.DbContext
 
             // For SP return type
             modelBuilder.Entity<VMCommonResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllTicketTypes>().HasNoKey().ToView(null);
         }
 
     }
