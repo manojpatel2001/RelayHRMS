@@ -1,4 +1,6 @@
 ﻿using HRMS_Infrastructure.Interface.JobMaster;
+using HRMS_Infrastructure.Interface.OtherMaster;
+using HRMS_Infrastructure.Repository.OtherMaster;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +20,7 @@ namespace HRMS_Infrastructure.Interface
         IStateRepository StateRepository { get; }
         IShiftBreakRepository ShiftBreakRepository { get; }
         IShiftMasterRepository ShiftMasterRepository { get; }
+        IOrganizationPolicyRepository OrganizationPolicyRepository { get; }
         void Commit();
         Task CommitAsync();
     }

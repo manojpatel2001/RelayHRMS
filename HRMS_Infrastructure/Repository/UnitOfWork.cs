@@ -1,7 +1,9 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.JobMaster;
+using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
+using HRMS_Infrastructure.Repository.OtherMaster;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +28,7 @@ namespace HRMS_Infrastructure.Repository
             StateRepository = new StateRepository(_dbContext);
             ShiftBreakRepository = new ShiftBreakRepository(_dbContext);
             ShiftMasterRepository = new ShiftMasterRepository(_dbContext);
+            OrganizationPolicyRepository = new OrganizationPolicyRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -45,6 +48,7 @@ namespace HRMS_Infrastructure.Repository
         public IShiftBreakRepository ShiftBreakRepository { get; set; }
 
         public IShiftMasterRepository ShiftMasterRepository { get; set; }
+        public IOrganizationPolicyRepository OrganizationPolicyRepository { get; set; }
 
         public void Commit()
         {

@@ -1,4 +1,6 @@
 ﻿using HRMS_Core.Master.JobMaster;
+using HRMS_Core.Master.OtherMaster;
+using HRMS_Core.VM;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -31,6 +33,16 @@ namespace HRMS_Core.DbContext
         public DbSet<State> States { get; set; }
         public DbSet<ShiftMaster> ShiftMasters { get; set; }
         public DbSet<ShiftBreak> ShiftBreaks { get; set; }
+
+        public DbSet<OrganizationPolicy> OrganizationPolicy { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // For SP return type
+            modelBuilder.Entity<VMCommonResult>().HasNoKey().ToView(null);
+        }
 
     }
 }
