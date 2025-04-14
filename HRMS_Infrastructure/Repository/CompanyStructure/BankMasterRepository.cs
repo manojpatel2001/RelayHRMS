@@ -31,7 +31,7 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
                     @BankCode = {bankMaster.BankCode},
                     @BranchName = {bankMaster.BranchName},
                     @AccountNo = {bankMaster.AccountNo},
-                    @Address = @{bankMaster.Address},
+                    @Address = {bankMaster.Address},
                     @City = {bankMaster.City},
                     @BankBSRCode = {bankMaster.BankBSRCode},
                     @IsDefaultBank = {bankMaster.IsDefaultBank},
@@ -69,7 +69,7 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
                 EXEC DeleteBankMaster 
                     @BankMasterId = {deleteRecordVM.Id},
                     @DeletedDate = {deleteRecordVM.DeletedDate},
-                    @DeletedBy = {deleteRecordVM.DeletedBy},
+                    @DeletedBy = {deleteRecordVM.DeletedBy}
             ").ToListAsync();
 
                 return result?.FirstOrDefault() ?? new VMCommonResult
@@ -98,7 +98,7 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
                     @BankCode = {bankMaster.BankCode},
                     @BranchName = {bankMaster.BranchName},
                     @AccountNo = {bankMaster.AccountNo},
-                    @Address = @{bankMaster.Address},
+                    @Address = {bankMaster.Address},
                     @City = {bankMaster.City},
                     @BankBSRCode = {bankMaster.BankBSRCode},
                     @IsDefaultBank = {bankMaster.IsDefaultBank},
