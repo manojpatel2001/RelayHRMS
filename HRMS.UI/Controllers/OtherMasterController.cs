@@ -9,7 +9,7 @@ namespace HRMS.UI.Controllers
             return View();
         }
 
-        public IActionResult CEOLocationMasterAssign()
+        public IActionResult GeoLocationMasterAssign()
         {
             return View();
         }
