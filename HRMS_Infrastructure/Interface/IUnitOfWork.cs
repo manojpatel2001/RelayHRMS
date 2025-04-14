@@ -1,4 +1,5 @@
-﻿using HRMS_Infrastructure.Interface.JobMaster;
+﻿using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using System;
@@ -23,6 +24,7 @@ namespace HRMS_Infrastructure.Interface
         IOrganizationPolicyRepository OrganizationPolicyRepository { get; }
         ITicketTypeRepository TicketTypeRepository { get; }
         ITicketPriorityRepository TicketPriorityRepository { get; }
+        IBankMasterRepository BankMasterRepository { get; }
         void Commit();
         Task CommitAsync();
     }
