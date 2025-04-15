@@ -2,6 +2,7 @@
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.CompanyStructure;
 using HRMS_Core.VM.OtherMaster;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -40,6 +41,7 @@ namespace HRMS_Core.DbContext
         public DbSet<TicketType> TicketType { get; set; }
         public DbSet<TicketPriority> TicketPriority { get; set; }
         public DbSet<BankMaster> BankMaster { get; set; }
+        public DbSet<WeekOffDetails> WeekOffDetails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -48,6 +50,7 @@ namespace HRMS_Core.DbContext
             // For SP return type
             modelBuilder.Entity<VMCommonResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllTicketTypes>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllWeekOffDetails>().HasNoKey().ToView(null);
         }
 
     }

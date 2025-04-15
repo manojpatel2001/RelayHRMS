@@ -34,6 +34,7 @@ namespace HRMS_Infrastructure.Repository
             TicketTypeRepository = new TicketTypeRepository(_dbContext);
             TicketPriorityRepository = new TicketPriorityRepository(_dbContext);
             BankMasterRepository = new BankMasterRepository(_dbContext);
+            WeekOffMasterRepository = new WeekOffMasterRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -57,6 +58,7 @@ namespace HRMS_Infrastructure.Repository
         public ITicketTypeRepository TicketTypeRepository { get; set; }
         public ITicketPriorityRepository TicketPriorityRepository { get; set; }
         public IBankMasterRepository BankMasterRepository { get; set; }
+        public IWeekOffMasterRepository WeekOffMasterRepository { get; set; }
 
         public void Commit()
         {

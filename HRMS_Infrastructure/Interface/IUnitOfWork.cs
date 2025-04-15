@@ -25,6 +25,7 @@ namespace HRMS_Infrastructure.Interface
         ITicketTypeRepository TicketTypeRepository { get; }
         ITicketPriorityRepository TicketPriorityRepository { get; }
         IBankMasterRepository BankMasterRepository { get; }
+        IWeekOffMasterRepository WeekOffMasterRepository { get; }
         void Commit();
         Task CommitAsync();
     }
