@@ -8,5 +8,10 @@ namespace HRMS.UI.Controllers
         {
             return View();
         }
+
+        public IActionResult WeekOffMaster()
+        {
+            return View();
+        }
     }
 }

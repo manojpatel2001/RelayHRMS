@@ -17,13 +17,10 @@ namespace HRMS_Core.Master.CompanyStructure
         [Key]
         public int WeekOffDetailsId { get; set; }   
 
-
         public int BranchId { get; set; }
         [ForeignKey(nameof(BranchId))]
         [ValidateNever]
         public Branch? Branch { get; set; }  
-
-
 
         public string? SundayWeekOffDay { get; set; }    
         public string? MondayWeekOffDay { get; set; }    
