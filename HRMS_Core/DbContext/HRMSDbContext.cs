@@ -42,6 +42,7 @@ namespace HRMS_Core.DbContext
         public DbSet<TicketPriority> TicketPriority { get; set; }
         public DbSet<BankMaster> BankMaster { get; set; }
         public DbSet<WeekOffDetails> WeekOffDetails { get; set; }
+        public DbSet<HolidayMaster> HolidayMaster { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -51,6 +52,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<VMCommonResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllTicketTypes>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllWeekOffDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllHolidayMaster>().HasNoKey().ToView(null);
         }
 
     }

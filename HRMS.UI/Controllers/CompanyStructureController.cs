@@ -13,5 +13,10 @@ namespace HRMS.UI.Controllers
         {
             return View();
         }
+
+        public IActionResult HolidayMaster()
+        {
+            return View();
+        }
     }
 }

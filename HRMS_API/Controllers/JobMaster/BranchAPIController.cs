@@ -200,5 +200,32 @@ namespace HRMS_API.Controllers.JobMaster
                 };
             }
         }
+
+        [HttpGet("GetAllBranchByState/{State}")]
+        public async Task<APIResponse> GetAllBranchByState(string State)
+        {
+            try
+            {
+                var data = await _unitOfWork.BranchRepository.GetAllAsync(x => x.State.ToLower() == State.ToLower() && x.IsDeleted == false && x.IsEnabled == true);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No records found"
+                    };
+                }
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
     }
 }
