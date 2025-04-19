@@ -27,6 +27,8 @@ namespace HRMS_Infrastructure.Interface
         IBankMasterRepository BankMasterRepository { get; }
         IWeekOffMasterRepository WeekOffMasterRepository { get; }
         IHolidayMasterRepository HolidayMasterRepository { get; }
+        IWarningMasterRepository WarningMasterRepository { get; }
+        ILevelWiseCardMappingRepository LevelWiseCardMappingRepository { get; }
         void Commit();
         Task CommitAsync();
     }

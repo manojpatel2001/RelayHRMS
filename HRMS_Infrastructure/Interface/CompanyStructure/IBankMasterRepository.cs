@@ -12,6 +12,8 @@ namespace HRMS_Infrastructure.Interface.CompanyStructure
 {
     public interface IBankMasterRepository:IRepository<BankMaster>
     {
+        Task<List<BankMaster>> GetAllBankMaster();
+        Task<BankMaster?> GetByBankMasterId(int bankMasterId);
         Task<VMCommonResult> CreateBankMaster(BankMaster bankMaster);
         Task<VMCommonResult> UpdateBankMaster(BankMaster bankMaster);
         Task<VMCommonResult> DeleteBankMaster(DeleteRecordVM deleteRecordVM);

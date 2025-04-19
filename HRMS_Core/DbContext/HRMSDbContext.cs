@@ -43,6 +43,8 @@ namespace HRMS_Core.DbContext
         public DbSet<BankMaster> BankMaster { get; set; }
         public DbSet<WeekOffDetails> WeekOffDetails { get; set; }
         public DbSet<HolidayMaster> HolidayMaster { get; set; }
+        public DbSet<WarningMaster> WarningMaster { get; set; }
+        public DbSet<LevelWiseCardMapping> LevelWiseCardMapping { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
