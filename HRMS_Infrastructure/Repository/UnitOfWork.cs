@@ -36,6 +36,8 @@ namespace HRMS_Infrastructure.Repository
             BankMasterRepository = new BankMasterRepository(_dbContext);
             WeekOffMasterRepository = new WeekOffMasterRepository(_dbContext);
             HolidayMasterRepository = new HolidayMasterRepository(_dbContext);
+            WarningMasterRepository = new WarningMasterRepository(_dbContext);
+            LevelWiseCardMappingRepository = new LevelWiseCardMappingRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -61,6 +63,8 @@ namespace HRMS_Infrastructure.Repository
         public IBankMasterRepository BankMasterRepository { get; set; }
         public IWeekOffMasterRepository WeekOffMasterRepository { get; set; }
         public IHolidayMasterRepository HolidayMasterRepository { get; set; }
+        public IWarningMasterRepository WarningMasterRepository { get; set; }
+        public ILevelWiseCardMappingRepository LevelWiseCardMappingRepository { get; set; }
 
         public void Commit()
         {

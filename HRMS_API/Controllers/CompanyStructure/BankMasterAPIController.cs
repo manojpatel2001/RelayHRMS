@@ -25,7 +25,7 @@ namespace HRMS_API.Controllers.CompanyStructure
         {
             try
             {
-                var data = await _unitOfWork.BankMasterRepository.GetAllAsync(x => x.IsDeleted == false && x.IsEnabled == true);
+                var data = await _unitOfWork.BankMasterRepository.GetAllBankMaster();
                 if (data == null || !data.Any())
                 {
                     return new APIResponse
@@ -48,12 +48,12 @@ namespace HRMS_API.Controllers.CompanyStructure
         }
 
 
-        [HttpGet("GetByBankMasterId/{id}")]
+        [HttpGet("GetByBankMasterId/{bankMasterId}")]
         public async Task<APIResponse> GetByBankMasterId(int bankMasterId)
         {
             try
             {
-                var data = await _unitOfWork.BankMasterRepository.GetAsync(x => x.BankMasterId == bankMasterId && x.IsEnabled == true && x.IsDeleted == false);
+                var data = await _unitOfWork.BankMasterRepository.GetByBankMasterId(bankMasterId);
                 if (data == null)
                 {
                     return new APIResponse

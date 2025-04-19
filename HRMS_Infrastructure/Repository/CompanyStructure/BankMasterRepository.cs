@@ -20,6 +20,40 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
         {
             _db = db;
         }
+        public async Task<List<BankMaster>> GetAllBankMaster()
+        {
+            try
+            {
+                var result = await _db.Set<BankMaster>()
+                                      .FromSqlInterpolated($"EXEC GetAllBankMaster")
+                                      .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                // Log exception if needed
+                return new List<BankMaster>();
+            }
+        }
+
+        public async Task<BankMaster?> GetByBankMasterId(int bankMasterId)
+        {
+            try
+            {
+                var result = await _db.Set<BankMaster>()
+                                      .FromSqlInterpolated($"EXEC GetByBankMasterId @BankMasterId = {bankMasterId}")
+                                      .ToListAsync();
+
+                return result.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                // Log exception if necessary
+                return null;
+            }
+        }
+
 
         public async Task<VMCommonResult> CreateBankMaster(BankMaster bankMaster)
         {
