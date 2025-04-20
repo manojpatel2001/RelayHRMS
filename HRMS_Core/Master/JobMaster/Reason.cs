@@ -16,6 +16,9 @@ namespace HRMS_Core.Master.JobMaster
         public int ReasonId { get; set; }
         public string? ReasonName { get; set; }
         public string? ReasonType { get; set; }
+        public bool IsActive { get; set; } = false;
+        public string? GatePassType { get; set; }
         public bool IsCommentMandatory { get; set; } = false;
+
     }
 }

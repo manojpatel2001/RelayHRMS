@@ -34,5 +34,10 @@ namespace HRMS.UI.Controllers
             return View();
         }
 
+        public IActionResult Reason()
+        {
+            return View();
+        }
+
     }
 }
