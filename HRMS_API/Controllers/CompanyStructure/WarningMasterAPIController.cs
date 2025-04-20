@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.Master.CompanyStructure;
+using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
@@ -67,6 +68,11 @@ namespace HRMS_API.Controllers.CompanyStructure
 
                 if (warning.WarningMasterId == 0)
                 {
+                    var isExists = await _unitOfWork.WarningMasterRepository.GetAllAsync(asd => asd.WarningName.ToLower().Trim() == warning.WarningName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
+                    if (isExists.Any())
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{warning.WarningName}' already exists" };
+                    }
                     warning.CreatedDate = DateTime.UtcNow;
                     var result = await _unitOfWork.WarningMasterRepository.CreateWarningMaster(warning);
                     if (result.Id > 0)
@@ -83,7 +89,11 @@ namespace HRMS_API.Controllers.CompanyStructure
                     {
                         return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record" };
                     }
-
+                    var isExists = await _unitOfWork.WarningMasterRepository.GetAllAsync(asd =>asd.WarningMasterId!=warning.WarningMasterId && asd.WarningName.ToLower().Trim() == warning.WarningName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
+                    if (isExists.Any())
+                    {
+                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{warning.WarningName}' already exists" };
+                    }
                     warning.UpdatedDate = DateTime.UtcNow;
                     var result = await _unitOfWork.WarningMasterRepository.UpdateWarningMaster(warning);
                     if (result.Id > 0)
@@ -115,7 +125,11 @@ namespace HRMS_API.Controllers.CompanyStructure
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record" };
                 }
-
+                var isExists = await _unitOfWork.WarningMasterRepository.GetAllAsync(asd => asd.WarningMasterId != warning.WarningMasterId && asd.WarningName.ToLower().Trim() == warning.WarningName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
+                if (isExists.Any())
+                {
+                    return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{warning.WarningName}' already exists" };
+                }
                 warning.UpdatedDate = DateTime.UtcNow;
                 var result = await _unitOfWork.WarningMasterRepository.UpdateWarningMaster(warning);
                 if (result.Id > 0)
