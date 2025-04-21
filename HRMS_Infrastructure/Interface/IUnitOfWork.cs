@@ -29,6 +29,7 @@ namespace HRMS_Infrastructure.Interface
         IHolidayMasterRepository HolidayMasterRepository { get; }
         IWarningMasterRepository WarningMasterRepository { get; }
         ILevelWiseCardMappingRepository LevelWiseCardMappingRepository { get; }
+        ICityCategoryRepository CityCategoryRepository { get; }
         void Commit();
         Task CommitAsync();
     }

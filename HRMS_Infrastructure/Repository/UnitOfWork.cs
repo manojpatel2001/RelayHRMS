@@ -38,6 +38,7 @@ namespace HRMS_Infrastructure.Repository
             HolidayMasterRepository = new HolidayMasterRepository(_dbContext);
             WarningMasterRepository = new WarningMasterRepository(_dbContext);
             LevelWiseCardMappingRepository = new LevelWiseCardMappingRepository(_dbContext);
+            CityCategoryRepository = new CityCategoryRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -65,6 +66,7 @@ namespace HRMS_Infrastructure.Repository
         public IHolidayMasterRepository HolidayMasterRepository { get; set; }
         public IWarningMasterRepository WarningMasterRepository { get; set; }
         public ILevelWiseCardMappingRepository LevelWiseCardMappingRepository { get; set; }
+        public ICityCategoryRepository CityCategoryRepository { get; set; }
 
         public void Commit()
         {

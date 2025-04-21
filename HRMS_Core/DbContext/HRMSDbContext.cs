@@ -3,6 +3,7 @@ using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyStructure;
+using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.OtherMaster;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +56,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllTicketTypes>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllWeekOffDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllHolidayMaster>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllCity>().HasNoKey().ToView(null);
         }
 
     }
