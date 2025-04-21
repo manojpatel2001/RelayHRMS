@@ -19,5 +19,6 @@ namespace HRMS_Core.Master.CompanyStructure
         public string? Level { get; set; }
         public string? Remarks { get; set; }
         public string? DeductionType { get; set; }
+        public string? DeductionTypeValue { get; set; }
     }
 }

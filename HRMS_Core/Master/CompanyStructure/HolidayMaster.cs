@@ -33,6 +33,7 @@ namespace HRMS_Core.Master.CompanyStructure
         public bool PresentCompulsory { get; set; } = false;
         public bool SMS { get; set; } = false;
         public bool OptionalHoliday { get; set; } = false;  
+        public string? ApprovalMaxLimit { get; set; } = "0";  
 
     }
 }

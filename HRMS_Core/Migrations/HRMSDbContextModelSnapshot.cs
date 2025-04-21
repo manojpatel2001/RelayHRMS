@@ -114,6 +114,324 @@ namespace HRMS_Core.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.BankMaster", b =>
+                {
+                    b.Property<int>("BankMasterId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BankMasterId"));
+
+                    b.Property<string>("AccountNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BankBSRCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BankCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BankName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BranchName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("City")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefaultBank")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("BankMasterId");
+
+                    b.ToTable("BankMaster");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.HolidayMaster", b =>
+                {
+                    b.Property<int>("HolidayMasterId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("HolidayMasterId"));
+
+                    b.Property<string>("ApprovalMaxLimit")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("HalfDay")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("HolidayName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Holidaycategory")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MessageText")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("MultipleHoliday")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("OptionalHoliday")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("PresentCompulsory")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RepeatAnnually")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("SMS")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("State")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ToDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("HolidayMasterId");
+
+                    b.HasIndex("BranchId");
+
+                    b.ToTable("HolidayMaster");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.LevelWiseCardMapping", b =>
+                {
+                    b.Property<int>("LevelWiseCardMappingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LevelWiseCardMappingId"));
+
+                    b.Property<int>("CardNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CardType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Level")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("LevelWiseCardMappingId");
+
+                    b.ToTable("LevelWiseCardMapping");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.WarningMaster", b =>
+                {
+                    b.Property<int>("WarningMasterId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WarningMasterId"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeductionType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DeductionTypeValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Level")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("WarningName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("WarningMasterId");
+
+                    b.ToTable("WarningMaster");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.WeekOffDetails", b =>
+                {
+                    b.Property<int>("WeekOffDetailsId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WeekOffDetailsId"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FridayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MondayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SaturdayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SundayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ThursdayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TuesdayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("WednesdayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("WeekOffDetailsId");
+
+                    b.HasIndex("BranchId");
+
+                    b.ToTable("WeekOffDetails");
+                });
+
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Branch", b =>
                 {
                     b.Property<int>("BranchId")
@@ -211,6 +529,9 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("CityName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Country")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CreatedBy")
@@ -510,6 +831,12 @@ namespace HRMS_Core.Migrations
                     b.Property<DateTime?>("DeletedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("GatePassType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<bool?>("IsBlocked")
                         .HasColumnType("bit");
 
@@ -737,6 +1064,312 @@ namespace HRMS_Core.Migrations
                     b.ToTable("State");
                 });
 
+            modelBuilder.Entity("HRMS_Core.Master.OtherMaster.OrganizationPolicy", b =>
+                {
+                    b.Property<int>("OrganizationPolicyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrganizationPolicyId"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DocumentUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Grouping")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GroupingValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("OrganizationPolicyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Sorting")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ToDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ToolTip")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("OrganizationPolicyId");
+
+                    b.ToTable("OrganizationPolicy");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Master.OtherMaster.TicketPriority", b =>
+                {
+                    b.Property<int?>("TicketPriorityId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int?>("TicketPriorityId"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("EscalationHours")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("TicketPriorityName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("TicketPriorityId");
+
+                    b.ToTable("TicketPriority");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Master.OtherMaster.TicketType", b =>
+                {
+                    b.Property<int?>("TicketTypeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int?>("TicketTypeId"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("TicketTypeName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("TicketTypeId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.ToTable("TicketType");
+                });
+
+            modelBuilder.Entity("HRMS_Core.VM.CompanyStructure.vmGetAllHolidayMaster", b =>
+                {
+                    b.Property<string>("ApprovalMaxLimit")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BranchName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("HalfDay")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("HolidayMasterId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("HolidayName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Holidaycategory")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MessageText")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("MultipleHoliday")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("OptionalHoliday")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("PresentCompulsory")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("RepeatAnnually")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("SMS")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("State")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ToDate")
+                        .HasColumnType("datetime2");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.VM.CompanyStructure.vmGetAllWeekOffDetails", b =>
+                {
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BranchName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FridayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MondayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SaturdayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SundayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ThursdayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TuesdayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("WednesdayWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("WeekOffDetailsId")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.VM.OtherMaster.vmGetAllTicketTypes", b =>
+                {
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DepartmentName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("TicketTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TicketTypeName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.VM.VMCommonResult", b =>
+                {
+                    b.Property<int?>("Id")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.Property<int>("Id")
@@ -843,6 +1476,28 @@ namespace HRMS_Core.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.HolidayMaster", b =>
+                {
+                    b.HasOne("HRMS_Core.Master.JobMaster.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.WeekOffDetails", b =>
+                {
+                    b.HasOne("HRMS_Core.Master.JobMaster.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.City", b =>
                 {
                     b.HasOne("HRMS_Core.Master.JobMaster.CityCategory", "CityCategory")
@@ -867,6 +1522,15 @@ namespace HRMS_Core.Migrations
                         .IsRequired();
 
                     b.Navigation("ShiftMaster");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Master.OtherMaster.TicketType", b =>
+                {
+                    b.HasOne("HRMS_Core.Master.JobMaster.Department", "DepartmentDetails")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId");
+
+                    b.Navigation("DepartmentDetails");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

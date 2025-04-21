@@ -1,7 +1,11 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.JobMaster;
+using HRMS_Infrastructure.Interface.OtherMaster;
+using HRMS_Infrastructure.Repository.CompanyStructure;
 using HRMS_Infrastructure.Repository.JobMaster;
+using HRMS_Infrastructure.Repository.OtherMaster;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +30,15 @@ namespace HRMS_Infrastructure.Repository
             StateRepository = new StateRepository(_dbContext);
             ShiftBreakRepository = new ShiftBreakRepository(_dbContext);
             ShiftMasterRepository = new ShiftMasterRepository(_dbContext);
+            OrganizationPolicyRepository = new OrganizationPolicyRepository(_dbContext);
+            TicketTypeRepository = new TicketTypeRepository(_dbContext);
+            TicketPriorityRepository = new TicketPriorityRepository(_dbContext);
+            BankMasterRepository = new BankMasterRepository(_dbContext);
+            WeekOffMasterRepository = new WeekOffMasterRepository(_dbContext);
+            HolidayMasterRepository = new HolidayMasterRepository(_dbContext);
+            WarningMasterRepository = new WarningMasterRepository(_dbContext);
+            LevelWiseCardMappingRepository = new LevelWiseCardMappingRepository(_dbContext);
+            CityCategoryRepository = new CityCategoryRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -45,6 +58,15 @@ namespace HRMS_Infrastructure.Repository
         public IShiftBreakRepository ShiftBreakRepository { get; set; }
 
         public IShiftMasterRepository ShiftMasterRepository { get; set; }
+        public IOrganizationPolicyRepository OrganizationPolicyRepository { get; set; }
+        public ITicketTypeRepository TicketTypeRepository { get; set; }
+        public ITicketPriorityRepository TicketPriorityRepository { get; set; }
+        public IBankMasterRepository BankMasterRepository { get; set; }
+        public IWeekOffMasterRepository WeekOffMasterRepository { get; set; }
+        public IHolidayMasterRepository HolidayMasterRepository { get; set; }
+        public IWarningMasterRepository WarningMasterRepository { get; set; }
+        public ILevelWiseCardMappingRepository LevelWiseCardMappingRepository { get; set; }
+        public ICityCategoryRepository CityCategoryRepository { get; set; }
 
         public void Commit()
         {

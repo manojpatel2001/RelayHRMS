@@ -15,41 +15,117 @@ namespace HRMS_Infrastructure.Repository.JobMaster
     {
         private readonly HRMSDbContext _db;
 
-        public ReasonRepository(HRMSDbContext db) : base(db) 
+        public ReasonRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
         }
 
-        public async Task<Reason> SoftDelete(DeleteRecordVM DeleteRecord)
+        public async Task<List<Reason>> GetAllReasons()
         {
-            var reason = await _db.Reasons.FirstOrDefaultAsync(asd => asd.ReasonId == DeleteRecord.Id);
-            if (reason == null)
+            try
             {
-                return reason;
+                return await _db.Set<Reason>()
+                                .FromSqlInterpolated($"EXEC GetAllReasons")
+                                .ToListAsync();
             }
-            else
+            catch (Exception)
             {
-                reason.IsEnabled = false;
-                reason.IsDeleted = true;
-                reason.DeletedDate = DateTime.UtcNow;
-                reason.DeletedBy = DeleteRecord.DeletedBy;
-                return reason;
+                return new List<Reason>();
             }
         }
 
-        public async Task<bool> UpdateReason(Reason reason)
+        public async Task<Reason?> GetByReasonId(int reasonId)
         {
-            var existingRecord = await _db.Reasons.SingleOrDefaultAsync(asd => asd.ReasonId== reason.ReasonId);
-            if (existingRecord == null)
+            try
             {
-                return false;
+                var result = await _db.Set<Reason>()
+                                      .FromSqlInterpolated($"EXEC GetByReasonId @ReasonId = {reasonId}")
+                                      .ToListAsync();
+
+                return result.FirstOrDefault();
             }
-            existingRecord.ReasonName = reason.ReasonName;
-            existingRecord.ReasonType = reason.ReasonType;
-            existingRecord.IsCommentMandatory = reason.IsCommentMandatory;
-            existingRecord.UpdatedBy = reason.UpdatedBy;
-            existingRecord.UpdatedDate = DateTime.UtcNow;
-            return true;
+            catch (Exception)
+            {
+                return null;
+            }
         }
+
+        public async Task<VMCommonResult> CreateReason(Reason reason)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC ManageReason 
+                        @Action = {"CREATE"},
+                        @ReasonName = {reason.ReasonName},
+                        @ReasonType = {reason.ReasonType},
+                        @IsActive = {reason.IsActive},
+                        @GatePassType = {reason.GatePassType},
+                        @IsCommentMandatory = {reason.IsCommentMandatory},
+                        @IsDeleted = {reason.IsDeleted},
+                        @IsEnabled = {reason.IsEnabled},
+                        @IsBlocked = {reason.IsBlocked},
+                        @CreatedDate = {reason.CreatedDate},
+                        @CreatedBy = {reason.CreatedBy},
+                        @UpdatedDate = {reason.UpdatedDate},
+                        @UpdatedBy = {reason.UpdatedBy},
+                        @DeletedDate = {reason.DeletedDate},
+                        @DeletedBy = {reason.DeletedBy}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch (Exception)
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> UpdateReason(Reason reason)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC ManageReason 
+                        @Action = {"UPDATE"},
+                        @ReasonId = {reason.ReasonId},
+                        @ReasonName = {reason.ReasonName},
+                        @ReasonType = {reason.ReasonType},
+                        @IsActive = {reason.IsActive},
+                        @GatePassType = {reason.GatePassType},
+                        @IsCommentMandatory = {reason.IsCommentMandatory},
+                        @UpdatedDate = {reason.UpdatedDate},
+                        @UpdatedBy = {reason.UpdatedBy}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch (Exception)
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> DeleteReason(DeleteRecordVM deleteRecordVM)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC ManageReason 
+                        @Action = {"DELETE"},
+                        @ReasonId = {deleteRecordVM.Id},
+                        @DeletedDate = {deleteRecordVM.DeletedDate},
+                        @DeletedBy = {deleteRecordVM.DeletedBy}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch (Exception)
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+
     }
 }

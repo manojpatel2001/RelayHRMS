@@ -10,7 +10,11 @@ namespace HRMS_Infrastructure.Interface.JobMaster
 {
     public interface IReasonRepository : IRepository<Reason>
     {
-        Task<bool> UpdateReason(Reason reason);
-        Task<Reason> SoftDelete(DeleteRecordVM DeleteRecord);
+
+        Task<List<Reason>> GetAllReasons();
+        Task<Reason?> GetByReasonId(int reasonId);
+        Task<VMCommonResult> CreateReason(Reason reason);
+        Task<VMCommonResult> UpdateReason(Reason reason);
+        Task<VMCommonResult> DeleteReason(DeleteRecordVM deleteRecordVM);
     }
 }
