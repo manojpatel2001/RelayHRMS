@@ -1,8 +1,10 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.OtherMaster;
+using HRMS_Infrastructure.Repository.CompanyInformation;
 using HRMS_Infrastructure.Repository.CompanyStructure;
 using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.OtherMaster;
@@ -39,6 +41,7 @@ namespace HRMS_Infrastructure.Repository
             WarningMasterRepository = new WarningMasterRepository(_dbContext);
             LevelWiseCardMappingRepository = new LevelWiseCardMappingRepository(_dbContext);
             CityCategoryRepository = new CityCategoryRepository(_dbContext);
+            CompanyDetailsRepository = new CompanyDetailsRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -67,6 +70,7 @@ namespace HRMS_Infrastructure.Repository
         public IWarningMasterRepository WarningMasterRepository { get; set; }
         public ILevelWiseCardMappingRepository LevelWiseCardMappingRepository { get; set; }
         public ICityCategoryRepository CityCategoryRepository { get; set; }
+        public ICompanyDetailsRepository CompanyDetailsRepository { get; set; }
 
         public void Commit()
         {
