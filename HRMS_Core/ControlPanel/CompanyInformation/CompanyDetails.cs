@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -54,7 +55,15 @@ namespace HRMS_Core.ControlPanel.CompanyInformation
         public string? SelectWeekOffDay { get; set; }
         public string? AlternateWeekOffDay { get; set; }
         public string? AlternateFullWeekOff { get; set; }
+        //change logo
         public string? CompanyLogoUrl { get; set; }
+        public bool? IsDisplayOnLogin { get; set; }
+        //Upload header
+        public DateTime? EffectiveDate { get; set; }
+        public string? LetterHeadHeaderUrl { get; set; }
+        public string? LetterHeadFooterUrl { get; set; }
+
+        // upload signature
         public string? DigitalSignatureUrl { get; set; }
         public string? DigitalSignaturePassword { get; set; }
 

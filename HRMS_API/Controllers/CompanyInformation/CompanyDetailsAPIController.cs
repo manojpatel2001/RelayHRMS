@@ -1,5 +1,7 @@
 ﻿using HRMS_Core.ControlPanel.CompanyInformation;
+using HRMS_Core.Helper;
 using HRMS_Core.VM;
+using HRMS_Core.VM.CompanyInformation;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -172,6 +174,75 @@ namespace HRMS_API.Controllers.CompanyInformation
             catch (Exception ex)
             {
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
+            }
+        }
+
+        [HttpPost("ChangeCompanyLogo")]
+        public async Task<APIResponse> ChangeCompanyLogo(vmChangeCompanyLogo model)
+        {
+            try
+            {
+                if (model == null || model.companyId == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Company details cannot be null." };
+                var check = await _unitOfWork.CompanyDetailsRepository.GetByCompanyId((int)model.companyId);
+                if (check == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid company record." };
+
+                if (model.LogoFile != null || model.LogoFile.Length>0)
+                {
+
+                    var folder = $"uploads/companylogo";
+                    var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.LogoFile, folder, null);
+                    model.CompanyLogoUrl = fileUrl;
+                }
+                var result = await _unitOfWork.CompanyDetailsRepository.UpdateCompanyLogo(model);
+
+                if (result.Id > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = "The company logo has been changed successfully." };
+
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to change company logo. Please try again later." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to change company logo. Please try again later." };
+            }
+        }
+
+        [HttpPost("UpdateLetterHead")]
+        public async Task<APIResponse> UpdateLetterHead(vmUploadHeader model)
+        {
+            try
+            {
+                if (model == null || model.companyId == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Company details cannot be null." };
+                var check = await _unitOfWork.CompanyDetailsRepository.GetByCompanyId((int)model.companyId);
+                if (check == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid company record." };
+
+                if (model.LetterHeadHeaderFile != null || model.LetterHeadHeaderFile.Length > 0)
+                {
+
+                    var folder = $"uploads/companyletterhead";
+                    var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.LetterHeadHeaderFile, folder, null);
+                    model.LetterHeadHeaderUrl = fileUrl;
+                }
+                if (model.LetterHeadFooterFile != null || model.LetterHeadFooterFile.Length > 0)
+                {
+
+                    var folder = $"uploads/companyletterhead";
+                    var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.LetterHeadFooterFile, folder, null);
+                    model.LetterHeadFooterUrl = fileUrl;
+                }
+                var result = await _unitOfWork.CompanyDetailsRepository.UpdateLetterHead(model);
+
+                if (result.Id > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = "The letter head has been uploaded successfully." };
+
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to upload letter head. Please try again later." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to upload letter head. Please try again later." };
             }
         }
     }
