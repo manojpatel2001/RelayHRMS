@@ -190,7 +190,7 @@
                                 <div class="form-group position-relative">
                                     
                                     <select class="form-select floating-input" id="txtcountry">
-                                        <option selected="selected" value="Select Country">Select Country</option>
+                                        <option selected value="">Select Country</option>
                                         <option value="3">AFGHANISTAN</option>
                                         <option value="4">ALAND ISLANDS</option>
                                         <option value="5">ALBANIA</option>
@@ -756,7 +756,7 @@
                             <div class="col-md-12 p-0 tagDigitalSignature" style="display:none;">
                                 <h6 class="btn-heading-title bg-secondary text-white p-2 mb-3">Digital Signature</h6>
                                 <div class="mb-1">
-                                    <input class="form-control" type="file" id="digitalSignature" accept=".jpg,image/jpeg">
+                                    <input class="form-control" type="file" id="digitalSignature" accept=".pfx">
                                 </div>
 
                                 <div class="mb-2">
@@ -824,19 +824,20 @@
     </div>
 </div>
 
-<div class="modal  trigger-company-modal" id="emailSignatureModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal trigger-company-modal" id="emailSignatureModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title btn-heading-title" id="exampleModalLabel">
-                    <span class="formType">Email Signature </span>
+                    <span class="formType">Email Signature</span>
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#addEmployeeModal" aria-label="Close"></button>
             </div>
             <div class="modal-body modal-body-font">
-                
+                <textarea style="width: 100%; height: 300px;" id="txtEmailSignature"></textarea>
 
             </div>
+           
 
         </div>
     </div>
@@ -1004,7 +1005,7 @@
     });
 
 
-       function CompanyDetailsDataTable() {
+    function CompanyDetailsDataTable() {
         $.ajax({
             type: "GET",
             url: '@baseUrl/CompanyDetailsAPI/GetAllCompanyDetails',
@@ -1086,7 +1087,6 @@
                                 },
                                 width: 150
                             },
-                            { dataField: 'digitalSignature', caption: 'Digital Signature', alignment: 'center', width: 150 },
                             {
                                 dataField: 'isDigitalSignature',
                                 caption: 'Is Digital Signature',
@@ -1279,13 +1279,11 @@
     let inOutDuration = $("#txtinOutDuration").val()?.trim() ?? null;
     let hierarchyDesignation = $("#txthierarchyDesignation").is(":checked") ?? false;
     let employeeLicense = $("#txtemployeeLicense").val() ?? null;
-    let emailSignature = "Best Regards, Example Company"; // Placeholder, replace with actual logic
+      let emailSignature =  $("#txtEmailSignature").val() ?? null;
     let contractorCompany = $("#txtcontractorCompany").is(":checked") ?? false;
     let digitalSignature = $("#txtdigitalSignature").is(":checked") ?? false;
     let isDigitalSignature = digitalSignature;
-    let digitalSignatureUrl =null; // Placeholder, replace with actual logic
-    let digitalSignaturePassword = "password123"; // Placeholder, replace with actual logic
-
+   
     // Alternate WeekOff Day
    
     let alternateWeekOffDay = $("#alternateWeekOffDay").val() ?? null;
@@ -1375,7 +1373,7 @@
                 phoneNo: phoneNo === "" ? null : phoneNo,
                 emailAddress: emailAddress === "" ? null : emailAddress,
                 dateFormat: dateFormat === "" ? null : dateFormat,
-                    fromDate: fromDate === "" ? null : fromDate,
+                fromDate: fromDate === "" ? null : fromDate,
                 website: website === "" ? null : website,
                 pfTrustNo: pfTrustNo === "" ? null : pfTrustNo,
                 pfApplicable: pfApplicable,
@@ -1397,9 +1395,6 @@
                 selectWeekOffDay: resultSelectWeekOffDay === "" ? null : resultSelectWeekOffDay,
                 alternateWeekOffDay: alternateWeekOffDay === "" ? null : alternateWeekOffDay,
                 alternateFullWeekOff: alternateFullWeekOff === "" ? null : alternateFullWeekOff,
-                companyLogoUrl: null,
-                digitalSignatureUrl: digitalSignatureUrl === "" ? null : digitalSignatureUrl,
-                digitalSignaturePassword: digitalSignaturePassword === "" ? null : digitalSignaturePassword,
                 createdBy: null,
                 updatedDate: null,
                 updatedBy: null
@@ -1417,7 +1412,7 @@
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage);
                     CompanyDetailsDataTable(); // Refresh your data table
-                    $('#addCompanyDetailsModel').modal('hide');
+                        $('#addCompanyDetailsModal').modal('hide');
                 } else {
                     round_error_noti(response.responseMessage);
                 }
@@ -1489,7 +1484,7 @@
                 return;
             }
               const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-              if (extension== 'jpg') {
+              if (extension!='.jpg') {
                   round_error_noti('Please upload only a JPG file.');
                 return;
             }
@@ -1524,8 +1519,7 @@
     });
 
     // upload letter header
-
-     $(document).ready(function() {
+    $(document).ready(function() {
         $('#btnUpdateCompany').click(function() {
             // Get the values from the form
             var companyName = $('#companyName').val();
@@ -1576,6 +1570,67 @@
         });
     });
 
+    // upload digital signature
+    $(document).ready(function() {
+        $('#btnUploadSignature').click(function() {
+            var fileInput = $('#digitalSignature')[0];
+            var file = fileInput.files[0];
+            var password = $('#signaturePassword').val();
+              
+            if (!file) 
+            {
+                $('#spnSignaturePassword').hide();
+                round_error_noti('Please select a PFX file.');
+                return;
+            }
+
+            const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (extension!='.pfx') 
+            {
+                round_error_noti('Please upload only a PFX file.');
+                return;
+            }
+            if (!password) {
+                $('#spnSignaturePassword').show();
+                return;
+            }
+            else
+            {
+                $('#spnSignaturePassword').hide();
+            }
+
+            var formData = new FormData();
+                formData.append('CompanyId', CompanyId);
+                formData.append('DigitalSignatureFile', file);
+                formData.append('DigitalSignaturePassword', password);
+                formData.append('IsDigitalSignature', $("#txtdigitalSignature").is(":checked"));
+
+            $.ajax({
+                url: '@baseUrl/CompanyDetailsAPI/UpdateDigitalSignature', 
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if(response.isSuccess)
+                    {
+                        round_success_noti(response.responseMessage)
+                        $('#spnSignaturePassword').hide();
+                        $('#digitalSignature').val('');
+                        $('#signaturePassword').val('');
+
+                    }
+                    else{
+                        round_error_noti(response.responseMessage)
+                    }
+                    
+                },
+                error: function(xhr, status, error) {
+                   round_error_noti('An error occurred while uploading digital signature!');
+                }
+            });
+        });
+    });
 
 </script>
 

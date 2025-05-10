@@ -39,7 +39,6 @@ namespace HRMS_Core.VM.CompanyInformation
         public string? EmployeeLicense { get; set; }
         public string? EmailSignature { get; set; }
         public bool? ContractorCompany { get; set; }
-        public string? DigitalSignature { get; set; }
         public bool? IsDigitalSignature { get; set; }
         public string? SelectWeekOffDay { get; set; }
         public string? AlternateWeekOffDay { get; set; }
@@ -47,6 +46,10 @@ namespace HRMS_Core.VM.CompanyInformation
         public string? CompanyLogoUrl { get; set; }
         public string? DigitalSignatureUrl { get; set; }
         public string? DigitalSignaturePassword { get; set; }
+        public DateTime? EffectiveDate { get; set; }
+        public string? LetterHeadHeaderUrl { get; set; }
+        public string? LetterHeadFooterUrl { get; set; }
+        public bool? IsDisplayOnLogin { get; set; }
         public bool? IsDeleted { get; set; }
         public bool? IsEnabled { get; set; }
         public bool? IsBlocked { get; set; }
