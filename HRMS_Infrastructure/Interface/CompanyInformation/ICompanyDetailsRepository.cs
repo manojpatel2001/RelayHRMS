@@ -18,6 +18,7 @@ namespace HRMS_Infrastructure.Interface.CompanyInformation
         Task<VMCommonResult> DeleteCompanyDetails(DeleteRecordVM deleteRecordVM);
         Task<VMCommonResult> UpdateCompanyLogo(vmChangeCompanyLogo vmChangeCompanyLogo);
         Task<VMCommonResult> UpdateLetterHead(vmUploadHeader vmUploadHeader);
+        Task<VMCommonResult> UpdateDigitalSignature(vmDigitalSignature vmDigitalSignature);
     }
 
 }

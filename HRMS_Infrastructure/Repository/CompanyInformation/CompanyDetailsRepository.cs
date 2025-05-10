@@ -84,7 +84,6 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
                     @EmployeeLicense = {companyDetails.EmployeeLicense},
                     @EmailSignature = {companyDetails.EmailSignature},
                     @ContractorCompany = {companyDetails.ContractorCompany},
-                    @DigitalSignature = {companyDetails.DigitalSignature},
                     @IsDigitalSignature = {companyDetails.IsDigitalSignature},
                     @SelectWeekOffDay = {companyDetails.SelectWeekOffDay},
                     @AlternateWeekOffDay = {companyDetails.AlternateWeekOffDay},
@@ -92,6 +91,9 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
                     @CompanyLogoUrl = {companyDetails.CompanyLogoUrl},
                     @DigitalSignatureUrl = {companyDetails.DigitalSignatureUrl},
                     @DigitalSignaturePassword = {companyDetails.DigitalSignaturePassword},
+                    @IsDisplayOnLogin = {companyDetails.IsDisplayOnLogin},
+                    @LetterHeadFooterUrl = {companyDetails.LetterHeadFooterUrl},
+                    @LetterHeadHeaderUrl = {companyDetails.LetterHeadHeaderUrl},
                     @IsDeleted = {companyDetails.IsDeleted},
                     @IsEnabled = {companyDetails.IsEnabled},
                     @IsBlocked = {companyDetails.IsBlocked},
@@ -146,14 +148,10 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
                     @EmployeeLicense = {companyDetails.EmployeeLicense},
                     @EmailSignature = {companyDetails.EmailSignature},
                     @ContractorCompany = {companyDetails.ContractorCompany},
-                    @DigitalSignature = {companyDetails.DigitalSignature},
                     @IsDigitalSignature = {companyDetails.IsDigitalSignature},
                     @SelectWeekOffDay = {companyDetails.SelectWeekOffDay},
                     @AlternateWeekOffDay = {companyDetails.AlternateWeekOffDay},
                     @AlternateFullWeekOff = {companyDetails.AlternateFullWeekOff},
-                    @CompanyLogoUrl = {companyDetails.CompanyLogoUrl},
-                    @DigitalSignatureUrl = {companyDetails.DigitalSignatureUrl},
-                    @DigitalSignaturePassword = {companyDetails.DigitalSignaturePassword},
                     @UpdatedDate = {companyDetails.UpdatedDate},
                     @UpdatedBy = {companyDetails.UpdatedBy}
             ").ToListAsync();
@@ -219,6 +217,27 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
                         @LetterHeadHeaderUrl = {vmUploadHeader.LetterHeadHeaderUrl},
                         @LetterHeadFooterUrl = {vmUploadHeader.LetterHeadFooterUrl},
                         @EffectiveDate = {vmUploadHeader.EffectiveDate}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> UpdateDigitalSignature(vmDigitalSignature vmDigitalSignature)
+        {
+            try
+            {
+                // Call the stored procedure
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC UpdateDigitalSignature
+                        @CompanyId = {vmDigitalSignature.CompanyId},
+                        @IsDigitalSignature = {vmDigitalSignature.IsDigitalSignature},
+                        @DigitalSignatureUrl = {vmDigitalSignature.DigitalSignatureUrl},
+                        @DigitalSignaturePassword = {vmDigitalSignature.DigitalSignaturePassword}
                 ").ToListAsync();
 
                 return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };

@@ -50,8 +50,6 @@ namespace HRMS_Core.ControlPanel.CompanyInformation
         public string? EmployeeLicense { get; set; }
         public string? EmailSignature { get; set; }
         public bool? ContractorCompany { get; set; }
-        public string? DigitalSignature { get; set; }
-        public bool? IsDigitalSignature { get; set; }
         public string? SelectWeekOffDay { get; set; }
         public string? AlternateWeekOffDay { get; set; }
         public string? AlternateFullWeekOff { get; set; }
@@ -64,6 +62,7 @@ namespace HRMS_Core.ControlPanel.CompanyInformation
         public string? LetterHeadFooterUrl { get; set; }
 
         // upload signature
+        public bool? IsDigitalSignature { get; set; }
         public string? DigitalSignatureUrl { get; set; }
         public string? DigitalSignaturePassword { get; set; }
 
