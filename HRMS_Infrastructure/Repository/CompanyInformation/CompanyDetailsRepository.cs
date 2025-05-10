@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 
 namespace HRMS_Infrastructure.Repository.CompanyInformation
 {
@@ -184,6 +185,50 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
                 return new VMCommonResult { Id = 0 };
             }
         }
+
+        public async Task<VMCommonResult> UpdateCompanyLogo(vmChangeCompanyLogo vmChangeCompanyLogo)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC UpdateCompanyLogo
+                    @CompanyId = {vmChangeCompanyLogo.companyId},
+                    @IsDisplayOnLogin = {vmChangeCompanyLogo.IsDisplayOnLogin},
+                    @CompanyLogoUrl = {vmChangeCompanyLogo.CompanyLogoUrl}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> UpdateLetterHead(vmUploadHeader vmUploadHeader)
+        {
+            try
+            {
+              
+                // Call the stored procedure
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC UpdateLetterHead
+                        @CompanyId = {vmUploadHeader.companyId},
+                        @CompanyName = {vmUploadHeader.CompanyName},
+                        @CompanyAddress = {vmUploadHeader.CompanyAddress},
+                        @LetterHeadHeaderUrl = {vmUploadHeader.LetterHeadHeaderUrl},
+                        @LetterHeadFooterUrl = {vmUploadHeader.LetterHeadFooterUrl},
+                        @EffectiveDate = {vmUploadHeader.EffectiveDate}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
     }
 
 }
