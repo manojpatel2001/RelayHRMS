@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250516021553_AddSomeField")]
+    partial class AddSomeField
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -235,66 +238,6 @@ namespace HRMS_Core.Migrations
                     b.HasIndex("StateId");
 
                     b.ToTable("CompanyDetails");
-                });
-
-            modelBuilder.Entity("HRMS_Core.ControlPanel.CompanyInformation.DirectorDetails", b =>
-                {
-                    b.Property<int>("DirectorDetailsId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectorDetailsId"));
-
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DirectorAddress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DirectorBranch")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DirectorDOB")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DirectorDesignation")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DirectorName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("DirectorDetailsId");
-
-                    b.HasIndex("CompanyId");
-
-                    b.ToTable("DirectorDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.DbContext.HRMSRoleIdentity", b =>
@@ -1499,22 +1442,10 @@ namespace HRMS_Core.Migrations
 
             modelBuilder.Entity("HRMS_Core.VM.CompanyInformation.vmGetAllCompanyDetails", b =>
                 {
-                    b.Property<bool?>("AlphaNumericCode")
-                        .HasColumnType("bit");
-
                     b.Property<string>("AlternateFullWeekOff")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("AlternateWeekOffDay")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CitAddress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CitCity")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CitPin")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("CityId")
@@ -1553,9 +1484,6 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("DateFormat")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("DateOfFactorySetup")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("DeletedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -1566,9 +1494,6 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DigitalSignatureUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DigitsForEmployeeCode")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DomainName")
@@ -1586,41 +1511,20 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("EmailSignature")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("EmployeeCodeSetting")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("EmployeeLicense")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool?>("EsicApplicable")
                         .HasColumnType("bit");
 
-                    b.Property<string>("FactoryLicenseNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FactoryLicenseOffice")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FactoryRegistrationNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FactoryType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FatherName")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime?>("FromDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool?>("GstTravelExpenses")
-                        .HasColumnType("bit");
-
                     b.Property<bool?>("HierarchyDesignation")
                         .HasColumnType("bit");
-
-                    b.Property<string>("HrManager")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("HrManagerDesignation")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("InOutDuration")
                         .HasColumnType("int");
@@ -1640,9 +1544,6 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("IsEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime?>("IssueDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("LetterHeadFooterUrl")
                         .HasColumnType("nvarchar(max)");
 
@@ -1650,15 +1551,6 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LwfNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ManagerDesignation")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MaxEmployeeCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("NatureOfBusiness")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PFNo")
@@ -1679,9 +1571,6 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("PinCode")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("SampleCode")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("SelectWeekOffDay")
                         .HasColumnType("nvarchar(max)");
 
@@ -1692,9 +1581,6 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TanNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TdsDeductor")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UpdatedBy")
@@ -2021,15 +1907,6 @@ namespace HRMS_Core.Migrations
                     b.Navigation("City");
 
                     b.Navigation("State");
-                });
-
-            modelBuilder.Entity("HRMS_Core.ControlPanel.CompanyInformation.DirectorDetails", b =>
-                {
-                    b.HasOne("HRMS_Core.ControlPanel.CompanyInformation.CompanyDetails", "CompanyDetails")
-                        .WithMany()
-                        .HasForeignKey("CompanyId");
-
-                    b.Navigation("CompanyDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.HolidayMaster", b =>

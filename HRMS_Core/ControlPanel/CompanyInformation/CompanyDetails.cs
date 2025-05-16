@@ -44,7 +44,6 @@ namespace HRMS_Core.ControlPanel.CompanyInformation
         public string? DomainName { get; set; }
         public string? CompanyCode { get; set; }
         public string? LwfNo { get; set; }
-        public string? EmployeeCodeSetting { get; set; }
         public int? InOutDuration { get; set; }
         public bool? HierarchyDesignation { get; set; }
         public string? EmployeeLicense { get; set; }
@@ -66,7 +65,30 @@ namespace HRMS_Core.ControlPanel.CompanyInformation
         public string? DigitalSignatureUrl { get; set; }
         public string? DigitalSignaturePassword { get; set; }
 
-        
+        //employee code setting
+        public string? DigitsForEmployeeCode { get; set; }
+        public string? MaxEmployeeCode { get; set; } 
+        public bool? AlphaNumericCode { get; set; }
+        public string? SampleCode { get; set; }
+
+
+        //other details
+        public string? HrManager { get; set; }
+        public string? HrManagerDesignation { get; set; }
+        public string? NatureOfBusiness { get; set; }
+        public DateTime? DateOfFactorySetup { get; set; } 
+        public string? FactoryType { get; set; }
+        public string? FactoryLicenseOffice { get; set; }
+        public string? FactoryRegistrationNo { get; set; }
+        public string? FactoryLicenseNo { get; set; }
+        public string? TdsDeductor { get; set; }
+        public string? FatherName { get; set; }
+        public string? ManagerDesignation { get; set; }
+        public string?CitAddress { get; set; }
+        public string? CitCity { get; set; }
+        public string? CitPin { get; set; } 
+        public DateTime? IssueDate { get; set; } 
+        public bool? GstTravelExpenses { get; set; } 
     }
 
 }

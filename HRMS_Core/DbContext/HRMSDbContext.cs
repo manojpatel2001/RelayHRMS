@@ -49,6 +49,7 @@ namespace HRMS_Core.DbContext
         public DbSet<WarningMaster> WarningMaster { get; set; }
         public DbSet<LevelWiseCardMapping> LevelWiseCardMapping { get; set; }
         public DbSet<CompanyDetails> CompanyDetails { get; set; }
+        public DbSet<DirectorDetails> DirectorDetails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
