@@ -32,6 +32,7 @@ namespace HRMS_Infrastructure.Interface
         ILevelWiseCardMappingRepository LevelWiseCardMappingRepository { get; }
         ICityCategoryRepository CityCategoryRepository { get; }
         ICompanyDetailsRepository CompanyDetailsRepository { get; }
+        IDirectorDetailsRepository DirectorDetailsRepository { get; }
         void Commit();
         Task CommitAsync();
     }

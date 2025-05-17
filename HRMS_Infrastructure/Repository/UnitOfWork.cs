@@ -42,6 +42,7 @@ namespace HRMS_Infrastructure.Repository
             LevelWiseCardMappingRepository = new LevelWiseCardMappingRepository(_dbContext);
             CityCategoryRepository = new CityCategoryRepository(_dbContext);
             CompanyDetailsRepository = new CompanyDetailsRepository(_dbContext);
+            DirectorDetailsRepository = new DirectorDetailsRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -71,6 +72,7 @@ namespace HRMS_Infrastructure.Repository
         public ILevelWiseCardMappingRepository LevelWiseCardMappingRepository { get; set; }
         public ICityCategoryRepository CityCategoryRepository { get; set; }
         public ICompanyDetailsRepository CompanyDetailsRepository { get; set; }
+        public IDirectorDetailsRepository DirectorDetailsRepository { get; set; }
 
         public void Commit()
         {

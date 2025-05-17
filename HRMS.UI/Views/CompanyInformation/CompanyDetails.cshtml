@@ -619,7 +619,7 @@
                             <div class="col-md-4">
                                 <div class="form-group position-relative">
                                     Other Detail:
-                                    <label class=" cursor-pointer text-primary ms-2" data-bs-toggle="modal" data-bs-target="#otherDetailModal">
+                                    <label class=" cursor-pointer text-primary ms-2 otherDetailModal" data-bs-toggle="modal" data-bs-target="#otherDetailModal">
                                         Click here
                                     </label>
                                 </div>
@@ -1024,18 +1024,21 @@
                             <div class="form-group position-relative">
                                 <input type="text" class="form-control floating-input" id="directorName" placeholder="Name">
                                 <label class="floating-label" for="directorName">Name</label>
+                                <span id="spnDirectorName" class="error-message" style="display: none; color: red;">Name is required</span>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="form-group position-relative">
                                 <input type="text" class="form-control floating-input" id="directorAddress" placeholder="Address">
                                 <label class="floating-label" for="directorAddress">Address</label>
+                                <span id="spnDirectorAddress" class="error-message" style="display: none; color: red;">Address is required</span>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="form-group position-relative">
                                 <input type="date" class="form-control floating-input" id="directorDOB" placeholder="Date of Birth">
                                 <label class="floating-label" for="directorDOB">Date of Birth</label>
+                                <span id="spnDirectorDOB" class="error-message" style="display: none; color: red;">Date of Birth is required</span>
                             </div>
                         </div>
                     </div>
@@ -1044,22 +1047,26 @@
                             <div class="form-group position-relative">
                                 <input type="text" class="form-control floating-input" id="directorBranch" placeholder="Branch">
                                 <label class="floating-label" for="directorBranch">Branch</label>
+                                <span id="spnDirectorBranch" class="error-message" style="display: none; color: red;">Branch is required</span>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="form-group position-relative">
                                 <input type="text" class="form-control floating-input" id="directorDesignation" placeholder="Designation">
                                 <label class="floating-label" for="directorDesignation">Designation</label>
+                                <span id="spnDirectorDesignation" class="error-message" style="display: none; color: red;">Designation is required</span>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <button type="button" class="btn btn-primary" style="background-color:#2395c6; color:white;" id="saveDirectorDetail">Save</button>
+                            <button type="button" class="btn  ms-2" style="background-color:lightgray;"  id="resetDirectorDetail">Reset</button>
                         </div>
                     </div>
+
                     <div class="row mt-3">
                         <div class="col-md-12">
                             <div class="form-group">
-                                <div class="rowCount" id="rowCount1"></div>
+                                <div class="rowCount" id="rowCountDirector"></div>
                                 <div id="gridContainerDirector">
                                
                                     <div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
@@ -1278,14 +1285,15 @@
 <script>
     let CompanyId=0;
     $("#AddCompanyDetails").click( () => {
+        CompanyId=0;
             resetCompanyFormFields();
       $("#addCompanyDetailsModal").modal('show');
     })
 
        $(() => {
-             $('.trigger-company-modal').on('shown.bs.modal', function () {
-               $('#addCompanyDetailsModal').modal('show');
-            });
+            //  $('.trigger-company-modal').on('shown.bs.modal', function () {
+            //    $('#addCompanyDetailsModal').modal('show');
+            // });
 
             $('.trigger-company-modal').on('hidden.bs.modal', function () {
                 $('#addCompanyDetailsModal').modal('show');
@@ -1430,7 +1438,6 @@
                             { dataField: 'domainName', caption: 'Domain Name', alignment: 'center', width: 150 },
                             { dataField: 'companyCode', caption: 'Company Code', alignment: 'center', width: 150 },
                             { dataField: 'lwfNo', caption: 'LWF No', alignment: 'center', width: 150 },
-                            { dataField: 'employeeCodeSetting', caption: 'Employee Code Setting', alignment: 'center', width: 200 },
                             { dataField: 'inOutDuration', caption: 'In-Out Duration', alignment: 'center', width: 150 },
                             {
                                 dataField: 'hierarchyDesignation',
@@ -2025,7 +2032,6 @@
 
     //Update company details
         function setFormValues(data) {
-            debugger
             // Set basic fields
             $("#txtDigits").val(data.digitsForEmployeeCode || "");
             $("input[name='MaxEmployeeCode'][value='" + data.maxEmployeeCode + "']").prop("checked", true);
@@ -2194,9 +2200,15 @@
                 $("#citPin").val(data.citPin || "");
                 $("#issueDate").val(data.issueDate ? new Date(data.issueDate).toISOString().split('T')[0] : "");
                 $("#gstTravelExpenses").prop("checked", data.gstTravelExpenses || false);
-               
+               //director details
+                localStorage.removeItem('directorDetailsLocalStorage');
+                 DirectorDetailsDataTable();
+
                 $(".compnayFormType").text("Update");
             $('#addCompanyDetailsModal').modal('show');
+
+                //// director details
+           
 
     }
 
@@ -2211,7 +2223,7 @@
         $("#spnfromDate").hide();
         $("#spndomainName").hide();
         CompanyId=0;
-          $("#btnAddCompanyDetails").prop("disabled", false);
+       $("#btnAddCompanyDetails").prop("disabled", false);
          $(".compnayFormType").text("Add");
         $("#txtcompanyName").val("");
         $("#txtcompanyAddress").val("");
@@ -2293,7 +2305,7 @@
         $("#citPin").val("");
         $("#issueDate").val("");
         $("#gstTravelExpenses").prop("checked", false);
-
+        resetDirectorField();
     }
 
     // Employee code setting
@@ -2403,7 +2415,104 @@
     });
 
     // dirctor details
-        $("#saveDirectorDetail").click(async function() {
+
+    
+       
+  function DirectorDetailsDataTable() {
+      if (CompanyId == 0) {
+             return;
+        }
+      $.ajax({
+        type: "GET",
+        url: '@baseUrl/DirectorDetailsAPI/GetDirectorDetailsByCompanyId/'+CompanyId,
+        success: function (data) {
+          if (data.isSuccess) {
+            $("#gridContainerDirector").dxDataGrid({
+              dataSource: data.data,
+              stateStoring: {
+                enabled: true,
+                type: 'localStorage',
+                storageKey: 'directorDetailsLocalStorage'
+              },
+
+              columns: [
+                { dataField: 'directorName', caption: 'Director Name', alignment: 'center' },
+                { dataField: 'directorAddress', caption: 'Director Address', alignment: 'center' },
+                { dataField: 'directorBranch', caption: 'Branch', alignment: 'center' },
+                { dataField: 'directorDesignation', caption: 'Designation', alignment: 'center' },
+                { dataField: 'companyName', caption: 'Company Name', alignment: 'center' },
+                
+                {
+                  dataField: '',
+                  caption: '',
+                  alignment: 'center',
+                  width: '50px',
+                  type: 'buttons',
+                  cellTemplate: function (container, options) {
+                    var buttonElement = $('<div class="d-flex order-actions">' +
+                      '<a href="javascript:;" class="edit-action" title="Edit Director">' +
+                      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+                      '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+                      '</svg>' +
+                      '</a>' +
+                      '</div>')
+                      .on('dxclick', function () {
+                        updateDirectorDetails(options.data);
+                      }).appendTo(container);
+                  }
+                },
+                {
+                  dataField: '',
+                  caption: '',
+                  alignment: 'center',
+                  width: '50px',
+                  type: 'buttons',
+                  cellTemplate: function (container, options) {
+                    var buttonElement = $('<div class="d-flex order-actions">' +
+                      '<a href="javascript:;" class="delete-action" title="Delete Director">' +
+                      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+                      '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+                      '</svg>' +
+                      '</a>' +
+                      '</div>')
+                      .on('dxclick', function () {
+                        deleteDirectorDetails(options.data);
+                      }).appendTo(container);
+                  }
+                }
+              ],
+
+              columnsAutoWidth: true,
+              showBorders: true,
+              paging: { pageSize: 10 },
+              pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 25, 50, 100]
+              },
+              filterRow: { visible: true, applyFilter: "auto" },
+              headerFilter: { visible: true },
+              groupPanel: { visible: true },
+              searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+              onContentReady(e) {
+                    $('#rowCountDirector').html('Total Records: ' + e.component.totalCount());
+              }
+            });
+          }
+        },
+        error: function (xhr, status, error) {
+          console.error("AJAX Error: " + status + " - " + error);
+        }
+      });
+    }
+
+
+
+     $("#saveDirectorDetail").click(async function() {
+        if (CompanyId == 0) {
+             round_error_noti("Please add company details before adding or updating a director.");
+             return;
+        }
+
         $("#saveDirectorDetail").prop("disabled", true);
 
         // Collect form data
@@ -2412,54 +2521,53 @@
         let directorDOB = $("#directorDOB").val();
         let directorBranch = $("#directorBranch").val()?.trim();
         let directorDesignation = $("#directorDesignation").val()?.trim();
+             // Validation
+            let isValid = true;
 
-        // Validation
-        let isValid = true;
+            if (!directorName) {
+                $("#spnDirectorName").show();
+                isValid = false;
+            } else {
+                $("#spnDirectorName").hide();
+            }
 
-        if (!directorName) {
-            $("#spnDirectorName").show();
-            isValid = false;
-        } else {
-            $("#spnDirectorName").hide();
-        }
+            if (!directorAddress) {
+                $("#spnDirectorAddress").show();
+                isValid = false;
+            } else {
+                $("#spnDirectorAddress").hide();
+            }
 
-        if (!directorAddress) {
-            $("#spnDirectorAddress").show();
-            isValid = false;
-        } else {
-            $("#spnDirectorAddress").hide();
-        }
+            if (!directorDOB) {
+                $("#spnDirectorDOB").show();
+                isValid = false;
+            } else {
+                $("#spnDirectorDOB").hide();
+            }
 
-        if (!directorDOB) {
-            $("#spnDirectorDOB").show();
-            isValid = false;
-        } else {
-            $("#spnDirectorDOB").hide();
-        }
+            if (!directorBranch) {
+                $("#spnDirectorBranch").show();
+                isValid = false;
+            } else {
+                $("#spnDirectorBranch").hide();
+            }
 
-        if (!directorBranch) {
-            $("#spnDirectorBranch").show();
-            isValid = false;
-        } else {
-            $("#spnDirectorBranch").hide();
-        }
+            if (!directorDesignation) {
+                $("#spnDirectorDesignation").show();
+                isValid = false;
+            } else {
+                $("#spnDirectorDesignation").hide();
+            }
 
-        if (!directorDesignation) {
-            $("#spnDirectorDesignation").show();
-            isValid = false;
-        } else {
-            $("#spnDirectorDesignation").hide();
-        }
-
-        if (!isValid) {
-            $("#saveDirectorDetail").prop("disabled", false);
-            return;
-        }
-
+            if (!isValid) {
+                $("#saveDirectorDetail").prop("disabled", false);
+                return;
+            }
+  
         // Create the model
         let model = {
              DirectorDetailsId: DirectorDetailsId || 0,
-             CompanyId=CompanyId,
+             CompanyId:CompanyId,
             DirectorName: directorName,
             DirectorAddress: directorAddress,
             DirectorDOB: directorDOB,
@@ -2471,15 +2579,14 @@
 
         // AJAX call
         $.ajax({
-            url: DirectorId == 0 ? '@baseUrl/DirectorAPI/CreateDirector' : '@baseUrl/DirectorAPI/UpdateDirector',
-            type: DirectorId == 0 ? 'POST' : 'PUT',
+            url: DirectorDetailsId == 0 ? '@baseUrl/DirectorDetailsAPI/CreateDirectorDetails' : '@baseUrl/DirectorDetailsAPI/UpdateDirectorDetails',
+                type: DirectorDetailsId == 0 ? 'POST' : 'PUT',
             contentType: 'application/json',
             data: JSON.stringify(model),
             success: function(response) {
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage);
-                    DirectorMasterDataTable(); // Refresh your data table
-                    $('#directorDetailModal').modal('hide');
+                        DirectorDetailsDataTable(); // Refresh your data table
                 } else {
                     round_error_noti(response.responseMessage);
                 }
@@ -2493,7 +2600,82 @@
         });
     });
 
+    function resetDirectorField(){
+        $("#saveDirectorDetail").text("Save");
+            DirectorDetailsId=0;
+        $("#directorName").val('');
+        $("#directorAddress").val('');
+        $("#directorDOB").val('');
+        $("#directorBranch").val('');
+        $("#directorDesignation").val('');
 
+        // Hide error messages
+        $("#spnDirectorName").hide();
+        $("#spnDirectorAddress").hide();
+        $("#spnDirectorDOB").hide();
+        $("#spnDirectorBranch").hide();
+        $("#spnDirectorDesignation").hide();
+    }
+
+        $("#resetDirectorDetail").click(()=>{
+              $("#saveDirectorDetail").text("Save");
+                  resetDirectorField();
+        })
+     let DirectorDetailsId=0;
+    function updateDirectorDetails(directorDetail)
+    {
+         $("#saveDirectorDetail").text("Update");
+         DirectorDetailsId=directorDetail.directorDetailsId;
+        $("#directorName").val(directorDetail.directorName || '');
+        $("#directorAddress").val(directorDetail.directorAddress || '');
+
+        if (directorDetail.directorDOB) {
+            const dob = new Date(directorDetail.directorDOB);
+            const formattedDOB = dob.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+            $("#directorDOB").val(formattedDOB);
+        } else {
+            $("#directorDOB").val('');
+        }
+
+        $("#directorBranch").val(directorDetail.directorBranch || '');
+        $("#directorDesignation").val(directorDetail.directorDesignation || '');
+
+        // Hide error messages
+        $("#spnDirectorName").hide();
+        $("#spnDirectorAddress").hide();
+        $("#spnDirectorDOB").hide();
+        $("#spnDirectorBranch").hide();
+        $("#spnDirectorDesignation").hide();
+    }
+
+        function deleteDirectorDetails(data) {
+               if (!confirm("Are you sure you want to delete this director details?")) {
+                   return; // Cancel the delete operation
+               }
+
+               var deleteObj = {
+                   id: data.directorDetailsId,
+                   deletedBy: null 
+               };
+
+               $.ajax({
+                       url: '@baseUrl/DirectorDetailsAPI/DeleteDirectorDetails',
+                   type: 'DELETE',
+                   contentType: 'application/json',
+                   data: JSON.stringify(deleteObj),
+                   success: function (response) {
+                       if (response.isSuccess) {
+                           round_success_noti(response.responseMessage);
+                       } else {
+                           round_error_noti(response.responseMessage);
+                       }
+                                 DirectorDetailsDataTable();
+                   },
+                   error: function (error) {
+                       console.log('Error deleting director details!');
+                   }
+               });
+        }
 </script>
 
 
