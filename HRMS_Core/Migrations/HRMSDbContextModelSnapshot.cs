@@ -22,6 +22,281 @@ namespace HRMS_Core.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("HRMS_Core.ControlPanel.CompanyInformation.CompanyDetails", b =>
+                {
+                    b.Property<int>("CompanyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CompanyId"));
+
+                    b.Property<bool?>("AlphaNumericCode")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("AlternateFullWeekOff")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AlternateWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CitAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CitCity")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CitPin")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("CityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CompanyAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompanyCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompanyLogoUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompanyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("ContractorCompany")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Country")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DateFormat")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DateOfFactorySetup")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DigitalSignaturePassword")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DigitalSignatureUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DigitsForEmployeeCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DomainName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ESICNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EffectiveDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EmailAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmailSignature")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmployeeLicense")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("EsicApplicable")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("FactoryLicenseNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FactoryLicenseOffice")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FactoryRegistrationNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FactoryType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FatherName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("GstTravelExpenses")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("HierarchyDesignation")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("HrManager")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HrManagerDesignation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("InOutDuration")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDigitalSignature")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDisplayOnLogin")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("IssueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LetterHeadFooterUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LetterHeadHeaderUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LwfNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ManagerDesignation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MaxEmployeeCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NatureOfBusiness")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PFNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PanNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("PfApplicable")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PfTrustNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PinCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SampleCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SelectWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("StateId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TanNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TdsDeductor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Website")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("CompanyId");
+
+                    b.HasIndex("CityId");
+
+                    b.HasIndex("StateId");
+
+                    b.ToTable("CompanyDetails");
+                });
+
+            modelBuilder.Entity("HRMS_Core.ControlPanel.CompanyInformation.DirectorDetails", b =>
+                {
+                    b.Property<int>("DirectorDetailsId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectorDetailsId"));
+
+                    b.Property<int?>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DirectorAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DirectorBranch")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DirectorDOB")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DirectorDesignation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DirectorName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("DirectorDetailsId");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("DirectorDetails");
+                });
+
             modelBuilder.Entity("HRMS_Core.DbContext.HRMSRoleIdentity", b =>
                 {
                     b.Property<string>("Id")
@@ -1222,6 +1497,220 @@ namespace HRMS_Core.Migrations
                     b.ToTable("TicketType");
                 });
 
+            modelBuilder.Entity("HRMS_Core.VM.CompanyInformation.vmGetAllCompanyDetails", b =>
+                {
+                    b.Property<bool?>("AlphaNumericCode")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("AlternateFullWeekOff")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AlternateWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CitAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CitCity")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CitPin")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("CityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CityName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompanyAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompanyCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CompanyLogoUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompanyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("ContractorCompany")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Country")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DateFormat")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DateOfFactorySetup")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DigitalSignaturePassword")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DigitalSignatureUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DigitsForEmployeeCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DomainName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ESICNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EffectiveDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EmailAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmailSignature")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmployeeLicense")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("EsicApplicable")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("FactoryLicenseNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FactoryLicenseOffice")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FactoryRegistrationNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FactoryType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FatherName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("GstTravelExpenses")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("HierarchyDesignation")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("HrManager")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HrManagerDesignation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("InOutDuration")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDigitalSignature")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDisplayOnLogin")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("IssueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LetterHeadFooterUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LetterHeadHeaderUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LwfNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ManagerDesignation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MaxEmployeeCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NatureOfBusiness")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PFNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PanNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("PfApplicable")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PfTrustNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PinCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SampleCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SelectWeekOffDay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("StateId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StateName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TanNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TdsDeductor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Website")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
             modelBuilder.Entity("HRMS_Core.VM.CompanyStructure.vmGetAllHolidayMaster", b =>
                 {
                     b.Property<string>("ApprovalMaxLimit")
@@ -1326,6 +1815,49 @@ namespace HRMS_Core.Migrations
 
                     b.Property<int?>("WeekOffDetailsId")
                         .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.VM.JobMaster.vmGetAllCity", b =>
+                {
+                    b.Property<int?>("CityCategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CityCategoryName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CityID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CityName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Country")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("StateId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StateName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.ToTable((string)null);
 
@@ -1474,6 +2006,30 @@ namespace HRMS_Core.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.ControlPanel.CompanyInformation.CompanyDetails", b =>
+                {
+                    b.HasOne("HRMS_Core.Master.JobMaster.City", "City")
+                        .WithMany()
+                        .HasForeignKey("CityId");
+
+                    b.HasOne("HRMS_Core.Master.JobMaster.State", "State")
+                        .WithMany()
+                        .HasForeignKey("StateId");
+
+                    b.Navigation("City");
+
+                    b.Navigation("State");
+                });
+
+            modelBuilder.Entity("HRMS_Core.ControlPanel.CompanyInformation.DirectorDetails", b =>
+                {
+                    b.HasOne("HRMS_Core.ControlPanel.CompanyInformation.CompanyDetails", "CompanyDetails")
+                        .WithMany()
+                        .HasForeignKey("CompanyId");
+
+                    b.Navigation("CompanyDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.HolidayMaster", b =>

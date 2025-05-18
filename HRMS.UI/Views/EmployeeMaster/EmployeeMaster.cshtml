@@ -1,0 +1,845 @@
+﻿@{
+	ViewData["Title"] = "Employee Master";
+	Layout = "~/Views/Shared/_mainLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+<style>
+	.custom-radio {
+		display: inline-block;
+		cursor: pointer;
+	}
+
+	.custom-label {
+		display: inline-block;
+		margin: 0.5rem;
+		cursor: pointer;
+		transition: all 0.3s ease;
+	}
+
+	.custom-radio:checked + .custom-label {
+		color: blue;
+	}
+
+	#EmployeeFilter{
+		border:2px solid black;
+	}
+
+	/* Tooltip button styles */
+	.tooltip-button {
+		background-color: blue;
+		color: white;
+		border-radius: 50%;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		position: absolute;
+		right: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+
+	/* Tooltip styles */
+	.tooltip-text {
+		display: none;
+		position: absolute;
+		background-color: #ffffe0;
+		border: 1px solid #ccc;
+		padding: 10px;
+		box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+		z-index: 1000;
+		width: 250px;
+		top: 0;
+		right: 30px;
+	}
+
+		.tooltip-button:hover + .tooltip-text,
+		.tooltip-text:hover {
+			display: block;
+		}
+
+	
+	
+</style>
+
+
+<div class="card">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row">
+			<div class="col-6">
+				<h6 class="pt-2 mb-0">
+					Employee Master
+				</h6>
+			</div>
+
+			<div class="col-6 d-flex justify-content-end align-items-center">
+				<div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
+					<i class="fadeIn animated bx bx-refresh" id="refreshData" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Refresh Data"></i>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card-body">
+    <div class="row">
+        <div class="col-md-12 btn-heading-title">
+            <div class="input-group mb-2">
+                <button id="addEmployee"
+                        type="button"
+                        class="btn mr-1 rounded-1"
+                        style="background-color:#2395c6; color:white;">
+                    Add Employee
+                </button>
+            </div>
+        </div>
+    </div>
+		<div class="row mt-4">
+			<div class="col-md-4">
+				<div class="form-group" id="EmployeeFilter">
+					<div class="ps-1">
+						<input type="radio" name="employeeFilter" id="allEmployee" value="AllEmployee" class="custom-radio" checked>
+						<label for="allEmployee" class="custom-label">All Employee</label>
+
+						<input type="radio" name="employeeFilter" id="leftEmployee" value="LeftEmployee" class=" custom-radio">
+						<label for="leftEmployee" class="custom-label">Left Employee</label>
+
+						<input type="radio" name="employeeFilter" id="currentEmployee" value="CurrentEmployee" class="custom-radio">
+						<label for="currentEmployee" class="custom-label">Current Employee</label>
+					</div>
+				</div>
+			</div>
+		</div>
+
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <div class="rowCount" id="rowCountEmployee"></div>
+                <div id="gridContainerEmployee">
+                    @* <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div> *@
+                    <div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+
+<div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-xl">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Create</span> Employee</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font">
+				<form id="employeeForm">
+
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-control floating-input" id="ddlInitial">
+									<option value="">Select Initial</option>
+									<option>Mr.</option>
+									<option>Mrs.</option>
+									<option>Ms.</option>
+								</select>
+								<label class="floating-label" for="ddlInitial">Initial *</label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="text" class="form-control floating-input" id="txtFirstName" placeholder=" ">
+								<label class="floating-label" for="txtFirstName">First Name *</label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="text" class="form-control floating-input" id="txtMiddleName" placeholder=" ">
+								<label class="floating-label" for="txtMiddleName">Middle Name</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="text" class="form-control floating-input" id="txtLastName" placeholder=" ">
+								<label class="floating-label" for="txtLastName">Last Name</label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="text" class="form-control floating-input" id="txtEmpCode" placeholder=" " value="0004">
+								<label class="floating-label" for="txtEmpCode">Employee Code *</label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="date" class="form-control floating-input" id="doj" placeholder=" ">
+								<label class="floating-label" for="doj">Date of Joining *</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-control floating-input" id="ddlBranch">
+									<option value="">--Select--</option>
+								</select>
+								<label class="floating-label" for="ddlBranch">Branch *</label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-control floating-input" id="ddlGrade">
+									<option>MANAGEMENT</option>
+								</select>
+								<label class="floating-label" for="ddlGrade">Grade *</label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-control floating-input" id="ddlShift">
+									<option>Day Shift</option>
+								</select>
+								<label class="floating-label" for="ddlShift">Shift *</label>
+							</div>
+						</div>
+					</div>
+
+					<!-- New Fields -->
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="text" class="form-control floating-input" id="txtCTC" placeholder=" ">
+								<label class="floating-label" for="txtCTC">CTC</label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-control floating-input" id="ddlDesignation">
+									<option value="">Select Designation</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlDesignation">Designation </label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="number" class="form-control floating-input" id="txtGrossSalary" placeholder=" " min="0">
+								<label class="floating-label" for="txtGrossSalary">Gross Salary </label>
+							</div>
+						</div>
+						
+					</div>
+
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-control floating-input" id="ddlCategory">
+									<option value="">Select Category</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlCategory">Category </label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="number" class="form-control floating-input" id="txtBasicSalary" placeholder=" " min="0">
+								<label class="floating-label" for="txtBasicSalary">Basic Salary </label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-control floating-input" id="ddlDepartment">
+									<option value="">Select Department</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlDepartment">Department *</label>
+							</div>
+						</div>
+						
+					</div>
+
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-control floating-input" id="ddlEmpType">
+									<option value="">Select Employee Type</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlEmpType">Employee Type </label>
+							</div>
+						</div>
+
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="date" class="form-control floating-input" id="dob" placeholder=" ">
+								<label class="floating-label" for="dob">Date of Birth </label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-control floating-input" id="ddlUserPrivilege">
+									<option value="">Select User Privilege</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlUserPrivilege">User Privilege </label>
+							</div>
+						</div>
+
+						
+					</div>
+
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="text" class="form-control floating-input" id="txtLoginAlias" placeholder=" ">
+								<label class="floating-label" for="txtLoginAlias">Login Alias </label>
+							</div>
+						</div>
+
+						<div class="col-md-4">
+							<div class="form-group mt-4 position-relative">
+								Scheme Assign:
+								<label class="scheme-assign-label cursor-pointer text-primary ms-2" data-bs-toggle="modal" data-bs-target="#schemeAssignModal">
+									Click here
+								</label>
+
+						   </div>
+						</div>
+
+						<div class="col-md-4">
+							<div class="form-group mt-4 position-relative">
+								WeekOff Assign:
+								<label class="scheme-assign-label cursor-pointer text-primary ms-2" data-bs-toggle="modal" data-bs-target="#weekOffAssignModal">
+									Click here
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="row mt-3">
+						<div class="col-md-3">
+							<div class="form-check">
+								<input class="form-check-input" type="checkbox" id="overtime">
+								<label class="form-check-label" for="overtime">Over Time</label>
+							</div>
+						</div>
+						<div class="col-md-3">
+							<div class="form-check">
+								<input class="form-check-input" type="checkbox" id="latemark">
+								<label class="form-check-label" for="latemark">Late Mark</label>
+							</div>
+						</div>
+						<div class="col-md-3">
+							<div class="form-check">
+								<input class="form-check-input" type="checkbox" id="earlymark">
+								<label class="form-check-label" for="earlymark">Early Mark</label>
+							</div>
+						</div>
+						<div class="col-md-3">
+							<div class="form-check">
+								<input class="form-check-input" type="checkbox" id="fullpf">
+								<label class="form-check-label" for="fullpf">Full PF</label>
+							</div>
+						</div>
+						<div class="col-md-3">
+							<div class="form-check mt-2">
+								<input class="form-check-input" type="checkbox" id="pt">
+								<label class="form-check-label" for="pt">PT</label>
+							</div>
+						</div>
+						<div class="col-md-3">
+							<div class="form-check mt-2">
+								<input class="form-check-input" type="checkbox" id="fixsalary">
+								<label class="form-check-label" for="fixsalary">Fix Salary</label>
+							</div>
+						</div>
+						<div class="col-md-3">
+							<div class="form-check mt-2">
+								<input class="form-check-input" type="checkbox" id="probation">
+								<label class="form-check-label" for="probation">Probation</label>
+							</div>
+						</div>
+						<div class="col-md-3">
+							<div class="form-check mt-2">
+								<input class="form-check-input" type="checkbox" id="trainee">
+								<label class="form-check-label" for="trainee">Trainee</label>
+							</div>
+						</div>
+					</div>
+
+				</form>
+			</div>
+
+			<div class="modal-footer btn-heading-title">
+				<button type="button" class="btn btn-primary" id="btnCreateEmployee" style="background-color:#2395c6; color:white;">Create</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<!-- The Modal -->
+<div class="modal fade" id="schemeAssignModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel">
+					<span class="formType">Scheme Assigned Details</span>
+				</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#addEmployeeModal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font">
+				<table class="table table-bordered">
+					<thead>
+						<tr>
+							<th style="width:25%">Scheme Type</th>
+							<th style="width:25%">Scheme</th>
+							<th style="width:25%">Scheme Type</th>
+							<th style="width:25%">Scheme</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Attendance Regularization</td>
+							<td>
+								<div class="form-group mt-2 position-relative ">
+									<select class="form-control floating-input" id="ddlRegularization">
+										<option value="">Select Scheme</option>
+										<option>Regularization1</option>
+										<!-- Add more options as needed -->
+									</select>
+									<label class="floating-label" for="ddlRegularization">Attendance Regularization</label>
+								</div>
+							</td>
+							<td>Leave Application</td>
+							<td>
+								<div class="form-group mt-2 position-relative ">
+									<select class="form-control floating-input" id="ddlLeave">
+										<option value="">Select Scheme</option>
+										<option>Leave_1</option>
+										<!-- Add more options as needed -->
+									</select>
+									<label class="floating-label" for="ddlLeave">Leave Application</label>
+								</div>
+							</td>
+						</tr>
+						<tr>
+							<td>Claim Application</td>
+							<td>
+								<div class="form-group mt-2 position-relative ">
+									<select class="form-control floating-input" id="ddlClaim">
+										<option value="">Select Scheme</option>
+										<option>Claim1</option>
+										<!-- Add more options as needed -->
+									</select>
+									<label class="floating-label" for="ddlClaim">Claim Application</label>
+								</div>
+							</td>
+							<td>Loan Application</td>
+							<td>
+								<div class="form-group mt-2 position-relative ">
+									<select class="form-control floating-input" id="ddlLoan">
+										<option value="">Select Scheme</option>
+										<option>Loan1</option>
+										<!-- Add more options as needed -->
+									</select>
+									<label class="floating-label" for="ddlLoan">Loan Application</label>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="weekOffAssignModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-md">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel">
+					<span class="formType">WeekOff Assign</span>
+				</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#addEmployeeModal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font">
+				<div class="mb-3 position-relative ">
+					<select class="form-control floating-input" id="fullWeekOffDay">
+						<option value="">Select Full WeekOff Day</option>
+						<option value="sunday">Sunday</option>
+						<option value="monday">Monday</option>
+						<option value="tuesday">Tuesday</option>
+						<option value="wednesday">Wednesday</option>
+						<option value="thursday">Thursday</option>
+						<option value="friday">Friday</option>
+						<option value="saturday">Saturday</option>
+					</select>
+					<label class="floating-label" for="fullWeekOffDay">Full WeekOff Day </label>
+				</div>
+
+				<div class="mb-3 position-relative ">
+					<select class="form-control floating-input" id="alternateWeekOffDay">
+						<option value="">Select Alternate WeekOff Day</option>
+						<option value="monday">Monday</option>
+						<option value="tuesday">Tuesday</option>
+						<option value="wednesday">Wednesday</option>
+						<option value="thursday">Thursday</option>
+						<option value="friday">Friday</option>
+						<option value="saturday">Saturday</option>
+						<option value="sunday">Sunday</option>
+					</select>
+					<label class="floating-label" for="alternateWeekOffDay">Alternate WeekOff Day </label>
+				</div>
+
+				<div class="mb-3 position-relative ">
+					<input type="text" class="form-control floating-input" id="alternateFullWeekOff" placeholder="eg. #2#4#">
+					<label class="floating-label" for="alternateFullWeekOff">Alternate Full WeekOff *</label>
+					<button class="tooltip-button" id="tooltipButton" tabindex="0">?</button>
+					<div class="tooltip-text" tabindex="0">
+						When you select Alternate WeekOff Day then Alternate WeekOff Week is mandatory. Specify the Alternate WeekOff Week number separated by # character (i.e. for Second & Fourth WeekOff enter value #2#4#)
+					</div>
+				</div>
+			
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" id="btnSaveAssignWeekOff" style="background-color:#2395c6; color:white;">Save</button>
+			</div>
+		</div>
+	</div>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+		   let ReasonId=0;
+
+		   $("#addEmployee").click( () => {
+				  //  resetReasonForm();
+				  // $("#btnCreateReason").prop("disabled", false);
+			   // $('.formType').text('Create');
+					 // $('#btnCreateReason').text('Create');
+			   $("#addEmployeeModal").modal('show');
+
+		   })
+
+			 $(document).ready(function () {
+				$('#btnCreateEmployee').click(function () {
+				window.location.href = '../EmployeeMaster/AdditionalInformation';
+				});
+
+				$('#weekOffAssignModal').on('hidden.bs.modal', function () {
+					$('#addEmployeeModal').modal('show');
+			   });
+			   $('#schemeAssignModal').on('hidden.bs.modal', function () {
+					$('#addEmployeeModal').modal('show');
+			   });
+			});
+
+
+			 $("#refreshData").click(() => {
+					localStorage.removeItem('reasonMasterLocalStorage');
+					resetGridFilters( $('#gridContainerReason').dxDataGrid('instance'));
+					ReasonMasterDataTable();
+			});
+
+
+			function resetGridFilters(gridInstance) {
+			  if (gridInstance) {
+			   gridInstance.clearFilter();            // Clear all filters
+			   gridInstance.clearSorting();           // Clear all sorting
+
+			  }
+			 }
+
+		   $(()=>{
+
+				 $("#dropdownReasonType").change(function () {
+					var selectValue = $(this).val();
+
+					// Toggle TagCommentMandatory
+					$("#TagCommentMandatory").toggle(selectValue === "AR");
+
+					// Toggle tagPassType
+					$("#tagPassType").toggle(selectValue === "GatePass");
+				});
+
+
+		   })
+
+
+
+		   $(()=>{
+			   localStorage.removeItem('reasonMasterLocalStorage');
+			   ReasonMasterDataTable();
+		   })
+
+		function ReasonMasterDataTable() {
+		  $.ajax({
+			type: "GET",
+			url: '@baseUrl/ReasonAPI/GetAllReasons',
+			success: function (data) {
+			  if (data.isSuccess) {
+				//console.log(data);
+
+				$("#gridContainerReason").dxDataGrid({
+				  dataSource: data.data,
+				  stateStoring: {
+					enabled: true,
+					type: 'localStorage',
+					storageKey: 'reasonMasterLocalStorage'
+				  },
+
+				  columns: [
+
+
+					{ dataField: 'reasonName', caption: 'Reason Name', alignment: 'center' },
+					{ dataField: 'reasonType', caption: 'Reason Type', alignment: 'center' },
+					{
+					  dataField: 'isActive',
+					  caption: 'Active',
+					  alignment: 'center',
+					  cellTemplate: function (container, options) {
+						$('<div>').text(options.value ? 'Yes' : 'No').appendTo(container);
+					  }
+					},
+					{
+					  dataField: 'isCommentMandatory',
+					  caption: 'Comment Mandatory',
+					  alignment: 'center',
+					  cellTemplate: function (container, options) {
+						$('<div>').text(options.value ? 'Yes' : 'No').appendTo(container);
+					  }
+					},
+						{
+						  dataField: '',
+						  caption: '',
+						  alignment: 'center',
+						  width: '50px',
+						  type: 'buttons',
+						  cellTemplate: function (container, options) {
+							var buttonElement = $('<div class="d-flex order-actions">' +
+							  '<a href="javascript:;" class="edit-action" title="Edit Reason">' +
+							  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+							  '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+							  '</svg>' +
+							  '</a>' +
+							  '</div>')
+							  .on('dxclick', function () {
+								updateReason(options.data);
+							  }).appendTo(container);
+						  }
+						},
+						{
+						  dataField: '',
+						  caption: '',
+						  alignment: 'center',
+						  width: '50px',
+						  type: 'buttons',
+						  cellTemplate: function (container, options) {
+							var buttonElement = $('<div class="d-flex order-actions">' +
+							  '<a href="javascript:;" class="delete-action" title="Delete Reason">' +
+							  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+							  '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+							  '</svg>' +
+							  '</a>' +
+							  '</div>')
+							  .on('dxclick', function () {
+								deleteReason(options.data);
+							  }).appendTo(container);
+						  }
+						}
+
+				  ],
+
+				  columnsAutoWidth: true,
+				  showBorders: true,
+				  paging: { pageSize: 10 },
+				  pager: {
+					showPageSizeSelector: true,
+					allowedPageSizes: [10, 25, 50, 100]
+				  },
+				  filterRow: { visible: true, applyFilter: "auto" },
+				  headerFilter: { visible: true },
+				  groupPanel: { visible: true },
+				  searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+				  onContentReady(e) {
+					$('#rowCount1').html('Total Records: ' + e.component.totalCount());
+				  }
+				});
+			  }
+			},
+			error: function (xhr, status, error) {
+			  console.error("AJAX Error: " + status + " - " + error);
+			}
+		  });
+		}
+
+
+		$("#btnCreateReason").click(async function () {
+			$("#btnCreateReason").prop("disabled", true);
+
+			let reasonName = $("#txtReasonName").val()?.trim();
+			let reasonType = $("#dropdownReasonType").val();
+			let isActive = $("#chkIsActive").is(":checked");
+			let isCommentMandatory = $("#chkIsCommentMandatory").is(":checked");
+
+			// Gate Pass Type
+			let gatePassType = null;
+			if (reasonType === "GatePass") {
+				if ($("#rdPersonal").is(":checked")) {
+					gatePassType = "Personal";
+				} else if ($("#rdOfficial").is(":checked")) {
+					gatePassType = "Official";
+				}
+			}
+
+			// Validation
+			let isValid = true;
+
+			if (!reasonName) {
+				$("#spnReasonName").show();
+				isValid = false;
+			} else {
+				$("#spnReasonName").hide();
+			}
+
+
+			if (!isValid) {
+				$("#btnCreateReason").prop("disabled", false);
+				return;
+			}
+
+			let model = {
+				ReasonId: ReasonId || 0,
+				ReasonName: reasonName,
+				ReasonType: reasonType,
+				GatePassType: gatePassType,
+				IsActive: isActive,
+				IsCommentMandatory: isCommentMandatory,
+				CreatedBy: null,
+				UpdatedBy: null
+			};
+
+			$.ajax({
+				url: ReasonId == 0 ? '@baseUrl/ReasonAPI/CreateReason' : '@baseUrl/ReasonAPI/UpdateReason',
+				type: ReasonId == 0 ? 'POST' : 'PUT',
+				contentType: 'application/json',
+				data: JSON.stringify(model),
+				success: function (response) {
+					if (response.isSuccess) {
+						round_success_noti(response.responseMessage);
+						ReasonMasterDataTable(); // refresh your data table
+						$('#addReasonModel').modal('hide');
+					} else {
+						round_error_noti(response.responseMessage);
+					}
+					$("#btnCreateReason").prop("disabled", false);
+
+				},
+				error: function (xhr, status, error) {
+					console.error('Error:', error);
+					round_error_noti('Unable to save reason');
+				}
+			});
+		});
+
+
+	 function updateReason(data) {
+			 resetReasonForm();
+			ReasonId = data.reasonId || 0;
+
+			$("#txtReasonName").val(data.reasonName || '');
+			$("#dropdownReasonType").val(data.reasonType || '');
+
+			if (data.reasonType === "GatePass") {
+				$("#tagPassType").show();
+
+				if (data.gatePassType === "Personal") {
+					$("#rdPersonal").prop("checked", true);
+				} else if (data.gatePassType === "Official") {
+					$("#rdOfficial").prop("checked", true);
+				} else {
+					$("input[name='gate']").prop("checked", false);
+				}
+			} else {
+				$("#tagPassType").hide();
+				$("input[name='gate']").prop("checked", false);
+			}
+
+			$("#chkIsActive").prop("checked", data.isActive || false);
+
+			$("#chkIsCommentMandatory").prop("checked", data.isCommentMandatory || false);
+				$("#TagCommentMandatory").toggle(data.reasonType === "AR");
+			 $("#btnCreateReason").prop("disabled", false);
+			$(".formType").text("Update");
+			$("#btnCreateReason").text("Update");
+
+			$('#addReasonModel').modal('show');
+		}
+
+	function resetReasonForm() {
+			ReasonId = 0;
+			$("#txtReasonName").val('');
+			$("#dropdownReasonType").val('AR');
+			$("#spnReasonName").hide();
+			$("#tagPassType").hide();
+			$("rdPersonal").prop("checked", true);
+			$("#chkIsActive").prop("checked", false);
+			$("#chkIsCommentMandatory").prop("checked", false);
+
+		}
+
+
+
+
+		   function deleteReason(data) {
+			   if (!confirm("Are you sure you want to delete this reason?")) {
+				   return; // Cancel the delete operation
+			   }
+
+			   var deleteObj = {
+				   id: data.reasonId,
+				   deletedBy: null // Set this to the actual user if needed
+			   };
+
+			   $.ajax({
+				   url: '@baseUrl/ReasonAPI/DeleteReason',
+				   type: 'DELETE',
+				   contentType: 'application/json',
+				   data: JSON.stringify(deleteObj),
+				   success: function (response) {
+					   if (response.isSuccess) {
+						   round_success_noti(response.responseMessage);
+					   } else {
+						   round_error_noti(response.responseMessage);
+					   }
+							  ReasonMasterDataTable();
+				   },
+				   error: function (error) {
+					   console.log('Error deleting reason!');
+				   }
+			   });
+		   }
+
+
+
+
+
+</script>

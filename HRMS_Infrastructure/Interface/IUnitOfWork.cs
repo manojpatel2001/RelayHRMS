@@ -1,4 +1,5 @@
-﻿using HRMS_Infrastructure.Interface.CompanyStructure;
+﻿using HRMS_Infrastructure.Interface.CompanyInformation;
+using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Repository.OtherMaster;
@@ -30,6 +31,8 @@ namespace HRMS_Infrastructure.Interface
         IWarningMasterRepository WarningMasterRepository { get; }
         ILevelWiseCardMappingRepository LevelWiseCardMappingRepository { get; }
         ICityCategoryRepository CityCategoryRepository { get; }
+        ICompanyDetailsRepository CompanyDetailsRepository { get; }
+        IDirectorDetailsRepository DirectorDetailsRepository { get; }
         void Commit();
         Task CommitAsync();
     }
