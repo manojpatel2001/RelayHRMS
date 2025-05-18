@@ -40,6 +40,23 @@ namespace HRMS_API.Controllers.CompanyInformation
             }
         }
 
+        [HttpGet("GetAllCompanyDetailsList")]
+        public async Task<APIResponse> GetAllCompanyDetailsList()
+        {
+            try
+            {
+                var data = await _unitOfWork.CompanyDetailsRepository.GetAllCompanyDetailsList();
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
         [HttpGet("GetByCompanyId/{id}")]
         public async Task<APIResponse> GetByCompanyId(int id)
         {

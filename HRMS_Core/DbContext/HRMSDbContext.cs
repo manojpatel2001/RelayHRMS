@@ -63,6 +63,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllCity>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllCompanyDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllDirectorDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllCompanyDetailsList>().HasNoKey().ToView(null);
         }
 
     }

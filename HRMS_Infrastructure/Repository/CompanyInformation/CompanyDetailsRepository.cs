@@ -286,6 +286,17 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
             }
         }
 
+        public async Task<List<vmGetAllCompanyDetailsList>> GetAllCompanyDetailsList()
+        {
+            try
+            {
+                return await _db.Set<vmGetAllCompanyDetailsList>().FromSqlInterpolated($"EXEC GetAllCompanyDetailsList").ToListAsync();
+            }
+            catch
+            {
+                return new List<vmGetAllCompanyDetailsList>();
+            }
+        }
     }
 
 }
