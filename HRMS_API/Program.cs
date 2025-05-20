@@ -1,19 +1,26 @@
 using HRMS_Core.DbContext;
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Repository;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-builder.Services.AddDbContext<HRMSDbContext>(opt =>
+// Configure DbContext for Identity
+builder.Services.AddDbContext<HRMSDbContext>(options =>
 {
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("HRMSConnection"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("HRMSConnection"));
 });
+
+// Add Identity services
+builder.Services.AddIdentity<HRMSUserIdentity, HRMSRoleIdentity>()
+                .AddEntityFrameworkStores<HRMSDbContext>()
+                .AddDefaultTokenProviders();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins",
@@ -21,6 +28,7 @@ builder.Services.AddCors(options =>
                           .AllowAnyMethod()
                           .AllowAnyHeader());
 });
+
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 
@@ -36,14 +44,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 app.UseCors("AllowAllOrigins");
 app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication(); // Ensure this is added before UseAuthorization
 app.UseAuthorization();
 
 app.MapControllers();
-
 
 app.Run();
