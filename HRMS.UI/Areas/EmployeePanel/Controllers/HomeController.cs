@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace HRMS.UI.Areas.EmployeePannel.Controllers
+namespace HRMS.UI.Areas.EmployeePanel.Controllers
 {
-    [Area("EmployeePannel")]
+    [Area("EmployeePanel")]
     public class HomeController : Controller
     {
         private readonly IConfiguration _configuration;
