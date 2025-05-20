@@ -20,11 +20,13 @@ app.UseRouting();
 
 app.UseAuthorization();
 
+
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+
 app.MapControllerRoute(
     name: "default",
-    //pattern: "{controller=JobMaster}/{action=ManageBranch}/{id?}");
-    //pattern: "{controller=JobMaster}/{action=ManageDepartment}/{id?}");
-    //pattern: "{controller=JobMaster}/{action=ManageDesignation}/{id?}");
     pattern: "{controller=AuthManage}/{action=Index}/{id?}");
 
 app.Run();
