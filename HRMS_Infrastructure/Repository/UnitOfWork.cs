@@ -2,10 +2,12 @@
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Repository.CompanyInformation;
 using HRMS_Infrastructure.Repository.CompanyStructure;
+using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using System;
@@ -43,6 +45,7 @@ namespace HRMS_Infrastructure.Repository
             CityCategoryRepository = new CityCategoryRepository(_dbContext);
             CompanyDetailsRepository = new CompanyDetailsRepository(_dbContext);
             DirectorDetailsRepository = new DirectorDetailsRepository(_dbContext);
+            EmployeeManageRepository = new EmployeeManageRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -73,6 +76,7 @@ namespace HRMS_Infrastructure.Repository
         public ICityCategoryRepository CityCategoryRepository { get; set; }
         public ICompanyDetailsRepository CompanyDetailsRepository { get; set; }
         public IDirectorDetailsRepository DirectorDetailsRepository { get; set; }
+        public IEmployeeManageRepository EmployeeManageRepository { get; set; }
 
         public void Commit()
         {
