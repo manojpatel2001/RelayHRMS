@@ -156,12 +156,26 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async  Task<List<vmGetAllEmployee>> GetAllEmployee()
+        public async  Task<List<vmGetAllEmployee>> GetAllEmployee(int companyId)
         {
             try
             {
                 return await _db.Set<vmGetAllEmployee>()
-                                .FromSqlInterpolated($"EXEC GetAllEmployee")
+                                .FromSqlInterpolated($"EXEC GetAllEmployee @companyId={companyId}")
+                                .ToListAsync();
+            }
+            catch (Exception)
+            {
+                return new List<vmGetAllEmployee>();
+            }
+        }
+
+        public async Task<List<vmGetAllEmployee>> GetAllEmployeeByIsBlocked(bool IsBlocked, int companyId)
+        {
+            try
+            {
+                return await _db.Set<vmGetAllEmployee>()
+                                .FromSqlInterpolated($"EXEC GetAllEmployeeByIsBlocked  @IsBlocked = {IsBlocked},@companyId={companyId}")
                                 .ToListAsync();
             }
             catch (Exception)
