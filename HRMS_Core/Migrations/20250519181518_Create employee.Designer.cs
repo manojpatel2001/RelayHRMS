@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250519181518_Create employee")]
+    partial class Createemployee
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -335,8 +338,8 @@ namespace HRMS_Core.Migrations
                     b.Property<decimal?>("BasicSalary")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int");
+                    b.Property<string>("Branch")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CTC")
                         .HasColumnType("nvarchar(max)");
@@ -344,18 +347,9 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("Category")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
-
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DateOfBirth")
                         .HasColumnType("datetime2");
@@ -363,17 +357,11 @@ namespace HRMS_Core.Migrations
                     b.Property<DateTime?>("DateOfJoining")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("DeletedBy")
+                    b.Property<string>("Department")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("DepartmentId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("DesignationId")
-                        .HasColumnType("int");
+                    b.Property<string>("Designation")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool?>("Earlymark")
                         .HasColumnType("bit");
@@ -385,19 +373,13 @@ namespace HRMS_Core.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<string>("EmployeeCode")
+                    b.Property<string>("EmployeeNumberCode")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("EmployeeProfileUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeSignatureUrl")
+                    b.Property<string>("EmployeeStringCode")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("EmployeeType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EnrollNo")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FirstName")
@@ -406,29 +388,17 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("Fixsalary")
                         .HasColumnType("bit");
 
-                    b.Property<string>("FullName")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<bool?>("Fullpf")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("GradeId")
-                        .HasColumnType("int");
+                    b.Property<string>("Grade")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("GrossSalary")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Initial")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
 
                     b.Property<string>("LastName")
                         .HasColumnType("nvarchar(max)");
@@ -459,9 +429,6 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("Overtime")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Password")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
 
@@ -477,16 +444,10 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("Pt")
                         .HasColumnType("bit");
 
-                    b.Property<string>("ReportingManager")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Shift")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SubBranch")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool?>("Trainee")
@@ -495,30 +456,14 @@ namespace HRMS_Core.Migrations
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<int?>("UserPrivilege")
-                        .HasColumnType("int");
+                    b.Property<string>("UserPrivilege")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
-
-                    b.HasIndex("CompanyId");
-
-                    b.HasIndex("DepartmentId");
-
-                    b.HasIndex("DesignationId");
-
-                    b.HasIndex("GradeId");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -2228,39 +2173,6 @@ namespace HRMS_Core.Migrations
                         .HasForeignKey("CompanyId");
 
                     b.Navigation("CompanyDetails");
-                });
-
-            modelBuilder.Entity("HRMS_Core.DbContext.HRMSUserIdentity", b =>
-                {
-                    b.HasOne("HRMS_Core.Master.JobMaster.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId");
-
-                    b.HasOne("HRMS_Core.ControlPanel.CompanyInformation.CompanyDetails", "CompanyDetails")
-                        .WithMany()
-                        .HasForeignKey("CompanyId");
-
-                    b.HasOne("HRMS_Core.Master.JobMaster.Department", "Department")
-                        .WithMany()
-                        .HasForeignKey("DepartmentId");
-
-                    b.HasOne("HRMS_Core.Master.JobMaster.Designation", "Designation")
-                        .WithMany()
-                        .HasForeignKey("DesignationId");
-
-                    b.HasOne("HRMS_Core.Master.JobMaster.Grade", "Grade")
-                        .WithMany()
-                        .HasForeignKey("GradeId");
-
-                    b.Navigation("Branch");
-
-                    b.Navigation("CompanyDetails");
-
-                    b.Navigation("Department");
-
-                    b.Navigation("Designation");
-
-                    b.Navigation("Grade");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.HolidayMaster", b =>

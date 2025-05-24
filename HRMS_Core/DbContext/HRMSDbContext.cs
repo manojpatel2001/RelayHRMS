@@ -5,6 +5,7 @@ using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.CompanyStructure;
+using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.OtherMaster;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -57,12 +58,15 @@ namespace HRMS_Core.DbContext
 
             // For SP return type
             modelBuilder.Entity<VMCommonResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<VMEmpResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllTicketTypes>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllWeekOffDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllHolidayMaster>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllCity>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllCompanyDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllDirectorDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllCompanyDetailsList>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllEmployee>().HasNoKey().ToView(null);
         }
 
     }

@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250520182514_UpdateEmployee")]
+    partial class UpdateEmployee
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -344,9 +347,6 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("Category")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
-
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
@@ -405,9 +405,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<bool?>("Fixsalary")
                         .HasColumnType("bit");
-
-                    b.Property<string>("FullName")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool?>("Fullpf")
                         .HasColumnType("bit");
@@ -511,8 +508,6 @@ namespace HRMS_Core.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BranchId");
-
-                    b.HasIndex("CompanyId");
 
                     b.HasIndex("DepartmentId");
 
@@ -2236,10 +2231,6 @@ namespace HRMS_Core.Migrations
                         .WithMany()
                         .HasForeignKey("BranchId");
 
-                    b.HasOne("HRMS_Core.ControlPanel.CompanyInformation.CompanyDetails", "CompanyDetails")
-                        .WithMany()
-                        .HasForeignKey("CompanyId");
-
                     b.HasOne("HRMS_Core.Master.JobMaster.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId");
@@ -2253,8 +2244,6 @@ namespace HRMS_Core.Migrations
                         .HasForeignKey("GradeId");
 
                     b.Navigation("Branch");
-
-                    b.Navigation("CompanyDetails");
 
                     b.Navigation("Department");
 

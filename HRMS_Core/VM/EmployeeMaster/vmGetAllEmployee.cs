@@ -1,20 +1,17 @@
-﻿using HRMS_Core.ControlPanel.CompanyInformation;
-using HRMS_Core.Master.JobMaster;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HRMS_Core.DbContext
+namespace HRMS_Core.VM.EmployeeMaster
 {
-    public class HRMSUserIdentity : IdentityUser
+    public class vmGetAllEmployee
     {
-        
+        public string? Id { get; set; }
+        public string? UserName { get; set; }
+        public string? Email { get; set; }
+        public string? PhoneNumber { get; set; }
         public string? Initial { get; set; }
         public string? FirstName { get; set; }
         public string? MiddleName { get; set; }
@@ -22,30 +19,25 @@ namespace HRMS_Core.DbContext
         public string? FullName { get; set; }
         public string? EmployeeCode { get; set; }
         public DateTime? DateOfJoining { get; set; }
+
         public int? BranchId { get; set; }
-        [ForeignKey(nameof(BranchId))]
-        [ValidateNever]
-        public Branch? Branch { get; set; }
+        public string? BranchName { get; set; }
 
         public int? GradeId { get; set; }
-        [ForeignKey(nameof(GradeId))]
-        [ValidateNever]
-        public Grade? Grade { get; set; }
+        public string? GradeName { get; set; }
+
         public string? Shift { get; set; }
-
         public string? CTC { get; set; }
-        public int? DesignationId { get; set; }
-        [ForeignKey(nameof(DesignationId))]
-        [ValidateNever]
-        public Designation? Designation{ get; set; }
-        public decimal? GrossSalary { get; set; }
 
+        public int? DesignationId { get; set; }
+        public string? DesignationName { get; set; }
+
+        public decimal? GrossSalary { get; set; }
         public string? Category { get; set; }
         public decimal? BasicSalary { get; set; }
+
         public int? DepartmentId { get; set; }
-        [ForeignKey(nameof(DepartmentId))]
-        [ValidateNever]
-        public Department? Department { get; set; }
+        public string? DepartmentName { get; set; }
 
         public string? EmployeeType { get; set; }
         public DateTime? DateOfBirth { get; set; }
@@ -58,10 +50,7 @@ namespace HRMS_Core.DbContext
         public string? EnrollNo { get; set; }
 
         public int? CompanyId { get; set; }
-        [ForeignKey(nameof(CompanyId))]
-        [ValidateNever]
-        public CompanyDetails? CompanyDetails { get; set; }
-
+        public string? CompanyName { get; set; }
 
         public bool? Overtime { get; set; } = false;
         public bool? Latemark { get; set; } = false;
@@ -72,17 +61,13 @@ namespace HRMS_Core.DbContext
         public bool? Probation { get; set; } = false;
         public bool? Trainee { get; set; } = false;
 
-        //base model
+        // Base model
         public bool? IsDeleted { get; set; } = false;
         public bool? IsEnabled { get; set; } = true;
         public bool? IsBlocked { get; set; } = false;
-        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? CreatedDate { get; set; }
         public string? CreatedBy { get; set; }
-        public DateTime? UpdatedDate { get; set; }
-        public string? UpdatedBy { get; set; }
-        public DateTime? DeletedDate { get; set; }
-        public string? DeletedBy { get; set; }
-
+        
         public string? EmployeeProfileUrl { get; set; }
         public string? EmployeeSignatureUrl { get; set; }
     }
