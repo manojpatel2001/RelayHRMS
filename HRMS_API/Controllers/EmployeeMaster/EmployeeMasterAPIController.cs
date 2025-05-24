@@ -27,11 +27,11 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
 
         [HttpGet("GetAllEmployee")]
-        public async Task<APIResponse> GetAllEmployee()
+        public async Task<APIResponse> GetAllEmployee(int companyId)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployee();
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployee(companyId);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -266,7 +266,22 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
+        [HttpGet("GetAllEmployeeByIsBlocked/{IsBlocked}")]
+        public async Task<APIResponse> GetAllEmployeeByIsBlocked( bool IsBlocked,int companyId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeByIsBlocked(IsBlocked, companyId);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
 
 
 
