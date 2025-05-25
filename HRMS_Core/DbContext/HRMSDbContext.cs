@@ -68,6 +68,11 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllCompanyDetailsList>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllEmployee>().HasNoKey().ToView(null);
         }
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.EnableSensitiveDataLogging();
+        }
+
 
     }
 }
