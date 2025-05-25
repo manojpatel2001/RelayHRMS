@@ -184,11 +184,11 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async Task<HRMSUserIdentity?> GetEmployeeById(string Id)
+        public async Task<vmGetAllEmployee?> GetEmployeeById(string Id)
         {
             try
             {
-                var result = await _db.Set<HRMSUserIdentity>()
+                var result = await _db.Set<vmGetAllEmployee>()
                                       .FromSqlInterpolated($"EXEC GetEmployeeById @Id = {Id}")
                                       .ToListAsync();
 
@@ -197,6 +197,25 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             catch (Exception)
             {
                 return null;
+            }
+        }
+
+        public async  Task<VMEmpResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model)
+        {
+            try
+            {
+                var result = await _db.Set<VMEmpResult>().FromSqlInterpolated($@"
+                    EXEC UpdateEmployeeProfileAndSignature
+                        @Id = {model.EmployeeId},
+                        @EmployeeProfileUrl = {model.EmployeeProfileUrl},
+                        @EmployeeSignatureUrl = {model.EmployeeSignatureUrl}
+                ").ToListAsync();
+
+                return result.FirstOrDefault() ?? new VMEmpResult { Emp_Id = null };
+            }
+            catch (Exception)
+            {
+                return new VMEmpResult { Emp_Id = null };
             }
         }
     }
