@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.ControlPanel.CompanyInformation;
+using HRMS_Core.EmployeeMaster;
 using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
@@ -15,6 +16,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using EmployeePersonalInfo = HRMS_Core.EmployeeMaster.EmployeePersonalInfo;
 
 namespace HRMS_Core.DbContext
 {
@@ -51,6 +53,10 @@ namespace HRMS_Core.DbContext
         public DbSet<LevelWiseCardMapping> LevelWiseCardMapping { get; set; }
         public DbSet<CompanyDetails> CompanyDetails { get; set; }
         public DbSet<DirectorDetails> DirectorDetails { get; set; }
+        public DbSet<EmployeePersonalInfo> EmployeePersonalInfo { get; set; }
+        public DbSet<EmployeeContact> EmployeeContact { get; set; }
+        public DbSet<Country> Country { get; set; }
+        public DbSet<Thana> Thana { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

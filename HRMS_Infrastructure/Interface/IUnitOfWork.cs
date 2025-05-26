@@ -35,6 +35,7 @@ namespace HRMS_Infrastructure.Interface
         ICompanyDetailsRepository CompanyDetailsRepository { get; }
         IDirectorDetailsRepository DirectorDetailsRepository { get; }
         IEmployeeManageRepository EmployeeManageRepository { get; }
+        IEmployeePersonalInfoRepository EmployeePersonalInfoRepository { get; }
         void Commit();
         Task CommitAsync();
     }
