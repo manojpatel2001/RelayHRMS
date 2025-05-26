@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250526181016_CreateEmployeeAdditionInformation")]
+    partial class CreateEmployeeAdditionInformation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -679,8 +682,8 @@ namespace HRMS_Core.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmployeeContactId"));
 
-                    b.Property<int?>("CountryId")
-                        .HasColumnType("int");
+                    b.Property<string>("Country")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -736,8 +739,8 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("PermanentTehsil")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("PermanentThanaId")
-                        .HasColumnType("int");
+                    b.Property<string>("PermanentThana")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PersonalPhone")
                         .HasColumnType("nvarchar(max)");
@@ -760,8 +763,8 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("PresentTehsil")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("PresentThanaId")
-                        .HasColumnType("int");
+                    b.Property<string>("PresentThana")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool?>("SameAsPresentAddress")
                         .HasColumnType("bit");
@@ -777,13 +780,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("EmployeeContactId");
 
-                    b.HasIndex("CountryId");
-
                     b.HasIndex("EmployeeId");
-
-                    b.HasIndex("PermanentThanaId");
-
-                    b.HasIndex("PresentThanaId");
 
                     b.ToTable("EmployeeContact");
                 });
@@ -2909,29 +2906,11 @@ namespace HRMS_Core.Migrations
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.EmployeeContact", b =>
                 {
-                    b.HasOne("HRMS_Core.EmployeeMaster.Country", "Country")
-                        .WithMany()
-                        .HasForeignKey("CountryId");
-
                     b.HasOne("HRMS_Core.EmployeeMaster.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeId");
 
-                    b.HasOne("HRMS_Core.EmployeeMaster.Thana", "PermanentThana")
-                        .WithMany()
-                        .HasForeignKey("PermanentThanaId");
-
-                    b.HasOne("HRMS_Core.EmployeeMaster.Thana", "PresentThana")
-                        .WithMany()
-                        .HasForeignKey("PresentThanaId");
-
-                    b.Navigation("Country");
-
                     b.Navigation("Employee");
-
-                    b.Navigation("PermanentThana");
-
-                    b.Navigation("PresentThana");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.EmployeePersonalInfo", b =>
