@@ -1,0 +1,36 @@
+﻿using Microsoft.AspNetCore.Mvc;
+
+namespace HRMS.UI.Areas.EmployeePanel.Controllers
+{
+	[Area("EmployeePanel")]
+	public class LeaveController : Controller
+	{
+		private readonly IConfiguration _configuration;
+
+
+		public LeaveController(IConfiguration configuration)
+		{
+			_configuration = configuration;
+		}
+		public IActionResult Index()
+		{
+			return View();
+		}
+
+		public IActionResult LeaveApplication()
+		{
+			ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+
+			return View();
+
+
+		}
+        public IActionResult AddLeave()
+        {
+            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+
+    }
+}
