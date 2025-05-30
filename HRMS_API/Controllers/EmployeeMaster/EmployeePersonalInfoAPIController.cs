@@ -38,7 +38,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
         }
 
         [HttpGet("GetEmployeePersonalInfoByEmployeeId/{EmployeeId}")]
-        public async Task<APIResponse> GetEmployeePersonalInfoByEmployeeId(int EmployeeId)
+        public async Task<APIResponse> GetEmployeePersonalInfoByEmployeeId(string EmployeeId)
         {
             try
             {

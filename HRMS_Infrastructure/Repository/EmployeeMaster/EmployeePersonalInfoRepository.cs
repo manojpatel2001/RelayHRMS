@@ -33,7 +33,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 return new List<EmployeePersonalInfo>();
             }
         }
-        public async Task<EmployeePersonalInfo?> GetEmployeePersonalInfoByEmployeeId(int EmployeeId)
+        public async Task<EmployeePersonalInfo?> GetEmployeePersonalInfoByEmployeeId(string EmployeeId)
         {
             try
             {

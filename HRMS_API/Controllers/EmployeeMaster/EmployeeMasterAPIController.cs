@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.DbContext;
+using HRMS_Core.EmployeeMaster;
 using HRMS_Core.Helper;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
@@ -136,10 +137,11 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
 
         [HttpPost("UpdateEmployee")]
-        public async Task<APIResponse> UpdateEmployee(vmEmployeeData employeeData)
+        public async Task<APIResponse> UpdateEmployee(vmUpdateEmployee updateEmployee)
         {
             try
             {
+                var employeeData = updateEmployee.vmEmployeeData;
                 if (employeeData == null || string.IsNullOrEmpty(employeeData.LoginAlias))
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
@@ -151,6 +153,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
                 }
 
+
                 // Check if another user with the same EmployeeCode exists (excluding the current user)
                 var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.EmployeeCode == employeeData.EmployeeCode && u.Id != existingUser.Id);
                 if (existingUserByEmployeeCode.Any())
@@ -158,52 +161,31 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Employee Code already exists." };
                 }
 
-                //// Update the user properties
-                //existingUser.Id = employeeData.Id;
-                //existingUser.Email = employeeData.LoginAlias;
-                //existingUser.UserName = employeeData.LoginAlias;
-                //if (!string.IsNullOrEmpty(employeeData.Password))
-                //{
-                //    existingUser.Password = employeeData.Password;
-                //}
-                //existingUser.Initial = employeeData.Initial;
-                //existingUser.FirstName = employeeData.FirstName;
-                //existingUser.MiddleName = employeeData.MiddleName;
-                //existingUser.LastName = employeeData.LastName;
-                //existingUser.FullName = employeeData.FullName;
-                //existingUser.EmployeeCode = employeeData.EmployeeCode;
-                //existingUser.DateOfJoining = employeeData.DateOfJoining;
-                //existingUser.BranchId = employeeData.BranchId;
-                //existingUser.GradeId = employeeData.GradeId;
-                //existingUser.Shift = employeeData.Shift;
-                //existingUser.CTC = employeeData.CTC;
-                //existingUser.DesignationId = employeeData.DesignationId;
-                //existingUser.GrossSalary = employeeData.GrossSalary;
-                //existingUser.Category = employeeData.Category;
-                //existingUser.BasicSalary = employeeData.BasicSalary;
-                //existingUser.DepartmentId = employeeData.DepartmentId;
-                //existingUser.EmployeeType = employeeData.EmployeeType;
-                //existingUser.DateOfBirth = employeeData.DateOfBirth;
-                //existingUser.UserPrivilege = employeeData.UserPrivilege;
-                //existingUser.ReportingManager = employeeData.ReportingManager;
-                //existingUser.SubBranch = employeeData.SubBranch;
-                //existingUser.EnrollNo = employeeData.EnrollNo;
-                //existingUser.CompanyId = employeeData.CompanyId;
-                //existingUser.Overtime = employeeData.Overtime;
-                //existingUser.Latemark = employeeData.Latemark;
-                //existingUser.Earlymark = employeeData.Earlymark;
-                //existingUser.Fullpf = employeeData.Fullpf;
-                //existingUser.Pt = employeeData.Pt;
-                //existingUser.Fixsalary = employeeData.Fixsalary;
-                //existingUser.Probation = employeeData.Probation;
-                //existingUser.Trainee = employeeData.Trainee;
-
-                
                 // Update the user
                 var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployee(employeeData);
 
                 if (result.Emp_Id!=null)
                 {
+                    // Additional information
+                    if (updateEmployee.EmployeePersonalInfo != null)
+                    {
+                        var modelEmployeePersonalInfo = updateEmployee.EmployeePersonalInfo;
+                        //Add employee info
+                        if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0)
+                        {
+                            var resultEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.CreateEmployeePersonalInfo(modelEmployeePersonalInfo);
+                        }
+                        else
+                        {
+                            var check = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoById(modelEmployeePersonalInfo.EmployeePersonalInfoId);
+                            if (check != null)
+                            {
+                                var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.UpdateEmployeePersonalInfo(modelEmployeePersonalInfo);
+                            }
+                        }
+                    }
+
+
                     var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(result.Emp_Id);
                     return new APIResponse { isSuccess = true, Data = updatedEmployee, ResponseMessage = "Employee has been updated successfully" };
                 }
@@ -380,5 +362,25 @@ namespace HRMS_API.Controllers.EmployeeMaster
         //        return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to add record, Please try again later!" };
         //    }
         //}
+
+        [HttpGet("GetAllAdditionalInformation/{employeeId}")]
+        public async Task<APIResponse> GetAllAdditionalInformation(string employeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoByEmployeeId(employeeId);
+
+                var newData = new
+                {
+                    EmployeePersonalInfo = data
+                };
+                return new APIResponse { isSuccess = true, Data = newData, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
     }
 }

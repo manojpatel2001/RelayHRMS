@@ -55,10 +55,10 @@ namespace HRMS_Core.EmployeeMaster
         // Checkbox for same as present address
         public bool? SameAsPresentAddress { get; set; } = false;
 
-        public int? EmployeeId { get; set; }
+        public string? EmployeeId { get; set; }
         [ForeignKey(nameof(EmployeeId))]
         [ValidateNever]
-        public Employee? Employee { get; set; }
+        public HRMSUserIdentity? Employee { get; set; }
     }
 
 }
