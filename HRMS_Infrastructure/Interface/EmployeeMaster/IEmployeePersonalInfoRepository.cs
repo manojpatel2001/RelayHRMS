@@ -11,7 +11,7 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
     public interface IEmployeePersonalInfoRepository : IRepository<EmployeePersonalInfo>
     {
         Task<List<EmployeePersonalInfo>> GetAllEmployeePersonalInfo();
-        Task<EmployeePersonalInfo?> GetEmployeePersonalInfoByEmployeeId(int EmployeeId);
+        Task<EmployeePersonalInfo?> GetEmployeePersonalInfoByEmployeeId(string EmployeeId);
         Task<EmployeePersonalInfo?> GetEmployeePersonalInfoById(int employeePersonalInfoId);
         Task<VMCommonResult> CreateEmployeePersonalInfo(EmployeePersonalInfo employeePersonalInfo);
         Task<VMCommonResult> UpdateEmployeePersonalInfo(EmployeePersonalInfo employeePersonalInfo);

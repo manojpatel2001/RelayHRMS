@@ -615,17 +615,58 @@
 
 
 <script>
-		let employeeList =  JSON.parse(localStorage.getItem('AllEmployeeData'));
-		let currentIndex =JSON.parse(localStorage.getItem('CurrentIndex'));
-		console.log("AllEmployeeData:",employeeList);
-		console.log("CurrentIndex:",currentIndex);
+	const queryString = window.location.search;
+	// Create a URLSearchParams object
+	const urlParams = new URLSearchParams(queryString);
+		let employeeList = [];
+		let currentIndex =0;
+		let CurrentEmployeeId=urlParams.get('EmployeeId');
+		console.log("CurrentEmployeeId:",CurrentEmployeeId);
 		var EmployeeProfileUrl="";
 		var EmployeeSignatureUrl="";
+	
 	function formatDate(date) {
 		if (!date) return '';
 		var d = new Date(date);
 		return d.toISOString().split('T')[0];
 	}
+
+	$(document).ready( async function () {
+		await LoadCompanyDetails();
+		await Promise.all([bindBranch(), bindDesignation(), bindDepartment(), bindGrade()]);
+		await new Promise(resolve => setTimeout(resolve, 1000));
+		var Company = $('#companyDropdown').val();
+		if (!Company) {
+			round_error_noti("Please select company");
+			return;
+		}
+	   $.ajax({
+			type: "GET",
+			url: "@baseUrl/EmployeeMasterAPI/GetAllEmployee"+ "?companyId=" + Company,
+			success: function(data) {
+				console.log("Data received:", data);
+				if (data.isSuccess)
+				{
+					employeeList=data.data;
+					currentIndex=findIndexById(CurrentEmployeeId);
+				    fillEmployeeForm(employeeList[currentIndex]);
+				} 
+				else{
+					round_error_noti(data.responseMessage);
+				}
+			},
+			error: function(xhr, status, error) {
+				console.error("AJAX Error: " + status + " - " + error);
+			}
+		})
+	});
+	//find index
+    function findIndexById(idToFind) {
+		return employeeList.findIndex(function(obj) {
+			return obj.id === idToFind;
+		});
+	}
+
 	// Sample fill function
 	function fillEmployeeForm(employee) {
 		// Set values into form fields, handling null values
@@ -643,7 +684,6 @@
 			$('#txtNumberEmpCode').val(secondPart);
 		}
 		$('#doj').val(formatDate(employee.dateOfJoining));
-		debugger;
 		$('#ddlBranch').val(employee.branchId||"");
 		$('#ddlGrade').val(employee.gradeId||"");
 		$('#ddlShift').val(employee.shift||"");
@@ -690,7 +730,8 @@
 		   $('#empSignPreview').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/default-signature.jpg');
 		   $('#signFileInfo').hide();
 		}
-		//$('#companyDropdown').val(employee.companyId !== null ? employee.companyId : '');
+		$(".loaderTag").show();
+		GetEmployeePersonalInfo(employee.id);
 	}
 
 	async function bindDesignation(){
@@ -802,8 +843,7 @@
 	
 	// Bind navigation buttons
 	$(document).ready( async function () {
-		 await Promise.all([bindBranch(), bindDesignation(), bindDepartment(), bindGrade()]);
-		await new Promise(resolve => setTimeout(resolve, 1000));
+		 
 		 $('span:contains("Next")').click(function () {
 			if (currentIndex < employeeList.length - 1) {
 				currentIndex++;
@@ -818,15 +858,12 @@
 			}
 		});
 
-		// Optional: Initialize with first employee if exists
-		if (employeeList.length > 0) {
-			fillEmployeeForm(employeeList[currentIndex]);
-		}
+		
 	});
 
 
-	$('#btnUpdateEmployee').click(function() {
-			$("#btnUpdateEmployee").prop("disabled", true);
+	$('#btnUpdateEmployee').click(async function() {
+			//$("#btnUpdateEmployee").prop("disabled", true);
 			// Capture form values in variables
 			var employeeId=$('#EmployeeId').val();
 			var initial = $('#ddlInitial').val();
@@ -975,15 +1012,19 @@
 						EmployeeSignatureUrl: null
 					};
 					console.log("employeeData: "+ employeeData);
-
-
+					var employeePersional=await getEmployeePersonalInfo();
+					var updateEmployee={
+						vmEmployeeData:employeeData,
+						EmployeePersonalInfo:employeePersional
+					};
+					console.log("updateEmployee",updateEmployee)
 
 			// Send data to server using AJAX
 				$.ajax({
 					url: '@baseUrl/EmployeeMasterAPI/UpdateEmployee',
 					type: 'POST',
 					contentType: 'application/json',
-					data: JSON.stringify(employeeData),
+					data: JSON.stringify(updateEmployee),
 					success: function(response) {
 						if (response.isSuccess) {
 							resetAllEmployeeData(response.data)
@@ -1014,6 +1055,223 @@
 			localStorage.removeItem('AllEmployeeData');
 			localStorage.setItem('AllEmployeeData', JSON.stringify(employeeList));
 		}
+
+
+		// Add employee persional info
+	async function getEmployeePersonalInfo() {
+		// Helper function to set null for empty values
+		const setNullIfEmpty = (value) => {
+			return value === "" ? null : value;
+		};
+		// Collect data from the form and set null for empty values
+		const employeePersonalInfo = {
+			EmployeePersonalInfoId:setNullIfEmpty($("#EmployeePersonalInfoId").val()),
+			Gender: setNullIfEmpty($('#ddlGender').val()),
+			PersonalEmailId: setNullIfEmpty($('#inpPersonalEmailId').val()),
+			FatherName: setNullIfEmpty($('#inpFatherName').val()),
+			MotherName: setNullIfEmpty($('#inpMotherName').val()),
+			DateOfBirth: setNullIfEmpty($('#inpDateOfBirth').val()),
+			BloodGroup: setNullIfEmpty($('#ddlBloodGroup').val()),
+			Height: setNullIfEmpty($('#inpHeight').val()),
+			MaritalStatus: setNullIfEmpty($('#ddlMaritalStatus').val()),
+			MarriageDate: setNullIfEmpty($('#inpMarriageDate').val()),
+			MarkIdentification: setNullIfEmpty($('#inpMarkIdentification').val()),
+			Religion: setNullIfEmpty($('#inpReligion').val()),
+			Caste: setNullIfEmpty($('#ddlCast').val()),
+			CastCategory: setNullIfEmpty($('#ddlCastCategory').val()),
+			AadharCardNo: setNullIfEmpty($('#inpAadharCardNo').val()),
+			PANNo: setNullIfEmpty($('#inpPanNo').val()),
+			Dispensary: setNullIfEmpty($('#inpDispensary').val()),
+			DoctorName: setNullIfEmpty($('#inpDoctorName').val()),
+			DispensaryAddress: setNullIfEmpty($('#inpDispensaryAddress').val()),
+			UANNumber: setNullIfEmpty($('#inpUanNumber').val()),
+			DrivingLicense: setNullIfEmpty($('#inpDrivingLicense').val()),
+			DrivingLicenseExpiry: setNullIfEmpty($('#inpDrivingLicenseExpiry').val()),
+			RationCardType: setNullIfEmpty($('#ddlRationCardType').val()),
+			RationCardNo: setNullIfEmpty($('#inpRationCardNo').val()),
+			LinkedInId: setNullIfEmpty($('#inpLinkedInId').val()),
+			TwitterId: setNullIfEmpty($('#inpTwitterId').val()),
+			ProbationCompletionPeriod: setNullIfEmpty($('#inpProbationCompletionPeriod').val()),
+			ProbationPeriodType: setNullIfEmpty($('input[name="probationPeriod"]:checked').val()),
+			ManagerProbation: setNullIfEmpty($('#ddlManagerProbation').val()),
+			ConfirmDate: setNullIfEmpty($('#inpConfirmDate').val()),
+			RetirementDate: setNullIfEmpty($('#inpRetirementDate').val()),
+			OfferDate: setNullIfEmpty($('#inpOfferDate').val()),
+			TraineeCompletionPeriod: setNullIfEmpty($('#inpTraineeCompletionPeriod').val()),
+			TraineePeriodType: setNullIfEmpty($('input[name="traininPeriod"]:checked').val()),
+			CanteenCode: setNullIfEmpty($('#inpCanteenCode').val()),
+			TallyLedgerName: setNullIfEmpty($('#ddlTallyLedgerName').val()),
+			IsMetroCity: $('#rdoIsMetroCity').is(':checked'),
+			AdultWorkerNo: setNullIfEmpty($('#inpAdultWorkerNo').val()),
+			PhysicalDisability: setNullIfEmpty($('#inpPhysicalDisability').val()),
+			MinimumWageSkillType: setNullIfEmpty($('#ddlMinimumWageSkillType').val()),
+			VehicleNo: setNullIfEmpty($('#inpVehicleNo').val()),
+			InsuranceNo: $('#rdoInsuranceNo').is(':checked'),
+			DressCode: setNullIfEmpty($('#inpDressCode').val()),
+			ShirtSize: setNullIfEmpty($('#inpShirtSize').val()),
+			PantSize: setNullIfEmpty($('#inpPantSize').val()),
+			ShoeSize: setNullIfEmpty($('#inpShoeSize').val()),
+			EmployeeId :$('#EmployeeId').val(), // Replace with actual EmployeeId
+			CreatedBy:null,
+			UpdatedBy:null
+		};
+
+		console.log("employeePersonalInfo",employeePersonalInfo);
+
+		return employeePersonalInfo;
+		// Send data to the server using AJAX
+		// $.ajax({
+		//     url: '@baseUrl/EmployeePersonalInfoAPI/CreateEmployeePersonalInfo',
+		//     type: 'POST',
+		//     contentType: 'application/json',
+		//     data: JSON.stringify(employeePersonalInfo),
+		//     success: function(response) {
+		//         if (response.isSuccess) {
+		//             round_success_noti(response.responseMessage);
+		//         } else {
+		//             round_error_noti(response.responseMessage);
+		//         }
+		//     },
+		//     error: function(xhr, status, error) {
+
+		//         console.error('Error:', error);
+		//         console.error('Status:', status);
+		//         console.error('Response Text:', xhr.responseText);
+		//     }
+		// });
+	}
+
+	function GetEmployeePersonalInfo(employeeId)
+	{
+		$.ajax({
+			type: "GET",
+			url: "@baseUrl/EmployeeMasterAPI/GetAllAdditionalInformation/"+employeeId,
+			success: function(data) {
+				console.log("Data received:", data);
+				if (data.isSuccess)
+				{
+					fillEmployeePersonalInfoForm(data.data.employeePersonalInfo)
+				}
+				else{
+					round_error_noti(data.responseMessage);
+				}
+			},
+			error: function(xhr, status, error) {
+				console.error("AJAX Error: " + status + " - " + error);
+			}
+		})
+	}
+
+	//set personal employee info
+	function fillEmployeePersonalInfoForm(employeePersonalInfo) {
+		if(employeePersonalInfo!=null)
+		{
+			// Set values into form fields, handling null or undefined values
+			$("#EmployeePersonalInfoId").val(employeePersonalInfo.employeePersonalInfoId||0)
+			$('#ddlGender').val(employeePersonalInfo.gender || "Male");
+			$('#inpPersonalEmailId').val(employeePersonalInfo.personalEmailId || "");
+			$('#inpFatherName').val(employeePersonalInfo.fatherName || "");
+			$('#inpMotherName').val(employeePersonalInfo.motherName || "");
+			$('#inpDateOfBirth').val(employeePersonalInfo.dateOfBirth ? formatDate(employeePersonalInfo.dateOfBirth) : "");
+			$('#ddlBloodGroup').val(employeePersonalInfo.bloodGroup || "");
+			$('#inpHeight').val(employeePersonalInfo.height || "");
+			$('#ddlMaritalStatus').val(employeePersonalInfo.maritalStatus || "");
+			$('#inpMarriageDate').val(employeePersonalInfo.marriageDate ? formatDate(employeePersonalInfo.marriageDate) : "");
+			$('#inpMarkIdentification').val(employeePersonalInfo.markIdentification || "");
+			$('#inpReligion').val(employeePersonalInfo.religion || "");
+			$('#ddlCast').val(employeePersonalInfo.caste || "");
+			$('#ddlCastCategory').val(employeePersonalInfo.castCategory || "");
+			$('#inpAadharCardNo').val(employeePersonalInfo.aadharCardNo || "");
+			$('#inpPanNo').val(employeePersonalInfo.panNo || "");
+			$('#inpDispensary').val(employeePersonalInfo.dispensary || "");
+			$('#inpDoctorName').val(employeePersonalInfo.doctorName || "");
+			$('#inpDispensaryAddress').val(employeePersonalInfo.dispensaryAddress || "");
+			$('#inpUanNumber').val(employeePersonalInfo.uanNumber || "");
+			$('#inpDrivingLicense').val(employeePersonalInfo.drivingLicense || "");
+			$('#inpDrivingLicenseExpiry').val(employeePersonalInfo.drivingLicenseExpiry ? formatDate(employeePersonalInfo.drivingLicenseExpiry) : "");
+			$('#ddlRationCardType').val(employeePersonalInfo.rationCardType || "");
+			$('#inpRationCardNo').val(employeePersonalInfo.rationCardNo || "");
+			$('#inpLinkedInId').val(employeePersonalInfo.linkedInId || "");
+			$('#inpTwitterId').val(employeePersonalInfo.twitterId || "");
+			$('#inpProbationCompletionPeriod').val(employeePersonalInfo.probationCompletionPeriod || "");
+			$(`input[name="probationPeriod"][value="${employeePersonalInfo.probationPeriodType || "Months"}"]`).prop('checked', true);
+			$('#ddlManagerProbation').val(employeePersonalInfo.managerProbation || "");
+			$('#inpConfirmDate').val(employeePersonalInfo.confirmDate ? formatDate(employeePersonalInfo.confirmDate) : "");
+			$('#inpRetirementDate').val(employeePersonalInfo.retirementDate ? formatDate(employeePersonalInfo.retirementDate) : "");
+			$('#inpOfferDate').val(employeePersonalInfo.offerDate ? formatDate(employeePersonalInfo.offerDate) : "");
+			$('#inpTraineeCompletionPeriod').val(employeePersonalInfo.traineeCompletionPeriod || "");
+			$(`input[name="traininPeriod"][value="${employeePersonalInfo.traineePeriodType || "Months"}"]`).prop('checked', true);
+			$('#inpCanteenCode').val(employeePersonalInfo.canteenCode || "");
+			$('#ddlTallyLedgerName').val(employeePersonalInfo.tallyLedgerName || "");
+			$('#rdoIsMetroCity').prop('checked', employeePersonalInfo.isMetroCity || false);
+			$('#inpAdultWorkerNo').val(employeePersonalInfo.adultWorkerNo || "");
+			$('#inpPhysicalDisability').val(employeePersonalInfo.physicalDisability || "");
+			$('#ddlMinimumWageSkillType').val(employeePersonalInfo.minimumWageSkillType || "");
+			$('#inpVehicleNo').val(employeePersonalInfo.vehicleNo || "");
+			$('#rdoInsuranceNo').prop('checked', employeePersonalInfo.insuranceNo || false);
+			$('#inpDressCode').val(employeePersonalInfo.dressCode || "");
+			$('#inpShirtSize').val(employeePersonalInfo.shirtSize || "");
+			$('#inpPantSize').val(employeePersonalInfo.pantSize || "");
+			$('#inpShoeSize').val(employeePersonalInfo.shoeSize || "");
+			$(".loaderTag").hide();
+		}
+		else{
+			resetEmployeePersonalInfoForm();
+		}
+	}
+
+	function resetEmployeePersonalInfoForm() {
+		// Reset each form field to its default or empty value
+		$("#EmployeePersonalInfoId").val(0);
+		$('#ddlGender').val("Male");
+		$('#inpPersonalEmailId').val("");
+		$('#inpFatherName').val("");
+		$('#inpMotherName').val("");
+		$('#inpDateOfBirth').val("");
+		$('#ddlBloodGroup').val("");
+		$('#inpHeight').val("");
+		$('#ddlMaritalStatus').val("");
+		$('#inpMarriageDate').val("");
+		$('#inpMarkIdentification').val("");
+		$('#inpReligion').val("");
+		$('#ddlCast').val("");
+		$('#ddlCastCategory').val("");
+		$('#inpAadharCardNo').val("");
+		$('#inpPanNo').val("");
+		$('#inpDispensary').val("");
+		$('#inpDoctorName').val("");
+		$('#inpDispensaryAddress').val("");
+		$('#inpUanNumber').val("");
+		$('#inpDrivingLicense').val("");
+		$('#inpDrivingLicenseExpiry').val("");
+		$('#ddlRationCardType').val("");
+		$('#inpRationCardNo').val("");
+		$('#inpLinkedInId').val("");
+		$('#inpTwitterId').val("");
+		$('#inpProbationCompletionPeriod').val("");
+		$(`input[name="probationPeriod"][value="Months"]`).prop('checked', true);
+		$('#ddlManagerProbation').val("");
+		$('#inpConfirmDate').val("");
+		$('#inpRetirementDate').val("");
+		$('#inpOfferDate').val("");
+		$('#inpTraineeCompletionPeriod').val("");
+		$(`input[name="traininPeriod"][value="Months"]`).prop('checked', true);
+		$('#inpCanteenCode').val("");
+		$('#ddlTallyLedgerName').val("");
+		$('#rdoIsMetroCity').prop('checked', false);
+		$('#inpAdultWorkerNo').val("");
+		$('#inpPhysicalDisability').val("");
+		$('#ddlMinimumWageSkillType').val("");
+		$('#inpVehicleNo').val("");
+		$('#rdoInsuranceNo').prop('checked', false);
+		$('#inpDressCode').val("");
+		$('#inpShirtSize').val("");
+		$('#inpPantSize').val("");
+		$('#inpShoeSize').val("");
+	    $(".loaderTag").hide();
+
+	}
+
 </script>
 
 <script>
