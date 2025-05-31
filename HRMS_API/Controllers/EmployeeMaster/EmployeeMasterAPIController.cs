@@ -147,12 +147,12 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     return new APIResponse { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
                 }
 
-                var existingUser = await _unitOfWork.EmployeeManageRepository.GetAsync(x=>x.Id==employeeData.Id && x.IsDeleted==false && x.IsEnabled==true);
+                // Fetch the existing user using your repository
+                var existingUser = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.Id == employeeData.Id && x.IsDeleted == false && x.IsEnabled == true);
                 if (existingUser == null)
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
                 }
-
 
                 // Check if another user with the same EmployeeCode exists (excluding the current user)
                 var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.EmployeeCode == employeeData.EmployeeCode && u.Id != existingUser.Id);
@@ -160,17 +160,53 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Employee Code already exists." };
                 }
+                var oldUser = await _userManager.FindByIdAsync(employeeData.Id.ToString());
+                if (oldUser == null)
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
+                }
 
-                // Update the user
+                // Update email if a new email is provided
+                if (!string.IsNullOrEmpty(oldUser.LoginAlias))
+                {
+                    var setEmailResult = await _userManager.SetEmailAsync(oldUser, employeeData.LoginAlias);
+                    if (!setEmailResult.Succeeded)
+                    {
+                        return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update email." };
+                    }
+
+                    var setUserNameResult = await _userManager.SetUserNameAsync(oldUser, employeeData.LoginAlias);
+                    if (!setUserNameResult.Succeeded)
+                    {
+                        return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update username." };
+                    }
+                }
+
+                // Reset password if a new password is provided
+                if (!string.IsNullOrEmpty(employeeData.Password))
+                {
+
+                    var token = await _userManager.GeneratePasswordResetTokenAsync(oldUser);
+                    var resetPasswordResult = await _userManager.ResetPasswordAsync(oldUser, token, employeeData.Password);
+                    if (!resetPasswordResult.Succeeded)
+                    {
+                        return new APIResponse { isSuccess = false, ResponseMessage = "Failed to reset password." };
+                    }
+                }
+                else
+                {
+                    employeeData.Password = "Employee@1";
+                }
+                // Update other user properties
                 var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployee(employeeData);
 
-                if (result.Emp_Id!=null)
+                if (result.Emp_Id != null)
                 {
                     // Additional information
                     if (updateEmployee.EmployeePersonalInfo != null)
                     {
                         var modelEmployeePersonalInfo = updateEmployee.EmployeePersonalInfo;
-                        //Add employee info
+                        // Add or update employee personal info
                         if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0)
                         {
                             var resultEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.CreateEmployeePersonalInfo(modelEmployeePersonalInfo);
@@ -185,7 +221,6 @@ namespace HRMS_API.Controllers.EmployeeMaster
                         }
                     }
 
-
                     var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(result.Emp_Id);
                     return new APIResponse { isSuccess = true, Data = updatedEmployee, ResponseMessage = "Employee has been updated successfully" };
                 }
@@ -197,6 +232,67 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update employee, Please try again later!" };
             }
         }
+
+        //public async Task<APIResponse> UpdateEmployee(vmUpdateEmployee updateEmployee)
+        //{
+        //    try
+        //    {
+        //        var employeeData = updateEmployee.vmEmployeeData;
+        //        if (employeeData == null || string.IsNullOrEmpty(employeeData.LoginAlias))
+        //        {
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
+        //        }
+
+        //        var existingUser = await _unitOfWork.EmployeeManageRepository.GetAsync(x=>x.Id==employeeData.Id && x.IsDeleted==false && x.IsEnabled==true);
+        //        if (existingUser == null)
+        //        {
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
+        //        }
+
+
+        //        // Check if another user with the same EmployeeCode exists (excluding the current user)
+        //        var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.EmployeeCode == employeeData.EmployeeCode && u.Id != existingUser.Id);
+        //        if (existingUserByEmployeeCode.Any())
+        //        {
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Employee Code already exists." };
+        //        }
+
+        //        // Update the user
+        //        var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployee(employeeData);
+
+        //        if (result.Emp_Id!=null)
+        //        {
+        //            // Additional information
+        //            if (updateEmployee.EmployeePersonalInfo != null)
+        //            {
+        //                var modelEmployeePersonalInfo = updateEmployee.EmployeePersonalInfo;
+        //                //Add employee info
+        //                if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0)
+        //                {
+        //                    var resultEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.CreateEmployeePersonalInfo(modelEmployeePersonalInfo);
+        //                }
+        //                else
+        //                {
+        //                    var check = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoById(modelEmployeePersonalInfo.EmployeePersonalInfoId);
+        //                    if (check != null)
+        //                    {
+        //                        var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.UpdateEmployeePersonalInfo(modelEmployeePersonalInfo);
+        //                    }
+        //                }
+        //            }
+
+
+        //            var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(result.Emp_Id);
+        //            return new APIResponse { isSuccess = true, Data = updatedEmployee, ResponseMessage = "Employee has been updated successfully" };
+        //        }
+
+        //        return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update employee, Please try again later!" };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update employee, Please try again later!" };
+        //    }
+        //}
 
 
 
