@@ -11,10 +11,12 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
 {
     public interface IEmployeeManageRepository:IRepository<HRMSUserIdentity>
     {
-        Task<List<vmGetAllEmployee>> GetAllEmployee();
-        Task<HRMSUserIdentity?> GetEmployeeById(string Id);
+        Task<List<vmGetAllEmployee>> GetAllEmployee(int companyId);
+        Task<List<vmGetAllEmployee>> GetAllEmployeeByIsBlocked(bool IsBlocked,int companyId);
+        Task<vmGetAllEmployee?> GetEmployeeById(string Id);
         Task<VMEmpResult> CreateEmployee(vmEmployeeData employee);
         Task<VMEmpResult> UpdateEmployee(vmEmployeeData employee);
         Task<VMEmpResult> DeleteEmployee(DeleteRecordVM deleteRecord);
+        Task<VMEmpResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model);
     }
 }

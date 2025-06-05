@@ -156,12 +156,12 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async  Task<List<vmGetAllEmployee>> GetAllEmployee()
+        public async  Task<List<vmGetAllEmployee>> GetAllEmployee(int companyId)
         {
             try
             {
                 return await _db.Set<vmGetAllEmployee>()
-                                .FromSqlInterpolated($"EXEC GetAllEmployee")
+                                .FromSqlInterpolated($"EXEC GetAllEmployee @companyId={companyId}")
                                 .ToListAsync();
             }
             catch (Exception)
@@ -170,11 +170,25 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async Task<HRMSUserIdentity?> GetEmployeeById(string Id)
+        public async Task<List<vmGetAllEmployee>> GetAllEmployeeByIsBlocked(bool IsBlocked, int companyId)
         {
             try
             {
-                var result = await _db.Set<HRMSUserIdentity>()
+                return await _db.Set<vmGetAllEmployee>()
+                                .FromSqlInterpolated($"EXEC GetAllEmployeeByIsBlocked  @IsBlocked = {IsBlocked},@companyId={companyId}")
+                                .ToListAsync();
+            }
+            catch (Exception)
+            {
+                return new List<vmGetAllEmployee>();
+            }
+        }
+
+        public async Task<vmGetAllEmployee?> GetEmployeeById(string Id)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetAllEmployee>()
                                       .FromSqlInterpolated($"EXEC GetEmployeeById @Id = {Id}")
                                       .ToListAsync();
 
@@ -183,6 +197,25 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             catch (Exception)
             {
                 return null;
+            }
+        }
+
+        public async  Task<VMEmpResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model)
+        {
+            try
+            {
+                var result = await _db.Set<VMEmpResult>().FromSqlInterpolated($@"
+                    EXEC UpdateEmployeeProfileAndSignature
+                        @Id = {model.EmployeeId},
+                        @EmployeeProfileUrl = {model.EmployeeProfileUrl},
+                        @EmployeeSignatureUrl = {model.EmployeeSignatureUrl}
+                ").ToListAsync();
+
+                return result.FirstOrDefault() ?? new VMEmpResult { Emp_Id = null };
+            }
+            catch (Exception)
+            {
+                return new VMEmpResult { Emp_Id = null };
             }
         }
     }

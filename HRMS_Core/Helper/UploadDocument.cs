@@ -58,5 +58,37 @@ namespace HRMS_Core.Helper
                 return null;
             }
         }
+        public static bool DeleteUploadedFile(HttpRequest request,  string folderName, string? existingFileName )
+        {
+            try
+            {
+                
+                var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", folderName);
+
+                if (!Directory.Exists(uploadDir))
+                { 
+                    return false; 
+                }
+                // Delete existing file if given
+                if (!string.IsNullOrEmpty(existingFileName))
+                {
+                    string fileName = Path.GetFileName(new Uri(existingFileName).LocalPath);
+                    var existingPath = Path.Combine(uploadDir, fileName);
+                    if (File.Exists(existingPath))
+                    {
+                        File.Delete(existingPath);
+                    }
+                }
+
+                return true ;
+            }
+            catch (Exception ex)
+            {
+                // Log exception here if needed
+                return false;
+            }
+        }
+
+
     }
 }

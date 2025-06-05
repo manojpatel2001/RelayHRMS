@@ -46,6 +46,7 @@ namespace HRMS_Infrastructure.Repository
             CompanyDetailsRepository = new CompanyDetailsRepository(_dbContext);
             DirectorDetailsRepository = new DirectorDetailsRepository(_dbContext);
             EmployeeManageRepository = new EmployeeManageRepository(_dbContext);
+            EmployeePersonalInfoRepository = new EmployeePersonalInfoRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -77,6 +78,7 @@ namespace HRMS_Infrastructure.Repository
         public ICompanyDetailsRepository CompanyDetailsRepository { get; set; }
         public IDirectorDetailsRepository DirectorDetailsRepository { get; set; }
         public IEmployeeManageRepository EmployeeManageRepository { get; set; }
+        public IEmployeePersonalInfoRepository EmployeePersonalInfoRepository { get; set; }
 
         public void Commit()
         {
