@@ -73,6 +73,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllDirectorDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllCompanyDetailsList>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllEmployee>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetNextEmployeeCode>().HasNoKey().ToView(null);
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

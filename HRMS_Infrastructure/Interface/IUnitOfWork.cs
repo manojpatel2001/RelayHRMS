@@ -36,6 +36,9 @@ namespace HRMS_Infrastructure.Interface
         IDirectorDetailsRepository DirectorDetailsRepository { get; }
         IEmployeeManageRepository EmployeeManageRepository { get; }
         IEmployeePersonalInfoRepository EmployeePersonalInfoRepository { get; }
+        IEmployeeContactRepository EmployeeContactRepository { get; }
+        ICountryRepository CountryRepository { get; }
+        IThanaRepository ThanaRepository { get; }
         void Commit();
         Task CommitAsync();
     }
