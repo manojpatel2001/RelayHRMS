@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HRMS_API.Controllers.EmployeeMaster
 {
@@ -46,6 +47,32 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
+        [HttpGet("GetNextEmployeeCode/{companyId}")]
+        public async Task<APIResponse> GetNextEmployeeCode(int companyId)
+        {
+            try
+            {
+                var nextEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetNextEmployeeCode(companyId);
+                var companyDetails = await _unitOfWork.CompanyDetailsRepository.GetByCompanyId(companyId);
+                if (companyDetails == null )
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                var newData = new
+                {
+                    NextEmployeeCode = nextEmployeeCode.NextEmployeeCode,
+                    CompanyCode = companyDetails.CompanyCode,
+                    SampleCode = companyDetails.SampleCode,
+                    DigitsForEmployeeCode = companyDetails.DigitsForEmployeeCode,
+
+                };
+
+                return new APIResponse { isSuccess = true, Data = newData, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
 
 
         [HttpPost("CreateEmployee")]
@@ -207,7 +234,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     {
                         var modelEmployeePersonalInfo = updateEmployee.EmployeePersonalInfo;
                         // Add or update employee personal info
-                        if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0)
+                        if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0|| modelEmployeePersonalInfo.EmployeePersonalInfoId==null)
                         {
                             var resultEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.CreateEmployeePersonalInfo(modelEmployeePersonalInfo);
                         }
@@ -220,6 +247,24 @@ namespace HRMS_API.Controllers.EmployeeMaster
                             }
                         }
                     }
+                    //Add employee contact
+                    if (updateEmployee.EmployeeContact != null)
+                    {
+                        var modelEmployeeContact = updateEmployee.EmployeeContact;
+                        if (modelEmployeeContact.EmployeeContactId == 0 || modelEmployeeContact.EmployeeContactId == null)
+                        {
+                            var resultEmployeeContact = await _unitOfWork.EmployeeContactRepository.CreateEmployeeContact(modelEmployeeContact);
+                        }
+                        else
+                        {
+                            var check = await _unitOfWork.EmployeeContactRepository.GetEmployeeContactById(modelEmployeeContact.EmployeeContactId);
+                            if (check != null)
+                            {
+                                var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeeContactRepository.UpdateEmployeeContact(modelEmployeeContact);
+                            }
+                        }
+                    }
+
 
                     var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(result.Emp_Id);
                     return new APIResponse { isSuccess = true, Data = updatedEmployee, ResponseMessage = "Employee has been updated successfully" };
@@ -480,11 +525,13 @@ namespace HRMS_API.Controllers.EmployeeMaster
         {
             try
             {
-                var data = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoByEmployeeId(employeeId);
+                var personalData = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoByEmployeeId(employeeId);
+                var employeeContactData = await _unitOfWork.EmployeeContactRepository.GetEmployeeContactByEmployeeId(employeeId);
 
                 var newData = new
                 {
-                    EmployeePersonalInfo = data
+                    EmployeePersonalInfo = personalData,
+                    EmployeeContact = employeeContactData
                 };
                 return new APIResponse { isSuccess = true, Data = newData, ResponseMessage = "Records fetched successfully." };
             }
