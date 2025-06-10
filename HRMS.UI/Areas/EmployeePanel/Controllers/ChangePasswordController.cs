@@ -4,27 +4,22 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 {
     [Area("EmployeePanel")]
 
-    public class ChangeRequestController : Controller
+    public class ChangePasswordController : Controller
     {
         private readonly IConfiguration _configuration;
 
-        public ChangeRequestController(IConfiguration configuration)
+        public ChangePasswordController(IConfiguration configuration)
         {
             _configuration = configuration;
         }
-        public IActionResult ChangeRequestApplication()
+        public IActionResult Index()
         {
             ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
 
             return View();
         }
 
-        public IActionResult ChangeRequestApproval()
-        {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
-
-            return View();
-        }
+       
     }
 
 
