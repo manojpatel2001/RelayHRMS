@@ -23,5 +23,12 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
             return View();
         }
+
+        public IActionResult TicketClose()
+        {
+            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+
+            return View();
+        }
     }
 }
