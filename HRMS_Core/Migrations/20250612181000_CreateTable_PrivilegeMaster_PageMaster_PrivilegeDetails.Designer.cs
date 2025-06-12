@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250612181000_CreateTable_PrivilegeMaster_PageMaster_PrivilegeDetails")]
+    partial class CreateTable_PrivilegeMaster_PageMaster_PrivilegeDetails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -234,7 +237,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("StateId");
 
-                    b.ToTable("CompanyDetails", (string)null);
+                    b.ToTable("CompanyDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.ControlPanel.CompanyInformation.DirectorDetails", b =>
@@ -294,7 +297,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("DirectorDetails", (string)null);
+                    b.ToTable("DirectorDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.DbContext.HRMSRoleIdentity", b =>
@@ -571,7 +574,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("CountryId");
 
-                    b.ToTable("Country", (string)null);
+                    b.ToTable("Country");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.EmployeeContact", b =>
@@ -688,7 +691,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("PresentThanaId");
 
-                    b.ToTable("EmployeeContact", (string)null);
+                    b.ToTable("EmployeeContact");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.EmployeePersonalInfo", b =>
@@ -868,7 +871,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("EmployeePersonalInfo", (string)null);
+                    b.ToTable("EmployeePersonalInfo");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.Thana", b =>
@@ -911,7 +914,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("ThanaId");
 
-                    b.ToTable("Thana", (string)null);
+                    b.ToTable("Thana");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.BankMaster", b =>
@@ -975,7 +978,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("BankMasterId");
 
-                    b.ToTable("BankMaster", (string)null);
+                    b.ToTable("BankMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.HolidayMaster", b =>
@@ -1059,7 +1062,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("HolidayMaster", (string)null);
+                    b.ToTable("HolidayMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.LevelWiseCardMapping", b =>
@@ -1108,7 +1111,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("LevelWiseCardMappingId");
 
-                    b.ToTable("LevelWiseCardMapping", (string)null);
+                    b.ToTable("LevelWiseCardMapping");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.WarningMaster", b =>
@@ -1163,7 +1166,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("WarningMasterId");
 
-                    b.ToTable("WarningMaster", (string)null);
+                    b.ToTable("WarningMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.WeekOffDetails", b =>
@@ -1229,7 +1232,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("WeekOffDetails", (string)null);
+                    b.ToTable("WeekOffDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Branch", b =>
@@ -1314,7 +1317,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("BranchId");
 
-                    b.ToTable("Branch", (string)null);
+                    b.ToTable("Branch");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.City", b =>
@@ -1373,7 +1376,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("StateId");
 
-                    b.ToTable("City", (string)null);
+                    b.ToTable("City");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.CityCategory", b =>
@@ -1419,7 +1422,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("CityCategoryId");
 
-                    b.ToTable("CityCategories", (string)null);
+                    b.ToTable("CityCategories");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Department", b =>
@@ -1474,7 +1477,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("DepartmentId");
 
-                    b.ToTable("Department", (string)null);
+                    b.ToTable("Department");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Designation", b =>
@@ -1535,7 +1538,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("DesignationId");
 
-                    b.ToTable("Designation", (string)null);
+                    b.ToTable("Designation");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Grade", b =>
@@ -1608,7 +1611,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("GradeId");
 
-                    b.ToTable("Grade", (string)null);
+                    b.ToTable("Grade");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Reason", b =>
@@ -1663,7 +1666,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("ReasonId");
 
-                    b.ToTable("Reason", (string)null);
+                    b.ToTable("Reason");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.ShiftBreak", b =>
@@ -1728,7 +1731,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("ShiftID");
 
-                    b.ToTable("ShiftBreak", (string)null);
+                    b.ToTable("ShiftBreak");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.ShiftMaster", b =>
@@ -1797,7 +1800,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("ShiftID");
 
-                    b.ToTable("ShiftMaster", (string)null);
+                    b.ToTable("ShiftMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.State", b =>
@@ -1861,7 +1864,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("StateId");
 
-                    b.ToTable("State", (string)null);
+                    b.ToTable("State");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.OrganizationPolicy", b =>
@@ -1925,7 +1928,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("OrganizationPolicyId");
 
-                    b.ToTable("OrganizationPolicy", (string)null);
+                    b.ToTable("OrganizationPolicy");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.TicketPriority", b =>
@@ -1971,7 +1974,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("TicketPriorityId");
 
-                    b.ToTable("TicketPriority", (string)null);
+                    b.ToTable("TicketPriority");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.TicketType", b =>
@@ -2019,7 +2022,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("TicketType", (string)null);
+                    b.ToTable("TicketType");
                 });
 
             modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PageMaster", b =>
@@ -2077,7 +2080,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("PageMasterId");
 
-                    b.ToTable("PageMaster", (string)null);
+                    b.ToTable("PageMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PrivilegeDetails", b =>
@@ -2144,7 +2147,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("PrivilegeMasterId");
 
-                    b.ToTable("PrivilegeDetails", (string)null);
+                    b.ToTable("PrivilegeDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PrivilegeMaster", b =>
@@ -2204,7 +2207,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("PrivilegeMaster", (string)null);
+                    b.ToTable("PrivilegeMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.VM.CompanyInformation.vmGetAllCompanyDetails", b =>
