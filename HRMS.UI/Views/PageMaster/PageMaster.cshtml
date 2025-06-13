@@ -103,7 +103,7 @@
 
 				</div>
 				<div class="row mb-2">
-					<div class="col-md-3 mt-3 ">
+					<div class="col-md-2 mt-3 ">
 						<div class="form-check">
 							<input class="form-check-input" checked name="MenuType" type="radio" id="rdMenu">
 							<label class="form-check-label" for="rdMenu">Menu</label>
@@ -115,7 +115,7 @@
 							<label class="form-check-label" for="rdESSPanel">Sub Menu</label>
 						</div>
 					</div>
-					<div class="col-md-6" id="menuDropdownContainer" style="display:none;">
+					<div class="col-md-4" id="menuDropdownContainer" style="display:none;">
 						<div class="form-group mt-3 position-relative" >
 							<select class="form-control floating-input" id="ddlMenu">
 								<option value="" selected disabled>Select</option>
@@ -123,6 +123,17 @@
 							</select>
 							<label class="floating-label" for="ddlMenu">Menu *</label>
 							<span id="spnMenu" style="color:red; display:none;">Please Select Menu</span>
+
+						</div>
+					</div>
+					<div class="col-md-4"  >
+						<div class="form-group mt-3 position-relative">
+							<select class="form-control floating-input" id="ddlModule">
+								<option value="" selected disabled>Select</option>
+
+							</select>
+							<label class="floating-label" for="ddlModule">Module *</label>
+							<span id="spnModule" style="color:red; display:none;">Please Select Module</span>
 
 						</div>
 					</div>
@@ -151,8 +162,66 @@
 
 	})
 
-	$(document).ready(function() {
-		   PageMasterDataTable();
+	   function loadMenuOptions() {
+
+			   $.ajax({
+					  url: '@baseUrl/PageMasterAPI/GetAllMenuPages', // Replace with your actual API endpoint
+				   method: 'GET',
+				   success: function(data) {
+					   if(data.isSuccess){
+						   var dropdown = $('#ddlMenu');
+						   dropdown.empty();
+						   dropdown.append('<option value="" selected disabled>Select</option>');
+						   $.each(data.data, function(index, pageMaster) {
+							   dropdown.append($('<option>', {
+								   value: pageMaster.pageMasterId,
+								   text: pageMaster.pageName
+							   }));
+						   });
+					   }
+				   },
+				   error: function(error) {
+					   console.error('Error fetching menu options:', error);
+				   }
+			   });
+		   }
+
+				 // Load module options into dropdown
+			   function loadModuleOptions() {
+				   debugger
+				   var compnayId=$('#companyDropdown').val();
+				   if (!compnayId) {
+						  round_error_noti("Please select company");
+						  return;
+					  }
+
+				  $.ajax({
+					 url: '@baseUrl/ModuleDetailsAPI/GetAllModuleDetailsByCompanyId/'+compnayId, // Replace with your actual API endpoint
+						 method: 'GET',
+					  success: function(data) {
+						  if(data.isSuccess){
+								 var dropdown = $('#ddlModule');
+							  dropdown.empty();
+							  dropdown.append('<option value="" selected disabled>Select</option>');
+								 $.each(data.data, function(index, module) {
+								  dropdown.append($('<option>', {
+											value: module.moduleDetailsId,
+										 text: module.moduleName
+								  }));
+							  });
+						  }
+					  },
+					  error: function(error) {
+							 console.error('Error fetching module options:', error);
+					  }
+				  });
+			  }
+
+
+
+	  $(document).ready(function() {
+							 loadMenuOptions();
+							PageMasterDataTable();
 		// Toggle dropdown visibility based on radio button selection
 		$('input[name="MenuType"]').change(function() {
 			if ($(this).attr('id') === 'rdSubMenu') {
@@ -163,33 +232,8 @@
 			}
 		});
 
-		// Load menu options into dropdown
-		function loadMenuOptions() {
-			$.ajax({
-				url: '@baseUrl/PageMasterAPI/GetAllMenuPages', // Replace with your actual API endpoint
-				method: 'GET',
-				success: function(data) {
-					if(data.isSuccess){
-						var dropdown = $('#ddlMenu');
-						dropdown.empty();
-						dropdown.append('<option value="" selected disabled>Select</option>');
-						$.each(data.data, function(index, pageMaster) {
-							dropdown.append($('<option>', {
-								value: pageMaster.pageMasterId,
-								text: pageMaster.pageName
-							}));
-						});
-					}
-				},
-				error: function(error) {
-					console.error('Error fetching menu options:', error);
-				}
-			});
-		}
-
-		// Call the function to load menu options
-		loadMenuOptions();
-
+		
+		
 		// Function to validate form fields
 		function validateForm() {
 			let isValid = true;
@@ -233,6 +277,13 @@
 			} else {
 				$('#spnMenu').hide();
 			}
+			// Validate module Dropdown if Sub Menu is selected
+			if ($('#ddlModule').val() === null) {
+					$('#spnModule').show();
+				isValid = false;
+			} else {
+				$('#spnModule').hide();
+			}
 
 			return isValid;
 		}
@@ -252,6 +303,7 @@
 					AliasPageName: $('#txtAliasPageName').val(),
 					PageUrl: $('#txtPageUrl').val(),
 					SortId: $('#txtSort').val(),
+					 ModuleDetailsId: $('#ddlModule').val(),
 					IsActive: true,
 					UnderPageMasterId: $('#rdMenu').is(':checked') ? -1 : $('#ddlMenu').val(),
 					CreatedBy:null
@@ -264,6 +316,7 @@
 					   AliasPageName: $('#txtAliasPageName').val(),
 					   PageUrl: $('#txtPageUrl').val(),
 					   SortId: $('#txtSort').val(),
+						  ModuleDetailsId: $('#ddlModule').val(),
 					   IsActive: true,
 					   UnderPageMasterId: $('#rdMenu').is(':checked') ? -1 : $('#ddlMenu').val(),
 					   UpdatedBy:null
@@ -432,6 +485,7 @@
 		$('#txtAliasPageName').val(pageMaster.aliasPageName);
 		$('#txtPageUrl').val(pageMaster.pageUrl);
 		$('#txtSort').val(pageMaster.sortId);
+		  $('#ddlModule').val(pageMaster.moduleDetailsId);
 
 		// Set the radio button based on whether it's a Menu or Sub Menu
 		if (pageMaster.underPageMasterId === -1) {
@@ -452,6 +506,7 @@
 	}
 
     function resetFormFields() {
+		 loadModuleOptions();
 		  $('#btnAddPageMaster').prop("disabled",false);
 		// Reset text input fields
 		PageMasterId=0;
@@ -467,6 +522,7 @@
 		// Hide and reset the dropdown menu
 		$('#menuDropdownContainer').hide();
 		$('#ddlMenu').val('');
+		  $('#ddlModule').val('');
 
 		// Hide all error messages
 		$('#spnPageName').hide();
@@ -474,6 +530,7 @@
 		$('#spnPageUrl').hide();
 		$('#spnSort').hide();
 		$('#spnMenu').hide();
+		$('#spnModule').hide();
 	}
 
 	  function  deletePageMaster(data)
