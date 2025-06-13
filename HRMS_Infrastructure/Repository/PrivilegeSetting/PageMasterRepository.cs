@@ -33,6 +33,7 @@ namespace HRMS_Infrastructure.Repository.PrivilegeSetting
                         @UnderPageMasterId = {pageMaster.UnderPageMasterId},
                         @PageUrl = {pageMaster.PageUrl},
                         @SortId = {pageMaster.SortId},
+                        @ModuleDetailsId = {pageMaster.ModuleDetailsId},
                         @IsActive = {pageMaster.IsActive},
                         @IsDeleted = {pageMaster.IsDeleted},
                         @IsEnabled = {pageMaster.IsEnabled},
@@ -61,6 +62,7 @@ namespace HRMS_Infrastructure.Repository.PrivilegeSetting
                         @UnderPageMasterId = {pageMaster.UnderPageMasterId},
                         @PageUrl = {pageMaster.PageUrl},
                         @SortId = {pageMaster.SortId},
+                        @ModuleDetailsId = {pageMaster.ModuleDetailsId},
                         @IsActive = {pageMaster.IsActive},
                         @UpdatedDate = {DateTime.UtcNow},
                         @UpdatedBy = {pageMaster.UpdatedBy}").ToListAsync();

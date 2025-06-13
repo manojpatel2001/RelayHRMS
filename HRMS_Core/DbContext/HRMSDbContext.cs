@@ -61,6 +61,7 @@ namespace HRMS_Core.DbContext
         public DbSet<PageMaster> PageMaster { get; set; }
         public DbSet<PrivilegeMaster> PrivilegeMaster { get; set; }
         public DbSet<PrivilegeDetails> PrivilegeDetails { get; set; }
+        public DbSet<ModuleDetails> ModuleDetails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
