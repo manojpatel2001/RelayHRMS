@@ -17,5 +17,10 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
             return View();
         }
+        public IActionResult MyProfile()
+        { 
+            return View();
+        }
+
     }
 }
