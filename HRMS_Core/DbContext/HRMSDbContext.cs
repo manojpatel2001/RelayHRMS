@@ -3,6 +3,7 @@ using HRMS_Core.EmployeeMaster;
 using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
+using HRMS_Core.PrivilegeSetting;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.CompanyStructure;
@@ -57,6 +58,10 @@ namespace HRMS_Core.DbContext
         public DbSet<EmployeeContact> EmployeeContact { get; set; }
         public DbSet<Country> Country { get; set; }
         public DbSet<Thana> Thana { get; set; }
+        public DbSet<PageMaster> PageMaster { get; set; }
+        public DbSet<PrivilegeMaster> PrivilegeMaster { get; set; }
+        public DbSet<PrivilegeDetails> PrivilegeDetails { get; set; }
+        public DbSet<ModuleDetails> ModuleDetails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -73,6 +78,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllDirectorDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllCompanyDetailsList>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllEmployee>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetNextEmployeeCode>().HasNoKey().ToView(null);
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

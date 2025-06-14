@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250612181000_CreateTable_PrivilegeMaster_PageMaster_PrivilegeDetails")]
+    partial class CreateTable_PrivilegeMaster_PageMaster_PrivilegeDetails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2022,57 +2025,6 @@ namespace HRMS_Core.Migrations
                     b.ToTable("TicketType");
                 });
 
-            modelBuilder.Entity("HRMS_Core.PrivilegeSetting.ModuleDetails", b =>
-                {
-                    b.Property<int>("ModuleDetailsId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ModuleDetailsId"));
-
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ModuleName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("ModuleDetailsId");
-
-                    b.HasIndex("CompanyId");
-
-                    b.ToTable("ModuleDetails");
-                });
-
             modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PageMaster", b =>
                 {
                     b.Property<int>("PageMasterId")
@@ -2108,9 +2060,6 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("IsEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("ModuleDetailsId")
-                        .HasColumnType("int");
-
                     b.Property<string>("PageName")
                         .HasColumnType("nvarchar(max)");
 
@@ -2130,8 +2079,6 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("PageMasterId");
-
-                    b.HasIndex("ModuleDetailsId");
 
                     b.ToTable("PageMaster");
                 });
@@ -3152,24 +3099,6 @@ namespace HRMS_Core.Migrations
                         .HasForeignKey("DepartmentId");
 
                     b.Navigation("DepartmentDetails");
-                });
-
-            modelBuilder.Entity("HRMS_Core.PrivilegeSetting.ModuleDetails", b =>
-                {
-                    b.HasOne("HRMS_Core.ControlPanel.CompanyInformation.CompanyDetails", "CompanyDetails")
-                        .WithMany()
-                        .HasForeignKey("CompanyId");
-
-                    b.Navigation("CompanyDetails");
-                });
-
-            modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PageMaster", b =>
-                {
-                    b.HasOne("HRMS_Core.PrivilegeSetting.ModuleDetails", "ModuleDetails")
-                        .WithMany()
-                        .HasForeignKey("ModuleDetailsId");
-
-                    b.Navigation("ModuleDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PrivilegeDetails", b =>

@@ -11,5 +11,6 @@ namespace HRMS_Core.VM.EmployeeMaster
     {
         public vmEmployeeData? vmEmployeeData {  get; set; }
         public EmployeePersonalInfo? EmployeePersonalInfo {  get; set; }
+        public EmployeeContact? EmployeeContact {  get; set; }
     }
 }

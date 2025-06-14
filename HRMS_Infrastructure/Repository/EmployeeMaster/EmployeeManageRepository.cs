@@ -218,5 +218,23 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 return new VMEmpResult { Emp_Id = null };
             }
         }
+
+        public async Task<vmGetNextEmployeeCode?> GetNextEmployeeCode(int companyId)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetNextEmployeeCode>()
+                    .FromSqlInterpolated($"EXEC GetNextEmployeeCode @CompanyId = {companyId}")
+                    .ToListAsync();
+
+                return result.FirstOrDefault()??null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+
     }
 }

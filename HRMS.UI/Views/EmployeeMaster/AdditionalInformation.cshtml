@@ -178,12 +178,12 @@
 									</div>
 									<div class="col-md-5 p-0">
 										<div class="form-group mt-3 position-relative">
-											<input type="text" class="form-control floating-input" id="txtEmpCode" placeholder="EMP" value="">
+											<input type="text"  class="form-control floating-input" id="txtEmpCode" placeholder="EMP" value="">
 										</div>
 									</div>
 									<div class="col-md-3 p-0">
 										<div class="form-group mt-3 position-relative">
-											<input type="text" class="form-control floating-input" id="txtNumberEmpCode" placeholder="0001" value="">
+											<input type="text" readonly class="form-control floating-input" id="txtNumberEmpCode" placeholder="0001" value="">
 										</div>
 									</div>
 								</div>
@@ -617,10 +617,11 @@
 <script>
 	const queryString = window.location.search;
 	// Create a URLSearchParams object
-	const urlParams = new URLSearchParams(queryString);
+	//const urlParams = new URLSearchParams(queryString);
 		let employeeList = [];
 		let currentIndex =0;
-		let CurrentEmployeeId=urlParams.get('EmployeeId');
+		let CurrentEmployeeId=localStorage.getItem('CurrentEmployeeId');
+		let CurrentCompanyId=localStorage.getItem('CurrentCompanyId');
 		console.log("CurrentEmployeeId:",CurrentEmployeeId);
 		var EmployeeProfileUrl="";
 		var EmployeeSignatureUrl="";
@@ -635,22 +636,41 @@
 		await LoadCompanyDetails();
 		await Promise.all([bindBranch(), bindDesignation(), bindDepartment(), bindGrade()]);
 		await new Promise(resolve => setTimeout(resolve, 1000));
+
+		$('#companyDropdown').change(async function() {
+			var selectedCompany = $(this).val();
+			if (selectedCompany) {
+				CurrentEmployeeId=0;
+				getEmployeeDetailsByCompanyId(selectedCompany);
+		    }
+		});
+	    $('#companyDropdown').val(CurrentCompanyId);
 		var Company = $('#companyDropdown').val();
 		if (!Company) {
 			round_error_noti("Please select company");
 			return;
 		}
-	   $.ajax({
+	  getEmployeeDetailsByCompanyId(Company);
+	});
+	function getEmployeeDetailsByCompanyId(company)
+	{
+	 $.ajax({
 			type: "GET",
-			url: "@baseUrl/EmployeeMasterAPI/GetAllEmployee"+ "?companyId=" + Company,
+			url: "@baseUrl/EmployeeMasterAPI/GetAllEmployee"+ "?companyId=" + company,
 			success: function(data) {
 				console.log("Data received:", data);
 				if (data.isSuccess)
 				{
 					employeeList=data.data;
+					if(CurrentEmployeeId==0)
+					{
+					 currentIndex=0;
+					}
+					else{
 					currentIndex=findIndexById(CurrentEmployeeId);
-				    fillEmployeeForm(employeeList[currentIndex]);
-				} 
+					}
+					fillEmployeeForm(employeeList[currentIndex]);
+				}
 				else{
 					round_error_noti(data.responseMessage);
 				}
@@ -659,13 +679,17 @@
 				console.error("AJAX Error: " + status + " - " + error);
 			}
 		})
-	});
-	//find index
-    function findIndexById(idToFind) {
-		return employeeList.findIndex(function(obj) {
-			return obj.id === idToFind;
-		});
 	}
+	function findIndexById(idToFind) {
+		
+		const index = employeeList.findIndex(function(obj) {
+			return obj.id == idToFind; // Using == to allow type coercion
+		});
+
+		console.log('Found Index:', index);
+		return index;
+	}
+
 
 	// Sample fill function
 	function fillEmployeeForm(employee) {
@@ -731,7 +755,7 @@
 		   $('#signFileInfo').hide();
 		}
 		$(".loaderTag").show();
-		GetEmployeePersonalInfo(employee.id);
+		GetEmployeeAdditionDetails(employee.id);
 	}
 
 	async function bindDesignation(){
@@ -1011,11 +1035,15 @@
 						EmployeeProfileUrl: null,
 						EmployeeSignatureUrl: null
 					};
+					//Add employee person info
 					console.log("employeeData: "+ employeeData);
 					var employeePersional=await getEmployeePersonalInfo();
+					var employeeContact= await getEmployeeContactFromForm();
+
 					var updateEmployee={
 						vmEmployeeData:employeeData,
-						EmployeePersonalInfo:employeePersional
+						EmployeePersonalInfo:employeePersional,
+						EmployeeContact:employeeContact
 					};
 					console.log("updateEmployee",updateEmployee)
 
@@ -1141,7 +1169,7 @@
 		// });
 	}
 
-	function GetEmployeePersonalInfo(employeeId)
+	function GetEmployeeAdditionDetails(employeeId)
 	{
 		$.ajax({
 			type: "GET",
@@ -1151,6 +1179,7 @@
 				if (data.isSuccess)
 				{
 					fillEmployeePersonalInfoForm(data.data.employeePersonalInfo)
+					setEmployeeContact(data.data.employeeContact);
 				}
 				else{
 					round_error_noti(data.responseMessage);
@@ -1272,6 +1301,132 @@
 
 	}
 
+	function getEmployeeContactFromForm() {
+		// Helper function to set null if the value is an empty string
+		const setNullIfEmpty = (value) => {
+			return value === "" ? null : value;
+		};
+
+		// Create an object to hold the EmployeeContact data
+		var employeeContact = {
+			EmployeeContactId: $('#employeeContactId').val()==""?0:$('#employeeContactId').val(),
+			PresentAddress: setNullIfEmpty($('#txtPresentAddress').val().trim()),
+			PresentTehsil: setNullIfEmpty($('#txtPresentTehsil').val().trim()),
+			PresentDistrict: setNullIfEmpty($('#txtPresentDistrict').val().trim()),
+			PresentCity: setNullIfEmpty($('#txtPresentCity').val().trim()),
+			PresentState: setNullIfEmpty($('#ddlPresentState').val()),
+			PresentPincode: setNullIfEmpty($('#txtPresentPincode').val().trim()),
+			PresentThanaId: setNullIfEmpty($('#ddlPresentThana').val()),
+			PermanentAddress: setNullIfEmpty($('#txtPermanentAddress').val().trim()),
+			PermanentTehsil: setNullIfEmpty($('#txtPermanentTehsil').val().trim()),
+			PermanentDistrict: setNullIfEmpty($('#txtPermanentDistrict').val().trim()),
+			PermanentCity: setNullIfEmpty($('#txtPermanentCity').val().trim()),
+			PermanentState: setNullIfEmpty($('#ddlPermanentState').val()),
+			PermanentPincode: setNullIfEmpty($('#txtPermanentPincode').val().trim()),
+			PermanentThanaId: setNullIfEmpty($('#ddlPermanentThana').val()),
+			CountryId: setNullIfEmpty($('#ddlCountry').val()),
+			WorkPhone: setNullIfEmpty($('#txtWorkPhone').val().trim()),
+			PersonalPhone: setNullIfEmpty($('#txtPersonalPhone').val().trim()),
+			OfficialEmail: setNullIfEmpty($('#txtOfficialEmail').val().trim()),
+			Nationality: setNullIfEmpty($('#txtNationality').val().trim()),
+			ExtensionNo: setNullIfEmpty($('#txtExtensionNo').val().trim()),
+			MobileNo: setNullIfEmpty($('#txtMobileNo').val().trim()),
+			SameAsPresentAddress: $('#chkSameAs').is(':checked'),
+			EmployeeId: $('#EmployeeId').val(), // Set this to the appropriate employee ID if available
+			
+			CreatedBy: null // Replace with actual user information if available
+		};
+
+		return employeeContact;
+	}
+
+
+    function setEmployeeContact(data) {
+		if(data!=null)
+		{
+			resetEmployeeContact();
+			// Set text inputs and textareas
+			$('#employeeContactId').val(data.employeeContactId);
+			$('#txtPresentAddress').val(data.presentAddress);
+			$('#txtPresentTehsil').val(data.presentTehsil || '');
+			$('#txtPresentDistrict').val(data.presentDistrict);
+			$('#txtPresentCity').val(data.presentCity);
+			$('#txtPresentPincode').val(data.presentPincode);
+
+			// Set select elements
+			$('#ddlPresentState').val(data.presentState || '');
+			$('#ddlPresentThana').val(data.presentThanaId || '');
+
+			// Set permanent address fields
+			$('#txtPermanentAddress').val(data.permanentAddress);
+			$('#txtPermanentTehsil').val(data.permanentTehsil || '');
+			$('#txtPermanentDistrict').val(data.permanentDistrict);
+			$('#txtPermanentCity').val(data.permanentCity);
+			$('#txtPermanentPincode').val(data.permanentPincode || '');
+			$('#ddlPermanentState').val(data.permanentState || '');
+			$('#ddlPermanentThana').val(data.permanentThanaId || '');
+
+			// Set contact information
+			$('#ddlCountry').val(data.countryId || '');
+			$('#txtWorkPhone').val(data.workPhone || '');
+			$('#txtPersonalPhone').val(data.personalPhone || '');
+			$('#txtOfficialEmail').val(data.officialEmail || '');
+			$('#txtNationality').val(data.nationality || '');
+			$('#txtExtensionNo').val(data.extensionNo || '');
+			$('#txtMobileNo').val(data.mobileNo || '');
+
+			// Set checkbox
+			$('#chkSameAs').prop('checked', data.sameAsPresentAddress || false);
+
+			// Set employee ID if needed
+			// Assuming you have a field for EmployeeId, otherwise you can ignore this
+			// $('#employeeId').val(data.employeeId || '');
+		}
+		else{
+			resetEmployeeContact();
+		}
+
+	}
+
+     function resetEmployeeContact() {
+		// Reset text inputs and textareas to empty strings
+		$('#employeeContactId').val('');
+		$('#txtPresentAddress').val('');
+		$('#txtPresentTehsil').val('');
+		$('#txtPresentDistrict').val('');
+		$('#txtPresentCity').val('');
+		$('#txtPresentPincode').val('');
+
+		// Reset select elements to their default/placeholder option
+		$('#ddlPresentState').prop('selectedIndex', 0);
+		$('#ddlPresentThana').prop('selectedIndex', 0);
+
+		// Reset permanent address fields
+		$('#txtPermanentAddress').val('');
+		$('#txtPermanentTehsil').val('');
+		$('#txtPermanentDistrict').val('');
+		$('#txtPermanentCity').val('');
+		$('#txtPermanentPincode').val('');
+		$('#ddlPermanentState').prop('selectedIndex', 0);
+		$('#ddlPermanentThana').prop('selectedIndex', 0);
+
+		// Reset contact information fields
+		$('#ddlCountry').prop('selectedIndex', 0);
+		$('#txtWorkPhone').val('');
+		$('#txtPersonalPhone').val('');
+		$('#txtOfficialEmail').val('');
+		$('#txtNationality').val('');
+		$('#txtExtensionNo').val('');
+		$('#txtMobileNo').val('');
+
+		// Uncheck the checkbox
+		$('#chkSameAs').prop('checked', false);
+
+		// Hide any visible error messages
+		$('#employeeForm span[id^="spn"]').hide();
+	}
+
+	
 </script>
 
 <script>

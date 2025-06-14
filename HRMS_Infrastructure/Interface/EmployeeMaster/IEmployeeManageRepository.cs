@@ -18,5 +18,6 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<VMEmpResult> UpdateEmployee(vmEmployeeData employee);
         Task<VMEmpResult> DeleteEmployee(DeleteRecordVM deleteRecord);
         Task<VMEmpResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model);
+        Task<vmGetNextEmployeeCode?> GetNextEmployeeCode(int CompanyId);
     }
 }

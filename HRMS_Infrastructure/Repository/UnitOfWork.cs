@@ -5,11 +5,13 @@ using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.OtherMaster;
+using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Repository.CompanyInformation;
 using HRMS_Infrastructure.Repository.CompanyStructure;
 using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.OtherMaster;
+using HRMS_Infrastructure.Repository.PrivilegeSetting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,6 +49,11 @@ namespace HRMS_Infrastructure.Repository
             DirectorDetailsRepository = new DirectorDetailsRepository(_dbContext);
             EmployeeManageRepository = new EmployeeManageRepository(_dbContext);
             EmployeePersonalInfoRepository = new EmployeePersonalInfoRepository(_dbContext);
+            EmployeeContactRepository = new EmployeeContactRepository(_dbContext);
+            CountryRepository = new CountryRepository(_dbContext);
+            ThanaRepository = new ThanaRepository(_dbContext);
+            PageMasterRepository = new PageMasterRepository(_dbContext);
+            ModuleDetailsRepository = new ModuleDetailsRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -79,6 +86,11 @@ namespace HRMS_Infrastructure.Repository
         public IDirectorDetailsRepository DirectorDetailsRepository { get; set; }
         public IEmployeeManageRepository EmployeeManageRepository { get; set; }
         public IEmployeePersonalInfoRepository EmployeePersonalInfoRepository { get; set; }
+        public IEmployeeContactRepository EmployeeContactRepository { get; set; }
+        public ICountryRepository CountryRepository { get; set; }
+        public IThanaRepository ThanaRepository { get; set; }
+        public IPageMasterRepository PageMasterRepository { get; set; }
+        public IModuleDetailsRepository ModuleDetailsRepository { get; set; }
 
         public void Commit()
         {
