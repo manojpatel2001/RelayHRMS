@@ -30,5 +30,17 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
             return View();
         }
+        public IActionResult PreCompOffApplication()
+        {
+            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+        public IActionResult AddPreCompOffApplication()
+        {
+            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+
+            return View();
+        }
     }
 }
