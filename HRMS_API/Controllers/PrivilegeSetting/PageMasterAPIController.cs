@@ -26,7 +26,7 @@ namespace HRMS_API.Controllers.PrivilegeSetting
                 var data = await _unitOfWork.PageMasterRepository.GetAllPageMaster();
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
-
+                
                 return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
             }
             catch (Exception ex)

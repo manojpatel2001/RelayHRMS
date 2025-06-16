@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.PrivilegeSetting;
 using HRMS_Core.VM;
+using HRMS_Core.VM.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -31,9 +32,11 @@ namespace HRMS_Infrastructure.Repository.PrivilegeSetting
                         @PageName = {pageMaster.PageName},
                         @AliasPageName = {pageMaster.AliasPageName},
                         @UnderPageMasterId = {pageMaster.UnderPageMasterId},
+                        @UnderPageMasterName = {pageMaster.UnderPageMasterName},
                         @PageUrl = {pageMaster.PageUrl},
                         @SortId = {pageMaster.SortId},
                         @ModuleDetailsId = {pageMaster.ModuleDetailsId},
+                        @PagePanelId = {pageMaster.PagePanelId},
                         @IsActive = {pageMaster.IsActive},
                         @IsDeleted = {pageMaster.IsDeleted},
                         @IsEnabled = {pageMaster.IsEnabled},
@@ -60,6 +63,8 @@ namespace HRMS_Infrastructure.Repository.PrivilegeSetting
                         @PageName = {pageMaster.PageName},
                         @AliasPageName = {pageMaster.AliasPageName},
                         @UnderPageMasterId = {pageMaster.UnderPageMasterId},
+                        @UnderPageMasterName = {pageMaster.UnderPageMasterName},
+                        @PagePanelId = {pageMaster.PagePanelId},
                         @PageUrl = {pageMaster.PageUrl},
                         @SortId = {pageMaster.SortId},
                         @ModuleDetailsId = {pageMaster.ModuleDetailsId},
@@ -110,19 +115,19 @@ namespace HRMS_Infrastructure.Repository.PrivilegeSetting
             }
         }
 
-        public async Task<List<PageMaster>> GetAllPageMaster()
+        public async Task<List<vmPageMaster>> GetAllPageMaster()
         {
             try
             {
-                var result = await _db.Set<PageMaster>()
+                var result = await _db.Set<vmPageMaster>()
                                       .FromSqlInterpolated($"EXEC GetAllPageMaster")
                                       .ToListAsync();
 
-                return result ?? new List<PageMaster>();
+                return result ?? new List<vmPageMaster>();
             }
             catch (Exception ex)
             {
-                return new List<PageMaster>();
+                return new List<vmPageMaster>();
             }
         }
         public async Task<List<PageMaster>> GetAllMenuPages()

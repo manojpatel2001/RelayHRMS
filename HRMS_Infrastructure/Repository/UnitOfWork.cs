@@ -54,6 +54,7 @@ namespace HRMS_Infrastructure.Repository
             ThanaRepository = new ThanaRepository(_dbContext);
             PageMasterRepository = new PageMasterRepository(_dbContext);
             ModuleDetailsRepository = new ModuleDetailsRepository(_dbContext);
+            PagePanelRepository = new PagePanelRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -91,6 +92,7 @@ namespace HRMS_Infrastructure.Repository
         public IThanaRepository ThanaRepository { get; set; }
         public IPageMasterRepository PageMasterRepository { get; set; }
         public IModuleDetailsRepository ModuleDetailsRepository { get; set; }
+        public IPagePanelRepository PagePanelRepository { get; set; }
 
         public void Commit()
         {

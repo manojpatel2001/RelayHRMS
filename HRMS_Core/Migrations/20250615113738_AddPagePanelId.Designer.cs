@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250615113738_AddPagePanelId")]
+    partial class AddPagePanelId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2126,9 +2129,6 @@ namespace HRMS_Core.Migrations
                     b.Property<int?>("UnderPageMasterId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UnderPageMasterName")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -2926,70 +2926,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<string>("TicketTypeName")
                         .HasColumnType("nvarchar(max)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.PrivilegeSetting.vmPageMaster", b =>
-                {
-                    b.Property<string>("AliasPageName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("ModuleDetailsId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PageMasterId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PageName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("PagePanelId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PagePanelName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PageUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("SortId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("UnderPageMasterId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
 
                     b.ToTable((string)null);
 
