@@ -42,6 +42,7 @@ namespace HRMS_Infrastructure.Interface
         IThanaRepository ThanaRepository { get; }
         IPageMasterRepository PageMasterRepository { get; }
         IModuleDetailsRepository ModuleDetailsRepository { get; }
+        IPagePanelRepository PagePanelRepository { get; }
         void Commit();
         Task CommitAsync();
     }

@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.PrivilegeSetting;
 using HRMS_Core.VM;
+using HRMS_Core.VM.PrivilegeSetting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +19,7 @@ namespace HRMS_Infrastructure.Interface.PrivilegeSetting
 
         Task<PageMaster?> GetPageMasterById(int pageMasterId);
 
-        Task<List<PageMaster>> GetAllPageMaster();
+        Task<List<vmPageMaster>> GetAllPageMaster();
         Task<List<PageMaster>> GetAllMenuPages();
     }
 }

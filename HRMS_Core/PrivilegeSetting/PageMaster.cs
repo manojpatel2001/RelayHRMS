@@ -20,6 +20,7 @@ namespace HRMS_Core.PrivilegeSetting
         public string? PageName { get; set; }
         public string? AliasPageName { get; set; }
         public int? UnderPageMasterId { get; set; }
+        public string? UnderPageMasterName { get; set; }
         public string? PageUrl { get; set; }
         public int? SortId { get; set; }
         public bool? IsActive { get; set; } = true;
@@ -27,5 +28,9 @@ namespace HRMS_Core.PrivilegeSetting
         [ForeignKey(nameof(ModuleDetailsId))]
         [ValidateNever]
         public ModuleDetails? ModuleDetails { get; set; }
+        public int? PagePanelId { get; set; } 
+        [ForeignKey(nameof(PagePanelId))]
+        [ValidateNever]
+        public PagePanel? PagePanel { get; set; }
     }
 }

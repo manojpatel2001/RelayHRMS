@@ -10,6 +10,7 @@ using HRMS_Core.VM.CompanyStructure;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.OtherMaster;
+using HRMS_Core.VM.PrivilegeSetting;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -62,6 +63,7 @@ namespace HRMS_Core.DbContext
         public DbSet<PrivilegeMaster> PrivilegeMaster { get; set; }
         public DbSet<PrivilegeDetails> PrivilegeDetails { get; set; }
         public DbSet<ModuleDetails> ModuleDetails { get; set; }
+        public DbSet<PagePanel> PagePanel { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -79,6 +81,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllCompanyDetailsList>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllEmployee>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetNextEmployeeCode>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmPageMaster>().HasNoKey().ToView(null);
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
