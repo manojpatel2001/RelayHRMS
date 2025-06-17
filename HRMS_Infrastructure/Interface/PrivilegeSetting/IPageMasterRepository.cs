@@ -20,6 +20,8 @@ namespace HRMS_Infrastructure.Interface.PrivilegeSetting
         Task<PageMaster?> GetPageMasterById(int pageMasterId);
 
         Task<List<vmPageMaster>> GetAllPageMaster();
+        Task<List<vmPageMaster>> GetAllPagesByPagePanel(int pagePanelId);
+        Task<List<PanelHierarchyVM>> GetPageHierarchyWithPrivileges(PageVM pageVM);
         Task<List<PageMaster>> GetAllMenuPages();
     }
 }
