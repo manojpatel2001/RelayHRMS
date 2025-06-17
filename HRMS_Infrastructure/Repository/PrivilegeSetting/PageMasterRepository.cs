@@ -6,9 +6,12 @@ using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
+using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Repository.PrivilegeSetting
@@ -146,5 +149,61 @@ namespace HRMS_Infrastructure.Repository.PrivilegeSetting
             }
         }
 
+        public async Task<List<vmPageMaster>> GetAllPagesByPagePanel(int pagePanelId)
+        {
+            try
+            {
+                var result = await _db.Set<vmPageMaster>()
+                                      .FromSqlInterpolated($"EXEC GetAllPagesByPagePanel @PagePanelId={pagePanelId}")
+                                      .ToListAsync();
+
+                return result ?? new List<vmPageMaster>();
+            }
+            catch (Exception ex)
+            {
+                return new List<vmPageMaster>();
+            }
+        }
+
+        public async  Task<List<PanelHierarchyVM>> GetPageHierarchyWithPrivileges(PageVM pageVM)
+        {
+            try
+            {
+                using (var conn = _db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "GetPageHierarchyWithPrivileges";
+                        cmd.CommandType = CommandType.StoredProcedure;
+
+                        var companyParam = cmd.CreateParameter();
+                        companyParam.ParameterName = "@CompanyId";
+                        companyParam.Value = pageVM.CompanyId;
+                        cmd.Parameters.Add(companyParam);
+
+                        var panelParam = cmd.CreateParameter();
+                        panelParam.ParameterName = "@PagePanelId";
+                        panelParam.Value = pageVM.PagePanelId;
+                        cmd.Parameters.Add(panelParam);
+
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            if (await reader.ReadAsync())
+                            {
+                                var json = reader.GetString(0);
+                                return JsonSerializer.Deserialize<List<PanelHierarchyVM>>(json);
+                            }
+                        }
+                    }
+                }
+                return new List<PanelHierarchyVM>();
+            }
+            catch (Exception ex)
+            {
+                return new List<PanelHierarchyVM>();
+            }
+        }
+        
     }
 }

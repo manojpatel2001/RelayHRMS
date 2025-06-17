@@ -224,8 +224,22 @@
 
 				<div class="row">
 					<div class="col-md-12 mt-3">
+						<div class="container mt-4">
+							<table id="dynamicTable" class="table table-bordered p-0">
+								<thead class="table-light">
+									<tr>
+										<th style="width: 40%">Name</th>
+										<th>View</th>
+										<th>Edit</th>
+										<th>Save</th>
+										<th>Delete</th>
+									</tr>
+								</thead>
+								<tbody></tbody> <!-- Data will be populated dynamically -->
+							</table>
+						</div>
 
-							<div class="container mt-4">
+							@* <div class="container mt-4">
 								<table class="table table-bordered p-0">
 									<thead class="table-light">
 										<tr>
@@ -302,7 +316,7 @@
 									</tbody>
 								</table>
 							</div>
-
+ *@
 						
 					</div>
 					
@@ -323,59 +337,107 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-		$(document).ready(function () {
-	  // Toggle submenu visibility
-	  $('.toggle-icon').click(function () {
+		$(document).on('click', '.toggle-icon', function () {
 		var target = $(this).data('target');
 		var rows = $('.' + target);
 		if (rows.is(':visible')) {
-		  rows.hide();
-		  $(this).text('▶');
+			rows.hide();
+			$(this).text('▶');
 		} else {
-		  rows.show();
-		  $(this).text('▼');
+			rows.show();
+			$(this).text('▼');
 		}
-	  });
+	});
 
-	  // Parent checkbox change handler
-	  $('.parent').change(function () {
+	$(document).on('change', '.parent', function () {
 		var id = $(this).data('id');
 		var isChecked = $(this).is(':checked');
 
-		// Update child title checkboxes
 		$('.child[data-parent="' + id + '"]').prop('checked', isChecked);
 
-		// If parent is unchecked, uncheck all associated action checkboxes
 		if (!isChecked) {
-		  $('.action[data-id="' + id + '"]').prop('checked', isChecked);
-		  $('.child-action[data-parent="' + id + '"]').prop('checked', isChecked);
+			$('.child-action[data-parent="' + id + '"]').prop('checked', isChecked);
 		}
-	  });
+	});
 
-	  // Child checkbox change handler
-	  $('.child').change(function () {
+	$(document).on('change', '.child', function () {
 		var parentId = $(this).data('parent');
 		var parent = $('.parent[data-id="' + parentId + '"]');
 		var anyChecked = $('.child[data-parent="' + parentId + '"]:checked').length > 0;
 		parent.prop('checked', anyChecked);
 
-		// Check or uncheck sub-title checkboxes based on the child checkbox state
 		var isChecked = $(this).is(':checked');
 		$(this).closest('tr').nextAll('.submenu').find('.child-profile').prop('checked', isChecked);
 
-		// If child is unchecked, uncheck all associated action checkboxes
 		if (!isChecked) {
-		  var tr = $(this).closest('tr');
-		  var actions = tr.find('.child-action');
-		  actions.prop('checked', false);
+			$(this).closest('tr').find('.child-action').prop('checked', false);
 		}
-	  });
-
-	  // Child profile checkbox change handler
-	  $('.child-profile').change(function () {
-		// Optional: Handle specific behavior for child profile checkboxes
-	  });
 	});
+
+	$(document).ready(function () {
+				debugger;
+
+			var companyId = 4;
+			var pagePanelId = 1;
+			var payloadData = {
+				pagePanelId: pagePanelId,
+				companyId: companyId
+			};
+
+			$.ajax({
+				url: '@baseUrl/PageMasterAPI/GetPageHierarchyWithPrivileges', // Replace with actual API URL
+				method: 'POST',
+				contentType: 'application/json',
+				data: JSON.stringify(payloadData),
+				success: function(response) {
+					debugger;
+					if (response.isSuccess) {
+						console.log(response.data); // Corrected this line
+						bindTableData(response.data);
+					} else {
+						round_error_noti(response.responseMessage);
+					}
+				},
+				error: function(xhr, status, error) {
+					console.error("API Error: ", error);
+				}
+			});
+
+
+		function bindTableData(data) {
+			var tbody = $('#dynamicTable tbody');
+			tbody.empty(); 
+
+			data.forEach(panel => {
+				var panelRow = `<tr class="module-header"><td colspan="5">${panel.pagePanelName} Module</td></tr>`;
+				tbody.append(panelRow);
+
+				panel.pages.forEach(page => {
+					var parentRow = `<tr>
+						<td colspan="5">
+							<span class="toggle-icon" data-target="${page.pageMasterId}-sub">▶</span>
+							<input type="checkbox" class="form-check-input parent" data-id="${page.pageMasterId}" /> ${page.pageName}
+						</td>
+					</tr>`;
+					tbody.append(parentRow);
+
+					page.subPages.forEach(subPage => {
+						var subRow = `<tr class="submenu ${page.pageMasterId}-sub">
+							<td class="indent">
+								<input type="checkbox" class="form-check-input child" data-parent="${page.pageMasterId}" /> ${subPage.pageName}
+							</td>
+							<td><input type="checkbox" class="form-check-input child-action" ${subPage.is_View ? 'checked' : ''}></td>
+							<td><input type="checkbox" class="form-check-input child-action" ${subPage.is_Edit ? 'checked' : ''}></td>
+							<td><input type="checkbox" class="form-check-input child-action" ${subPage.is_Save ? 'checked' : ''}></td>
+							<td><input type="checkbox" class="form-check-input child-action" ${subPage.is_Delete ? 'checked' : ''}></td>
+						</tr>`;
+						tbody.append(subRow);
+					});
+				});
+			});
+		}
+	});
+
 
 
 </script>
@@ -507,61 +569,61 @@
 
 
 	
-	  const privilegeData = [
-			{ privilegeName: "Control Panel", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Company Information", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: false },
-			{ privilegeName: "Change Password", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: false },
-			{ privilegeName: "Company General Setting", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Professional Tax Setting", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Privilege Setting", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Import Data", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Scheme", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Email Setting", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Admin Settings", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Employee Directory", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Masters", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Employee", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Leave", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
-			{ privilegeName: "Loan/Claim", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true }
-		];
+	 //  const privilegeData = [
+		// 	{ privilegeName: "Control Panel", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Company Information", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: false },
+		// 	{ privilegeName: "Change Password", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: false },
+		// 	{ privilegeName: "Company General Setting", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Professional Tax Setting", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Privilege Setting", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Import Data", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Scheme", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Email Setting", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Admin Settings", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Employee Directory", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Masters", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Employee", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Leave", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true },
+		// 	{ privilegeName: "Loan/Claim", viewPrivilege: true, editPrivilege: true, savePrivilege: true, deletePrivilege: true }
+		// ];
 
-		const tableBody = document.querySelector('#privilegeTable tbody');
+		// const tableBody = document.querySelector('#privilegeTable tbody');
 
-		privilegeData.forEach(privilege => {
-			const row = document.createElement('tr');
+		// privilegeData.forEach(privilege => {
+		// 	const row = document.createElement('tr');
 
-			const nameCell = document.createElement('td');
-			nameCell.textContent = privilege.privilegeName;
-			row.appendChild(nameCell);
+		// 	const nameCell = document.createElement('td');
+		// 	nameCell.textContent = privilege.privilegeName;
+		// 	row.appendChild(nameCell);
 
-			const viewCell = document.createElement('td');
-			const viewCheckbox = document.createElement('input');
-			viewCheckbox.type = 'checkbox';
-			viewCheckbox.checked = privilege.viewPrivilege;
-			viewCell.appendChild(viewCheckbox);
-			row.appendChild(viewCell);
+		// 	const viewCell = document.createElement('td');
+		// 	const viewCheckbox = document.createElement('input');
+		// 	viewCheckbox.type = 'checkbox';
+		// 	viewCheckbox.checked = privilege.viewPrivilege;
+		// 	viewCell.appendChild(viewCheckbox);
+		// 	row.appendChild(viewCell);
 
-			const editCell = document.createElement('td');
-			const editCheckbox = document.createElement('input');
-			editCheckbox.type = 'checkbox';
-			editCheckbox.checked = privilege.editPrivilege;
-			editCell.appendChild(editCheckbox);
-			row.appendChild(editCell);
+		// 	const editCell = document.createElement('td');
+		// 	const editCheckbox = document.createElement('input');
+		// 	editCheckbox.type = 'checkbox';
+		// 	editCheckbox.checked = privilege.editPrivilege;
+		// 	editCell.appendChild(editCheckbox);
+		// 	row.appendChild(editCell);
 
-			const saveCell = document.createElement('td');
-			const saveCheckbox = document.createElement('input');
-			saveCheckbox.type = 'checkbox';
-			saveCheckbox.checked = privilege.savePrivilege;
-			saveCell.appendChild(saveCheckbox);
-			row.appendChild(saveCell);
+		// 	const saveCell = document.createElement('td');
+		// 	const saveCheckbox = document.createElement('input');
+		// 	saveCheckbox.type = 'checkbox';
+		// 	saveCheckbox.checked = privilege.savePrivilege;
+		// 	saveCell.appendChild(saveCheckbox);
+		// 	row.appendChild(saveCell);
 
-			const deleteCell = document.createElement('td');
-			const deleteCheckbox = document.createElement('input');
-			deleteCheckbox.type = 'checkbox';
-			deleteCheckbox.checked = privilege.deletePrivilege;
-			deleteCell.appendChild(deleteCheckbox);
-			row.appendChild(deleteCell);
+		// 	const deleteCell = document.createElement('td');
+		// 	const deleteCheckbox = document.createElement('input');
+		// 	deleteCheckbox.type = 'checkbox';
+		// 	deleteCheckbox.checked = privilege.deletePrivilege;
+		// 	deleteCell.appendChild(deleteCheckbox);
+		// 	row.appendChild(deleteCell);
 
-			tableBody.appendChild(row);
-		});
+		// 	tableBody.appendChild(row);
+		// });
 </script>
