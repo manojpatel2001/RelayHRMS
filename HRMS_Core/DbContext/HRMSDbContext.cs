@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.ControlPanel.CompanyInformation;
+using HRMS_Core.Employee;
 using HRMS_Core.EmployeeMaster;
 using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.Master.JobMaster;
@@ -64,6 +65,8 @@ namespace HRMS_Core.DbContext
         public DbSet<PrivilegeDetails> PrivilegeDetails { get; set; }
         public DbSet<ModuleDetails> ModuleDetails { get; set; }
         public DbSet<PagePanel> PagePanel { get; set; }
+        public DbSet<Category> Category { get; set; }
+        public DbSet<EmployeeType> EmployeeType { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

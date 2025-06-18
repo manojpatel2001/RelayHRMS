@@ -59,7 +59,24 @@
 	tr:nth-child(even) {
 		background-color: #f9f9f9; /* Alternate row color */
 	}
-	
+
+	.indent {
+		padding-left: 20px;
+	}
+
+	.indent-more {
+		padding-left: 40px;
+	}
+	.subpage-cell {
+  padding-left: 30px;
+}
+
+.subsubpage-cell {
+  padding-left: 60px;
+}
+
+
+
 </style>
 <style>
 	
@@ -67,6 +84,8 @@
 		border: 1px solid #ced4da;
 		padding: 8px;
 		text-align: left;
+		cursor: pointer;
+		margin-right: 5px;
 	}
 	.toggle-icon {
 		cursor: pointer;
@@ -79,13 +98,7 @@
 		display: none;
 	}
 
-	.indent {
-		padding-left: 30px;
-	}
-
-	.sub-indent {
-		padding-left: 60px;
-	}
+	
 
 	.module-header {
 		background-color: #2395c6;
@@ -166,23 +179,15 @@
 						</div>
 					</div>
 
-
-					        <div class="col-md-1 mt-3 ">
-								Type:
-							</div>
-					        <div class="col-md-3 mt-3 ">
-								<div class="form-check">
-							<input class="form-check-input" name="type" type="radio" id="rdAdmin">
-									<label class="form-check-label" for="rdAdmin">Admin/ESS Panel</label>
-								</div>
-							</div>
-					       <div class="col-md-2 mt-3 ">
-								<div class="form-check">
-									<input class="form-check-input" name="type" type="radio" id="rdESSPanel">
-									<label class="form-check-label" for="rdESSPanel">ESSPanel</label>
-								</div>
-							</div>
-					
+					<div class="col-md-6">
+						<div class="form-group mt-3 position-relative">
+							<select class="form-select floating-input" id="ddlPagePanel">
+								<option value="">Select</option>
+								<!-- Add your options here -->
+							</select>
+							<label class="floating-label" for="ddlPagePanel">Page Panel </label>
+						</div>
+					</div>
 
 				</div>
 
@@ -337,7 +342,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-		$(document).on('click', '.toggle-icon', function () {
+		$(document).on('click', '.toggle-icon', function() {
 		var target = $(this).data('target');
 		var rows = $('.' + target);
 		if (rows.is(':visible')) {
@@ -349,18 +354,25 @@
 		}
 	});
 
-	$(document).on('change', '.parent', function () {
+	$(document).on('change', '.parent', function() {
 		var id = $(this).data('id');
 		var isChecked = $(this).is(':checked');
 
+		// Set the state of all child checkboxes based on the parent checkbox
 		$('.child[data-parent="' + id + '"]').prop('checked', isChecked);
 
-		if (!isChecked) {
-			$('.child-action[data-parent="' + id + '"]').prop('checked', isChecked);
-		}
+		// Set the state of all child-action checkboxes based on the parent checkbox
+		$('.child-action[data-parent="' + id + '"]').prop('checked', isChecked);
+
+		// Recursively set the state of all sub-subpages checkboxes
+		$('.child[data-parent="' + id + '"]').each(function() {
+			var childId = $(this).data('parent');
+			$('.child[data-parent="' + childId + '"]').prop('checked', isChecked);
+			$('.child-action[data-parent="' + childId + '"]').prop('checked', isChecked);
+		});
 	});
 
-	$(document).on('change', '.child', function () {
+	$(document).on('change', '.child', function() {
 		var parentId = $(this).data('parent');
 		var parent = $('.parent[data-id="' + parentId + '"]');
 		var anyChecked = $('.child[data-parent="' + parentId + '"]:checked').length > 0;
@@ -374,11 +386,49 @@
 		}
 	});
 
-	$(document).ready(function () {
-				debugger;
+	// Function to close all child rows
+	function closeAllChildRows(parentId) {
+		var childRows = $('.submenu[data-parent="' + parentId + '"]');
+		childRows.hide();
+		childRows.find('.toggle-icon').text('▶');
 
-			var companyId = 4;
-			var pagePanelId = 1;
+		// Recursively close all sub-subpages rows
+		childRows.each(function() {
+			var childId = $(this).data('parent');
+			closeAllChildRows(childId);
+		});
+	}
+
+	// Modify the toggle-icon click handler to close all child rows
+	$(document).on('click', '.toggle-icon', function() {
+		var target = $(this).data('target');
+		var rows = $('.' + target);
+		if (rows.is(':visible')) {
+			closeAllChildRows(target);
+		} else {
+			rows.show();
+			$(this).text('▼');
+		}
+	});
+
+	async function GetPageData(){
+				var companyId = $('#companyDropdown').val();
+			if (!companyId) {
+				round_error_noti("Please select company");
+				return;
+			}
+			debugger
+				 console.log($('#ddlPagePanel option'));
+
+		// Example: Check the length of the selected options
+		console.log($('#ddlPagePanel option').length);
+
+				var pagePanelId = $('#ddlPagePanel').val();
+				if (!pagePanelId) {
+					round_error_noti("Please select page panel");
+					return;
+				}
+
 			var payloadData = {
 				pagePanelId: pagePanelId,
 				companyId: companyId
@@ -403,50 +453,123 @@
 				}
 			});
 
+	}
 
-		function bindTableData(data) {
-			var tbody = $('#dynamicTable tbody');
-			tbody.empty(); 
+function bindTableData(data) {
+	  var tbody = $('#dynamicTable tbody');
+	  tbody.empty();
 
-			data.forEach(panel => {
-				var panelRow = `<tr class="module-header"><td colspan="5">${panel.pagePanelName} Module</td></tr>`;
-				tbody.append(panelRow);
+	  data.forEach(panel => {
+		// Add panel header row
+		var panelRow = `<tr class="module-header"><td colspan="5">${panel.pagePanelName} Module</td></tr>`;
+		tbody.append(panelRow);
 
-				panel.pages.forEach(page => {
-					var parentRow = `<tr>
-						<td colspan="5">
-							<span class="toggle-icon" data-target="${page.pageMasterId}-sub">▶</span>
-							<input type="checkbox" class="form-check-input parent" data-id="${page.pageMasterId}" /> ${page.pageName}
-						</td>
-					</tr>`;
-					tbody.append(parentRow);
+		// Iterate over pages
+		panel.pages.forEach(page => {
+		  // Add page row
+		  var parentRow = `<tr>
+			<td colspan="5">
+			  <span class="toggle-icon" data-target="${page.pageMasterId}-sub">▶</span>
+			  <input type="checkbox" class="form-check-input parent" data-id="${page.pageMasterId}" /> ${page.pageName}
+			</td>
+		  </tr>`;
+		  tbody.append(parentRow);
 
-					page.subPages.forEach(subPage => {
-						var subRow = `<tr class="submenu ${page.pageMasterId}-sub">
-							<td class="indent">
-								<input type="checkbox" class="form-check-input child" data-parent="${page.pageMasterId}" /> ${subPage.pageName}
-							</td>
-							<td><input type="checkbox" class="form-check-input child-action" ${subPage.is_View ? 'checked' : ''}></td>
-							<td><input type="checkbox" class="form-check-input child-action" ${subPage.is_Edit ? 'checked' : ''}></td>
-							<td><input type="checkbox" class="form-check-input child-action" ${subPage.is_Save ? 'checked' : ''}></td>
-							<td><input type="checkbox" class="form-check-input child-action" ${subPage.is_Delete ? 'checked' : ''}></td>
-						</tr>`;
-						tbody.append(subRow);
-					});
+		  // Iterate over subPages
+		  if (page.subPages) {
+			page.subPages.forEach(subPage => {
+			  // Check if subPage has subSubPages
+			  if (subPage.subSubPages) {
+				// Add subPage row without action checkboxes
+				var subRow = `<tr class="submenu ${page.pageMasterId}-sub">
+				  <td class="indent">
+					<span class="toggle-icon" data-target="${subPage.pageMasterId}-sub">▶</span>
+					<input type="checkbox" class="form-check-input child" data-parent="${page.pageMasterId}" /> ${subPage.pageName}
+				  </td>
+				  <td colspan="4"></td>
+				</tr>`;
+				tbody.append(subRow);
+
+				// Iterate over subSubPages
+				subPage.subSubPages.forEach(subSubPage => {
+				  // Add subSubPage row with action checkboxes
+				  var subSubRow = `<tr class="submenu ${subPage.pageMasterId}-sub">
+					<td class="indent-more">
+					  <input type="checkbox" class="form-check-input child" data-parent="${subPage.pageMasterId}" /> ${subSubPage.pageName}
+					</td>
+					<td><input type="checkbox" class="form-check-input child-action" ${subSubPage.is_View ? 'checked' : ''}></td>
+					<td><input type="checkbox" class="form-check-input child-action" ${subSubPage.is_Edit ? 'checked' : ''}></td>
+					<td><input type="checkbox" class="form-check-input child-action" ${subSubPage.is_Save ? 'checked' : ''}></td>
+					<td><input type="checkbox" class="form-check-input child-action" ${subSubPage.is_Delete ? 'checked' : ''}></td>
+				  </tr>`;
+				  tbody.append(subSubRow);
 				});
+			  } else {
+				// Add subPage row with action checkboxes and no toggle icon
+				var subRow = `<tr class="submenu ${page.pageMasterId}-sub">
+				  <td class="indent">
+					<input type="checkbox" class="form-check-input child" data-parent="${page.pageMasterId}" /> ${subPage.pageName}
+				  </td>
+				  <td><input type="checkbox" class="form-check-input child-action" ${subPage.is_View ? 'checked' : ''}></td>
+				  <td><input type="checkbox" class="form-check-input child-action" ${subPage.is_Edit ? 'checked' : ''}></td>
+				  <td><input type="checkbox" class="form-check-input child-action" ${subPage.is_Save ? 'checked' : ''}></td>
+				  <td><input type="checkbox" class="form-check-input child-action" ${subPage.is_Delete ? 'checked' : ''}></td>
+				</tr>`;
+				tbody.append(subRow);
+			  }
 			});
+		  }
+		});
+	  });
+	}
+
+
+	    async function initializePage() {
+
+			// Ensure company details are loaded first
+			await LoadCompanyDetails();
+
+			// Bind the page panel after loading company (details)
+
+			// Fetch page data
+			await GetPageData();
 		}
-	});
+
+	async function bindPagePanel(){
+
+	   $.ajax({
+			url: '@baseUrl/PagePanelAPI/GetAllPagePanels',
+			method: 'GET',
+			success: function(data) {
+				if(data.isSuccess){
+					var dropdowns = $('#ddlPagePanel');
+					dropdowns.empty();
+					$.each(data.data, function(index, panel) {
+						debugger;
+							dropdowns.append($('<option >', {
+							value: panel.pagePanelId,
+							text: panel.pagePanelName
+						}));
+					});
 
 
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching page penel data:', error);
+			}
+		});
 
-</script>
-<script>
-	$("#addPrivilegeMaster").click( () => {
+	}
+
+
+	$("#addPrivilegeMaster").click( async () => {
+			await	 initializePage();
 
 		   $("#addPrivilegeMasterModal").modal('show');
 
 	})
+		
 	function bindBranch() {
 		$.ajax({
 			url: '@baseUrl/BranchAPI/GetAllBranch',
@@ -497,6 +620,8 @@
 		});
 	}
 
+
+	
 	function bindDepartment() {
 		$.ajax({
 			url: '@baseUrl/DepartmentAPI/GetAllDepartment',
@@ -559,13 +684,19 @@
 	}
 
 	// Call the function to bind departments
-	$(document).ready(function() {
-
+	$(document).ready( async function() {
+		await bindPagePanel();
      	bindBranch();
-
 		bindDepartment();
-	});
+		$('#companyDropdown').change(function() {
+				GetPageData();
+		});
 
+		// Bind change event for page panel dropdown
+		$('#ddlPagePanel').change(function() {
+				GetPageData();
+		});
+	});
 
 
 	
@@ -626,4 +757,86 @@
 
 		// 	tableBody.appendChild(row);
 		// });
+</script>
+<script>
+	   $("#btnAddPrivilegeMaster").click(  () => {
+			  savePrivilageData();
+
+	  })
+	  function savePrivilageData() {
+
+			var branches = getSelectedBranches();
+			  var departments = getSelectedDepartments();
+			  var subpageActions = getSubpageActions();
+			   var pageName = $('#txtPrivilegeName').val();
+			   var pagePanel = $('#ddlPagePanel').val();
+
+			  var payload = {
+				  pageName: pageName,
+				  pagePanel: pagePanel,
+				  branches: branches,
+				  departments: departments,
+				  subpageActions: subpageActions
+			  };
+				console.log("payload",payload);
+		  // $.ajax({
+			 //  url: '@baseUrl/YourAPIEndpoint/SaveData', // Replace with your actual API URL
+			 //  method: 'POST',
+			 //  contentType: 'application/json',
+			 //  data: JSON.stringify(payload),
+			 //  success: function(response) {
+				//   if (response.isSuccess) {
+				// 	  alert('Data saved successfully!');
+				//   } else {
+				// 	  alert('Error saving data: ' + response.responseMessage);
+				//   }
+			 //  },
+			 //  error: function(xhr, status, error) {
+				//   console.error("API Error: ", error);
+				//   alert('Error saving data.');
+			 //  }
+		  // });
+	  }
+
+	 function getSubpageActions() {
+		  var subpageActions = [];
+		  $('.child-action').each(function() {
+			  var subpageId = $(this).data('parent');
+			  var actionType = $(this).closest('td').index() === 1 ? 'View' :
+							   $(this).closest('td').index() === 2 ? 'Edit' :
+							   $(this).closest('td').index() === 3 ? 'Save' : 'Delete';
+			  var isChecked = $(this).is(':checked');
+
+			  var existingEntry = subpageActions.find(function(entry) {
+				  return entry.id === subpageId;
+			  });
+
+			  if (!existingEntry) {
+				  existingEntry = { id: subpageId };
+				  subpageActions.push(existingEntry);
+			  }
+
+			  existingEntry[actionType.toLowerCase()] = isChecked;
+		  });
+		  return subpageActions;
+	  }
+
+	  function getSelectedBranches() {
+		  var selectedBranches = [];
+		  $('.branch-checkbox:checked').each(function() {
+			  selectedBranches.push($(this).closest('.branch-item').data('branch-id'));
+		  });
+		  return selectedBranches.join('#');
+	  }
+
+	  function getSelectedDepartments() {
+		  var selectedDepartments = [];
+		  $('.department-checkbox:checked').each(function() {
+			  selectedDepartments.push($(this).closest('.department-item').data('department-id'));
+		  });
+		  return selectedDepartments.join('#');
+	  }
+
+
+
 </script>

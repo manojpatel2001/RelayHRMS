@@ -1,5 +1,6 @@
 ﻿using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.OtherMaster;
@@ -43,6 +44,8 @@ namespace HRMS_Infrastructure.Interface
         IPageMasterRepository PageMasterRepository { get; }
         IModuleDetailsRepository ModuleDetailsRepository { get; }
         IPagePanelRepository PagePanelRepository { get; }
+        ICategoryRepository CategoryRepository { get; }
+        IEmployeeTypeRepository EmployeeTypeRepository { get; }
         void Commit();
         Task CommitAsync();
     }

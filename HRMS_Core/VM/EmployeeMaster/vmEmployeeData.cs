@@ -23,18 +23,18 @@ namespace HRMS_Core.VM.EmployeeMaster
         
         public int? GradeId { get; set; }
         
-        public string? Shift { get; set; }
+        public int? ShiftMasterId { get; set; }
 
         public string? CTC { get; set; }
         public int? DesignationId { get; set; }
         
         public decimal? GrossSalary { get; set; }
 
-        public string? Category { get; set; }
+        public int? CategoryId { get; set; }
         public decimal? BasicSalary { get; set; }
         public int? DepartmentId { get; set; }
-       
-        public string? EmployeeType { get; set; }
+
+        public int? EmployeeTypeId { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public int? UserPrivilege { get; set; }
 

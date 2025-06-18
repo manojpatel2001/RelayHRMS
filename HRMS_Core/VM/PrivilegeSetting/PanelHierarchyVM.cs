@@ -18,6 +18,10 @@ namespace HRMS_Core.VM.PrivilegeSetting
         public int PageMasterId { get; set; }
         public string? PageName { get; set; }
         public string? PageUrl { get; set; }
+        public bool Is_Delete { get; set; }
+        public bool Is_Edit { get; set; }
+        public bool Is_View { get; set; }
+        public bool Is_Save { get; set; }
         public List<SubPageMasterVM>? SubPages { get; set; }
     }
 
@@ -30,6 +34,18 @@ namespace HRMS_Core.VM.PrivilegeSetting
         public bool Is_Edit { get; set; }
         public bool Is_View { get; set; }
         public bool Is_Save { get; set; }
+        public List<SubSubPageMasterVM>? SubSubPages { get; set; }
+
     }
-    
+    public class SubSubPageMasterVM
+    {
+        public int PageMasterId { get; set; }
+        public string? PageName { get; set; }
+        public string? PageUrl { get; set; }
+        public bool Is_Delete { get; set; }
+        public bool Is_Edit { get; set; }
+        public bool Is_View { get; set; }
+        public bool Is_Save { get; set; }
+    }
+
 }
