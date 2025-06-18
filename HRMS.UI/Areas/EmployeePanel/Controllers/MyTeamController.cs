@@ -42,7 +42,19 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
             return View();
         }
-       
+        public IActionResult MemberInOutRecord()
+        {
+            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+        public IActionResult MemberRoster()
+        {
+            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+
 
     }
 }
