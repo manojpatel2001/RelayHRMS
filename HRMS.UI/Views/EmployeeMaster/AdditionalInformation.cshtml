@@ -178,7 +178,7 @@
 									</div>
 									<div class="col-md-5 p-0">
 										<div class="form-group mt-3 position-relative">
-											<input type="text"  class="form-control floating-input" id="txtEmpCode" placeholder="EMP" value="">
+											<input type="text" readonly class="form-control floating-input" id="txtEmpCode" placeholder="EMP" value="">
 										</div>
 									</div>
 									<div class="col-md-3 p-0">
@@ -425,7 +425,7 @@
 					<div class="row mt-3" >
 						<div class="col-md-2"></div>
 						<div class="col-md-8 text-center">
-							<button type="button" class="btn btn-dark px-5 me-2" id="btnBackEmployee">Back</button>
+							<button type="button" class="btn btn-dark px-5 m-2 " id="btnBackEmployee">Back</button>
 @* 							<button type="reset" class="btn btn-secondary px-5" id="btnEmployeeClear">Clear</button>
  *@							<button type="button" class="btn btn-primary px-5" id="btnUpdateEmployee" style="background-color:#2395c6; color:white;">Update</button>
 
@@ -634,7 +634,7 @@
 
 	$(document).ready( async function () {
 		await LoadCompanyDetails();
-		await Promise.all([bindBranch(), bindDesignation(), bindDepartment(), bindGrade()]);
+			await Promise.all([bindBranch(), bindDesignation(), bindDepartment(), bindGrade(),bindCategory(),bindEmployeeType(),bindShift()]);
 		await new Promise(resolve => setTimeout(resolve, 1000));
 
 		$('#companyDropdown').change(async function() {
@@ -710,14 +710,14 @@
 		$('#doj').val(formatDate(employee.dateOfJoining));
 		$('#ddlBranch').val(employee.branchId||"");
 		$('#ddlGrade').val(employee.gradeId||"");
-		$('#ddlShift').val(employee.shift||"");
+		$('#ddlShift').val(employee.shiftMasterId||"");
 		$('#txtCTC').val(employee.ctc ||"");
 		$('#ddlDesignation').val(employee.designationId||"");
 		$('#txtGrossSalary').val(employee.grossSalary || '');
-		$('#ddlCategory').val(employee.category || '');
+		$('#ddlCategory').val(employee.categoryId || '');
 		$('#txtBasicSalary').val(employee.basicSalary || '');
 		$('#ddlDepartment').val(employee.departmentId || '');
-		$('#ddlEmpType').val(employee.employeeType ||'');
+		$('#ddlEmpType').val(employee.employeeTypeId ||'');
 	    $('#dob').val(employee.dateOfBirth || '');
 		$('#ddlUserPrivilege').val(employee.userPrivilege ||'');
 		$('#txtLoginAlias').val(employee.loginAlias || '');
@@ -865,6 +865,85 @@
 
 	}
 	
+	async function bindEmployeeType(){
+
+	   $.ajax({
+			url: '@baseUrl/EmployeeTypeAPI/GetAllEmployeeTypes',
+			method: 'GET',
+			success: function(data) {
+				if(data.isSuccess){
+					var dropdown = $('#ddlEmpType');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.employeeTypeId,
+							text: company.employeeTypeName
+						}));
+					});
+
+
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching category data:', error);
+			}
+		});
+
+	}
+	async function bindCategory(){
+
+	   $.ajax({
+			url: '@baseUrl/CategoryAPI/GetAllCategories',
+			method: 'GET',
+			success: function(data) {
+				if(data.isSuccess){
+					var dropdown = $('#ddlCategory');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.categoryId,
+							text: company.categoryName
+						}));
+					});
+
+
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching category data:', error);
+			}
+		});
+
+	}
+	async function bindShift(){
+
+	   $.ajax({
+			url: '@baseUrl/ShiftMasterAPI/GetAllShifts',
+			method: 'GET',
+			success: function(data) {
+				if(data.isSuccess){
+					var dropdown = $('#ddlShift');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.shiftID,
+							text: company.shiftName
+						}));
+					});
+
+
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching category data:', error);
+			}
+		});
+
+	}
+
 	// Bind navigation buttons
 	$(document).ready( async function () {
 		 
@@ -887,7 +966,7 @@
 
 
 	$('#btnUpdateEmployee').click(async function() {
-			//$("#btnUpdateEmployee").prop("disabled", true);
+			$("#btnUpdateEmployee").prop("disabled", true);
 			// Capture form values in variables
 			var employeeId=$('#EmployeeId').val();
 			var initial = $('#ddlInitial').val();
@@ -1002,14 +1081,14 @@
 						DateOfJoining: dateOfJoining === "" ? null : dateOfJoining,
 						BranchId: branch === "" ? null : branch,
 						GradeId: grade === "" ? null : grade,
-						Shift: shift === "" ? null : shift,
+						shiftMasterId: shift === "" ? null : shift,
 						CTC: ctc === "" ? null : ctc,
 						DesignationId: designation === "" ? null : designation,
 						GrossSalary: grossSalary === "" ? null : grossSalary,
-						Category: category === "" ? null : category,
+						CategoryId: category === "" ? null : category,
 						BasicSalary: basicSalary === "" ? null : basicSalary,
 						DepartmentId: department === "" ? null : department,
-						EmployeeType: employeeType === "" ? null : employeeType,
+						EmployeeTypeId: employeeType === "" ? null : employeeType,
 						DateOfBirth: dateOfBirth === "" ? null : dateOfBirth,
 						UserPrivilege: userPrivilege === "" ? 0 : userPrivilege,
 						LoginAlias: loginAlias === "" ? null : loginAlias,
@@ -1055,8 +1134,8 @@
 					data: JSON.stringify(updateEmployee),
 					success: function(response) {
 						if (response.isSuccess) {
-							resetAllEmployeeData(response.data)
-							round_success_noti(response.responseMessage);
+						round_success_noti(response.responseMessage);
+							// resetAllEmployeeData(response.data)
 						} else {
 							round_error_noti(response.responseMessage);
 						}

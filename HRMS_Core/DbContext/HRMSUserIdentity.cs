@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.ControlPanel.CompanyInformation;
+using HRMS_Core.Employee;
 using HRMS_Core.Master.JobMaster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
@@ -31,7 +32,10 @@ namespace HRMS_Core.DbContext
         [ForeignKey(nameof(GradeId))]
         [ValidateNever]
         public Grade? Grade { get; set; }
-        public string? Shift { get; set; }
+        public int? ShiftMasterId { get; set; }
+        [ForeignKey(nameof(ShiftMasterId))]
+        [ValidateNever]
+        public ShiftMaster? ShiftMaster  { get; set; }
 
         public string? CTC { get; set; }
         public int? DesignationId { get; set; }
@@ -40,14 +44,20 @@ namespace HRMS_Core.DbContext
         public Designation? Designation{ get; set; }
         public decimal? GrossSalary { get; set; }
 
-        public string? Category { get; set; }
+        public int? CategoryId { get; set; }
+        [ForeignKey(nameof(CategoryId))]
+        [ValidateNever]
+        public Category? Category { get; set; }
         public decimal? BasicSalary { get; set; }
         public int? DepartmentId { get; set; }
         [ForeignKey(nameof(DepartmentId))]
         [ValidateNever]
         public Department? Department { get; set; }
 
-        public string? EmployeeType { get; set; }
+        public int? EmployeeTypeId { get; set; }
+        [ForeignKey(nameof(EmployeeTypeId))]
+        [ValidateNever]
+        public EmployeeType? EmployeeType { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public int? UserPrivilege { get; set; }
 

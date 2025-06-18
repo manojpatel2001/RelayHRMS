@@ -2,12 +2,14 @@
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Repository.CompanyInformation;
 using HRMS_Infrastructure.Repository.CompanyStructure;
+using HRMS_Infrastructure.Repository.Employee;
 using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.OtherMaster;
@@ -55,6 +57,8 @@ namespace HRMS_Infrastructure.Repository
             PageMasterRepository = new PageMasterRepository(_dbContext);
             ModuleDetailsRepository = new ModuleDetailsRepository(_dbContext);
             PagePanelRepository = new PagePanelRepository(_dbContext);
+            CategoryRepository = new CategoryRepository(_dbContext);
+            EmployeeTypeRepository = new EmployeeTypeRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -93,6 +97,8 @@ namespace HRMS_Infrastructure.Repository
         public IPageMasterRepository PageMasterRepository { get; set; }
         public IModuleDetailsRepository ModuleDetailsRepository { get; set; }
         public IPagePanelRepository PagePanelRepository { get; set; }
+        public ICategoryRepository CategoryRepository { get; set; }
+        public IEmployeeTypeRepository EmployeeTypeRepository { get; set; }
 
         public void Commit()
         {
