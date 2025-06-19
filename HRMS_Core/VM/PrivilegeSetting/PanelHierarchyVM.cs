@@ -16,6 +16,7 @@ namespace HRMS_Core.VM.PrivilegeSetting
     public class PageMasterVM
     {
         public int PageMasterId { get; set; }
+        public int PrivilegeDetailsId { get; set; }
         public string? PageName { get; set; }
         public string? PageUrl { get; set; }
         public bool Is_Delete { get; set; }
@@ -28,6 +29,7 @@ namespace HRMS_Core.VM.PrivilegeSetting
     public class SubPageMasterVM
     {
         public int PageMasterId { get; set; }
+        public int PrivilegeDetailsId { get; set; }
         public string? PageName { get; set; }
         public string? PageUrl { get; set; }
         public bool Is_Delete { get; set; }
