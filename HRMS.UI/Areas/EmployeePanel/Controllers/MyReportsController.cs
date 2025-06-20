@@ -13,7 +13,27 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
         }
         public IActionResult Index()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+
+        public IActionResult EmployeeInOutPresent()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+        public IActionResult LateEarlySummary()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+
+        public IActionResult MobileInOutSummary()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }

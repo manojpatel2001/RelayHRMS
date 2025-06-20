@@ -13,20 +13,20 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
         }
         public IActionResult TicketOpen()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
         public IActionResult AddTicket()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
 
         public IActionResult TicketClose()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
