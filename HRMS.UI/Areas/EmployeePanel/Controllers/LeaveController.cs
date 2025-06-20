@@ -19,7 +19,7 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
 		public IActionResult LeaveApplication()
 		{
-			ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+			ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
 			return View();
 
@@ -27,7 +27,7 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 		}
         public IActionResult AddLeave()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }

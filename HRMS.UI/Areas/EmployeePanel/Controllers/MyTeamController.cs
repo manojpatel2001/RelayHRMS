@@ -13,50 +13,50 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
         }
         public IActionResult Index()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
         public IActionResult ShiftChanges()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
 
         public IActionResult AddShiftChanges()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
         public IActionResult ShiftImport()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
         public IActionResult AddShiftImport()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
         public IActionResult MemberInOutRecord()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
         public IActionResult MemberRoster()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
         public IActionResult MemberDetails()
         {
-            ViewBag.BaseUrl = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 
             return View();
         }
