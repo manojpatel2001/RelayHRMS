@@ -59,6 +59,8 @@ namespace HRMS_Infrastructure.Repository
             PagePanelRepository = new PagePanelRepository(_dbContext);
             CategoryRepository = new CategoryRepository(_dbContext);
             EmployeeTypeRepository = new EmployeeTypeRepository(_dbContext);
+            PrivilegeMasterRepository = new PrivilegeMasterRepository(_dbContext);
+            PrivilegeDetailsRepository = new PrivilegeDetailsRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -99,6 +101,8 @@ namespace HRMS_Infrastructure.Repository
         public IPagePanelRepository PagePanelRepository { get; set; }
         public ICategoryRepository CategoryRepository { get; set; }
         public IEmployeeTypeRepository EmployeeTypeRepository { get; set; }
+        public IPrivilegeMasterRepository PrivilegeMasterRepository { get; set; }
+        public IPrivilegeDetailsRepository PrivilegeDetailsRepository { get; set; }
 
         public void Commit()
         {
