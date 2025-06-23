@@ -12,5 +12,9 @@ namespace HRMS.UI.Controllers
         {
             return View();
         }
+        public IActionResult AddAllowance()
+        {
+            return View();
+        }
     }
 }
