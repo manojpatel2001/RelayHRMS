@@ -5,6 +5,7 @@ using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.PrivilegeSetting;
+using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.CompanyStructure;
@@ -67,6 +68,8 @@ namespace HRMS_Core.DbContext
         public DbSet<PagePanel> PagePanel { get; set; }
         public DbSet<Category> Category { get; set; }
         public DbSet<EmployeeType> EmployeeType { get; set; }
+        //public DbSet<Earning> Earning { get; set; }
+        //public DbSet<Deduction> Deduction { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
