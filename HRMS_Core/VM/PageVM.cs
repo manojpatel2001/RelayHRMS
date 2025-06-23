@@ -10,5 +10,6 @@ namespace HRMS_Core.VM
     {
         public int? CompanyId { get; set; }
         public int? PagePanelId { get; set; }
+        public int? PrivilegeMasterId { get; set; }
     }
 }

@@ -46,6 +46,8 @@ namespace HRMS_Infrastructure.Interface
         IPagePanelRepository PagePanelRepository { get; }
         ICategoryRepository CategoryRepository { get; }
         IEmployeeTypeRepository EmployeeTypeRepository { get; }
+        IPrivilegeMasterRepository PrivilegeMasterRepository { get; }
+        IPrivilegeDetailsRepository PrivilegeDetailsRepository { get; }
         void Commit();
         Task CommitAsync();
     }

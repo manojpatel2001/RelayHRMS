@@ -39,5 +39,12 @@ namespace HRMS.UI.Controllers
         {
             return PartialView("_Salary");
         }
+        public IActionResult LoadCompanyModal()
+        {
+            return PartialView("_CompanyModal");
+        }
+
+
+
     }
 }
