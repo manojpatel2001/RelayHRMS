@@ -196,26 +196,25 @@ public class ImportDataController : ControllerBase
 
                 else if (request.Type == "City")
                 {
-                    string code = row[0]?.ToString().Trim();
-                    string name = row[1]?.ToString().Trim();
-
-                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
+                    string name = row[0]?.ToString().Trim();
+              
+                    if (string.IsNullOrWhiteSpace(name) )
                     {
                         blankCount++;
                         errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
                         continue;
                     }
-                    var exists = await _unitOfWork.CityRepository.GetAsync(x => x.CityName == code && x.IsEnabled == true && x.IsDeleted != true);
+                    var exists = await _unitOfWork.CityRepository.GetAsync(x => x.CityName == name && x.IsEnabled == true && x.IsDeleted != true);
                     if (exists != null)
                     {
                         duplicateCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate City", code, "Enter unique City name.", "City Master"));
+                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate City", name, "Enter unique City name.", "City Master"));
                         continue;
                     }
 
                     await _unitOfWork.CityRepository.AddAsync(new City
                     {
-                        CityName = code,
+                        CityName = name,
                         StateId = int.TryParse(row[1]?.ToString(), out int stateId) ? stateId : (int?)null,
                         Country = row[2]?.ToString(),
                         CityCategoryId = int.TryParse(row[3]?.ToString(), out int catId) ? catId : (int?)null,
@@ -229,26 +228,25 @@ public class ImportDataController : ControllerBase
 
                 else if (request.Type == "Holiday Master")
                 {
-                    string code = row[0]?.ToString().Trim();
-                    string name = row[1]?.ToString().Trim();
-
-                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
+                    string name = row[0]?.ToString().Trim();
+          
+                    if (string.IsNullOrWhiteSpace(name) )
                     {
                         blankCount++;
                         errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
                         continue;
                     }
-                    var exists = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayName == code && x.IsEnabled == true && x.IsDeleted != true);
+                    var exists = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayName == name && x.IsEnabled == true && x.IsDeleted != true);
                     if (exists != null)
                     {
                         duplicateCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Holiday Name", code, "Enter unique Holiday name.", "Holiday Master"));
+                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Holiday Name", name, "Enter unique Holiday name.", "Holiday Master"));
                         continue;
                     }
 
                     await _unitOfWork.HolidayMasterRepository.AddAsync(new HolidayMaster
                     {
-                        HolidayName = code,
+                        HolidayName = name,
                         State = row[1]?.ToString(),
                         BranchId = int.TryParse(row[2]?.ToString(), out int branchId) ? branchId : 0,
                         MultipleHoliday = bool.TryParse(row[3]?.ToString(), out bool multiple) ? multiple : false,

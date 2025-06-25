@@ -5,6 +5,7 @@ using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
+using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using System;
 using System.Collections.Generic;
@@ -48,6 +49,7 @@ namespace HRMS_Infrastructure.Interface
         IEmployeeTypeRepository EmployeeTypeRepository { get; }
         IPrivilegeMasterRepository PrivilegeMasterRepository { get; }
         IPrivilegeDetailsRepository PrivilegeDetailsRepository { get; }
+        IEarningRepository EarningRepository { get; }
         void Commit();
         Task CommitAsync();
     }

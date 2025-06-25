@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.Salary
 {
-    //[Table("Earning")]
+    [Table("Earning")]
     public class Earning:BaseModel
     {
         [Key]
         public int EarningId { get; set; }
-        public int? EmployeeId { get; set; }
+        public string? EmployeeId { get; set; }
         [ForeignKey(nameof(EmployeeId))]
         [ValidateNever]
         public HRMSUserIdentity? HRMSUserIdentity { get; set; }
