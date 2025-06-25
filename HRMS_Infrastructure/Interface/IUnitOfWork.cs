@@ -50,6 +50,7 @@ namespace HRMS_Infrastructure.Interface
         IPrivilegeMasterRepository PrivilegeMasterRepository { get; }
         IPrivilegeDetailsRepository PrivilegeDetailsRepository { get; }
         IEarningRepository EarningRepository { get; }
+        IDeductionRepository DeductionRepository { get; }
         void Commit();
         Task CommitAsync();
     }
