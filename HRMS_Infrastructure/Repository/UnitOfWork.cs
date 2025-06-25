@@ -7,6 +7,7 @@ using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
+using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Repository.CompanyInformation;
 using HRMS_Infrastructure.Repository.CompanyStructure;
 using HRMS_Infrastructure.Repository.Employee;
@@ -14,6 +15,7 @@ using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
+using HRMS_Infrastructure.Repository.Salary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -61,6 +63,7 @@ namespace HRMS_Infrastructure.Repository
             EmployeeTypeRepository = new EmployeeTypeRepository(_dbContext);
             PrivilegeMasterRepository = new PrivilegeMasterRepository(_dbContext);
             PrivilegeDetailsRepository = new PrivilegeDetailsRepository(_dbContext);
+            EarningRepository = new EarningRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -103,6 +106,7 @@ namespace HRMS_Infrastructure.Repository
         public IEmployeeTypeRepository EmployeeTypeRepository { get; set; }
         public IPrivilegeMasterRepository PrivilegeMasterRepository { get; set; }
         public IPrivilegeDetailsRepository PrivilegeDetailsRepository { get; set; }
+        public IEarningRepository EarningRepository { get; set; }
 
         public void Commit()
         {
