@@ -4,15 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HRMS_Core.VM
+namespace HRMS_Core.VM.ManagePermision
 {
-    public class DeleteRecordVM
+    public class vmCommonGetById
     {
-        public int Id { get; set; }
-        public int? emp_id { get; set; }
+        public int? Id { get; set; } = 0;
+        public string? Ids { get; set; } = null;
         public bool? IsDeleted { get; set; } = false;
         public bool? IsEnabled { get; set; } = true;
-        public DateTime? DeletedDate { get; set; }
-        public string? DeletedBy { get; set; }
+        public bool? IsBlocked { get; set; } = false;
     }
 }

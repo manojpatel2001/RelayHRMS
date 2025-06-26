@@ -11,16 +11,13 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.Salary
 {
-    //[Table("Deduction")]
+    [Table("Deduction")]
     public class Deduction:BaseModel
     {
         [Key]
         public int DeductionId { get; set; }
         public int? EmployeeId { get; set; }
-        [ForeignKey(nameof(EmployeeId))]
-        [ValidateNever]
-        public HRMSUserIdentity? HRMSUserIdentity { get; set; }
-
+        
         public decimal? PF { get; set; }
         public decimal? ESIC { get; set; }
         public decimal? PT { get; set; }

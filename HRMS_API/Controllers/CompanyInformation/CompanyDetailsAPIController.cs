@@ -302,54 +302,54 @@ namespace HRMS_API.Controllers.CompanyInformation
             }
         }
 
-        [HttpPost("ReadDigitalSignature")]
-        public async Task<APIResponse> ReadDigitalSignature(vmReadDigitalSignature vmReadDigitalSignature)
-        {
+       // [HttpPost("ReadDigitalSignature")]
+        //public async Task<APIResponse> ReadDigitalSignature(vmReadDigitalSignature vmReadDigitalSignature)
+        //{
 
-            try
-            {
-                if (vmReadDigitalSignature==null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Digital signature cannot be null!" };
-                var data = await _unitOfWork.CompanyDetailsRepository.GetAsync(x => x.CompanyId == vmReadDigitalSignature.CompanyId);
-                if (data == null) 
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid company record." };
-                }
+        //    try
+        //    {
+        //        if (vmReadDigitalSignature==null)
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "Digital signature cannot be null!" };
+        //        var data = await _unitOfWork.CompanyDetailsRepository.GetAsync(x => x.CompanyId == vmReadDigitalSignature.CompanyId);
+        //        if (data == null) 
+        //        {
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid company record." };
+        //        }
                 
-                // Fetch the PFX file from the URL
-                var client = _clientFactory.CreateClient();
-                var response = await client.GetAsync(data.DigitalSignatureUrl);
+        //        // Fetch the PFX file from the URL
+        //        var client = _clientFactory.CreateClient();
+        //        var response = await client.GetAsync(data.DigitalSignatureUrl);
 
-                if (!response.IsSuccessStatusCode)
-                    return new APIResponse { isSuccess = false,ResponseMessage = "Digital file not found!" };
+        //        if (!response.IsSuccessStatusCode)
+        //            return new APIResponse { isSuccess = false,ResponseMessage = "Digital file not found!" };
 
-                bool isPasswordCorrect = BCrypt.Net.BCrypt.Verify(vmReadDigitalSignature.DigitalPassword, data.DigitalSignaturePassword);
-                if (!isPasswordCorrect)
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Please enter correct password!" };
-                }
+        //        bool isPasswordCorrect = BCrypt.Net.BCrypt.Verify(vmReadDigitalSignature.DigitalPassword, data.DigitalSignaturePassword);
+        //        if (!isPasswordCorrect)
+        //        {
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "Please enter correct password!" };
+        //        }
 
-                var pfxBytes = await response.Content.ReadAsByteArrayAsync();
+        //        var pfxBytes = await response.Content.ReadAsByteArrayAsync();
 
-                // Load the PFX file
-                var cert = new X509Certificate2(pfxBytes, vmReadDigitalSignature.DigitalPassword, X509KeyStorageFlags.PersistKeySet);
+        //        // Load the PFX file
+        //        var cert = new X509Certificate2(pfxBytes, vmReadDigitalSignature.DigitalPassword, X509KeyStorageFlags.PersistKeySet);
 
-                var certInfo = new
-                {
-                    Subject = cert.Subject,
-                    Issuer = cert.Issuer,
-                    SerialNumber = cert.SerialNumber,
-                    NotBefore = cert.NotBefore,
-                    NotAfter = cert.NotAfter,
-                    PublicKey = cert.PublicKey.Key.ToXmlString(false)
-                };
+        //        var certInfo = new
+        //        {
+        //            Subject = cert.Subject,
+        //            Issuer = cert.Issuer,
+        //            SerialNumber = cert.SerialNumber,
+        //            NotBefore = cert.NotBefore,
+        //            NotAfter = cert.NotAfter,
+        //            PublicKey = cert.PublicKey.Key.ToXmlString(false)
+        //        };
 
-                return new APIResponse { isSuccess = true, Data = certInfo, ResponseMessage = "Digital signature retrived successfully!" };
-            }
-            catch (Exception ex)
-            {
-                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable save digital signature. Please try again later." };
-            }
-        }
+        //        return new APIResponse { isSuccess = true, Data = certInfo, ResponseMessage = "Digital signature retrived successfully!" };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable save digital signature. Please try again later." };
+        //    }
+        //}
     }
 }

@@ -61,10 +61,8 @@ namespace HRMS_Core.EmployeeMaster
         public string? PantSize { get; set; }
         public string? ShoeSize { get; set; }
 
-        public string? EmployeeId { get; set; }
-        [ForeignKey(nameof(EmployeeId))]
-        [ValidateNever]
-        public HRMSUserIdentity? Employee { get; set; }
+        public int? EmployeeId { get; set; }
+        
     }
 
 }

@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250626160216_removeforeignkey")]
+    partial class removeforeignkey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -580,136 +583,6 @@ namespace HRMS_Core.Migrations
                     b.HasKey("CategoryId");
 
                     b.ToTable("Category");
-                });
-
-            modelBuilder.Entity("HRMS_Core.Employee.EmployeeInOutRecord", b =>
-                {
-                    b.Property<int>("Emp_IO_Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Emp_IO_Id"));
-
-                    b.Property<string>("App_Date")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Apr_Date")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Chk_By_Superior")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Cmp_prp_in_flag")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Cmp_prp_out_flag")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("Com_Id")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Duration")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("Emp_Id")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("For_Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Half_Full_day")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("In_Admin_Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("In_Date_Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("In_Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Ip_adrress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Is_Cancel_Early_Out")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Is_Cancel_Late_In")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Is_Default_In")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Is_Default_Out")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Late_Calc_Not_App")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ManualEntryFlag")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Other_Reason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("Out_Admin_Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("Out_Date_Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("Out_Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Skip_Count")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Sup_Comment")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("System_date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("is_Cmp_purpose")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("statusFlag")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Emp_IO_Id");
-
-                    b.ToTable("EmployeeInOutRecord");
                 });
 
             modelBuilder.Entity("HRMS_Core.Employee.EmployeeType", b =>

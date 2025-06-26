@@ -23,7 +23,6 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
         }
 
         
-
         public async Task<VMEmpResult> CreateEmployee(vmEmployeeData employee)
         {
             try

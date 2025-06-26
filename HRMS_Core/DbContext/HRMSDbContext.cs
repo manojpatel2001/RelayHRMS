@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.ControlPanel.CompanyInformation;
 using HRMS_Core.Employee;
 using HRMS_Core.EmployeeMaster;
+using HRMS_Core.ManagePermission;
 using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
@@ -24,7 +25,7 @@ using EmployeePersonalInfo = HRMS_Core.EmployeeMaster.EmployeePersonalInfo;
 
 namespace HRMS_Core.DbContext
 {
-    public class HRMSDbContext : IdentityDbContext<HRMSUserIdentity, HRMSRoleIdentity, string>
+    public class HRMSDbContext : IdentityDbContext<HRMSUserIdentity, HRMSRoleIdentity, int>
     {
 
         public HRMSDbContext(DbContextOptions<HRMSDbContext> options) : base(options)
@@ -33,8 +34,6 @@ namespace HRMS_Core.DbContext
         }
 
         public DbSet<HRMSUserIdentity> HRMSUserIdentities { get; set; }
-
-
 
         public DbSet<Branch> Branch { get; set; }
         public DbSet<City> City { get; set; }
@@ -61,16 +60,28 @@ namespace HRMS_Core.DbContext
         public DbSet<EmployeeContact> EmployeeContact { get; set; }
         public DbSet<Country> Country { get; set; }
         public DbSet<Thana> Thana { get; set; }
-        public DbSet<PageMaster> PageMaster { get; set; }
-        public DbSet<PrivilegeMaster> PrivilegeMaster { get; set; }
-        public DbSet<PrivilegeDetails> PrivilegeDetails { get; set; }
+        //public DbSet<PageMaster> PageMaster { get; set; }
+        //public DbSet<PrivilegeMaster> PrivilegeMaster { get; set; }
+        //public DbSet<PrivilegeDetails> PrivilegeDetails { get; set; }
         public DbSet<ModuleDetails> ModuleDetails { get; set; }
         public DbSet<PagePanel> PagePanel { get; set; }
         public DbSet<Category> Category { get; set; }
         public DbSet<EmployeeType> EmployeeType { get; set; }
+
         public DbSet<EmployeeInOutRecord> EmployeeInOutRecord { get; set; }
         //public DbSet<Earning> Earning { get; set; }
         //public DbSet<Deduction> Deduction { get; set; }
+
+
+        public DbSet<HRMSRoleIdentity> HRMSRoleIdentity { get; set; }
+        public DbSet<Permission> Permission { get; set; }
+        public DbSet<RolePermission> RolePermission { get; set; }
+        public DbSet<UserPermission> UserPermission { get; set; }
+
+       
+        public DbSet<Earning> Earning { get; set; }
+        public DbSet<Deduction> Deduction { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
