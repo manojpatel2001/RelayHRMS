@@ -44,5 +44,52 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
+        [HttpPost("UpdateEmpOutTime")]
+        public async Task<APIResponse> UpdateEmpOutTime([FromBody] EmployeeInOutRecord request)
+        {
+            try
+            {
+                if (request.Emp_Id == null || request.For_Date == null || request.Out_Time == null || string.IsNullOrWhiteSpace(request.UpdatedBy))
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id, For_Date, Out_Time, and UpdatedBy are required."
+                    };
+                }
+                bool isUpdated = await _unitOfWork.EmployeeInOut.UpdateEmployeeOutTimeAsync(
+                    request.Emp_Id.Value,
+                    request.For_Date.Value,
+                    request.Out_Time.Value,
+                    request.UpdatedBy
+                );
+
+                if (!isUpdated)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    ResponseMessage = "Out time updated successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                // Optional: Log ex
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
+                };
+            }
+        }
+
+
     }
 }
