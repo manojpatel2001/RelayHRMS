@@ -73,9 +73,7 @@ namespace HRMS_Core.DbContext
         public DbSet<RolePermission> RolePermission { get; set; }
         public DbSet<UserPermission> UserPermission { get; set; }
 
-        //public DbSet<Earning> Earning { get; set; }
-        //public DbSet<Deduction> Deduction { get; set; }
-
+       
         public DbSet<Earning> Earning { get; set; }
         public DbSet<Deduction> Deduction { get; set; }
 
