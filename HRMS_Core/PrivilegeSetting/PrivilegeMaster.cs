@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.PrivilegeSetting
 {
-    [Table("PrivilegeMaster")]
+    //[Table("PrivilegeMaster")]
     public class PrivilegeMaster:BaseModel
     {
         [Key]

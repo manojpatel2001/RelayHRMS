@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250625190435_UpdateStructure")]
+    partial class UpdateStructure
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2364,257 +2367,6 @@ namespace HRMS_Core.Migrations
                     b.ToTable("PagePanel");
                 });
 
-
-            modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PrivilegeDetails", b =>
-                {
-                    b.Property<int>("PrivilegeDetailsId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PrivilegeDetailsId"));
-
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("Is_Delete")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("Is_Edit")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("Is_Save")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("Is_View")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("PageId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PrivilegeMasterId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("PrivilegeDetailsId");
-
-                    b.HasIndex("CompanyId");
-
-                    b.HasIndex("PageId");
-
-                    b.HasIndex("PrivilegeMasterId");
-
-                    b.ToTable("PrivilegeDetails");
-                });
-
-            modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PrivilegeMaster", b =>
-                {
-                    b.Property<int>("PrivilegeMasterId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PrivilegeMasterId"));
-
-                    b.Property<string>("BranchId_Multi")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DepartmentId_Multi")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("PrivilegeName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PrivilegeType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("VerticalId_Multi")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("PrivilegeMasterId");
-
-                    b.HasIndex("CompanyId");
-
-                    b.ToTable("PrivilegeMaster");
-                });
-
-            modelBuilder.Entity("HRMS_Core.Salary.Deduction", b =>
-                {
-                    b.Property<int>("DeductionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DeductionId"));
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal?>("ESIC")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("EmployeeId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal?>("Insurance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("LWF")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("PF")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("PT")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("TDS")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("DeductionId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.ToTable("Deduction");
-                });
-
-            modelBuilder.Entity("HRMS_Core.Salary.Earning", b =>
-                {
-                    b.Property<int>("EarningId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EarningId"));
-
-                    b.Property<decimal?>("Basic")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("Conveyance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal?>("Deputation")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("EmployeeId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal?>("HRA")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("Medical")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("EarningId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.ToTable("Earning");
-                });
-
             modelBuilder.Entity("HRMS_Core.VM.CompanyInformation.vmGetAllCompanyDetails", b =>
                 {
                     b.Property<bool?>("AlphaNumericCode")
@@ -3569,72 +3321,6 @@ namespace HRMS_Core.Migrations
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
-
-            modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PageMaster", b =>
-                {
-                    b.HasOne("HRMS_Core.PrivilegeSetting.ModuleDetails", "ModuleDetails")
-                        .WithMany()
-                        .HasForeignKey("ModuleDetailsId");
-
-                    b.HasOne("HRMS_Core.PrivilegeSetting.PagePanel", "PagePanel")
-                        .WithMany()
-                        .HasForeignKey("PagePanelId");
-
-                    b.Navigation("ModuleDetails");
-
-                    b.Navigation("PagePanel");
-                });
-
-            modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PrivilegeDetails", b =>
-                {
-                    b.HasOne("HRMS_Core.ControlPanel.CompanyInformation.CompanyDetails", "CompanyDetails")
-                        .WithMany()
-                        .HasForeignKey("CompanyId");
-
-                    b.HasOne("HRMS_Core.PrivilegeSetting.PageMaster", "PageMaster")
-                        .WithMany()
-                        .HasForeignKey("PageId");
-
-                    b.HasOne("HRMS_Core.PrivilegeSetting.PrivilegeMaster", "PrivilegeMaster")
-                        .WithMany()
-                        .HasForeignKey("PrivilegeMasterId");
-
-                    b.Navigation("CompanyDetails");
-
-                    b.Navigation("PageMaster");
-
-                    b.Navigation("PrivilegeMaster");
-                });
-
-            modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PrivilegeMaster", b =>
-                {
-                    b.HasOne("HRMS_Core.ControlPanel.CompanyInformation.CompanyDetails", "CompanyDetails")
-                        .WithMany()
-                        .HasForeignKey("CompanyId");
-
-                    b.Navigation("CompanyDetails");
-                });
-
-            modelBuilder.Entity("HRMS_Core.Salary.Deduction", b =>
-                {
-                    b.HasOne("HRMS_Core.DbContext.HRMSUserIdentity", "HRMSUserIdentity")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId");
-
-                    b.Navigation("HRMSUserIdentity");
-                });
-
-            modelBuilder.Entity("HRMS_Core.Salary.Earning", b =>
-                {
-                    b.HasOne("HRMS_Core.DbContext.HRMSUserIdentity", "HRMSUserIdentity")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId");
-
-                    b.Navigation("HRMSUserIdentity");
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
-
                 {
                     b.HasOne("HRMS_Core.DbContext.HRMSRoleIdentity", null)
                         .WithMany()
@@ -3689,6 +3375,7 @@ namespace HRMS_Core.Migrations
                 {
                     b.Navigation("ShiftBreaks");
                 });
+#pragma warning restore 612, 618
         }
     }
 }

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.DbContext
 {
-    public class HRMSUserIdentity : IdentityUser
+    public class HRMSUserIdentity : IdentityUser<int>
     {
         
         public string? Initial { get; set; }
@@ -24,40 +24,23 @@ namespace HRMS_Core.DbContext
         public string? EmployeeCode { get; set; }
         public DateTime? DateOfJoining { get; set; }
         public int? BranchId { get; set; }
-        [ForeignKey(nameof(BranchId))]
-        [ValidateNever]
-        public Branch? Branch { get; set; }
-
+       
         public int? GradeId { get; set; }
-        [ForeignKey(nameof(GradeId))]
-        [ValidateNever]
-        public Grade? Grade { get; set; }
+        
         public int? ShiftMasterId { get; set; }
-        [ForeignKey(nameof(ShiftMasterId))]
-        [ValidateNever]
-        public ShiftMaster? ShiftMaster  { get; set; }
-
+        
         public string? CTC { get; set; }
         public int? DesignationId { get; set; }
-        [ForeignKey(nameof(DesignationId))]
-        [ValidateNever]
-        public Designation? Designation{ get; set; }
+        
         public decimal? GrossSalary { get; set; }
 
         public int? CategoryId { get; set; }
-        [ForeignKey(nameof(CategoryId))]
-        [ValidateNever]
-        public Category? Category { get; set; }
+        
         public decimal? BasicSalary { get; set; }
         public int? DepartmentId { get; set; }
-        [ForeignKey(nameof(DepartmentId))]
-        [ValidateNever]
-        public Department? Department { get; set; }
-
+        
         public int? EmployeeTypeId { get; set; }
-        [ForeignKey(nameof(EmployeeTypeId))]
-        [ValidateNever]
-        public EmployeeType? EmployeeType { get; set; }
+        
         public DateTime? DateOfBirth { get; set; }
         public int? UserPrivilege { get; set; }
 
@@ -68,11 +51,7 @@ namespace HRMS_Core.DbContext
         public string? EnrollNo { get; set; }
 
         public int? CompanyId { get; set; }
-        [ForeignKey(nameof(CompanyId))]
-        [ValidateNever]
-        public CompanyDetails? CompanyDetails { get; set; }
-
-
+        
         public bool? Overtime { get; set; } = false;
         public bool? Latemark { get; set; } = false;
         public bool? Earlymark { get; set; } = false;

@@ -11,7 +11,7 @@ namespace HRMS_Core.VM.EmployeeMaster
 {
     public class vmEmployeeData
     {
-        public string? Id { get; set; }
+        public int? Id { get; set; }
         public string? Initial { get; set; }
         public string? FirstName { get; set; }
         public string? MiddleName { get; set; }
