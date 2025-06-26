@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.Employee;
@@ -13,6 +14,7 @@ using HRMS_Infrastructure.Repository.CompanyStructure;
 using HRMS_Infrastructure.Repository.Employee;
 using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
+using HRMS_Infrastructure.Repository.ManagePermissions;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
 using HRMS_Infrastructure.Repository.Salary;
@@ -67,7 +69,8 @@ namespace HRMS_Infrastructure.Repository
             EmployeeInOut = new EmployeeInOutRepository(_dbContext);
 
             EarningRepository = new EarningRepository(_dbContext); 
-            DeductionRepository = new DeductionRepository(_dbContext); 
+            DeductionRepository = new DeductionRepository(_dbContext);
+            PermissionRepository = new PermissionRepository(_dbContext); 
 
         }
 
@@ -116,6 +119,7 @@ namespace HRMS_Infrastructure.Repository
         public IDeductionRepository DeductionRepository { get; set; }
 
         public IEmployeeInOut EmployeeInOut { get; set; }
+        public IPermissionRepository PermissionRepository { get; set; }
 
         public void Commit()
         {
