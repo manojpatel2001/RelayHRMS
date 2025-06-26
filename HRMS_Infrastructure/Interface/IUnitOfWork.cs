@@ -3,9 +3,11 @@ using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
+using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Salary;
+using HRMS_Infrastructure.Repository.ManagePermissions;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using System;
 using System.Collections.Generic;
@@ -54,6 +56,7 @@ namespace HRMS_Infrastructure.Interface
 
         IEarningRepository EarningRepository { get; }
         IDeductionRepository DeductionRepository { get; }
+        IPermissionRepository PermissionRepository { get; }
 
         void Commit();
         Task CommitAsync();

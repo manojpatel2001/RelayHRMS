@@ -1,0 +1,401 @@
+﻿@{
+	ViewData["Title"] = "Permission Master";
+	Layout = "~/Views/Shared/_mainLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+
+
+
+<div class="card">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row m-2">
+			<div class="col-6 ">
+				<h6 class="pt-2 mb-0">
+					Permission Master
+				</h6>
+			</div>
+
+			<div class="col-6 d-flex justify-content-end align-items-center">
+				<div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
+					@* 					<i class="fadeIn animated bx bx-refresh" id="refreshData" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Refresh Data"></i>
+ *@				
+                    <button id="addPermissionMaster"
+							type="button"
+							class="btn mr-1 rounded-1 "
+							style="background-color:#2395c6; color:white;">
+						Add
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card-body">
+
+		<div class="row">
+			<div class="col-md-12">
+				<div class="form-group" id="tagPermissionMasterGrid">
+					<div class="rowCount" id="rowCountPermissionMaster"></div>
+					<div id="gridContainerPermissionMaster">
+						<div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
+							<div class="spinner-border text-primary" role="status">
+								<span class="visually-hidden">Loading...</span>
+							</div>
+						</div>
+					</div>
+
+				</div>
+				<div id="spnNoRecord" style="display:none;">No Record Found!</div>
+
+			</div>
+		</div>
+	</div>
+
+</div>
+
+
+<div class="modal fade" id="addPermissionMasterModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h6 class="modal-title btn-heading-title" id="exampleModalLabel">
+					<span class="formType">Add</span> Permission Master
+				</h6>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font">
+
+
+				<div class="row">
+					<div class="col-md-6">
+						<div class="form-group mt-2 position-relative">
+							<input type="text" class="form-control floating-input" id="txtPermissionName" placeholder="Permission Name ">
+							<label class="floating-label" for="txtPermissionName">Permission Name*</label>
+							<span id="spnPermissionName" style="color:red; display:none;">Please Enter Permission Name</span>
+
+						</div>
+					</div>
+
+					<div class="col-md-6">
+						<div class="form-group mt-2 position-relative">
+							<input type="text" class="form-control floating-input" id="txtSlug" placeholder="Slug">
+							<label class="floating-label" for="txtSlug">Slug*</label>
+							<span id="spnSlug" style="color:red; display:none;">Please Enter Slug</span>
+
+						</div>
+					</div>
+
+				</div>
+				<div class="row">
+					<div class="col-md-6">
+						<div class="form-group mt-2 position-relative">
+							<input type="text" class="form-control floating-input" id="txtPermissionUrl" placeholder="Permission Url ">
+							<label class="floating-label" for="txtPermissionUrl">Permission Url</label>
+
+						</div>
+					</div>
+					<div class="col-md-6">
+						<div class="form-group mt-2 position-relative">
+							<input type="text" class="form-control floating-input" id="txtDescription" placeholder="Description">
+							<label class="floating-label" for="txtDescription">Description*</label>
+							<span id="spnDescription" style="color:red; display:none;">Please Enter Description</span>
+
+						</div>
+					</div>
+
+				</div>
+				<div class="row mb-2">
+					<div class="col-md-6">
+						<div class="form-group mt-2 position-relative">
+							<input type="text" class="form-control floating-input" id="txtGroupName" placeholder="Group Name">
+							<label class="floating-label" for="txtGroupName">Group Name*</label>
+							<span id="spnGroupName" style="color:red; display:none;">Please Enter Group Name</span>
+
+						</div>
+					</div>
+				</div>
+
+				<div class="modal-footer btn-heading-title">
+					<button type="button" class="btn btn-primary" id="btnAddPermissionMaster" style="background-color:#2395c6; color:white;">Save</button>
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+
+<script>
+
+	const savedCompany = localStorage.getItem('selectedCompany');
+	var companyDetails = JSON.parse(savedCompany);
+	const CompanyId=companyDetails.companyId;
+
+
+	let PermissionId=0;
+	$("#addPermissionMaster").click( () => {
+		resetPermissionFormFields();
+		 $(".formType").text("Add");
+			$("#btnAddPermissionMaster").text("Save");
+	  $("#addPermissionMasterModal").modal('show');
+
+	})
+
+	
+	 $(document).ready(function() {
+		LoadPermissionMasterTable();
+		
+		// Function to validate form fields
+		  function validatePermissionForm() {
+			let isValid = true;
+
+			const fields = [
+				{ id: '#txtPermissionName', error: '#spnPermissionName' },
+				{ id: '#txtSlug', error: '#spnSlug' },
+				{ id: '#txtGroupName', error: '#spnGroupName' },
+				{ id: '#txtDescription', error: '#spnDescription' }
+			];
+
+			fields.forEach(field => {
+				const value = $(field.id).val().trim();
+				if (value === '') {
+					$(field.error).show();
+					isValid = false;
+				} else {
+					$(field.error).hide();
+				}
+			});
+
+			return isValid;
+		  }
+		$('#btnAddPermissionMaster').click(function () {
+			$('#btnAddPermissionMaster').prop("disabled", true);
+
+			if (!validatePermissionForm()) {
+				$('#btnAddPermissionMaster').prop("disabled", false);
+				return;
+			}
+
+			const getValueOrNull = id => {
+				const val = $(id).val().trim();
+				return val === '' ? null : val;
+			};
+
+			const permissionMaster = {
+				PermissionId: PermissionId || 0,
+				PermissionName: getValueOrNull('#txtPermissionName'),
+				Slug: getValueOrNull('#txtSlug'),
+				Description: getValueOrNull('#txtDescription'),
+				PermissionUrl: getValueOrNull('#txtPermissionUrl'),
+				GroupName: getValueOrNull('#txtGroupName'),
+				CreatedBy: PermissionId === 0 ? null : null,
+				UpdatedBy: PermissionId !== 0 ? null : null
+			};
+
+			const apiConfig = {
+				url: PermissionId === 0
+					? '@baseUrl/PermissionAPI/CreatePermission'
+					: '@baseUrl/PermissionAPI/UpdatePermission',
+				method: PermissionId === 0 ? 'POST' : 'PUT'
+			};
+
+			$.ajax({
+				url: apiConfig.url,
+				method: apiConfig.method,
+				contentType: 'application/json',
+				data: JSON.stringify(permissionMaster),
+				success: function (response) {
+					if (response.isSuccess) {
+						round_success_noti(response.responseMessage);
+						LoadPermissionMasterTable();
+						$('#addPermissionMasterModal').modal('hide');
+					} else {
+						round_error_noti(response.responseMessage);
+					}
+					$('#btnAddPermissionMaster').prop("disabled", false);
+				},
+				error: function (error) {
+					console.error('Error saving Permission Master:', error);
+					round_error_noti('An error occurred while saving the Permission Master.');
+					$('#btnAddPermissionMaster').prop("disabled", false);
+				}
+			});
+		});
+
+
+	 });
+
+    function LoadPermissionMasterTable() {
+		$.ajax({
+			type: "GET",
+			url: '@baseUrl/PermissionAPI/GetAllPermissions',
+			success: function (data) {
+				if (data.isSuccess) {
+					$("#spnNoRecord").hide();
+					$("#tagPermissionMasterGrid").show();
+
+					$("#gridContainerPermissionMaster").dxDataGrid({
+						dataSource: data.data,
+						rowHeight: 40,
+						width: '100%',
+						columns: [
+							{ dataField: 'permissionName', caption: 'Permission Name',  width: 200 },
+							{ dataField: 'slug', caption: 'Slug',  width: 200 },
+							{ dataField: 'description', caption: 'Description',  width: 400 },
+							{ dataField: 'permissionUrl', caption: 'URL',  width: 200 },
+							{ dataField: 'groupName', caption: 'Group Name', width: 200 },
+							{
+									dataField: '',
+									caption: '',
+									alignment: 'center',
+									width: '50px',
+									type: 'buttons',
+									fixed: true,
+									fixedPosition: 'right',
+									cellTemplate: function(container, options) {
+										var buttonElement = $('<div class="d-flex order-actions">' +
+											'<a href="javascript:;" class="edit-action" title="Edit Employee">' +
+											'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+											'<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+											'</svg>' +
+											'</a>' +
+											'</div>')
+											.on('dxclick', function() {
+												editPermissionMaster(options.data);
+											}).appendTo(container);
+									}
+								},
+								{
+									dataField: '',
+									caption: '',
+									alignment: 'center',
+									width: '50px',
+									type: 'buttons',
+									fixed: true,
+									fixedPosition: 'right',
+									cellTemplate: function(container, options) {
+										var buttonElement = $('<div class="d-flex order-actions">' +
+											'<a href="javascript:;" class="delete-action" title="Delete Employee">' +
+											'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+											'<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+											'</svg>' +
+											'</a>' +
+											'</div>')
+											.on('dxclick', function() {
+												deletePermissionMaster(options.data);
+											}).appendTo(container);
+									}
+								}
+							
+						],
+						columnsAutoWidth: false,
+						wordWrapEnabled: false,
+						showBorders: true,
+						rowAlternationEnabled: false,
+						grouping: { autoExpandAll: true },
+						paging: { pageSize: 10 },
+						pager: {
+							showPageSizeSelector: true,
+							allowedPageSizes: [10, 25, 50, 100]
+						},
+						headerFilter: { visible: true },
+						filterRow: { visible: true, applyFilter: "auto" },
+						allowColumnResizing: true,
+						groupPanel: { visible: true },
+						searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+						columnFixing: { enabled: true },
+						scrolling: {
+							mode: "standard",
+							useNative: false,
+							scrollByContent: true,
+							scrollByThumb: true
+						},
+						onContentReady: function (e) {
+							$('#rowCountPageMaster').html('Total Records: ' + e.component.totalCount());
+						}
+					});
+				} else {
+					$("#spnNoRecord").show();
+					$("#tagPermissionMasterGrid").hide();
+
+				}
+			},
+			error: function (xhr, status, error) {
+				console.error("AJAX Error:", status, error);
+			}
+		});
+	}
+
+    function editPermissionMaster(permission) {
+		resetPermissionFormFields(); // Clear any previous values
+
+		// Update UI
+		$(".formType").text("Update");
+		$("#btnAddPermissionMaster").text("Update");
+
+		// Set global ID if needed
+		PermissionId = permission.permissionId;
+
+		// Populate form fields
+		$('#txtPermissionName').val(permission.permissionName);
+		$('#txtSlug').val(permission.slug);
+		$('#txtPermissionUrl').val(permission.permissionUrl);
+		$('#txtDescription').val(permission.description);
+		$('#txtGroupName').val(permission.groupName);
+
+		// Show the modal
+		$('#addPermissionMasterModal').modal('show');
+	}
+	function resetPermissionFormFields() {
+		$('#btnAddPermissionMaster').prop("disabled", false);
+
+		// Reset the form inputs
+		PermissionId = 0;
+		$('#txtPermissionName').val('');
+		$('#txtSlug').val('');
+		$('#txtPermissionUrl').val('');
+		$('#txtDescription').val('');
+		$('#txtGroupName').val('');
+
+		// Hide validation messages
+		$('#spnPermissionName').hide();
+		$('#spnSlug').hide();
+		$('#spnDescription').hide();
+		$('#spnGroupName').hide();
+
+		// Reset UI labels
+		$(".formType").text("Add");
+		$("#btnAddPermissionMaster").text("Save");
+	}
+
+	  function  deletePermissionMaster(data)
+	  {
+		if (!confirm("Are you sure you want to delete this permission?")) {
+				return; // Cancel the delete operation
+	    }
+
+			var deleteObj = {
+				   id:data.permissionId,
+				deletedBy: null 
+			};
+			$.ajax({
+			url: '@baseUrl/PermissionAPI/DeletePermission',
+				type: 'DELETE',
+				contentType: 'application/json',
+				data: JSON.stringify(deleteObj),
+				success: function (response) {
+					if (response.isSuccess) {
+						round_success_noti(response.responseMessage);
+					   LoadPermissionMasterTable();
+					} else {
+						round_error_noti(response.responseMessage);
+					}
+
+				},
+				error: function (error) {
+					console.log('Error deleting permission!');
+				}
+			});
+	  }
+</script>
