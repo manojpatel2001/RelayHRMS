@@ -67,6 +67,7 @@ namespace HRMS_Core.DbContext
         public DbSet<PagePanel> PagePanel { get; set; }
         public DbSet<Category> Category { get; set; }
         public DbSet<EmployeeType> EmployeeType { get; set; }
+
         public DbSet<HRMSRoleIdentity> HRMSRoleIdentity { get; set; }
         public DbSet<Permission> Permission { get; set; }
         public DbSet<RolePermission> RolePermission { get; set; }
@@ -74,6 +75,9 @@ namespace HRMS_Core.DbContext
 
         //public DbSet<Earning> Earning { get; set; }
         //public DbSet<Deduction> Deduction { get; set; }
+
+        public DbSet<Earning> Earning { get; set; }
+        public DbSet<Deduction> Deduction { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
