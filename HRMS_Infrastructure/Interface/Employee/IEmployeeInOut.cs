@@ -12,5 +12,6 @@ namespace HRMS_Infrastructure.Interface.Employee
     {
 
         Task<VMCommonResult> CreateEmpInOut(EmployeeInOutRecord Record);
+        Task<bool> UpdateEmployeeOutTimeAsync(int empId, DateTime forDate, DateTime outTime, string updatedBy);
     }
 }

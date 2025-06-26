@@ -79,6 +79,36 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return new VMCommonResult { Id = null };
             }
         }
+
+        public async Task<bool> UpdateEmployeeOutTimeAsync(int empId, DateTime forDate, DateTime outTime, string updatedBy)
+        {
+            try
+            {
+                string sql = @"
+            EXEC SPUpdateOutTimeEmployee 
+                @Emp_Id = {0}, 
+                @For_Date = {1}, 
+                @Out_Time = {2}, 
+                @UpdatedBy = {3}";
+
+                int rowsAffected = await _db.Database.ExecuteSqlRawAsync(sql, empId, forDate, outTime, updatedBy);
+                if (rowsAffected <= 0)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Optional: log ex.Message
+                return false;
+            }
+        }
+
+
+
+
     }
 }
 
