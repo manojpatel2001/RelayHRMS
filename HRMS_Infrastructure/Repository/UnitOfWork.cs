@@ -63,8 +63,12 @@ namespace HRMS_Infrastructure.Repository
             EmployeeTypeRepository = new EmployeeTypeRepository(_dbContext);
             PrivilegeMasterRepository = new PrivilegeMasterRepository(_dbContext);
             PrivilegeDetailsRepository = new PrivilegeDetailsRepository(_dbContext);
+
+            EmployeeInOut = new EmployeeInOutRepository(_dbContext);
+
             EarningRepository = new EarningRepository(_dbContext); 
             DeductionRepository = new DeductionRepository(_dbContext); 
+
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -110,6 +114,8 @@ namespace HRMS_Infrastructure.Repository
         public IEarningRepository EarningRepository { get; set; }
 
         public IDeductionRepository DeductionRepository { get; set; }
+
+        public IEmployeeInOut EmployeeInOut { get; set; }
 
         public void Commit()
         {
