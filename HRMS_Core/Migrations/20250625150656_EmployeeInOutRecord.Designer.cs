@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250625150656_EmployeeInOutRecord")]
+    partial class EmployeeInOutRecord
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -621,11 +624,11 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("Duration")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("Emp_Id")
-                        .HasColumnType("int");
+                    b.Property<string>("Emp_Id")
+                        .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime?>("For_Date")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly?>("For_Date")
+                        .HasColumnType("date");
 
                     b.Property<string>("Half_Full_day")
                         .HasColumnType("nvarchar(max)");
@@ -675,11 +678,11 @@ namespace HRMS_Core.Migrations
                     b.Property<DateTime?>("Out_Admin_Time")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("Out_Date_Time")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly?>("Out_Date_Time")
+                        .HasColumnType("date");
 
-                    b.Property<DateTime?>("Out_Time")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly?>("Out_Time")
+                        .HasColumnType("date");
 
                     b.Property<string>("Reason")
                         .HasColumnType("nvarchar(max)");
@@ -706,6 +709,10 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Emp_IO_Id");
+
+                    b.HasIndex("Com_Id");
+
+                    b.HasIndex("Emp_Id");
 
                     b.ToTable("EmployeeInOutRecord");
                 });
@@ -3457,6 +3464,21 @@ namespace HRMS_Core.Migrations
                     b.Navigation("Grade");
 
                     b.Navigation("ShiftMaster");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Employee.EmployeeInOutRecord", b =>
+                {
+                    b.HasOne("HRMS_Core.ControlPanel.CompanyInformation.CompanyDetails", "Company")
+                        .WithMany()
+                        .HasForeignKey("Com_Id");
+
+                    b.HasOne("HRMS_Core.DbContext.HRMSUserIdentity", "Employee")
+                        .WithMany()
+                        .HasForeignKey("Emp_Id");
+
+                    b.Navigation("Company");
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.EmployeeContact", b =>

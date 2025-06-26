@@ -48,6 +48,7 @@ namespace HRMS_Infrastructure.Interface
         IEmployeeTypeRepository EmployeeTypeRepository { get; }
         IPrivilegeMasterRepository PrivilegeMasterRepository { get; }
         IPrivilegeDetailsRepository PrivilegeDetailsRepository { get; }
+        IEmployeeInOut EmployeeInOut { get; }
         void Commit();
         Task CommitAsync();
     }
