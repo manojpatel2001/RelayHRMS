@@ -8,7 +8,7 @@ namespace HRMS_Core.VM.EmployeeMaster
 {
     public class vmGetAllEmployee
     {
-        public string? Id { get; set; }
+        public int? Id { get; set; }
         public string? UserName { get; set; }
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
