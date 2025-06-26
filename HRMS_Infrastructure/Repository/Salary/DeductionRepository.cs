@@ -13,12 +13,13 @@ namespace HRMS_Infrastructure.Repository.Salary
 {
     public class DeductionRepository : Repository<Deduction>, IDeductionRepository
     {
-        private readonly HRMSDbContext _db;
+        private HRMSDbContext _db;
 
         public DeductionRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
         }
+
         public async Task<Deduction> SoftDelete(DeleteRecordVM DeleteRecord)
         {
             var deduction = await _db.Deduction.FirstOrDefaultAsync(asd => asd.DeductionId == DeleteRecord.Id);

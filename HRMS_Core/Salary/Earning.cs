@@ -16,11 +16,8 @@ namespace HRMS_Core.Salary
     {
         [Key]
         public int EarningId { get; set; }
-        public string? EmployeeId { get; set; }
-        [ForeignKey(nameof(EmployeeId))]
-        [ValidateNever]
-        public HRMSUserIdentity? HRMSUserIdentity { get; set; }
- 
+        public int? EmployeeId { get; set; }
+        
         public decimal? Basic { get; set; }
         public decimal? HRA { get; set; }
         public decimal? Conveyance { get; set; }
