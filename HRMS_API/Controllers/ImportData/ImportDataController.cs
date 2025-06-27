@@ -2,6 +2,7 @@
 using HRMS_Core.DbContext;
 using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.Master.JobMaster;
+using HRMS_Core.Salary;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,58 @@ public class ImportDataController : ControllerBase
         _unitOfWork = unitOfWork;
         _env = env;
     }
+
+
+    private bool ValidateTemplateColumns(DataTable dt, string type, out string error)
+    {
+        error = "";
+        List<string> expectedHeaders = new();
+
+        switch (type)
+        {
+            case "Branch":
+                expectedHeaders = new List<string> { "Branch_Code", "Branch_Name", "Branch_City", "Branch_Address", "Comp_Name", "State_Name", "Country_Name" };
+                break;
+            case "Department":
+                expectedHeaders = new List<string> { "DepartmentName", };
+                break;
+            case "Designation":
+                expectedHeaders = new List<string> { "DesignationName", "DesignationCode" };
+                break;
+            case "Bank":
+                expectedHeaders = new List<string> { "BankName", "BankCode", "BranchName", "AccountNo", "Address", "City", "BankBSRCode", "IsDefault" };
+                break;
+            case "City":
+                expectedHeaders = new List<string> { "City_Name", "State_Name", "Country", "Category", "Entry_Type" };
+                break;
+            case "Holiday Master":
+                expectedHeaders = new List<string> { "Holiday_Name", "Branch_Name", "From_Date", "To_Date", "Holiday_Category", "Repeat_Annually", "Half_Day", "Present_Compulsory" , "Optional_Holiday", "Approval_Max_Limit", "Unpaid_Holiday" };
+                break;
+            case "MonthlyDed":
+                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year", "HRA", "Comments", "TDS", "comments", };
+                break;
+            case "MonthlyEar":
+                expectedHeaders = new List<string> { "Alpha_Emp_code", "month", "Year", "HRA", "Comments", "TDS", "Comments", };
+                break;
+            default:
+                error = "Invalid import type.";
+                return false;
+        }
+
+        for (int i = 0; i < expectedHeaders.Count; i++)
+        {
+            if (dt.Columns.Count <= i || dt.Columns[i].ColumnName.Trim() != expectedHeaders[i])
+            {
+                error = $"Invalid template. Expected column '{expectedHeaders[i]}' at position {i + 1}.";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+
     [HttpPost("Upload")]
     public async Task<APIResponse> Upload([FromForm] ImportRequest request)
     {
@@ -39,7 +92,17 @@ public class ImportDataController : ControllerBase
             DataTable dt = ReadExcel(filePath, request.SheetName, request.RowFrom, request.RowTo);
             if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
             if (dt == null || dt.Rows.Count == 0)
-                return new APIResponse { isSuccess = false, ResponseMessage = "No data found." };
+                return new APIResponse { isSuccess = false, ResponseMessage = "No data found." }; 
+
+            // ✅ Validate template
+            if (!ValidateTemplateColumns(dt, request.Type, out string headerError))
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = headerError
+                };
+            }
 
             var errorRows = new List<object>();
             int insertedCount = 0;
@@ -58,8 +121,13 @@ public class ImportDataController : ControllerBase
 
                     string code = row[0]?.ToString().Trim();
                     string name = row[1]?.ToString().Trim();
+                    string Branchcity = row[2]?.ToString().Trim();
+                    string state = row[5]?.ToString().Trim();
+                    string countryName = row[6]?.ToString().Trim();
 
-                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
+                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name)&& string.IsNullOrWhiteSpace(Branchcity) 
+                        && string.IsNullOrWhiteSpace(state) && string.IsNullOrWhiteSpace(countryName))
+
                     {
                         blankCount++;
                         errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
@@ -78,7 +146,7 @@ public class ImportDataController : ControllerBase
                     {
                         BranchCode = code,
                         BranchName = name,
-                        CityName = row[2]?.ToString(),
+                        CityName = Branchcity,
                         Address = row[3]?.ToString(),
                         CompanyName = row[4]?.ToString(),
                         State = row[5]?.ToString(),
@@ -93,10 +161,9 @@ public class ImportDataController : ControllerBase
                 else if (request.Type == "Department")
 
                 {
-                    string name = row[0]?.ToString().Trim();
-                    string code = row[1]?.ToString().Trim();
+                    string name = row[0]?.ToString().Trim();      
 
-                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
+                    if ( string.IsNullOrWhiteSpace(name))
                     {
                         blankCount++;
                         errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
@@ -114,9 +181,7 @@ public class ImportDataController : ControllerBase
                     await _unitOfWork.DepartmentRepository.AddAsync(new Department
                     {
                         DepartmentName = name,
-                        Code = code,
-                        SortingNo = int.TryParse(row[2]?.ToString(), out int sorting) ? sorting : 0,
-                        OJTApplicable = row[3]?.ToString()?.ToLower() == "true" || row[3]?.ToString() == "1",
+                        SortingNo = int.TryParse(row[1]?.ToString(), out int sorting) ? sorting : 0,
                         IsEnabled = true,
                         IsDeleted = false
                     });
@@ -129,8 +194,8 @@ public class ImportDataController : ControllerBase
 
                 {
 
-                    string code = row[0]?.ToString().Trim();
-                    string name = row[1]?.ToString().Trim();
+                    string name = row[0]?.ToString().Trim();
+                    string code = row[1]?.ToString().Trim();
 
                     if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
                     {
@@ -148,8 +213,7 @@ public class ImportDataController : ControllerBase
 
                     await _unitOfWork.DesignationRepository.AddAsync(new Designation
                     {
-                        DesignationName = name,
-                        DesignationCode = code,
+                        DesignationName = name,                 
                         SortingNo = int.TryParse(row[2]?.ToString(), out int sortNo) ? sortNo : 0,
                         IsEnabled = true,
                         IsDeleted = false
@@ -160,10 +224,13 @@ public class ImportDataController : ControllerBase
 
                 else if (request.Type == "Bank")
                 {
-                    string code = row[0]?.ToString().Trim();
-                    string name = row[1]?.ToString().Trim();
+                    string Bankname = row[0]?.ToString().Trim();
+                    string code = row[1]?.ToString().Trim();
+                    string BranchName = row[2]?.ToString().Trim();
+                    string Accountno = row[3]?.ToString().Trim();
 
-                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
+                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(Bankname)
+                        && string.IsNullOrWhiteSpace(BranchName) && string.IsNullOrWhiteSpace(Accountno))
                     {
                         blankCount++;
                         errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
@@ -179,10 +246,10 @@ public class ImportDataController : ControllerBase
 
                     await _unitOfWork.BankMasterRepository.AddAsync(new BankMaster
                     {
-                        BankName = name,
+                        BankName = Bankname,
                         BankCode = code,
-                        BranchName = row[2]?.ToString(),
-                        AccountNo = row[3]?.ToString(),
+                        BranchName = BranchName,
+                        AccountNo = Accountno,
                         Address = row[4]?.ToString(),
                         City = row[5]?.ToString(),
                         BankBSRCode = row[6]?.ToString(),
@@ -196,14 +263,15 @@ public class ImportDataController : ControllerBase
 
                 else if (request.Type == "City")
                 {
-                    string name = row[0]?.ToString().Trim();
-              
-                    if (string.IsNullOrWhiteSpace(name) )
+                    string name = row[0]?.ToString().Trim(); // City name
+
+                    if (string.IsNullOrWhiteSpace(name))
                     {
                         blankCount++;
                         errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
                         continue;
                     }
+
                     var exists = await _unitOfWork.CityRepository.GetAsync(x => x.CityName == name && x.IsEnabled == true && x.IsDeleted != true);
                     if (exists != null)
                     {
@@ -212,10 +280,20 @@ public class ImportDataController : ControllerBase
                         continue;
                     }
 
+                    // ✅ Convert StateName → StateId
+                    string stateName = row[1]?.ToString()?.Trim();
+                    var state = await _unitOfWork.StateRepository.GetAsync(x => x.StateName.ToLower() == stateName.ToLower() && x.IsEnabled == true && x.IsDeleted != true);
+
+                    if (state == null)
+                    {
+                        errorRows.Add(CreateErrorRow(rowIndex, "Invalid State", stateName, "State not found in database. Please check state name.", request.Type));
+                        continue;
+                    }
+
                     await _unitOfWork.CityRepository.AddAsync(new City
                     {
                         CityName = name,
-                        StateId = int.TryParse(row[1]?.ToString(), out int stateId) ? stateId : (int?)null,
+                        StateId = state.StateId,
                         Country = row[2]?.ToString(),
                         CityCategoryId = int.TryParse(row[3]?.ToString(), out int catId) ? catId : (int?)null,
                         Remarks = row[4]?.ToString(),
@@ -226,9 +304,12 @@ public class ImportDataController : ControllerBase
                     insertedCount++;
                 }
 
+
+
                 else if (request.Type == "Holiday Master")
                 {
                     string name = row[0]?.ToString().Trim();
+                    string FromDate = row[0]?.ToString().Trim();
           
                     if (string.IsNullOrWhiteSpace(name) )
                     {
@@ -247,17 +328,13 @@ public class ImportDataController : ControllerBase
                     await _unitOfWork.HolidayMasterRepository.AddAsync(new HolidayMaster
                     {
                         HolidayName = name,
-                        State = row[1]?.ToString(),
                         BranchId = int.TryParse(row[2]?.ToString(), out int branchId) ? branchId : 0,
-                        MultipleHoliday = bool.TryParse(row[3]?.ToString(), out bool multiple) ? multiple : false,
                         FromDate = DateTime.TryParse(row[4]?.ToString(), out DateTime fromDate) ? fromDate : DateTime.MinValue,
                         ToDate = DateTime.TryParse(row[5]?.ToString(), out DateTime toDate) ? toDate : DateTime.MinValue,
-                        MessageText = row[6]?.ToString(),
                         Holidaycategory = row[7]?.ToString(),
                         RepeatAnnually = bool.TryParse(row[8]?.ToString(), out bool repeat) ? repeat : false,
                         HalfDay = bool.TryParse(row[9]?.ToString(), out bool halfDay) ? halfDay : false,
                         PresentCompulsory = bool.TryParse(row[10]?.ToString(), out bool compulsory) ? compulsory : false,
-                        SMS = bool.TryParse(row[11]?.ToString(), out bool sms) ? sms : false,
                         OptionalHoliday = bool.TryParse(row[12]?.ToString(), out bool optional) ? optional : false,
                         ApprovalMaxLimit = row[13]?.ToString() ?? "0",
                         IsEnabled = true,
@@ -288,6 +365,133 @@ public class ImportDataController : ControllerBase
     }
 
 
+    [HttpPost("UploadSalary")]
+    public async Task<APIResponse> UploadSalary([FromForm] ImportRequest request)
+    {
+        try
+        {
+            if (request.File == null || request.RowFrom <= 0 || request.RowTo < request.RowFrom)
+                return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input" };
+
+            string uploadsFolder = Path.Combine(_env.WebRootPath, "Uploads");
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+            string filePath = Path.Combine(uploadsFolder, request.File.FileName);
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                request.File.CopyTo(fileStream);
+            }
+
+            DataTable dt = ReadExcel(filePath, request.SheetName, request.RowFrom, request.RowTo);
+            if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
+            if (dt == null || dt.Rows.Count == 0)
+                return new APIResponse { isSuccess = false, ResponseMessage = "No data found." };
+
+            var errorRows = new List<object>();
+            int insertedCount = 0;
+            int duplicateCount = 0;
+            int blankCount = 0;
+
+            foreach (DataRow row in dt.Rows)
+            {
+                int rowIndex = dt.Rows.IndexOf(row) + request.RowFrom;
+
+                // Common vars
+             
+                 if (request.Type == "MonthlyEar")
+
+                {
+                    string name = row[0]?.ToString().Trim();
+                    string code = row[1]?.ToString().Trim();
+
+                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
+                    {
+                        blankCount++;
+                        errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
+                        continue;
+                    }
+
+                    var exists = await _unitOfWork.DepartmentRepository.GetAsync(x => x.DepartmentName == name && x.IsEnabled == true && x.IsDeleted != true);
+                    if (exists != null)
+                    {
+                        duplicateCount++;
+                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Monthly Earining", name, "Enter unique Monthly Earining name.", "Salary Master"));
+                        continue;
+                    }
+
+                    await _unitOfWork.EarningRepository.AddAsync(new Earning
+                    {
+                        EmployeeId = code,                   
+                        Basic = decimal.TryParse(row[2]?.ToString(), out decimal basic) ? basic : (decimal?)null,
+                        HRA = decimal.TryParse(row[3]?.ToString(), out decimal hra) ? hra : (decimal?)null,
+                        Conveyance = decimal.TryParse(row[4]?.ToString(), out decimal conveyance) ? conveyance : (decimal?)null,
+                        Medical = decimal.TryParse(row[5]?.ToString(), out decimal medical) ? medical : (decimal?)null,
+                        Deputation = decimal.TryParse(row[6]?.ToString(), out decimal deputation) ? deputation : (decimal?)null,
+                        IsEnabled = true,
+                        IsDeleted = false
+
+                    });
+
+                    insertedCount++;
+                }
+
+                else if (request.Type == "MonthlyDed")
+
+                {
+
+                    string code = row[0]?.ToString().Trim();
+                    string name = row[1]?.ToString().Trim();
+
+                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
+                    {
+                        blankCount++;
+                        errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
+                        continue;
+                    }
+                    var exists = await _unitOfWork.DesignationRepository.GetAsync(x => x.DesignationCode == code && x.IsEnabled == true && x.IsDeleted != true);
+                    if (exists != null)
+                    {
+                        duplicateCount++;
+                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Monthly Deduction", code, "Enter unique Deduction code.", "Salary Master"));
+                        continue;
+                    }
+
+                    await _unitOfWork.DeductionRepository.AddAsync(new Deduction
+                    {
+                        EmployeeId = code,
+                        PF = decimal.TryParse(row[2]?.ToString(), out decimal pf) ? pf : (decimal?)null,
+                        ESIC = decimal.TryParse(row[3]?.ToString(), out decimal esic) ? esic : (decimal?)null,
+                        PT = decimal.TryParse(row[4]?.ToString(), out decimal pt) ? pt : (decimal?)null,
+                        Insurance = decimal.TryParse(row[5]?.ToString(), out decimal insurance) ? insurance : (decimal?)null,
+                        LWF = decimal.TryParse(row[6]?.ToString(), out decimal lwf) ? lwf : (decimal?)null,
+                        TDS = decimal.TryParse(row[7]?.ToString(), out decimal tds) ? tds : (decimal?)null,
+                        IsEnabled = true,
+                        IsDeleted = false
+                    });
+
+                    insertedCount++;
+                }
+       
+            }
+
+            await _unitOfWork.CommitAsync();
+
+            string msg = $"{insertedCount} row(s) inserted.";
+            if (duplicateCount > 0 || blankCount > 0)
+                msg += $" {duplicateCount} duplicate(s), {blankCount} blank row(s) skipped.";
+
+            return new APIResponse
+            {
+                isSuccess = insertedCount > 0,
+                ResponseMessage = msg.Trim(),
+                Data = errorRows.Any() ? errorRows : null
+            };
+        }
+        catch (Exception ex)
+        {
+            return new APIResponse { isSuccess = false, ResponseMessage = ex.Message };
+        }
+    }
+
     private DataTable ReadExcel(string filePath, string sheetName, int rowFrom, int rowTo)
     {
         string ext = Path.GetExtension(filePath);
@@ -310,13 +514,21 @@ public class ImportDataController : ControllerBase
             DataTable fullTable = new DataTable();
             adapter.Fill(fullTable);
 
-            // Filter only required rows
-            var filtered = fullTable.AsEnumerable()
-                                    .Skip(rowFrom - 2) // Skip headers and start from rowFrom
-                                    .Take(rowTo - rowFrom + 1);
-            return filtered.CopyToDataTable();
+            if (fullTable.Rows.Count == 0)
+                return fullTable;
+
+            var filteredRows = fullTable.AsEnumerable()
+                                        .Skip(rowFrom - 2) // rowFrom starts at 2nd data row
+                                        .Take(rowTo - rowFrom + 1);
+
+            DataTable resultTable = fullTable.Clone(); // Copy headers
+            foreach (var row in filteredRows)
+                resultTable.ImportRow(row);
+
+            return resultTable;
         }
     }
+
 
     private object CreateErrorRow( int rowIndex, string error, string actualValue, string suggestion, string importType)
     {

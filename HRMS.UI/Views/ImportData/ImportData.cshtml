@@ -211,10 +211,12 @@
     <div class="tab-content" id="salary">
         <div class="form-section">
             <b>Import in Salary</b><br />
-            <input type="radio" name="salary" value="Attendance" id="salaryAttendance">
+            <input type="radio" name="salary" value="Attendance" id="Attendance">
             <label for="salaryAttendance">Attendance Import</label><br />
-            <input type="radio" name="salary" value="MonthlyED" id="salaryMonthlyED">
-            <label for="salaryMonthlyED">Monthly Earn/Ded</label>
+            <input type="radio" name="salary" value="MonthlyEar" id="MonthlyEar">
+            <label for="salaryMonthlyEarning">Monthly Earning</label> <br />
+            <input type="radio" name="salary" value="MonthlyDed" id="MonthlyDed">
+            <label for="salaryMonthlyDeduction">Monthly Deduction</label>
         </div>
 
         <div class="form-section">
@@ -248,50 +250,52 @@
         <div class="header">Import Error Record(s)</div>
         <div id="errorGrid" style="max-height: 400px;"></div>
     </div>
+
     <script>
         var errorDataGrid;
 
         $(document).ready(function () {
-            // Tab switching
-            $('.tab-button').click(function () {
-                var tab = $(this).data('tab');
-                $('.tab-button').removeClass('active');
-                $(this).addClass('active');
-                $('.tab-content').removeClass('active');
-                $('#' + tab).addClass('active');
-            });
+          initializeSampleDownloadLinks();
 
-            // Clear button
-            $('#btnClear').click(function () {
-                $('input[name="master"]').prop('checked', false);
-                $('#masterFileInput').val('');
-                $('#masterSheetName').val('');
-                $('#masterRowFrom').val('');
-                $('#masterRowTo').val('');
-                if (errorDataGrid) {
-                   errorDataGrid.option("dataSource", []); // Clear the data
-                  $("#errorGridContainer").hide();        // Hide the grid container
-                 }arguments
+          // Tab switching
+          $('.tab-button').click(function () {
+            var tab = $(this).data('tab');
+            $('.tab-button').removeClass('active');
+            $(this).addClass('active');
+            $('.tab-content').removeClass('active');
+            $('#' + tab).addClass('active');
+          });
 
-            });
+          // Clear button
+          $('#btnClear').click(function () {
+            $('input[name="master"]').prop('checked', false);
+            $('#masterFileInput').val('');
+            $('#masterSheetName').val('');
+            $('#masterRowFrom').val('');
+            $('#masterRowTo').val('');
 
-            // Import button
+            if (errorDataGrid) {
+              errorDataGrid.option("dataSource", []);      // Clear the data
+              $("#errorGridContainer").hide();            // Hide the grid container
+            }
+          });
+
+          // Import button
           $('#btnImport').click(function () {
             debugger;
-
-            var activeTab = $('.tab-content.active').attr('id'); // master, employee, leave, salary
+            var activeTab   = $('.tab-content.active').attr('id');       // master, employee, leave, salary
             var selectedType = $('input[name="' + activeTab + '"]:checked').val();
-            var file = $('#' + activeTab + 'FileInput')[0]?.files[0];
-            var sheetName = $('#' + activeTab + 'SheetName').val();
-            var rowFrom = $('#' + activeTab + 'RowFrom').val();
-            var rowTo = $('#' + activeTab + 'RowTo').val();
+            var file         = $('#' + activeTab + 'FileInput')[0]?.files[0];
+            var sheetName    = $('#' + activeTab + 'SheetName').val();
+            var rowFrom      = $('#' + activeTab + 'RowFrom').val();
+            var rowTo        = $('#' + activeTab + 'RowTo').val();
 
             // Basic Validation
             if (!selectedType) return Swal.fire("Warning", "Please select a type", "warning");
-            if (!file) return Swal.fire("Warning", "Please upload a file", "warning");
-            if (!sheetName) return Swal.fire("Warning", "Please enter sheet name", "warning");
-            if (!rowFrom) return Swal.fire("Warning", "Please enter 'Row From'", "warning");
-            if (!rowTo) return Swal.fire("Warning", "Please enter 'Row To'", "warning");
+            if (!file)         return Swal.fire("Warning", "Please upload a file", "warning");
+            if (!sheetName)    return Swal.fire("Warning", "Please enter sheet name", "warning");
+            if (!rowFrom)      return Swal.fire("Warning", "Please enter 'Row From'", "warning");
+            if (!rowTo)        return Swal.fire("Warning", "Please enter 'Row To'", "warning");
 
             // Prepare FormData
             var formData = new FormData();
@@ -301,108 +305,122 @@
             formData.append("RowFrom", rowFrom);
             formData.append("RowTo", rowTo);
 
+            // Set API URL dynamically
+            var apiUrl = '';
+            if      (activeTab === 'salary') apiUrl = '@baseDomainUrl/api/ImportData/UpdateSalary';
+            else if (activeTab === 'master') apiUrl = '@baseDomainUrl/api/ImportData/Upload';
+
+            // AJAX Call
             $.ajax({
-                url: '@baseDomainUrl/api/ImportData/Upload',
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function (res) {
-                    if (res.isSuccess) {
-                        if (res.data && res.data.length > 0) {
-                            Swal.fire("Partial Success", res.responseMessage, "warning");
-                            showErrorGrid(res.data);
-                        } else {
-                            Swal.fire("Success", res.responseMessage, "success");
-                        }
-                    } else {
-                        if (res.data && res.data.length > 0) {
-                            Swal.fire("Error", res.responseMessage, "error");
-                            showErrorGrid(res.data);
-                        } else {
-                            Swal.fire("Failed", res.responseMessage, "error");
-                        }
-                    }
-                },
-                error: function () {
-                    Swal.fire("Error", "Something went wrong while importing!", "error");
+              url: apiUrl,
+              type: 'POST',
+              data: formData,
+              contentType: false,
+              processData: false,
+              success: function (res) {
+                if (res.isSuccess) {
+                  if (res.data?.length) {
+                    Swal.fire("Partial Success", res.responseMessage, "warning");
+                    showErrorGrid(res.data);
+                  } else {
+                    Swal.fire("Success", res.responseMessage, "success");
+                  }
+                } else {
+                  if (res.data?.length) {
+                    Swal.fire("Error", res.responseMessage, "error");
+                    showErrorGrid(res.data);
+                  } else {
+                    Swal.fire("Failed", res.responseMessage, "error");
+                  }
                 }
+              },
+              error: function () {
+                Swal.fire("Error", "Something went wrong while importing!", "error");
+              }
             });
-        });
-               
-            $('#btnBack').click(function () {
-                history.back();
-            });
+          });
 
-            function showErrorGrid(data) {
+          // Back button
+          $('#btnBack').click(function () {
+            history.back();
+          });
+
+          // Grid display for errors/invalid rows
+          function showErrorGrid(data) {
             if (!errorDataGrid) {
-                errorDataGrid = $("#errorGrid").dxDataGrid({
-                    dataSource: data,
-                    height: 300,
-                    showBorders: true,
-                    paging: { pageSize: 5 },
-                    pager: {
-                        showPageSizeSelector: true,
-                        allowedPageSizes: [5, 10, 20],
-                        showInfo: true
-                    },
-                    columns: [
-                        { dataField: "rowNumber", caption: "Row Number", width: 70 },
-                        { dataField: "employeeCode", caption: "Employee Code", width: 70 },
-                        { dataField: "importDate", caption: "Date Of Import", width: 150 },
-                        { dataField: "errorDescription", caption: "Error Description" },
-                        { dataField: "actualValue", caption: "Actual Value", width: 90 },
-                        { dataField: "suggestion", caption: "Suggestion", width: 200 },
-                        { dataField: "importType", caption: "Import Type", width: 120 }
-                    ]
-                    ,
-
-						showBorders: true,
-						columnsAutoWidth: true,
-						wordWrapEnabled: false,
-						rowAlternationEnabled: false,
-						paging: { pageSize: 10 },
-						pager: {
-							showPageSizeSelector: true,
-							allowedPageSizes: [10, 25, 50, 100]
-						},
-						headerFilter: { visible: true },
-						filterRow: { visible: true, applyFilter: "auto" },
-						allowColumnResizing: true,
-						groupPanel: { visible: true },
-						searchPanel: { visible: true, width: 240, placeholder: "Search..." },
-						allowColumnReordering: true,
-						columnFixing: { enabled: false },
-
-						onExporting: function (e) {
-							e.component.beginUpdate();
-							e.component.columnOption("Button", "visible", false);
-						},
-						onExported: function (e) {
-							e.component.columnOption("Button", "visible", true);
-							e.component.endUpdate();
-						},
-						onCellPrepared: function (e) {
-							if (e.rowType === "header" || e.rowType === "group") {
-								e.cellElement.css("text-align", "center");
-								if (e.rowType === "header") {
-									e.cellElement.css("font-weight", "bold");
-								}
-							}
-						},
-						onContentReady(e) {
-							$('.rowCount').html('Total Records: ' + e.component.totalCount());
-						}
-                }).dxDataGrid("instance");
+              errorDataGrid = $("#errorGrid").dxDataGrid({
+                dataSource: data,
+                height: 300,
+                showBorders: true,
+                paging: { pageSize: 10 },
+                pager: {
+                  showPageSizeSelector: true,
+                  allowedPageSizes: [10, 25, 50, 100],
+                  showInfo: true
+                },
+                columns: [
+                  { dataField: "rowNumber",       caption: "Row Number",     width: 70  },
+                  { dataField: "employeeCode",    caption: "Employee Code",  width: 70  },
+                  { dataField: "importDate",      caption: "Date Of Import", width: 150 },
+                  { dataField: "errorDescription",caption: "Error Description"       },
+                  { dataField: "actualValue",     caption: "Actual Value",   width: 90  },
+                  { dataField: "suggestion",      caption: "Suggestion",     width: 200 },
+                  { dataField: "importType",      caption: "Import Type",    width: 120 }
+                ],
+                headerFilter: { visible: true },
+                filterRow:    { visible: true, applyFilter: "auto" },
+                allowColumnResizing:    true,
+                allowColumnReordering:  true,
+                columnsAutoWidth:       true,
+                grouping:               { contextMenuEnabled: true },
+                searchPanel:            { visible: true, width: 240, placeholder: "Search..." },
+                onExporting: function (e) {
+                  e.component.beginUpdate();
+                  e.component.columnOption("Button", "visible", false);
+                },
+                onExported: function (e) {
+                  e.component.columnOption("Button", "visible", true);
+                  e.component.endUpdate();
+                },
+                onCellPrepared: function (e) {
+                  if (e.rowType === "header" || e.rowType === "group") {
+                    e.cellElement.css({ "text-align": "center", "font-weight": e.rowType === "header" ? "bold" : "" });
+                  }
+                },
+                onContentReady: function (e) {
+                  $('.rowCount').html('Total Records: ' + e.component.totalCount());
+                }
+              }).dxDataGrid("instance");
             } else {
-                errorDataGrid.option("dataSource", data);
+              errorDataGrid.option("dataSource", data);
             }
 
             $("#errorGridContainer").show();
-     
-        }
+          }
+
+        }); // end document.ready
+
+       
+        function initializeSampleDownloadLinks() {
+          $('#masterSampleLink, #employeeSampleLink, #leaveSampleLink, #salarySampleLink').click(function (e) {
+            e.preventDefault();
+            var tab  = this.id.replace('SampleLink', '');
+            var file = document.getElementById(tab + 'FileInput')?.files[0];
+            if (!file) {
+              return Swal.fire("Warning", "Please select a file first!", "warning");
+            }
+            var url  = URL.createObjectURL(file);
+            var link = document.createElement("a");
+            link.href = url;
+            link.download = file.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
           });
+        }
     </script>
+
 
 </body>
 </html>
