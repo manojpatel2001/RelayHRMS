@@ -1,6 +1,5 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Master.JobMaster;
-using HRMS_Core.Migrations;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using System;
 using System.Collections.Generic;

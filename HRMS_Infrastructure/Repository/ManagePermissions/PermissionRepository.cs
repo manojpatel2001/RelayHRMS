@@ -3,11 +3,15 @@ using HRMS_Core.ManagePermission;
 using HRMS_Core.VM;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface.ManagePermissions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Repository.ManagePermissions
@@ -116,6 +120,37 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                 return new VMCommonResult { Id = 0 };
             }
         }
+
+        public async Task<List<GroupedPermissionDto>> GetAllGroupPermissionsAsync()
+        {
+            try
+            {
+                DbConnection connection = _db.Database.GetDbConnection();
+                await connection.OpenAsync();
+
+                DbCommand command = connection.CreateCommand();
+                command.CommandText = "GetGroupedPermissionsAsync"; // ✅ Your JSON-returning stored procedure
+                command.CommandType = CommandType.StoredProcedure;
+
+                using DbDataReader reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    string json = reader.GetString(0);
+                    return JsonSerializer.Deserialize<List<GroupedPermissionDto>>(json, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }) ?? new List<GroupedPermissionDto>();
+                }
+
+                return new List<GroupedPermissionDto>();
+            }
+            catch
+            {
+                return new List<GroupedPermissionDto>();
+            }
+        }
+
+        
     }
 
 }

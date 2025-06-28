@@ -420,7 +420,7 @@ public class ImportDataController : ControllerBase
 
                     await _unitOfWork.EarningRepository.AddAsync(new Earning
                     {
-                        EmployeeId = code,                   
+                       // EmployeeId = code,                   
                         Basic = decimal.TryParse(row[2]?.ToString(), out decimal basic) ? basic : (decimal?)null,
                         HRA = decimal.TryParse(row[3]?.ToString(), out decimal hra) ? hra : (decimal?)null,
                         Conveyance = decimal.TryParse(row[4]?.ToString(), out decimal conveyance) ? conveyance : (decimal?)null,
@@ -457,7 +457,7 @@ public class ImportDataController : ControllerBase
 
                     await _unitOfWork.DeductionRepository.AddAsync(new Deduction
                     {
-                        EmployeeId = code,
+                        //EmployeeId = code,
                         PF = decimal.TryParse(row[2]?.ToString(), out decimal pf) ? pf : (decimal?)null,
                         ESIC = decimal.TryParse(row[3]?.ToString(), out decimal esic) ? esic : (decimal?)null,
                         PT = decimal.TryParse(row[4]?.ToString(), out decimal pt) ? pt : (decimal?)null,
