@@ -24,5 +24,7 @@ namespace HRMS_Core.Salary
         public decimal? Insurance { get; set; }
         public decimal? LWF { get; set; }
         public decimal? TDS { get; set; }
+        public int? Month { get; set; }  
+        public int? Year { get; set; }
     }
 }
