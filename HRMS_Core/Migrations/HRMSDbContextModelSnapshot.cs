@@ -3082,8 +3082,8 @@ namespace HRMS_Core.Migrations
                     b.Property<decimal?>("GrossSalary")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("Id")
+                        .HasColumnType("int");
 
                     b.Property<string>("Initial")
                         .HasColumnType("nvarchar(max)");

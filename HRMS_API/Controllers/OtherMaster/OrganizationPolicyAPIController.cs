@@ -1,7 +1,6 @@
 ﻿using HRMS_Core.Helper;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
-using HRMS_Core.Migrations;
 using HRMS_Core.VM;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Infrastructure.Interface;
