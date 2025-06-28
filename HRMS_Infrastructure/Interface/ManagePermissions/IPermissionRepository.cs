@@ -16,6 +16,7 @@ namespace HRMS_Infrastructure.Interface.ManagePermissions
         Task<VMCommonResult> CreatePermission(Permission permission);
         Task<VMCommonResult> UpdatePermission(Permission permission);
         Task<VMCommonResult> DeletePermission(DeleteRecordVM deleteRecord);
+        Task<List<GroupedPermissionDto>> GetAllGroupPermissionsAsync();
     }
 
 }

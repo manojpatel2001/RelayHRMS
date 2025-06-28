@@ -152,9 +152,28 @@ namespace HRMS_API.Controllers.ManagePermissions
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete record. Please try again later." };
             }
             catch (Exception ex)
+
             {
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
             }
         }
+
+        [HttpGet("GetAllGroupPermissions")]
+        public async Task<APIResponse> GetAllGroupPermissions()
+        {
+            try
+            {
+                var data = await _unitOfWork.PermissionRepository.GetAllGroupPermissionsAsync();
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
     }
 }

@@ -25,6 +25,8 @@ builder.Services.AddIdentity<HRMSUserIdentity, HRMSRoleIdentity>()
     .AddEntityFrameworkStores<HRMSDbContext>()
     .AddDefaultTokenProviders();
 
+
+
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var secretKey = jwtSettings["Key"];
