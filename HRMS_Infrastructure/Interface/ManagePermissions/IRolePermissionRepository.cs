@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.ManagePermission;
 using HRMS_Core.VM;
+using HRMS_Core.VM.ManagePermision;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,8 +11,11 @@ namespace HRMS_Infrastructure.Interface.ManagePermissions
 {
     public interface IRolePermissionRepository:IRepository<RolePermission>
     {
+        Task<List<vmGetAllRolesWithPermissionByCompanyId>> GetAllRolesWithPermissionByCompanyId(int CompanyId);
+        Task<List<vmGetAllPermissionByRoleId>> GetAllPermissionByRoleId(vmRoleManagePermission vmRole);
         Task<VMCommonResult> CreateRolePermission(RolePermission permission);
         Task<VMCommonResult> UpdateRolePermission(RolePermission permission);
-        Task<VMCommonResult> DeleteRolePermission(DeleteRecordVM delete);
+        Task<VMCommonResult> DeleteRolePermission(vmRoleManagePermission delete);
+        Task<List<RoleManagePermissionDto>> GetAllRolesWithPermissionByRoleId(vmRoleManagePermission vmRole);
     }
 }

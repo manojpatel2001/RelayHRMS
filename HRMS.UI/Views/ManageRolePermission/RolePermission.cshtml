@@ -65,7 +65,7 @@
 		<div class="row m-2">
 			<div class="col-6 ">
 				<h6 class="pt-2 mb-0">
-					Manage Role Permission
+					Assign Permission
 				</h6>
 			</div>
 
@@ -112,7 +112,7 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h6 class="modal-title btn-heading-title" id="exampleModalLabel">
-					<span class="formType">Add</span> Role Permission
+					<span class="formType">Assign</span> Role Permission
 				</h6>
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
@@ -120,45 +120,29 @@
 
 
 				<div class="row">
-					<div class="col-md-6">
-						<div class="form-group mt-2 position-relative">
-							<input type="text" class="form-control floating-input" id="txtRoleName" placeholder="Role Name ">
-							<label class="floating-label" for="txtRoleName">Role Name*</label>
-							<span id="spnRoleName" style="color:red; display:none;">Please Enter Permission Name</span>
-
-						</div>
-					</div>
-
-					<div class="col-md-6">
-						<div class="form-group mt-2 position-relative">
-							<input type="text" class="form-control floating-input" id="txtSlug" placeholder="Slug">
-							<label class="floating-label" for="txtSlug">Slug*</label>
-							<span id="spnSlug" style="color:red; display:none;">Please Enter Slug</span>
-
-						</div>
-					</div>
-
-				</div>
-				<div class="row">
-			
 					<div class="col-md-12">
-						<div class="form-group mt-2 position-relative">
-							<input type="text" class="form-control floating-input" id="txtDescription" placeholder="Description">
-							<label class="floating-label" for="txtDescription">Description*</label>
-							<span id="spnDescription" style="color:red; display:none;">Please Enter Description</span>
-
+						<div class="form-group mt-3 position-relative">
+							<select class="form-select floating-input" id="ddlRole">
+								<option value="0">Select</option>
+								<!-- Add your options here -->
+							</select>
+							<label class="floating-label" for="ddlRole">Role</label>
+							<span id="spnddlRole" style="color:red; display:none;">Please Select Role</span>
 						</div>
 					</div>
 
-				</div>
 
+				</div>
+				
 				<div class="row mt-3">
-					<div class="permission-box">
+					<h6>
 						<label>
 							<input type="checkbox" id="chkAll" />
-							<strong style="font-size: 14px!important;">Manage Permission </strong>
+							Manage Permission 
 						</label>
-
+					</h6>
+					<div class="permission-box">
+						
 						<div id="permissionContainer"></div>
 
 					</div>
@@ -180,7 +164,7 @@
 		await loadPermissionOptions();
 	});
 
-	
+	let permissionData=[];
 	async function loadPermissionOptions() {
 		
 		try {
@@ -196,8 +180,9 @@
 			if (data.isSuccess) {
 				
 				console.log("Permissions loaded:", data.data);
-				var arrayDta=data.data;
-				await bindPermission(arrayDta);
+				permissionData=data.data;
+
+				await bindPermission(permissionData);
 			} else {
 				console.warn("API responded but without success:", data.message || 'Unknown issue');
 			}
@@ -207,75 +192,186 @@
 	}
 
 
-	async function bindPermission(permissionsData){
-
+		async function bindPermission(permissionsData, selectedPermissionIds = []) {
 		const container = document.getElementById("permissionContainer");
+		container.innerHTML = ""; // Clear previous data
 
-		// Render Groups and Permissions
 		permissionsData.forEach((group, i) => {
-		  const groupId = `group-${i}`;
-		  const groupDiv = document.createElement("div");
-		  groupDiv.classList.add("permission-group");
-		  groupDiv.innerHTML = `
-			<label class="group-title">
-			  <input type="checkbox" class="group-check" data-group="${groupId}" />
-			  ${group.groupName}
-			</label>
-			<div id="${groupId}" class="permission-items">
-			  ${group.permissions.map(p => `
-				<label class="permission-inline">
-				  <input type="checkbox" class="permission-check" value="${p.permissionId}" data-group="${groupId}" />
-				  ${p.permissionName}
+			const groupId = `group-${i}`;
+			const groupDiv = document.createElement("div");
+			groupDiv.classList.add("permission-group");
+
+			groupDiv.innerHTML = `
+				<label class="group-title">
+					<input type="checkbox" class="group-check" data-group="${groupId}" />
+					${group.groupName}
 				</label>
-			  `).join('')}
-			</div>
-		  `;
-		  container.appendChild(groupDiv);
+				<div id="${groupId}" class="permission-items">
+					${group.permissions.map(p => `
+						<label class="permission-inline">
+							<input type="checkbox"
+								   class="permission-check"
+								   value="${p.permissionId}"
+								   data-group="${groupId}"
+								   data-slug="${p.slug}"
+								   ${selectedPermissionIds.includes(p.permissionId) ? 'checked' : ''} />
+							${p.permissionName}
+						</label>
+					`).join('')}
+				</div>
+			`;
+
+			container.appendChild(groupDiv);
 		});
 
-			document.getElementById("chkAll").addEventListener("change", function () {
-		  const isChecked = this.checked;
-		  document.querySelectorAll(".group-check, .permission-check").forEach(chk => {
-			chk.checked = isChecked;
-		  });
-		});
-
-		// Group Checkbox Logic
-		document.querySelectorAll(".group-check").forEach(groupChk => {
-		  groupChk.addEventListener("change", function () {
-			const group = this.dataset.group;
+		// Master checkbox logic — exclude 'block'
+		document.getElementById("chkAll").addEventListener("change", function () {
 			const isChecked = this.checked;
-			document.querySelectorAll(`.permission-check[data-group="${group}"]`)
-			  .forEach(chk => chk.checked = isChecked);
-			updateMasterCheckbox();
-		  });
+
+			document.querySelectorAll(".group-check").forEach(chk => {
+				chk.checked = isChecked;
+			});
+
+			document.querySelectorAll(".permission-check").forEach(chk => {
+				const isBlock = chk.dataset.slug?.includes("block");
+				chk.checked = isChecked && !isBlock;
+			});
 		});
 
-		// Individual Permission Checkbox Logic
+		// Group checkbox logic — exclude 'block'
+		document.querySelectorAll(".group-check").forEach(groupChk => {
+			groupChk.addEventListener("change", function () {
+				const group = this.dataset.group;
+				const isChecked = this.checked;
+
+				document.querySelectorAll(`.permission-check[data-group="${group}"]`).forEach(chk => {
+					const isBlock = chk.dataset.slug?.includes("block");
+					chk.checked = isChecked && !isBlock;
+				});
+
+				updateMasterCheckbox();
+			});
+		});
+
+		// Individual permission logic
 		document.querySelectorAll(".permission-check").forEach(chk => {
-		  chk.addEventListener("change", function () {
-			const group = this.dataset.group;
-			const groupBox = document.querySelector(`.group-check[data-group="${group}"]`);
-			const permissions = document.querySelectorAll(`.permission-check[data-group="${group}"]`);
-			const allChecked = Array.from(permissions).every(chk => chk.checked);
-			groupBox.checked = allChecked;
-			updateMasterCheckbox();
-		  });
+			chk.addEventListener("change", function () {
+				const group = this.dataset.group;
+				const slug = this.dataset.slug;
+				const permissions = document.querySelectorAll(`.permission-check[data-group="${group}"]`);
+				const groupBox = document.querySelector(`.group-check[data-group="${group}"]`);
+
+				// Logic: if block is checked, uncheck others
+				if (this.checked && slug.includes("block")) {
+					permissions.forEach(cb => {
+						if (cb !== this) cb.checked = false;
+					});
+				}
+				// Logic: if other is checked, uncheck block
+				else if (this.checked && !slug.includes("block")) {
+					permissions.forEach(cb => {
+						if (cb.dataset.slug?.includes("block")) cb.checked = false;
+					});
+				}
+
+				// Update group checkbox state
+				const nonBlockPermissions = Array.from(permissions).filter(cb => !cb.dataset.slug?.includes("block"));
+				groupBox.checked = nonBlockPermissions.every(cb => cb.checked);
+
+				updateMasterCheckbox();
+			});
 		});
 
-
+		updateGroupAndMasterCheckboxes();
 	}
+
+	function updateGroupAndMasterCheckboxes() {
+		document.querySelectorAll(".group-check").forEach(groupChk => {
+			const group = groupChk.dataset.group;
+			const permissions = document.querySelectorAll(`.permission-check[data-group="${group}"]`);
+			const nonBlockPermissions = Array.from(permissions).filter(cb => !cb.dataset.slug?.includes("block"));
+			groupChk.checked = nonBlockPermissions.every(cb => cb.checked);
+		});
+		updateMasterCheckbox();
+	}
+
+	function updateMasterCheckbox() {
+		const allGroupsChecked = Array.from(document.querySelectorAll(".group-check"))
+			.every(g => g.checked);
+		document.getElementById("chkAll").checked = allGroupsChecked;
+	}
+
+
+
+	// async function bindPermission(permissionsData){
+
+	// 	const container = document.getElementById("permissionContainer");
+
+	// 	// Render Groups and Permissions
+	// 	permissionsData.forEach((group, i) => {
+	// 	  const groupId = `group-${i}`;
+	// 	  const groupDiv = document.createElement("div");
+	// 	  groupDiv.classList.add("permission-group");
+	// 	  groupDiv.innerHTML = `
+	// 		<label class="group-title">
+	// 		  <input type="checkbox" class="group-check" data-group="${groupId}" />
+	// 		  ${group.groupName}
+	// 		</label>
+	// 		<div id="${groupId}" class="permission-items">
+	// 		  ${group.permissions.map(p => `
+	// 			<label class="permission-inline">
+	// 			  <input type="checkbox" class="permission-check" value="${p.permissionId}" data-group="${groupId}" />
+	// 			  ${p.permissionName}
+	// 			</label>
+	// 		  `).join('')}
+	// 		</div>
+	// 	  `;
+	// 	  container.appendChild(groupDiv);
+	// 	});
+
+	// 		document.getElementById("chkAll").addEventListener("change", function () {
+	// 	  const isChecked = this.checked;
+	// 	  document.querySelectorAll(".group-check, .permission-check").forEach(chk => {
+	// 		chk.checked = isChecked;
+	// 	  });
+	// 	});
+
+	// 	// Group Checkbox Logic
+	// 	document.querySelectorAll(".group-check").forEach(groupChk => {
+	// 	  groupChk.addEventListener("change", function () {
+	// 		const group = this.dataset.group;
+	// 		const isChecked = this.checked;
+	// 		document.querySelectorAll(`.permission-check[data-group="${group}"]`)
+	// 		  .forEach(chk => chk.checked = isChecked);
+	// 		updateMasterCheckbox();
+	// 	  });
+	// 	});
+
+	// 	// Individual Permission Checkbox Logic
+	// 	document.querySelectorAll(".permission-check").forEach(chk => {
+	// 	  chk.addEventListener("change", function () {
+	// 		const group = this.dataset.group;
+	// 		const groupBox = document.querySelector(`.group-check[data-group="${group}"]`);
+	// 		const permissions = document.querySelectorAll(`.permission-check[data-group="${group}"]`);
+	// 		const allChecked = Array.from(permissions).every(chk => chk.checked);
+	// 		groupBox.checked = allChecked;
+	// 		updateMasterCheckbox();
+	// 	  });
+	// 	});
+
+
+	// }
 	// Master "Manage Permission" Checkbox
 	
 
-	// Update master "Manage Permission" checkbox state
-	function updateMasterCheckbox() {
-	  const allGroupChecked = Array.from(document.querySelectorAll(".group-check"))
-		.every(g => g.checked);
-	  document.getElementById("chkAll").checked = allGroupChecked;
-	}
+	// // Update master "Manage Permission" checkbox state
+	// function updateMasterCheckbox() {
+	//   const allGroupChecked = Array.from(document.querySelectorAll(".group-check"))
+	// 	.every(g => g.checked);
+	//   document.getElementById("chkAll").checked = allGroupChecked;
+	// }
 
-	// Handle Update Button
+	// // Handle Update Button
 	function GetSelectedPermissionIds() {
 	  const selectedIds = Array.from(document.querySelectorAll(".permission-check"))
 		.filter(chk => chk.checked)
@@ -294,79 +390,88 @@
 	const CompanyId=companyDetails.companyId;
 
 
-	let RoleId=0;
 	$("#addRolePermission").click( () => {
 		resetPermissionFormFields();
+		
 		 $(".formType").text("Add");
 			$("#btnAddPermissionMaster").text("Save");
 	  $("#addRolePermissionModal").modal('show');
 
 	})
 
-
-	 $(document).ready(function() {
-		LoadPermissionMasterTable();
-
-		// Function to validate form fields
-		  function validatePermissionForm() {
-			let isValid = true;
-
-			const fields = [
-				{ id: '#txtRoleName', error: '#spnRoleName' },
-				{ id: '#txtSlug', error: '#spnSlug' },
-				{ id: '#txtDescription', error: '#spnDescription' }
-			];
-
-			fields.forEach(field => {
-				const value = $(field.id).val().trim();
-				if (value === '') {
-					$(field.error).show();
-					isValid = false;
-				} else {
-					$(field.error).hide();
+	async function loadRoleOptions() {
+		try {
+			const response = await fetch('@baseUrl/RoleAPI/GetAllRoles', {
+				method: 'GET',
+				headers: {
+					'Accept': 'application/json'
 				}
 			});
 
-			return isValid;
-		  }
+			const data = await response.json();
+
+			if (data.isSuccess) {
+
+				console.log("role loaded:", data.data);
+				 var dropdowns = $('#ddlRole');
+							dropdowns.empty();
+							dropdowns.append(
+								$('<option>', {
+								value: '0',
+								text: 'Select',
+								selected: true,
+								disabled: true
+								})
+							);
+
+							$.each(data.data, function(index, role) {
+									dropdowns.append($('<option >', {
+									value: role.id,
+									text: role.name
+								}));
+							});
+			}
+			
+		} catch (error) {
+			console.error('Fetch error:', error);
+		}
+	}
+
+
+	$(document).ready(async function() {
+		LoadRolePermissionTable();
+		await loadRoleOptions();
+
+		
 		$('#btnAddRolePermission').click(function () {
 			$('#btnAddRolePermission').prop("disabled", true);
-
-			if (!validatePermissionForm()) {
+			var roleId=$('#ddlRole').val();
+			if(roleId=='0'||!roleId){
+				$('#spnddlRole').show();
 				$('#btnAddRolePermission').prop("disabled", false);
-				return;
+				return ;
 			}
-
-			const getValueOrNull = id => {
-				const val = $(id).val().trim();
-				return val === '' ? null : val;
-			};
-
+			else{
+				$('#spnddlRole').hide();
+			}
 			const rolePermissionMaster = {
-				RoleId: RoleId || 0,
-				RoleName: getValueOrNull('#txtRoleName'),
-				Slug: getValueOrNull('#txtSlug'),
-				Description: getValueOrNull('#txtDescription'),
+				RoleId:roleId,
 				PermissionIds:GetSelectedPermissionIds(),
-				CreatedBy: RoleId === 0 ? null : null,
-				UpdatedBy: RoleId !== 0 ? null : null
+				CompanyId:CompanyId,
+				CreatedBy: null,
+				UpdatedBy:  null
 			};
 			console.log("rolePermissionMaster",rolePermissionMaster);
-			const apiConfig = {
-				url: RoleId === 0
-					? '@baseUrl/RolePermissionAPI/CreateRolePermission'
-					: '@baseUrl/RolePermissionAPI/UpdateRolePermission',
-				method: RoleId === 0 ? 'POST' : 'PUT'
-			};
+			
 			$.ajax({
-				url: apiConfig.url,
-				method: apiConfig.method,
+				url: '@baseUrl/RolePermissionAPI/CreateRolePermission',
+				method: 'POST',
 				contentType: 'application/json',
 				data: JSON.stringify(rolePermissionMaster),
 				success: function (response) {
 					if (response.isSuccess) {
 						round_success_noti(response.responseMessage);
-						//LoadPermissionMasterTable();
+						LoadRolePermissionTable();
 						$('#addRolePermissionModal').modal('hide');
 					} else {
 						round_error_noti(response.responseMessage);
@@ -384,25 +489,25 @@
 
 	 });
 
-	function LoadPermissionMasterTable() {
+	function LoadRolePermissionTable() {
 		$.ajax({
 			type: "GET",
-			url: '@baseUrl/PermissionAPI/GetAllPermissions',
+			url: '@baseUrl/RolePermissionAPI/GetAllRolesWithPermissionByCompanyId/'+CompanyId,
 			success: function (data) {
 				if (data.isSuccess) {
 					$("#spnNoRecord").hide();
-					$("#tagPermissionMasterGrid").show();
+					$("#tagRolePermissionGrid").show();
 
-					$("#gridContainerPermissionMaster").dxDataGrid({
+					$("#gridContainerRolePermission").dxDataGrid({
 						dataSource: data.data,
 						rowHeight: 40,
 						width: '100%',
 						columns: [
-							{ dataField: 'permissionName', caption: 'Permission Name',  width: 200 },
-							{ dataField: 'slug', caption: 'Slug',  width: 200 },
-							{ dataField: 'description', caption: 'Description',  width: 400 },
-							{ dataField: 'permissionUrl', caption: 'URL',  width: 200 },
-							{ dataField: 'groupName', caption: 'Group Name', width: 200 },
+							{ dataField: 'roleName', caption: 'Role Name', width: 200 },
+						{ dataField: 'slug', caption: 'Slug', width: 200 },
+						{ dataField: 'description', caption: 'Description', width: 300 },
+						{ dataField: 'permissions', caption: 'Permissions', width: 400 },
+
 							{
 									dataField: '',
 									caption: '',
@@ -420,7 +525,7 @@
 											'</a>' +
 											'</div>')
 											.on('dxclick', function() {
-												editPermissionMaster(options.data);
+												editRolePermission(options.data);
 											}).appendTo(container);
 									}
 								},
@@ -441,7 +546,7 @@
 											'</a>' +
 											'</div>')
 											.on('dxclick', function() {
-												deletePermissionMaster(options.data);
+												deleteRolePermission(options.data);
 											}).appendTo(container);
 									}
 								}
@@ -470,12 +575,12 @@
 							scrollByThumb: true
 						},
 						onContentReady: function (e) {
-							$('#rowCountPageMaster').html('Total Records: ' + e.component.totalCount());
+							$('#rowCountRolePermission').html('Total Records: ' + e.component.totalCount());
 						}
 					});
 				} else {
 					$("#spnNoRecord").show();
-					$("#tagPermissionMasterGrid").hide();
+					$("#tagRolePermissionGrid").hide();
 
 				}
 			},
@@ -485,67 +590,90 @@
 		});
 	}
 
-	function editPermissionMaster(permission) {
+	async function editRolePermission(permission) {
+	
 		resetPermissionFormFields(); // Clear any previous values
+			var rolePermissionMaster = {
+						CompanyId: CompanyId,
+						RoleId: permission.roleId
+			};
+		try {
+				const response = await fetch('@baseUrl/RolePermissionAPI/GetAllPermissionByRoleId', {
+					method: 'POST',
+					body: JSON.stringify(rolePermissionMaster), // use 'body' not 'data'
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json' // Important for JSON payloads
+					}
+				});
+
+
+			const data = await response.json();
+
+			if (data.isSuccess) {
+				console.log("Role permission loaded:", data.data);
+				var arrayDta=data.data;
+
+				const selectedPermissionIds = arrayDta.map(p => p.permissionId);
+
+			       await bindPermission(permissionData, selectedPermissionIds);
+			} else {
+				console.warn("API responded but without success:", data.message || 'Unknown issue');
+			}
+		} catch (error) {
+			console.error('Fetch error:', error);
+		}
+
 
 		// Update UI
 		$(".formType").text("Update");
-		$("#btnAddPermissionMaster").text("Update");
+		$("#btnAddRolePermission").text("Update");
 
-		// Set global ID if needed
-		PermissionId = permission.permissionId;
-
+		
 		// Populate form fields
-		$('#txtPermissionName').val(permission.permissionName);
-		$('#txtSlug').val(permission.slug);
-		$('#txtPermissionUrl').val(permission.permissionUrl);
-		$('#txtDescription').val(permission.description);
-		$('#txtGroupName').val(permission.groupName);
+		$('#ddlRole').val(permission.roleId);
+		
 
 		// Show the modal
-		$('#addPermissionMasterModal').modal('show');
+		$('#addRolePermissionModal').modal('show');
 	}
+
+
+
 	function resetPermissionFormFields() {
-		$('#btnAddPermissionMaster').prop("disabled", false);
+		$('#btnAddRolePermission').prop("disabled", false);
 
 		// Reset the form inputs
-		PermissionId = 0;
-		$('#txtPermissionName').val('');
-		$('#txtSlug').val('');
-		$('#txtPermissionUrl').val('');
-		$('#txtDescription').val('');
-		$('#txtGroupName').val('');
-
-		// Hide validation messages
-		$('#spnPermissionName').hide();
-		$('#spnSlug').hide();
-		$('#spnDescription').hide();
-		$('#spnGroupName').hide();
-
+		RoleId = 0;
+		$('#ddlRole').val('0');
+		
+		$('#spnddlRole').hide();
+		
 		// Reset UI labels
 		$(".formType").text("Add");
-		$("#btnAddPermissionMaster").text("Save");
+		$("#btnAddRolePermission").text("Save");
 	}
 
-	  function  deletePermissionMaster(data)
+	  function  deleteRolePermission(data)
 	  {
 		if (!confirm("Are you sure you want to delete this permission?")) {
 				return; // Cancel the delete operation
 		}
 
 			var deleteObj = {
-				   id:data.permissionId,
+				   RoleId:data.roleId,
+				   CompanyId:CompanyId,
 				deletedBy: null
 			};
 			$.ajax({
-			url: '@baseUrl/PermissionAPI/DeletePermission',
+			url: '@baseUrl/RolePermissionAPI/DeleteRolePermission',
 				type: 'DELETE',
 				contentType: 'application/json',
 				data: JSON.stringify(deleteObj),
 				success: function (response) {
 					if (response.isSuccess) {
 						round_success_noti(response.responseMessage);
-					   LoadPermissionMasterTable();
+					   LoadRolePermissionTable();
 					} else {
 						round_error_noti(response.responseMessage);
 					}
