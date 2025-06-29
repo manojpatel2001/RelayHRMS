@@ -58,6 +58,7 @@ namespace HRMS_Infrastructure.Interface
         IDeductionRepository DeductionRepository { get; }
         IPermissionRepository PermissionRepository { get; }
         IRolePermissionRepository RolePermissionRepository { get; }
+        IRoleRepository RoleRepository { get; }
 
         void Commit();
         Task CommitAsync();

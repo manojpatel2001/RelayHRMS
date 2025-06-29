@@ -71,7 +71,8 @@ namespace HRMS_Infrastructure.Repository
             EarningRepository = new EarningRepository(_dbContext); 
             DeductionRepository = new DeductionRepository(_dbContext);
             PermissionRepository = new PermissionRepository(_dbContext);
-            RolePermissionRepository = new RolePermissionRepository(_dbContext); 
+            RolePermissionRepository = new RolePermissionRepository(_dbContext);
+            RoleRepository = new RoleRepository(_dbContext); 
 
         }
 
@@ -122,6 +123,7 @@ namespace HRMS_Infrastructure.Repository
         public IEmployeeInOut EmployeeInOut { get; set; }
         public IPermissionRepository PermissionRepository { get; set; }
         public IRolePermissionRepository RolePermissionRepository { get; set; }
+        public IRoleRepository RoleRepository { get; set; }
 
         public void Commit()
         {
