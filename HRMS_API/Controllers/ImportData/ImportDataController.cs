@@ -1,4 +1,6 @@
-﻿using HRMS_Core.ControlPanel.ImportData;
+using Azure.Core;
+using ExcelDataReader;
+using HRMS_Core.ControlPanel.ImportData;
 using HRMS_Core.DbContext;
 using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.Master.JobMaster;
@@ -6,8 +8,12 @@ using HRMS_Core.Salary;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Identity.Client;
+using OfficeOpenXml;
 using System.Data;
 using System.Data.OleDb;
+using System.Text;
+
 
 [ApiController]
 [Route("api/[controller]")]
@@ -21,6 +27,143 @@ public class ImportDataController : ControllerBase
         _unitOfWork = unitOfWork;
         _env = env;
     }
+    [HttpPost("Upload")]
+    public async Task<APIResponse> Upload([FromForm] ImportRequest request)
+    {
+        try
+        {
+            if (request.File == null || request.RowFrom <= 0 || request.RowTo < request.RowFrom)
+                return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input" };
+
+            var errorRows = new List<object>();
+            int insertedCount = 0, duplicateCount = 0, blankCount = 0;
+
+            var extension = Path.GetExtension(request.File.FileName).ToLower();
+            var dt = new DataTable();
+
+            using var stream = new MemoryStream();
+            await request.File.CopyToAsync(stream);
+            stream.Position = 0;
+
+            if (extension == ".xlsx")
+            {
+
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                using var package = new ExcelPackage(stream);
+                var worksheet = package.Workbook.Worksheets[request.SheetName];
+                if (worksheet == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = $"Sheet {request.SheetName} not found" };
+
+                int colCount = worksheet.Dimension.End.Column;
+
+                for (int col = 1; col <= colCount; col++)
+                    dt.Columns.Add(worksheet.Cells[1, col].Text);
+
+                for (int row = request.RowFrom; row <= request.RowTo; row++)
+                {
+                    var dataRow = dt.NewRow();
+                    bool isRowEmpty = true;
+
+                    for (int col = 1; col <= colCount; col++)
+                    {
+                        var cellValue = worksheet.Cells[row, col].Text?.Trim();
+                        dataRow[col - 1] = cellValue;
+                        if (!string.IsNullOrWhiteSpace(cellValue)) isRowEmpty = false;
+                    }
+
+                    if (!isRowEmpty)
+                        dt.Rows.Add(dataRow);
+                }
+            }
+            else if (extension == ".xls")
+            {
+                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                using var reader = ExcelDataReader.ExcelReaderFactory.CreateBinaryReader(stream);
+                var result = reader.AsDataSet(new ExcelDataReader.ExcelDataSetConfiguration()
+                {
+                    ConfigureDataTable = (_) => new ExcelDataReader.ExcelDataTableConfiguration()
+                    {
+                        UseHeaderRow = false
+                    }
+                });
+
+                var sheet = result.Tables.Cast<DataTable>().FirstOrDefault(t => t.TableName == request.SheetName);
+                if (sheet == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = $"Sheet {request.SheetName} not found" };
+
+                // Header (first row)
+                for (int col = 0; col < sheet.Columns.Count; col++)
+                    dt.Columns.Add(sheet.Rows[0][col]?.ToString());
+
+                // Read data rows between RowFrom and RowTo
+                for (int row = request.RowFrom - 1; row <= request.RowTo - 1 && row < sheet.Rows.Count; row++)
+                {
+                    var sourceRow = sheet.Rows[row];
+                    var dataRow = dt.NewRow();
+                    bool isRowEmpty = true;
+
+                    for (int col = 0; col < sheet.Columns.Count; col++)
+                    {
+                        var value = sourceRow[col]?.ToString()?.Trim();
+                        dataRow[col] = value;
+                        if (!string.IsNullOrWhiteSpace(value))
+                            isRowEmpty = false;
+                    }
+
+                    if (!isRowEmpty)
+                        dt.Rows.Add(dataRow);
+                }
+            }
+            else
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Only .xls and .xlsx files are supported." };
+            }
+
+            // ✅ Template column validation
+            if (!ValidateTemplateColumns(dt, request.Type, out string headerError))
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = headerError
+                };
+            }
+
+            // ✅ Row-wise processing
+            foreach (DataRow row in dt.Rows)
+            {
+                int rowIndex = dt.Rows.IndexOf(row) + request.RowFrom;
+                var result = await ProcessRowByType(row, request.Type, rowIndex);
+
+                if (result.IsSuccess)
+                    insertedCount++;
+                else
+                {
+                    if (result.IsDuplicate) duplicateCount++;
+                    if (result.IsBlank) blankCount++;
+                    errorRows.Add(result.ErrorRow);
+                }
+            }
+
+            await _unitOfWork.CommitAsync();
+
+            string msg = $"{insertedCount} row(s) inserted.";
+            if (duplicateCount > 0 || blankCount > 0)
+                msg += $" {duplicateCount} duplicate(s), {blankCount} blank row(s) skipped.";
+
+            return new APIResponse
+            {
+                isSuccess = insertedCount > 0,
+                ResponseMessage = msg.Trim(),
+                Data = errorRows.Any() ? errorRows : null
+            };
+        }
+        catch (Exception ex)
+        {
+            return new APIResponse { isSuccess = false, ResponseMessage = ex.Message };
+        }
+    }
+
 
 
     private bool ValidateTemplateColumns(DataTable dt, string type, out string error)
@@ -33,37 +176,49 @@ public class ImportDataController : ControllerBase
             case "Branch":
                 expectedHeaders = new List<string> { "Branch_Code", "Branch_Name", "Branch_City", "Branch_Address", "Comp_Name", "State_Name", "Country_Name" };
                 break;
+
             case "Department":
-                expectedHeaders = new List<string> { "DepartmentName", };
+                expectedHeaders = new List<string> { "Department_Name", "Department_Disp_No" };
                 break;
+
             case "Designation":
                 expectedHeaders = new List<string> { "DesignationName", "DesignationCode" };
                 break;
+
             case "Bank":
                 expectedHeaders = new List<string> { "BankName", "BankCode", "BranchName", "AccountNo", "Address", "City", "BankBSRCode", "IsDefault" };
                 break;
+
             case "City":
                 expectedHeaders = new List<string> { "City_Name", "State_Name", "Country", "Category", "Entry_Type" };
                 break;
+
             case "Holiday Master":
-                expectedHeaders = new List<string> { "Holiday_Name", "Branch_Name", "From_Date", "To_Date", "Holiday_Category", "Repeat_Annually", "Half_Day", "Present_Compulsory" , "Optional_Holiday", "Approval_Max_Limit", "Unpaid_Holiday" };
+                expectedHeaders = new List<string>
+            {
+               "Holiday_Name", "Branch_Name", "From_Date", "To_Date", "Holiday_Category", "Repeat_Annually", "Half_Day", "Present_Compulsory" , "Optional_Holiday", "Approval_Max_Limit", "Unpaid_Holiday"
+            };
                 break;
-            case "MonthlyDed":
-                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year", "HRA", "Comments", "TDS", "comments", };
-                break;
+
             case "MonthlyEar":
-                expectedHeaders = new List<string> { "Alpha_Emp_code", "month", "Year", "HRA", "Comments", "TDS", "Comments", };
+                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year", "Basic", "HRA", "Conveyance", "Medical", "Deputation" };
                 break;
+
+            case "MonthlyDed":
+                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year","PF", "ESIC", "PT", "Insurance", "LWF","TDS" };
+                break;
+
             default:
-                error = "Invalid import type.";
+                error = $"No template defined for type '{type}'";
                 return false;
         }
 
+        // Validate headers from DataTable
         for (int i = 0; i < expectedHeaders.Count; i++)
         {
-            if (dt.Columns.Count <= i || dt.Columns[i].ColumnName.Trim() != expectedHeaders[i])
+            if (dt.Columns.Count <= i || dt.Columns[i].ColumnName.Trim() != expectedHeaders[i].Trim())
             {
-                error = $"Invalid template. Expected column '{expectedHeaders[i]}' at position {i + 1}.";
+                error = $"Template mismatch: Column {i + 1} must be '{expectedHeaders[i]}', but found '{dt.Columns[i].ColumnName}'.";
                 return false;
             }
         }
@@ -71,477 +226,293 @@ public class ImportDataController : ControllerBase
         return true;
     }
 
-
-
-    [HttpPost("Upload")]
-    public async Task<APIResponse> Upload([FromForm] ImportRequest request)
+    private async Task<(bool IsSuccess, bool IsDuplicate, bool IsBlank, object ErrorRow)> ProcessRowByType(DataRow row, string type, int rowIndex)
     {
-        try
+        if (type == "Branch")
         {
-            if (request.File == null || request.RowFrom <= 0 || request.RowTo < request.RowFrom)
-                return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input" };
+            string code = row[0]?.ToString()?.Trim();
+            string name = row[1]?.ToString()?.Trim();
+            string city = row[2]?.ToString()?.Trim();
+            string state = row[5]?.ToString()?.Trim();
+            string country = row[6]?.ToString()?.Trim();
 
-            string uploadsFolder = Path.Combine(_env.WebRootPath, "Uploads");
-            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-            string filePath = Path.Combine(uploadsFolder, request.File.FileName);
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(city) &&
+                string.IsNullOrWhiteSpace(state) && string.IsNullOrWhiteSpace(country))
             {
-                request.File.CopyTo(fileStream);
+                return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
             }
 
-            DataTable dt = ReadExcel(filePath, request.SheetName, request.RowFrom, request.RowTo);
-            if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
-            if (dt == null || dt.Rows.Count == 0)
-                return new APIResponse { isSuccess = false, ResponseMessage = "No data found." }; 
+            var exists = await _unitOfWork.BranchRepository.GetAsync(x => x.BranchCode == code && x.IsEnabled == true && x.IsDeleted != true);
+            if (exists != null)
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Branch Code", code, "Enter unique Branch Code.", type));
 
-            // ✅ Validate template
-            if (!ValidateTemplateColumns(dt, request.Type, out string headerError))
+            await _unitOfWork.BranchRepository.AddAsync(new Branch
             {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    ResponseMessage = headerError
-                };
-            }
+                BranchCode = code,
+                BranchName = name,
+                CityName = city,
+                Address = row[3]?.ToString(),
+                CompanyName = row[4]?.ToString(),
+                State = state,
+                CountryName = country,
+                IsEnabled = true,
+                IsDeleted = false
+            });
 
-            var errorRows = new List<object>();
-            int insertedCount = 0;
-            int duplicateCount = 0;
-            int blankCount = 0;
-
-            foreach (DataRow row in dt.Rows)
-            {
-                int rowIndex = dt.Rows.IndexOf(row) + request.RowFrom;
-
-                // Common vars
-         
-                if (request.Type == "Branch")
-
-                {
-
-                    string code = row[0]?.ToString().Trim();
-                    string name = row[1]?.ToString().Trim();
-                    string Branchcity = row[2]?.ToString().Trim();
-                    string state = row[5]?.ToString().Trim();
-                    string countryName = row[6]?.ToString().Trim();
-
-                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name)&& string.IsNullOrWhiteSpace(Branchcity) 
-                        && string.IsNullOrWhiteSpace(state) && string.IsNullOrWhiteSpace(countryName))
-
-                    {
-                        blankCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
-                        continue;
-                    }
-
-                    var exists = await _unitOfWork.BranchRepository.GetAsync(x => x.BranchCode == code && x.IsEnabled == true && x.IsDeleted != true);
-                    if (exists != null)
-                    {
-                        duplicateCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Branch Code", code, "Enter unique Branch Code.", "Branch Master"));
-                        continue;
-                    }
-
-                    await _unitOfWork.BranchRepository.AddAsync(new Branch
-                    {
-                        BranchCode = code,
-                        BranchName = name,
-                        CityName = Branchcity,
-                        Address = row[3]?.ToString(),
-                        CompanyName = row[4]?.ToString(),
-                        State = row[5]?.ToString(),
-                        CountryName = row[6]?.ToString(),
-                        IsEnabled = true,
-                        IsDeleted = false
-                    });
-
-                    insertedCount++;
-                }
-
-                else if (request.Type == "Department")
-
-                {
-                    string name = row[0]?.ToString().Trim();      
-
-                    if ( string.IsNullOrWhiteSpace(name))
-                    {
-                        blankCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
-                        continue;
-                    }
-
-                    var exists = await _unitOfWork.DepartmentRepository.GetAsync(x => x.DepartmentName == name && x.IsEnabled == true && x.IsDeleted != true);
-                    if (exists != null)
-                    {
-                        duplicateCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Department", name, "Enter unique Department name.", "Department Master"));
-                        continue;
-                    }
-
-                    await _unitOfWork.DepartmentRepository.AddAsync(new Department
-                    {
-                        DepartmentName = name,
-                        SortingNo = int.TryParse(row[1]?.ToString(), out int sorting) ? sorting : 0,
-                        IsEnabled = true,
-                        IsDeleted = false
-                    });
-
-                    insertedCount++;
-                }
-
-                else if (request.Type == "Designation")
- 
-
-                {
-
-                    string name = row[0]?.ToString().Trim();
-                    string code = row[1]?.ToString().Trim();
-
-                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
-                    {
-                        blankCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
-                        continue;
-                    }
-                    var exists = await _unitOfWork.DesignationRepository.GetAsync(x => x.DesignationCode == code && x.IsEnabled == true && x.IsDeleted != true);
-                    if (exists != null)
-                    {
-                        duplicateCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Designation", code, "Enter unique Designation code.", "Designation Master"));
-                        continue;
-                    }
-
-                    await _unitOfWork.DesignationRepository.AddAsync(new Designation
-                    {
-                        DesignationName = name,                 
-                        SortingNo = int.TryParse(row[2]?.ToString(), out int sortNo) ? sortNo : 0,
-                        IsEnabled = true,
-                        IsDeleted = false
-                    });
-
-                    insertedCount++;
-                }
-
-                else if (request.Type == "Bank")
-                {
-                    string Bankname = row[0]?.ToString().Trim();
-                    string code = row[1]?.ToString().Trim();
-                    string BranchName = row[2]?.ToString().Trim();
-                    string Accountno = row[3]?.ToString().Trim();
-
-                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(Bankname)
-                        && string.IsNullOrWhiteSpace(BranchName) && string.IsNullOrWhiteSpace(Accountno))
-                    {
-                        blankCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
-                        continue;
-                    }
-                    var exists = await _unitOfWork.BankMasterRepository.GetAsync(x => x.BankCode == code && x.IsEnabled == true && x.IsDeleted != true);
-                    if (exists != null)
-                    {
-                        duplicateCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Bank Code", code, "Enter unique Bank code.", "Bank Master"));
-                        continue;
-                    }
-
-                    await _unitOfWork.BankMasterRepository.AddAsync(new BankMaster
-                    {
-                        BankName = Bankname,
-                        BankCode = code,
-                        BranchName = BranchName,
-                        AccountNo = Accountno,
-                        Address = row[4]?.ToString(),
-                        City = row[5]?.ToString(),
-                        BankBSRCode = row[6]?.ToString(),
-                        IsDefaultBank = bool.TryParse(row[7]?.ToString(), out bool isDefault) ? isDefault : false,
-                        IsEnabled = true,
-                        IsDeleted = false
-                    });
-
-                    insertedCount++;
-                }
-
-                else if (request.Type == "City")
-                {
-                    string name = row[0]?.ToString().Trim(); // City name
-
-                    if (string.IsNullOrWhiteSpace(name))
-                    {
-                        blankCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
-                        continue;
-                    }
-
-                    var exists = await _unitOfWork.CityRepository.GetAsync(x => x.CityName == name && x.IsEnabled == true && x.IsDeleted != true);
-                    if (exists != null)
-                    {
-                        duplicateCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate City", name, "Enter unique City name.", "City Master"));
-                        continue;
-                    }
-
-                    // ✅ Convert StateName → StateId
-                    string stateName = row[1]?.ToString()?.Trim();
-                    var state = await _unitOfWork.StateRepository.GetAsync(x => x.StateName.ToLower() == stateName.ToLower() && x.IsEnabled == true && x.IsDeleted != true);
-
-                    if (state == null)
-                    {
-                        errorRows.Add(CreateErrorRow(rowIndex, "Invalid State", stateName, "State not found in database. Please check state name.", request.Type));
-                        continue;
-                    }
-
-                    await _unitOfWork.CityRepository.AddAsync(new City
-                    {
-                        CityName = name,
-                        StateId = state.StateId,
-                        Country = row[2]?.ToString(),
-                        CityCategoryId = int.TryParse(row[3]?.ToString(), out int catId) ? catId : (int?)null,
-                        Remarks = row[4]?.ToString(),
-                        IsEnabled = true,
-                        IsDeleted = false
-                    });
-
-                    insertedCount++;
-                }
-
-
-
-                else if (request.Type == "Holiday Master")
-                {
-                    string name = row[0]?.ToString().Trim();
-                    string FromDate = row[0]?.ToString().Trim();
-          
-                    if (string.IsNullOrWhiteSpace(name) )
-                    {
-                        blankCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
-                        continue;
-                    }
-                    var exists = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayName == name && x.IsEnabled == true && x.IsDeleted != true);
-                    if (exists != null)
-                    {
-                        duplicateCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Holiday Name", name, "Enter unique Holiday name.", "Holiday Master"));
-                        continue;
-                    }
-
-                    await _unitOfWork.HolidayMasterRepository.AddAsync(new HolidayMaster
-                    {
-                        HolidayName = name,
-                        BranchId = int.TryParse(row[2]?.ToString(), out int branchId) ? branchId : 0,
-                        FromDate = DateTime.TryParse(row[4]?.ToString(), out DateTime fromDate) ? fromDate : DateTime.MinValue,
-                        ToDate = DateTime.TryParse(row[5]?.ToString(), out DateTime toDate) ? toDate : DateTime.MinValue,
-                        Holidaycategory = row[7]?.ToString(),
-                        RepeatAnnually = bool.TryParse(row[8]?.ToString(), out bool repeat) ? repeat : false,
-                        HalfDay = bool.TryParse(row[9]?.ToString(), out bool halfDay) ? halfDay : false,
-                        PresentCompulsory = bool.TryParse(row[10]?.ToString(), out bool compulsory) ? compulsory : false,
-                        OptionalHoliday = bool.TryParse(row[12]?.ToString(), out bool optional) ? optional : false,
-                        ApprovalMaxLimit = row[13]?.ToString() ?? "0",
-                        IsEnabled = true,
-                        IsDeleted = false
-                    });
-
-                    insertedCount++;
-                }
-            }
-
-            await _unitOfWork.CommitAsync();
-
-            string msg = $"{insertedCount} row(s) inserted.";
-            if (duplicateCount > 0 || blankCount > 0)
-                msg += $" {duplicateCount} duplicate(s), {blankCount} blank row(s) skipped.";
-
-            return new APIResponse
-            {
-                isSuccess = insertedCount > 0,
-                ResponseMessage = msg.Trim(),
-                Data = errorRows.Any() ? errorRows : null
-            };
+            return (true, false, false, null);
         }
-        catch (Exception ex)
+
+        else if (type == "Department")
         {
-            return new APIResponse { isSuccess = false, ResponseMessage = ex.Message };
+            string name = row[0]?.ToString()?.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+                return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
+
+            var exists = await _unitOfWork.DepartmentRepository.GetAsync(x => x.DepartmentName == name && x.IsEnabled == true && x.IsDeleted != true);
+            if (exists != null)
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Department", name, "Enter unique Department name.", type));
+
+            await _unitOfWork.DepartmentRepository.AddAsync(new Department
+            {
+                DepartmentName = name,
+                SortingNo = int.TryParse(row[1]?.ToString(), out int sortNo) ? sortNo : 0,
+                IsEnabled = true,
+                IsDeleted = false
+            });
+
+            return (true, false, false, null);
         }
+        else if (type == "Designation")
+
+
+        {
+            string name = row[0]?.ToString()?.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+                return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
+            var exists = await _unitOfWork.DesignationRepository.GetAsync(x => x.DesignationName == name && x.IsEnabled == true && x.IsDeleted != true);
+            if (exists != null)
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Department", name, "Enter unique Department name.", type));
+
+            await _unitOfWork.DesignationRepository.AddAsync(new Designation
+            {
+                DesignationName = name,
+                SortingNo = int.TryParse(row[1]?.ToString(), out int sortNo) ? sortNo : 0,
+                IsEnabled = true,
+                IsDeleted = false
+            });
+            return (true, false, false, null);
+        }
+        else if (type == "Bank")
+        {
+            string Bankname = row[0]?.ToString().Trim();
+            string code = row[1]?.ToString().Trim();
+            string BranchName = row[2]?.ToString().Trim();
+            string Accountno = row[3]?.ToString().Trim();
+
+            if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(Bankname)
+                && string.IsNullOrWhiteSpace(BranchName) && string.IsNullOrWhiteSpace(Accountno))
+                return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
+            var exists = await _unitOfWork.BankMasterRepository.GetAsync(x => x.BankCode == code && x.IsEnabled == true && x.IsDeleted != true);
+            if (exists != null)
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Bank Code", code, "Enter unique Bank Code.", type));
+
+            await _unitOfWork.BankMasterRepository.AddAsync(new BankMaster
+            {
+                BankName = Bankname,
+                BankCode = code,
+                BranchName = BranchName,
+                AccountNo = Accountno,
+                Address = row[4]?.ToString(),
+                City = row[5]?.ToString(),
+                BankBSRCode = row[6]?.ToString(),
+                IsDefaultBank = bool.TryParse(row[7]?.ToString(), out bool isDefault) ? isDefault : false,
+                IsEnabled = true,
+                IsDeleted = false
+            });
+            return (true, false, false, null);
+        }
+        else if (type == "City")
+        {
+            string cityname = row[0]?.ToString().Trim();
+            string stateName = row[1]?.ToString()?.Trim();
+
+            string Country = row[2]?.ToString().Trim();// City name
+
+            if (string.IsNullOrWhiteSpace(cityname) && string.IsNullOrWhiteSpace(stateName)
+           && string.IsNullOrWhiteSpace(Country))
+                return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
+            var state = await _unitOfWork.StateRepository.GetAsync(x => x.StateName.ToLower() == stateName.ToLower() && x.IsEnabled == true && x.IsDeleted != true);
+
+            if (state == null)
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid State", "", "", type));
+
+            }
+            var exists = await _unitOfWork.CityRepository.GetAsync(x => x.CityName == cityname && x.StateId == state.StateId && x.IsEnabled == true && x.IsDeleted != true);
+            if (exists != null)
+            {
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Branch Code", cityname, "Enter unique Branch Code.", type));
+
+            }
+            await _unitOfWork.CityRepository.AddAsync(new City
+            {
+                CityName = cityname,
+                StateId = state.StateId,
+                Country = Country,
+                CityCategoryId = int.TryParse(row[3]?.ToString(), out int catId) ? catId : (int?)null,
+                Remarks = row[4]?.ToString(),
+                IsEnabled = true,
+                IsDeleted = false
+            });
+
+            return (true, false, false, null);
+        }
+
+        else if (type == "Holiday Master")
+        {
+            string name = row[0]?.ToString().Trim();
+            DateTime fromDate = DateTime.TryParse(row[2]?.ToString(), out DateTime parsedDate) ? parsedDate : DateTime.MinValue;
+
+            if (string.IsNullOrWhiteSpace(name) && fromDate == DateTime.MinValue)
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
+            }
+            var exists = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayName == name && x.IsEnabled == true && x.IsDeleted != true);
+            if (exists != null)
+            {
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Holiday Name", name, "Enter unique Holiday Name.", type));
+
+            }
+
+            await _unitOfWork.HolidayMasterRepository.AddAsync(new HolidayMaster
+            {
+                HolidayName = name,
+                FromDate = fromDate,
+                BranchId = int.TryParse(row[2]?.ToString(), out int branchId) ? branchId : 0,
+                ToDate = DateTime.TryParse(row[5]?.ToString(), out DateTime toDate) ? toDate : DateTime.MinValue,
+                Holidaycategory = row[7]?.ToString(),
+                RepeatAnnually = bool.TryParse(row[8]?.ToString(), out bool repeat) ? repeat : false,
+                HalfDay = bool.TryParse(row[9]?.ToString(), out bool halfDay) ? halfDay : false,
+                PresentCompulsory = bool.TryParse(row[10]?.ToString(), out bool compulsory) ? compulsory : false,
+                OptionalHoliday = bool.TryParse(row[12]?.ToString(), out bool optional) ? optional : false,
+                ApprovalMaxLimit = row[13]?.ToString() ?? "0",
+                IsEnabled = true,
+                IsDeleted = false
+            });
+
+            return (true, false, false, null);
+        }
+        else if (type == "MonthlyEar")
+
+        {
+            string codeStr = row[0]?.ToString().Trim();
+            string monthStr = row[1]?.ToString().Trim();
+            string yearStr = row[2]?.ToString().Trim();
+
+            if (string.IsNullOrWhiteSpace(codeStr) &&
+                string.IsNullOrWhiteSpace(monthStr) &&
+                string.IsNullOrWhiteSpace(yearStr))
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
+            }
+
+            if (!int.TryParse(codeStr, out int code))
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Code", codeStr, "Code must be a valid number", type));
+
+            if (!int.TryParse(monthStr, out int month))
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Month", monthStr, "Month must be a valid number", type));
+
+            if (!int.TryParse(yearStr, out int year))
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Year", yearStr, "Year must be a valid number", type));
+
+
+            var exists = await _unitOfWork.EarningRepository.GetAsync(x => x.EmployeeId == code && x.Month == month && x.Year == year && x.IsEnabled == true && x.IsDeleted != true);
+            if (exists != null)
+            {
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate  Employee code", codeStr, "Enter unique Employee code.", type));
+
+            }
+            await _unitOfWork.EarningRepository.AddAsync(new Earning
+            {
+                EmployeeId = code,
+                Month = month,
+                Basic = decimal.TryParse(row[3]?.ToString(), out decimal basic) ? basic : (decimal?)null,
+                HRA = decimal.TryParse(row[4]?.ToString(), out decimal hra) ? hra : (decimal?)null,
+                Conveyance = decimal.TryParse(row[5]?.ToString(), out decimal conveyance) ? conveyance : (decimal?)null,
+                Medical = decimal.TryParse(row[6]?.ToString(), out decimal medical) ? medical : (decimal?)null,
+                Deputation = decimal.TryParse(row[7]?.ToString(), out decimal deputation) ? deputation : (decimal?)null,
+                Year = year,
+                IsEnabled = true,
+                IsDeleted = false
+            });
+            return (true, false, false, null);
+        }
+        else if (type == "MonthlyDed")
+
+        {
+            string codeStr = row[0]?.ToString().Trim();
+            string monthStr = row[1]?.ToString().Trim();
+            string yearStr = row[7]?.ToString().Trim();
+
+            if (string.IsNullOrWhiteSpace(codeStr) &&
+                string.IsNullOrWhiteSpace(monthStr) &&
+                string.IsNullOrWhiteSpace(yearStr))
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
+            }
+
+            if (!int.TryParse(codeStr, out int code))
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Code", codeStr, "Code must be a valid number", type));
+
+            if (!int.TryParse(monthStr, out int month))
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Month", monthStr, "Month must be a valid number", type));
+
+            if (!int.TryParse(yearStr, out int year))
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Year", yearStr, "Year must be a valid number", type));
+
+
+            var exists = await _unitOfWork.DeductionRepository.GetAsync(x => x.EmployeeId == code && x.Month == month && x.Year == year && x.IsEnabled == true && x.IsDeleted != true);
+            if (exists != null)
+            {
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate  Employee code", codeStr, "Enter unique Employee code.", type));
+
+            }
+
+
+            await _unitOfWork.DeductionRepository.AddAsync(new Deduction
+            {
+                EmployeeId = code,
+                Month = month,
+                Year = year,
+                PF = decimal.TryParse(row[3]?.ToString(), out decimal pf) ? pf : (decimal?)null,
+                ESIC = decimal.TryParse(row[4]?.ToString(), out decimal esic) ? esic : (decimal?)null,
+                PT = decimal.TryParse(row[5]?.ToString(), out decimal pt) ? pt : (decimal?)null,
+                Insurance = decimal.TryParse(row[6]?.ToString(), out decimal insurance) ? insurance : (decimal?)null,
+                LWF = decimal.TryParse(row[7]?.ToString(), out decimal lwf) ? lwf : (decimal?)null,
+                TDS = decimal.TryParse(row[8]?.ToString(), out decimal tds) ? tds : (decimal?)null,
+                IsEnabled = true,
+                IsDeleted = false
+            });
+            return (true, false, false, null);
+        }
+
+
+            return (false, false, false, CreateErrorRow(rowIndex, "Unknown Type", "", $"Unknown master type: {type}", type));
     }
-
-
-    [HttpPost("UploadSalary")]
-    public async Task<APIResponse> UploadSalary([FromForm] ImportRequest request)
-    {
-        try
-        {
-            if (request.File == null || request.RowFrom <= 0 || request.RowTo < request.RowFrom)
-                return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input" };
-
-            string uploadsFolder = Path.Combine(_env.WebRootPath, "Uploads");
-            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-            string filePath = Path.Combine(uploadsFolder, request.File.FileName);
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                request.File.CopyTo(fileStream);
-            }
-
-            DataTable dt = ReadExcel(filePath, request.SheetName, request.RowFrom, request.RowTo);
-            if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
-            if (dt == null || dt.Rows.Count == 0)
-                return new APIResponse { isSuccess = false, ResponseMessage = "No data found." };
-
-            var errorRows = new List<object>();
-            int insertedCount = 0;
-            int duplicateCount = 0;
-            int blankCount = 0;
-
-            foreach (DataRow row in dt.Rows)
-            {
-                int rowIndex = dt.Rows.IndexOf(row) + request.RowFrom;
-
-                // Common vars
-             
-                 if (request.Type == "MonthlyEar")
-
-                {
-                    string name = row[0]?.ToString().Trim();
-                    string code = row[1]?.ToString().Trim();
-
-                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
-                    {
-                        blankCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
-                        continue;
-                    }
-
-                    var exists = await _unitOfWork.DepartmentRepository.GetAsync(x => x.DepartmentName == name && x.IsEnabled == true && x.IsDeleted != true);
-                    if (exists != null)
-                    {
-                        duplicateCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Monthly Earining", name, "Enter unique Monthly Earining name.", "Salary Master"));
-                        continue;
-                    }
-
-                    await _unitOfWork.EarningRepository.AddAsync(new Earning
-                    {
-                       // EmployeeId = code,                   
-                        Basic = decimal.TryParse(row[2]?.ToString(), out decimal basic) ? basic : (decimal?)null,
-                        HRA = decimal.TryParse(row[3]?.ToString(), out decimal hra) ? hra : (decimal?)null,
-                        Conveyance = decimal.TryParse(row[4]?.ToString(), out decimal conveyance) ? conveyance : (decimal?)null,
-                        Medical = decimal.TryParse(row[5]?.ToString(), out decimal medical) ? medical : (decimal?)null,
-                        Deputation = decimal.TryParse(row[6]?.ToString(), out decimal deputation) ? deputation : (decimal?)null,
-                        IsEnabled = true,
-                        IsDeleted = false
-
-                    });
-
-                    insertedCount++;
-                }
-
-                else if (request.Type == "MonthlyDed")
-
-                {
-
-                    string code = row[0]?.ToString().Trim();
-                    string name = row[1]?.ToString().Trim();
-
-                    if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
-                    {
-                        blankCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Blank row", "", "This row appears to be empty.", request.Type));
-                        continue;
-                    }
-                    var exists = await _unitOfWork.DesignationRepository.GetAsync(x => x.DesignationCode == code && x.IsEnabled == true && x.IsDeleted != true);
-                    if (exists != null)
-                    {
-                        duplicateCount++;
-                        errorRows.Add(CreateErrorRow(rowIndex, "Duplicate Monthly Deduction", code, "Enter unique Deduction code.", "Salary Master"));
-                        continue;
-                    }
-
-                    await _unitOfWork.DeductionRepository.AddAsync(new Deduction
-                    {
-                        //EmployeeId = code,
-                        PF = decimal.TryParse(row[2]?.ToString(), out decimal pf) ? pf : (decimal?)null,
-                        ESIC = decimal.TryParse(row[3]?.ToString(), out decimal esic) ? esic : (decimal?)null,
-                        PT = decimal.TryParse(row[4]?.ToString(), out decimal pt) ? pt : (decimal?)null,
-                        Insurance = decimal.TryParse(row[5]?.ToString(), out decimal insurance) ? insurance : (decimal?)null,
-                        LWF = decimal.TryParse(row[6]?.ToString(), out decimal lwf) ? lwf : (decimal?)null,
-                        TDS = decimal.TryParse(row[7]?.ToString(), out decimal tds) ? tds : (decimal?)null,
-                        IsEnabled = true,
-                        IsDeleted = false
-                    });
-
-                    insertedCount++;
-                }
-       
-            }
-
-            await _unitOfWork.CommitAsync();
-
-            string msg = $"{insertedCount} row(s) inserted.";
-            if (duplicateCount > 0 || blankCount > 0)
-                msg += $" {duplicateCount} duplicate(s), {blankCount} blank row(s) skipped.";
-
-            return new APIResponse
-            {
-                isSuccess = insertedCount > 0,
-                ResponseMessage = msg.Trim(),
-                Data = errorRows.Any() ? errorRows : null
-            };
-        }
-        catch (Exception ex)
-        {
-            return new APIResponse { isSuccess = false, ResponseMessage = ex.Message };
-        }
-    }
-
-    private DataTable ReadExcel(string filePath, string sheetName, int rowFrom, int rowTo)
-    {
-        string ext = Path.GetExtension(filePath);
-        string connStr = "";
-
-        if (ext == ".xls")
-        {
-            connStr = $"Provider=Microsoft.Jet.OLEDB.4.0;Data Source={filePath};Extended Properties='Excel 8.0;HDR=YES;'";
-        }
-        else if (ext == ".xlsx")
-        {
-            connStr = $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={filePath};Extended Properties='Excel 12.0 Xml;HDR=YES;'";
-        }
-
-        using (OleDbConnection conn = new OleDbConnection(connStr))
-        {
-            conn.Open();
-            string query = $"SELECT * FROM [{sheetName}$]";
-            OleDbDataAdapter adapter = new OleDbDataAdapter(query, conn);
-            DataTable fullTable = new DataTable();
-            adapter.Fill(fullTable);
-
-            if (fullTable.Rows.Count == 0)
-                return fullTable;
-
-            var filteredRows = fullTable.AsEnumerable()
-                                        .Skip(rowFrom - 2) // rowFrom starts at 2nd data row
-                                        .Take(rowTo - rowFrom + 1);
-
-            DataTable resultTable = fullTable.Clone(); // Copy headers
-            foreach (var row in filteredRows)
-                resultTable.ImportRow(row);
-
-            return resultTable;
-        }
-    }
-
-
-    private object CreateErrorRow( int rowIndex, string error, string actualValue, string suggestion, string importType)
+    private object CreateErrorRow(int rowNumber, string errorType, string value, string message, string section)
     {
         return new
         {
-            rowNumber = rowIndex,
-            employeeCode = "",
-            importDate = DateTime.Now.ToString("yyyy-MM-dd"),
-            errorDescription = error,
-            actualValue = actualValue,
-            suggestion = suggestion,
-            importType = importType
+            rowNumber = rowNumber,                  // maps to "Row Number"
+            employeeCode = value,                   // shows the value that caused error (e.g., emp code, branch code)
+            importDate = DateTime.Now.ToString("dd-MM-yyyy"), // static current date
+            errorDescription = message,             // message shown in Error Description column
+            actualValue = value,                    // same as employeeCode for now
+            suggestion = errorType,                 // show type of issue like "Duplicate" etc.
+            importType = section                    // like "Branch", "MonthlyDed" etc.
         };
     }
+
+
 
 }
