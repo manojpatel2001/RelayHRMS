@@ -9,8 +9,8 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.Salary
 {
-    [Table("EmpAttendance")]
-    public class EmpAttendance:BaseModel
+    [Table("EmpAttendanceImport")]
+    public class EmpAttendanceImport : BaseModel
     {
         [Key]
         public int? EmpAttendanceId { get; set; }

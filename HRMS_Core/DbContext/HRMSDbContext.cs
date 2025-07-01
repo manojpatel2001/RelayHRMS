@@ -82,7 +82,7 @@ namespace HRMS_Core.DbContext
        
         public DbSet<Earning> Earning { get; set; }
         public DbSet<Deduction> Deduction { get; set; }
-        public DbSet<EmpAttendance> EmpAttendance { get; set; }
+        public DbSet<EmpAttendanceImport> EmpAttendanceImport { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
