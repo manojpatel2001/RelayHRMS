@@ -71,8 +71,7 @@ namespace HRMS_Core.DbContext
         public DbSet<EmployeeType> EmployeeType { get; set; }
 
         public DbSet<EmployeeInOutRecord> EmployeeInOutRecord { get; set; }
-        //public DbSet<Earning> Earning { get; set; }
-        //public DbSet<Deduction> Deduction { get; set; }
+
 
 
         public DbSet<HRMSRoleIdentity> HRMSRoleIdentity { get; set; }
@@ -83,6 +82,7 @@ namespace HRMS_Core.DbContext
        
         public DbSet<Earning> Earning { get; set; }
         public DbSet<Deduction> Deduction { get; set; }
+        public DbSet<EmpAttendance> EmpAttendance { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
