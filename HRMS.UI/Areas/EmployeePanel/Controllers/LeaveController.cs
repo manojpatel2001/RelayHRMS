@@ -20,14 +20,28 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 		public IActionResult LeaveApplication()
 		{
 			ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrlAPI = _configuration["BaseUrlSettings:baseUrl"];
 
-			return View();
+
+            return View();
 
 
 		}
+        public IActionResult LeaveApproval()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrlAPI = _configuration["BaseUrlSettings:baseUrl"];
+
+
+            return View();
+
+
+        }
         public IActionResult AddLeave()
         {
             ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrlAPI = _configuration["BaseUrlSettings:baseUrl"];
+
 
             return View();
         }
