@@ -73,6 +73,7 @@ namespace HRMS_Infrastructure.Repository
             PermissionRepository = new PermissionRepository(_dbContext);
             RolePermissionRepository = new RolePermissionRepository(_dbContext);
             RoleRepository = new RoleRepository(_dbContext); 
+            EmpAttendanceRepository = new EmpAttendanceRepository(_dbContext);
 
         }
 
@@ -124,6 +125,9 @@ namespace HRMS_Infrastructure.Repository
         public IPermissionRepository PermissionRepository { get; set; }
         public IRolePermissionRepository RolePermissionRepository { get; set; }
         public IRoleRepository RoleRepository { get; set; }
+
+        public IEmpAttendanceRepository EmpAttendanceRepository { get; set; }
+
 
         public void Commit()
         {
