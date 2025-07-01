@@ -98,50 +98,75 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
         const apiBase = '@apiBase';
         const empid = 1;
+            const now = new Date();
+
+  
+       const istNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
 
         $(document).ready(function () {
-            const now = new Date();
             const currentMonth = now.getMonth() + 1;
             const currentYear = now.getFullYear();
 
+            function formatISTtoISO(date) {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                const hh = String(date.getHours()).padStart(2, '0');
+                const min = String(date.getMinutes()).padStart(2, '0');
+                const ss = String(date.getSeconds()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}`;
+            }
             // ✅ Load data on page load
             loadFirstLast(empid, currentMonth, currentYear);
 
             // ✅ Manual In Button
             $('#btnIn').click(function () {
+                debugger;
                 const now = new Date();
-                const payload = {
-                    Emp_Id: empid,
-                    For_Date: now.toISOString().split('T')[0],
-                    In_Time: now.toISOString(),
-                    CreatedBy: empid.toString(),
-                    CreatedDate: now.toISOString()
-                };
+                    const payload = {
+                        Emp_Id: empid,
+                      For_Date: formatISTtoISO(istNow).split('T')[0],  
+                        In_Time: formatISTtoISO(istNow),                  
+                        CreatedBy: empid.toString(),
+                        CreatedDate: formatISTtoISO(istNow)  
+                    };
 
                 $.ajax({
                     url: apiBase + '/EmployeeInOut/CreateEmpINOut',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(payload),
-                    success: res => alert(res.responseMessage || '✅ In time saved.'),
+                  success: function (res) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: res.responseMessage || '✅ In time saved.',
+                        confirmButtonText: 'OK',
+                        timer: 2000
+                    });                     
+                    loadFirstLast(empid,  currentMonth, currentYear);  // ✅ call here
+                      loadMultiple(empid, currentMonth, currentYear);   // ✅ call here
+                     },
+                
                     error: () => alert('❌ Error saving In Time.')
                 });
             });
 
             // ✅ Manual Out Button
             $('#btnOut').click(function () {
+               debugger;
                 const now = new Date();
-                const payload = {
-                    Emp_Id: empid,
-                    For_Date: now.toISOString().split('T')[0],
-                    Out_Time: now.toISOString(),
-                    UpdatedBy: empid.toString()
+                    const payload = {
+                        Emp_Id: empid,
+                      For_Date:formatISTtoISO(istNow).split('T')[0],
+                   Out_Time:formatISTtoISO(istNow),
+                   UpdatedBy: empid.toString(),
                 };
 
                 $.ajax({
@@ -149,8 +174,16 @@
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(payload),
-                    success: res => alert(res.responseMessage || '✅ Out time saved.'),
-                    error: () => alert('❌ Error saving Out Time.')
+                 success: function (res) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: res.responseMessage || '✅ Out time saved.',
+                        confirmButtonText: 'OK',
+                        timer: 2000
+                    }); loadFirstLast(empid,  currentMonth, currentYear);  // ✅ refresh
+                  loadMultiple(empid,  currentMonth, currentYear);   // ✅ refresh
+                 },
+                 error: () => alert('❌ Error saving Out Time.')
                 });
             });
 
@@ -196,8 +229,9 @@
 
                         if (response.isSuccess && response.data && response.data.length) {
                             response.data.forEach(row => {
+                               const formattedDate = formatToDDMMYYYY(row.for_Date);
                                 tbody.append(`<tr>
-                                    <td>${row.for_Date}</td>
+                                 <td>${formattedDate}</td>
                                     <td>${row.day_Name}</td>
                                     <td>${row.in_Time}</td>
                                     <td>${row.out_Time}</td>
@@ -213,6 +247,12 @@
                     }
                 });
             }
+                function formatToDDMMYYYY(dateStr) {
+                    if (!dateStr) return "";
+                    const datePart = dateStr.split('T')[0]; // "2025-06-30"
+                    const parts = datePart.split('-');      // ["2025", "06", "30"]
+                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                }
 
             // ✅ Multiple Punches Grid Load
             function loadMultiple(empid, month, year) {
@@ -228,8 +268,9 @@
 
                         if (response.isSuccess && response.data && response.data.length) {
                             response.data.forEach(row => {
+                              const formattedDate = formatToDDMMYYYY(row.for_Date);
                                 tbody.append(`<tr>
-                                    <td>${row.for_Date}</td>
+                                 <td>${formattedDate}</td>
                                     <td>${row.day_Name}</td>
                                     <td>${row.in_Time}</td>
                                     <td>${row.out_Time}</td>
