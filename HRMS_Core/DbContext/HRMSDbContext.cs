@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.ControlPanel.CompanyInformation;
 using HRMS_Core.Employee;
 using HRMS_Core.EmployeeMaster;
+using HRMS_Core.Leave;
 using HRMS_Core.ManagePermission;
 using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.Master.JobMaster;
@@ -89,6 +90,8 @@ namespace HRMS_Core.DbContext
         public DbSet<SuperAdminDetails> SuperAdminDetails { get; set; }
 
         public DbSet<EmpAttendanceImport> EmpAttendanceImport { get; set; }
+        public DbSet<LeaveMaster> LeaveMaster { get; set; }
+        public DbSet<LeaveDetails> LeaveDetails { get; set; }
 
 
 
