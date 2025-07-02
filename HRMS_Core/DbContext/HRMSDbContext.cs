@@ -11,6 +11,7 @@ using HRMS_Core.SuperAdmin;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.CompanyStructure;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.ManagePermision;
@@ -71,8 +72,7 @@ namespace HRMS_Core.DbContext
         public DbSet<EmployeeType> EmployeeType { get; set; }
 
         public DbSet<EmployeeInOutRecord> EmployeeInOutRecord { get; set; }
-        //public DbSet<Earning> Earning { get; set; }
-        //public DbSet<Deduction> Deduction { get; set; }
+
 
 
         public DbSet<HRMSRoleIdentity> HRMSRoleIdentity { get; set; }
@@ -85,7 +85,11 @@ namespace HRMS_Core.DbContext
        
         public DbSet<Earning> Earning { get; set; }
         public DbSet<Deduction> Deduction { get; set; }
+
         public DbSet<SuperAdminDetails> SuperAdminDetails { get; set; }
+
+        public DbSet<EmpAttendanceImport> EmpAttendanceImport { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -108,7 +112,10 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllPrivilegeMasterByCompanyId>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllRolesWithPermissionByCompanyId>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllPermissionByRoleId>().HasNoKey().ToView(null);
+
             modelBuilder.Entity<vmGetEmployeeRolesAndPermissions>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<VMInOutRecord>().HasNoKey().ToView(null);
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

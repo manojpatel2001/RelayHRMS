@@ -77,6 +77,8 @@ namespace HRMS_Infrastructure.Repository
             RoleRepository = new RoleRepository(_dbContext);
             HRMSUserRoleRepository = new HRMSUserRoleRepository(_dbContext);
             SuperAdminDetailsRepository = new SuperAdminDetailsRepository(_dbContext); 
+            RoleRepository = new RoleRepository(_dbContext); 
+            EmpAttendanceRepository = new EmpAttendanceRepository(_dbContext);
 
         }
 
@@ -130,6 +132,9 @@ namespace HRMS_Infrastructure.Repository
         public IRoleRepository RoleRepository { get; set; }
         public IHRMSUserRoleRepository HRMSUserRoleRepository { get; set; }
         public ISuperAdminDetailsRepository SuperAdminDetailsRepository { get; set; }
+
+        public IEmpAttendanceRepository EmpAttendanceRepository { get; set; }
+
 
         public void Commit()
         {
