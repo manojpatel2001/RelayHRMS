@@ -123,6 +123,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<VMInOutRecord>().HasNoKey().ToView(null);
             modelBuilder.Entity<SearchFilterModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetAllDeductionData>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetAllEarningData>().HasNoKey().ToView(null);
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.importData;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -84,7 +85,7 @@ namespace HRMS_API.Controllers.Salary
                 {
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Shift details cannot be null" };
                 }
-  
+
                 earning.CreatedDate = DateTime.UtcNow;
                 await _unitOfWork.EarningRepository.AddAsync(earning);
                 await _unitOfWork.CommitAsync();
@@ -108,16 +109,16 @@ namespace HRMS_API.Controllers.Salary
         {
             try
             {
-                if (earning == null )
+                if (earning == null)
                 {
                     return new APIResponse
                     {
                         isSuccess = false,
                         ResponseMessage = "Invalid earning details provided."
                     };
-                }                     
-         
-               await _unitOfWork.EarningRepository.UpdateEarning(earning);
+                }
+
+                await _unitOfWork.EarningRepository.UpdateEarning(earning);
                 await _unitOfWork.CommitAsync();
 
                 return new APIResponse
@@ -163,6 +164,33 @@ namespace HRMS_API.Controllers.Salary
                     isSuccess = false,
                     Data = err.Message,
                     ResponseMessage = "Unable to delete records, Please try again later!"
+                };
+            }
+        }
+
+
+
+        [HttpPost("GetEarningData")]
+        public async Task<APIResponse> GetEarningData(SearchFilterModel searchFilter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EarningRepository.GetEarningDataAsync(searchFilter);
+
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data, // should be a list/array
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null, // ✅ Set Data to null (not a string)
+                    ResponseMessage = $"Error: {err.Message}" // still show message in ResponseMessage
                 };
             }
         }
