@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250702182131_LeaveDetails")]
+    partial class LeaveDetails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2843,8 +2846,6 @@ namespace HRMS_Core.Migrations
                     b.HasKey("EmpAttendanceId");
 
                     b.ToTable("EmpAttendanceImport");
-
-
                 });
 
             modelBuilder.Entity("HRMS_Core.SuperAdmin.SuperAdminDetails", b =>
@@ -2882,7 +2883,6 @@ namespace HRMS_Core.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SuperAdminDetails");
-
                 });
 
             modelBuilder.Entity("HRMS_Core.VM.CompanyInformation.vmGetAllCompanyDetails", b =>

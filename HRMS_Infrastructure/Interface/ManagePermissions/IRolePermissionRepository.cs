@@ -17,5 +17,6 @@ namespace HRMS_Infrastructure.Interface.ManagePermissions
         Task<VMCommonResult> UpdateRolePermission(RolePermission permission);
         Task<VMCommonResult> DeleteRolePermission(vmRoleManagePermission delete);
         Task<List<RoleManagePermissionDto>> GetAllRolesWithPermissionByRoleId(vmRoleManagePermission vmRole);
+        Task<List<vmGetEmployeeRolesAndPermissions>> GetEmployeeRolesAndPermissions(int EmployeeId);
     }
 }

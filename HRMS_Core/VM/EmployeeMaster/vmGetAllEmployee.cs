@@ -42,6 +42,7 @@ namespace HRMS_Core.VM.EmployeeMaster
         public int? EmployeeTypeId { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public int? UserPrivilege { get; set; }
+        public int? RoleId { get; set; }
 
         public string? LoginAlias { get; set; }
         public string? Password { get; set; }

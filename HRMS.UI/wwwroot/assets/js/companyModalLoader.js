@@ -1,22 +1,17 @@
-﻿
-
-
-// Public function to load modal partial and company data
-function openCompanyModal(partialUrl, apiUrl, callback) {
+﻿// Public function to load modal partial and company data
+function openCompanyModal(partialUrl, apiUrl, CompanyList, callback) {
     if (!partialUrl || typeof partialUrl !== 'string') {
         console.warn("Invalid partial view base URL.");
         if (typeof callback === 'function') callback(null);
         return;
     }
-
     $.ajax({
         url: partialUrl + '/PartialView/LoadCompanyModal',
         type: 'GET',
         success: function (html) {
             $('#companyModalContainer').html(html);
             $('#companyModal').fadeIn();
-
-            loadCompanyDetails(apiUrl, callback);
+            loadCompanyDetails(CompanyList, callback);
             bindCompanyModalEvents(callback);
         },
         error: function () {
@@ -27,59 +22,54 @@ function openCompanyModal(partialUrl, apiUrl, callback) {
 }
 
 // Load company data and populate boxes
-function loadCompanyDetails(apiUrl, callback) {
-    if (!apiUrl || typeof apiUrl !== 'string') {
-        console.warn("Invalid API base URL.");
-        if (typeof callback === 'function') callback(null);
+function loadCompanyDetails(CompanyList, callback) {
+    debugger
+    $('#companyLoader').show();
+
+    // Get the container element
+    const container = $('.company-box-container');
+    container.hide().empty(); // Clear existing content
+
+    // Check if CompanyList exists and has data
+    if (!CompanyList || CompanyList.length === 0) {
+        console.warn("No company data provided");
+        $('#companyLoader').hide();
+        container.show();
         return;
     }
 
-    $('#companyLoader').show();
-    $('.company-box-container').hide();
+    $.each(CompanyList, function (index, company) {
+        const box = $(`
+            <div class="company-box">
+                ${company.CompanyName || 'Unknown Company'}
+            </div>
+        `);
 
-    $.ajax({
-        url: apiUrl + '/CompanyDetailsAPI/GetAllCompanyDetailsList',
-        type: 'GET',
-        success: function (response) {
-            $('#companyLoader').hide();
-            $('.company-box-container').show();
+        // Store company data using jQuery's data method
+        box.data('company', company);
+        container.append(box);
+    });
 
-            if (response.isSuccess) {
-                const container = $('.company-box-container');
-                container.empty();
+    // Bind click events for company selection
+    $('.company-box').off('click').on('click', function () {
+        debugger
+        const companyData = $(this).data('company');
+        console.log("Company selected:", companyData);
 
-                $.each(response.data, function (index, company) {
-                    const box = $(`
-                        <div class="company-box"  data-company='${JSON.stringify(company)}'>
-                            ${company.companyName}
-                        </div>
-                    `);
-                    container.append(box);
-                });
-
-                // Handle selection
-                $('.company-box').off('click').on('click', function () {
-                    const companyData = $(this).data('company');
-                    console.log("Company clicked:", companyData);
-                    $('#companyModal').fadeOut();
-                    if (typeof callback === 'function') callback(companyData);
-                });
-            } else {
-                console.warn("Company list loaded but returned unsuccessful response.");
-                if (typeof callback === 'function') callback(null);
-            }
-        },
-        error: function (err) {
-            console.error('❌ Error loading company details:', err);
-            $('#companyLoader').hide();
-            $('.company-box-container').show();
-            if (typeof callback === 'function') callback(null);
+        // Hide modal and execute callback
+        $('#companyModal').fadeOut();
+        if (typeof callback === 'function') {
+            callback(companyData);
         }
     });
+
+    $('#companyLoader').hide();
+    container.show();
 }
 
 // Handle close button and prevent accidental modal close
 function bindCompanyModalEvents(callback) {
+    // Handle close button
     $('.close-company').off('click').on('click', function () {
         console.log("Cancel clicked");
         $('#companyModal').fadeOut();
@@ -88,8 +78,10 @@ function bindCompanyModalEvents(callback) {
 
     // Prevent closing modal by clicking backdrop
     $('#companyModal').off('click').on('click', function (e) {
-        if ($(e.target).closest('.modal-content').length === 0) {
-            e.stopPropagation();
+        // Only close if clicking outside modal content
+        if ($(e.target).is('#companyModal')) {
+            $('#companyModal').fadeOut();
+            if (typeof callback === 'function') callback(null);
         }
     });
 }
