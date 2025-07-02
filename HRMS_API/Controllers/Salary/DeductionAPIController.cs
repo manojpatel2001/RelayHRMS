@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.importData;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -126,7 +127,7 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
             catch (Exception err)
-            {                
+            {
                 return new APIResponse
                 {
                     isSuccess = false,
@@ -162,6 +163,33 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
         }
+
+
+        [HttpPost("GetDeductionData")]
+        public async Task<APIResponse> GetDeductionData(SearchFilterModel searchFilter)
+        {
+            try
+            {
+                var data = await _unitOfWork.DeductionRepository.GetDeductionDataAsync(searchFilter);
+
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data, // should be a list/array
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null, // ✅ Set Data to null (not a string)
+                    ResponseMessage = $"Error: {err.Message}" // still show message in ResponseMessage
+                };
+            }
+        }
+
 
     }
 }
