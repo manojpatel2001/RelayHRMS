@@ -49,6 +49,20 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
                 return null;
             }
         }
+        public async Task<List<vmGetAllCompanyDetails>> GetCompanyListByCompanyId(int companyId)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetAllCompanyDetails>()
+                    .FromSqlInterpolated($"EXEC GetByCompanyDetailsId @CompanyId = {companyId}").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<vmGetAllCompanyDetails>();
+            }
+        }
 
         public async Task<VMCommonResult> CreateCompanyDetails(CompanyDetails companyDetails)
         {

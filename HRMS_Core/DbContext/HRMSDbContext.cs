@@ -7,6 +7,7 @@ using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.PrivilegeSetting;
 using HRMS_Core.Salary;
+using HRMS_Core.SuperAdmin;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.CompanyStructure;
@@ -15,6 +16,7 @@ using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Core.VM.PrivilegeSetting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -26,9 +28,8 @@ using EmployeePersonalInfo = HRMS_Core.EmployeeMaster.EmployeePersonalInfo;
 
 namespace HRMS_Core.DbContext
 {
-    public class HRMSDbContext : IdentityDbContext<HRMSUserIdentity, HRMSRoleIdentity, int>
+    public class HRMSDbContext : IdentityDbContext<HRMSUserIdentity, HRMSRoleIdentity,int >
     {
-
         public HRMSDbContext(DbContextOptions<HRMSDbContext> options) : base(options)
         {
 
@@ -75,6 +76,8 @@ namespace HRMS_Core.DbContext
 
 
         public DbSet<HRMSRoleIdentity> HRMSRoleIdentity { get; set; }
+        public DbSet<HRMSUserRole> HRMSUserRoles { get; set; }
+
         public DbSet<Permission> Permission { get; set; }
         public DbSet<RolePermission> RolePermission { get; set; }
         public DbSet<UserPermission> UserPermission { get; set; }
@@ -82,6 +85,7 @@ namespace HRMS_Core.DbContext
        
         public DbSet<Earning> Earning { get; set; }
         public DbSet<Deduction> Deduction { get; set; }
+        public DbSet<SuperAdminDetails> SuperAdminDetails { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -104,6 +108,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllPrivilegeMasterByCompanyId>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllRolesWithPermissionByCompanyId>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllPermissionByRoleId>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetEmployeeRolesAndPermissions>().HasNoKey().ToView(null);
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

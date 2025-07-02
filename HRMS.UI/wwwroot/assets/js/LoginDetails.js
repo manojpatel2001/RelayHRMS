@@ -1,7 +1,5 @@
-﻿const queryString1 = window.location.search;
-// Create a URLSearchParams object
-const urlParams1 = new URLSearchParams(queryString1);
-let Emp_Id = urlParams1.get('EmployeeId');
+﻿
+let Emp_Id = localStorage.getItem("EmployeeId");
 
 $.ajax({
 	type: "GET",

@@ -7,6 +7,7 @@ using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Salary;
+using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.ManagePermissions;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using System;
@@ -59,6 +60,8 @@ namespace HRMS_Infrastructure.Interface
         IPermissionRepository PermissionRepository { get; }
         IRolePermissionRepository RolePermissionRepository { get; }
         IRoleRepository RoleRepository { get; }
+        IHRMSUserRoleRepository HRMSUserRoleRepository { get; }
+        ISuperAdminDetailsRepository SuperAdminDetailsRepository { get; }
 
         void Commit();
         Task CommitAsync();

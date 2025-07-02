@@ -1,14 +1,15 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Infrastructure.Interface;
-using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
+using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Salary;
+using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.CompanyInformation;
 using HRMS_Infrastructure.Repository.CompanyStructure;
 using HRMS_Infrastructure.Repository.Employee;
@@ -18,6 +19,7 @@ using HRMS_Infrastructure.Repository.ManagePermissions;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
 using HRMS_Infrastructure.Repository.Salary;
+using HRMS_Infrastructure.Repository.SuperAdmin;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -72,7 +74,9 @@ namespace HRMS_Infrastructure.Repository
             DeductionRepository = new DeductionRepository(_dbContext);
             PermissionRepository = new PermissionRepository(_dbContext);
             RolePermissionRepository = new RolePermissionRepository(_dbContext);
-            RoleRepository = new RoleRepository(_dbContext); 
+            RoleRepository = new RoleRepository(_dbContext);
+            HRMSUserRoleRepository = new HRMSUserRoleRepository(_dbContext);
+            SuperAdminDetailsRepository = new SuperAdminDetailsRepository(_dbContext); 
 
         }
 
@@ -124,6 +128,8 @@ namespace HRMS_Infrastructure.Repository
         public IPermissionRepository PermissionRepository { get; set; }
         public IRolePermissionRepository RolePermissionRepository { get; set; }
         public IRoleRepository RoleRepository { get; set; }
+        public IHRMSUserRoleRepository HRMSUserRoleRepository { get; set; }
+        public ISuperAdminDetailsRepository SuperAdminDetailsRepository { get; set; }
 
         public void Commit()
         {

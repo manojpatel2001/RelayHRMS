@@ -14,6 +14,7 @@ namespace HRMS_Infrastructure.Interface.CompanyInformation
         Task<List<vmGetAllCompanyDetails>> GetAllCompanyDetails();
         Task<List<vmGetAllCompanyDetailsList>> GetAllCompanyDetailsList();
         Task<vmGetAllCompanyDetails?> GetByCompanyId(int companyId);
+        Task<List<vmGetAllCompanyDetails>> GetCompanyListByCompanyId(int companyId);
         Task<VMCommonResult> CreateCompanyDetails(CompanyDetails companyDetails);
         Task<VMCommonResult> UpdateCompanyDetails(CompanyDetails companyDetails);
         Task<VMCommonResult> DeleteCompanyDetails(DeleteRecordVM deleteRecordVM);

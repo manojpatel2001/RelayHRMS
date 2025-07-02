@@ -5,6 +5,7 @@ using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Repository;
 using HRMS_Utility;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,6 +14,7 @@ namespace HRMS_API.Controllers.ManagePermissions
 
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PermissionAPIController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;

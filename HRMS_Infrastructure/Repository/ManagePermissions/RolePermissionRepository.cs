@@ -151,7 +151,17 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                 return new List<RoleManagePermissionDto>();
             }
         }
-
+        public async Task<List<vmGetEmployeeRolesAndPermissions>> GetEmployeeRolesAndPermissions(int EmployeeId)
+        {
+            try
+            {
+                return await _db.Set<vmGetEmployeeRolesAndPermissions>().FromSqlInterpolated($"EXEC GetEmployeeRolesAndPermissions @EmployeeId={EmployeeId}").ToListAsync();
+            }
+            catch
+            {
+                return new List<vmGetEmployeeRolesAndPermissions>();
+            }
+        }
     }
 
 }
