@@ -2,8 +2,10 @@
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.importData;
 using HRMS_Infrastructure.Interface.Salary;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -22,6 +24,29 @@ namespace HRMS_Infrastructure.Repository.Salary
         {
             _db = db;
         }
+
+        public async Task<List<GetAllEarningData>> GetEarningDataAsync(SearchFilterModel filter)
+        {
+            try
+            {
+                var monthParam = new SqlParameter("@Month", (object?)filter.Month ?? DBNull.Value);
+                var yearParam = new SqlParameter("@Year", (object?)filter.Year ?? DBNull.Value);
+                var empCodeParam = new SqlParameter("@EmpCode", (object?)filter.EmpCode ?? DBNull.Value);
+                var startDateParam = new SqlParameter("@StartDate", (object?)filter.StartDate ?? DBNull.Value);
+                var endDateParam = new SqlParameter("@EndDate", (object?)filter.EndDate ?? DBNull.Value);
+
+                return await _db.Set<GetAllEarningData>()
+              .FromSqlRaw("EXEC [dbo].[GetMonthlyEarningData] @Month, @Year, @EmpCode, @StartDate, @EndDate",
+                  monthParam, yearParam, empCodeParam, startDateParam, endDateParam)
+              .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+
+                return new List<GetAllEarningData>();
+            }
+        }
+
         public async Task<Earning> SoftDelete(DeleteRecordVM DeleteRecord)
         {
             var earning = await _db.Earning.FirstOrDefaultAsync(asd => asd.EarningId == DeleteRecord.Id);
