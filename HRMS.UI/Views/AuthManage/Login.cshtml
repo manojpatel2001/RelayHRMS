@@ -86,10 +86,7 @@
 		<!-- Inject the partial here company bind-->
 		<div id="companyModalContainer"></div>
 
-		<!-- Trigger button -->
-		<button id="companyDrop">
-			Select Company
-		</button>
+		
 
 
 
@@ -112,6 +109,7 @@
 	<!--app JS-->
 	<script src="~/assets/js/app.js"></script>
 	<script src="https://cdn3.devexpress.com/jslib/21.1.5/js/dx.all.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
 	<!--Password show & hide js -->
 	<script>
 		$(document).ready(function () {
@@ -142,6 +140,8 @@
 			// });
 		});
 
+
+
 		$('#btnLogin').click(function() {
 				// Disable the button to prevent multiple submissions
 				$('#btnLogin').prop("disabled", true);
@@ -165,35 +165,49 @@
 					Email: email,
 					Password: password
 				};
-				debugger;
 
 				$.ajax({
-					url: '@UIBaseUrl/AuthManage/Login',
+					url: '@baseUrl/AuthenticationAPI/Login',
 					type: 'POST',
 					contentType: 'application/json',
 					data: JSON.stringify(formData),
 					success: function(response) {
 						if (response.isSuccess) {
-							var tokenResponse = response.data;
-							debugger;
-								if (tokenResponse.email == "admin@demo.com") 
-								{
-									openCompanyModal('@UIBaseUrl', '@baseUrl', function (selectedCompany) {
-										if (selectedCompany) {
-											console.log("Selected company:", selectedCompany);
-											localStorage.removeItem('selectedCompany');
-											localStorage.setItem('selectedCompany', JSON.stringify(selectedCompany));
-											// Save to storage or perform login logic
-											window.location.href = '@UIBaseUrl/Home/index?EmployeeId=' + tokenResponse.id;
+							var token = response.data.token;
 
-										} 
-										else {
-											console.log("❌ No company selected or user canceled.");
-										}
-								    })
+							var decoded = jwt_decode(token);
+							var CompanyList = JSON.parse(decoded.Company);
+							var firstCompany = CompanyList[0];
+							localStorage.setItem("authToken", token);
+							localStorage.setItem("EmployeeId", decoded.Id);
+
+								if (decoded.RoleSlug == "admin"|| decoded.RoleSlug == "super-admin")
+								{
+
+										openCompanyModal('@UIBaseUrl', '@baseUrl', CompanyList, function (selectedCompany) {
+											
+											if (selectedCompany) {
+												console.log("Selected company:", selectedCompany);
+												localStorage.removeItem('selectedCompany');
+												localStorage.setItem('selectedCompany', JSON.stringify(selectedCompany));
+												window.location.href = '@UIBaseUrl/Home/index';
+											} else {
+												//round_error_noti("Company details not found!")
+												window.location.href = '@UIBaseUrl/AuthManage/Login'
+											}
+										});
 								} 
-								else {
-									window.location.href = '@UIBaseUrl/EmployeePanel/Home/index?EmployeeId=' + tokenResponse.id;
+								else if (decoded.RoleSlug == "ess")
+								{
+									localStorage.removeItem('selectedCompany');
+									localStorage.setItem('selectedCompany', JSON.stringify(firstCompany));
+
+									window.location.href = '@UIBaseUrl/EmployeePanel/Home/index';
+
+								}
+								else 
+								{
+									window.location.href = '@UIBaseUrl/AuthManage/Login'
 								}
 								
 								

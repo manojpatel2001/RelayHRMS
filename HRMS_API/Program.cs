@@ -11,21 +11,24 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add services to the container
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-// Configure DbContext for Identity
+// Configure DbContext
 builder.Services.AddDbContext<HRMSDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("HRMSConnection"));
 });
 
-// Add Identity services
-builder.Services.AddIdentity<HRMSUserIdentity, HRMSRoleIdentity>()
-    .AddEntityFrameworkStores<HRMSDbContext>()
-    .AddDefaultTokenProviders();
-
-
+// Configure Identity with custom UserRole
+builder.Services.AddIdentityCore<HRMSUserIdentity>(options =>
+{
+    // Optional: Password rules, Lockout, etc.
+})
+.AddRoles<HRMSRoleIdentity>()
+.AddEntityFrameworkStores<HRMSDbContext>()
+.AddSignInManager()
+.AddDefaultTokenProviders();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -50,24 +53,24 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAllOrigins",
-        builder => builder.AllowAnyOrigin()
-                          .AllowAnyMethod()
-                          .AllowAnyHeader());
+    options.AddPolicy("AllowAllOrigins", policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
 });
 
+// Add Controllers + Swagger
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -76,10 +79,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAllOrigins");
 app.UseStaticFiles();
-
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); // Ensure this is added before UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

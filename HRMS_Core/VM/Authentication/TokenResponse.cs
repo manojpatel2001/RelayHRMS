@@ -12,5 +12,9 @@ namespace HRMS_Core.VM.Authentication
             public string? Token { get; set; }
             public string? Email { get; set; }
             public int? Id { get; set; }
+
+             public string? RoleName { set; get; }
+             public string? Slug{ set; get; }
+             public List<string>? Permissions { set; get; }
         }
 }

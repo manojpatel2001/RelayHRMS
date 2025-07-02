@@ -9,7 +9,7 @@ namespace HRMS_Core.VM.EmployeeMaster
 {
     public class vmUpdateEmployeeProfile
     {
-        public string? EmployeeId {  get; set; }
+        public int? EmployeeId {  get; set; }
         public IFormFile? EmployeeProfileFile {  get; set; }
         public IFormFile? EmployeeSignatureFile {  get; set; }
         public string? EmployeeProfileUrl { get; set; }

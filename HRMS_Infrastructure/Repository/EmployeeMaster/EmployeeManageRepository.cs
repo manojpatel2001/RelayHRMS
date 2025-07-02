@@ -23,11 +23,11 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
         }
 
         
-        public async Task<VMEmpResult> CreateEmployee(vmEmployeeData employee)
+        public async Task<VMCommonResult> CreateEmployee(vmEmployeeData employee)
         {
             try
             {
-                var result = await _db.Set<VMEmpResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
                     EXEC ManageEmployee
                         @Action = {"CREATE"},
                         @FullName = {employee.FullName},
@@ -48,7 +48,6 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @DepartmentId = {employee.DepartmentId},
                         @EmployeeTypeId = {employee.EmployeeTypeId},
                         @DateOfBirth = {employee.DateOfBirth},
-                        @UserPrivilege = {employee.UserPrivilege},
                         @LoginAlias = {employee.LoginAlias},
                         @Password = {employee.Password},
                         @ReportingManager = {employee.ReportingManager},
@@ -72,19 +71,19 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @CreatedBy = {employee.CreatedBy}
                 ").ToListAsync();
 
-                return result.FirstOrDefault() ?? new VMEmpResult { Emp_Id = null };
+                return result.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
             catch (Exception)
             {
-                return new VMEmpResult { Emp_Id = null };
+                return new VMCommonResult { Id = 0 };
             }
         }
 
-        public async Task<VMEmpResult> UpdateEmployee(vmEmployeeData employee)
+        public async Task<VMCommonResult> UpdateEmployee(vmEmployeeData employee)
         {
             try
             {
-                var result = await _db.Set<VMEmpResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
                     EXEC ManageEmployee
                         @Action = {"UPDATE"},
                         @Id = {employee.Id},
@@ -106,7 +105,6 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @DepartmentId = {employee.DepartmentId},
                         @EmployeeTypeId = {employee.EmployeeTypeId},
                         @DateOfBirth = {employee.DateOfBirth},
-                        @UserPrivilege = {employee.UserPrivilege},
                         @LoginAlias = {employee.LoginAlias},
                         @Password = {employee.Password},
                         @ReportingManager = {employee.ReportingManager},
@@ -127,19 +125,19 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @UpdatedBy = {employee.UpdatedBy}
                 ").ToListAsync();
 
-                return result.FirstOrDefault() ?? new VMEmpResult { Emp_Id = null };
+                return result.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
             catch (Exception)
             {
-                return new VMEmpResult { Emp_Id=null};
+                return new VMCommonResult { Id = 0 };
             }
         }
 
-        public async Task<VMEmpResult> DeleteEmployee(DeleteRecordVM deleteRecord)
+        public async Task<VMCommonResult> DeleteEmployee(DeleteRecordVM deleteRecord)
         {
             try
             {
-                var result = await _db.Set<VMEmpResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
                     EXEC ManageEmployee
                         @Action = {"DELETE"},
                         @Id = {deleteRecord.emp_id},
@@ -147,11 +145,11 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @DeletedBy = {deleteRecord.DeletedBy}
                 ").ToListAsync();
 
-                return result.FirstOrDefault() ?? new VMEmpResult { Emp_Id = null };
+                return result.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
             catch (Exception)
             {
-                return new VMEmpResult { Emp_Id=null };
+                return new VMCommonResult { Id = 0 };
             }
         }
 
@@ -183,7 +181,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async Task<vmGetAllEmployee?> GetEmployeeById(string Id)
+        public async Task<vmGetAllEmployee?> GetEmployeeById(int Id)
         {
             try
             {
@@ -199,22 +197,22 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async  Task<VMEmpResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model)
+        public async  Task<VMCommonResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model)
         {
             try
             {
-                var result = await _db.Set<VMEmpResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
                     EXEC UpdateEmployeeProfileAndSignature
                         @Id = {model.EmployeeId},
                         @EmployeeProfileUrl = {model.EmployeeProfileUrl},
                         @EmployeeSignatureUrl = {model.EmployeeSignatureUrl}
                 ").ToListAsync();
 
-                return result.FirstOrDefault() ?? new VMEmpResult { Emp_Id = null };
+                return result.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
             catch (Exception)
             {
-                return new VMEmpResult { Emp_Id = null };
+                return new VMCommonResult { Id = 0 };
             }
         }
 

@@ -102,7 +102,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 // Map vmEmployeeData to HRMSUserIdentity
                 if (string.IsNullOrEmpty(employeeData.Password))
                 {
-                    employeeData.Password = "Employee@1";
+                    employeeData.Password = "Hrms@123";
                 }
                 var employee = new HRMSUserIdentity
                 {
@@ -148,7 +148,16 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
                 if (result.Succeeded)
                 {
-                   return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
+                    var userRole = new HRMSUserRole
+                    {
+                        EmployeeId = employee.Id,
+                        CompanyId= employee.CompanyId,
+                        RoleId = (int)employeeData.RoleId,
+                        CreatedBy= employeeData.CreatedBy,
+                        CreatedDate=DateTime.UtcNow,
+                    };
+                      var resultUserRole=await _unitOfWork.HRMSUserRoleRepository.CreateUserRole(userRole);
+                    return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
 
                 }
                 return new APIResponse { isSuccess = false,ResponseMessage = "Unable to create employee, Please try again later!" };
@@ -222,13 +231,30 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 }
                 else
                 {
-                    employeeData.Password = "Employee@1";
+                    employeeData.Password = "Hrms@123";
                 }
                 // Update other user properties
                 var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployee(employeeData);
 
-                if (result.Emp_Id != null)
+                if (result.Id >0)
                 {
+                    var userRole = new HRMSUserRole
+                    {
+                        EmployeeId = employeeData.Id,
+                        CompanyId = employeeData.CompanyId,
+                        RoleId = (int)employeeData.RoleId,
+                        CreatedBy = employeeData.CreatedBy,
+                        CreatedDate = DateTime.UtcNow,
+                    };
+                    var checkExist = await _unitOfWork.HRMSUserRoleRepository.GetAsync(x => x.EmployeeId == employeeData.Id && x.IsEnabled == true && x.IsDeleted == false);
+                    if (checkExist == null)
+                    {
+                        var resultUserRole = await _unitOfWork.HRMSUserRoleRepository.CreateUserRole(userRole);
+                    }
+                    else
+                    {
+                        var resultUserRole = await _unitOfWork.HRMSUserRoleRepository.UpdateUserRole(userRole);
+                    }
                     // Additional information
                     if (updateEmployee.EmployeePersonalInfo != null)
                     {
@@ -266,7 +292,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     }
 
 
-                    var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(result.Emp_Id);
+                    var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)result.Id);
                     return new APIResponse { isSuccess = true, Data = updatedEmployee, ResponseMessage = "Employee has been updated successfully" };
                 }
 
@@ -356,7 +382,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 model.DeletedDate = DateTime.UtcNow;
                 var result = await _unitOfWork.EmployeeManageRepository.DeleteEmployee(model);
 
-                if (result.Emp_Id !=null)
+                if (result.Id !=null)
                     return new APIResponse { isSuccess = true, ResponseMessage = "The record has been deleted successfully." };
 
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete city. Please try again later." };
@@ -384,7 +410,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
         [HttpGet("GetEmployeeById/{employeeId}")]
-        public async Task<APIResponse> GetEmployeeById( string employeeId)
+        public async Task<APIResponse> GetEmployeeById( int employeeId)
         {
             try
             {
@@ -407,7 +433,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
             {
                 if (model == null || model.EmployeeId == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Company details cannot be null." };
-                var check = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(model.EmployeeId);
+                var check = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)model.EmployeeId);
                 if (check == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid company record." };
 
@@ -456,9 +482,9 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
                 var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployeeProfileAndSignature(model);
 
-                if (result.Emp_Id != null)
+                if (result.Id>0)
                 {
-                    var updatedProfile = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(result.Emp_Id);
+                    var updatedProfile = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)result.Id);
                     return new APIResponse { isSuccess = true, Data= updatedProfile,ResponseMessage = "Employee profile has been updated successfully." };
                 }
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update employee profile. Please try again later." };
