@@ -12,6 +12,7 @@ using Microsoft.Identity.Client;
 using OfficeOpenXml;
 using System.Data;
 using System.Data.OleDb;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 
@@ -208,6 +209,10 @@ public class ImportDataController : ControllerBase
                 expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year","PF", "ESIC", "PT", "Insurance", "LWF","TDS" };
                 break;
 
+            case "Attendance":
+                expectedHeaders = new List<string> { "Alpha Emp Code", "Month", "Year", "1", "2", "3", "4", "5", "6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31" };
+                break;
+
             default:
                 error = $"No template defined for type '{type}'";
                 return false;
@@ -342,7 +347,7 @@ public class ImportDataController : ControllerBase
            && string.IsNullOrWhiteSpace(Country))
                 return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
             var state = await _unitOfWork.StateRepository.GetAsync(x => x.StateName.ToLower() == stateName.ToLower() && x.IsEnabled == true && x.IsDeleted != true);
-
+       
             if (state == null)
             {
                 return (false, false, true, CreateErrorRow(rowIndex, "Invalid State", "", "", type));
@@ -495,9 +500,57 @@ public class ImportDataController : ControllerBase
             });
             return (true, false, false, null);
         }
+        else if (type == "Attendance")
+        {
+            string empStr = row[0]?.ToString()?.Trim();
+            string monthStr = row[1]?.ToString()?.Trim();
+            string yearStr = row[2]?.ToString()?.Trim();
+
+            if (string.IsNullOrWhiteSpace(empStr) &&
+                string.IsNullOrWhiteSpace(monthStr) &&
+                string.IsNullOrWhiteSpace(yearStr))
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
+            }
+
+            if (!int.TryParse(monthStr, out int month))
+            { return (false, false, true, CreateErrorRow(rowIndex, "Invalid Month", monthStr, "Month must be a valid number", type)); }
+            if (string.IsNullOrWhiteSpace(yearStr) || !int.TryParse(yearStr, out int year))
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Year", yearStr, "Year must be a valid number", type));
+            }
+
+            var Epl = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.EmployeeCode == empStr && x.IsEnabled == true && x.IsDeleted != true);
+            if (Epl == null)
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Emp_Code", empStr, "Employee not found or inactive", type));
+            }
+
+            List<string> dailyAttendance = new();
+            for (int i = 4; i < 34; i++) // 4 to 33 = 30 days
+            {
+                string val = row[i]?.ToString()?.Trim().ToUpper() ?? "";
+                dailyAttendance.Add(val);
+            }
+
+            string attDetail = string.Join(",", dailyAttendance);
+
+            await _unitOfWork.EmpAttendanceRepository.AddAsync(new EmpAttendanceImport
+            {
+                Emp_ID = Epl.Id,
+                Month = month,
+                Year = year,
+                Att_Detail = attDetail,
+                IsEnabled = true,
+                IsDeleted = false
+            });
+
+            return (true, false, false, null);
+        }
 
 
-            return (false, false, false, CreateErrorRow(rowIndex, "Unknown Type", "", $"Unknown master type: {type}", type));
+
+        return (false, false, false, CreateErrorRow(rowIndex, "Unknown Type", "", $"Unknown master type: {type}", type));
     }
     private object CreateErrorRow(int rowNumber, string errorType, string value, string message, string section)
     {

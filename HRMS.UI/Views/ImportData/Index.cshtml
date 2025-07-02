@@ -1,12 +1,19 @@
 ﻿@{
 	ViewData["Title"] = "Import Data";
 	Layout = "~/Views/Shared/_mainLayout.cshtml";
-	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 } 
 
   <title>Search Panel</title>
   <!-- jQuery + Bootstrap + SweetAlert -->
+
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- DevExtreme -->
+<link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/23.2.4/css/dx.light.css" />
+<script src="https://cdn3.devexpress.com/jslib/23.2.4/js/dx.all.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 
   <style>
@@ -141,24 +148,26 @@
   <input type="text" id="endDate" class="form-control form-control-sm" />
 </div>
 
-      <div class="col-md-3" id="monthField">
-        <label class="form-label-fixed">Month<span class="text-danger">*</span>:</label>
-        <select class="form-select form-select-sm" id="month">
-          <option value="">--Select--</option>
-          <option>January</option>
-          <option>February</option>
-          <option>March</option>
-          <option>April</option>
-          <option>May</option>
-          <option>June</option>
-          <option>July</option>
-          <option>August</option>
-          <option>September</option>
-          <option>October</option>
-          <option>November</option>
-          <option>December</option>
-        </select>
-      </div>
+
+        <div class="col-md-3" id="monthField">
+            <label class="form-label-fixed">Month<span class="text-danger">*</span>:</label>
+            <select class="form-select form-select-sm" id="month">
+                <option value="">--Select--</option>
+                <option value="1">Jan</option>
+                <option value="2">Feb</option>
+                <option value="3">Mar</option>
+                <option value="4">Apr</option>
+                <option value="5">May</option>
+                <option value="6">Jun</option>
+                <option value="7">Jul</option>
+                <option value="8">Aug</option>
+                <option value="9">Sep</option>
+                <option value="10">Oct</option>
+                <option value="11">Nov</option>
+                <option value="12">Dec</option>
+            </select>
+        </div>
+
       <div class="col-md-3" id="yearField">
         <label class="form-label-fixed">Year<span class="text-danger">*</span>:</label>
         <select class="form-select form-select-sm" id="year">
@@ -220,7 +229,7 @@
       </div>
       <div class="col-md-3">
         <input type="radio" name="type" id="r4">
-        <label for="r4" class="ms-1">Monthly Dedcution</label>
+        <label for="r4" class="ms-1">Monthly Deduction</label>
       </div>
 
     </div>
@@ -237,6 +246,8 @@
     <div id="dxRadioGrid">
     </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 
 <script>
     $(document).ready(function () {
@@ -273,7 +284,6 @@
             $('#selectedSectionHeading').removeClass('d-none');
             $('#gridSection').removeClass('d-none');
 
-            // ✅ Enable Allowance dropdown only when Allowance radio selected
             if ($(this).attr('id') === 'r1') {
                 $('#allowance').prop('disabled', false);
             } else {
@@ -297,10 +307,95 @@
         });
 
  
-        $('#r1').prop('checked', true).trigger('change');
+        $('#r1').prop('checked', true).trigger('change'); 
+
+       $('#btnGo').click(function () {
+        const selectedType = $('input[name="type"]:checked').attr('id');
+
+        if (selectedType === 'r4') { // Monthly Deduction radio selected
+            callMonthlyDeductionAPI();
+        }
     });
+
+        });
+
+function callMonthlyDeductionAPI() {
+    const isBetween = $('#chkBetween').is(':checked');
+
+    const data = {
+        month: isBetween ? null : parseInt($('#month').val()) || null,
+        year: isBetween ? null : parseInt($('#year').val()) || null,
+        empCode: $('#empCode').val(),
+        startDate: isBetween ? $('#startDate').val() : null,
+        endDate: isBetween ? $('#endDate').val() : null,
+        isBetween: isBetween
+    };
+
+    console.log("Sending data to API:", data);
+
+    $.ajax({
+        url: '@(baseDomainUrl + "/api/DeductionAPI/GetDeductionData")',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function (response) {
+            console.log("Response received:", response);
+
+            if (response?.isSuccess && Array.isArray(response.data) && response.data.length > 0) {
+                $('#gridSection').removeClass('d-none');
+
+                const gridInstance = $("#dxRadioGrid").dxDataGrid("instance");
+                if (gridInstance) {
+                    gridInstance.option("dataSource", response.data);
+                } else {
+                    $("#dxRadioGrid").dxDataGrid({
+                        dataSource: response.data,
+                        height: 400,
+                        showBorders: true,
+                        paging: { pageSize: 10 },
+                        pager: {
+                            showPageSizeSelector: true,
+                            allowedPageSizes: [10, 25, 50, 100],
+                            showInfo: true
+                        },
+                        columns: [
+                            { dataField: "employeeCode", caption: "Employee Code", width: 120 },
+                            { dataField: "fullName", caption: "Full Name", width: 180 },
+                            { dataField: "month", caption: "Month", width: 70 },
+                            { dataField: "year", caption: "Year", width: 70 },
+                            { dataField: "pf", caption: "PF", format: "fixedPoint", width: 100 },
+                            { dataField: "esic", caption: "ESIC", format: "fixedPoint", width: 100 },
+                            { dataField: "pt", caption: "PT", format: "fixedPoint", width: 100 },
+                            { dataField: "insurance", caption: "Insurance", format: "fixedPoint", width: 100 },
+                            { dataField: "lwf", caption: "LWF", format: "fixedPoint", width: 100 },
+                            { dataField: "tds", caption: "TDS", format: "fixedPoint", width: 100 }
+                        ],
+                        headerFilter: { visible: true },
+                        filterRow: { visible: true, applyFilter: "auto" },
+                        searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+                        allowColumnReordering: true,
+                        allowColumnResizing: true,
+                        columnsAutoWidth: true
+                    });
+                }
+            } else {
+                Swal.fire("No Data", "No records found", "info");
+                $('#dxRadioGrid').html('');
+                $('#gridSection').addClass('d-none');
+            }
+        },
+        error: function (xhr) {
+            let errMsg = "Failed to fetch Monthly Deduction data";
+            if (xhr.responseJSON?.ResponseMessage) {
+                errMsg = xhr.responseJSON.ResponseMessage;
+            }
+            console.log("AJAX error:", xhr.responseText);
+            Swal.fire("Error", errMsg, "error");
+        }
+    });
+}
+
+
+
 </script>
-
-
-
 

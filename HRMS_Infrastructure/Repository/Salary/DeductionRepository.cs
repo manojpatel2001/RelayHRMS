@@ -1,7 +1,9 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.importData;
 using HRMS_Infrastructure.Interface.Salary;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -18,6 +20,28 @@ namespace HRMS_Infrastructure.Repository.Salary
         public DeductionRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
+        }
+
+        public async Task<List<GetAllDeductionData>> GetDeductionDataAsync(SearchFilterModel filter)
+        {
+            try
+            {
+                var monthParam = new SqlParameter("@Month", (object?)filter.Month ?? DBNull.Value);
+                var yearParam = new SqlParameter("@Year", (object?)filter.Year ?? DBNull.Value);
+                var empCodeParam = new SqlParameter("@EmpCode", (object?)filter.EmpCode ?? DBNull.Value);
+                var startDateParam = new SqlParameter("@StartDate", (object?)filter.StartDate ?? DBNull.Value);
+                var endDateParam = new SqlParameter("@EndDate", (object?)filter.EndDate ?? DBNull.Value);
+
+                return await _db.Set<GetAllDeductionData>()
+              .FromSqlRaw("EXEC [dbo].[GetMonthlyDeductionData] @Month, @Year, @EmpCode, @StartDate, @EndDate",
+                  monthParam, yearParam, empCodeParam, startDateParam, endDateParam)
+              .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+
+                return new List<GetAllDeductionData>();
+            }
         }
 
         public async Task<Deduction> SoftDelete(DeleteRecordVM DeleteRecord)

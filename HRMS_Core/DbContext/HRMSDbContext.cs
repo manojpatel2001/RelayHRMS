@@ -14,6 +14,7 @@ using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.CompanyStructure;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Core.VM.importData;
 using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Core.VM.OtherMaster;
@@ -26,6 +27,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static HRMS_Core.VM.importData.GetAllDeductionData;
 using EmployeePersonalInfo = HRMS_Core.EmployeeMaster.EmployeePersonalInfo;
 
 namespace HRMS_Core.DbContext
@@ -119,6 +121,8 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetEmployeeRolesAndPermissions>().HasNoKey().ToView(null);
 
             modelBuilder.Entity<VMInOutRecord>().HasNoKey().ToView(null);
+            modelBuilder.Entity<SearchFilterModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetAllDeductionData>().HasNoKey().ToView(null);
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
