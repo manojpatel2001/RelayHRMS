@@ -65,9 +65,8 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                     @RoleId = {role.Id},
                     @Name = {role.Name},
                     @Description = {role.Description},
-                    @Slug = {role.Slug},
-                    @IsDeleted = {role.IsDeleted},
-                    @IsEnabled = {role.IsEnabled}
+                    @Slug = {role.Slug}
+                    
             ").ToListAsync();
 
                 return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };

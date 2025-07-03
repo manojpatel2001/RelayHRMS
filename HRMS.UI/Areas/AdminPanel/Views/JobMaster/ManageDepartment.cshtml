@@ -1,0 +1,447 @@
+﻿@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "ManageDepartment";
+	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+
+
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+<div class="card">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row">
+			<div class="col-6">
+				<h6 class="pt-2 mb-0">
+					Manage Department
+				</h6>
+			</div>
+
+			<div class="col-6 d-flex justify-content-end align-items-center">
+				<div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
+					<i class="fadeIn animated bx bx-refresh" id="getData" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Refresh Data"></i>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card-body">
+		<div class="row">
+			<div class="col-md-12 btn-heading-title">
+				<div class="input-group mb-2">
+					<button id="addDepartment"
+							type="button"
+							class="btn mr-1 rounded-1"
+							style="background-color:#2395c6; color:white;">
+						Add Department
+					</button>
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-12">
+				<div class="form-group">
+					<div class="rowCount" id="rowCount1"></div>
+					<div id="gridContainer">
+						<div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
+							<div class="spinner-border text-primary" role="status">
+								<span class="visually-hidden">Loading...</span>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="modal fade" id="addDepartmentModel" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-xl">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel">Create Department</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font">
+				<div class="row">
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<input type="text"
+								   class="form-control floating-input"
+								   placeholder="Department Name"
+								   id="txtDepartmentName" />
+							<span id="spnDepartmentName" style="color:red; display:none;">Please Enter Department Name</span>
+							<label class="floating-label" for="txtDepartmentName">Department Name</label>
+
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<input type="text"
+								   class="form-control floating-input"
+								   placeholder="Department Code"
+								   id="txtDepartmentCode" />
+							<label class="floating-label" for="txtDepartmentCode">Department Code</label>
+
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<input type="number"
+								   value="0"
+								   class="form-control floating-input"
+								   placeholder="Sorting No"
+								   id="txtSortingNo" />
+							<label class="floating-label" for="txtSortingNo">Sorting No</label>
+
+						</div>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<input type="number"
+								   class="form-control floating-input"
+								   placeholder="Minimum Wages"
+								   id="txtMinimumWages" />
+							<label class="floating-label" for="txtMinimumWages">Minimum Wages</label>
+
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="form-group mt-3 position-relative">
+							<label>OJT Applicable</label>
+							<input type="checkbox"
+								   class="form-control-input"
+								   placeholder=""
+								   id="txtOJTApplicable" />
+						</div>
+
+					</div>
+					<div class="col-md-3">
+						<div class="form-group mt-3 position-relative">
+							<label>Active</label>
+							<input type="checkbox"
+								   class="form-control-input"
+								   placeholder=""
+								   id="txtActive" />
+						</div>
+
+					</div>
+				</div>
+
+			</div>
+			<div class="modal-footer btn-heading-title">
+				<button type="button" class="btn btn-primary" id="btnCreateDepartment" style="background-color:#2395c6; color:white;">Create</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script>
+
+	$(() => {
+		loadDataTable();
+	});
+
+
+	function loadDataTable() {
+
+		$.ajax({
+			type: "GET",
+			url: '@baseUrl/DepartmentAPI/GetAllDepartment',
+			success: function (data) {
+				$("#gridContainer").dxDataGrid({
+					dataSource: data.data,
+					columns: [
+
+						{ dataField: 'departmentName', caption: 'Department Name', alignment: 'center', dataType: 'string', format: '' },
+						{ dataField: 'code', caption: 'Department Code', alignment: 'center', dataType: 'string', format: '' },
+						{ dataField: 'sortingNo', caption: 'Sorting No', alignment: 'center', dataType: 'string', format: '' },
+						{
+							dataField: 'isEnabled',
+							caption: 'Status',
+							alignment: 'center',
+							dataType: 'string',
+							calculateCellValue: function (data) {
+								return data.isEnabled ? "Active" : "Inactive"; // Based on isEnabled field value
+							}
+						},
+
+						{
+							dataField: '',
+							caption: '',
+							alignment: 'center',
+							dataType: 'string',
+							format: '',
+							type: 'buttons',
+							width: '50px',
+							cellTemplate: function (container, options) {
+
+								var buttonElement = $('<div class="d-flex order-actions">' +
+									'<a href="javascript:;" class="edit-action" title="Departmnet">' +
+									'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+									'<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+									'</svg>' +
+									'</a>' +
+									'</div>')
+									.on('dxclick', function () {
+										updateDepartment(options.data);
+									}).appendTo(container);
+
+								var svgElement = buttonElement.find('svg');  // Accessing the svg element directly
+
+								svgElement.attr('title', 'Update Department');
+							}
+						},
+
+						{
+							dataField: '',
+							caption: '',
+							alignment: 'center',
+							dataType: 'string',
+							format: '',
+							type: 'buttons',
+							width: '50px',
+							cellTemplate: function (container, options) {
+
+								var buttonElement = $('<div class="d-flex order-actions">' +
+									'<a href="javascript:;" class="delete-action" title="Department">' +
+									'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+									'<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+									'</svg>' +
+									'</a>' +
+									'</div>')
+									.on('dxclick', function () {
+										deleteDepartment(options.data);
+									}).appendTo(container);
+
+								var svgElement = buttonElement.find('svg');  // Accessing the svg element directly
+
+								svgElement.attr('title', 'Delete Department');
+							}
+						}
+
+					],
+					columnsAutoWidth: true,
+					wordWrapEnabled: false,
+					rowAlternationEnabled: false,
+					showBorders: true,
+					grouping: { autoExpandAll: true },
+					paging: { pageSize: 10 },
+					pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+					headerFilter: { visible: true },
+					filterRow: { visible: true, applyFilter: "auto" },
+					allowColumnResizing: true,
+					groupPanel: { visible: true },
+					searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+					customizeColumns: function (columns) {
+						columns.forEach(function (column) {
+							if (column.dataField === 'enrolled') {
+								// Add editor options for date
+								column.editorOptions = {
+									type: 'date',
+									onKeyDown: function (e) {
+										var key = e.event.key;
+										// Allow only numbers (0-9), backspace (8), delete (46), and common date separators like '-' and '/'
+										if (!/^[0-9\/\-]$/.test(key) && e.event.keyCode !== 8 && e.event.keyCode !== 46) {
+											e.event.preventDefault();  // Prevent the default behavior for invalid keys
+										}
+									},
+									onInput: function (e) {
+										// Automatically format or handle input if necessary
+										let value = e.component.option('value');
+										// Add additional formatting logic if needed
+									}
+								};
+							}
+						});
+					},
+					allowColumnReordering: true,
+					columnFixing: { enabled: false },
+					onExporting: function (e) {
+						e.component.beginUpdate();
+						e.component.columnOption("Button", "visible", false);
+						e.component.columnOption("Add", "visible", false);
+					},
+					onExported: function (e) {
+						e.component.columnOption("Button", "visible", true);
+						e.component.columnOption("Add", "visible", true);
+						e.component.endUpdate();
+					},
+					onCellPrepared: function (e) {
+						if (e.rowType === "header") {
+							e.cellElement.css("text-align", "center");
+							e.cellElement.css("font-weight", "bold");
+						}
+						if (e.rowType === "group") {
+							e.cellElement.css("text-align", "center");
+						}
+					},
+					onContentReady(e) {
+						jQuery('.rowCount').html('Total Records: ' + jQuery("#gridContainer").dxDataGrid('instance').totalCount());
+					}
+				}).dxDataGrid('instance');
+			}
+		});
+	}
+
+
+	$("#addDepartment").click(() => {
+		$("#addDepartmentModel").modal('show');
+		$("#btnCreateDepartment").text("Save");
+
+		$("#spnDepartmentName").hide();
+
+
+
+		$("#txtDepartmentName").val("");
+		$("#txtDepartmentCode").val("");
+		$("#txtSortingNo").val("0");
+		$("#txtMinimumWages").val("");
+		$("#txtActive").prop("checked", false);  // Uncheck the checkbox
+		$("#txtOJTApplicable").prop("checked", false);  // Uncheck the checkbox
+		departmentIdIdUpdate = 0;
+	});
+
+
+	$("#btnCreateDepartment").click(() => {
+
+		var txtDepartmentName = $("#txtDepartmentName").val();
+		var txtDepartmentCode = $("#txtDepartmentCode").val();
+		var txtSortingNo = $("#txtSortingNo").val() || 0;
+		var txtMinimumWages = $("#txtMinimumWages").val() || 0;
+		var txtActive = $("#txtActive").prop("checked");
+		var txtOJTApplicable = $("#txtOJTApplicable").prop("checked");
+
+
+		// Flag to track validation status
+		var isValid = true;
+
+		// Validate txtBranchName
+		if (!txtDepartmentName) {
+			$("#spnDepartmentName").show();
+			isValid = false;
+		} else {
+			$("#spnDepartmentName").hide();
+		}
+
+
+		if (departmentIdIdUpdate == 0) {
+			var department = {
+				DepartmentId: departmentIdIdUpdate, DepartmentName: txtDepartmentName, Code: txtDepartmentCode, SortingNo: txtSortingNo,
+				MinimumWages: txtMinimumWages, OJTApplicable: txtOJTApplicable, IsEnabled: txtActive
+			}
+
+		} else {
+			var department = {
+				DepartmentId: departmentIdIdUpdate, DepartmentName: txtDepartmentName, Code: txtDepartmentCode, SortingNo: txtSortingNo,
+				MinimumWages: txtMinimumWages, OJTApplicable: txtOJTApplicable, IsEnabled: txtActive
+			}
+
+		}
+
+		if (isValid) {
+			$.ajax({
+				url: '@baseUrl/DepartmentAPI/CreateDepartment',
+				type: "POST",
+				data: JSON.stringify(department),
+				dataType: "json",
+				contentType: 'application/json',
+				success: function (data) {
+					loadDataTable();
+					$("#addDepartmentModel").modal('hide');
+					round_success_noti('Department details saved');
+
+					$("#txtDepartmentName").val("");
+					$("#txtDepartmentCode").val("");
+					$("#txtSortingNo").val("");
+					$("#txtMinimumWages").val("");
+					$("#txtActive").prop("checked", false);  // Uncheck the checkbox
+					$("#txtOJTApplicable").prop("checked", false);  // Uncheck the checkbox
+
+
+
+					departmentIdIdUpdate = 0;
+				},
+				error: function (xhr) {
+					round_error_noti('Unable to store details');
+				}
+			});
+
+		}
+
+
+	});
+
+	var departmentIdIdUpdate = 0;
+	function updateDepartment(data) {
+
+
+		$("#btnCreateDepartment").text("Update");
+
+		departmentIdIdUpdate = data.departmentId;
+
+
+		$("#txtDepartmentName").val(data.departmentName);
+		$("#txtDepartmentCode").val(data.code);
+		$("#txtSortingNo").val(data.sortingNo);
+		$("#txtMinimumWages").val(data.minimumWages);
+		$("#txtActive").prop("checked", false);  // Uncheck the checkbox ----- value set data.ojtApplicable
+		$("#txtOJTApplicable").prop("checked", false);  // Uncheck the checkbox
+		if (data.ojtApplicable) {
+			$("#txtOJTApplicable").prop("checked", true);  // Check the checkbox if data.ojtApplicable is true
+		} else {
+			$("#txtOJTApplicable").prop("checked", false);  // Uncheck the checkbox if data.ojtApplicable is false or undefined
+		}
+		if (data.isEnabled) {
+			$("#txtActive").prop("checked", true);  // Check the checkbox if data.ojtApplicable is true
+		} else {
+			$("#txtActive").prop("checked", false);  // Uncheck the checkbox if data.ojtApplicable is false or undefined
+		}
+
+		// Show the modal
+		$("#addDepartmentModel").modal('show');
+	}
+
+
+
+	function deleteDepartment(data) {
+
+		// Show confirmation dialog
+		var isConfirmed = confirm("Are you sure you want to delete this department?");
+
+		if (isConfirmed) {
+			var deleteRecord = {
+				Id: data.departmentId,
+				DeletedBy: ""  // You may want to pass the current user's ID or name here.
+			};
+
+			$.ajax({
+				url: '@baseUrl/DepartmentAPI/Delete',
+				type: "DELETE",
+				data: JSON.stringify(deleteRecord),
+				dataType: "json",
+				contentType: 'application/json',
+				success: function (response) {
+					// Handle success: reload the table to reflect the changes
+					loadDataTable();
+
+					// Optionally, show a success message or notification to the user
+					round_success_noti("Department deleted successfully.");
+				},
+				error: function (xhr, status, error) {
+					// Handle error: provide feedback to the user
+					round_error_noti("An error occurred while deleting the branch. Please try again.");
+				}
+			});
+		} else {
+			// If the user cancels the confirmation, do nothing
+			round_error_noti("Department deletion was cancelled.");
+		}
+	}
+
+
+</script>
+

@@ -109,9 +109,9 @@ namespace HRMS_API.Controllers.ManagePermissions
                     Description = vmRole.Description,
                     Slug = vmRole.Slug,
                 };
-                var result = await _roleManager.UpdateAsync(newRoleData);
+                var result = await  _unitOfWork.RoleRepository.UpdateRole(newRoleData);
 
-                if (!result.Succeeded)
+                if (result.Id==0)
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Unable add role,Please try again" };
 
