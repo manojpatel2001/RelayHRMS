@@ -5,10 +5,12 @@ function openCompanyModal(partialUrl, apiUrl, CompanyList, callback) {
         if (typeof callback === 'function') callback(null);
         return;
     }
+    debugger
     $.ajax({
-        url: partialUrl + '/PartialView/LoadCompanyModal',
+        url: partialUrl + '/AdminPanel/PartialView/LoadCompanyModal',
         type: 'GET',
         success: function (html) {
+            debugger
             $('#companyModalContainer').html(html);
             $('#companyModal').fadeIn();
             loadCompanyDetails(CompanyList, callback);
