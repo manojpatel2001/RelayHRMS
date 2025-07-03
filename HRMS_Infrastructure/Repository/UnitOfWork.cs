@@ -5,6 +5,7 @@ using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
+using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
@@ -135,6 +136,11 @@ namespace HRMS_Infrastructure.Repository
 
         public IEmpAttendanceRepository EmpAttendanceRepository { get; set; }
 
+        public ILeaveDetailsRepository LeaveDetailsRepository { get; set; }
+
+        public ILeaveMasterRepository LeaveMasterRepository { get; set; }
+
+        public ICompOffDetailsRepository CompOffDetailsRepository { get; set; }
 
         public void Commit()
         {
