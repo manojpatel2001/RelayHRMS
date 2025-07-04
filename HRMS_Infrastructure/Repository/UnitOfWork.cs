@@ -16,6 +16,7 @@ using HRMS_Infrastructure.Repository.CompanyStructure;
 using HRMS_Infrastructure.Repository.Employee;
 using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
+using HRMS_Infrastructure.Repository.Leave;
 using HRMS_Infrastructure.Repository.ManagePermissions;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
@@ -80,6 +81,9 @@ namespace HRMS_Infrastructure.Repository
             SuperAdminDetailsRepository = new SuperAdminDetailsRepository(_dbContext); 
             RoleRepository = new RoleRepository(_dbContext); 
             EmpAttendanceRepository = new EmpAttendanceRepository(_dbContext);
+            CompOffDetailsRepository = new CompOffDetailsRepository(_dbContext);
+            LeaveMasterRepository = new LeaveMasterRepository(_dbContext);
+            LeaveDetailsRepository = new LeaveDetailsRepository(_dbContext);
 
         }
 
