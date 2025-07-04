@@ -34,11 +34,12 @@ namespace HRMS_Infrastructure.Repository.Leave
                 new SqlParameter("@Extra_Work_Day", model.Extra_Work_Day),
                 new SqlParameter("@Extra_Work_Hours", model.Extra_Work_Hours ?? (object)DBNull.Value),
                 new SqlParameter("@Application_Status", model.Application_Status ?? (object)DBNull.Value),
-                new SqlParameter("@Comp_Off_Type", model.Comp_Off_Type ?? (object)DBNull.Value)
+                new SqlParameter("@Comp_Off_Type", model.Comp_Off_Type ?? (object)DBNull.Value),
+                new SqlParameter("@CreatedBy", model.CreatedBy ?? (object)DBNull.Value)
             };
 
                 await _db.Database.ExecuteSqlRawAsync(
-                    "EXEC usp_InsertCompOffDetails @Cmp_Id, @Emp_Id, @Rep_Person_Id, @ApplicationDate, @Extra_Work_Day, @Extra_Work_Hours, @Application_Status, @Comp_Off_Type",
+                    "EXEC usp_InsertCompOffDetails @Cmp_Id, @Emp_Id, @Rep_Person_Id, @ApplicationDate, @Extra_Work_Day, @Extra_Work_Hours, @Application_Status, @Comp_Off_Type,@CreatedBy",
                     parameters
                 );
 
@@ -49,5 +50,32 @@ namespace HRMS_Infrastructure.Repository.Leave
                 return false;
             }
         }
+
+        public async Task<bool> Updateapproval(int empId, string status)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+            new SqlParameter("@emp_id", empId),
+            new SqlParameter("@status", status)
+        };
+
+                await _db.Database.ExecuteSqlRawAsync(
+                    "EXEC UpdateCompOffApproval @emp_id, @status",
+                    parameters
+                );
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+
+
+
     }
 }

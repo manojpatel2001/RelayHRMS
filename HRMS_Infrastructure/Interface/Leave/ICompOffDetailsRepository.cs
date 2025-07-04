@@ -13,5 +13,6 @@ namespace HRMS_Infrastructure.Interface.Leave
     public interface ICompOffDetailsRepository:IRepository<Comp_Off_Details>
     {
         Task<bool> InsertCompOffAsync(Comp_Off_Details model);
+        Task<bool> Updateapproval(int Emp,string Status);
     }
 }

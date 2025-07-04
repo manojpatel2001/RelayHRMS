@@ -18,13 +18,23 @@ namespace HRMS_API.Controllers.Leave
 
        
 
-            [HttpGet("")]
-        public async Task<APIResponse> GetAllBranch()
+            [HttpGet("LeaveType")]
+        public async Task<APIResponse> LeaveType()
         {
             try
             {
-                var data = await _unitOfWork.BranchRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
-                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+                var data = await _unitOfWork.LeaveMasterRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true , ResponseMessage = "Record not fetched successfully" };
+
+                }
+                var newdata = data.Select(leave => new
+                {
+                    leavtypeid = leave.Leave_TypeId,
+                    LeaveName = leave.Leave_Name
+                });
+                return new APIResponse() { isSuccess = true, Data = newdata, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
             {
