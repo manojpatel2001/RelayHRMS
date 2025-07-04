@@ -69,6 +69,7 @@ namespace HRMS_Infrastructure.Interface
         ILeaveDetailsRepository LeaveDetailsRepository { get; }
         ILeaveMasterRepository LeaveMasterRepository { get; }
         ICompOffDetailsRepository CompOffDetailsRepository { get; }
+        ILeaveOpeningRepository LeaveOpeningRepository { get; }
         void Commit();
         Task CommitAsync();
     }
