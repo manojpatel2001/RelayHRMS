@@ -2,6 +2,7 @@ using Azure.Core;
 using ExcelDataReader;
 using HRMS_Core.ControlPanel.ImportData;
 using HRMS_Core.DbContext;
+using HRMS_Core.Leave;
 using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Salary;
@@ -547,9 +548,46 @@ public class ImportDataController : ControllerBase
 
             return (true, false, false, null);
         }
+        else if (type == "LeaveOpening")
+        {
+            string empStr = row[0]?.ToString()?.Trim();         // EmployeeCode
+            string leaveStr = row[1]?.ToString()?.Trim();       // Leave Name or LeaveId
+            // Blank Row Check
+            if (string.IsNullOrWhiteSpace(empStr) &&
+                string.IsNullOrWhiteSpace(leaveStr) )
+         
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
+            }
 
+            var emp = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.EmployeeCode == empStr && x.IsEnabled == true && x.IsDeleted != true);
+            if (emp == null)
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Emp_Code", empStr, "Employee not found or inactive", type));
+            }
 
+            var Leave = await _unitOfWork.LeaveMasterRepository.GetAsync(x => x.Leave_Type.ToLower() == leaveStr.ToLower() && x.IsEnabled == true && x.IsDeleted != true);
 
+            if (Leave == null)
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid State", "", "", type));
+
+            }
+
+            await _unitOfWork.LeaveOpeningRepository.AddAsync(new LeaveOpening
+            {
+                EMP_Id = emp.Id,
+                LeaveId = Leave.Leave_TypeId,
+                Opening = decimal.TryParse(row[2]?.ToString(), out decimal pf) ? pf : (decimal?)null,
+                Grade = row[3]?.ToString(),
+                EffectiveDate = DateTime.TryParse(row[4]?.ToString(), out DateTime effDate) ? effDate : (DateTime?)null,          
+                comp_id = emp.CompanyId,
+                IsEnabled = true,
+                IsDeleted = false,
+            });
+
+            return (true, false, false, null);
+        }
         return (false, false, false, CreateErrorRow(rowIndex, "Unknown Type", "", $"Unknown master type: {type}", type));
     }
     private object CreateErrorRow(int rowNumber, string errorType, string value, string message, string section)

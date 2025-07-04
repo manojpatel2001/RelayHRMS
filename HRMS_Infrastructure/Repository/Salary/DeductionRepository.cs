@@ -59,7 +59,6 @@ namespace HRMS_Infrastructure.Repository.Salary
                 deduction.IsDeleted = true;
                 deduction.DeletedDate = DateTime.UtcNow;
                 deduction.DeletedBy = DeleteRecord.DeletedBy;
-                await _db.SaveChangesAsync();
                 return deduction;
             }
         }
@@ -80,7 +79,6 @@ namespace HRMS_Infrastructure.Repository.Salary
             existingRecord.TDS = deduction.TDS;
             existingRecord.UpdatedBy = deduction.UpdatedBy;
             existingRecord.UpdatedDate = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
             return true;
         }
     }

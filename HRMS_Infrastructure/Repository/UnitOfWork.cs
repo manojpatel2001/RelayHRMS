@@ -81,9 +81,13 @@ namespace HRMS_Infrastructure.Repository
             SuperAdminDetailsRepository = new SuperAdminDetailsRepository(_dbContext); 
             RoleRepository = new RoleRepository(_dbContext); 
             EmpAttendanceRepository = new EmpAttendanceRepository(_dbContext);
+
             CompOffDetailsRepository = new CompOffDetailsRepository(_dbContext);
             LeaveMasterRepository = new LeaveMasterRepository(_dbContext);
             LeaveDetailsRepository = new LeaveDetailsRepository(_dbContext);
+
+            LeaveOpeningRepository = new LeaveOpeningRepository(_dbContext);
+
 
         }
 
@@ -145,6 +149,8 @@ namespace HRMS_Infrastructure.Repository
         public ILeaveMasterRepository LeaveMasterRepository { get; set; }
 
         public ICompOffDetailsRepository CompOffDetailsRepository { get; set; }
+
+        public ILeaveOpeningRepository LeaveOpeningRepository {  get; set; }
 
         public void Commit()
         {

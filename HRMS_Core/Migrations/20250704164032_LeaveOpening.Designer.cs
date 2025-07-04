@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250704164032_LeaveOpening")]
+    partial class LeaveOpening
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1176,19 +1179,18 @@ namespace HRMS_Core.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Comp_Off_Detailsid"));
 
-                    b.Property<DateTime?>("ApplicationDate")
+                    b.Property<DateTime>("ApplicationDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Application_Status")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("ApprovalDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("Cmp_Id")
+                    b.Property<int>("Cmp_Id")
                         .HasColumnType("int");
 
                     b.Property<string>("Comp_Off_Type")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CreatedBy")
@@ -1203,13 +1205,14 @@ namespace HRMS_Core.Migrations
                     b.Property<DateTime?>("DeletedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("Emp_Id")
+                    b.Property<int>("Emp_Id")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("Extra_Work_Day")
+                    b.Property<DateTime>("Extra_Work_Day")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Extra_Work_Hours")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool?>("IsBlocked")
@@ -1221,7 +1224,7 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("IsEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("Rep_Person_Id")
+                    b.Property<int>("Rep_Person_Id")
                         .HasColumnType("int");
 
                     b.Property<string>("UpdatedBy")
