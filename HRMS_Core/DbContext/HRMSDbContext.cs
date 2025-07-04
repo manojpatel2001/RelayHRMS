@@ -95,6 +95,7 @@ namespace HRMS_Core.DbContext
         public DbSet<LeaveMaster> LeaveMaster { get; set; }
         public DbSet<LeaveDetails> LeaveDetails { get; set; }
         public DbSet<Comp_Off_Details> Comp_Off_Details { get; set; }
+        public DbSet<LeaveOpening> LeaveOpening { get; set; }
 
 
 
