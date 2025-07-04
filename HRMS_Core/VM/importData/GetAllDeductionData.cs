@@ -8,6 +8,7 @@ namespace HRMS_Core.VM.importData
 {
     public class GetAllDeductionData
     {
+        public int? DeductionId { get; set; }
         public string? EmployeeCode { get; set; }
         public string? FullName { get; set; }
         public int? Month { get; set; }
@@ -18,6 +19,7 @@ namespace HRMS_Core.VM.importData
         public decimal? Insurance { get; set; }
         public decimal? LWF { get; set; }
         public decimal? TDS { get; set; }
+        public string? BranchName { get; set; }
 
 
     }
