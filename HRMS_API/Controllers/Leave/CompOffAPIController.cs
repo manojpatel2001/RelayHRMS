@@ -35,7 +35,9 @@ namespace HRMS_API.Controllers.Leave
                     Rep_Person_Id= COA.Rep_Person_Id,
                     ApplicationDate= COA.ApplicationDate,
                     Extra_Work_Day= COA.Extra_Work_Day,
-                    Extra_Work_Hours=COA.Extra_Work_Hours
+                    Extra_Work_Hours=COA.Extra_Work_Hours,
+                    Application_Status="Pending",
+                    ComoffReason=COA.ComoffReason
 
                 };
                 var isSaved = await _unitOfWork.CompOffDetailsRepository.InsertCompOffAsync(comoffdata);

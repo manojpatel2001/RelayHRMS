@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250705184214_cmoffresonfiled")]
+    partial class cmoffresonfiled
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1187,9 +1190,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<int?>("Cmp_Id")
                         .HasColumnType("int");
-
-                    b.Property<string>("ComoffReason")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Comp_Off_Type")
                         .HasColumnType("nvarchar(max)");

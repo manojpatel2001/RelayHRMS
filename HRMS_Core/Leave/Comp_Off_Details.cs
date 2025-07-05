@@ -22,7 +22,7 @@ namespace HRMS_Core.Leave
         public string? Extra_Work_Hours { get; set; }
         public string? Application_Status { get; set; }
         public string? Comp_Off_Type { get; set; }
-
+        public string? ComoffReason { get; set; }
         public DateTime? ApprovalDate { get; set; }
     }
 }
