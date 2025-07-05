@@ -127,6 +127,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<GetAllDeductionData>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetAllEarningData>().HasNoKey().ToView(null);
             modelBuilder.Entity<EmpAttendanceVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<BranchUserStatsModel>().HasNoKey().ToView(null);
 
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
