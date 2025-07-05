@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.JobMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -65,5 +66,16 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             }
         }
 
+        public async Task<List<BranchUserStatsModel>> GetBranchWiseEmpCount()
+        {
+            try
+            {
+                return await _db.Set<BranchUserStatsModel>().FromSqlInterpolated($"EXEC GetBranchUserStats").ToListAsync();
+            }
+            catch
+            {
+                return new List<BranchUserStatsModel>();
+            }
+        }
     }
 }
