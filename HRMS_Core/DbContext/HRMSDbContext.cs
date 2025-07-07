@@ -16,6 +16,7 @@ using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.JobMaster;
+using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Core.VM.PrivilegeSetting;
@@ -128,6 +129,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<GetAllEarningData>().HasNoKey().ToView(null);
             modelBuilder.Entity<EmpAttendanceVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<BranchUserStatsModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<VMCompOffDetails>().HasNoKey().ToView(null);
 
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

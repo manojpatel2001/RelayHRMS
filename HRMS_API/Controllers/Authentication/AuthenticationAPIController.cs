@@ -73,7 +73,7 @@ namespace HRMS_API.Controllers.Authentication
 
             }
             else
-            {
+            {   
                 // Find the user by email
                 var user = await _userManager.FindByEmailAsync(model.Email);
                 if (user == null)
