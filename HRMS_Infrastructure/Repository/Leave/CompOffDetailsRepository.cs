@@ -72,23 +72,28 @@ namespace HRMS_Infrastructure.Repository.Leave
         {
             try
             {
-                var parameters = new[]
+                foreach (var id in comoffid)
                 {
-            new SqlParameter("@compOffDetailsId", comoffid),
-            new SqlParameter("@status", status)
-        };
+                    var parameters = new[]
+                    {
+                new SqlParameter("@compOffDetailsId", id),
+                new SqlParameter("@status", status)
+            };
 
-                await _db.Database.ExecuteSqlRawAsync(
-                    "EXEC UpdateCompOffApproval @compOffDetailsId, @status",
-                    parameters
-                );
+                    await _db.Database.ExecuteSqlRawAsync(
+                        "EXEC UpdateCompOffApproval @compOffDetailsId, @status",
+                        parameters
+                    );
+                }
 
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine("Error during SP call: " + ex.Message);
                 return false;
             }
         }
+
     }
 }
