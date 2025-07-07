@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Leave;
+using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface.Leave;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,20 @@ namespace HRMS_Infrastructure.Repository.Leave
             _db = db;
         }
 
+        public async Task<List<VMCompOffDetails>> GetCompOffApplicationsAsync(SearchVmCompOff filter)
+        {
+            var parameters = new[]
+            {
+            new SqlParameter("@SearchType", (object?)filter.SearchType ?? DBNull.Value),
+            new SqlParameter("@SearchFor", (object?)filter.SearchFor ?? DBNull.Value),
+            new SqlParameter("@Status", (object?)filter.Status ?? DBNull.Value),
+            new SqlParameter("@ExtraWorkDate", (object?)filter.ExtraWorkDate ?? DBNull.Value)
+        };
+
+            return await _db.Set<VMCompOffDetails>()
+                .FromSqlRaw("EXEC GetCompOffApplications @SearchType, @SearchFor, @Status, @ExtraWorkDate", parameters)
+                .ToListAsync();
+        }
         public async Task<bool> InsertCompOffAsync(Comp_Off_Details model)
         {
             try
@@ -36,11 +51,12 @@ namespace HRMS_Infrastructure.Repository.Leave
                 new SqlParameter("@Application_Status", model.Application_Status ?? (object)DBNull.Value),
                 new SqlParameter("@Comp_Off_Type", model.Comp_Off_Type ?? (object)DBNull.Value),
                 new SqlParameter("@CreatedBy", model.CreatedBy ?? (object)DBNull.Value),
-                new SqlParameter("@ComoffReason", model.ComoffReason ?? (object)DBNull.Value)
+                new SqlParameter("@ComoffReason", model.ComoffReason ?? (object)DBNull.Value),
+                new SqlParameter("@Emp_Code", model.Emp_Code ?? (object)DBNull.Value)
             };
 
                 await _db.Database.ExecuteSqlRawAsync(
-                    "EXEC usp_InsertCompOffDetails @Cmp_Id, @Emp_Id, @Rep_Person_Id, @ApplicationDate, @Extra_Work_Day, @Extra_Work_Hours, @Application_Status, @Comp_Off_Type,@CreatedBy,@ComoffReason",
+                    "EXEC usp_InsertCompOffDetails @Cmp_Id, @Emp_Id,@Emp_Code, @Rep_Person_Id, @ApplicationDate, @Extra_Work_Day, @Extra_Work_Hours, @Application_Status, @Comp_Off_Type,@CreatedBy,@ComoffReason",
                     parameters
                 );
 
@@ -52,18 +68,18 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<bool> Updateapproval(int empId, string status)
+        public async Task<bool> Updateapproval(List<int> comoffid, string status)
         {
             try
             {
                 var parameters = new[]
                 {
-            new SqlParameter("@emp_id", empId),
+            new SqlParameter("@compOffDetailsId", comoffid),
             new SqlParameter("@status", status)
         };
 
                 await _db.Database.ExecuteSqlRawAsync(
-                    "EXEC UpdateCompOffApproval @emp_id, @status",
+                    "EXEC UpdateCompOffApproval @compOffDetailsId, @status",
                     parameters
                 );
 
@@ -74,9 +90,5 @@ namespace HRMS_Infrastructure.Repository.Leave
                 return false;
             }
         }
-
-
-
-
     }
 }

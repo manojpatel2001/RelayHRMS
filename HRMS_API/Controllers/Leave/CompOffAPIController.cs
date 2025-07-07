@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.Leave;
+using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -25,7 +26,7 @@ namespace HRMS_API.Controllers.Leave
         {
             try
             {
-
+                var empcode = await _unitOfWork.EmployeeManageRepository.GetAsync(asd => asd.Id == COA.Emp_Id && asd.CompanyId == COA.Cmp_Id);
                 var comoffdata = new Comp_Off_Details
                 {
                     CreatedDate = DateTime.Now,
@@ -37,7 +38,8 @@ namespace HRMS_API.Controllers.Leave
                     Extra_Work_Day= COA.Extra_Work_Day,
                     Extra_Work_Hours=COA.Extra_Work_Hours,
                     Application_Status="Pending",
-                    ComoffReason=COA.ComoffReason
+                    ComoffReason=COA.ComoffReason,
+                    Emp_Code = empcode?.EmployeeCode
 
                 };
                 var isSaved = await _unitOfWork.CompOffDetailsRepository.InsertCompOffAsync(comoffdata);
@@ -57,29 +59,35 @@ namespace HRMS_API.Controllers.Leave
 
 
         }
-        [HttpPost("CompOffDetailsApproveorReject")]
 
-        public async Task<APIResponse> CompOffDetailsApproveorReject(int EMP,string Status)
+        [HttpPost("CompOffDetailsApproveorReject")]
+        public async Task<APIResponse> CompOffDetailsApproveorReject(ApproveandrejectVM ARVM)
         {
             try
             {
-                var isSaved = await _unitOfWork.CompOffDetailsRepository.Updateapproval(EMP, Status);
+                if (ARVM.CompoffIds == null || !ARVM.CompoffIds.Any() || string.IsNullOrEmpty(ARVM.Status))
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input." };
+                }
+
+                var isSaved = await _unitOfWork.CompOffDetailsRepository.Updateapproval(ARVM.CompoffIds, ARVM.Status);
 
                 if (!isSaved)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to insert Comp Off details." };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
 
-                return new APIResponse { isSuccess = true, ResponseMessage = "Records Updated successfully." };
+                return new APIResponse { isSuccess = true, ResponseMessage = "Records updated successfully." };
             }
             catch (Exception ex)
             {
-                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to update records. Please try again later." };
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = ex.Message,
+                    ResponseMessage = "Unable to update records. Please try again later."
+                };
             }
-
-
-
-
-
         }
+
 
 
         [HttpPost("ReportingPersonEmpVise")]
@@ -99,6 +107,32 @@ namespace HRMS_API.Controllers.Leave
                     ReportingPersonName = leave.FullName
                 });
                 return new APIResponse() { isSuccess = true, Data = newdata, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
+        [HttpPost("GetCompOffApplications")]
+        public async Task<APIResponse> GetCompOffApplications(SearchVmCompOff search)
+        {
+            try
+            {
+                var data = await _unitOfWork.CompOffDetailsRepository.GetCompOffApplicationsAsync(search);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+                
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
             {
