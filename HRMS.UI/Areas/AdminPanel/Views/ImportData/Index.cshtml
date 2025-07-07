@@ -230,13 +230,19 @@
 
 
 <div id="gridSection" class="d-none">
-    <div class="mb-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
         <span id="recordCount" class="fw-bold">Total Records: 0</span>
+        <button class="btn btn-sm btn-success" id="btnExportExcel">
+            Export 
+        </button>
     </div>
     <div id="dxRadioGrid"></div>
 </div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <script>
     $(document).ready(function () {
@@ -264,6 +270,58 @@
             $('#startDate').val(formatDate(firstDay));
             $('#endDate').val(formatDate(lastDay));
         }
+
+
+          $('#btnExportExcel').click(function () {
+        const gridInstance = $("#dxRadioGrid").dxDataGrid("instance");
+
+        if (!gridInstance) {
+            Swal.fire("No Grid", "Grid is not initialized.", "warning");
+            return;
+        }
+
+        const visibleColumns = gridInstance.getVisibleColumns().filter(col => col.caption && col.dataField);
+        const data = gridInstance.getDataSource().items();
+
+        if (!data || data.length === 0) {
+            Swal.fire("No Data", "No records to export.", "info");
+            return;
+        }
+
+        // 🔸 Get selected type text for filename
+        const selectedTypeText = $('input[name="type"]:checked').next('label').text().trim().replace(/\s+/g, '');
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Report");
+
+        // Add headers
+        const headers = visibleColumns.map(col => col.caption);
+        worksheet.addRow(headers);
+
+        // Add data rows
+        data.forEach(row => {
+            const rowData = visibleColumns.map(col => row[col.dataField]);
+            worksheet.addRow(rowData);
+        });
+
+        // Auto width
+        worksheet.columns.forEach(column => {
+            let maxLength = 0;
+            column.eachCell({ includeEmpty: true }, cell => {
+                const len = cell.value ? cell.value.toString().length : 10;
+                if (len > maxLength) maxLength = len;
+            });
+            column.width = maxLength + 2;
+        });
+
+        // Save file with dynamic name
+        workbook.xlsx.writeBuffer().then(function (buffer) {
+            const blob = new Blob([buffer], { type: "application/octet-stream" });
+            saveAs(blob, selectedTypeText + ".xlsx"); // dynamic file name
+        });
+    });
+
+
 
         // Toggle Month/Year vs Date Range
         $('#chkBetween').change(function () {
@@ -334,6 +392,52 @@
         // BACK Button
         $('#btnBack').click(function () {
             history.back();
+        });
+    });
+
+        $('#btnExportExcel').click(function () {
+        const gridInstance = $("#dxRadioGrid").dxDataGrid("instance");
+
+        if (!gridInstance) {
+            Swal.fire("No Grid", "Grid is not initialized.", "warning");
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Report");
+
+        const visibleColumns = gridInstance.getVisibleColumns().filter(col => col.caption && col.dataField);
+        const data = gridInstance.getDataSource().items();
+
+        if (!data || data.length === 0) {
+            Swal.fire("No Data", "No records to export.", "info");
+            return;
+        }
+
+        // Add headers
+        const headers = visibleColumns.map(col => col.caption);
+        worksheet.addRow(headers);
+
+        // Add data rows
+        data.forEach(row => {
+            const rowData = visibleColumns.map(col => row[col.dataField]);
+            worksheet.addRow(rowData);
+        });
+
+        // Auto width for columns
+        worksheet.columns.forEach(column => {
+            let maxLength = 0;
+            column.eachCell({ includeEmpty: true }, cell => {
+                const len = cell.value ? cell.value.toString().length : 10;
+                if (len > maxLength) maxLength = len;
+            });
+            column.width = maxLength + 2;
+        });
+
+        // Export
+        workbook.xlsx.writeBuffer().then(function (buffer) {
+            const blob = new Blob([buffer], { type: "application/octet-stream" });
+            saveAs(blob, "GridExport.xlsx");
         });
     });
 
