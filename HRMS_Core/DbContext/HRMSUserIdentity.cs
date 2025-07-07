@@ -22,6 +22,8 @@ namespace HRMS_Core.DbContext
         public string? LastName { get; set; }
         public string? FullName { get; set; }
         public string? EmployeeCode { get; set; }
+        public string? AlfaEmployeeCode { get; set; }
+        public string? AlfaCode { get; set; }
         public DateTime? DateOfJoining { get; set; }
         public int? BranchId { get; set; }
        
@@ -46,7 +48,7 @@ namespace HRMS_Core.DbContext
 
         public string? LoginAlias { get; set; }
         public string? Password { get; set; }
-        public string? ReportingManager { get; set; }
+        public int? ReportingManagerId { get; set; }
         public string? SubBranch { get; set; }
         public string? EnrollNo { get; set; }
 

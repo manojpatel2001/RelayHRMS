@@ -350,6 +350,12 @@ namespace HRMS_Core.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("AlfaCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AlfaEmployeeCode")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("BasicSalary")
                         .HasColumnType("decimal(18,2)");
 
@@ -495,8 +501,8 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("Pt")
                         .HasColumnType("bit");
 
-                    b.Property<string>("ReportingManager")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("ReportingManagerId")
+                        .HasColumnType("int");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -1168,6 +1174,76 @@ namespace HRMS_Core.Migrations
                     b.ToTable("Thana");
                 });
 
+            modelBuilder.Entity("HRMS_Core.Leave.Comp_Off_Details", b =>
+                {
+                    b.Property<int>("Comp_Off_Detailsid")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Comp_Off_Detailsid"));
+
+                    b.Property<DateTime?>("ApplicationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Application_Status")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ApprovalDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Cmp_Id")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ComoffReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Comp_Off_Type")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Emp_Id")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("Extra_Work_Day")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Extra_Work_Hours")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("Rep_Person_Id")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Comp_Off_Detailsid");
+
+                    b.ToTable("Comp_Off_Details");
+                });
+
             modelBuilder.Entity("HRMS_Core.Leave.LeaveDetails", b =>
                 {
                     b.Property<int>("LeaveDetailsId")
@@ -1231,8 +1307,8 @@ namespace HRMS_Core.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int?>("Leave_TypeId"));
 
-                    b.Property<int?>("Carry_forword_leave")
-                        .HasColumnType("int");
+                    b.Property<string>("Carry_forword_leave")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Comp_Id")
                         .HasColumnType("int");
@@ -1279,6 +1355,64 @@ namespace HRMS_Core.Migrations
                     b.HasKey("Leave_TypeId");
 
                     b.ToTable("LeaveMaster");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Leave.LeaveOpening", b =>
+                {
+                    b.Property<int?>("LeaveOpeningId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int?>("LeaveOpeningId"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("EMP_Id")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("EffectiveDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Grade")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("LeaveId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("Opening")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("comp_id")
+                        .HasColumnType("int");
+
+                    b.HasKey("LeaveOpeningId");
+
+                    b.ToTable("LeaveOpening");
                 });
 
             modelBuilder.Entity("HRMS_Core.ManagePermission.Permission", b =>
@@ -2843,8 +2977,6 @@ namespace HRMS_Core.Migrations
                     b.HasKey("EmpAttendanceId");
 
                     b.ToTable("EmpAttendanceImport");
-
-
                 });
 
             modelBuilder.Entity("HRMS_Core.SuperAdmin.SuperAdminDetails", b =>
@@ -2882,7 +3014,6 @@ namespace HRMS_Core.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SuperAdminDetails");
-
                 });
 
             modelBuilder.Entity("HRMS_Core.VM.CompanyInformation.vmGetAllCompanyDetails", b =>
@@ -3293,6 +3424,12 @@ namespace HRMS_Core.Migrations
 
             modelBuilder.Entity("HRMS_Core.VM.EmployeeMaster.vmGetAllEmployee", b =>
                 {
+                    b.Property<string>("AlfaCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AlfaEmployeeCode")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("BasicSalary")
                         .HasColumnType("decimal(18,2)");
 
@@ -3422,8 +3559,8 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("Pt")
                         .HasColumnType("bit");
 
-                    b.Property<string>("ReportingManager")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("ReportingManagerId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("RoleId")
                         .HasColumnType("int");
@@ -3450,7 +3587,38 @@ namespace HRMS_Core.Migrations
 
             modelBuilder.Entity("HRMS_Core.VM.EmployeeMaster.vmGetNextEmployeeCode", b =>
                 {
+                    b.Property<string>("CompanyCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DigitsForEmployeeCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DomainName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("NextEmployeeCode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SampleCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.VM.JobMaster.BranchUserStatsModel", b =>
+                {
+                    b.Property<string>("BranchName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("JoinLastMonth")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LeftLastMonth")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TotalUsers")
                         .HasColumnType("int");
 
                     b.ToTable((string)null);
@@ -3707,6 +3875,142 @@ namespace HRMS_Core.Migrations
                 {
                     b.Property<string>("Emp_Id")
                         .HasColumnType("nvarchar(max)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.VM.importData.EmpAttendanceVM", b =>
+                {
+                    b.Property<string>("Att_Detail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BranchName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("EmpAttendanceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EmployeeCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FullName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Year")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.VM.importData.GetAllDeductionData", b =>
+                {
+                    b.Property<string>("BranchName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("DeductionId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ESIC")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("EmployeeCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FullName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("Insurance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("LWF")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("PF")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("PT")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("TDS")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("Year")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.VM.importData.GetAllEarningData", b =>
+                {
+                    b.Property<decimal?>("Basic")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Conveyance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Deputation")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("EarningId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EmployeeCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FullName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("HRA")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Medical")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Year")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView(null, (string)null);
+                });
+
+            modelBuilder.Entity("HRMS_Core.VM.importData.SearchFilterModel", b =>
+                {
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EmpCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsBetween")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Year")
+                        .HasColumnType("int");
 
                     b.ToTable((string)null);
 

@@ -8,7 +8,7 @@ namespace HRMS_Core.VM.importData
 {
     public  class GetAllEarningData
     {
-      
+            public int? EarningId { get; set; }
             public decimal? Basic { get; set; }
             public decimal? HRA { get; set; }
             public decimal? Conveyance { get; set; }

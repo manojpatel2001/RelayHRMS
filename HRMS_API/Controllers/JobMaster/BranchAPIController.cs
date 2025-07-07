@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.importData;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Authorization;
@@ -84,7 +85,7 @@ namespace HRMS_API.Controllers.JobMaster
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Branch details cannot be null" };
                 }
 
-                if(branch.BranchId == 0)
+                if (branch.BranchId == 0)
                 {
                     var isExists = await _unitOfWork.BranchRepository.GetAllAsync(asd => asd.BranchName.ToLower().Trim() == branch.BranchName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
                     if (isExists.Any())
@@ -119,7 +120,7 @@ namespace HRMS_API.Controllers.JobMaster
                 }
 
 
-                
+
             }
             catch (Exception err)
             {
@@ -224,6 +225,33 @@ namespace HRMS_API.Controllers.JobMaster
                     isSuccess = false,
                     Data = err.Message,
                     ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
+
+        [HttpGet("GetBranchWiseEmpCount")]
+        public async Task<APIResponse> GetBranchWiseEmpCount()
+        {
+            try
+            {
+                var data = await _unitOfWork.BranchRepository.GetBranchWiseEmpCount();
+
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data, // should be a list/array
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message, // ✅ Set Data to null (not a string)
+                    ResponseMessage = $"Error: {err.Message}" // still show message in ResponseMessage
                 };
             }
         }

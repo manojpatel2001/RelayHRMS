@@ -1,5 +1,7 @@
 ﻿using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.importData;
+using HRMS_Core.VM.JobMaster;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,5 +14,7 @@ namespace HRMS_Infrastructure.Interface.JobMaster
     {
         Task<bool> UpdateBranch(Branch branch);
         Task<Branch> SoftDelete(DeleteRecordVM DeleteRecord);
+
+        Task<List<BranchUserStatsModel>> GetBranchWiseEmpCount();
     }
 }

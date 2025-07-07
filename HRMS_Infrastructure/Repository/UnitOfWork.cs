@@ -5,6 +5,7 @@ using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
+using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
@@ -15,6 +16,7 @@ using HRMS_Infrastructure.Repository.CompanyStructure;
 using HRMS_Infrastructure.Repository.Employee;
 using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
+using HRMS_Infrastructure.Repository.Leave;
 using HRMS_Infrastructure.Repository.ManagePermissions;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
@@ -80,6 +82,13 @@ namespace HRMS_Infrastructure.Repository
             RoleRepository = new RoleRepository(_dbContext); 
             EmpAttendanceRepository = new EmpAttendanceRepository(_dbContext);
 
+            CompOffDetailsRepository = new CompOffDetailsRepository(_dbContext);
+            LeaveMasterRepository = new LeaveMasterRepository(_dbContext);
+            LeaveDetailsRepository = new LeaveDetailsRepository(_dbContext);
+
+            LeaveOpeningRepository = new LeaveOpeningRepository(_dbContext);
+
+
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -135,6 +144,13 @@ namespace HRMS_Infrastructure.Repository
 
         public IEmpAttendanceRepository EmpAttendanceRepository { get; set; }
 
+        public ILeaveDetailsRepository LeaveDetailsRepository { get; set; }
+
+        public ILeaveMasterRepository LeaveMasterRepository { get; set; }
+
+        public ICompOffDetailsRepository CompOffDetailsRepository { get; set; }
+
+        public ILeaveOpeningRepository LeaveOpeningRepository {  get; set; }
 
         public void Commit()
         {

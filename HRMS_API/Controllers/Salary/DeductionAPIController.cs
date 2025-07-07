@@ -184,7 +184,7 @@ namespace HRMS_API.Controllers.Salary
                 return new APIResponse
                 {
                     isSuccess = false,
-                    Data = null, // ✅ Set Data to null (not a string)
+                    Data = err.Message, // ✅ Set Data to null (not a string)
                     ResponseMessage = $"Error: {err.Message}" // still show message in ResponseMessage
                 };
             }

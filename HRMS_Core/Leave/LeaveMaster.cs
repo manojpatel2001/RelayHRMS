@@ -20,7 +20,7 @@ namespace HRMS_Core.Leave
         public string? Leave_Paid_Unpaid { get; set; }
 
         public string? TotalLeave { get; set; }
-        public int? Carry_forword_leave { get; set; }
+        public string? Carry_forword_leave { get; set; }
 
     }
 }
