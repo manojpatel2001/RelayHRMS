@@ -53,20 +53,8 @@ namespace HRMS_API.Controllers.EmployeeMaster
             try
             {
                 var nextEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetNextEmployeeCode(companyId);
-                var companyDetails = await _unitOfWork.CompanyDetailsRepository.GetByCompanyId(companyId);
-                if (companyDetails == null )
-                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
-
-                var newData = new
-                {
-                    NextEmployeeCode = nextEmployeeCode.NextEmployeeCode,
-                    CompanyCode = companyDetails.CompanyCode,
-                    SampleCode = companyDetails.SampleCode,
-                    DigitsForEmployeeCode = companyDetails.DigitsForEmployeeCode,
-
-                };
-
-                return new APIResponse { isSuccess = true, Data = newData, ResponseMessage = "Records fetched successfully." };
+                
+                return new APIResponse { isSuccess = true, Data = nextEmployeeCode, ResponseMessage = "Records fetched successfully." };
             }
             catch (Exception ex)
             {
@@ -93,7 +81,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Login Alias already exists." };
                 }
 
-                var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.EmployeeCode == employeeData.EmployeeCode);
+                var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.CompanyId == employeeData.CompanyId && u.EmployeeCode == employeeData.EmployeeCode);
 
                 if (existingUserByEmployeeCode.Any())
                 {
@@ -115,6 +103,8 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     LastName = employeeData.LastName,
                     FullName = employeeData.FullName,
                     EmployeeCode = employeeData.EmployeeCode,
+                    AlfaCode=employeeData.AlfaCode,
+                    AlfaEmployeeCode=employeeData.AlfaEmployeeCode,
                     DateOfJoining = employeeData.DateOfJoining,
                     BranchId = employeeData.BranchId,
                     GradeId = employeeData.GradeId,
@@ -129,7 +119,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     DateOfBirth = employeeData.DateOfBirth,
                     UserPrivilege = employeeData.UserPrivilege,
                     LoginAlias = employeeData.LoginAlias,
-                    ReportingManager = employeeData.ReportingManager,
+                    ReportingManagerId = employeeData.ReportingManagerId,
                     SubBranch = employeeData.SubBranch,
                     EnrollNo = employeeData.EnrollNo,
                     CompanyId = employeeData.CompanyId,
@@ -191,7 +181,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 }
 
                 // Check if another user with the same EmployeeCode exists (excluding the current user)
-                var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.EmployeeCode == employeeData.EmployeeCode && u.Id != existingUser.Id);
+                var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u =>u.CompanyId==employeeData.CompanyId&& u.EmployeeCode == employeeData.EmployeeCode && u.Id != existingUser.Id);
                 if (existingUserByEmployeeCode.Any())
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Employee Code already exists." };
