@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250706130510_AddAlfacodeUpdateEmployeecode")]
+    partial class AddAlfacodeUpdateEmployeecode
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -501,8 +504,8 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("Pt")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("ReportingManagerId")
-                        .HasColumnType("int");
+                    b.Property<string>("ReportingManager")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -3424,12 +3427,6 @@ namespace HRMS_Core.Migrations
 
             modelBuilder.Entity("HRMS_Core.VM.EmployeeMaster.vmGetAllEmployee", b =>
                 {
-                    b.Property<string>("AlfaCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("AlfaEmployeeCode")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<decimal?>("BasicSalary")
                         .HasColumnType("decimal(18,2)");
 
@@ -3559,8 +3556,8 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("Pt")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("ReportingManagerId")
-                        .HasColumnType("int");
+                    b.Property<string>("ReportingManager")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("RoleId")
                         .HasColumnType("int");
