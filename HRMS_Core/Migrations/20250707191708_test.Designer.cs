@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250707191708_test")]
+    partial class test
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1211,9 +1214,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<DateTime?>("DeletedDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Emp_Code")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Emp_Id")
                         .HasColumnType("int");
@@ -3604,25 +3604,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<string>("SampleCode")
                         .HasColumnType("nvarchar(max)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.JobMaster.BranchUserStatsModel", b =>
-                {
-                    b.Property<string>("BranchName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("JoinLastMonth")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("LeftLastMonth")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TotalUsers")
-                        .HasColumnType("int");
 
                     b.ToTable((string)null);
 

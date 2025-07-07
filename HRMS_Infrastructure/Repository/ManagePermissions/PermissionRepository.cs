@@ -121,36 +121,22 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
             }
         }
 
-        public async Task<List<GroupedPermissionDto>> GetAllGroupPermissionsAsync()
+
+
+
+        public async Task<List<PermissionDto>> GetAllGroupPermissionList()
         {
             try
             {
-                DbConnection connection = _db.Database.GetDbConnection();
-                await connection.OpenAsync();
-
-                DbCommand command = connection.CreateCommand();
-                command.CommandText = "GetGroupedPermissionsAsync"; // ✅ Your JSON-returning stored procedure
-                command.CommandType = CommandType.StoredProcedure;
-
-                using DbDataReader reader = await command.ExecuteReaderAsync();
-                if (await reader.ReadAsync())
-                {
-                    string json = reader.GetString(0);
-                    return JsonSerializer.Deserialize<List<GroupedPermissionDto>>(json, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    }) ?? new List<GroupedPermissionDto>();
-                }
-
-                return new List<GroupedPermissionDto>();
+                return await _db.Set<PermissionDto>().FromSqlInterpolated($"EXEC GetAllGroupPermissionList").ToListAsync();
             }
             catch
             {
-                return new List<GroupedPermissionDto>();
+                return new List<PermissionDto>();
             }
         }
 
-        
+
     }
 
 }
