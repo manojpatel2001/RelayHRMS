@@ -165,11 +165,35 @@ namespace HRMS_API.Controllers.ManagePermissions
         {
             try
             {
-                var data = await _unitOfWork.PermissionRepository.GetAllGroupPermissionsAsync();
+                var actionOrder = new List<string> { "View", "Add", "Edit", "Delete", "Block" };
+
+                var data = await _unitOfWork.PermissionRepository.GetAllGroupPermissionList();
+
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
-                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+                var groupData = data
+                    .GroupBy(g => g.GroupName)
+                    .Select(g => new
+                    {
+                        GroupName = g.Key,
+                        Permissions = g
+                            .Select(x => new
+                            {
+                                x.PermissionId,
+                                PermissionName=x.FirstPermissionName,
+                                x.Slug,
+                            })
+                            .OrderBy(p =>
+                                actionOrder.IndexOf(p.PermissionName) >= 0
+                                    ? actionOrder.IndexOf(p.PermissionName)
+                                    : int.MaxValue // Put unknown actions at the end
+                            )
+                            .ToList()
+                    })
+                    .ToList();
+
+                return new APIResponse { isSuccess = true, Data = groupData, ResponseMessage = "Records fetched successfully." };
             }
             catch (Exception ex)
             {

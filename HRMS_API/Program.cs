@@ -15,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Configure DbContext
+
 builder.Services.AddDbContext<HRMSDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("HRMSConnection"));
