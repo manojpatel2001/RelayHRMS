@@ -26,16 +26,17 @@ namespace HRMS_Infrastructure.Repository.Leave
         {
             var parameters = new[]
             {
-            new SqlParameter("@SearchType", (object?)filter.SearchType ?? DBNull.Value),
-            new SqlParameter("@SearchFor", (object?)filter.SearchFor ?? DBNull.Value),
-            new SqlParameter("@Status", (object?)filter.Status ?? DBNull.Value),
-            new SqlParameter("@ExtraWorkDate", (object?)filter.ExtraWorkDate ?? DBNull.Value)
-        };
+            new SqlParameter("@SearchType", string.IsNullOrEmpty(filter.SearchType) ? DBNull.Value : filter.SearchType),
+            new SqlParameter("@SearchFor", string.IsNullOrEmpty(filter.SearchFor) ? DBNull.Value : filter.SearchFor),
+            new SqlParameter("@Status", string.IsNullOrEmpty(filter.Status) ? DBNull.Value : filter.Status),
+            new SqlParameter("@ExtraWorkDate", filter.ExtraWorkDate.HasValue ? filter.ExtraWorkDate.Value.Date : (object)DBNull.Value)
+            };
 
             return await _db.Set<VMCompOffDetails>()
                 .FromSqlRaw("EXEC GetCompOffApplications @SearchType, @SearchFor, @Status, @ExtraWorkDate", parameters)
                 .ToListAsync();
         }
+
         public async Task<bool> InsertCompOffAsync(Comp_Off_Details model)
         {
             try

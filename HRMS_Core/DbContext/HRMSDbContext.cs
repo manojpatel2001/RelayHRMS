@@ -28,7 +28,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static HRMS_Core.VM.importData.GetAllDeductionData;
 using EmployeePersonalInfo = HRMS_Core.EmployeeMaster.EmployeePersonalInfo;
 
 namespace HRMS_Core.DbContext
@@ -97,6 +96,7 @@ namespace HRMS_Core.DbContext
         public DbSet<LeaveDetails> LeaveDetails { get; set; }
         public DbSet<Comp_Off_Details> Comp_Off_Details { get; set; }
         public DbSet<LeaveOpening> LeaveOpening { get; set; }
+        public DbSet<PasswordHistory> PasswordHistory { get; set; }
 
 
 

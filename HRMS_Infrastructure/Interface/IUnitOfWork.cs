@@ -71,6 +71,7 @@ namespace HRMS_Infrastructure.Interface
         ICompOffDetailsRepository CompOffDetailsRepository { get; }
         ILeaveOpeningRepository LeaveOpeningRepository { get; }
         IEmployeeSalaryAllowanceRepository EmployeeSalaryAllowanceRepository { get; }
+        IPasswordHistory PasswordHistory { get; }
         void Commit();
         Task CommitAsync();
     }
