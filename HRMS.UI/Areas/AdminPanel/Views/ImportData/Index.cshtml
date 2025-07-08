@@ -272,7 +272,7 @@
         }
 
 
-          $('#btnExportExcel').click(function () {
+      $('#btnExportExcel').click(function () {
         const gridInstance = $("#dxRadioGrid").dxDataGrid("instance");
 
         if (!gridInstance) {
@@ -288,38 +288,62 @@
             return;
         }
 
-        // 🔸 Get selected type text for filename
         const selectedTypeText = $('input[name="type"]:checked').next('label').text().trim().replace(/\s+/g, '');
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet("Report");
 
-        // Add headers
-        const headers = visibleColumns.map(col => col.caption);
-        worksheet.addRow(headers);
-
-        // Add data rows
-        data.forEach(row => {
-            const rowData = visibleColumns.map(col => row[col.dataField]);
-            worksheet.addRow(rowData);
+        // 🔸 Define header style
+        const headerRow = worksheet.addRow(visibleColumns.map(col => col.caption));
+        headerRow.eachCell((cell) => {
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; // white text
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF3E4B6D' } // dark blue header
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
         });
 
-        // Auto width
+        // 🔸 Add data rows
+        data.forEach(row => {
+            const rowData = visibleColumns.map(col => row[col.dataField]);
+            const dataRow = worksheet.addRow(rowData);
+
+            dataRow.eachCell((cell) => {
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            });
+        });
+
+        // 🔸 Auto-fit columns
         worksheet.columns.forEach(column => {
-            let maxLength = 0;
+            let maxLength = 10;
             column.eachCell({ includeEmpty: true }, cell => {
-                const len = cell.value ? cell.value.toString().length : 10;
-                if (len > maxLength) maxLength = len;
+                const cellValue = cell.value ? cell.value.toString() : '';
+                maxLength = Math.max(maxLength, cellValue.length);
             });
             column.width = maxLength + 2;
         });
 
-        // Save file with dynamic name
+        // 🔸 Download Excel file
         workbook.xlsx.writeBuffer().then(function (buffer) {
             const blob = new Blob([buffer], { type: "application/octet-stream" });
-            saveAs(blob, selectedTypeText + ".xlsx"); // dynamic file name
+            saveAs(blob, selectedTypeText + ".xlsx");
         });
     });
+
 
 
 
