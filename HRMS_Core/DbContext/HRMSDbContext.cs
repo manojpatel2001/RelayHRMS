@@ -133,6 +133,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<PermissionDto>().HasNoKey().ToView(null);
 
             modelBuilder.Entity<VMCompOffDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeSalaryAllowanceVM>().HasNoKey().ToView(null);
 
 
         }

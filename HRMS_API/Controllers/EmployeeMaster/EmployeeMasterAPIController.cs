@@ -147,6 +147,9 @@ namespace HRMS_API.Controllers.EmployeeMaster
                         CreatedDate=DateTime.UtcNow,
                     };
                       var resultUserRole=await _unitOfWork.HRMSUserRoleRepository.CreateUserRole(userRole);
+
+                    var salary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId= employee.Id,CompanyId= employee.CompanyId, GrossSalary=employee.GrossSalary});
+                    
                     return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
 
                 }
@@ -244,6 +247,16 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     else
                     {
                         var resultUserRole = await _unitOfWork.HRMSUserRoleRepository.UpdateUserRole(userRole);
+                    }
+                    var checkExistSalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.GetEmployeeSalaryAllowanceByEmployeeId((int)employeeData.Id);
+                    if (checkExistSalary == null)
+                    {
+                        var newsalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary });
+
+                    }
+                    else
+                    {
+                        var updateSalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.UpdateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary });
                     }
                     // Additional information
                     if (updateEmployee.EmployeePersonalInfo != null)

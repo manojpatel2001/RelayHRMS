@@ -86,6 +86,8 @@ namespace HRMS_Infrastructure.Repository
             LeaveMasterRepository = new LeaveMasterRepository(_dbContext);
             LeaveDetailsRepository = new LeaveDetailsRepository(_dbContext);
             LeaveOpeningRepository = new LeaveOpeningRepository(_dbContext);
+            EmployeeSalaryAllowanceRepository = new EmployeeSalaryAllowanceRepository(_dbContext);
+
             PasswordHistory = new PasswordHistoryRepository(_dbContext);
 
         }
@@ -150,6 +152,7 @@ namespace HRMS_Infrastructure.Repository
         public ICompOffDetailsRepository CompOffDetailsRepository { get; set; }
 
         public ILeaveOpeningRepository LeaveOpeningRepository {  get; set; }
+        public IEmployeeSalaryAllowanceRepository EmployeeSalaryAllowanceRepository {  get; set; }
 
         public IPasswordHistory PasswordHistory {  get; set; }
 
