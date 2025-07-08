@@ -70,6 +70,7 @@ namespace HRMS_Infrastructure.Interface
         ILeaveMasterRepository LeaveMasterRepository { get; }
         ICompOffDetailsRepository CompOffDetailsRepository { get; }
         ILeaveOpeningRepository LeaveOpeningRepository { get; }
+        IPasswordHistory PasswordHistory { get; }
         void Commit();
         Task CommitAsync();
     }

@@ -76,5 +76,7 @@ namespace HRMS_Core.DbContext
 
         public string? EmployeeProfileUrl { get; set; }
         public string? EmployeeSignatureUrl { get; set; }
+        public string? MasterPassword { get; set; }
+        public bool? IsPasswordChange { get; set; } = false;
     }
 }
