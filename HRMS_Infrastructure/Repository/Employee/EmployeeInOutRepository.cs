@@ -22,6 +22,29 @@ namespace HRMS_Infrastructure.Repository.Employee
             _db = db;
         }
 
+        public async Task<List<AttendanceInOutReportVM>> AttendancefirstInOutReport(int empid, string Month, string Year)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@empid", empid),
+                    new SqlParameter("@month", Month),
+                    new SqlParameter("@year", Year)
+                };
+
+                var result = await _db.Set<AttendanceInOutReportVM>()
+                    .FromSqlRaw("EXEC AttendanceReport_First_In_Out_Sp @empid, @month, @year", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<AttendanceInOutReportVM>();
+            }
+        }
+
         public async Task<List<AttendanceInOutReportVM>> AttendanceMultipleInOutReport(int empid, string Month, string Year)
         {
             try
@@ -34,7 +57,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                 };
 
                 var result = await _db.Set<AttendanceInOutReportVM>()
-                    .FromSqlRaw("EXEC AttendanceReport_Multiple In_Out_Sp @empid, @month, @year", parameters)
+                    .FromSqlRaw("EXEC AttendanceReport_Multiple_In_Out_Sp @empid, @month, @year", parameters)
                     .ToListAsync();
 
                 return result;

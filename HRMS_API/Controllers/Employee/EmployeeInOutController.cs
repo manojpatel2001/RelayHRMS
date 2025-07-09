@@ -222,5 +222,47 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+
+        [HttpPost("AttendanceFirstInOutReport")]
+        public async Task<APIResponse> AttendanceFirstInOutReport([FromForm] int empid, [FromForm] string Month, [FromForm] string Year)
+        {
+            try
+            {
+                if (empid == null || Month == null || Year == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id,Month,Year are required."
+                    };
+                }
+                var data = await _unitOfWork.EmployeeInOut.AttendancefirstInOutReport(empid, Month, Year);
+
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
+                };
+            }
+        }
     }
 }
