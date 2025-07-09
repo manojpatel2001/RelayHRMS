@@ -1,7 +1,10 @@
-﻿@{
+﻿@inject IConfiguration Configuration
+@{
     ViewData["Title"] = "Employee Panel";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 <link href="~/commoncss.css" rel="stylesheet" />
 
@@ -40,22 +43,24 @@
                         <div class="row mb-2">
                             <label for="newpassid" class="col-sm-4 col-form-label fixed-label">
                                 New Password <span class="text-danger">*</span>
-                            </label>                            <div class="col-sm-4">
+                            </label>
+                            <div class="col-sm-4">
                                 <input type="text" class="form-control form-control-sm" id="newpassid" />
                             </div>
                         </div>
                         <div class="row mb-2">
                             <label for="confirmpassid" class="col-sm-4 col-form-label fixed-label">
                                 Confirm Password <span class="text-danger">*</span>
-                            </label>                            <div class="col-sm-4">
+                            </label>
+                            <div class="col-sm-4">
                                 <input type="text" class="form-control form-control-sm" id="confirmpassid" />
                             </div>
                         </div>
                         <div class="row mb-2">
                             <div class="col-sm-4"></div>
                             <div class="col-sm-4">
-                                <button type="button" class="btn btn-primary btn-sm me-2">Change Password</button>
-                                <button type="button" class="btn btn-secondary btn-sm">Clear</button>
+                                <button type="button" class="btn btn-primary btn-sm me-2" id="btnChangePassword">Change Password</button>
+                                <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
                             </div>
                         </div>
                     </div>
@@ -64,3 +69,65 @@
         </div>
     </div>
 </div>
+
+
+    <!-- ✅ Include jQuery FIRST -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- ✅ Include SweetAlert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#btnChangePassword').click(function () {
+                changePassword();
+            });
+
+            $('#btnClear').click(function () {
+                $('#currentpassid, #newpassid, #confirmpassid').val('');
+            });
+        });
+
+        function changePassword() {
+            debugger;
+            var empId = '001'; // dynamic from ViewBag
+            var currentPassword = $('#currentpassid').val().trim();
+            var newPassword = $('#newpassid').val().trim();
+           var confirmPassword = $('#confirmpassid').val().trim();
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                Swal.fire("Validation Error", "All fields are required.", "warning");
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                Swal.fire("Validation Error", "New and Confirm Password must match.", "warning");
+                return;
+            }
+
+            var payload = {
+                EMPID: empId,
+                CurrentPassword: currentPassword,
+                NewPassword: newPassword
+            };
+
+            $.ajax({
+                url: '@baseUrl/PasswordHistoryAPI/CreatePasswordHistory',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: function (response) {
+                    if (response.isSuccess) {
+                        Swal.fire("Success", response.responseMessage, "success");
+                        $('#currentpassid, #newpassid, #confirmpassid').val('');
+                    } else {
+                        Swal.fire("Error", response.responseMessage, "error");
+                    }
+                },
+                error: function () {
+                    Swal.fire("Error", "Something went wrong while calling API.", "error");
+                }
+            });
+        }
+    </script>
+
