@@ -21,6 +21,26 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             _db = db;
         }
 
+        public async Task<vmGetLiveEmployeeSalaryAllowance?> GetLiveEmployeeSalaryAllowance(vmEmployeeSalary vmEmployeeSalary)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetLiveEmployeeSalaryAllowance>().FromSqlInterpolated($@"
+                EXEC USP_CalculateSalaryStructure
+                    @Action = {"GET"},
+                    @EmployeeId = {vmEmployeeSalary.EmployeeId},
+                    @CompanyId = {vmEmployeeSalary.CompanyId},
+                    @GrossSalary = {vmEmployeeSalary.GrossSalary}
+                    
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
         public async Task<VMCommonResult> CreateEmployeeSalaryAllowance(vmEmployeeSalary vmEmployeeSalary)
         {
             try
