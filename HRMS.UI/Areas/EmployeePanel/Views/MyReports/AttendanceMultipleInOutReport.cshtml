@@ -1,0 +1,203 @@
+﻿@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = ViewBag.BaseUrl;
+    string apiBase = ViewBag.BaseUrlAPI;
+}
+
+<!-- DevExtreme CSS -->
+<link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/latest/css/dx.light.css" />
+
+<div class="card">
+    <div class="card-header bg-transparent ml-0 py-0">
+        <div class="row">
+            <div class="col-6">
+                <h6 class="pt-2 mb-0">Employee In Out</h6>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Month & Year Selection -->
+        <div class="row mb-3">
+            <div class="col-md-2"></div>
+            <div class="col-md-4">
+                <select id="dropdownmonth" class="form-control">
+                    <option value="" disabled>Select Month</option>
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        var selected = (i == DateTime.Now.Month) ? "selected" : "";
+                        <option value="@i" @selected>
+                            @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select id="dropdownyear" class="form-control">
+                    @for (int y = 2024; y <= 2026; y++)
+                    {
+                        var selected = (y == DateTime.Now.Year) ? "selected" : "";
+                        <option value="@y" @selected>@y</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-primary px-4" id="btnGo">Go</button>
+            </div>
+        </div>
+
+        <!-- Tabs and Buttons -->
+        <ul class="nav nav-tabs" id="attendanceTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="firstLast-tab" data-toggle="tab" href="#firstLast" role="tab">First In and Last Out</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="multiplePunches-tab" data-toggle="tab" href="#multiplePunches" role="tab">Multiple Punches</a>
+            </li>
+        </ul>
+
+        <div class="tab-content mt-3">
+            <div class="tab-pane fade show active" id="firstLast" role="tabpanel">
+                <div id="dxFirstLastGrid"></div>
+            </div>
+
+            <div class="tab-pane fade" id="multiplePunches" role="tabpanel">
+                <div id="dxMultipleGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn3.devexpress.com/jslib/latest/js/dx.all.js"></script>
+
+<script>
+    const apiBase = '@apiBase';
+    const empid = 1;
+    const now = new Date();
+    const istNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+
+    $(document).ready(function () {
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+S
+        function formatISTtoISO(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            const hh = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            const ss = String(date.getSeconds()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}`;
+        }
+
+        // ✅ Go
+        $('#btnGo').click(function () {
+            let month = $('#dropdownmonth').val();
+            let year = $('#dropdownyear').val();
+            if (!month || !year) {
+                alert("Please select Month and Year");
+                return;
+            }
+            // loadFirstLast(empid, month, year);
+            loadMultiple(empid, month, year);
+        });
+
+        // ✅ Tab change
+
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            let target = $(e.target).attr("href");
+            let month = $('#dropdownmonth').val();
+            let year = $('#dropdownyear').val();
+            if (!month || !year) return;
+
+            if (target === "#firstLast") {
+                loadFirstLast(empid, month, year);
+            } else if (target === "#multiplePunches") {
+                loadMultiple(empid, month, year);
+            }
+        });
+
+        // ✅ Load First In/Last Out
+        function loadFirstLast(empid, month, year) {
+            $.ajax({
+                url: apiBase + "/EmployeeInOut/FirstInOut",
+                type: "POST",
+                data: { empid, month, year },
+                success: function (response) {
+                    $("#dxFirstLastGrid").dxDataGrid({
+                        dataSource: response.data || [],
+                        columns: [
+                            {
+                                dataField: "for_Date",
+                                caption: "Date",
+                                dataType: "date",
+                                format: "dd/MM/yyyy"
+                            },
+                            { dataField: "day_Name", caption: "Day" },
+                            { dataField: "in_Time", caption: "In Time" },
+                            { dataField: "out_Time", caption: "Out Time" },
+                            { dataField: "duration", caption: "Duration" }
+                        ],
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        scrolling: { mode: "standard" },
+                        paging: { pageSize: 10 },
+                        pager: {
+                            showPageSizeSelector: true,
+                            allowedPageSizes: [5, 10, 20],
+                            showInfo: true
+                        },
+                        noDataText: "No data found."
+                    });
+                },
+                error: function () {
+                    alert("❌ Failed to load First In/Out records.");
+                }
+            });
+        }
+
+        // ✅ Load Multiple Punches
+        function loadMultiple(empid, month, year) {
+            debugger;
+            $.ajax({
+                url: apiBase + "/EmployeeInOut/AttendanceInOutReport",
+                type: "POST",
+                data: { empid, month, year },
+                success: function (response) {
+                    $("#dxMultipleGrid").dxDataGrid({
+                        dataSource: response.data || [],
+                        columns: [
+                            {
+                                dataField: "for_Date",
+                                caption: "Date",
+                                dataType: "date",
+                                format: "dd/MM/yyyy"
+                            },
+                            { dataField: "day_Name", caption: "Day" },
+                            { dataField: "in_Time", caption: "In Time" },
+                            { dataField: "out_Time", caption: "Out Time" },
+                            { dataField: "duration", caption: "Duration" }
+                        ],
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        scrolling: { mode: "standard" },
+                        paging: { pageSize: 10 },
+                        pager: {
+                            showPageSizeSelector: true,
+                            allowedPageSizes: [5, 10, 20],
+                            showInfo: true
+                        },
+                        noDataText: "No data found."
+                    });
+                },
+                error: function () {
+                    alert("❌ Failed to load Multiple In/Out records.");
+                }
+            });
+        }
+    });
+</script>
