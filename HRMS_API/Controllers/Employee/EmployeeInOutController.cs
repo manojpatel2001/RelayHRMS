@@ -107,15 +107,15 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Emp_Id,Month,Year are required."
                     };
                 }
-                 var data=await _unitOfWork.EmployeeInOut.GetInOutRecord(empid,Month,Year
-                );
+                var data = await _unitOfWork.EmployeeInOut.GetInOutRecord(empid, Month, Year
+               );
 
-                if (data==null)
+                if (data == null)
                 {
                     return new APIResponse
                     {
                         isSuccess = false,
-                       
+
                         ResponseMessage = "No matching IN record found or update failed."
                     };
                 }
@@ -150,8 +150,8 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Emp_Id,Month,Year are required."
                     };
                 }
-                var data = await _unitOfWork.EmployeeInOut.GetMultipleInOutRecordAsync( empid, Month, Year);
-               
+                var data = await _unitOfWork.EmployeeInOut.GetMultipleInOutRecordAsync(empid, Month, Year);
+
 
                 if (data == null)
                 {
@@ -165,13 +165,98 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse
                 {
                     isSuccess = true,
-                    Data=data,
+                    Data = data,
                     ResponseMessage = "Data Fetched successfully."
                 };
             }
             catch (Exception ex)
             {
                 // Optional: Log ex
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
+                };
+            }
+        }
+
+
+        [HttpPost("AttendanceInOutReport")]
+        public async Task<APIResponse> AttendanceInOutReport([FromForm] int empid, [FromForm] string Month, [FromForm] string Year)
+        {
+            try
+            {
+                if (empid == null || Month == null || Year == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id,Month,Year are required."
+                    };
+                }
+                var data = await _unitOfWork.EmployeeInOut.AttendanceMultipleInOutReport(empid, Month, Year);
+
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
+                };
+            }
+        }
+
+        [HttpPost("AttendanceFirstInOutReport")]
+        public async Task<APIResponse> AttendanceFirstInOutReport([FromForm] int empid, [FromForm] string Month, [FromForm] string Year)
+        {
+            try
+            {
+                if (empid == null || Month == null || Year == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id,Month,Year are required."
+                    };
+                }
+                var data = await _unitOfWork.EmployeeInOut.AttendancefirstInOutReport(empid, Month, Year);
+
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
                 return new APIResponse
                 {
                     isSuccess = false,

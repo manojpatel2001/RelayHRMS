@@ -25,6 +25,10 @@ public class AuthManageController : Controller
     {
         return View();
     }
+    public IActionResult ChangePassword()
+    {
+        return View();
+    }
 
   
 }

@@ -81,7 +81,7 @@ namespace HRMS_API.Controllers.Salary
             {
                 if (deduction == null)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Shift details cannot be null" };
+                    return new APIResponse() { isSuccess = false, ResponseMessage = "deduction details cannot be null" };
                 }
 
                 deduction.CreatedDate = DateTime.UtcNow;

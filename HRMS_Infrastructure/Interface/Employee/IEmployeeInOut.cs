@@ -14,7 +14,9 @@ namespace HRMS_Infrastructure.Interface.Employee
 
         Task<VMCommonResult> CreateEmpInOut(EmployeeInOutRecord Record);
         Task<List<VMInOutRecord>> GetInOutRecord(int empid, string month, string year);             
-        Task<List<VMInOutRecord>> GetMultipleInOutRecordAsync(int empid, string Month, string Year); 
+        Task<List<VMInOutRecord>> GetMultipleInOutRecordAsync(int empid, string Month, string Year);
+        Task<List<AttendanceInOutReportVM>> AttendanceMultipleInOutReport(int empid, string Month, string Year);
+        Task<List<AttendanceInOutReportVM>> AttendancefirstInOutReport(int empid, string Month, string Year);
         Task<bool> UpdateEmployeeOutTimeAsync(int empId, DateTime forDate, DateTime outTime, string updatedBy);
     }
 }
