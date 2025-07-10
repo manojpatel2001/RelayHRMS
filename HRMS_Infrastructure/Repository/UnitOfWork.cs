@@ -87,6 +87,7 @@ namespace HRMS_Infrastructure.Repository
             LeaveDetailsRepository = new LeaveDetailsRepository(_dbContext);
 
             LeaveOpeningRepository = new LeaveOpeningRepository(_dbContext);
+            LeaveApplicationRepository = new LeaveApplicationRepository(_dbContext);
 
 
         }
@@ -151,6 +152,8 @@ namespace HRMS_Infrastructure.Repository
         public ICompOffDetailsRepository CompOffDetailsRepository { get; set; }
 
         public ILeaveOpeningRepository LeaveOpeningRepository {  get; set; }
+
+        public ILeaveApplicationRepository LeaveApplicationRepository { get; set; }
 
         public void Commit()
         {

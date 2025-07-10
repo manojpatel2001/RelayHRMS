@@ -97,6 +97,7 @@ namespace HRMS_Core.DbContext
         public DbSet<LeaveDetails> LeaveDetails { get; set; }
         public DbSet<Comp_Off_Details> Comp_Off_Details { get; set; }
         public DbSet<LeaveOpening> LeaveOpening { get; set; }
+        public DbSet<LeaveApplication> LeaveApplication { get; set; }
 
 
 
@@ -133,6 +134,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<PermissionDto>().HasNoKey().ToView(null);
 
             modelBuilder.Entity<VMCompOffDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<VMLeaveApplicationSearchResult>().HasNoKey().ToView(null);
 
 
         }

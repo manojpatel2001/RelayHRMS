@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250709163847_leaveapplicationtypechange")]
+    partial class leaveapplicationtypechange
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1287,9 +1290,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<bool?>("IsEnabled")
                         .HasColumnType("bit");
-
-                    b.Property<string>("LeaveStatus")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("LeaveType")
                         .HasColumnType("int");
