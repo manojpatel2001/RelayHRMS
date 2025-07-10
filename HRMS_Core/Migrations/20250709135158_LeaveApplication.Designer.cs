@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250709135158_LeaveApplication")]
+    partial class LeaveApplication
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -454,9 +457,6 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("IsEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<bool?>("IsPasswordChange")
-                        .HasColumnType("bit");
-
                     b.Property<string>("LastName")
                         .HasColumnType("nvarchar(max)");
 
@@ -470,9 +470,6 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("LoginAlias")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MasterPassword")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("MiddleName")
@@ -799,55 +796,6 @@ namespace HRMS_Core.Migrations
                     b.HasKey("EmployeeTypeId");
 
                     b.ToTable("EmployeeType");
-                });
-
-            modelBuilder.Entity("HRMS_Core.Employee.PasswordHistory", b =>
-                {
-                    b.Property<int>("PasswordHistoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PasswordHistoryId"));
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CurrentPassword")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("EMPID")
-                        .HasColumnType("int");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("NewPassword")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("PasswordHistoryId");
-
-                    b.ToTable("PasswordHistory");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.Country", b =>
@@ -1310,8 +1258,8 @@ namespace HRMS_Core.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int?>("LeaveApplicationid"));
 
-                    b.Property<string>("ApplicationType")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("ApplicationType")
+                        .HasColumnType("bit");
 
                     b.Property<bool?>("Cancel_Weekoff")
                         .HasColumnType("bit");
@@ -1343,23 +1291,20 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("IsEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<string>("LeaveStatus")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int?>("LeaveType")
                         .HasColumnType("int");
 
-                    b.Property<int?>("No_Of_Date")
-                        .HasColumnType("int");
+                    b.Property<decimal?>("No_Of_Date")
+                        .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("Reason")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("Reason")
+                        .HasColumnType("datetime2");
 
                     b.Property<int?>("ReportingManagerId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("Responsibleperson")
-                        .HasColumnType("int");
+                    b.Property<DateTime?>("Responsible")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Send_Intimate")
                         .HasColumnType("nvarchar(max)");

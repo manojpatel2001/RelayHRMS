@@ -1,0 +1,17 @@
+﻿using HRMS_Core.Leave;
+using HRMS_Core.VM.Leave;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace HRMS_Infrastructure.Interface.Leave
+{
+    public interface ILeaveApplicationRepository: IRepository<LeaveApplication>
+    {
+        Task<bool> InsertLeaveApplicationAsync(LeaveApplication model);
+        Task<List<VMLeaveApplicationSearchResult>> GetLeaveApplicationsAsync(SearchVmCompOff filter);
+
+    }
+}
