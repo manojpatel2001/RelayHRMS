@@ -33,12 +33,12 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
-        [HttpPost("GetLiveEmployeeSalaryAllowance")]
-        public async Task<APIResponse> GetLiveEmployeeSalaryAllowance(vmEmployeeSalary vmEmployeeSalary)
+        [HttpGet("GetLiveEmployeeSalaryAllowance/{GrossSalary}")]
+        public async Task<APIResponse> GetLiveEmployeeSalaryAllowance(decimal GrossSalary)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeSalaryAllowanceRepository.GetLiveEmployeeSalaryAllowance(vmEmployeeSalary);
+                var data = await _unitOfWork.EmployeeSalaryAllowanceRepository.GetLiveEmployeeSalaryAllowance(GrossSalary);
                 if (data == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
