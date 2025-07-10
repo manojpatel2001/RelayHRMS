@@ -34,7 +34,7 @@ namespace HRMS_API.Controllers.Leave
                     Cmp_Id= COA.Cmp_Id,
                     Emp_Id= COA.Emp_Id,
                     Rep_Person_Id= COA.Rep_Person_Id,
-                    ApplicationDate= COA.ApplicationDate,
+                    ApplicationDate = DateTime.Now,
                     Extra_Work_Day= COA.Extra_Work_Day,
                     Extra_Work_Hours=COA.Extra_Work_Hours,
                     Application_Status="Pending",
@@ -59,6 +59,8 @@ namespace HRMS_API.Controllers.Leave
 
 
         }
+
+
 
         [HttpPost("CompOffDetailsApproveorReject")]
         public async Task<APIResponse> CompOffDetailsApproveorReject(ApproveandrejectVM ARVM)
@@ -121,7 +123,7 @@ namespace HRMS_API.Controllers.Leave
 
 
         [HttpPost("GetCompOffApplications")]
-        public async Task<APIResponse> GetCompOffApplications(SearchVmCompOff search)
+        public async Task<APIResponse> GetCompOffApplications([FromBody] SearchVmCompOff search)
         {
             try
             {
