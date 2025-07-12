@@ -9,5 +9,13 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View();
         }
+        public IActionResult AttendanceRegularization()
+        {
+            return View();
+        }
+        public IActionResult AddAttendanceRegularization()
+        {
+            return View();
+        }
     }
 }
