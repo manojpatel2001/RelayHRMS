@@ -12,5 +12,6 @@ namespace HRMS_Core.VM.Leave
         public string? SearchFor { get; set; }          // search text
         public string? Status { get; set; }             // "Pending", "Approved", "Rejected"
         public DateTime? ExtraWorkDate { get; set; }    // opt
+        public int? Emplooyeid { get; set; }
     }
 }

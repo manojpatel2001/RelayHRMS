@@ -55,12 +55,8 @@
                             <div class="mb-3 row">
                                 <label class="col-sm-5 col-form-label">Leave:</label>
                                 <div class="col-sm-7">
-                                    <select class="form-control" id="Leavetypeid">
-                                        <option value="0">-- Select Leave Type --</option>
-                                        <option value="1">Casual Leave</option>
-                                        <option value="2">Comp-Off Leave</option>
-                                        <option value="3">LWP</option>
-                                        <option value="4">Privileging Leave</option>
+                                    <select class="form-control form-control-sm" id="Leavetypeid">
+                                        <option value="0">-- Select --</option>
                                     </select>
                                 </div>
                             </div>
@@ -103,7 +99,7 @@
                             <div class="mb-3 row">
                                 <label class="col-sm-5 col-form-label">Reason:</label>
                                 <div class="col-sm-7">
-                                    <textarea class="form-control" id="resonid" rows="3" placeholder="Enter reason here..."></textarea>
+                                    <textarea class="form-control" id="resonid" rows="3"></textarea>
                                 </div>
                             </div>
 
@@ -160,7 +156,6 @@
     </div>
 </div>
 
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -173,6 +168,8 @@
     const Compid = parseInt(companyDetails.CompanyId);
 
     $(document).ready(function () {
+        loadSearchByOptions();
+
         const today = new Date().toISOString().split('T')[0];
         $('#applicationDate').val(today);
         $('#employedid').val(EmployeeName);
@@ -194,12 +191,11 @@
             }
 
             const fromDate = new Date(fromDateStr);
-            const toDate = new Date(fromDate);
-            toDate.setDate(fromDate.getDate() + noOfDays - 1);
+            fromDate.setDate(fromDate.getDate() + noOfDays - 1);
 
-            const yyyy = toDate.getFullYear();
-            const mm = String(toDate.getMonth() + 1).padStart(2, '0');
-            const dd = String(toDate.getDate()).padStart(2, '0');
+            const yyyy = fromDate.getFullYear();
+            const mm = String(fromDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(fromDate.getDate()).padStart(2, '0');
 
             $('#todateid').val(`${yyyy}-${mm}-${dd}`);
         });
@@ -251,6 +247,31 @@
         });
     });
 
+    function loadSearchByOptions() {
+        debugger;
+        $.ajax({
+            url: apiBase + '/LeaveMasterAPI/LeaveType',
+            type: "GET",
+                success: function (response) {
+                    console.log("Leave type response:", response);
+                    const dropdown = $('#Leavetypeid');
+                    dropdown.empty().append(`<option value="0">-- Select --</option>`);
+
+                    if (response.isSuccess && response.data?.length > 0) {
+                        $.each(response.data, function (i, item) {
+                            dropdown.append(`<option value="${item.leavtypeid}">${item.leaveName}</option>`);
+                        });
+                    } else {
+                        dropdown.append(`<option value="">No leave types found</option>`);
+                    }
+                },
+
+            error: function () {
+                console.error("Failed to load leave types.");
+            }
+        });
+    }
+
     function loadReportingPerson() {
         $.ajax({
             url: `${apiBase}/LeaveApplication/GetReportingperson?Empid=${Empid}`,
@@ -270,9 +291,9 @@
             url: `${apiBase}/CompOffAPI/ReportingPersonEmpVise?Compid=${Compid}&Empid=${Empid}`,
             method: 'POST',
             success: function (res) {
+                const dropdown = $('#responsibleid');
+                dropdown.empty().append('<option value="">-- Select Employee --</option>');
                 if (res.isSuccess && res.data?.length > 0) {
-                    const dropdown = $('#responsibleid');
-                    dropdown.empty().append('<option value="">-- Select Employee --</option>');
                     res.data.forEach(item => {
                         dropdown.append(`<option value="${item.reportingPersonId}">${item.reportingPersonName}</option>`);
                     });
