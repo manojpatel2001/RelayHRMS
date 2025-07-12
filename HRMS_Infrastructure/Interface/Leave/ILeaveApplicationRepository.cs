@@ -12,6 +12,9 @@ namespace HRMS_Infrastructure.Interface.Leave
     {
         Task<bool> InsertLeaveApplicationAsync(LeaveApplication model);
         Task<List<VMLeaveApplicationSearchResult>> GetLeaveApplicationsAsync(SearchVmCompOff filter);
+        Task<List<VmLeaveApplicationforApprove>> GetLeaveApplicationsforApprove(SearchVmCompOff filter);
+        Task<bool> Updateapproval(List<int> applicationid, string status,DateTime Date);
+
 
     }
 }
