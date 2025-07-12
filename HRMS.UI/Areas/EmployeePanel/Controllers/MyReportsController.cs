@@ -125,5 +125,11 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
             return View();
         }
+        public IActionResult AttendanceMultipleInOutReport()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
     }
 }

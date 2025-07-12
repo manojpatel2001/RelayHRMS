@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250708161538_Passwordhistory")]
+    partial class Passwordhistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1300,88 +1303,6 @@ namespace HRMS_Core.Migrations
                     b.HasKey("Comp_Off_Detailsid");
 
                     b.ToTable("Comp_Off_Details");
-                });
-
-            modelBuilder.Entity("HRMS_Core.Leave.LeaveApplication", b =>
-                {
-                    b.Property<int?>("LeaveApplicationid")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int?>("LeaveApplicationid"));
-
-                    b.Property<DateTime?>("ApplicationDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ApplicationType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ApprovalDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("Cancel_Weekoff")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("EmplooyeId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("FromDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LeaveStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("LeaveType")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("No_Of_Date")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("ReportingManagerId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Responsibleperson")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Send_Intimate")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("Todate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("LeaveApplicationid");
-
-                    b.ToTable("LeaveApplication");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.LeaveDetails", b =>
@@ -3834,83 +3755,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<string>("FullName")
                         .HasColumnType("nvarchar(max)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.Leave.VMLeaveApplicationSearchResult", b =>
-                {
-                    b.Property<string>("ApplicationType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("FromDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("LeaveApplicationId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("LeaveStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LeaveTypeName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("No_Of_Date")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReportingPersonName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("Todate")
-                        .HasColumnType("datetime2");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.Leave.VmLeaveApplicationforApprove", b =>
-                {
-                    b.Property<string>("ApplicationType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("FromDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("LeaveApplicationId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("LeaveStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LeaveTypeName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("No_Of_Date")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReportingPersonName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("Todate")
-                        .HasColumnType("datetime2");
 
                     b.ToTable((string)null);
 

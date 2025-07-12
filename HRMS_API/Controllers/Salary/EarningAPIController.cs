@@ -83,7 +83,7 @@ namespace HRMS_API.Controllers.Salary
             {
                 if (earning == null)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Shift details cannot be null" };
+                    return new APIResponse() { isSuccess = false, ResponseMessage = "Earning details cannot be null" };
                 }
 
                 earning.CreatedDate = DateTime.UtcNow;

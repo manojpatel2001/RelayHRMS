@@ -1,0 +1,226 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<!-- ✅ Employee In Out Panel -->
+<div class="card">
+    <div class="card-header bg-transparent ml-0 py-0">
+        <div class="row">
+            <div class="col-6">
+                <h6 class="pt-2 mb-0">Employee In Out</h6>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- ✅ Month & Year Dropdown -->
+        <div class="row mb-3">
+            <div class="col-md-2"></div>
+            <div class="col-md-4">
+                <select id="dropdownmonth" class="form-control">
+                    <option value="">Select Month</option>
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        var selected = (i == DateTime.Now.Month) ? "selected" : "";
+                        <option value="@i" @selected>
+                            @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select id="dropdownyear" class="form-control">
+                    @for (int y = 2024; y <= 2026; y++)
+                    {
+                        var selected = (y == DateTime.Now.Year) ? "selected" : "";
+                        <option value="@y" @selected>@y</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-primary px-4" id="btnGo">Go</button>
+            </div>
+        </div>
+
+        <!-- ✅ Tabs -->
+        <ul class="nav nav-tabs" id="attendanceTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-toggle="tab" href="#firstLast" role="tab">First In and Last Out</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#multiplePunches" role="tab">Multiple Punches</a>
+            </li>
+        </ul>
+
+        <div class="tab-content mt-3">
+            <div class="tab-pane fade show active" id="firstLast" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped" id="firstLastTable">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Branch Name</th>
+                                <th>Employee Code</th>
+                                <th>Employee Name</th>
+                                <th>Date</th>
+                                <th>Day</th>
+                                <th>In Time</th>
+                                <th>Out Time</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="multiplePunches" role="tabpanel">
+                <div class="table-responsive" id="multiplePunchesContainer" style="display:none;">
+                    <table class="table table-bordered table-striped" id="multipleTable">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Branch Name</th>
+                                <th>Employee Code</th>
+                                <th>Employee Name</th>
+                                <th>Date</th>
+                                <th>Day</th>
+                                <th>In Time</th>
+                                <th>Out Time</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    const baseUrl = '@baseUrl';
+    const empid = 1;
+
+    $(document).ready(function () {
+        $('#btnGo').click(function () {
+            const month = $('#dropdownmonth').val();
+            const year = $('#dropdownyear').val();
+
+            if (!month || !year) {
+                Swal.fire("Please select both Month and Year.");
+                return;
+            }
+
+            const activeTab = $(".nav-link.active").attr("href");
+            if (activeTab === "#firstLast") {
+                $('#multiplePunchesContainer').hide();
+                $('#firstLastTable').parent().show();
+                loadFirstLast(empid, month, year);
+            } else {
+                $('#firstLastTable').parent().hide();
+                $('#multiplePunchesContainer').show();
+                loadMultiple(empid, month, year);
+            }
+        });
+
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            const target = $(e.target).attr("href");
+            const month = $('#dropdownmonth').val();
+            const year = $('#dropdownyear').val();
+
+            if (!month || !year) return;
+
+            if (target === "#firstLast") {
+                $('#multiplePunchesContainer').hide();
+                $('#firstLastTable').parent().show();
+                loadFirstLast(empid, month, year);
+            } else {
+                $('#firstLastTable').parent().hide();
+                $('#multiplePunchesContainer').show();
+                loadMultiple(empid, month, year);
+            }
+        });
+
+        function loadFirstLast(empid, month, year) {
+            $.ajax({
+                url: baseUrl + "/EmployeeInOut/AttendanceFirstInOutReport",
+                type: "POST",
+                data: { empid, month, year },
+                success: function (response) {
+                    const rows = response.data || [];
+                    const $tbody = $('#firstLastTable tbody');
+                    $tbody.empty();
+
+                    if (rows.length === 0) {
+                        $tbody.append('<tr><td colspan="8" class="text-center">No data found.</td></tr>');
+                        return;
+                    }
+
+                    rows.forEach(item => {
+                        $tbody.append(`
+                            <tr>
+                                <td>${item.branchName || ''}</td>
+                                <td>${item.employeeCode || ''}</td>
+                                <td>${item.fullName || ''}</td>
+                                <td>${formatDate(item.for_Date)}</td>
+                                <td>${item.day_Name || ''}</td>
+                                <td>${item.in_Time || ''}</td>
+                                <td>${item.out_Time || ''}</td>
+                                <td>${item.duration || ''}</td>
+                            </tr>
+                        `);
+                    });
+                },
+                error: function () {
+                    Swal.fire("❌ Failed to load First In/Out records.");
+                }
+            });
+        }
+
+        function loadMultiple(empid, month, year) {
+            $.ajax({
+                url: baseUrl + "/EmployeeInOut/AttendanceInOutReport",
+                type: "POST",
+                data: { empid, month, year },
+                success: function (response) {
+                    const rows = response.data || [];
+                    const $tbody = $('#multipleTable tbody');
+                    $tbody.empty();
+
+                    if (rows.length === 0) {
+                        $tbody.append('<tr><td colspan="8" class="text-center">No data found.</td></tr>');
+                        return;
+                    }
+
+                    rows.forEach(item => {
+                        $tbody.append(`
+                            <tr>
+                                <td>${item.branchName || ''}</td>
+                                <td>${item.employeeCode || ''}</td>
+                                <td>${item.fullName || ''}</td>
+                                <td>${formatDate(item.for_Date)}</td>
+                                <td>${item.day_Name || ''}</td>
+                                <td>${item.in_Time || ''}</td>
+                                <td>${item.out_Time || ''}</td>
+                                <td>${item.duration || ''}</td>
+                            </tr>
+                        `);
+                    });
+                },
+                error: function () {
+                    Swal.fire("❌ Failed to load Multiple In/Out records.");
+                }
+            });
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return isNaN(date) ? '' : date.toLocaleDateString('en-GB'); // dd/MM/yyyy
+        }
+    });
+</script>

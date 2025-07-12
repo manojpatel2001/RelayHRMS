@@ -81,7 +81,7 @@ namespace HRMS_API.Controllers.Salary
             {
                 if (empAttendance == null)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Shift details cannot be null" };
+                    return new APIResponse() { isSuccess = false, ResponseMessage = "empAttendance details cannot be null" };
                 }
 
                 empAttendance.CreatedDate = DateTime.UtcNow;
