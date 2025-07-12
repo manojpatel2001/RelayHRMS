@@ -1,10 +1,8 @@
 ﻿var token = localStorage.getItem("authToken");
 var decodedToken = "";
 if (token) {
-    debugger
     $(".body-hiden-wrapper").show();
     var decodedToken = jwt_decode(token);
-    debugger
     console.log("decodeToken", decodedToken)
     var permissions = decodedToken.Permission;
 
