@@ -4,6 +4,7 @@ using HRMS_Core.Helper;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -87,11 +88,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Employee Code already exists." };
                 }
-                // Map vmEmployeeData to HRMSUserIdentity
-                if (string.IsNullOrEmpty(employeeData.Password))
-                {
-                    employeeData.Password = "Hrms@123";
-                }
+                
                 var employee = new HRMSUserIdentity
                 {
                     UserName = employeeData.LoginAlias,
@@ -123,14 +120,10 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     SubBranch = employeeData.SubBranch,
                     EnrollNo = employeeData.EnrollNo,
                     CompanyId = employeeData.CompanyId,
-                    Overtime = employeeData.Overtime,
-                    Latemark = employeeData.Latemark,
-                    Earlymark = employeeData.Earlymark,
-                    Fullpf = employeeData.Fullpf,
                     Pt = employeeData.Pt,
-                    Fixsalary = employeeData.Fixsalary,
-                    Probation = employeeData.Probation,
-                    Trainee = employeeData.Trainee
+                    WeekOffDetailsId=(int)employeeData.WeekOffDetailsId,
+                    IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut
+
                 };
 
                 // Create the user
@@ -149,7 +142,14 @@ namespace HRMS_API.Controllers.EmployeeMaster
                       var resultUserRole=await _unitOfWork.HRMSUserRoleRepository.CreateUserRole(userRole);
 
                     var salary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId= employee.Id,CompanyId= employee.CompanyId, GrossSalary=employee.GrossSalary});
-                    
+                    var getRole = await _unitOfWork.RoleRepository.GetAsync(x => x.Id == (int)employeeData.RoleId && x.IsDeleted == false && x.IsEnabled == true);
+                    var companyPermission = new VMUserCompanyPermission
+                    {
+                        EmployeeId = employee.Id,
+                        CompanyId = employee.CompanyId,
+                        IsAdmin = getRole.Slug.ToLower() == "admin" ? true :false
+                    };
+                    var assignCompany=await _unitOfWork.UserCompanyPermissionsRepository.CreateUserCompanyPermissions(companyPermission);
                     return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
 
                 }
@@ -222,10 +222,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                         return new APIResponse { isSuccess = false, ResponseMessage = "Failed to reset password." };
                     }
                 }
-                else
-                {
-                    employeeData.Password = "Hrms@123";
-                }
+                
                 // Update other user properties
                 var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployee(employeeData);
 
@@ -239,6 +236,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                         CreatedBy = employeeData.CreatedBy,
                         CreatedDate = DateTime.UtcNow,
                     };
+
                     var checkExist = await _unitOfWork.HRMSUserRoleRepository.GetAsync(x => x.EmployeeId == employeeData.Id && x.IsEnabled == true && x.IsDeleted == false);
                     if (checkExist == null)
                     {
@@ -569,6 +567,21 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
+        [HttpPost("GetExistEmployeeCode")]
+        public async Task<APIResponse> GetExistEmployeeCode(vmCommonParameters vmCommonParameters)
+        {
+            try
+            {
+                var existEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetExistEmployeeCode(vmCommonParameters);
+
+                return new APIResponse { isSuccess = true, Data = existEmployeeCode, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
 
     }
 }

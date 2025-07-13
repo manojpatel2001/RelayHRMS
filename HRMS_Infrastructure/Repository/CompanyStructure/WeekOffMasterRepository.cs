@@ -27,14 +27,10 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
             {
                 var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
                 EXEC CreateWeekOffDetails
+                    @CompanyId = {weekOffDetails.CompanyId},
                     @BranchId = {weekOffDetails.BranchId},
-                    @SundayWeekOffDay = {weekOffDetails.SundayWeekOffDay},
-                    @MondayWeekOffDay = {weekOffDetails.MondayWeekOffDay},
-                    @TuesdayWeekOffDay = {weekOffDetails.TuesdayWeekOffDay},
-                    @WednesdayWeekOffDay = {weekOffDetails.WednesdayWeekOffDay},
-                    @ThursdayWeekOffDay = {weekOffDetails.ThursdayWeekOffDay},
-                    @FridayWeekOffDay = {weekOffDetails.FridayWeekOffDay},
-                    @SaturdayWeekOffDay = {weekOffDetails.SaturdayWeekOffDay},
+                    @WeekOffDay = {weekOffDetails.WeekOffDay},                   
+                    @WeekOffName = {weekOffDetails.WeekOffName},                   
                     @IsDeleted = {weekOffDetails.IsDeleted},
                     @IsEnabled = {weekOffDetails.IsEnabled},
                     @IsBlocked = {weekOffDetails.IsBlocked},
@@ -80,12 +76,14 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
             }
         }
 
-        public async Task<List<vmGetAllWeekOffDetails>> GetAllWeekOffDetails()
+        public async Task<List<vmGetAllWeekOffDetails>> GetAllWeekOffDetails(vmCommonParameters vmCommonParameters)
         {
             try
             {
                 var result = await _db.Set<vmGetAllWeekOffDetails>().FromSqlInterpolated($@"
-            EXEC GetAllWeekOffDetails").ToListAsync();
+            EXEC GetAllWeekOffDetails  
+                    @CompanyId = {vmCommonParameters.CompanyId},
+                    @BranchId = {vmCommonParameters.BranchId}").ToListAsync();
 
                 return result ?? new List<vmGetAllWeekOffDetails>();
             }
@@ -103,14 +101,10 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
                 var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
                     EXEC UpdateWeekOffDetails 
                         @WeekOffDetailsId = {weekOffDetails.WeekOffDetailsId},
+                        @CompanyId = {weekOffDetails.CompanyId},
                         @BranchId = {weekOffDetails.BranchId},
-                        @SundayWeekOffDay = {weekOffDetails.SundayWeekOffDay},
-                        @MondayWeekOffDay = {weekOffDetails.MondayWeekOffDay},
-                        @TuesdayWeekOffDay = {weekOffDetails.TuesdayWeekOffDay},
-                        @WednesdayWeekOffDay = {weekOffDetails.WednesdayWeekOffDay},
-                        @ThursdayWeekOffDay = {weekOffDetails.ThursdayWeekOffDay},
-                        @FridayWeekOffDay = {weekOffDetails.FridayWeekOffDay},
-                        @SaturdayWeekOffDay = {weekOffDetails.SaturdayWeekOffDay},
+                        @WeekOffDay = {weekOffDetails.WeekOffDay},                                      
+                        @WeekOffName = {weekOffDetails.WeekOffName},                                      
                         @UpdatedDate = {weekOffDetails.UpdatedDate},
                         @UpdatedBy = {weekOffDetails.UpdatedBy}
                 ").ToListAsync();

@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250712131309_ModifyWeekOffName")]
+    partial class ModifyWeekOffName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -455,9 +458,6 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool?>("IsPasswordChange")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsPermissionPunchInOut")
                         .HasColumnType("bit");
 
                     b.Property<string>("LastName")
@@ -1319,14 +1319,8 @@ namespace HRMS_Core.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int?>("LeaveApplicationid"));
 
-                    b.Property<DateTime?>("ApplicationDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("ApplicationType")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ApprovalDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<bool?>("Cancel_Weekoff")
                         .HasColumnType("bit");
@@ -3511,9 +3505,6 @@ namespace HRMS_Core.Migrations
                     b.Property<int?>("WeekOffDetailsId")
                         .HasColumnType("int");
 
-                    b.Property<string>("WeekOffName")
-                        .HasColumnType("nvarchar(max)");
-
                     b.ToTable((string)null);
 
                     b.ToView(null, (string)null);
@@ -3637,19 +3628,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<decimal?>("TotalGrossSalary")
                         .HasColumnType("decimal(18,2)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.EmployeeMaster.VMGetExistEmployeeCode", b =>
-                {
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("EmployeeCode")
-                        .HasColumnType("nvarchar(max)");
 
                     b.ToTable((string)null);
 
@@ -4028,48 +4006,6 @@ namespace HRMS_Core.Migrations
 
                     b.ToView(null, (string)null);
                 });
-
-
-            modelBuilder.Entity("HRMS_Core.VM.Leave.VmLeaveApplicationforApprove", b =>
-                {
-                    b.Property<string>("ApplicationType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("FromDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("LeaveApplicationId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("LeaveStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LeaveTypeName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("No_Of_Date")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReportingPersonName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("Todate")
-                        .HasColumnType("datetime2");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
 
             modelBuilder.Entity("HRMS_Core.VM.ManagePermision.PermissionDto", b =>
                 {

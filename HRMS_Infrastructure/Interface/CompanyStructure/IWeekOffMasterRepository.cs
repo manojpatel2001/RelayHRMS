@@ -14,6 +14,6 @@ namespace HRMS_Infrastructure.Interface.CompanyStructure
         Task<VMCommonResult> CreateWeekOffDetails(WeekOffDetails weekOffDetails);
         Task<VMCommonResult> UpdateWeekOffDetails(WeekOffDetails weekOffDetails);
         Task<VMCommonResult> DeleteWeekOffDetails(DeleteRecordVM deleteRecordVM);
-        Task<List<vmGetAllWeekOffDetails>> GetAllWeekOffDetails();
+        Task<List<vmGetAllWeekOffDetails>> GetAllWeekOffDetails(vmCommonParameters vmCommonParameters);
     }
 }
