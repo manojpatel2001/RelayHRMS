@@ -1,4 +1,5 @@
-﻿var token = localStorage.getItem("authToken");
+﻿
+var token = localStorage.getItem("authToken");
 var decodedToken = "";
 if (token) {
     $(".body-hiden-wrapper").show();
@@ -9,8 +10,8 @@ if (token) {
     /*Super Admin */
     /*Change company Option*/
     if (permissions.includes("all-admin")) {
-        $("#dropdownESSSwitch").show();
-        $("#dropdownAdminSwitch").show();
+        //$("#dropdownESSSwitch").show();
+        //$("#dropdownAdminSwitch").show();
         $("#drpManageRoleAndPermission").show();
         $("#drpCompanyInformationMenu").show();
 
