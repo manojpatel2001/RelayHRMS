@@ -19,5 +19,6 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<VMCommonResult> DeleteEmployee(DeleteRecordVM deleteRecord);
         Task<VMCommonResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model);
         Task<vmGetNextEmployeeCode?> GetNextEmployeeCode(int CompanyId);
+        Task<VMGetExistEmployeeCode?> GetExistEmployeeCode(vmCommonParameters vmCommonParameters);
     }
 }

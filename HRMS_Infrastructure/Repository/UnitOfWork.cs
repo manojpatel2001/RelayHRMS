@@ -90,6 +90,7 @@ namespace HRMS_Infrastructure.Repository
             LeaveApplicationRepository = new LeaveApplicationRepository(_dbContext);
 
             EmployeeSalaryAllowanceRepository = new EmployeeSalaryAllowanceRepository(_dbContext);
+            UserCompanyPermissionsRepository = new UserCompanyPermissionsRepository(_dbContext);
 
 
             PasswordHistory = new PasswordHistoryRepository(_dbContext);
@@ -161,6 +162,7 @@ namespace HRMS_Infrastructure.Repository
         public IPasswordHistory PasswordHistory {  get; set; }
 
         public ILeaveApplicationRepository LeaveApplicationRepository { get; set; }
+        public IUserCompanyPermissionsRepository UserCompanyPermissionsRepository { get; set; }
 
         public void Commit()
         {

@@ -78,5 +78,8 @@ namespace HRMS_Core.DbContext
         public string? EmployeeSignatureUrl { get; set; }
         public string? MasterPassword { get; set; }
         public bool? IsPasswordChange { get; set; } = false;
+        public int? WeekOffDetailsId { get; set; }
+        public bool? IsPermissionPunchInOut { get; set; } = false;
+    
     }
 }

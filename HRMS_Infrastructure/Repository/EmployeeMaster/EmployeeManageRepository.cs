@@ -56,21 +56,17 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @SubBranch = {employee.SubBranch},
                         @EnrollNo = {employee.EnrollNo},
                         @CompanyId = {employee.CompanyId},
-                        @Overtime = {employee.Overtime},
-                        @Latemark = {employee.Latemark},
-                        @Earlymark = {employee.Earlymark},
-                        @Fullpf = {employee.Fullpf},
-                        @Pt = {employee.Pt},
-                        @Fixsalary = {employee.Fixsalary},
-                        @Probation = {employee.Probation},
-                        @Trainee = {employee.Trainee},
+                        @Pt = {employee.Pt},           
                         @EmployeeProfileUrl = {employee.EmployeeProfileUrl},
                         @EmployeeSignatureUrl = {employee.EmployeeSignatureUrl},
                         @IsDeleted = {employee.IsDeleted},
                         @IsEnabled = {employee.IsEnabled},
                         @IsBlocked = {employee.IsBlocked},
                         @CreatedDate = {employee.CreatedDate},
-                        @CreatedBy = {employee.CreatedBy}
+                        @CreatedBy = {employee.CreatedBy},
+                        @WeekOffDetailsId = {employee.WeekOffDetailsId},
+                         @IsPermissionPunchInOut={employee.IsPermissionPunchInOut}
+
                 ").ToListAsync();
 
                 return result.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
@@ -115,18 +111,13 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @SubBranch = {employee.SubBranch},
                         @EnrollNo = {employee.EnrollNo},
                         @CompanyId = {employee.CompanyId},
-                        @Overtime = {employee.Overtime},
-                        @Latemark = {employee.Latemark},
-                        @Earlymark = {employee.Earlymark},
-                        @Fullpf = {employee.Fullpf},
                         @Pt = {employee.Pt},
-                        @Fixsalary = {employee.Fixsalary},
-                        @Probation = {employee.Probation},
-                        @Trainee = {employee.Trainee},
                         @EmployeeProfileUrl = {employee.EmployeeProfileUrl},
                         @EmployeeSignatureUrl = {employee.EmployeeSignatureUrl},
                         @UpdatedDate = {employee.UpdatedDate},
-                        @UpdatedBy = {employee.UpdatedBy}
+                        @UpdatedBy = {employee.UpdatedBy},
+                        @WeekOffDetailsId = {employee.WeekOffDetailsId},
+                         @IsPermissionPunchInOut={employee.IsPermissionPunchInOut}
                 ").ToListAsync();
 
                 return result.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
@@ -226,6 +217,21 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             {
                 var result = await _db.Set<vmGetNextEmployeeCode>()
                     .FromSqlInterpolated($"EXEC GetNextEmployeeCode @CompanyId = {companyId}")
+                    .ToListAsync();
+
+                return result.FirstOrDefault()??null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+        public async Task<VMGetExistEmployeeCode?> GetExistEmployeeCode(vmCommonParameters vmCommonParameters)
+        {
+            try
+            {
+                var result = await _db.Set<VMGetExistEmployeeCode>()
+                    .FromSqlInterpolated($"EXEC GetExistEmployeeCode @CompanyId = {vmCommonParameters.CompanyId},@EmployeeCode = {vmCommonParameters.EmployeeCode}")
                     .ToListAsync();
 
                 return result.FirstOrDefault()??null;

@@ -57,6 +57,8 @@ namespace HRMS_Core.VM.EmployeeMaster
         public bool? Fixsalary { get; set; } = false;
         public bool? Probation { get; set; } = false;
         public bool? Trainee { get; set; } = false;
+        public int? WeekOffDetailsId { get; set; }
+        public bool? IsPermissionPunchInOut { get; set; } = false;
 
         //base model
         public bool? IsDeleted { get; set; } = false;

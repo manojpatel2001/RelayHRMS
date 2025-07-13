@@ -88,7 +88,7 @@ namespace HRMS_API.Controllers.Authentication
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Invalid email or password." };
                 }
-                var emp_company = await _unitOfWork.CompanyDetailsRepository.GetCompanyListByCompanyId((int)user.CompanyId);
+                var emp_company = await _unitOfWork.UserCompanyPermissionsRepository.GetCompanyPermissionsListByEmployeeId(user.Id);
                 var DesignationDetails = await _unitOfWork.DesignationRepository.GetAsync(x=>x.DesignationId== user.DesignationId) ;
                 var roleAndPermission = await _unitOfWork.RolePermissionRepository.GetEmployeeRolesAndPermissions(user.Id);
                 var permssions = new List<string>();

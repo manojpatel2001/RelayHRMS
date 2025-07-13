@@ -75,6 +75,7 @@ namespace HRMS_Infrastructure.Interface
 
 
         IEmployeeSalaryAllowanceRepository EmployeeSalaryAllowanceRepository { get; }
+        IUserCompanyPermissionsRepository UserCompanyPermissionsRepository { get; }
         IPasswordHistory PasswordHistory { get; }
 
         void Commit();

@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250712125958_ModifyWeekOff")]
+    partial class ModifyWeekOff
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -455,9 +458,6 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool?>("IsPasswordChange")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsPermissionPunchInOut")
                         .HasColumnType("bit");
 
                     b.Property<string>("LastName")
@@ -2009,9 +2009,6 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("WeekOffDay")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("WeekOffName")
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("WeekOffDetailsId");
 
                     b.ToTable("WeekOffDetails");
@@ -3505,9 +3502,6 @@ namespace HRMS_Core.Migrations
                     b.Property<int?>("WeekOffDetailsId")
                         .HasColumnType("int");
 
-                    b.Property<string>("WeekOffName")
-                        .HasColumnType("nvarchar(max)");
-
                     b.ToTable((string)null);
 
                     b.ToView(null, (string)null);
@@ -3631,19 +3625,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<decimal?>("TotalGrossSalary")
                         .HasColumnType("decimal(18,2)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.EmployeeMaster.VMGetExistEmployeeCode", b =>
-                {
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("EmployeeCode")
-                        .HasColumnType("nvarchar(max)");
 
                     b.ToTable((string)null);
 

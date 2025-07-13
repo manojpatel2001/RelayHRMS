@@ -9,7 +9,6 @@ if (token) {
     /*Super Admin */
     /*Change company Option*/
     if (permissions.includes("all-admin")) {
-        $("#dropdownChangeCompany").show();
         $("#dropdownESSSwitch").show();
         $("#dropdownAdminSwitch").show();
         $("#drpManageRoleAndPermission").show();

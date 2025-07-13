@@ -54,15 +54,8 @@ namespace HRMS_Core.VM.EmployeeMaster
 
         public int? CompanyId { get; set; }
         public string? CompanyName { get; set; }
-
-        public bool? Overtime { get; set; } = false;
-        public bool? Latemark { get; set; } = false;
-        public bool? Earlymark { get; set; } = false;
-        public bool? Fullpf { get; set; } = false;
         public bool? Pt { get; set; } = false;
-        public bool? Fixsalary { get; set; } = false;
-        public bool? Probation { get; set; } = false;
-        public bool? Trainee { get; set; } = false;
+       
 
         // Base model
         public bool? IsDeleted { get; set; } = false;
@@ -73,5 +66,8 @@ namespace HRMS_Core.VM.EmployeeMaster
         
         public string? EmployeeProfileUrl { get; set; }
         public string? EmployeeSignatureUrl { get; set; }
+        public int? WeekOffDetailsId { get; set; }
+        public bool? IsPermissionPunchInOut { get; set; } = false;
+
     }
 }
