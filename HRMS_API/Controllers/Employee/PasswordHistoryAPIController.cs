@@ -67,9 +67,9 @@ namespace HRMS_API.Controllers.Employee
                     return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
                 }
                 var existingSamePasswords = await _unitOfWork.PasswordHistory
-                    .GetAllAsync(x => x.EMPID == password.EMPID && x.CurrentPassword == password.CurrentPassword);
+                    .GetAllAsync(x => x.EMPID == password.EMPID && x.NewPassword == password.NewPassword);
 
-                if (existingSamePasswords != null && existingSamePasswords.Count() >= 3)
+                if (existingSamePasswords.Count() >=3)
                 {
                     return new APIResponse()
                     {
