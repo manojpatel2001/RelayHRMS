@@ -191,5 +191,38 @@ namespace HRMS_API.Controllers.Leave
         }
 
 
+        [HttpPost("GetLeaveApplicationsforApproveAdmin")]
+        public async Task<APIResponse> GetLeaveApplicationsforApproveAdmin([FromBody] SearchVmCompOff filter)
+        {
+            try
+            {
+                var result = await _unitOfWork.LeaveApplicationRepository.GetLeaveApplicationsforApproveAdmin(filter);
+                if (result == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        ResponseMessage = "Data Fetched not Sucessfully"
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = result,
+                    ResponseMessage = "Data Fetched Sucessfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    ResponseMessage = "Data not fetched successfully."
+                };
+            }
+        }
+
+
     }
 }

@@ -30,10 +30,11 @@ namespace HRMS_Infrastructure.Repository.Leave
                 {
                         new SqlParameter("@LeaveType", (object?)filter.SearchType ?? DBNull.Value),
                         new SqlParameter("@LeaveStatus", (object?)filter.Status ?? DBNull.Value),
+                          new SqlParameter("@EmpId", (object?)filter.Emplooyeid ?? DBNull.Value),
                 };
 
                 var result = await _db.Set<VMLeaveApplicationSearchResult>()
-                    .FromSqlRaw("EXEC SP_GetLeaveApplications @LeaveType, @LeaveStatus", parameters)
+                    .FromSqlRaw("EXEC SP_GetLeaveApplications @LeaveType, @LeaveStatus,@EmpId", parameters)
                     .ToListAsync();
 
                 return result;
@@ -64,9 +65,35 @@ namespace HRMS_Infrastructure.Repository.Leave
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("GetLeaveApplicationsAsync Error: " + ex.Message);
+                        Console.WriteLine("GetLeaveApplicationsforApprove Error: " + ex.Message);
                         return new List<VmLeaveApplicationforApprove>();
                     }
+        }
+
+        public async Task<List<VmLeaveApplicationforApprove>> GetLeaveApplicationsforApproveAdmin(SearchVmCompOff filter)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@SearchType", (object?)filter.SearchType ?? DBNull.Value),
+                    new SqlParameter("@SearchFor", (object?)filter.Status ?? DBNull.Value),
+                    new SqlParameter("@BranchId", (object?)filter.Status ?? DBNull.Value)
+                   
+                };
+
+                var result = await _db.Set<VmLeaveApplicationforApprove>()
+                    .FromSqlRaw("EXEC SP_GetLeaveApplicationsForApprovalAdmin @SearchType, @SearchFor,@BranchId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetLeaveApplicationsforApproveAdmin Error: " + ex.Message);
+                return new List<VmLeaveApplicationforApprove>();
+            }
+
         }
 
         public async Task<bool> InsertLeaveApplicationAsync(LeaveApplication model)
