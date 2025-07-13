@@ -28,9 +28,9 @@ namespace HRMS_Infrastructure.Repository.Leave
             {
                 var parameters = new[]
                 {
-            new SqlParameter("@LeaveType", (object?)filter.SearchType ?? DBNull.Value),
-            new SqlParameter("@LeaveStatus", (object?)filter.Status ?? DBNull.Value),
-        };
+                        new SqlParameter("@LeaveType", (object?)filter.SearchType ?? DBNull.Value),
+                        new SqlParameter("@LeaveStatus", (object?)filter.Status ?? DBNull.Value),
+                };
 
                 var result = await _db.Set<VMLeaveApplicationSearchResult>()
                     .FromSqlRaw("EXEC SP_GetLeaveApplications @LeaveType, @LeaveStatus", parameters)
@@ -45,7 +45,29 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
+        public async Task<List<VmLeaveApplicationforApprove>> GetLeaveApplicationsforApprove(SearchVmCompOff filter)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@SearchType", (object?)filter.SearchType ?? DBNull.Value),
+                    new SqlParameter("@SearchFor", (object?)filter.Status ?? DBNull.Value),
+                    new SqlParameter("@EmpId", (object?)filter.Emplooyeid ?? DBNull.Value),
+                };
 
+                        var result = await _db.Set<VmLeaveApplicationforApprove>()
+                            .FromSqlRaw("EXEC SP_GetLeaveApplicationsForAproval @SearchType, @SearchFor,@EmpId", parameters)
+                            .ToListAsync();
+
+                        return result;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("GetLeaveApplicationsAsync Error: " + ex.Message);
+                        return new List<VmLeaveApplicationforApprove>();
+                    }
+        }
 
         public async Task<bool> InsertLeaveApplicationAsync(LeaveApplication model)
         {
@@ -78,5 +100,35 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
+        public async Task<bool> Updateapproval(List<int> applicationid, string status, DateTime Date)
+        {
+           
+            try
+            {
+                foreach (var id in applicationid)
+                {
+                    var parameters = new[]
+                    {
+                        new SqlParameter("@ApplicationId", id),
+                        new SqlParameter("@LeaveStatus", status),
+                        new SqlParameter("@ApproveDate", Date)
+                    };
+
+                    await _db.Database.ExecuteSqlRawAsync(
+                        "EXEC SP_LeaveApproveReject @ApplicationId, @LeaveStatus,@ApproveDate",
+                        parameters
+                    );
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during SP call: " + ex.Message);
+                return false;
+            }
+        
+
+        }
     }
 }
