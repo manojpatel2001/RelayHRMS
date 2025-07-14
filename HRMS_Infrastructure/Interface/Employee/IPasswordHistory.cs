@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
+using HRMS_Core.VM;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,7 @@ namespace HRMS_Infrastructure.Interface.Employee
     public interface IPasswordHistory:IRepository<PasswordHistory>
     {  
         Task<HRMSUserIdentity?> ChangePassword(PasswordHistory histroy);
-
+         Task<VMCommonResult> CreateHistoryPassword(PasswordHistory history);
+        Task<VMCommonResult> CheckLastPassword(PasswordHistory history);
     }
 }
