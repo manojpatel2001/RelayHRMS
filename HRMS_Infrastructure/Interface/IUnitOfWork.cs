@@ -78,6 +78,8 @@ namespace HRMS_Infrastructure.Interface
         IUserCompanyPermissionsRepository UserCompanyPermissionsRepository { get; }
         IPasswordHistory PasswordHistory { get; }
 
+        IEmployeeReport EmployeeReport { get; }
+
         void Commit();
         Task CommitAsync();
     }
