@@ -100,6 +100,7 @@ namespace HRMS_Core.DbContext
         public DbSet<LeaveApplication> LeaveApplication { get; set; }
 
         public DbSet<PasswordHistory> PasswordHistory { get; set; }
+        public DbSet<AttendanceRegularization> AttendanceRegularization { get; set; }
 
 
 
