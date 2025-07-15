@@ -411,7 +411,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
         [HttpGet("GetEmployeeById/{employeeId}")]
-        public async Task<APIResponse> GetEmployeeById( int employeeId)
+        public async Task<APIResponse> GetEmployeeById(int employeeId)
         {
             try
             {
@@ -420,6 +420,35 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
                 return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetEmployeeByBranchId/{BranchId}")]
+        public async Task<APIResponse> GetEmployeeByBranchId(int BranchId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync(x => x.BranchId == BranchId && x.IsDeleted == false && x.IsEnabled == true && x.IsBlocked == false );
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Record not found"
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
             }
             catch (Exception ex)
             {
