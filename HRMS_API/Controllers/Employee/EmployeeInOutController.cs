@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.Employee;
+using HRMS_Core.VM.Employee;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -237,6 +238,50 @@ namespace HRMS_API.Controllers.Employee
                     };
                 }
                 var data = await _unitOfWork.EmployeeInOut.AttendancefirstInOutReport(empid, Month, Year);
+
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
+                };
+            }
+        }
+
+
+
+        [HttpPost("GetEmployeeInOutReport")]
+        public async Task<APIResponse> GetEmployeeInOutReport([FromForm] EmployeeInOutFilterVM outFilterVM)
+        {
+            try
+            {
+                if (outFilterVM == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id,Month,Year are required."
+                    };
+                }
+                var data = await _unitOfWork.EmployeeInOut.GetEmployeeInOutReport(outFilterVM);
 
 
                 if (data == null)
