@@ -1,7 +1,9 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Infrastructure.Interface.Employee;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -19,6 +21,29 @@ namespace HRMS_Infrastructure.Repository.Employee
         {
             _db = db;
         }
+
+        public async Task<List<AttendanceRegularizationVM>> GetAttendanceRegularization(AttendanceRegularizationSearchFilterVM attendance)
+        {
+            try
+            {
+                var searchbyParam = new SqlParameter("@SearchBy", (object?)attendance.SearchBy ?? DBNull.Value);
+                var searchforParam = new SqlParameter("@SearchValue", (object?)attendance.SearchValue ?? DBNull.Value);
+                var fromdateParam = new SqlParameter("@FromDate", (object?)attendance.FromDate ?? DBNull.Value);
+                var todateParam = new SqlParameter("@ToDate", (object?)attendance.ToDate ?? DBNull.Value);
+                var statustypeParam = new SqlParameter("@Status", (object?)attendance.Status ?? DBNull.Value);
+
+                return await _db.Set<AttendanceRegularizationVM>()
+              .FromSqlRaw("EXEC [dbo].[GetAttendanceRegularizationSearch] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status",
+                  searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam)
+              .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+
+                return new List<AttendanceRegularizationVM>();
+            }
+        }
+
         public async Task<AttendanceRegularization> SoftDelete(DeleteRecordVM DeleteRecord)
         {
 

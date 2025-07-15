@@ -2,6 +2,7 @@
 using HRMS_Core.Employee;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,5 +15,7 @@ namespace HRMS_Infrastructure.Interface.Employee
     {
         Task<bool> UpdateAttendanceRegularization(AttendanceRegularization attendanceRegularization);
         Task<AttendanceRegularization> SoftDelete(DeleteRecordVM DeleteRecord);
+        Task<List<AttendanceRegularizationVM>> GetAttendanceRegularization(AttendanceRegularizationSearchFilterVM attendance);
+
     }
 }

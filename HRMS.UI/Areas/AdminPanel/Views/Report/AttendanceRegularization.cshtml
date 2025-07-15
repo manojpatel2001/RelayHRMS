@@ -156,6 +156,7 @@
 </div>
 
 <!-- EMPLOYEE REGULARIZATION Heading -->
+<!-- EMPLOYEE REGULARIZATION Heading -->
 <div class="search-panel-wrapper">
     <div class="search-panel-container">
         <div class="search-panel-row">
@@ -163,3 +164,187 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Button + Grid Container -->
+<div class="container mt-3">
+    <!-- Action Buttons Row -->
+    <div class="d-flex justify-content-end mb-2" id="actionButtons" style="display: none;">
+        <button id="btnDelete" class="btn btn-danger btn-sm me-2">Delete</button>
+        <button id="btnApprove" class="btn btn-success btn-sm me-2">Approve</button>
+        <button id="btnReject" class="btn btn-warning btn-sm">Reject</button>
+    </div>
+
+    <!-- Grid -->
+    <div id="attendanceGrid"></div>
+</div>
+
+<script>
+
+        $(document).ready(function () {
+        $('#r2').prop('checked', true); // Default to Pending
+        $('#btnGo').click(); // Trigger initial load
+            $("#btnApprove").click(function () {
+        updateAttendanceStatus("Approved");
+    });
+
+    $("#btnReject").click(function () {
+        updateAttendanceStatus("Rejected");
+    });
+    });
+    let selectedKeys = [];
+
+    // Get selected status from radio buttons
+    function getStatus() {
+        if ($('#r2').is(':checked')) return 'Pending';
+        if ($('#r3').is(':checked')) return 'Approved';
+        if ($('#r4').is(':checked')) return 'Rejected';
+        return null;
+    }
+
+    // Map dropdown value to parameter
+    function getSearchByText(value) {
+        switch (value) {
+            case '1': return 'EmpName';
+            case '2': return 'EmpCode';
+            case '3': return 'Reason';
+            case '4': return 'ManagerName';
+            default: return null;
+        }
+    }
+    function loadGrid(data) {
+        $("#attendanceGrid").dxDataGrid({
+            dataSource: data,
+            keyExpr: "attendanceRegularizationId", // must be unique
+            showBorders: true,
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
+            },
+            onSelectionChanged: function (e) {
+                selectedKeys = e.selectedRowKeys;
+            },
+            columns: [
+                { dataField: "employeeCode", caption: "Code", width: 80 },
+                { dataField: "fullName", caption: "Name" },
+                { dataField: "forDate", caption: "Date", dataType: "date" },
+                { dataField: "createdDate", caption: "App Date", dataType: "date" },
+                { dataField: "inTime", caption: "In Time", dataType: "datetime" },
+                { dataField: "outTime", caption: "Out Time", dataType: "datetime" },
+                { dataField: "reason", caption: "Reason" },
+                {
+                    caption: "Status",
+                    calculateCellValue: function (row) {
+                        if (row.isApproved) return "Approved";
+                        if (row.isRejected) return "Rejected";
+                        if (row.isPending) return "Pending";
+                        return "";
+                    }
+                }
+            ]
+        });  
+        $("#actionButtons").show();
+    }
+
+
+    // Go Button Click
+    $('#btnGo').on('click', function () {
+        let model = {
+            SearchBy: getSearchByText($('#searchby').val()),
+            SearchValue: $('#searchfor').val(),
+            FromDate: $('#fromdate').val() || null,
+            ToDate: $('#todate').val() || null,
+            Status: getStatus()
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetAttendanceRegularization")',
+            type: 'POST',
+            data: model,
+            processData: false,
+            contentType: false,
+            success: function (res) {
+                if (res.isSuccess) {
+                    loadGrid(res.data);
+                } else {
+                    Swal.fire('No Data', res.responseMessage, 'warning');
+                }
+            },
+            error: function () {
+                Swal.fire('Error', 'Something went wrong.', 'error');
+            }
+        });
+    });
+
+    // Delete Button Click
+    $('#btnDelete').on('click', function () {
+        if (selectedKeys.length === 0) {
+            Swal.fire('Warning', 'Please select records to delete.', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You want to delete selected records?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/api/YourController/DeleteAttendanceRegularization', // 🔁 replace with actual
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(selectedKeys),
+                    success: function (res) {
+                        if (res.isSuccess) {
+                            Swal.fire('Deleted!', res.responseMessage, 'success');
+                            $('#btnGo').click(); // Refresh grid
+                        } else {
+                            Swal.fire('Error', res.responseMessage, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Error', 'Deletion failed.', 'error');
+                    }
+                });
+            }
+        });
+    });
+
+        function updateAttendanceStatus(status) {
+        var grid = $("#attendanceGrid").dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            Swal.fire("Please select at least one record.");
+            return;
+        }
+
+        var ids = selectedRows.map(function (row) {
+            return row.attendanceRegularizationId;
+        });
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/UpdateAttendanceRegularization")',
+            type: "POST",
+            data: JSON.stringify({
+                ids: ids,
+                status: status
+            }),
+            contentType: "application/json",
+            success: function (response) {
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage || "Status updated successfully.");
+                    $("#btnGo").click(); // Reload grid data
+                } else {
+                    Swal.fire("Error", response.responseMessage || "Update failed.", "error");
+                }
+            },
+            error: function () {
+                Swal.fire("Error", "Something went wrong during update.", "error");
+            }
+        });
+    }
+
+
+</script>
