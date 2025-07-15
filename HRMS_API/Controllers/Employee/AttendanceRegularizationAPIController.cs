@@ -1,20 +1,20 @@
-﻿using HRMS_Core.Salary;
+﻿using HRMS_Core.Employee;
+using HRMS_Core.Salary;
 using HRMS_Core.VM;
-using HRMS_Core.VM.importData;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace HRMS_API.Controllers.Salary
+namespace HRMS_API.Controllers.Employee
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DeductionAPIController : ControllerBase
+    public class AttendanceRegularizationAPIController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
 
-        public DeductionAPIController(IUnitOfWork unitOfWork)
+        public AttendanceRegularizationAPIController(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }
@@ -24,7 +24,7 @@ namespace HRMS_API.Controllers.Salary
         {
             try
             {
-                var data = await _unitOfWork.DeductionRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
@@ -39,12 +39,12 @@ namespace HRMS_API.Controllers.Salary
         }
 
 
-        [HttpGet("GetByDeductionId/{id}")]
-        public async Task<APIResponse> GetByDeductionId(int Id)
+        [HttpGet("GetById/{id}")]
+        public async Task<APIResponse> GetById(int Id )
         {
             try
             {
-                var data = await _unitOfWork.DeductionRepository.GetAsync(x => x.DeductionId == Id && x.IsEnabled == true && x.IsDeleted == false);
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x => x.AttendanceRegularizationId == Id && x.IsEnabled == true && x.IsDeleted == false);
                 if (data == null)
                 {
                     return new APIResponse
@@ -73,23 +73,40 @@ namespace HRMS_API.Controllers.Salary
 
         }
 
-
-        [HttpPost("CreateDeduction")]
-        public async Task<APIResponse> CreateDeduction(Deduction deduction)
+        [HttpPost("CreateAttendanceRegularization")]
+        public async Task<APIResponse> CreateAttendanceRegularization(List<AttendanceRegularization> attendances)
         {
             try
             {
-                if (deduction == null)
+                if (attendances == null || attendances.Count == 0)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "deduction details cannot be null" };
+                    return new APIResponse() { isSuccess = false, ResponseMessage = "No attendance details received." };
                 }
 
-                deduction.CreatedDate = DateTime.UtcNow;
-                await _unitOfWork.DeductionRepository.AddAsync(deduction);
+                if (_unitOfWork == null || _unitOfWork.AttendanceRegularizationRepository == null)
+                {
+                    return new APIResponse() { isSuccess = false, ResponseMessage = "Internal server error: repository not initialized." };
+                }
+
+                foreach (var attendance in attendances)
+                {
+                    if (attendance == null)
+                    {
+                        continue;
+                    }
+
+                    attendance.CreatedDate = DateTime.UtcNow;
+                    await _unitOfWork.AttendanceRegularizationRepository.AddAsync(attendance);
+                }
+
                 await _unitOfWork.CommitAsync();
 
-                return new APIResponse() { isSuccess = true, Data = deduction, ResponseMessage = "The record has been saved successfully" };
-
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = attendances,
+                    ResponseMessage = "Records have been saved successfully"
+                };
             }
             catch (Exception err)
             {
@@ -102,12 +119,13 @@ namespace HRMS_API.Controllers.Salary
             }
         }
 
-        [HttpPut("UpdateDeduction")]
-        public async Task<APIResponse> UpdateDeduction(Deduction deduction)
+
+        [HttpPut("UpdateAttendanceRegularization")]
+        public async Task<APIResponse> UpdateAttendanceRegularization(AttendanceRegularization attendance)
         {
             try
             {
-                if (deduction == null)
+                if (attendance == null)
                 {
                     return new APIResponse
                     {
@@ -116,13 +134,13 @@ namespace HRMS_API.Controllers.Salary
                     };
                 }
 
-                await _unitOfWork.DeductionRepository.UpdateDeduction(deduction);
+                await _unitOfWork.AttendanceRegularizationRepository.UpdateAttendanceRegularization(attendance);
                 await _unitOfWork.CommitAsync();
 
                 return new APIResponse
                 {
                     isSuccess = true,
-                    Data = deduction,
+                    Data = attendance,
                     ResponseMessage = "The record has been updated successfully."
                 };
             }
@@ -148,7 +166,7 @@ namespace HRMS_API.Controllers.Salary
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
                 }
 
-                var data = await _unitOfWork.DeductionRepository.SoftDelete(DeleteRecord);
+                var data = await _unitOfWork.AttendanceRegularizationRepository.SoftDelete(DeleteRecord);
                 await _unitOfWork.CommitAsync();
 
                 return new APIResponse() { isSuccess = true, Data = DeleteRecord, ResponseMessage = "The record has been deleted successfully" };
@@ -163,33 +181,6 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
         }
-
-
-        [HttpPost("GetDeductionData")]
-        public async Task<APIResponse> GetDeductionData(SearchFilterModel searchFilter)
-        {
-            try
-            {
-                var data = await _unitOfWork.DeductionRepository.GetDeductionDataAsync(searchFilter);
-
-                return new APIResponse()
-                {
-                    isSuccess = true,
-                    Data = data, // should be a list/array
-                    ResponseMessage = "Record fetched successfully"
-                };
-            }
-            catch (Exception err)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message, // ✅ Set Data to null (not a string)
-                    ResponseMessage = $"Error: {err.Message}" // still show message in ResponseMessage
-                };
-            }
-        }
-
 
     }
 }
