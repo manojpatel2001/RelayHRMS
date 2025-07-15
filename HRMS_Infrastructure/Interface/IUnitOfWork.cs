@@ -79,6 +79,7 @@ namespace HRMS_Infrastructure.Interface
         IPasswordHistory PasswordHistory { get; }
 
         IEmployeeReport EmployeeReport { get; }
+        IAttendanceRegularizationRepository AttendanceRegularizationRepository { get; }
 
         void Commit();
         Task CommitAsync();

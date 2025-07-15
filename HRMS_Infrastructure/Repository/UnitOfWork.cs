@@ -95,6 +95,7 @@ namespace HRMS_Infrastructure.Repository
 
             PasswordHistory = new PasswordHistoryRepository(_dbContext);
             EmployeeReport = new EmployeeReportRepository(_dbContext);
+            AttendanceRegularizationRepository = new AttendanceRegularizationRepository(_dbContext);
 
 
         }
@@ -167,6 +168,9 @@ namespace HRMS_Infrastructure.Repository
         public IUserCompanyPermissionsRepository UserCompanyPermissionsRepository { get; set; }
 
         public IEmployeeReport EmployeeReport { get; set; }
+
+        public IAttendanceRegularizationRepository AttendanceRegularizationRepository { get; set; }
+
         public void Commit()
         {
             _dbContext.SaveChanges();
