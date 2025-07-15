@@ -26,7 +26,6 @@ $('#btnLogout').click(function () {
 
 
 $(document).ready(function () {
-
     const savedCompany = localStorage.getItem('selectedCompany');
     var company = JSON.parse(savedCompany);
     var FullName = decoded.FullName;

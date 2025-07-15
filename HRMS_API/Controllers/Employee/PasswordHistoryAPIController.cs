@@ -2,6 +2,7 @@
 using HRMS_Core.Employee;
 using HRMS_Core.Salary;
 using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Core.VM.PasswordHistory;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -43,7 +44,7 @@ namespace HRMS_API.Controllers.Employee
         }
 
         [HttpPost("CreatePasswordHistory")]
-        public async Task<APIResponse> CreatePasswordHistory(PasswordHistory password)
+        public async Task<APIResponse> CreatePasswordHistory(VmPasswordHistory password)
         {
             try
             {
@@ -53,7 +54,7 @@ namespace HRMS_API.Controllers.Employee
                 }
                 var existingOldPasswords = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.Id == password.EMPID && x.Password == password.CurrentPassword);
 
-                if (existingOldPasswords == null )
+                if (existingOldPasswords == null)
                 {
                     return new APIResponse()
                     {
@@ -66,24 +67,27 @@ namespace HRMS_API.Controllers.Employee
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
                 }
-                var existingSamePasswords = await _unitOfWork.PasswordHistory
-                    .GetAllAsync(x => x.EMPID == password.EMPID && x.NewPassword == password.NewPassword);
 
-                if (existingSamePasswords.Count() >=3)
+                var history = new PasswordHistory
                 {
-                    return new APIResponse()
+                    EMPID=password.EMPID,
+                    NewPassword = password.NewPassword,
+                    CreatedBy=password.EMPID.ToString()
+                };
+                var CreateHistory = await _unitOfWork.PasswordHistory.CreateHistoryPassword(history);
+                if (CreateHistory.Id <1)
+                {
+                    if (CreateHistory.Id == -1)
                     {
-                        isSuccess = false,
-                        ResponseMessage = "You have already used this password 3 times. Please use a new password."
-                    };
+                        return new APIResponse { isSuccess = false, ResponseMessage = "New Password must be different then last three password!" };
+
+                    }
+                    else
+                    {
+                        return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please try again!" };
+
+                    }
                 }
-
-
-                // ✅ Step 2: Save new password history
-                password.CreatedDate = DateTime.UtcNow;
-                await _unitOfWork.PasswordHistory.AddAsync(password);
-                await _unitOfWork.CommitAsync();
-
                 if (!string.IsNullOrEmpty(password.NewPassword))
                 {
 
@@ -94,7 +98,8 @@ namespace HRMS_API.Controllers.Employee
                         return new APIResponse { isSuccess = false, ResponseMessage = "Failed to change password." };
                     }
                 }
-                var updatedPassword = await _unitOfWork.PasswordHistory.ChangePassword(password);
+                var updatedPassword = await _unitOfWork.PasswordHistory.ChangePassword(history);
+                
                 return new APIResponse()
                 {
                     isSuccess = true,

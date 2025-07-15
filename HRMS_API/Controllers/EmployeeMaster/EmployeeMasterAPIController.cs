@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.DbContext;
+using HRMS_Core.Employee;
 using HRMS_Core.EmployeeMaster;
 using HRMS_Core.Helper;
 using HRMS_Core.VM;
@@ -150,6 +151,15 @@ namespace HRMS_API.Controllers.EmployeeMaster
                         IsAdmin = getRole.Slug.ToLower() == "admin" ? true :false
                     };
                     var assignCompany=await _unitOfWork.UserCompanyPermissionsRepository.CreateUserCompanyPermissions(companyPermission);
+
+                    var history = new PasswordHistory
+                    {
+                        EMPID = employee.Id,
+                        NewPassword = employee.Password,
+                        CreatedBy = employee.Id.ToString()
+                    };
+                    var CreateHistory = await _unitOfWork.PasswordHistory.CreateHistoryPassword(history);
+
                     return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
 
                 }
