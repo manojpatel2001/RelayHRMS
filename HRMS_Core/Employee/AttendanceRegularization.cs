@@ -27,5 +27,6 @@ namespace HRMS_Core.Employee
         public bool IsApproved { get; set; } = false;
         public bool IsPending { get; set; } = true;  // Default to pending
         public bool IsRejected { get; set; } = false;
+        //public bool IsLock { get; set; } = false;
     }
 }

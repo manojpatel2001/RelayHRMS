@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.Employee;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -40,7 +41,7 @@ namespace HRMS_API.Controllers.Employee
 
 
         [HttpGet("GetById/{id}")]
-        public async Task<APIResponse> GetById(int Id )
+        public async Task<APIResponse> GetById(int Id)
         {
             try
             {
@@ -121,27 +122,34 @@ namespace HRMS_API.Controllers.Employee
 
 
         [HttpPut("UpdateAttendanceRegularization")]
-        public async Task<APIResponse> UpdateAttendanceRegularization(AttendanceRegularization attendance)
+        public async Task<APIResponse> UpdateAttendanceRegularization(List<AttendanceRegularization> attendances)
         {
             try
             {
-                if (attendance == null)
+                if (attendances == null || !attendances.Any())
                 {
                     return new APIResponse
                     {
                         isSuccess = false,
-                        ResponseMessage = "Invalid earning details provided."
+                        ResponseMessage = "No attendance records provided."
                     };
                 }
 
-                await _unitOfWork.AttendanceRegularizationRepository.UpdateAttendanceRegularization(attendance);
+                foreach (var attendance in attendances)
+                {
+                    var record = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x => x.AttendanceRegularizationId == attendance.AttendanceRegularizationId && x.IsEnabled == true && x.IsDeleted == false);
+                    if (record != null)
+                    {                
+                        await _unitOfWork.AttendanceRegularizationRepository.UpdateAttendanceRegularization(record);
+                    }
+                }
+
                 await _unitOfWork.CommitAsync();
 
                 return new APIResponse
                 {
                     isSuccess = true,
-                    Data = attendance,
-                    ResponseMessage = "The record has been updated successfully."
+                    ResponseMessage = "Status updated successfully."
                 };
             }
             catch (Exception err)
@@ -150,10 +158,11 @@ namespace HRMS_API.Controllers.Employee
                 {
                     isSuccess = false,
                     Data = err.Message,
-                    ResponseMessage = "Unable to update the record, please try again later."
+                    ResponseMessage = "Unable to update the records, please try again later."
                 };
             }
         }
+
 
 
         [HttpDelete("Delete")]
@@ -178,6 +187,49 @@ namespace HRMS_API.Controllers.Employee
                     isSuccess = false,
                     Data = err.Message,
                     ResponseMessage = "Unable to delete records, Please try again later!"
+                };
+            }
+        }
+
+
+        [HttpPost("GetAttendanceRegularization")]
+        public async Task<APIResponse> GetAttendanceRegularization([FromForm] AttendanceRegularizationSearchFilterVM attendance)
+        {
+            try
+            {
+                if (attendance == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id,Month,Year are required."
+                    };
+                }
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetAttendanceRegularization(attendance);
+
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
                 };
             }
         }

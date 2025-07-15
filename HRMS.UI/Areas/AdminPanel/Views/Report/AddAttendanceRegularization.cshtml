@@ -79,6 +79,19 @@
         margin-top: 20px;
         margin-right: 40px;
     }
+
+    .dx-editor-cell .dx-link.dx-link-cancel {
+        display: none !important;
+    }
+
+    .flatpickr-time {
+        font-size: 12px !important;
+    }
+
+        .flatpickr-time input {
+            height: 24px !important;
+            font-size: 12px !important;
+        }
 </style>
 
 <div class="section-header">
@@ -118,7 +131,7 @@
         <div class="row gutter-tight justify-content-center">
             <div class="col-md-auto">
                 <label class="form-label">Record Type :</label>
-                <select class="form-select">
+                <select class="form-select" id="recordtype">
                     <option selected>Regularize</option>
                     <option selected>All</option>
                     <option selected>Present</option>
@@ -228,6 +241,7 @@
         const empId = $('#employeeDropdown').val();
         const month = $('#month')[0].selectedIndex + 1;
         const year = $('#year').val();
+        const recordtype = $('#recordtype').val();
 
         if (!branchId || !empId) {
             Swal.fire("Please select both Branch and Employee.");
@@ -239,7 +253,7 @@
         formData.append("EmpId", empId);
         formData.append("Month", month);
         formData.append("Year", year);
-        formData.append("RecordType", "All");
+        formData.append("RecordType", recordtype);
 
         $.ajax({
             url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
@@ -258,45 +272,121 @@
         });
     });
 
-       function LoadAttendanceGrid(data) {
+
+         function LoadAttendanceGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             showBorders: true,
-            keyExpr: "for_Date",  // or "id" if available
+            keyExpr: "for_Date",
             selection: {
-                mode: "multiple", // ✅ for multi-row selection
+                mode: "multiple",
                 showCheckBoxesMode: "always"
             },
             editing: {
                 mode: "cell",
                 allowUpdating: true
             },
+            onEditingStart: function (e) {
+                if (e.data.status === "Present") {
+                    e.cancel = true;
+                }
+            },
+            onCellValueChanged: function (e) {
+                if (e.data.in_Time && e.data.out_Time) {
+                    const inTime = new Date(e.data.in_Time);
+                    const outTime = new Date(e.data.out_Time);
+                    const diffMs = outTime - inTime;
+                    if (!isNaN(diffMs) && diffMs > 0) {
+                        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                        const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
+                        e.data.workingHours = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                        e.data.dayType = hours >= 8 ? "Full Day" : "Half Day";
+                    } else {
+                        e.data.workingHours = "--";
+                        e.data.dayType = "--";
+                    }
+                } else {
+                    e.data.workingHours = "--";
+                    e.data.dayType = "--";
+                }
+            },
             columns: [
                 { dataField: "for_Date", caption: "Date", dataType: "date", width: 100 },
                 { dataField: "fullName", caption: "Employee", allowEditing: false },
                 { dataField: "branchName", caption: "Branch", allowEditing: false },
                 { dataField: "shiftTime", caption: "Shift Time", allowEditing: false },
-                { dataField: "in_Time", caption: "In Time", dataType: "datetime", format: "HH:mm:ss", allowEditing: false },
-                { dataField: "out_Time", caption: "Out Time", dataType: "datetime", format: "HH:mm:ss", allowEditing: false },
+
+                // ✅ In Time
+                {
+                    dataField: "in_Time",
+                    caption: "In Time",
+                    dataType: "date",
+                    editorType: "dxDateBox",
+                    editorOptions: {
+                        type: "time",
+                        displayFormat: "HH:mm:ss",
+                        useMaskBehavior: true,
+                        showSpinButtons: true,
+                        width: 120,
+                        inputAttr: { style: "font-size:12px;" }
+                    },
+                    calculateDisplayValue: function (rowData) {
+                        if (!rowData.in_Time) return "";
+                        return new Date(rowData.in_Time).toLocaleTimeString('en-GB', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                    },
+                    allowEditing: function (rowData) {
+                        return rowData.status === "Absent";
+                    }
+                },
+
+                // ✅ Out Time
+                {
+                    dataField: "out_Time",
+                    caption: "Out Time",
+                    dataType: "date",
+                    editorType: "dxDateBox",
+                    editorOptions: {
+                        type: "time",
+                        displayFormat: "HH:mm:ss",
+                        useMaskBehavior: true,
+                        showSpinButtons: true,
+                        width: 120,
+                        inputAttr: { style: "font-size:12px;" }
+                    },
+                    calculateDisplayValue: function (rowData) {
+                        if (!rowData.out_Time) return "";
+                        return new Date(rowData.out_Time).toLocaleTimeString('en-GB', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                    },
+                    allowEditing: function (rowData) {
+                        return rowData.status === "Absent";
+                    }
+                },
+
+                // ✅ Status
                 {
                     dataField: "status",
                     caption: "Present Day",
                     width: 100,
+                    allowEditing: false,
                     cellTemplate: function (container, options) {
                         const status = options.data.status;
-                        const color = status === 'Present' ? '#28a745' : '#dc3545';
-                        $('<div>').text(status?.charAt(0) ?? '')
-                            .css({
-                                color: '#fff',
-                                backgroundColor: color,
-                                textAlign: 'center',
-                                fontWeight: 'bold',
-                                padding: '4px',
-                                borderRadius: '4px'
-                            }).appendTo(container);
-                    },
-                    allowEditing: false
+                        const text = status === 'Present' ? 'P' : 'A';
+                        const color = status === 'Present' ? 'green' : 'red';
+                        $('<div>').text(text)
+                            .css({ color: color, fontWeight: 'bold', textAlign: 'center' })
+                            .appendTo(container);
+                    }
                 },
+
+                // ✅ Reason
                 {
                     dataField: "reason",
                     caption: "Reason",
@@ -312,11 +402,33 @@
                     calculateDisplayValue: function (rowData) {
                         return rowData.reason || "--Select--";
                     },
-                    allowEditing: true
+                    allowEditing: function (rowData) {
+                        return rowData.status === "Absent";
+                    }
+                },
+
+                // ✅ Working Hours
+                {
+                    dataField: "workingHours",
+                    caption: "Working Hours",
+                    allowEditing: false
+                },
+
+                // ✅ Full Day / Half Day
+                {
+                    dataField: "dayType",
+                    caption: "Day Type",
+                    allowEditing: false
                 }
             ]
         });
     }
+
+
+
+
+
+
 
     $('#btnSaveGridData').on('click', function () {
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
@@ -380,5 +492,21 @@
         });
     });
 
+        $('.back-btn button').on('click', function () {
+        window.history.back(); // Go to previous page
+    });
+
+        $('.btn-custom:contains("Clear")').on('click', function () {
+        $('#branch').val('');
+        $('#month').val('January');
+        $('#year').val(new Date().getFullYear());
+        $('#recordtype').val('Regularize');
+        $('#employeeDropdown').val('');
+        $('input[placeholder="Employee Code or Name"]').val('');
+
+        // Clear the grid
+        const grid = $("#attendanceGrid").dxDataGrid("instance");
+        grid.option("dataSource", []);
+    });
 
 </script>
