@@ -3,8 +3,14 @@
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
     string apiBase = ViewBag.BaseUrlAPI;
 }
+
+<!-- CSS -->
 <link href="~/commoncss.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<!-- JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
@@ -14,8 +20,37 @@
         margin-bottom: 0;
         text-align: right;
     }
+
+    #attendanceModalBody table th,
+    #attendanceModalBody table td {
+        font-weight: normal;
+        font-size: 13px;
+    }
+
+    #attendanceModalBody table thead th {
+        font-weight: bold;
+    }
 </style>
 
+<!-- Modal for Attendance Report -->
+<div class="modal fade" id="attendanceModal" tabindex="-1" aria-labelledby="attendanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1">Attendance Report</h5>
+                    <div class="small text-muted" id="reportInfo"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="attendanceModalBody">
+                <!-- Attendance table will be injected here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Card -->
 <div class="card">
     <div class="card-header bg-transparent py-2 text-center">
         <h6 class="mb-0">ATTENDANCE REGISTER</h6>
@@ -24,7 +59,6 @@
     <div class="card-body">
         <form>
             <div class="col-md-8 mx-auto">
-                <!-- Month / Year / Branch -->
                 <div class="row mb-2">
                     <div class="col-md-4 d-flex align-items-center">
                         <label for="month" class="fixed-label">Month<span class="text-danger">*</span>:</label>
@@ -36,12 +70,10 @@
                             }
                         </select>
                     </div>
-
                     <div class="col-md-4 d-flex align-items-center">
                         <label for="year" class="fixed-label">Year<span class="text-danger">*</span>:</label>
                         <input type="number" class="form-control form-control-sm" id="year" min="2000" max="2100" value="@DateTime.Now.Year" />
                     </div>
-
                     <div class="col-md-4 d-flex align-items-center">
                         <label for="branchid" class="fixed-label">Branch:</label>
                         <select class="form-select form-select-sm" id="branchid">
@@ -50,7 +82,6 @@
                     </div>
                 </div>
 
-                <!-- Buttons -->
                 <div class="row justify-content-center mt-3">
                     <div class="col-md-6 d-flex justify-content-center gap-2">
                         <button type="button" class="btn btn-primary btn-sm" id="btnView">View</button>
@@ -59,23 +90,21 @@
                 </div>
             </div>
         </form>
-
-        <!-- Data Grid Container -->
-        <div id="attendanceTableContainer" class="table-responsive mt-4"></div>
     </div>
 </div>
 
 <script>
     const apiBase = '@apiBase';
-
-         const Empid = parseInt(localStorage.getItem("EmployeeId"));
-
+    const Empid = parseInt(localStorage.getItem("EmployeeId"));
+    const Role = localStorage.getItem("RoleSlug");
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany || '{}');
+    const Compname = companyDetails.CompanyName;
 
     $(document).ready(function () {
         GetBranch();
 
         $('#btnView').on('click', function () {
-            debugger;
             const month = $('#month').val();
             const year = $('#year').val();
             const branchId = $('#branchid').val();
@@ -89,27 +118,37 @@
             const lastDay = new Date(year, month, 0).getDate();
             const endDate = `${year}-${month.padStart(2, '0')}-${lastDay}`;
 
-            const request = {
-                startDate: startDate,
-                endDate: endDate,
-                userId: Empid,
-                branchId: branchId == "0" ? null : parseInt(branchId)
-            };
+            let request;
 
-            console.log(request,"request");
+            if (Role === "super-admin" || Role === "admin") {
+                request = {
+                    startDate: startDate,
+                    endDate: endDate,
+                    branchId: branchId == "0" ? null : parseInt(branchId)
+                };
+            } else {
+                request = {
+                    startDate: startDate,
+                    endDate: endDate,
+                    EmployeeId: Empid,
+                    branchId: branchId == "0" ? null : parseInt(branchId)
+                };
+            }
 
             $.ajax({
-                url: apiBase + '/EmployeeReportAPI/Attendencereport', 
+                url: apiBase + '/EmployeeReportAPI/Attendencereport',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(request),
                 success: function (res) {
-                    console.log(res,"res");
-                    if (res && res.length > 0) {
-                        renderAttendanceTable(res);
-                    } else {
-                        $('#attendanceTableContainer').html('<p class="text-danger">No attendance records found for selected filters.</p>');
+                    if (!res || !res.data || res.data.length === 0) {
+                        $('#attendanceModalBody').html('<p class="text-danger">No attendance records found.</p>');
+                        const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+                        modal.show();
+                        return;
                     }
+
+                    renderAttendanceTable(res.data, startDate, endDate);
                 },
                 error: function () {
                     Swal.fire('Error', 'Something went wrong while fetching data.', 'error');
@@ -128,9 +167,7 @@
                     const $branchDropdown = $('#branchid');
                     $branchDropdown.empty().append('<option value="0">-- Select --</option>');
                     data.data.forEach(branch => {
-                        $branchDropdown.append(
-                            `<option value="${branch.branchId}">${branch.branchName}</option>`
-                        );
+                        $branchDropdown.append(`<option value="${branch.branchId}">${branch.branchName}</option>`);
                     });
                 }
             },
@@ -140,37 +177,63 @@
         });
     }
 
-    function renderAttendanceTable(data) {
-        let columns = Object.keys(data[0].days); // dynamic D01, D02...
-        let html = `<table class="table table-bordered table-striped table-sm">
-            <thead class="table-light">
-                <tr>
-                    <th>Branch</th>
-                    <th>Emp Code</th>
-                    <th>Employee</th>`;
+    function renderAttendanceTable(data, startDate, endDate) {
+        const dayRow = data[0]; // Header row
+        const dayKeys = Object.keys(dayRow.days).sort((a, b) => parseInt(a) - parseInt(b));
 
-        columns.forEach(col => {
-            html += `<th>${col}</th>`;
+        const today = new Date().toISOString().split('T')[0];
+        $('#reportInfo').html(`
+            <strong>Company:</strong> ${Compname} &nbsp;&nbsp;
+            <strong>From:</strong> ${startDate} &nbsp;&nbsp;
+            <strong>To:</strong> ${endDate} &nbsp;&nbsp;
+            <strong>Print Date:</strong> ${today}
+        `);
+
+        let html = `<div class="table-responsive">
+            <table class="table table-bordered table-sm align-middle">
+                <thead class="table-light text-center">
+                    <tr>
+                        <th class="text-nowrap">Branch</th>
+                        <th class="text-nowrap">Emp Code</th>
+                        <th class="text-nowrap">Employee</th>`;
+
+        dayKeys.forEach(day => {
+            html += `<th class="text-center" style="min-width: 35px;">${dayRow.days[day]}</th>`;
         });
 
-        html += `<th>Total P</th><th>Total A</th><th>Total W</th><th>Total HF</th></tr></thead><tbody>`;
+        html += `
+            <th class="text-nowrap">Total P</th>
+            <th class="text-nowrap">Total A</th>
+            <th class="text-nowrap">Total W</th>
+            <th class="text-nowrap">Total HF</th>
+        </tr>
+        </thead>
+        <tbody>`;
 
-        data.forEach(emp => {
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
             html += `<tr>
-                <td>${emp.branchName ?? ''}</td>
-                <td>${emp.employeeCode ?? ''}</td>
-                <td>${emp.fullName ?? ''}</td>`;
-            columns.forEach(day => {
-                html += `<td>${emp.days[day] ?? ''}</td>`;
-            });
-            html += `<td>${emp.total_P ?? 0}</td>
-                     <td>${emp.total_A ?? 0}</td>
-                     <td>${emp.total_W ?? 0}</td>
-                     <td>${emp.total_HF ?? 0}</td>
-            </tr>`;
-        });
+                <td>${row.branchName ?? ''}</td>
+                <td>${row.employeeCode ?? ''}</td>
+                <td>${row.fullName ?? ''}</td>`;
 
-        html += `</tbody></table>`;
-        $('#attendanceTableContainer').html(html);
+            dayKeys.forEach(day => {
+                const value = row.days?.[day] ?? '';
+                html += `<td class="text-center">${value}</td>`;
+            });
+
+            html += `
+                <td class="text-center">${row.total_P ?? 0}</td>
+                <td class="text-center">${row.total_A ?? 0}</td>
+                <td class="text-center">${row.total_W ?? 0}</td>
+                <td class="text-center">${row.total_HF ?? 0}</td>
+            </tr>`;
+        }
+
+        html += `</tbody></table></div>`;
+
+        $('#attendanceModalBody').html(html);
+        const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+        modal.show();
     }
 </script>

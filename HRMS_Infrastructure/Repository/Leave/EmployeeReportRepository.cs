@@ -46,7 +46,7 @@ namespace HRMS_Infrastructure.Repository.Leave
                                              .ToList();
 
                         while (await reader.ReadAsync())
-                        {
+                         {
                             var row = new EmployeeAttendanceReportVm
                             {
                                 BranchName = reader["BranchName"]?.ToString(),
