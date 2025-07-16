@@ -245,6 +245,7 @@ namespace HRMS_API.Controllers.Employee
 
 
 
+
         [HttpDelete("Delete")]
         public async Task<APIResponse> Delete([FromBody] DeleteRecordVModel DeleteRecord)
         {
@@ -273,7 +274,7 @@ namespace HRMS_API.Controllers.Employee
 
 
         [HttpPost("GetAttendanceRegularization")]
-        public async Task<APIResponse> GetAttendanceRegularization([FromForm] AttendanceRegularizationSearchFilterVM attendance)
+        public async Task<APIResponse> GetAttendanceRegularization([FromBody] AttendanceRegularizationSearchFilterVM attendance)
         {
             try
             {

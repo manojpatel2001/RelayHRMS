@@ -11,6 +11,7 @@ namespace HRMS_Core.VM.Employee
     {
 
         public int? AttendanceRegularizationId { get; set; }
+        public int? EmpId { get; set; }
         public string? FullName { get; set; }
         public string? EmployeeCode { get; set; }
 

@@ -273,7 +273,7 @@
     });
 
 
-            function LoadAttendanceGrid(data) {
+        function LoadAttendanceGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             showBorders: true,
@@ -283,40 +283,42 @@
                 showCheckBoxesMode: "always"
             },
             editing: {
-                mode: "cell",
+                mode: "batch",
                 allowUpdating: true
             },
-            onEditingStart: function (e) {
-                if (e.data.status === "Present") {
-                    e.cancel = true;
-                }
-            },
+
             onCellValueChanged: function (e) {
-                if (e.data.in_Time && e.data.out_Time) {
-                    const inTime = new Date(e.data.in_Time);
-                    const outTime = new Date(e.data.out_Time);
-                    const diffMs = outTime - inTime;
-                    if (!isNaN(diffMs) && diffMs > 0) {
+                if (e.column.dataField === "in_Time" || e.column.dataField === "out_Time") {
+                    const grid = e.component;
+                    const rowIndex = e.rowIndex;
+
+                    // Get full row with latest values
+                    const inTime = new Date(grid.cellValue(rowIndex, "in_Time"));
+                    const outTime = new Date(grid.cellValue(rowIndex, "out_Time"));
+
+                    if (!isNaN(inTime) && !isNaN(outTime) && outTime > inTime) {
+                        const diffMs = outTime - inTime;
                         const hours = Math.floor(diffMs / (1000 * 60 * 60));
                         const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
-                        e.data.workingHours = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-                        e.data.dayType = hours >= 8 ? "Full Day" : "Half Day";
+
+                        const workingHours = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                        const dayType = hours >= 8 ? "Full Day" : "Half Day";
+
+                        grid.cellValue(rowIndex, "workingHours", workingHours);
+                        grid.cellValue(rowIndex, "dayType", dayType);
                     } else {
-                        e.data.workingHours = "--";
-                        e.data.dayType = "--";
+                        grid.cellValue(rowIndex, "workingHours", "--");
+                        grid.cellValue(rowIndex, "dayType", "--");
                     }
-                } else {
-                    e.data.workingHours = "--";
-                    e.data.dayType = "--";
                 }
             },
+
             columns: [
                 { dataField: "for_Date", caption: "Date", dataType: "date", width: 100 },
                 { dataField: "fullName", caption: "Employee", allowEditing: false },
                 { dataField: "branchName", caption: "Branch", allowEditing: false },
                 { dataField: "shiftTime", caption: "Shift Time", allowEditing: false },
 
-                // ✅ In Time (Date + Time)
                 {
                     dataField: "in_Time",
                     caption: "In Time",
@@ -330,16 +332,11 @@
                         width: 220,
                         inputAttr: { style: "font-size:12px;" }
                     },
-                    calculateDisplayValue: function (rowData) {
-                        if (!rowData.in_Time) return "";
-                        return new Date(rowData.in_Time).toLocaleString('en-GB');
-                    },
                     allowEditing: function (rowData) {
                         return rowData.status === "Absent";
                     }
                 },
 
-                // ✅ Out Time (Date + Time)
                 {
                     dataField: "out_Time",
                     caption: "Out Time",
@@ -353,16 +350,11 @@
                         width: 220,
                         inputAttr: { style: "font-size:12px;" }
                     },
-                    calculateDisplayValue: function (rowData) {
-                        if (!rowData.out_Time) return "";
-                        return new Date(rowData.out_Time).toLocaleString('en-GB');
-                    },
                     allowEditing: function (rowData) {
                         return rowData.status === "Absent";
                     }
                 },
 
-                // ✅ Status
                 {
                     dataField: "status",
                     caption: "Present Day",
@@ -378,12 +370,11 @@
                     }
                 },
 
-                // ✅ Reason
                 {
                     dataField: "reason",
                     caption: "Reason",
                     lookup: {
-                        dataSource: reasonOptions,
+                        dataSource: reasonOptions,  // your reason array
                         valueExpr: "ID",
                         displayExpr: "Name"
                     },
@@ -391,22 +382,17 @@
                         showClearButton: true,
                         searchEnabled: false
                     },
-                    calculateDisplayValue: function (rowData) {
-                        return rowData.reason || "--Select--";
-                    },
                     allowEditing: function (rowData) {
                         return rowData.status === "Absent";
                     }
                 },
 
-                // ✅ Working Hours
                 {
                     dataField: "workingHours",
                     caption: "Working Hours",
                     allowEditing: false
                 },
 
-                // ✅ Full Day / Half Day
                 {
                     dataField: "dayType",
                     caption: "Day Type",
@@ -415,8 +401,6 @@
             ]
         });
     }
-
-
 
 
 
@@ -475,6 +459,7 @@
                 if (response?.isSuccess) {
                     alert("Saved successfully.");
                     gridInstance.clearSelection();
+                    LoadAttendanceGrid(data);
                 } else {
                     alert("Save failed: " + (response?.responseMessage || "Unknown error"));
                 }
