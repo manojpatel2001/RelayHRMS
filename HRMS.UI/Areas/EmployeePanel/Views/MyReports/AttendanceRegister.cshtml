@@ -11,6 +11,7 @@
 <!-- JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
@@ -30,11 +31,17 @@
     #attendanceModalBody table thead th {
         font-weight: bold;
     }
+
+
+    .custom-modal-width {
+    max-width: 98% !important; /* You can also try 100% or a fixed width like 1200px */
+  }
+
 </style>
 
 <!-- Modal for Attendance Report -->
 <div class="modal fade" id="attendanceModal" tabindex="-1" aria-labelledby="attendanceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-xl custom-modal-width">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
@@ -155,7 +162,16 @@
                 }
             });
         });
+
+
     });
+
+    //     $('.btn-close').on('click', function () {
+    //     const modalInstance = bootstrap.Modal.getInstance(document.getElementById('attendanceModal'));
+    //     if (modalInstance) {
+    //         modalInstance.hide();
+    //     }
+    // });
 
     function GetBranch() {
         $.ajax({
@@ -178,14 +194,22 @@
     }
 
     function renderAttendanceTable(data, startDate, endDate) {
+
+   
         const dayRow = data[0]; // Header row
         const dayKeys = Object.keys(dayRow.days).sort((a, b) => parseInt(a) - parseInt(b));
 
-        const today = new Date().toISOString().split('T')[0];
+        const formatDate = (dateStr) => {
+        const [yyyy, mm, dd] = dateStr.split("-");
+        return `${dd}-${mm}-${yyyy}`;
+       };
+        const today = formatDate(new Date().toISOString().split('T')[0]);
+
+        
         $('#reportInfo').html(`
             <strong>Company:</strong> ${Compname} &nbsp;&nbsp;
-            <strong>From:</strong> ${startDate} &nbsp;&nbsp;
-            <strong>To:</strong> ${endDate} &nbsp;&nbsp;
+           <strong>From:</strong> ${formatDate(startDate)} &nbsp;&nbsp;
+            <strong>To:</strong> ${formatDate(endDate)} &nbsp;&nbsp;
             <strong>Print Date:</strong> ${today}
         `);
 
@@ -195,11 +219,12 @@
                     <tr>
                         <th class="text-nowrap">Branch</th>
                         <th class="text-nowrap">Emp Code</th>
-                        <th class="text-nowrap">Employee</th>`;
+                           <th class="text-nowrap" style="min-width: 180px;">Employee</th>`;
 
-        dayKeys.forEach(day => {
-            html += `<th class="text-center" style="min-width: 35px;">${dayRow.days[day]}</th>`;
-        });
+       dayKeys.forEach(day => {
+        const dayLabel = `${day} (${dayRow.days[day]})`;
+        html += `<th class="text-center" style="min-width: 45px;">${dayLabel}</th>`;
+      });
 
         html += `
             <th class="text-nowrap">Total P</th>
@@ -217,14 +242,15 @@
                 <td>${row.employeeCode ?? ''}</td>
                 <td>${row.fullName ?? ''}</td>`;
 
-            dayKeys.forEach(day => {
+               dayKeys.forEach(day => {
                 const value = row.days?.[day] ?? '';
-                html += `<td class="text-center">${value}</td>`;
+                const redClass = value === 'A' ? 'text-danger fw-bold' : '';
+                html += `<td class="text-center ${redClass}">${value}</td>`;
             });
 
             html += `
                 <td class="text-center">${row.total_P ?? 0}</td>
-                <td class="text-center">${row.total_A ?? 0}</td>
+                <td class="text-center text-danger">${row.total_A ?? 0}</td>
                 <td class="text-center">${row.total_W ?? 0}</td>
                 <td class="text-center">${row.total_HF ?? 0}</td>
             </tr>`;
