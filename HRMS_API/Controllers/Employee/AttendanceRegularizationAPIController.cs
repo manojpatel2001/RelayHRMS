@@ -3,6 +3,7 @@ using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -121,8 +122,50 @@ namespace HRMS_API.Controllers.Employee
         }
 
 
+        //[HttpPut("UpdateAttendanceRegularization")]
+        //public async Task<APIResponse> UpdateAttendanceRegularization(List<AttendanceRegularization> attendances)
+        //{
+        //    try
+        //    {
+        //        if (attendances == null || !attendances.Any())
+        //        {
+        //            return new APIResponse
+        //            {
+        //                isSuccess = false,
+        //                ResponseMessage = "No attendance records provided."
+        //            };
+        //        }
+
+        //        foreach (var attendance in attendances)
+        //        {
+        //            var record = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x => x.AttendanceRegularizationId == attendance.AttendanceRegularizationId && x.IsEnabled == true && x.IsDeleted == false);
+        //            if (record != null)
+        //            {                
+        //                await _unitOfWork.AttendanceRegularizationRepository.UpdateAttendanceRegularization(record);
+        //            }
+        //        }
+
+        //        await _unitOfWork.CommitAsync();
+
+        //        return new APIResponse
+        //        {
+        //            isSuccess = true,
+        //            ResponseMessage = "Status updated successfully."
+        //        };
+        //    }
+        //    catch (Exception err)
+        //    {
+        //        return new APIResponse
+        //        {
+        //            isSuccess = false,
+        //            Data = err.Message,
+        //            ResponseMessage = "Unable to update the records, please try again later."
+        //        };
+        //    }
+        //}
+
         [HttpPut("UpdateAttendanceRegularization")]
-        public async Task<APIResponse> UpdateAttendanceRegularization(List<AttendanceRegularization> attendances)
+        public async Task<APIResponse> UpdateAttendanceRegularization([FromBody] List<AttendanceRegularization> attendances)
         {
             try
             {
@@ -137,10 +180,47 @@ namespace HRMS_API.Controllers.Employee
 
                 foreach (var attendance in attendances)
                 {
-                    var record = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x => x.AttendanceRegularizationId == attendance.AttendanceRegularizationId && x.IsEnabled == true && x.IsDeleted == false);
-                    if (record != null)
-                    {                
-                        await _unitOfWork.AttendanceRegularizationRepository.UpdateAttendanceRegularization(record);
+                     var record = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x => x.AttendanceRegularizationId == attendance.AttendanceRegularizationId && x.IsEnabled == true && x.IsDeleted == false);
+
+
+                    if (record == null) continue;
+
+                    // 1. Update attendance status
+                    record.Status = attendance.Status;
+                    record.IsApproved = attendance.Status == "Approved";
+                    record.IsRejected = attendance.Status == "Rejected";
+                    record.IsPending = attendance.Status == "Pending";
+
+                    await _unitOfWork.AttendanceRegularizationRepository.UpdateAttendanceRegularization(record);
+
+                    // 2. If approved, update or insert EmployeeInOut
+                    if (record.IsApproved)
+                    {
+                        var existingInOutList = await _unitOfWork.EmployeeInOut
+                            .GetAllAsync(x => x.Emp_Id == record.EmpId && x.For_Date == record.ForDate);
+
+                        var existingInOut = existingInOutList.FirstOrDefault();
+
+                        if (existingInOut != null)
+                        {
+                          
+                            await _unitOfWork.AttendanceRegularizationRepository.Update(attendance);
+                        }
+                        else
+                        {
+                            var newInOut = new EmployeeInOutRecord
+                            {
+                                Emp_Id = record.EmpId ?? 0,
+                                For_Date = record.ForDate ?? DateTime.Now,
+                                In_Time = record.InTime,
+                                Out_Time = record.OutTime,
+                                Reason = record.Reason,
+                                CreatedDate = DateTime.Now,
+                                CreatedBy = ""
+                            };
+
+                            await _unitOfWork.EmployeeInOut.AddAsync(newInOut);
+                        }
                     }
                 }
 
@@ -149,16 +229,16 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse
                 {
                     isSuccess = true,
-                    ResponseMessage = "Status updated successfully."
+                    ResponseMessage = "Attendance and In/Out records processed successfully."
                 };
             }
-            catch (Exception err)
+            catch (Exception ex)
             {
                 return new APIResponse
                 {
                     isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to update the records, please try again later."
+                    ResponseMessage = "Something went wrong.",
+                    Data = ex.Message
                 };
             }
         }
@@ -166,7 +246,7 @@ namespace HRMS_API.Controllers.Employee
 
 
         [HttpDelete("Delete")]
-        public async Task<APIResponse> Delete(DeleteRecordVM DeleteRecord)
+        public async Task<APIResponse> Delete([FromBody] DeleteRecordVModel DeleteRecord)
         {
             try
             {

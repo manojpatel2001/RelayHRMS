@@ -156,7 +156,7 @@
 </div>
 
 <!-- EMPLOYEE REGULARIZATION Heading -->
-<!-- EMPLOYEE REGULARIZATION Heading -->
+
 <div class="search-panel-wrapper">
     <div class="search-panel-container">
         <div class="search-panel-row">
@@ -241,10 +241,9 @@
                     }
                 }
             ]
-        });  
+        });
         $("#actionButtons").show();
     }
-
 
     // Go Button Click
     $('#btnGo').on('click', function () {
@@ -263,6 +262,7 @@
             processData: false,
             contentType: false,
             success: function (res) {
+                console.log("res" ,res);
                 if (res.isSuccess) {
                     loadGrid(res.data);
                 } else {
@@ -276,66 +276,70 @@
     });
 
     // Delete Button Click
-    $('#btnDelete').on('click', function () {
-        if (selectedKeys.length === 0) {
-            Swal.fire('Warning', 'Please select records to delete.', 'warning');
+       $('#btnDelete').on('click', function () {
+        debugger;
+
+        var grid = $("#attendanceGrid").dxDataGrid("instance");
+        var selectedIds = grid.getSelectedRowKeys(); 
+
+        if (selectedIds.length === 0) {
+            round_error_noti('Please select records to delete.');
             return;
         }
 
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "You want to delete selected records?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: '/api/YourController/DeleteAttendanceRegularization', // 🔁 replace with actual
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(selectedKeys),
-                    success: function (res) {
-                        if (res.isSuccess) {
-                            Swal.fire('Deleted!', res.responseMessage, 'success');
-                            $('#btnGo').click(); // Refresh grid
-                        } else {
-                            Swal.fire('Error', res.responseMessage, 'error');
-                        }
-                    },
-                    error: function () {
-                        Swal.fire('Error', 'Deletion failed.', 'error');
-                    }
-                });
+        console.log("selectedIds", selectedIds);
+
+        const deletePayload = {
+            Id: selectedIds,      // ✅ Now contains proper ID array
+            DeletedBy: ""         // Fill if needed
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/Delete")',
+            type: 'DELETE',
+            contentType: 'application/json',
+            data: JSON.stringify(deletePayload),
+            success: function (res) {
+                if (res.isSuccess) {
+                    round_success_noti(res.responseMessage || "Deleted successfully.");
+                    $("#btnGo").click(); // Refresh grid
+                } else {
+                    round_error_noti(res.responseMessage || "Deletion failed.");
+                }
+            },
+            error: function () {
+                round_error_noti("Something went wrong during deletion.");
             }
         });
     });
 
-        function updateAttendanceStatus(status) {
+
+
+           function updateAttendanceStatus(status) {
+               debugger;
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
-
+        console.log("selectedRows",selectedRows);
         if (selectedRows.length === 0) {
             Swal.fire("Please select at least one record.");
             return;
         }
 
-        var ids = selectedRows.map(function (row) {
-            return row.attendanceRegularizationId;
+        // Attach status to each selected row object
+        selectedRows.forEach(function (row) {
+            row.status = status; 
+   
         });
 
         $.ajax({
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/UpdateAttendanceRegularization")',
-            type: "POST",
-            data: JSON.stringify({
-                ids: ids,
-                status: status
-            }),
+            type: "PUT",
+            data: JSON.stringify(selectedRows),  // 🔁 Send full selected rows
             contentType: "application/json",
             success: function (response) {
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage || "Status updated successfully.");
-                    $("#btnGo").click(); // Reload grid data
+                    $("#btnGo").click(); // Reload data
                 } else {
                     Swal.fire("Error", response.responseMessage || "Update failed.", "error");
                 }
@@ -345,6 +349,7 @@
             }
         });
     }
+
 
 
 </script>

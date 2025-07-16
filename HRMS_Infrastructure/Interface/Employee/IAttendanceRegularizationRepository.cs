@@ -14,8 +14,9 @@ namespace HRMS_Infrastructure.Interface.Employee
     public interface IAttendanceRegularizationRepository:IRepository<AttendanceRegularization>
     {
         Task<bool> UpdateAttendanceRegularization(AttendanceRegularization attendanceRegularization);
-        Task<AttendanceRegularization> SoftDelete(DeleteRecordVM DeleteRecord);
+        Task<List<AttendanceRegularization>> SoftDelete(DeleteRecordVModel DeleteRecord);
         Task<List<AttendanceRegularizationVM>> GetAttendanceRegularization(AttendanceRegularizationSearchFilterVM attendance);
+        Task<bool> Update(AttendanceRegularization Record);
 
     }
 }
