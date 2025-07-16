@@ -44,23 +44,29 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<AttendanceRegularization> SoftDelete(DeleteRecordVM DeleteRecord)
+        public async Task<List<AttendanceRegularization>> SoftDelete(DeleteRecordVModel DeleteRecord)
         {
+            var deletedRecords = new List<AttendanceRegularization>();
 
-            var attendance = await _db.AttendanceRegularization.FirstOrDefaultAsync(asd => asd.AttendanceRegularizationId == DeleteRecord.Id);
-            if (attendance == null)
+            foreach (var id in DeleteRecord.Id)
             {
-                return attendance;
+                var attendance = await _db.AttendanceRegularization
+                    .FirstOrDefaultAsync(x => x.AttendanceRegularizationId == id );
+
+                if (attendance != null)
+                {
+                    attendance.IsEnabled = false;
+                    attendance.IsDeleted = true;
+                    attendance.DeletedDate = DateTime.UtcNow;
+                    attendance.DeletedBy = DeleteRecord.DeletedBy;
+                    deletedRecords.Add(attendance);
+
+                }
             }
-            else
-            {
-                attendance.IsEnabled = false;
-                attendance.IsDeleted = true;
-                attendance.DeletedDate = DateTime.UtcNow;
-                attendance.DeletedBy = DeleteRecord.DeletedBy;
-                return attendance;
-            }
+
+            return deletedRecords;
         }
+
 
 
         public async Task<bool> UpdateAttendanceRegularization(AttendanceRegularization updatedRecord)
@@ -88,6 +94,24 @@ namespace HRMS_Infrastructure.Repository.Employee
             existingRecord.IsPending = updatedRecord.IsPending;
             existingRecord.IsRejected = updatedRecord.IsRejected;
             existingRecord.UpdatedBy = updatedRecord.UpdatedBy;
+            existingRecord.UpdatedDate = DateTime.UtcNow;
+            return true;
+        }
+
+
+        public async Task<bool> Update(AttendanceRegularization Record)
+        {
+            var existingRecord = await _db.EmployeeInOutRecord.SingleOrDefaultAsync(asd => asd.Emp_Id == Record.EmpId && asd.For_Date == Record.ForDate);
+            if (existingRecord == null)
+            {
+                return false;
+            }
+
+            existingRecord.In_Time = Record.InTime;
+            existingRecord.Out_Time = Record.OutTime;
+            //   existingRecord.Duration = Record.Duration;
+            existingRecord.Reason = Record.Reason;
+            existingRecord.UpdatedBy = Record.UpdatedBy;
             existingRecord.UpdatedDate = DateTime.UtcNow;
             return true;
         }
