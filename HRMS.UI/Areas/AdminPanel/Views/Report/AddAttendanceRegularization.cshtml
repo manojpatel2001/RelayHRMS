@@ -236,13 +236,6 @@
         });
     }
 
-    const reasonOptions = [
-        { ID: "Forgot To Punch/Sign", Name: "Forgot To Punch/Sign" },
-        { ID: "Working from Home", Name: "Working from Home" },
-        { ID: "Client Visit", Name: "Client Visit" },
-        { ID: "Training", Name: "Training" },
-        { ID: "Other", Name: "Other" }
-    ];
 
     $('.btn-custom:contains("Go")').on('click', function () {
         const branchId = $('#branch').val();
@@ -291,78 +284,62 @@
                 showCheckBoxesMode: "always"
             },
             editing: {
-                mode: "batch",
+                mode: "cell",
                 allowUpdating: true
             },
-
-            onCellValueChanged: function (e) {
-                if (e.column.dataField === "in_Time" || e.column.dataField === "out_Time") {
-                    const grid = e.component;
-                    const rowIndex = e.rowIndex;
-
-                    // Get full row with latest values
-                    const inTime = new Date(grid.cellValue(rowIndex, "in_Time"));
-                    const outTime = new Date(grid.cellValue(rowIndex, "out_Time"));
-
-                    if (!isNaN(inTime) && !isNaN(outTime) && outTime > inTime) {
-                        const diffMs = outTime - inTime;
-                        const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                        const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
-
-                        const workingHours = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-                        const dayType = hours >= 8 ? "Full Day" : "Half Day";
-
-                        grid.cellValue(rowIndex, "workingHours", workingHours);
-                        grid.cellValue(rowIndex, "dayType", dayType);
-                    } else {
-                        grid.cellValue(rowIndex, "workingHours", "--");
-                        grid.cellValue(rowIndex, "dayType", "--");
-                    }
-                }
-            },
-
             columns: [
                 { dataField: "for_Date", caption: "Date", dataType: "date", width: 100 },
                 { dataField: "fullName", caption: "Employee", allowEditing: false },
                 { dataField: "branchName", caption: "Branch", allowEditing: false },
                 { dataField: "shiftTime", caption: "Shift Time", allowEditing: false },
 
+                // In Time (styled like Reason)
                 {
                     dataField: "in_Time",
                     caption: "In Time",
-                    dataType: "datetime",
-                    editorType: "dxDateBox",
-                    editorOptions: {
-                        type: "datetime",
-                        displayFormat: "dd/MM/yyyy HH:mm:ss",
-                        useMaskBehavior: true,
-                        showSpinButtons: true,
-                        width: 220,
-                        inputAttr: { style: "font-size:12px;" }
-                    },
-                    allowEditing: function (rowData) {
-                        return rowData.status === "Absent";
+                    allowEditing: false,
+                    cellTemplate: function (container, options) {
+                        const value = options.data.in_Time
+                            ? new Date(options.data.in_Time).toLocaleString('en-GB')
+                            : "--";
+                        $('<div>')
+                            .text(value)
+                            .css({
+                                textAlign: 'center',
+                                border: '1px solid #ddd',
+                                padding: '6px',
+                                borderRadius: '4px',
+                                backgroundColor: '#f5f5f5',
+                                fontSize: '12px'
+                            })
+                            .appendTo(container);
                     }
                 },
 
+                // Out Time (styled like Reason)
                 {
                     dataField: "out_Time",
                     caption: "Out Time",
-                    dataType: "datetime",
-                    editorType: "dxDateBox",
-                    editorOptions: {
-                        type: "datetime",
-                        displayFormat: "dd/MM/yyyy HH:mm:ss",
-                        useMaskBehavior: true,
-                        showSpinButtons: true,
-                        width: 220,
-                        inputAttr: { style: "font-size:12px;" }
-                    },
-                    allowEditing: function (rowData) {
-                        return rowData.status === "Absent";
+                    allowEditing: false,
+                    cellTemplate: function (container, options) {
+                        const value = options.data.out_Time
+                            ? new Date(options.data.out_Time).toLocaleString('en-GB')
+                            : "--";
+                        $('<div>')
+                            .text(value)
+                            .css({
+                                textAlign: 'center',
+                                border: '1px solid #ddd',
+                                padding: '6px',
+                                borderRadius: '4px',
+                                backgroundColor: '#f5f5f5',
+                                fontSize: '12px'
+                            })
+                            .appendTo(container);
                     }
                 },
 
+                // Status
                 {
                     dataField: "status",
                     caption: "Present Day",
@@ -373,42 +350,79 @@
                         const text = status === 'Present' ? 'P' : 'A';
                         const color = status === 'Present' ? 'green' : 'red';
                         $('<div>').text(text)
-                            .css({ color: color, fontWeight: 'bold', textAlign: 'center' })
+                            .css({
+                                color: color,
+                                fontWeight: 'bold',
+                                textAlign: 'center'
+                            })
                             .appendTo(container);
                     }
                 },
 
+                // Reason Dropdown
                 {
                     dataField: "reason",
                     caption: "Reason",
                     lookup: {
-                        dataSource: reasonOptions,  // your reason array
+                        dataSource: [
+                            { ID: "Forgot To Punch/Sign", Name: "Forgot To Punch/Sign" },
+                            { ID: "Working from Home", Name: "Working from Home" },
+                            { ID: "Client Visit", Name: "Client Visit" },
+                            { ID: "Training", Name: "Training" },
+                            { ID: "Other", Name: "Other" }
+                        ],
                         valueExpr: "ID",
                         displayExpr: "Name"
                     },
                     editorOptions: {
-                        showClearButton: true,
-                        searchEnabled: false
+                        showClearButton: true
+                    },
+                    calculateDisplayValue: function (rowData) {
+                        return rowData.reason || "--Select--";
                     },
                     allowEditing: function (rowData) {
                         return rowData.status === "Absent";
                     }
                 },
 
+                // Working Hours
                 {
                     dataField: "workingHours",
                     caption: "Working Hours",
-                    allowEditing: false
+                    allowEditing: false,
+                    calculateCellValue: function () {
+                        return "00:00:00";
+                    }
                 },
 
+                // Day Type Dropdown (styled like Reason)
                 {
                     dataField: "dayType",
                     caption: "Day Type",
-                    allowEditing: false
+                    lookup: {
+                        dataSource: [
+                            { id: "Full Day", name: "Full Day" },
+                            { id: "First Half", name: "First Half" },
+                            { id: "Second Half", name: "Second Half" }
+                        ],
+                        valueExpr: "id",
+                        displayExpr: "name"
+                    },
+                    editorOptions: {
+                        showClearButton: true
+                    },
+                    calculateDisplayValue: function (rowData) {
+                        return rowData.dayType || "--Select--";
+                    },
+                    allowEditing: function (rowData) {
+                        return rowData.status === "Absent";
+                    }
                 }
             ]
         });
     }
+
+
 
 
 
