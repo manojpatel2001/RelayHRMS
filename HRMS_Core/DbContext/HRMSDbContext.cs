@@ -146,6 +146,11 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetLiveEmployeeSalaryAllowance>().HasNoKey().ToView(null);
             modelBuilder.Entity<AttendanceInOutReportVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<VMGetExistEmployeeCode>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmUpdateEmployee>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmergencyContact>().HasNoKey().ToView(null);
+            modelBuilder.Entity<RelationShip>().HasNoKey().ToView(null);
+            modelBuilder.Entity<BankDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<BusinessSegment>().HasNoKey().ToView(null);
 
 
 

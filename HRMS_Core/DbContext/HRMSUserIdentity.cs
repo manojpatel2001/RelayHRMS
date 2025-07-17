@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.ControlPanel.CompanyInformation;
 using HRMS_Core.Employee;
+using HRMS_Core.EmployeeMaster;
 using HRMS_Core.Master.JobMaster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
@@ -80,6 +81,94 @@ namespace HRMS_Core.DbContext
         public bool? IsPasswordChange { get; set; } = false;
         public int? WeekOffDetailsId { get; set; }
         public bool? IsPermissionPunchInOut { get; set; } = false;
-    
+
+
+        //PersionalInfo
+        public string? Gender { get; set; }
+        public string? PersonalEmailId { get; set; }
+        public string? FatherName { get; set; }
+        public string? MotherName { get; set; }
+        public string? BloodGroup { get; set; }
+        public string? Height { get; set; }
+        public string? MaritalStatus { get; set; }
+        public DateTime? MarriageDate { get; set; }
+        public string? MarkIdentification { get; set; }
+        public string? Religion { get; set; }
+        public string? Caste { get; set; }
+        public string? CastCategory { get; set; }
+        public string? AadharCardNo { get; set; }
+        public string? PANNo { get; set; }
+        public string? Dispensary { get; set; }
+        public string? DoctorName { get; set; }
+        public string? DispensaryAddress { get; set; }
+        public string? UANNumber { get; set; }
+        public string? DrivingLicense { get; set; }
+        public DateTime? DrivingLicenseExpiry { get; set; }
+        public string? RationCardType { get; set; }
+        public string? RationCardNo { get; set; }
+        public int? ProbationCompletionPeriod { get; set; }
+        public string? ProbationPeriodType { get; set; }
+        //foreignKey
+        public int? ManagerProbationId { get; set; }
+        public DateTime? ConfirmDate { get; set; }
+        public DateTime? RetirementDate { get; set; }
+        public DateTime? OfferDate { get; set; }
+        public int? TraineeCompletionPeriod { get; set; }
+        public string? TraineePeriodType { get; set; }
+
+
+
+
+        //employee contact
+        public string? PresentAddress { get; set; }
+        public string? PresentTehsil { get; set; }
+        public string? PresentDistrict { get; set; }
+        public string? PresentCity { get; set; }
+        public int? PresentStateId { get; set; }
+        public string? PresentPincode { get; set; }
+        //forein key ThanaId
+        public int? PresentThanaId { get; set; }
+
+        // Permanent Address Details
+        public string? PermanentAddress { get; set; }
+        public string? PermanentTehsil { get; set; }
+        public string? PermanentDistrict { get; set; }
+        public string? PermanentCity { get; set; }
+        public int? PermanentStateId { get; set; }
+        public string? PermanentPincode { get; set; }
+        public int? PermanentThanaId { get; set; }
+      
+        // Contact Information
+        public int? CountryId { get; set; }
+        public string? WorkPhone { get; set; }
+        public string? PersonalPhone { get; set; }
+        public string? OfficialEmail { get; set; }
+        public string? Nationality { get; set; }
+        public string? ExtensionNo { get; set; }
+        public string? MobileNo { get; set; }
+
+        // Checkbox for same as present address
+        public bool? SameAsPresentAddress { get; set; } = false;
+
+
+        //salary report
+        public string? PrimaryPaymentMode { get; set; }
+        //foreinkey PrimaryBankDetails
+        public string? PrimaryBankName{ get; set; }
+        public string? PrimaryIFSCCode{ get; set; }
+        public string? PrimaryAccountNumber{ get; set; }
+        public string? PrimaryBankBranchName{ get; set; }
+        public string? WagesTypes{ get; set; }
+        public DateTime? GroupJoiningDate{ get; set; }
+        //foreinkey BusinessSegment
+        public int? BusinessSegmentId{ get; set; }
+        public string? EmployeeSalaryReport{ get; set; }
+        public string? EmployeePFReport{ get; set; }
+        public string? EmployeePTReport{ get; set; }
+        public string? EmployeeTaxReport{ get; set; }
+        public string? EmployeeESIReport{ get; set; }
+        public string? EmployeeNamePrmaryBank{ get; set; }
+
+
     }
 }
