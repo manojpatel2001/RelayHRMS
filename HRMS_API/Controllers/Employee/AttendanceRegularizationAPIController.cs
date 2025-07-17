@@ -82,28 +82,83 @@ namespace HRMS_API.Controllers.Employee
             {
                 if (attendances == null || attendances.Count == 0)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "No attendance details received." };
-                }
-
-                if (_unitOfWork == null || _unitOfWork.AttendanceRegularizationRepository == null)
-                {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Internal server error: repository not initialized." };
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No attendance details received."
+                    };
                 }
 
                 foreach (var attendance in attendances)
                 {
                     if (attendance == null)
-                    {
                         continue;
-                    }
 
                     attendance.CreatedDate = DateTime.UtcNow;
+
+                    // --- 1. Parse ShiftTime ---
+                    TimeSpan shiftStart = TimeSpan.MinValue;
+                    TimeSpan shiftEnd = TimeSpan.MinValue;
+
+                    if (!string.IsNullOrEmpty(attendance.ShiftTime))
+                    {
+                        string[] delimiters = new[] { "-", "to", "TO" };
+                        var parts = attendance.ShiftTime.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+
+                        if (parts.Length == 2)
+                        {
+                            bool isStartParsed = TimeSpan.TryParse(parts[0].Trim(), out shiftStart);
+                            bool isEndParsed = TimeSpan.TryParse(parts[1].Trim(), out shiftEnd);
+
+                            if (!isStartParsed || !isEndParsed || shiftStart == TimeSpan.Zero || shiftEnd == TimeSpan.Zero)
+                                continue; // skip this record if invalid
+                        }
+                        else
+                        {
+                            continue; // invalid format
+                        }
+                    }
+                    else
+                    {
+                        continue; // shift time missing
+                    }
+
+                    // --- 2. Set InTime and OutTime based on Day ---
+                    if (attendance.ForDate.HasValue)
+                    {
+                        DateTime baseDate = attendance.ForDate.Value.Date;
+
+                        if (attendance.Day == "Full Day")
+                        {
+                            attendance.InTime ??= baseDate.Add(shiftStart);
+                            attendance.OutTime ??= baseDate.Add(shiftEnd);
+                        }
+                        else if (attendance.Day == "First Half")
+                        {
+                            attendance.InTime ??= baseDate.Add(shiftStart);
+                            attendance.OutTime ??= baseDate.Add(shiftStart + ((shiftEnd - shiftStart) / 2));
+                        }
+                        else if (attendance.Day == "Second Half")
+                        {
+                            attendance.InTime ??= baseDate.Add(shiftStart + ((shiftEnd - shiftStart) / 2));
+                            attendance.OutTime ??= baseDate.Add(shiftEnd);
+                        }
+                    }
+
+                    // --- 3. Calculate Duration ---
+                    if (attendance.InTime.HasValue && attendance.OutTime.HasValue)
+                    {
+                        var duration = attendance.OutTime.Value - attendance.InTime.Value;
+                        if (duration.TotalMinutes > 0)
+                            attendance.Duration = duration;
+                    }
+
                     await _unitOfWork.AttendanceRegularizationRepository.AddAsync(attendance);
                 }
 
                 await _unitOfWork.CommitAsync();
 
-                return new APIResponse()
+                return new APIResponse
                 {
                     isSuccess = true,
                     Data = attendances,
@@ -120,6 +175,7 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+
 
 
         //[HttpPut("UpdateAttendanceRegularization")]
@@ -286,6 +342,8 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Emp_Id,Month,Year are required."
                     };
                 }
+
+
                 var data = await _unitOfWork.AttendanceRegularizationRepository.GetAttendanceRegularization(attendance);
 
 
