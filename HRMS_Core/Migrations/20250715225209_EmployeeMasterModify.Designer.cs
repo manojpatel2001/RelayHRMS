@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250715225209_EmployeeMasterModify")]
+    partial class EmployeeMasterModify
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -234,7 +237,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("StateId");
 
-                    b.ToTable("CompanyDetails", (string)null);
+                    b.ToTable("CompanyDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.ControlPanel.CompanyInformation.DirectorDetails", b =>
@@ -294,7 +297,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("DirectorDetails", (string)null);
+                    b.ToTable("DirectorDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.DbContext.HRMSRoleIdentity", b =>
@@ -600,8 +603,8 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("PermanentAddress")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PermanentCity")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("PermanentCityId")
+                        .HasColumnType("int");
 
                     b.Property<string>("PermanentDistrict")
                         .HasColumnType("nvarchar(max)");
@@ -633,8 +636,8 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("PresentAddress")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PresentCity")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("PresentCityId")
+                        .HasColumnType("int");
 
                     b.Property<string>("PresentDistrict")
                         .HasColumnType("nvarchar(max)");
@@ -657,8 +660,8 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("PrimaryBankBranchName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PrimaryBankName")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("PrimaryBankId")
+                        .HasColumnType("int");
 
                     b.Property<string>("PrimaryIFSCCode")
                         .HasColumnType("nvarchar(max)");
@@ -786,86 +789,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("UserRoleId");
 
-                    b.ToTable("HRMSUserRoles", (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.Employee.AttendanceRegularization", b =>
-                {
-                    b.Property<int>("AttendanceRegularizationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttendanceRegularizationId"));
-
-                    b.Property<string>("BranchName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<TimeSpan?>("Duration")
-                        .HasColumnType("time");
-
-                    b.Property<int?>("EmpId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ForDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FullName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("InTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsApproved")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsPending")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsRejected")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("OutTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ShiftTime")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("AttendanceRegularizationId");
-
-                    b.ToTable("AttendanceRegularization", (string)null);
+                    b.ToTable("HRMSUserRoles");
                 });
 
             modelBuilder.Entity("HRMS_Core.Employee.Category", b =>
@@ -908,7 +832,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("CategoryId");
 
-                    b.ToTable("Category", (string)null);
+                    b.ToTable("Category");
                 });
 
             modelBuilder.Entity("HRMS_Core.Employee.EmployeeInOutRecord", b =>
@@ -1041,7 +965,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("Emp_IO_Id");
 
-                    b.ToTable("EmployeeInOutRecord", (string)null);
+                    b.ToTable("EmployeeInOutRecord");
                 });
 
             modelBuilder.Entity("HRMS_Core.Employee.EmployeeType", b =>
@@ -1084,7 +1008,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("EmployeeTypeId");
 
-                    b.ToTable("EmployeeType", (string)null);
+                    b.ToTable("EmployeeType");
                 });
 
             modelBuilder.Entity("HRMS_Core.Employee.PasswordHistory", b =>
@@ -1130,81 +1054,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("PasswordHistoryId");
 
-                    b.ToTable("PasswordHistory", (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.EmployeeMaster.BankDetails", b =>
-                {
-                    b.Property<int>("BankDetailsId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("BankName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.EmployeeMaster.BusinessSegment", b =>
-                {
-                    b.Property<int>("BusinessSegmentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("BusinessSegmentName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
+                    b.ToTable("PasswordHistory");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.Country", b =>
@@ -1247,59 +1097,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("CountryId");
 
-                    b.ToTable("Country", (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.EmployeeMaster.EmergencyContact", b =>
-                {
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("EmergencyContactId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("EmployeeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("HomePhoneNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("MobileNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RelationName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("RelationShipId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("WorkPhoneNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
+                    b.ToTable("Country");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.EmployeeContact", b =>
@@ -1414,7 +1212,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("PresentThanaId");
 
-                    b.ToTable("EmployeeContact", (string)null);
+                    b.ToTable("EmployeeContact");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.EmployeePersonalInfo", b =>
@@ -1592,44 +1390,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("EmployeePersonalInfoId");
 
-                    b.ToTable("EmployeePersonalInfo", (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.EmployeeMaster.RelationShip", b =>
-                {
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("RelationName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("RelationShipId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
+                    b.ToTable("EmployeePersonalInfo");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.Thana", b =>
@@ -1672,7 +1433,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("ThanaId");
 
-                    b.ToTable("Thana", (string)null);
+                    b.ToTable("Thana");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.Comp_Off_Details", b =>
@@ -1745,7 +1506,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("Comp_Off_Detailsid");
 
-                    b.ToTable("Comp_Off_Details", (string)null);
+                    b.ToTable("Comp_Off_Details");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.LeaveApplication", b =>
@@ -1827,7 +1588,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("LeaveApplicationid");
 
-                    b.ToTable("LeaveApplication", (string)null);
+                    b.ToTable("LeaveApplication");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.LeaveDetails", b =>
@@ -1882,7 +1643,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("LeaveDetailsId");
 
-                    b.ToTable("LeaveDetails", (string)null);
+                    b.ToTable("LeaveDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.LeaveMaster", b =>
@@ -1940,7 +1701,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("Leave_TypeId");
 
-                    b.ToTable("LeaveMaster", (string)null);
+                    b.ToTable("LeaveMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.LeaveOpening", b =>
@@ -1998,7 +1759,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("LeaveOpeningId");
 
-                    b.ToTable("LeaveOpening", (string)null);
+                    b.ToTable("LeaveOpening");
                 });
 
             modelBuilder.Entity("HRMS_Core.ManagePermission.Permission", b =>
@@ -2055,7 +1816,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("PermissionId");
 
-                    b.ToTable("Permission", (string)null);
+                    b.ToTable("Permission");
                 });
 
             modelBuilder.Entity("HRMS_Core.ManagePermission.RolePermission", b =>
@@ -2104,7 +1865,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("RolePermissionId");
 
-                    b.ToTable("RolePermission", (string)null);
+                    b.ToTable("RolePermission");
                 });
 
             modelBuilder.Entity("HRMS_Core.ManagePermission.UserPermission", b =>
@@ -2153,7 +1914,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("UserPermissionId");
 
-                    b.ToTable("UserPermission", (string)null);
+                    b.ToTable("UserPermission");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.BankMaster", b =>
@@ -2217,7 +1978,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("BankMasterId");
 
-                    b.ToTable("BankMaster", (string)null);
+                    b.ToTable("BankMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.HolidayMaster", b =>
@@ -2301,7 +2062,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("HolidayMaster", (string)null);
+                    b.ToTable("HolidayMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.LevelWiseCardMapping", b =>
@@ -2350,7 +2111,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("LevelWiseCardMappingId");
 
-                    b.ToTable("LevelWiseCardMapping", (string)null);
+                    b.ToTable("LevelWiseCardMapping");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.WarningMaster", b =>
@@ -2405,7 +2166,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("WarningMasterId");
 
-                    b.ToTable("WarningMaster", (string)null);
+                    b.ToTable("WarningMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.WeekOffDetails", b =>
@@ -2457,7 +2218,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("WeekOffDetailsId");
 
-                    b.ToTable("WeekOffDetails", (string)null);
+                    b.ToTable("WeekOffDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Branch", b =>
@@ -2542,7 +2303,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("BranchId");
 
-                    b.ToTable("Branch", (string)null);
+                    b.ToTable("Branch");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.City", b =>
@@ -2601,7 +2362,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("StateId");
 
-                    b.ToTable("City", (string)null);
+                    b.ToTable("City");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.CityCategory", b =>
@@ -2647,7 +2408,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("CityCategoryId");
 
-                    b.ToTable("CityCategories", (string)null);
+                    b.ToTable("CityCategories");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Department", b =>
@@ -2702,7 +2463,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("DepartmentId");
 
-                    b.ToTable("Department", (string)null);
+                    b.ToTable("Department");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Designation", b =>
@@ -2763,7 +2524,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("DesignationId");
 
-                    b.ToTable("Designation", (string)null);
+                    b.ToTable("Designation");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Grade", b =>
@@ -2836,7 +2597,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("GradeId");
 
-                    b.ToTable("Grade", (string)null);
+                    b.ToTable("Grade");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Reason", b =>
@@ -2891,7 +2652,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("ReasonId");
 
-                    b.ToTable("Reason", (string)null);
+                    b.ToTable("Reason");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.ShiftBreak", b =>
@@ -2956,7 +2717,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("ShiftID");
 
-                    b.ToTable("ShiftBreak", (string)null);
+                    b.ToTable("ShiftBreak");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.ShiftMaster", b =>
@@ -3025,7 +2786,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("ShiftID");
 
-                    b.ToTable("ShiftMaster", (string)null);
+                    b.ToTable("ShiftMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.State", b =>
@@ -3089,7 +2850,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("StateId");
 
-                    b.ToTable("State", (string)null);
+                    b.ToTable("State");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.OrganizationPolicy", b =>
@@ -3153,7 +2914,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("OrganizationPolicyId");
 
-                    b.ToTable("OrganizationPolicy", (string)null);
+                    b.ToTable("OrganizationPolicy");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.TicketPriority", b =>
@@ -3199,7 +2960,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("TicketPriorityId");
 
-                    b.ToTable("TicketPriority", (string)null);
+                    b.ToTable("TicketPriority");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.TicketType", b =>
@@ -3247,7 +3008,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("TicketType", (string)null);
+                    b.ToTable("TicketType");
                 });
 
             modelBuilder.Entity("HRMS_Core.PrivilegeSetting.ModuleDetails", b =>
@@ -3298,7 +3059,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("ModuleDetails", (string)null);
+                    b.ToTable("ModuleDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PagePanel", b =>
@@ -3344,7 +3105,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("PagePanelId");
 
-                    b.ToTable("PagePanel", (string)null);
+                    b.ToTable("PagePanel");
                 });
 
             modelBuilder.Entity("HRMS_Core.Salary.Deduction", b =>
@@ -3411,7 +3172,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("DeductionId");
 
-                    b.ToTable("Deduction", (string)null);
+                    b.ToTable("Deduction");
                 });
 
             modelBuilder.Entity("HRMS_Core.Salary.Earning", b =>
@@ -3475,7 +3236,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("EarningId");
 
-                    b.ToTable("Earning", (string)null);
+                    b.ToTable("Earning");
                 });
 
             modelBuilder.Entity("HRMS_Core.Salary.EmpAttendanceImport", b =>
@@ -3548,7 +3309,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("EmpAttendanceId");
 
-                    b.ToTable("EmpAttendanceImport", (string)null);
+                    b.ToTable("EmpAttendanceImport");
                 });
 
             modelBuilder.Entity("HRMS_Core.SuperAdmin.SuperAdminDetails", b =>
@@ -3585,7 +3346,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SuperAdminDetails", (string)null);
+                    b.ToTable("SuperAdminDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.VM.CompanyInformation.vmGetAllCompanyDetails", b =>
@@ -3990,62 +3751,6 @@ namespace HRMS_Core.Migrations
                     b.ToView(null, (string)null);
                 });
 
-            modelBuilder.Entity("HRMS_Core.VM.Employee.EmployeeInOutFilterVM", b =>
-                {
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("EmpId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Month")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RecordType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("Year")
-                        .HasColumnType("int");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.Employee.EmployeeInOutReportVM", b =>
-                {
-                    b.Property<string>("BranchName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<TimeSpan?>("Duration")
-                        .HasColumnType("time");
-
-                    b.Property<DateTime>("For_Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FullName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("In_Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("Out_Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ShiftTime")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
             modelBuilder.Entity("HRMS_Core.VM.Employee.VMInOutRecord", b =>
                 {
                     b.Property<string>("Day_Name")
@@ -4377,361 +4082,6 @@ namespace HRMS_Core.Migrations
                     b.ToView(null, (string)null);
                 });
 
-            modelBuilder.Entity("HRMS_Core.VM.EmployeeMaster.vmUpdateEmployee", b =>
-                {
-                    b.Property<string>("AadharCardNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("AlfaCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("AlfaEmployeeCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("BasicSalary")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("BloodGroup")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("BusinessSegmentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CTC")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CastCategory")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Caste")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ConfirmDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("CountryId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateOfBirth")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateOfJoining")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("DepartmentId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("DesignationId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Dispensary")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DispensaryAddress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DoctorName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DrivingLicense")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DrivingLicenseExpiry")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("Earlymark")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("EmployeeCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeESIReport")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeNamePrmaryBank")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeePFReport")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeePTReport")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeProfileUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeSalaryReport")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeSignatureUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeTaxReport")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("EmployeeTypeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("EnrollNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ExtensionNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FatherName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FirstName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("Fixsalary")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("FullName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("Fullpf")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Gender")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("GradeId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("GrossSalary")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("GroupJoiningDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Height")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("Id")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Initial")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsPermissionPunchInOut")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LastName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("Latemark")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LoginAlias")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("ManagerProbationId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("MaritalStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MarkIdentification")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("MarriageDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("MiddleName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MobileNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MotherName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Nationality")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("OfferDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("OfficialEmail")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("Overtime")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("PANNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Password")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PermanentAddress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PermanentCity")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PermanentDistrict")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PermanentPincode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("PermanentStateId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PermanentTehsil")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("PermanentThanaId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PersonalEmailId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PersonalPhone")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PresentAddress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PresentCity")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PresentDistrict")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PresentPincode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("PresentStateId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PresentTehsil")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("PresentThanaId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PrimaryAccountNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PrimaryBankBranchName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PrimaryBankName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PrimaryIFSCCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PrimaryPaymentMode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("Probation")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("ProbationCompletionPeriod")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ProbationPeriodType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("Pt")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("RationCardNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RationCardType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Religion")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("ReportingManagerId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("RetirementDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<bool?>("SameAsPresentAddress")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("ShiftMasterId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SubBranch")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("Trainee")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("TraineeCompletionPeriod")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TraineePeriodType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UANNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UserPrivilege")
-                        .HasColumnType("int");
-
-                    b.Property<string>("WagesTypes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("WeekOffDetailsId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("WorkPhone")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
             modelBuilder.Entity("HRMS_Core.VM.JobMaster.BranchUserStatsModel", b =>
                 {
                     b.Property<string>("BranchName")
@@ -4788,37 +4138,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<string>("StateName")
                         .HasColumnType("nvarchar(max)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.Leave.EmployeeAttendanceReportVm", b =>
-                {
-                    b.Property<string>("BranchName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("Total_A")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Total_HF")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Total_P")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Total_W")
-                        .HasColumnType("int");
 
                     b.ToTable((string)null);
 

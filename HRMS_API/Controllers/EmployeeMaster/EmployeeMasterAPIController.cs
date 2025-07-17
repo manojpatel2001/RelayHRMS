@@ -49,6 +49,23 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
+        [HttpGet("GetAllEmployeeForUpdate")]
+        public async Task<APIResponse> GetAllEmployeeForUpdate(int companyId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeForUpdate(companyId);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
         [HttpGet("GetNextEmployeeCode/{companyId}")]
         public async Task<APIResponse> GetNextEmployeeCode(int companyId)
         {
@@ -148,7 +165,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     {
                         EmployeeId = employee.Id,
                         CompanyId = employee.CompanyId,
-                        IsAdmin = getRole.Slug.ToLower() == "admin" ? true :false
+                        IsAdmin = getRole.Slug.ToString().ToLower() == "admin" ? true :false
                     };
                     var assignCompany=await _unitOfWork.UserCompanyPermissionsRepository.CreateUserCompanyPermissions(companyPermission);
 
@@ -176,11 +193,10 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
 
         [HttpPost("UpdateEmployee")]
-        public async Task<APIResponse> UpdateEmployee(vmUpdateEmployee updateEmployee)
+        public async Task<APIResponse> UpdateEmployee(vmUpdateEmployee employeeData)
         {
             try
             {
-                var employeeData = updateEmployee.vmEmployeeData;
                 if (employeeData == null || string.IsNullOrEmpty(employeeData.LoginAlias))
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
@@ -266,41 +282,41 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     {
                         var updateSalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.UpdateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary });
                     }
-                    // Additional information
-                    if (updateEmployee.EmployeePersonalInfo != null)
-                    {
-                        var modelEmployeePersonalInfo = updateEmployee.EmployeePersonalInfo;
-                        // Add or update employee personal info
-                        if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0|| modelEmployeePersonalInfo.EmployeePersonalInfoId==null)
-                        {
-                            var resultEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.CreateEmployeePersonalInfo(modelEmployeePersonalInfo);
-                        }
-                        else
-                        {
-                            var check = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoById(modelEmployeePersonalInfo.EmployeePersonalInfoId);
-                            if (check != null)
-                            {
-                                var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.UpdateEmployeePersonalInfo(modelEmployeePersonalInfo);
-                            }
-                        }
-                    }
-                    //Add employee contact
-                    if (updateEmployee.EmployeeContact != null)
-                    {
-                        var modelEmployeeContact = updateEmployee.EmployeeContact;
-                        if (modelEmployeeContact.EmployeeContactId == 0 || modelEmployeeContact.EmployeeContactId == null)
-                        {
-                            var resultEmployeeContact = await _unitOfWork.EmployeeContactRepository.CreateEmployeeContact(modelEmployeeContact);
-                        }
-                        else
-                        {
-                            var check = await _unitOfWork.EmployeeContactRepository.GetEmployeeContactById(modelEmployeeContact.EmployeeContactId);
-                            if (check != null)
-                            {
-                                var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeeContactRepository.UpdateEmployeeContact(modelEmployeeContact);
-                            }
-                        }
-                    }
+                    //// Additional information
+                    //if (updateEmployee.EmployeePersonalInfo != null)
+                    //{
+                    //    var modelEmployeePersonalInfo = updateEmployee.EmployeePersonalInfo;
+                    //    // Add or update employee personal info
+                    //    if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0|| modelEmployeePersonalInfo.EmployeePersonalInfoId==null)
+                    //    {
+                    //        var resultEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.CreateEmployeePersonalInfo(modelEmployeePersonalInfo);
+                    //    }
+                    //    else
+                    //    {
+                    //        var check = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoById(modelEmployeePersonalInfo.EmployeePersonalInfoId);
+                    //        if (check != null)
+                    //        {
+                    //            var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.UpdateEmployeePersonalInfo(modelEmployeePersonalInfo);
+                    //        }
+                    //    }
+                    //}
+                    ////Add employee contact
+                    //if (updateEmployee.EmployeeContact != null)
+                    //{
+                    //    var modelEmployeeContact = updateEmployee.EmployeeContact;
+                    //    if (modelEmployeeContact.EmployeeContactId == 0 || modelEmployeeContact.EmployeeContactId == null)
+                    //    {
+                    //        var resultEmployeeContact = await _unitOfWork.EmployeeContactRepository.CreateEmployeeContact(modelEmployeeContact);
+                    //    }
+                    //    else
+                    //    {
+                    //        var check = await _unitOfWork.EmployeeContactRepository.GetEmployeeContactById(modelEmployeeContact.EmployeeContactId);
+                    //        if (check != null)
+                    //        {
+                    //            var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeeContactRepository.UpdateEmployeeContact(modelEmployeeContact);
+                    //        }
+                    //    }
+                    //}
 
 
                     var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)result.Id);
@@ -482,45 +498,62 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     if (model.EmployeeProfileFile.Length > 0)
                     {
                         var folder = $"uploads/employeeprofile";
-                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.EmployeeProfileFile, folder, model.EmployeeProfileUrl);
+                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.EmployeeProfileFile, folder, check.EmployeeProfileUrl);
                         model.EmployeeProfileUrl = fileUrl;
                     }
+                    else
+                    {
+                        model.EmployeeProfileUrl = null;
+                    }
                 }
+                else
+                {
+                    model.EmployeeProfileUrl = null;
+                }
+
                 if (model.EmployeeSignatureFile != null)
                 {
                     if (model.EmployeeSignatureFile.Length > 0)
                     {
                         var folder = $"uploads/employeesignature";
-                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.EmployeeSignatureFile, folder, model.EmployeeSignatureUrl);
+                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.EmployeeSignatureFile, folder, check.EmployeeSignatureUrl);
                         model.EmployeeSignatureUrl = fileUrl;
                     }
+                    else
+                    {
+                        model.EmployeeSignatureUrl = null;
+                    }
                 }
-                //if ((string.IsNullOrEmpty(model.EmployeeSignatureUrl)|| model.EmployeeSignatureUrl==null)&& model.EmployeeSignatureFile==null)
-                //{
-                //    model.EmployeeSignatureUrl = null;
-                //}
-                //if ((string.IsNullOrEmpty(model.EmployeeProfileUrl)|| model.EmployeeProfileUrl=="null")&& model.EmployeeSignatureFile == null)
-                //{
-                //    model.EmployeeProfileUrl = null;
-                //}
-
-                if ((!string.IsNullOrEmpty(model.EmployeeSignatureUrl) || model.EmployeeSignatureUrl != "null") && model.EmployeeSignatureFile == null)
+                else
                 {
-                    var folder = $"uploads/employeesignature";
-                    bool isDeleted =  UploadDocument.DeleteUploadedFile(Request,  folder, model.EmployeeSignatureUrl);
-
                     model.EmployeeSignatureUrl = null;
                 }
-                if ((!string.IsNullOrEmpty(model.EmployeeProfileUrl) || model.EmployeeProfileUrl != "null") && model.EmployeeSignatureFile == null)
-                {
-                    var folder = $"uploads/employeeprofile";
-                    bool isDeleted = UploadDocument.DeleteUploadedFile(Request, folder, model.EmployeeSignatureUrl);
+                    //if ((string.IsNullOrEmpty(model.EmployeeSignatureUrl)|| model.EmployeeSignatureUrl==null)&& model.EmployeeSignatureFile==null)
+                    //{
+                    //    model.EmployeeSignatureUrl = null;
+                    //}
+                    //if ((string.IsNullOrEmpty(model.EmployeeProfileUrl)|| model.EmployeeProfileUrl=="null")&& model.EmployeeSignatureFile == null)
+                    //{
+                    //    model.EmployeeProfileUrl = null;
+                    //}
 
-                    model.EmployeeProfileUrl = null;
-                }
+                    //if ((!string.IsNullOrEmpty(model.EmployeeSignatureUrl) || model.EmployeeSignatureUrl != "null") && model.EmployeeSignatureFile == null)
+                    //{
+                    //    var folder = $"uploads/employeesignature";
+                    //    bool isDeleted =  UploadDocument.DeleteUploadedFile(Request,  folder, model.EmployeeSignatureUrl);
+
+                    //    model.EmployeeSignatureUrl = null;
+                    //}
+                    //if ((!string.IsNullOrEmpty(model.EmployeeProfileUrl) || model.EmployeeProfileUrl != "null") && model.EmployeeSignatureFile == null)
+                    //{
+                    //    var folder = $"uploads/employeeprofile";
+                    //    bool isDeleted = UploadDocument.DeleteUploadedFile(Request, folder, model.EmployeeSignatureUrl);
+
+                    //    model.EmployeeProfileUrl = null;
+                    //}
 
 
-                var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployeeProfileAndSignature(model);
+                    var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployeeProfileAndSignature(model);
 
                 if (result.Id>0)
                 {

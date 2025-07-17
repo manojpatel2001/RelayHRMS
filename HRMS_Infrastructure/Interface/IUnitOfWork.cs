@@ -1,5 +1,6 @@
 ﻿using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
@@ -76,6 +77,9 @@ namespace HRMS_Infrastructure.Interface
 
         IEmployeeSalaryAllowanceRepository EmployeeSalaryAllowanceRepository { get; }
         IUserCompanyPermissionsRepository UserCompanyPermissionsRepository { get; }
+        IEmergencyContactRepository EmergencyContactRepository { get; }
+        IBusinessSegmentRepository BusinessSegmentRepository { get; }
+        IRelationShipRepository RelationShipRepository { get; }
         IPasswordHistory PasswordHistory { get; }
 
         IEmployeeReport EmployeeReport { get; }

@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250717025213_PrimaryBankName")]
+    partial class PrimaryBankName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -234,7 +237,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("StateId");
 
-                    b.ToTable("CompanyDetails", (string)null);
+                    b.ToTable("CompanyDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.ControlPanel.CompanyInformation.DirectorDetails", b =>
@@ -294,7 +297,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("DirectorDetails", (string)null);
+                    b.ToTable("DirectorDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.DbContext.HRMSRoleIdentity", b =>
@@ -786,86 +789,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("UserRoleId");
 
-                    b.ToTable("HRMSUserRoles", (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.Employee.AttendanceRegularization", b =>
-                {
-                    b.Property<int>("AttendanceRegularizationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttendanceRegularizationId"));
-
-                    b.Property<string>("BranchName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<TimeSpan?>("Duration")
-                        .HasColumnType("time");
-
-                    b.Property<int?>("EmpId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ForDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FullName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("InTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsApproved")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsPending")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsRejected")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("OutTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ShiftTime")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("AttendanceRegularizationId");
-
-                    b.ToTable("AttendanceRegularization", (string)null);
+                    b.ToTable("HRMSUserRoles");
                 });
 
             modelBuilder.Entity("HRMS_Core.Employee.Category", b =>
@@ -908,7 +832,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("CategoryId");
 
-                    b.ToTable("Category", (string)null);
+                    b.ToTable("Category");
                 });
 
             modelBuilder.Entity("HRMS_Core.Employee.EmployeeInOutRecord", b =>
@@ -1041,7 +965,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("Emp_IO_Id");
 
-                    b.ToTable("EmployeeInOutRecord", (string)null);
+                    b.ToTable("EmployeeInOutRecord");
                 });
 
             modelBuilder.Entity("HRMS_Core.Employee.EmployeeType", b =>
@@ -1084,7 +1008,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("EmployeeTypeId");
 
-                    b.ToTable("EmployeeType", (string)null);
+                    b.ToTable("EmployeeType");
                 });
 
             modelBuilder.Entity("HRMS_Core.Employee.PasswordHistory", b =>
@@ -1130,7 +1054,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("PasswordHistoryId");
 
-                    b.ToTable("PasswordHistory", (string)null);
+                    b.ToTable("PasswordHistory");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.BankDetails", b =>
@@ -1247,7 +1171,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("CountryId");
 
-                    b.ToTable("Country", (string)null);
+                    b.ToTable("Country");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.EmergencyContact", b =>
@@ -1414,7 +1338,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("PresentThanaId");
 
-                    b.ToTable("EmployeeContact", (string)null);
+                    b.ToTable("EmployeeContact");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.EmployeePersonalInfo", b =>
@@ -1592,7 +1516,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("EmployeePersonalInfoId");
 
-                    b.ToTable("EmployeePersonalInfo", (string)null);
+                    b.ToTable("EmployeePersonalInfo");
                 });
 
             modelBuilder.Entity("HRMS_Core.EmployeeMaster.RelationShip", b =>
@@ -1672,7 +1596,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("ThanaId");
 
-                    b.ToTable("Thana", (string)null);
+                    b.ToTable("Thana");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.Comp_Off_Details", b =>
@@ -1745,7 +1669,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("Comp_Off_Detailsid");
 
-                    b.ToTable("Comp_Off_Details", (string)null);
+                    b.ToTable("Comp_Off_Details");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.LeaveApplication", b =>
@@ -1827,7 +1751,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("LeaveApplicationid");
 
-                    b.ToTable("LeaveApplication", (string)null);
+                    b.ToTable("LeaveApplication");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.LeaveDetails", b =>
@@ -1882,7 +1806,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("LeaveDetailsId");
 
-                    b.ToTable("LeaveDetails", (string)null);
+                    b.ToTable("LeaveDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.LeaveMaster", b =>
@@ -1940,7 +1864,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("Leave_TypeId");
 
-                    b.ToTable("LeaveMaster", (string)null);
+                    b.ToTable("LeaveMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Leave.LeaveOpening", b =>
@@ -1998,7 +1922,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("LeaveOpeningId");
 
-                    b.ToTable("LeaveOpening", (string)null);
+                    b.ToTable("LeaveOpening");
                 });
 
             modelBuilder.Entity("HRMS_Core.ManagePermission.Permission", b =>
@@ -2055,7 +1979,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("PermissionId");
 
-                    b.ToTable("Permission", (string)null);
+                    b.ToTable("Permission");
                 });
 
             modelBuilder.Entity("HRMS_Core.ManagePermission.RolePermission", b =>
@@ -2104,7 +2028,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("RolePermissionId");
 
-                    b.ToTable("RolePermission", (string)null);
+                    b.ToTable("RolePermission");
                 });
 
             modelBuilder.Entity("HRMS_Core.ManagePermission.UserPermission", b =>
@@ -2153,7 +2077,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("UserPermissionId");
 
-                    b.ToTable("UserPermission", (string)null);
+                    b.ToTable("UserPermission");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.BankMaster", b =>
@@ -2217,7 +2141,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("BankMasterId");
 
-                    b.ToTable("BankMaster", (string)null);
+                    b.ToTable("BankMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.HolidayMaster", b =>
@@ -2301,7 +2225,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("HolidayMaster", (string)null);
+                    b.ToTable("HolidayMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.LevelWiseCardMapping", b =>
@@ -2350,7 +2274,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("LevelWiseCardMappingId");
 
-                    b.ToTable("LevelWiseCardMapping", (string)null);
+                    b.ToTable("LevelWiseCardMapping");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.WarningMaster", b =>
@@ -2405,7 +2329,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("WarningMasterId");
 
-                    b.ToTable("WarningMaster", (string)null);
+                    b.ToTable("WarningMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.WeekOffDetails", b =>
@@ -2457,7 +2381,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("WeekOffDetailsId");
 
-                    b.ToTable("WeekOffDetails", (string)null);
+                    b.ToTable("WeekOffDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Branch", b =>
@@ -2542,7 +2466,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("BranchId");
 
-                    b.ToTable("Branch", (string)null);
+                    b.ToTable("Branch");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.City", b =>
@@ -2601,7 +2525,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("StateId");
 
-                    b.ToTable("City", (string)null);
+                    b.ToTable("City");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.CityCategory", b =>
@@ -2647,7 +2571,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("CityCategoryId");
 
-                    b.ToTable("CityCategories", (string)null);
+                    b.ToTable("CityCategories");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Department", b =>
@@ -2702,7 +2626,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("DepartmentId");
 
-                    b.ToTable("Department", (string)null);
+                    b.ToTable("Department");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Designation", b =>
@@ -2763,7 +2687,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("DesignationId");
 
-                    b.ToTable("Designation", (string)null);
+                    b.ToTable("Designation");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Grade", b =>
@@ -2836,7 +2760,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("GradeId");
 
-                    b.ToTable("Grade", (string)null);
+                    b.ToTable("Grade");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.Reason", b =>
@@ -2891,7 +2815,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("ReasonId");
 
-                    b.ToTable("Reason", (string)null);
+                    b.ToTable("Reason");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.ShiftBreak", b =>
@@ -2956,7 +2880,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("ShiftID");
 
-                    b.ToTable("ShiftBreak", (string)null);
+                    b.ToTable("ShiftBreak");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.ShiftMaster", b =>
@@ -3025,7 +2949,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("ShiftID");
 
-                    b.ToTable("ShiftMaster", (string)null);
+                    b.ToTable("ShiftMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.State", b =>
@@ -3089,7 +3013,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("StateId");
 
-                    b.ToTable("State", (string)null);
+                    b.ToTable("State");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.OrganizationPolicy", b =>
@@ -3153,7 +3077,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("OrganizationPolicyId");
 
-                    b.ToTable("OrganizationPolicy", (string)null);
+                    b.ToTable("OrganizationPolicy");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.TicketPriority", b =>
@@ -3199,7 +3123,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("TicketPriorityId");
 
-                    b.ToTable("TicketPriority", (string)null);
+                    b.ToTable("TicketPriority");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.TicketType", b =>
@@ -3247,7 +3171,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("TicketType", (string)null);
+                    b.ToTable("TicketType");
                 });
 
             modelBuilder.Entity("HRMS_Core.PrivilegeSetting.ModuleDetails", b =>
@@ -3298,7 +3222,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("ModuleDetails", (string)null);
+                    b.ToTable("ModuleDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.PrivilegeSetting.PagePanel", b =>
@@ -3344,7 +3268,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("PagePanelId");
 
-                    b.ToTable("PagePanel", (string)null);
+                    b.ToTable("PagePanel");
                 });
 
             modelBuilder.Entity("HRMS_Core.Salary.Deduction", b =>
@@ -3411,7 +3335,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("DeductionId");
 
-                    b.ToTable("Deduction", (string)null);
+                    b.ToTable("Deduction");
                 });
 
             modelBuilder.Entity("HRMS_Core.Salary.Earning", b =>
@@ -3475,7 +3399,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("EarningId");
 
-                    b.ToTable("Earning", (string)null);
+                    b.ToTable("Earning");
                 });
 
             modelBuilder.Entity("HRMS_Core.Salary.EmpAttendanceImport", b =>
@@ -3548,7 +3472,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("EmpAttendanceId");
 
-                    b.ToTable("EmpAttendanceImport", (string)null);
+                    b.ToTable("EmpAttendanceImport");
                 });
 
             modelBuilder.Entity("HRMS_Core.SuperAdmin.SuperAdminDetails", b =>
@@ -3585,7 +3509,7 @@ namespace HRMS_Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SuperAdminDetails", (string)null);
+                    b.ToTable("SuperAdminDetails");
                 });
 
             modelBuilder.Entity("HRMS_Core.VM.CompanyInformation.vmGetAllCompanyDetails", b =>
@@ -3983,62 +3907,6 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Out_Time")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.Employee.EmployeeInOutFilterVM", b =>
-                {
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("EmpId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Month")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RecordType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("Year")
-                        .HasColumnType("int");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.Employee.EmployeeInOutReportVM", b =>
-                {
-                    b.Property<string>("BranchName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<TimeSpan?>("Duration")
-                        .HasColumnType("time");
-
-                    b.Property<DateTime>("For_Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FullName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("In_Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("Out_Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ShiftTime")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
                         .HasColumnType("nvarchar(max)");
 
                     b.ToTable((string)null);
@@ -4788,37 +4656,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<string>("StateName")
                         .HasColumnType("nvarchar(max)");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.Leave.EmployeeAttendanceReportVm", b =>
-                {
-                    b.Property<string>("BranchName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmployeeCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("Total_A")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Total_HF")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Total_P")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Total_W")
-                        .HasColumnType("int");
 
                     b.ToTable((string)null);
 

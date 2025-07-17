@@ -2,6 +2,7 @@
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
@@ -13,6 +14,7 @@ using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.CompanyInformation;
 using HRMS_Infrastructure.Repository.CompanyStructure;
+using HRMS_Infrastructure.Repository.EmergencyContacts;
 using HRMS_Infrastructure.Repository.Employee;
 using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
@@ -91,6 +93,9 @@ namespace HRMS_Infrastructure.Repository
 
             EmployeeSalaryAllowanceRepository = new EmployeeSalaryAllowanceRepository(_dbContext);
             UserCompanyPermissionsRepository = new UserCompanyPermissionsRepository(_dbContext);
+            EmergencyContactRepository = new EmergencyContactRepository(_dbContext);
+            RelationShipRepository = new RelationShipRepository(_dbContext);
+            BusinessSegmentRepository = new BusinessSegmentRepository(_dbContext);
 
 
             PasswordHistory = new PasswordHistoryRepository(_dbContext);
@@ -166,6 +171,9 @@ namespace HRMS_Infrastructure.Repository
 
         public ILeaveApplicationRepository LeaveApplicationRepository { get; set; }
         public IUserCompanyPermissionsRepository UserCompanyPermissionsRepository { get; set; }
+        public IEmergencyContactRepository EmergencyContactRepository { get; set; }
+        public IRelationShipRepository RelationShipRepository { get; set; }
+        public IBusinessSegmentRepository BusinessSegmentRepository { get; set; }
 
         public IEmployeeReport EmployeeReport { get; set; }
 
