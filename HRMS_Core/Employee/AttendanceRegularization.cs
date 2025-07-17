@@ -22,11 +22,12 @@ namespace HRMS_Core.Employee
         public DateTime? InTime { get; set; }
         public DateTime? OutTime { get; set; }
         public TimeSpan? Duration { get; set; }
+        public string? Day { get; set; }
         public string? Status { get; set; }
         public string? Reason { get; set; }
         public bool IsApproved { get; set; } = false;
         public bool IsPending { get; set; } = true;  // Default to pending
         public bool IsRejected { get; set; } = false;
-        //public bool IsLock { get; set; } = false;
+        public bool IsLocked { get; set; } = false;
     }
 }
