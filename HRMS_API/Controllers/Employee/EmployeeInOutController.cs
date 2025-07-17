@@ -278,13 +278,14 @@ namespace HRMS_API.Controllers.Employee
                     return new APIResponse
                     {
                         isSuccess = false,
-                        ResponseMessage = "Emp_Id,Month,Year are required."
+                        ResponseMessage = "Emp_Id, Month, Year are required."
                     };
                 }
-                var data = await _unitOfWork.EmployeeInOut.GetEmployeeInOutReport(outFilterVM);
 
+                // Step 1: Get report data
+                var getdata = await _unitOfWork.EmployeeInOut.GetEmployeeInOutReport(outFilterVM);
 
-                if (data == null)
+                if (getdata == null || !getdata.Any())
                 {
                     return new APIResponse
                     {
@@ -293,11 +294,35 @@ namespace HRMS_API.Controllers.Employee
                     };
                 }
 
+                // Step 2: Get regularization data
+                var regData = await _unitOfWork.AttendanceRegularizationRepository
+                    .GetAllAsync(x => x.IsEnabled== true && x.IsDeleted==false);
+
+                // Step 3: Filter records
+                var data = getdata.Where(d =>
+                {
+                    if (d.Status == "Absent")
+                    {
+                        // Check if any pending/rejected regularization exists
+                        var hasPendingOrRejected = regData.Any(r =>
+                            r.EmpId == d.Id &&
+                            r.ForDate == d.For_Date &&
+                            (r.IsPending || r.IsRejected)
+                        );
+
+                        // If pending or rejected record exists, exclude it
+                        return !hasPendingOrRejected;
+                    }
+
+                    // If not absent, include
+                    return true;
+                }).ToList();
+
                 return new APIResponse
                 {
                     isSuccess = true,
                     Data = data,
-                    ResponseMessage = "Data Fetched successfully."
+                    ResponseMessage = "Data fetched successfully."
                 };
             }
             catch (Exception ex)
@@ -305,9 +330,10 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = "An error occurred while updating out time."
+                    ResponseMessage = "An error occurred while fetching report."
                 };
             }
         }
+
     }
 }

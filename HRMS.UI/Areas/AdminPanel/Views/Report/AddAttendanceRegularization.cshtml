@@ -100,6 +100,19 @@
             height: 24px !important;
             font-size: 12px !important;
         }
+
+    .short-field {
+        width: 100px !important;
+    }
+
+    .medium-field {
+        width: 180px !important;
+    }
+
+    .field-error {
+        font-size: 12px;
+        margin-top: 2px;
+    }
 </style>
 
 <div class="section-header">
@@ -107,15 +120,16 @@
 </div>
 
 <div class="form-section">
-    <div class="container mt-3">
-        <div class="row gutter-tight justify-content-center">
+    <div class="container mt-2">
+        <div class="row gutter-tight justify-content-center flex-wrap">
             <div class="col-md-auto">
-                <label class="form-label">Branch :</label>
-                <select class="form-select form-select-sm" id="branch" style="width: 160px;"></select>
+                <label class="form-label">Year :</label>
+                <select class="form-select form-select-sm short-field" id="year"></select>
+                <div class="text-danger field-error" id="yearError"></div>
             </div>
             <div class="col-md-auto">
                 <label class="form-label">Month :</label>
-                <select class="form-select" id="month">
+                <select class="form-select form-select-sm short-field" id="month">
                     <option>January</option>
                     <option>February</option>
                     <option>March</option>
@@ -129,41 +143,45 @@
                     <option>November</option>
                     <option>December</option>
                 </select>
+                <div class="text-danger field-error" id="monthError"></div>
             </div>
             <div class="col-md-auto">
-                <label class="form-label">Year :</label>
-                <select class="form-select" id="year"></select>
-            </div>
-        </div>
+                <label class="form-label">Branch :</label>
+                <select class="form-select form-select-sm medium-field" id="branch">
+                    <option>--Select--</option>
 
-        <div class="row gutter-tight justify-content-center">
-            <div class="col-md-auto">
-                <label class="form-label">Record Type :</label>
-                <select class="form-select" id="recordtype">
-                    <option selected>Regularize</option>
-                    <option selected>All</option>
-                    <option selected>Present</option>
-                    <option selected>Absent</option>
                 </select>
-            </div>
-            <div class="col-md-auto">
-                <label class="form-label">Employee Code/Name :</label>
-                <input type="text" class="form-control" placeholder="Employee Code or Name" />
+                <div class="text-danger field-error" id="branchError"></div>
+
             </div>
             <div class="col-md-auto">
                 <label class="form-label">Employee <span class="text-danger">*</span> :</label>
-                <select class="form-select" id="employeeDropdown">
+                <select class="form-select form-select-sm medium-field" id="employeeDropdown">
                     <option value="">--Select Employee--</option>
+
                 </select>
+                <div class="text-danger field-error" id="employeeError"></div>
+            </div>
+            <div class="col-md-auto">
+                <label class="form-label">Record Type :</label>
+                <select class="form-select form-select-sm medium-field" id="recordtype">
+                    <option>All</option>
+                    <option>Present</option>
+                    <option>Absent</option>
+                </select>  
+                <div class="text-danger field-error" id="recordTypeError"></div>
             </div>
         </div>
 
-        <div class="action-buttons d-flex justify-content-center gap-3">
+        <div class="action-buttons d-flex justify-content-center gap-3 mt-2">
             <button class="btn btn-custom">Go</button>
             <button class="btn btn-custom">Clear</button>
+
         </div>
     </div>
 </div>
+
+
 
 <!-- ✅ Save + Grid Section -->
 <div class="form-section" style="margin-top: 30px;">
@@ -210,6 +228,11 @@
         });
     }
 
+        function clearValidationErrors() {
+        $('.field-error').text('');
+        $('#validationMsg').text('');
+    }
+
     function populateYearDropdown() {
         const startYear = 2024;
         const currentYear = new Date().getFullYear();
@@ -238,24 +261,45 @@
 
 
     $('.btn-custom:contains("Go")').on('click', function () {
-        debugger;
-        const branchId = $('#branch').val();
-        const empId = $('#employeeDropdown').val();
-        const month = $('#month')[0].selectedIndex + 1;
-        const year = $('#year').val();
-        const recordtype = $('#recordtype').val();
+    clearValidationErrors();
 
-        if (!branchId || !empId) {
-            Swal.fire("Please select both Branch and Employee.");
-            return;
-        }
+    const branch = $('#branch').val();
+    const emp = $('#employeeDropdown').val();
+    const month = $('#month')[0].selectedIndex + 1;
+    const year = $('#year').val();
+    const record = $('#recordtype').val();
 
+ 
+    if (!year) {
+        $('#yearError').text("Please select Year.");
+        hasError = true;
+    }
+    if (!month || month < 1 || month > 12) {
+        $('#monthError').text("Please select Month.");
+        hasError = true;
+    }
+    if (!branch) {
+        $('#branchError').text("Please select Branch.");
+        hasError = true;
+    }
+    if (!emp) {
+        $('#employeeError').text("Please select Employee.");
+        hasError = true;
+    }
+    if (!record) {
+        $('#recordTypeError').text("Please select Record Type.");
+        hasError = true;
+    }
+
+
+
+        // Valid: proceed
         const formData = new FormData();
-        formData.append("BranchId", branchId);
-        formData.append("EmpId", empId);
-        formData.append("Month", month);
-        formData.append("Year", year);
-        formData.append("RecordType", recordtype);
+        formData.append("BranchId", branch);
+    formData.append("EmpId", emp);
+    formData.append("Month", month);
+    formData.append("Year", year);
+    formData.append("RecordType", record);
 
         $.ajax({
             url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
@@ -265,11 +309,14 @@
             processData: false,
             success: function (response) {
                 if (response?.isSuccess) {
+                    $('#validationMsg').text(""); // Clear validation if success
                     LoadAttendanceGrid(response.data);
                 } else {
+                    $('#validationMsg').text("No records found.");
                 }
             },
             error: function () {
+                $('#validationMsg').text("Something went wrong while fetching data.");
             }
         });
     });
@@ -289,12 +336,12 @@
                 allowUpdating: true
             },
             columns: [
-                { dataField: "for_Date", caption: "Date", dataType: "date", width: 100 },
+                { dataField: "for_Date", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
                 { dataField: "fullName", caption: "Employee", allowEditing: false },
                 { dataField: "branchName", caption: "Branch", allowEditing: false },
                 { dataField: "shiftTime", caption: "Shift Time", allowEditing: false },
 
-                // In Time (styled like Reason)
+                // In Time
                 {
                     dataField: "in_Time",
                     caption: "In Time",
@@ -317,7 +364,7 @@
                     }
                 },
 
-                // Out Time (styled like Reason)
+                // Out Time
                 {
                     dataField: "out_Time",
                     caption: "Out Time",
@@ -375,14 +422,20 @@
                         valueExpr: "ID",
                         displayExpr: "Name"
                     },
-                    editorOptions: {
-                        showClearButton: true
-                    },
                     calculateDisplayValue: function (rowData) {
                         return rowData.reason || "--Select--";
                     },
                     allowEditing: function (rowData) {
-                        return rowData.status === "Absent";
+                        return rowData.status?.trim().toLowerCase() === "absent";
+                    },
+                    editorOptions: function (rowData) {
+                        return {
+                            showClearButton: true,
+                            disabled: rowData.status?.trim().toLowerCase() !== "absent"
+                        };
+                    },
+                    editing: {
+                        allowUpdating: true
                     }
                 },
 
@@ -396,7 +449,7 @@
                     }
                 },
 
-                // Day Type Dropdown (styled like Reason)
+                // Day Type Dropdown
                 {
                     dataField: "dayType",
                     caption: "Day Type",
@@ -409,14 +462,20 @@
                         valueExpr: "id",
                         displayExpr: "name"
                     },
-                    editorOptions: {
-                        showClearButton: true
-                    },
                     calculateDisplayValue: function (rowData) {
                         return rowData.dayType || "--Select--";
                     },
                     allowEditing: function (rowData) {
-                        return rowData.status === "Absent";
+                        return rowData.status?.trim().toLowerCase() === "absent";
+                    },
+                    editorOptions: function (rowData) {
+                        return {
+                            showClearButton: true,
+                            disabled: rowData.status?.trim().toLowerCase() !== "absent"
+                        };
+                    },
+                    editing: {
+                        allowUpdating: true
                     }
                 }
             ]
@@ -425,28 +484,20 @@
 
 
 
-
-
-
-
-
     $('#btnSaveGridData').on('click', function () {
-        debugger;
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
-
-        // ✅ Force commit pending cell edits
         gridInstance.saveEditData();
 
         const selectedRows = gridInstance.getSelectedRowsData();
 
         if (selectedRows.length === 0) {
-            alert("Please select at least one row to save.");
+            $('#validationMsg').text("Please select at least one row to save.");
             return;
         }
 
         const empId = $('#employeeDropdown').val();
         if (!empId) {
-            alert("Please select an employee.");
+            $('#validationMsg').text("Please select an employee.");
             return;
         }
 
@@ -460,8 +511,8 @@
                 ShiftTime: row.shiftTime || "",
                 InTime: row.in_Time,
                 OutTime: row.out_Time,
-             Duration: row.workingHours || "00:00:00",
-        Day: row.dayType || "",
+                Duration: row.workingHours || "00:00:00",
+                Day: row.dayType || "",
                 Status: row.status || "",
                 Reason: row.reason || "",
                 IsApproved: false,
@@ -469,12 +520,11 @@
                 IsRejected: false,
                 IsLocked: false,
             }));
-            console.log("rowsToSave" ,rowsToSave);
+
         if (rowsToSave.length === 0) {
-            alert("Please provide reason before saving.");
+            $('#validationMsg').text("Please provide reason before saving.");
             return;
         }
-
 
         $.ajax({
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/CreateAttendanceRegularization")',
@@ -483,18 +533,20 @@
             data: JSON.stringify(rowsToSave),
             success: function (response) {
                 if (response?.isSuccess) {
-                    alert("Saved successfully.");
+                    round_success_noti(response.responseMessage || "Saved successfully.");
                     gridInstance.clearSelection();
-                    LoadAttendanceGrid(data);
+                    $("#btnGo").trigger("click");
+                    $('#validationMsg').text(""); // Clear validation message
                 } else {
-                    alert("Save failed: " + (response?.responseMessage || "Unknown error"));
+                    $('#validationMsg').text("Save failed: " + (response?.responseMessage || "Unknown error"));
                 }
             },
             error: function (xhr) {
-                alert("Server error: " + xhr.status + " - " + xhr.statusText);
+                $('#validationMsg').text("Server error: " + xhr.status + " - " + xhr.statusText);
             }
         });
     });
+
 
         $('.back-btn button').on('click', function () {
         window.history.back(); // Go to previous page
@@ -504,10 +556,9 @@
         $('#branch').val('');
         $('#month').val('January');
         $('#year').val(new Date().getFullYear());
-        $('#recordtype').val('Regularize');
+        $('#recordtype').val('all');
         $('#employeeDropdown').val('');
-        $('input[placeholder="Employee Code or Name"]').val('');
-
+            clearValidationErrors();
         // Clear the grid
         const grid = $("#attendanceGrid").dxDataGrid("instance");
         grid.option("dataSource", []);

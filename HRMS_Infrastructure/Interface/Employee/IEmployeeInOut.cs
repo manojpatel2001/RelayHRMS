@@ -19,5 +19,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<AttendanceInOutReportVM>> AttendancefirstInOutReport(int empid, string Month, string Year);
         Task<List<EmployeeInOutReportVM>> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM);
         Task<bool> UpdateEmployeeOutTimeAsync(int empId, DateTime forDate, DateTime outTime, string updatedBy);
+        Task<bool> Update(AttendanceRegularization Record);
     }
 }
