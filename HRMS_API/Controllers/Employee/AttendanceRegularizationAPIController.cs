@@ -21,8 +21,8 @@ namespace HRMS_API.Controllers.Employee
             _unitOfWork = unitOfWork;
         }
 
-        [HttpGet("GetAllDeduction")]
-        public async Task<APIResponse> GetAllDeduction()
+        [HttpGet("GetAll")]
+        public async Task<APIResponse> GetAll()
         {
             try
             {
@@ -249,11 +249,11 @@ namespace HRMS_API.Controllers.Employee
 
                     await _unitOfWork.AttendanceRegularizationRepository.UpdateAttendanceRegularization(record);
 
-                    // 2. If approved, update or insert EmployeeInOut
                     if (record.IsApproved)
                     {
                         var existingInOutList = await _unitOfWork.EmployeeInOut
                             .GetAllAsync(x => x.Emp_Id == record.EmpId && x.For_Date == record.ForDate);
+                        //  var existingInOutList = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeInOut(attendance.EmpId , attendance.ForDate);
 
                         var existingInOut = existingInOutList.FirstOrDefault();
 
@@ -271,6 +271,7 @@ namespace HRMS_API.Controllers.Employee
                                 In_Time = record.InTime,
                                 Out_Time = record.OutTime,
                                 Reason = record.Reason,
+                              //  Duration = record.Duration,
                                 CreatedDate = DateTime.Now,
                                 CreatedBy = ""
                             };
