@@ -85,6 +85,8 @@ namespace HRMS_Infrastructure.Interface
         IEmployeeReport EmployeeReport { get; }
         IAttendanceRegularizationRepository AttendanceRegularizationRepository { get; }
 
+        IEmployeeDashboardRepository EmployeeDashboardRepository { get; }
+
         void Commit();
         Task CommitAsync();
     }

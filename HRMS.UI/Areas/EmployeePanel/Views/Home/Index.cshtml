@@ -2,6 +2,7 @@
     ViewData["Title"] = "Employee Panel";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
     string baseUrl = ViewBag.BaseUrl;
+    string apiBase = ViewBag.BaseUrlAPI;
 }
 
 <style>
@@ -99,16 +100,23 @@
 <div class="row">
     <div class="col-md-3">
         <div id="latestmemberid" class="card custom-height radius-10 border-start border-0 border-3 border-info">
-            <div class="card-body">
-                <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0">Latest Members</h6>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">No new members found.</p>
-                </div>
+            <!-- Card Header -->
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">Latest Members</h6>
+                <span id="totalMemberCount" class="text-success"></span>
+            </div>
+
+            <div class="px-3 py-2">
+                <div id="companyNameDisplay" class="text-primary"></div>
+            </div>
+
+            <!-- Scrollable Card Body -->
+            <div class="card-body p-2" style="max-height: 260px; overflow-y: auto;" id="latestMembersContent">
+                <p class="card-text">Loading members...</p>
             </div>
         </div>
     </div>
+
 
     <div class="col-md-6">
         <div class="card custom-height radius-10 border-start border-0 border-3 border-info">
@@ -125,20 +133,32 @@
                     </li>
                 </ul>
 
-                <div class="tab-content mt-3">
+                <div class="tab-content mt-3" style="max-height: 260px; overflow-y: auto;">
+                    <!-- Birthday -->
                     <div class="tab-pane fade show active" id="birthdayid" role="tabpanel">
-                        <p class="card-text">Birthday</p>
+                        <ul id="birthdayList" class="list-group list-group-flush">
+                            <li class="list-group-item text-muted">Loading birthdays...</li>
+                        </ul>
                     </div>
+
+                    <!-- Work Anniversary -->
                     <div class="tab-pane fade" id="workanniversaryid" role="tabpanel">
-                        <p class="card-text">Work Anniversary</p>
+                        <ul id="workAnniversaryList" class="list-group list-group-flush">
+                            <li class="list-group-item text-muted">Loading work anniversaries...</li>
+                        </ul>
                     </div>
+
+                    <!-- Marriage Anniversary -->
                     <div class="tab-pane fade" id="anniversaryid" role="tabpanel">
-                        <p class="card-text">Marriage Anniversary</p>
+                        <ul id="marriageAnniversaryList" class="list-group list-group-flush">
+                            <li class="list-group-item text-muted">Loading marriage anniversaries...</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
 
     <div class="col-md-3">
         <div class="card custom-height radius-10 border-start border-0 border-3 border-info">
@@ -195,7 +215,10 @@
         </div>
     </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <!-- Navigation Scripts -->
 <script>
     document.getElementById("employeeid").addEventListener("click", function () {
@@ -213,4 +236,247 @@
     document.getElementById("reportid").addEventListener("click", function () {
         window.location.href = "@baseUrl/EmployeePanel/Home/Reports";
     });
+    const apiBase = '@apiBase';
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany);
+    const Compid = parseInt(companyDetails.CompanyId);
+
+        $(document).ready(function () {
+            loadLatestMembers();            
+              loadBirthday();
+              loadworkanniversary();
+              loadanniversary();
+
+        });
+
+        $('#birthday-tab').on('click', function () {
+         loadBirthday();
+    });
+        
+    $('#workanniversary-tab').on('click', function () {
+         loadworkanniversary();
+    });
+
+    $('#anniversary-tab').on('click', function () {
+         loadanniversary();
+    });
+    function loadLatestMembers() {
+         $('#companyNameDisplay').text(companyDetails.CompanyName);
+        const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetRecentJoinedEmployees?Compid=${Compid}`;
+       
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+
+                let html = '';
+
+                // ✅ Correct: response.data should be the array
+                const members = response.data;
+              
+
+                if (!Array.isArray(members) || members.length === 0) {
+                    html = '<p class="card-text">No new members found.</p>';
+                } else {
+                    html += '<ul class="list-group">';
+                    members.forEach(member => {
+                        const imageUrl = member.employeeProfileUrl || '/images/default-user.png';
+                     const joiningDate = member.dateOfJoining
+                        ? formatDateToDDMMYYYY(member.dateOfJoining)
+                        : '';
+
+                        html += `
+                            <li class="list-group-item d-flex align-items-center">
+                                <img src="${imageUrl}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;" alt="Profile" />
+                                <div>
+                                    <div><strong>${member.fullName}</strong></div>
+                                    <div class="text-muted">${member.designationName ?? ''}</div>
+                                    <small class="text-secondary">Joined: ${joiningDate}</small>
+                                </div>
+                            </li>`;
+                    });
+                    html += '</ul>';
+                }
+
+                $('#latestMembersContent').html(html);
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error:", error);
+                $('#latestmemberid .card-body:last').html('<p class="text-danger">Failed to load members.</p>');
+            }
+        });
+    }
+
+        function formatDateToDDMMYYYY(isoDate) {
+        if (!isoDate) return '';
+
+        const date = new Date(isoDate);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+
+        return `${day}-${month}-${year}`;
+    }
+
+     function  loadBirthday() {
+         $('#companyNameDisplay').text(companyDetails.CompanyName);
+        const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetTodayBirthdaysByCompany?Compid=${Compid}`;
+         
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+
+                let html = '';
+
+                // ✅ Correct: response.data should be the array
+                const members = response.data;
+             
+              
+
+                if (!Array.isArray(members) || members.length === 0) {
+                    html = '<p class="card-text">No new members found.</p>';
+                } else {
+                    html += '<ul class="list-group">';
+                    members.forEach(member => {
+                        const imageUrl = member.employeeProfileUrl || '/images/default-user.png';
+                     const Bithdate = member.date
+                        ? formatDateToDDMMYYYY(member.date)
+                        : '';
+
+                        html += `
+                            <li class="list-group-item d-flex align-items-center">
+                                <img src="${imageUrl}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;" alt="Profile" />
+                                <div>
+                                    <div>Name:<strong>${member.fullName}</strong></div>
+                                    <small">BithDate:${Bithdate}</small>
+                                    <div>CompanyName:${member.companyName ?? ''}</div>
+                                    <div>BranchName:${member.branchName ?? ''}</div>
+                                    <div>Designation:${member.designationName ?? ''}</div>
+                                    <div>Department:${member.departmentName ?? ''}</div>
+                                    <div>Age:${member.ageInYears ?? ''}</div>
+                                    
+                                </div>
+                            </li>`;
+                    });
+                    html += '</ul>';
+                }
+
+              $('#birthdayList').html(html);
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error:", error);
+                $('#latestmemberid .card-body:last').html('<p class="text-danger">Failed to load members.</p>');
+            }
+        });
+    }
+
+
+     function  loadworkanniversary() {
+    
+         $('#companyNameDisplay').text(companyDetails.CompanyName);
+        const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetTodayWorkAnniversary?Compid=${Compid}`;
+    
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+               
+
+                let html = '';
+
+                // ✅ Correct: response.data should be the array
+                const members = response.data;
+                
+
+
+                if (!Array.isArray(members) || members.length === 0) {
+                    html = '<p class="card-text">No new members found.</p>';
+                } else {
+                    html += '<ul class="list-group">';
+                    members.forEach(member => {
+                        const imageUrl = member.employeeProfileUrl || '/images/default-user.png';
+                     const date = member.date
+                        ? formatDateToDDMMYYYY(member.date)
+                        : '';
+
+                        html += `
+                            <li class="list-group-item d-flex align-items-center">
+                                <img src="${imageUrl}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;" alt="Profile" />
+                                <div>
+                                    <div>Name:<strong>${member.fullName}</strong></div>
+                                    <small">JoiningDate:${date}</small>
+                                    <div>CompanyName:${member.companyName ?? ''}</div>
+                                    <div>BranchName:${member.branchName ?? ''}</div>
+                                    <div>Designation:${member.designationName ?? ''}</div>
+                                    <div>Department:${member.departmentName ?? ''}</div>
+                                    <div>TotalYears:${member.ageInYears ?? ''}</div>
+
+                                </div>
+                            </li>`;
+                    });
+                    html += '</ul>';
+                }
+
+              $('#workAnniversaryList').html(html);
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error:", error);
+                $('#latestmemberid .card-body:last').html('<p class="text-danger">Failed to load members.</p>');
+            }
+        });
+    }
+
+
+      function  loadanniversary() {
+         $('#companyNameDisplay').text(companyDetails.CompanyName);
+        const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetTodayMarriageAnnivarsary?Compid=${Compid}`;
+        
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+
+                let html = '';
+
+                // ✅ Correct: response.data should be the array
+                const members = response.data;
+         
+
+                if (!Array.isArray(members) || members.length === 0) {
+                    html = '<p class="card-text">No new members found.</p>';
+                } else {
+                    html += '<ul class="list-group">';
+                    members.forEach(member => {
+                        const imageUrl = member.employeeProfileUrl || '/images/default-user.png';
+                     const date = member.date
+                        ? formatDateToDDMMYYYY(member.date)
+                        : '';
+
+                        html += `
+                            <li class="list-group-item d-flex align-items-center">
+                                <img src="${imageUrl}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;" alt="Profile" />
+                                <div>
+                                    <div>Name:<strong>${member.fullName}</strong></div>
+                                    <small">MarriageDate:${date}</small>
+                                    <div>CompanyName:${member.companyName ?? ''}</div>
+                                    <div>BranchName:${member.branchName ?? ''}</div>
+                                    <div>Designation:${member.designationName ?? ''}</div>
+                                    <div>Department:${member.departmentName ?? ''}</div>
+
+                                </div>
+                            </li>`;
+                    });
+                    html += '</ul>';
+                }
+
+              $('#marriageAnniversaryList').html(html);
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error:", error);
+                $('#latestmemberid .card-body:last').html('<p class="text-danger">Failed to load members.</p>');
+            }
+        });
+    }
+
 </script>
