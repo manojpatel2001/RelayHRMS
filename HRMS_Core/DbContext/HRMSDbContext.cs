@@ -160,6 +160,8 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<AttendanceRegularizationVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<AttendanceRegularizationSearchFilterVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<DeleteRecordVModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<WishesReportVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<RecentEmployeeVM>().HasNoKey().ToView(null);
 
 
 
