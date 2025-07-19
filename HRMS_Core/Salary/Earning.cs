@@ -23,6 +23,7 @@ namespace HRMS_Core.Salary
         public decimal? Conveyance { get; set; }
         public decimal? Medical { get; set; }
         public decimal? Deputation { get; set; }
+        public decimal? ChildEducationAllowance { get; set; }
         public int? Month { get; set; } 
         public int? Year { get; set; }
     }

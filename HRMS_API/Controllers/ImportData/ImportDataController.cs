@@ -493,7 +493,7 @@ public class ImportDataController : ControllerBase
                 PF = decimal.TryParse(row[3]?.ToString(), out decimal pf) ? pf : (decimal?)null,
                 ESIC = decimal.TryParse(row[4]?.ToString(), out decimal esic) ? esic : (decimal?)null,
                 PT = decimal.TryParse(row[5]?.ToString(), out decimal pt) ? pt : (decimal?)null,
-                Insurance = decimal.TryParse(row[6]?.ToString(), out decimal insurance) ? insurance : (decimal?)null,
+                //Insurance = decimal.TryParse(row[6]?.ToString(), out decimal insurance) ? insurance : (decimal?)null,
                 LWF = decimal.TryParse(row[7]?.ToString(), out decimal lwf) ? lwf : (decimal?)null,
                 TDS = decimal.TryParse(row[8]?.ToString(), out decimal tds) ? tds : (decimal?)null,
                 IsEnabled = true,
