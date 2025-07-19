@@ -165,6 +165,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<RecentEmployeeVM>().HasNoKey().ToView(null);
 
             modelBuilder.Entity<EmpInOutVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<LeaveTypevm>().HasNoKey().ToView(null);
 
 
 

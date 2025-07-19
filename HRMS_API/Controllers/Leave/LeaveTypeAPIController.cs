@@ -1,4 +1,5 @@
-﻿using HRMS_Infrastructure.Interface;
+﻿using HRMS_Core.VM.Leave;
+using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,30 @@ namespace HRMS_API.Controllers.Leave
             try
             {
                 var data = await _unitOfWork.LeaveDetailsRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+        [HttpPost("GetLeaveType")]
+        public async Task<APIResponse> GetLeaveType([FromBody] LeaveTypevm vm)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveDetailsRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false && asd.IsBlocked == false && asd.Comp_Id == vm.Compid && asd.Emp_Id == vm.Empid);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }           
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
