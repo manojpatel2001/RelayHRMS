@@ -96,6 +96,11 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
+        public Task<bool> UpdateLeaveMange(List<int> ids, string status)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<bool> UpdateLeaveManger(List<int> comoffid, string status)
         {
 
