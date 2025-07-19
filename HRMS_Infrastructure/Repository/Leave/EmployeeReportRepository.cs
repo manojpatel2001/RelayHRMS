@@ -34,7 +34,10 @@ namespace HRMS_Infrastructure.Repository.Leave
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@StartDate", vm.StartDate);
                     cmd.Parameters.AddWithValue("@EndDate", vm.EndDate);
-                    cmd.Parameters.AddWithValue("@EmployeeCodes", vm.EmployeeCodes ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@EmployeeCodes",
+                    (vm.EmployeeCodes != null && vm.EmployeeCodes.Any())
+                     ? string.Join(",", vm.EmployeeCodes)
+                     : (object)DBNull.Value);
                     cmd.Parameters.AddWithValue("@BranchId", vm.BranchId ?? (object)DBNull.Value);
 
                     await conn.OpenAsync();
@@ -52,10 +55,11 @@ namespace HRMS_Infrastructure.Repository.Leave
                                 BranchName = reader["BranchName"]?.ToString(),
                                 EmployeeCode = reader["EmployeeCode"]?.ToString(),
                                 FullName = reader["FullName"]?.ToString(),
-                                Total_P = reader["Total_P"] as int?,
-                                Total_A = reader["Total_A"] as int?,
-                                Total_W = reader["Total_W"] as int?,
-                                Total_HF = reader["Total_HF"] as int?
+                                P = reader["P"] as int?,
+                                A = reader["A"] as int?,
+                                W = reader["W"] as int?,
+                                L = reader["L"] as int?,
+                                H = reader["H"] as int?
                             };
 
                             foreach (var col in columnNames)
@@ -107,10 +111,10 @@ namespace HRMS_Infrastructure.Repository.Leave
                                 BranchName = reader["BranchName"]?.ToString(),
                                 EmployeeCode = reader["EmployeeCode"]?.ToString(),
                                 FullName = reader["FullName"]?.ToString(),
-                                Total_P = reader["Total_P"] as int?,
-                                Total_A = reader["Total_A"] as int?,
-                                Total_W = reader["Total_W"] as int?,
-                                Total_HF = reader["Total_HF"] as int?,
+                                //Total_P = reader["Total_P"] as int?,
+                                //Total_A = reader["Total_A"] as int?,
+                                //Total_W = reader["Total_W"] as int?,
+                                //Total_HF = reader["Total_HF"] as int?,
                             };
 
                             foreach (var col in columnNames)

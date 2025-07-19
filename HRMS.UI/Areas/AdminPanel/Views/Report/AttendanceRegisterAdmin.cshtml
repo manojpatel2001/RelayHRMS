@@ -66,26 +66,36 @@
         label {
             font-weight: 600;
             display: block;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
+            font-size: 13px;
             color: #333;
         }
 
+        select,
         input[type="date"] {
-            width: 100%;
-            padding: 8px;
-            font-size: 14px;
+            padding: 4px 6px;
+            font-size: 13px;
+            height: 32px;
             border-radius: 4px;
             border: 1px solid #ccc;
+            width: 130px; /* 🔧 Fix width */
+            box-sizing: border-box;
         }
 
         .btn-group {
             margin-top: 20px;
             display: flex;
-            gap: 15px;
+            gap: 10px; /* 🔧 Gap between buttons */
         }
 
+            .btn-group button,
+            .header + .main button {
+                padding: 6px 14px;
+                font-size: 13px;
+                min-width: 70px;
+            }
+
         button {
-            padding: 10px 20px;
             border: none;
             background-color: #3f4d6b;
             color: white;
@@ -103,7 +113,19 @@
         #employeeGrid {
             height: calc(100vh - 180px);
         }
+
+        #monthSelect,
+        #yearSelect {
+            padding: 4px 6px;
+            font-size: 13px;
+            height: 30px;
+            width: 110px; /* ✅ chhota fix width */
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
     </style>
+
 </head>
 <body>
 
@@ -113,13 +135,26 @@
         <!-- Left Section -->
         <div class="left-section">
             <div class="date-row">
-                <div class="form-group">
-                    <label for="fromDate">From Date:</label>
-                    <input type="date" id="fromDate" value="2025-07-01">
+                <div class="form-group" style="width: 180px; display: inline-block; margin-right: 20px;">
+                    <label for="monthSelect">Month:</label>
+                    <select id="monthSelect" class="form-control">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>               
                 </div>
-                <div class="form-group">
-                    <label for="toDate">To Date:</label>
-                    <input type="date" id="toDate" value="2025-07-31">
+                <div class="form-group" style="width: 120px; display: inline-block;">
+                    <label for="yearSelect">Year:</label>
+                    <select id="yearSelect" class="form-control"></select>
                 </div>
             </div>
             <div class="btn-group">
@@ -155,38 +190,55 @@
     </div>
 
     <script>
+                const Empid = parseInt(localStorage.getItem("EmployeeId"));
+        const Role = localStorage.getItem("RoleSlug");
+        const savedCompany = localStorage.getItem('selectedCompany');
+        const companyDetails = JSON.parse(savedCompany || '{}');
+        const Compname = companyDetails.CompanyName;   Compname
+
+
+             $(document).ready(function () {
+            const currentYear = new Date().getFullYear();
+            const startYear = 2020; // you can adjust
+            const endYear = currentYear + 5;
+
+            for (let year = startYear; year <= endYear; year++) {
+                $('#yearSelect').append(`<option value="${year}">${year}</option>`);
+            }
+
+            $('#yearSelect').val(currentYear);         // Set current year as default
+            $('#monthSelect').val(new Date().getMonth() + 1); // Set current month as default
+                      onFind();
+        });
         function onFind() { 
             debugger;
-            const fromDate = $('#fromDate').val();
-            const toDate = $('#toDate').val();
-
-            if (!fromDate || !toDate) {
-                Swal.fire('Validation', 'Select both dates.', 'warning');
-                return;
-            }
+      
+            // if (!fromDate || !toDate) {
+            //     Swal.fire('Validation', 'Select both dates.', 'warning');
+            //     return;
+            // }
             $.ajax({
                 url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployees")',
                 type: "GET",
                 dataType: "json",
                 success: function (response) {
+                    debugger;
+                    console.log("data" ,response);
                     const employeeData = response.data || response;
 
                     const grid = $("#employeeGrid").dxDataGrid({
                         dataSource: employeeData,
-                        keyExpr: "EmployeeCode",
+                        keyExpr: "employeeCode",
                         selection: {
                             mode: "multiple",
                             showCheckBoxesMode: "always"
                         },
                         showBorders: true,
                         columnAutoWidth: true,
-                        export: {
-                            enabled: true,
-                            fileName: "Employee_Records"
-                        },
+                      
                         columns: [
-                            { dataField: "EmployeeCode", caption: "Employee Code", width: 150 },
-                            { dataField: "EmployeeName", caption: "Employee Name" }
+                            { dataField: "employeeCode", caption: "Employee Code", width: 150 },
+                            { dataField: "fullName", caption: "Employee Name" }
                         ]
                     }).dxDataGrid("instance");
 
@@ -204,7 +256,15 @@
             $('#recordCount').text('0 Records found.');
         }
 
-        $('#btnView').click(function () {
+        $('#btnView').on('click', function () {
+            debugger;
+
+            var selectedYear = $('#yearSelect').val();     // e.g. "2025"
+            var selectedMonth = $('#monthSelect').val();   // e.g. "7"
+
+            const month = parseInt(selectedMonth);         // e.g. 7
+            const year = parseInt(selectedYear);           // e.g. 2025
+
             const grid = $('#employeeGrid').dxDataGrid("instance");
             const selected = grid.getSelectedRowsData();
 
@@ -213,16 +273,24 @@
                 return;
             }
 
-            const empCodes = selected.map(emp => emp.EmployeeCode);
+            const empCodes = selected.map(emp => emp.employeeCode);
+
+            const paddedMonth = String(month).padStart(2, '0');
+            const startDate = `${year}-${paddedMonth}-01`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const endDate = `${year}-${paddedMonth}-${lastDay}`;
+
             const request = {
+                StartDate: startDate,
+                EndDate: endDate,
                 EmployeeCodes: empCodes,
-                StartDate: $('#fromDate').val(),
-                EndDate: $('#toDate').val()
             };
 
+            console.log("Request:", request);
+
             $.ajax({
-                url: '@(baseDomainUrl + "/api/AttendanceAPI/GetAttendanceData")',
-                type: 'POST',
+                url: '@(baseDomainUrl + "/api/EmployeeReportAPI/Attendencereport")',
+                method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(request),
                 success: function (res) {
@@ -233,13 +301,183 @@
                         return;
                     }
 
-                    renderAttendanceTable(res.data, request.StartDate, request.EndDate);
+                    renderAttendanceTable(res.data, startDate, endDate);
                 },
                 error: function () {
-                    Swal.fire('Error', 'Failed to fetch attendance.', 'error');
+                    Swal.fire('Error', 'Something went wrong while fetching data.', 'error');
                 }
             });
         });
+
+
+               function renderAttendanceTable(data, startDate, endDate) {
+                   debugger;
+            const dayRow = data[0];
+            const dayKeys = Object.keys(dayRow.days).sort((a, b) => parseInt(a) - parseInt(b));
+
+            const formatDate = (dateStr) => {
+                const [yyyy, mm, dd] = dateStr.split("-");
+                return `${dd}-${mm}-${yyyy}`;
+            };
+            const today = formatDate(new Date().toISOString().split('T')[0]);
+
+            let header = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div id="reportInfo">
+                    <strong>Company:</strong> ${Compname} &nbsp;&nbsp;
+                    <strong>From:</strong> ${formatDate(startDate)} &nbsp;&nbsp;
+                    <strong>To:</strong> ${formatDate(endDate)} &nbsp;&nbsp;
+                    <strong>Print Date:</strong> ${today}
+                </div>
+                <button class="btn btn-success btn-sm" id="btnExportExcel">Export to Excel</button>
+            </div>`;
+
+            let html = `<div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th class="text-nowrap">Branch</th>
+                            <th class="text-nowrap">Emp Code</th>
+                            <th class="text-nowrap" style="min-width: 180px;">Employee</th>`;
+
+            dayKeys.forEach(day => {
+                const dayLabel = `${day} (${dayRow.days[day]})`;
+                html += `<th class="text-center" style="min-width: 45px;">${dayLabel}</th>`;
+            });
+
+            html += `
+                <th class="text-nowrap">Total P</th>
+                <th class="text-nowrap">Total A</th>
+                <th class="text-nowrap">Total W</th>
+                <th class="text-nowrap">Total L</th>
+                <th class="text-nowrap">Total H</th>
+            </tr>
+            </thead>
+            <tbody>`;
+
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                html += `<tr>
+                    <td>${row.branchName ?? ''}</td>
+                    <td>${row.employeeCode ?? ''}</td>
+                    <td>${row.fullName ?? ''}</td>`;
+
+                dayKeys.forEach(day => {
+                    const value = row.days?.[day] ?? '';
+                    const redClass = value === 'A' ? 'text-danger fw-bold' : '';
+                    html += `<td class="text-center ${redClass}">${value}</td>`;
+                });
+
+                html += `
+                    <td class="text-center">${row.p ?? 0}</td>
+                    <td class="text-center text-danger">${row.a ?? 0}</td>
+                    <td class="text-center">${row.w ?? 0}</td>
+                    <td class="text-center">${row.l ?? 0}</td>
+                    <td class="text-center">${row.h ?? 0}</td>
+                </tr>`;
+            }
+
+            html += `</tbody></table></div>`;
+
+            $('#attendanceModalBody').html(header + html);
+            const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+            modal.show();
+        }
+
+        $(document).on('click', '#attendanceModal .btn-close', function () {
+    const grid = $('#employeeGrid').dxDataGrid("instance");
+    if (grid) {
+        grid.clearSelection();
+        console.log("Selection cleared from btn-close click");
+    }
+});
+
+
+            $('#attendanceModal').on('hidden.bs.modal', function () {
+            const grid = $('#employeeGrid').dxDataGrid("instance");
+            if (grid) {
+                grid.clearSelection();
+                console.log("Selection cleared from modal hidden");
+            }
+        });
+        
+        
+        $(document).on('click', '#btnExportExcel', function () {
+            const table = document.querySelector("#attendanceModalBody table");
+            if (!table) {
+                Swal.fire('Error', 'No table found to export.', 'error');
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Attendance");
+
+            // Create table header row with styling
+            const headerRow = [];
+            table.querySelectorAll("thead tr th").forEach(th => {
+                headerRow.push(th.innerText.trim());
+            });
+            worksheet.addRow(headerRow);
+
+            // Apply style to header
+            worksheet.getRow(1).eachCell(cell => {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF343A40' } // Bootstrap dark
+                };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            });
+
+            // Add table rows
+            table.querySelectorAll("tbody tr").forEach(tr => {
+                const row = [];
+                tr.querySelectorAll("td").forEach(td => {
+                    row.push(td.innerText.trim());
+                });
+                worksheet.addRow(row);
+            });
+
+            // Apply border to all data cells
+            worksheet.eachRow((row, rowNumber) => {
+                row.eachCell(cell => {
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                });
+            });
+
+            // Auto width for columns
+            worksheet.columns.forEach(column => {
+                let maxLength = 10;
+                column.eachCell({ includeEmpty: true }, cell => {
+                    const length = cell.value ? cell.value.toString().length : 10;
+                    if (length > maxLength) {
+                        maxLength = length;
+                    }
+                });
+                column.width = maxLength + 2;
+            });
+
+            // Save file
+            workbook.xlsx.writeBuffer().then(buffer => {
+                const now = new Date();
+                const fileName = `Attendance_Report_${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}.xlsx`;
+                const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                saveAs(blob, fileName);
+            });
+        });
+
     </script>
 </body>
 </html>
