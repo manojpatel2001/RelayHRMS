@@ -2,6 +2,7 @@
 using HRMS_Core.Employee;
 using HRMS_Core.EmployeeMaster;
 using HRMS_Core.Helper;
+using HRMS_Core.Leave;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.EmployeeMaster;
@@ -9,6 +10,7 @@ using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -176,6 +178,18 @@ namespace HRMS_API.Controllers.EmployeeMaster
                         CreatedBy = employee.Id.ToString()
                     };
                     var CreateHistory = await _unitOfWork.PasswordHistory.CreateHistoryPassword(history);
+
+                    var leavedetails = new LeaveDetails
+                    {
+                        Emp_Id = employee.Id,
+                        Comp_Id = employee.CompanyId,
+                        CreatedBy = employeeData.CreatedBy,
+                        CreatedDate = DateTime.Now,
+
+
+                    };
+                    var isleavemange = await _unitOfWork.LeaveDetailsRepository.InsertLeaveManageAsync(leavedetails);
+
 
                     return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
 
