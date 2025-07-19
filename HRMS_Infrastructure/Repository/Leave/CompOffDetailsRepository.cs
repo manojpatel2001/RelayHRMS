@@ -96,5 +96,74 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
+        public async Task<bool> UpdateLeaveManger(List<int> comoffid, string status)
+        {
+
+            try
+            {
+                if(status== "Approved")
+                {
+                    foreach (var id in comoffid)
+                    {
+
+
+                        var parameters = new[]
+                        {
+                        new SqlParameter("@Comp_Off_Id", id),
+
+                    };
+
+                        await _db.Database.ExecuteSqlRawAsync(
+                            "EXEC sp_UpdateCompOffLeaveFromDetails @Comp_Off_Id",
+                            parameters
+                        );
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during SP call: " + ex.Message);
+                return false;
+            }
+        }
+
+        //public async Task<bool> UpdateLeaveMange(List<int> ids, string status)
+        //{
+
+        //    try
+        //    {
+        //        if (status == "Approved")
+        //        {
+        //            foreach (var id in ids)
+        //            {
+
+
+        //                var parameters = new[]
+        //                {
+        //                new SqlParameter("@Id", id),
+
+        //            };
+
+        //                await _db.Database.ExecuteSqlRawAsync(
+        //                    "EXEC sp_DeductLeaveBalance @Id",
+        //                    parameters
+        //                );
+        //            }
+
+        //            return true;
+        //        }
+
+        //        return false;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("Error during SP call: " + ex.Message);
+        //        return false;
+        //    }
+        //}
     }
 }

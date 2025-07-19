@@ -171,11 +171,22 @@ namespace HRMS_API.Controllers.Leave
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input." };
                 }
+                
 
                 var isSaved = await _unitOfWork.LeaveApplicationRepository.Updateapproval(LVM.Ids, LVM.Status,LVM.Date);
 
                 if (!isSaved)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
+
+                //if (LVM.Status == "Approved")
+                //{
+                //    var leavemanage = await _unitOfWork.CompOffDetailsRepository.UpdateLeaveMange(LVM.Ids, LVM.Status);
+                //    if (!leavemanage)
+                //        return new APIResponse
+                //        { isSuccess = false, ResponseMessage = "Failed to update leave details." };
+
+                //}
+
 
                 return new APIResponse { isSuccess = true, ResponseMessage = "Records updated successfully." };
             }

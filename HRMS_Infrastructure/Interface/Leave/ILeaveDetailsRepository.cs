@@ -9,5 +9,6 @@ namespace HRMS_Infrastructure.Interface.Leave
 {
     public interface ILeaveDetailsRepository:IRepository<LeaveDetails>
     {
+        Task<bool> InsertLeaveManageAsync(LeaveDetails model);
     }
 }

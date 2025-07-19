@@ -75,8 +75,18 @@ namespace HRMS_API.Controllers.Leave
                 var isSaved = await _unitOfWork.CompOffDetailsRepository.Updateapproval(ARVM.CompoffIds, ARVM.Status);
 
                 if (!isSaved)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
+                    return new APIResponse 
+                    { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
 
+
+                if(ARVM.Status== "Approved")
+                {
+                    var leavemanage = await _unitOfWork.CompOffDetailsRepository.UpdateLeaveManger(ARVM.CompoffIds, ARVM.Status);
+                    if (!leavemanage)
+                        return new APIResponse
+                        { isSuccess = false, ResponseMessage = "Failed to update leave details." };
+                }
+               
                 return new APIResponse { isSuccess = true, ResponseMessage = "Records updated successfully." };
             }
             catch (Exception ex)
