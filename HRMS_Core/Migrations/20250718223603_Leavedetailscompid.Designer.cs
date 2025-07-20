@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250718223603_Leavedetailscompid")]
+    partial class Leavedetailscompid
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3382,7 +3385,7 @@ namespace HRMS_Core.Migrations
                     b.Property<int?>("EmployeeId")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("GroupMedical")
+                    b.Property<decimal?>("Insurance")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<bool?>("IsBlocked")
@@ -3409,9 +3412,6 @@ namespace HRMS_Core.Migrations
                     b.Property<decimal?>("TDS")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal?>("TermInsurance")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -3435,9 +3435,6 @@ namespace HRMS_Core.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EarningId"));
 
                     b.Property<decimal?>("Basic")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("ChildEducationAllowance")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("Conveyance")
@@ -4985,19 +4982,6 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("int");
 
                     b.Property<int?>("Total_W")
-                        .HasColumnType("int");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
-                });
-
-            modelBuilder.Entity("HRMS_Core.VM.Leave.LeaveTypevm", b =>
-                {
-                    b.Property<int?>("Compid")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Empid")
                         .HasColumnType("int");
 
                     b.ToTable((string)null);

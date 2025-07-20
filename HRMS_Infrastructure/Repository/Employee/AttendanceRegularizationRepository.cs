@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace HRMS_Infrastructure.Repository.Employee
 {
@@ -116,6 +117,27 @@ namespace HRMS_Infrastructure.Repository.Employee
             return true;
         }
 
+        public async Task<List<EmpInOutVM>> GetEmployeeInOut(int? EmpId, DateTime? ForDate)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@EmpId", EmpId),
+                    new SqlParameter("@ForDate", ForDate),              
+                };
+
+                var result = await _db.Set<EmpInOutVM>()
+                    .FromSqlRaw("EXEC GetEmployeeInOut @EmpId, @ForDate ", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EmpInOutVM>();
+            }
+        }
     }
 }
 

@@ -101,11 +101,13 @@ namespace HRMS_Infrastructure.Repository
             PasswordHistory = new PasswordHistoryRepository(_dbContext);
             EmployeeReport = new EmployeeReportRepository(_dbContext);
             AttendanceRegularizationRepository = new AttendanceRegularizationRepository(_dbContext);
+
             AttachmentDetailsRepository = new AttachmentDetailsRepository(_dbContext);
             ContractDetailsRepository = new ContractDetailsRepository(_dbContext);
             ProjectDetailsRepository = new ProjectDetailsRepository(_dbContext);
             ReportingManagerDetailsRepository = new ReportingManagerDetailsRepository(_dbContext);
 
+            EmployeeDashboardRepository = new EmployeeDashboardRepository(_dbContext);
 
         }
 
@@ -187,6 +189,7 @@ namespace HRMS_Infrastructure.Repository
         public IProjectDetailsRepository ProjectDetailsRepository { get; set; }
         public IReportingManagerDetailsRepository ReportingManagerDetailsRepository { get; set; }
 
+        public IEmployeeDashboardRepository EmployeeDashboardRepository { get; set; }
         public void Commit()
         {
             _dbContext.SaveChanges();

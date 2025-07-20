@@ -171,11 +171,22 @@ namespace HRMS_API.Controllers.Leave
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input." };
                 }
+                
 
                 var isSaved = await _unitOfWork.LeaveApplicationRepository.Updateapproval(LVM.Ids, LVM.Status,LVM.Date);
 
                 if (!isSaved)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
+
+                //if (LVM.Status == "Approved")
+                //{
+                //    var leavemanage = await _unitOfWork.CompOffDetailsRepository.UpdateLeaveMange(LVM.Ids, LVM.Status);
+                //    if (!leavemanage)
+                //        return new APIResponse
+                //        { isSuccess = false, ResponseMessage = "Failed to update leave details." };
+
+                //}
+
 
                 return new APIResponse { isSuccess = true, ResponseMessage = "Records updated successfully." };
             }
@@ -224,5 +235,38 @@ namespace HRMS_API.Controllers.Leave
         }
 
 
+        [HttpPost("GetLeaveType")]
+        public async Task<APIResponse> GetLeaveType([FromBody] LeaveDetailsvm vm)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveApplicationRepository.GetLeaveDetails(vm);
+
+                if (data == null || data.Count == 0)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No leave records found."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Leave records fetched successfully."
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve leave records. Please try again later!"
+                };
+            }
+        }
     }
 }

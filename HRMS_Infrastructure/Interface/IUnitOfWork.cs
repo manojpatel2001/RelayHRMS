@@ -89,6 +89,8 @@ namespace HRMS_Infrastructure.Interface
         IProjectDetailsRepository ProjectDetailsRepository { get; }
         IReportingManagerDetailsRepository ReportingManagerDetailsRepository { get; }
 
+        IEmployeeDashboardRepository EmployeeDashboardRepository { get; }
+
         void Commit();
         Task CommitAsync();
     }

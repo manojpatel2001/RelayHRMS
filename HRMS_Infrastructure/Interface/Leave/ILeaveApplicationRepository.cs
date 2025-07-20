@@ -14,6 +14,7 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<List<VMLeaveApplicationSearchResult>> GetLeaveApplicationsAsync(SearchVmCompOff filter);
         Task<List<VmLeaveApplicationforApprove>> GetLeaveApplicationsforApprove(SearchVmCompOff filter);
         Task<List<VmLeaveApplicationforApprove>> GetLeaveApplicationsforApproveAdmin(SearchVmCompOff filter);
+        Task<List<LeaveTypevm>> GetLeaveDetails(LeaveDetailsvm vm);
         Task<bool> Updateapproval(List<int> applicationid, string status,DateTime Date);
 
 

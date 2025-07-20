@@ -74,7 +74,7 @@ namespace HRMS_Infrastructure.Repository.Salary
             existingRecord.PF = deduction.PF;
             existingRecord.ESIC = deduction.ESIC;
             existingRecord.PT = deduction.PT;
-            existingRecord.Insurance = deduction.Insurance;
+            //existingRecord.Insurance = deduction.Insurance;
             existingRecord.LWF = deduction.LWF;
             existingRecord.TDS = deduction.TDS;
             existingRecord.UpdatedBy = deduction.UpdatedBy;

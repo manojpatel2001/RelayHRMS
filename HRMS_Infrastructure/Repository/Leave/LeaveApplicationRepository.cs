@@ -96,6 +96,30 @@ namespace HRMS_Infrastructure.Repository.Leave
 
         }
 
+        public async Task<List<LeaveTypevm>> GetLeaveDetails(LeaveDetailsvm vm)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+            new SqlParameter("@CompId", (object)vm.Compid ?? DBNull.Value),
+            new SqlParameter("@EmpId", (object)vm.Empid ?? DBNull.Value)
+        };
+
+                var result = await _db.Set<LeaveTypevm>()
+                    .FromSqlRaw("EXEC GetEmployeeLeaveDetails @CompId, @EmpId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetLeaveDetails Error: " + ex.Message);
+                return new List<LeaveTypevm>();
+            }
+        }
+
+
         public async Task<bool> InsertLeaveApplicationAsync(LeaveApplication model)
         {
             try

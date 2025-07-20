@@ -128,7 +128,7 @@ namespace HRMS_Infrastructure.Repository.Employee
         {
             try
             {
-                var branchidParam   = new SqlParameter("@BranchId", (object?)outFilterVM.BranchId ?? DBNull.Value);
+                var branchidParam = new SqlParameter("@BranchId", (object?)outFilterVM.BranchId ?? DBNull.Value);
                 var empCodeParam = new SqlParameter("@EmpId", (object?)outFilterVM.EmpId ?? DBNull.Value);
                 var monthParam = new SqlParameter("@Month", (object?)outFilterVM.Month ?? DBNull.Value);
                 var yearParam = new SqlParameter("@Year", (object?)outFilterVM.Year ?? DBNull.Value);
@@ -210,6 +210,25 @@ namespace HRMS_Infrastructure.Repository.Employee
             {
                 return false;
             }
+        }
+
+
+
+        public async Task<bool> Update(AttendanceRegularization Record)
+        {
+            var existingRecord = await _db.EmployeeInOutRecord.SingleOrDefaultAsync(asd => asd.Emp_Id == Record.EmpId && asd.For_Date == Record.ForDate);
+            if (existingRecord == null)
+            {
+                return false;
+            }
+
+            existingRecord.In_Time = Record.InTime;
+            existingRecord.Out_Time = Record.OutTime;
+            //   existingRecord.Duration = Record.Duration;
+            existingRecord.Reason = Record.Reason;
+            existingRecord.UpdatedBy = Record.UpdatedBy;
+            existingRecord.UpdatedDate = DateTime.UtcNow;
+            return true;
         }
     }
 }
