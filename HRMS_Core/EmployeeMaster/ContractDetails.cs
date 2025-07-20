@@ -11,6 +11,7 @@ namespace HRMS_Core.EmployeeMaster
         public int ContractDetailsId { set; get; }
         public int? EmployeeId { set; get; }
         public int? ProjectDetailsId { set; get; }
+        public string? ProjectName { set; get; }
         public DateTime? StartDate { set; get; }
         public DateTime? EndDate { set; get; }
         public string? Comment { set; get; }
@@ -30,6 +31,8 @@ namespace HRMS_Core.EmployeeMaster
     {
         public int? ProjectDetailsId { set; get; }
         public string? ProjectName { set; get; }
+        public string? Description { set; get; }
+        public int? CompanyId { set; get; }
         public bool? IsDeleted { get; set; } = false;
         public bool? IsEnabled { get; set; } = true;
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;

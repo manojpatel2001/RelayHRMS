@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,4 +25,5 @@ namespace HRMS_Core.EmployeeMaster
         public DateTime? DeletedDate { get; set; }
         public string? DeletedBy { get; set; }
     }
+    
 }

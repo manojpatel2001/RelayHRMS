@@ -13,6 +13,7 @@ namespace HRMS_Core.EmployeeMaster
         public int EmergencyContactId { set; get; }
         public int ? EmployeeId { set; get; }
         public int ? RelationShipId { set; get; }
+        public string? Name { set; get; }
         public string? RelationName { set; get; }
         public string ? MobileNo { set; get; }
         public string ? HomePhoneNo { set; get; }

@@ -84,6 +84,10 @@ namespace HRMS_Infrastructure.Interface
 
         IEmployeeReport EmployeeReport { get; }
         IAttendanceRegularizationRepository AttendanceRegularizationRepository { get; }
+        IAttachmentDetailsRepository AttachmentDetailsRepository { get; }
+        IContractDetailsRepository ContractDetailsRepository { get; }
+        IProjectDetailsRepository ProjectDetailsRepository { get; }
+        IReportingManagerDetailsRepository ReportingManagerDetailsRepository { get; }
 
         void Commit();
         Task CommitAsync();

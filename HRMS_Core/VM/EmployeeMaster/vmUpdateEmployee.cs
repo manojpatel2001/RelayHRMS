@@ -57,6 +57,7 @@ namespace HRMS_Core.VM.EmployeeMaster
         public bool? Trainee { get; set; } = false;
         public int? WeekOffDetailsId { get; set; }
         public bool? IsPermissionPunchInOut { get; set; } = false;
+        public string? CreatedByName { get; set; } 
 
 
 

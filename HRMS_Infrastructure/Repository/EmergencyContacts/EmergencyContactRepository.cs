@@ -25,6 +25,7 @@ namespace HRMS_Infrastructure.Repository.EmergencyContacts
                 EXEC ManageEmergencyContact
                     @Action = {"CREATE"},
                     @EmployeeId = {model.EmployeeId},
+                    @Name = {model.Name},
                     @RelationShipId = {model.RelationShipId},
                     @MobileNo = {model.MobileNo},
                     @HomePhoneNo = {model.HomePhoneNo},
@@ -49,6 +50,7 @@ namespace HRMS_Infrastructure.Repository.EmergencyContacts
                     @Action = {"UPDATE"},
                     @EmergencyContactId = {model.EmergencyContactId},
                     @EmployeeId = {model.EmployeeId},
+                    @Name = {model.Name},
                     @RelationShipId = {model.RelationShipId},
                     @MobileNo = {model.MobileNo},
                     @HomePhoneNo = {model.HomePhoneNo},
@@ -90,7 +92,7 @@ namespace HRMS_Infrastructure.Repository.EmergencyContacts
                 var result = await _db.Set<EmergencyContact>().FromSqlInterpolated($@"
                 EXEC GetEmergencyContactById
                     @EmergencyContactId = {vmCommonGetById.Id},
-                    @IsDeleted = {vmCommonGetById.IsDeleted}
+                    @IsDeleted = {vmCommonGetById.IsDeleted},
                     @IsEnabled = {vmCommonGetById.IsEnabled}
             ").ToListAsync();
 
@@ -108,8 +110,8 @@ namespace HRMS_Infrastructure.Repository.EmergencyContacts
             {
                 var result = await _db.Set<EmergencyContact>().FromSqlInterpolated($@"
                 EXEC GetAllEmergencyContacts
-                  @EmergencyContactId = {vmCommonGetById.Id}
-                  @IsDeleted = {vmCommonGetById.IsDeleted}
+                  @EmployeeId = {vmCommonGetById.Id},
+                  @IsDeleted = {vmCommonGetById.IsDeleted},
                   @IsEnabled = {vmCommonGetById.IsEnabled}
             ").ToListAsync();
 

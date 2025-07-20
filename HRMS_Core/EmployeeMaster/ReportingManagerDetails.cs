@@ -12,6 +12,8 @@ namespace HRMS_Core.EmployeeMaster
         public int? EmployeeId { set; get; }
         public DateTime? EffectedDate { set; get; }
         public int ReportingManagerId { set; get; }
+        public string? ReportingManagerName { set; get; }
+        public string? EmployeeCode { set; get; }
         public string? MethodName { set; get; }
 
         public bool? IsDeleted { get; set; } = false;

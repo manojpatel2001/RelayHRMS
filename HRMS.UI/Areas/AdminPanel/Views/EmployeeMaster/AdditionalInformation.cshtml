@@ -380,11 +380,13 @@
 							<div class="col-md-4">
 								<div class="form-group mt-3 position-relative">
 									<select class="form-control floating-input" id="drpReporting">
-										<option disabled selected value="">Select Reporting</option>
+										<option disabled selected value="">Select</option>
 										<!-- Add your options here -->
 									</select>
-									<label class="floating-label" for="drpReporting">Reporting Manager </label>
+									<label class="floating-label" for="drpReporting">Reporting Manager<span class="required-star">*</span> </label>
 								</div>
+								<span id="spnReporting" style="color:red; display:none;">Please Select Reporting Manager</span>
+
 							</div>
 							<div class="col-md-2">
 								<div class="form-check mt-4">
@@ -484,7 +486,7 @@
 		<div class="row">
 			<div class="col-md-12  py-2">
 				<div class="d-flex justify-content-between">
-					<span><strong>Profile Last Updated By:</strong>
+					<span><strong>Profile Last Updated By:</strong><span id="createdBy"></span>
 						<span id="lastUpdatedBy"></span>
 				     </span>
 					<span class="text-danger cursor-pointer " id="viewEmployeeHistroy">
@@ -589,14 +591,18 @@
 	
 
 <!-- CropperJS CSS & JS -->
+<script src="~/assets/js/jquery.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-
+@section Scripts {
 <script>
 	
+	 //    $("#AdminDashboardlink").click(()=>{
+		// 	debugger
+		//  $("#AdminDashboardlink")[0].click();
+		// })
 		let employeeList = [];
 		let currentIndex =0;
 		let CurrentEmployeeId=localStorage.getItem('CurrentEmployeeId');
@@ -701,6 +707,18 @@
 		return index;
 	}
 
+	    function getAgeFromDOB(dob) {
+			var birthDate = new Date(dob);
+			var today = new Date();
+			var age = today.getFullYear() - birthDate.getFullYear();
+			var m = today.getMonth() - birthDate.getMonth();
+
+			if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+				age--;
+			}
+
+			return age;
+		}
 
 	// Sample fill function
 		function fillEmployeeForm(employee) {
@@ -709,6 +727,7 @@
 		CurrentEmployeeId = employee.id || '';
 
 		// Personal Information
+			 $('#createdBy').text(employee.createdByName || '');
 		$('#ddlInitial').val(employee.initial || '');
 		$('#txtFirstName').val(employee.firstName || '');
 		$('#txtMiddleName').val(employee.middleName || '');
@@ -716,6 +735,7 @@
 		$('#txtEmpCode').val(employee.alfaCode || '');
 		$('#txtNumberEmpCode').val(employee.employeeCode || '');
 		$('#doj').val(formatDate(employee.dateOfJoining) || '');
+		bindBranch();
 		$('#ddlBranch').val(employee.branchId || '');
 		LoadWeekOffMaster();
 		$('#ddlGrade').val(employee.gradeId || '');
@@ -723,11 +743,18 @@
 		$('#txtCTC').val(employee.ctc || '');
 		$('#ddlDesignation').val(employee.designationId || '');
 		$('#txtGrossSalary').val(employee.grossSalary || '');
+			if(employee.grossSalary){
+				loadLiveSalaryAllowance();
+			}
+			else{
+					  $("#SalaryContainer").hide();
+					  $("#salaryNoFound").show();
+			}
 		$('#ddlCategory').val(employee.categoryId || '');
-		$('#txtBasicSalary').val(employee.basicSalary || '');
 		$('#ddlDepartment').val(employee.departmentId || '');
 		$('#ddlEmpType').val(employee.employeeTypeId || '');
 		$('#dob').val(formatDate(employee.dateOfBirth) || '');
+		
 		$('#ddlRole').val(employee.roleId || '');
 		$('#drpReporting').val(employee.reportingManagerId || '');
 
@@ -747,7 +774,12 @@
 		}
 
 		// Personal Info
-		$('#ddlGender').val(employee.gender || '');
+			if(employee.dateOfBirth)
+			{
+			 $('#empAge').text(getAgeFromDOB(employee.dateOfBirth));
+			}
+		
+		$('#ddlGender').val(employee.gender || 'Male');
 		$('#inpPersonalEmailId').val(employee.personalEmailId || '');
 		$('#inpFatherName').val(employee.fatherName || '');
 		$('#inpMotherName').val(employee.motherName || '');
@@ -766,14 +798,14 @@
 		$('#inpDispensaryAddress').val(employee.dispensaryAddress || '');
 		$('#inpUanNumber').val(employee.uanNumber || '');
 		$('#inpDrivingLicense').val(employee.drivingLicense || '');
-		$('#inpDrivingLicenseExpiry').val(employee.drivingLicenseExpiry || '');
+		$('#inpDrivingLicenseExpiry').val(formatDate(employee.drivingLicenseExpiry) || '');
 		$('#ddlRationCardType').val(employee.rationCardType || '');
 		$('#inpRationCardNo').val(employee.rationCardNo || '');
 		$('#inpProbationCompletionPeriod').val(employee.probationCompletionPeriod || '');
 		$('input[name="probationPeriod"]').val(employee.probationPeriodType || '');
 		$('#ddlManagerProbation').val(employee.managerProbationId || '');
 		$('#inpConfirmDate').val(formatDate(employee.confirmDate) || '');
-		$('#inpRetirementDate').val(employee.retirementDate || '');
+			$('#inpRetirementDate').val(formatDate(employee.retirementDate )|| '');
 		$('#inpOfferDate').val(formatDate(employee.offerDate) || '');
 		$('#inpTraineeCompletionPeriod').val(employee.traineeCompletionPeriod || '');
 		$('input[name="trainingPeriod"]').val(employee.traineePeriodType || '');
@@ -924,13 +956,13 @@
 		success: function(data) {
 			console.log("Data received:", data);
 				if(data.isSuccess){
-					var dropdown = $('#drpReporting');
+						var dropdown = $('#drpReporting,#ddlManagerProbation');
 					dropdown.empty();
 					dropdown.append('<option disabled selected value="">Select</option>');
 					$.each(data.data, function(index, company) {
 						dropdown.append($('<option>', {
 							value: company.id,
-							text: company.fullName
+							text: company.fullName+" - "+company.employeeCode
 						}));
 					});
 
@@ -1328,6 +1360,12 @@
 				}else{
 					$('#spnWeekOff').hide();
 				}
+				if (!reportingManager) {
+					$('#spnReporting').show();
+					isValid = false;
+				}else{
+						$('#spnReporting').hide();
+				}
 
 				if (!isValid) {
 					$("#btnUpdateEmployee").prop("disabled", false);
@@ -1453,7 +1491,6 @@
 							  EmployeeNamePrmaryBank: setNullIfEmpty($('#employeeNamePrimaryBank').val())
 
 					};
-					debugger;
 					//Add employee person info
 					console.log("employeeData: ", employeeData);
 					//var employeePersional=await getEmployeePersonalInfo();
@@ -1866,6 +1903,8 @@
 	var grossSalary = $('#txtGrossSalary').val();
 	if(!grossSalary)
 	{
+		$("#SalaryContainer").hide();
+			$("#salaryNoFound").show();
 		return;
 	}
 	   try {
@@ -1880,45 +1919,56 @@
 			if (data.isSuccess) {
 				console.log("Salary loaded:", data.data);
 				var arrayDta = data.data;
-				bindSalaryAllowance(arrayDta);
-
+					  $("#SalaryContainer").show();
+					  $("#salaryNoFound").hide();
+				  bindSalaryAllowance(arrayDta);
+				
 
 			}
-		} catch (error) {
-			console.error('Fetch error:', error);
-		}
-	}
-
-	$(document).ready(async function () {
-		await loadSalaryAllowance();
-	});
-
-	async function loadSalaryAllowance() {
-		try {
-			const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetEmployeeSalaryAllowanceByEmployeeId/'+CurrentEmployeeId, {
-				method: 'GET',
-				headers: {
-					'Accept': 'application/json'
+			else{
+						$("#SalaryContainer").hide();
+					$("#salaryNoFound").show();
 				}
-			});
-
-			const data = await response.json();
-
-			if (data.isSuccess) {
-
-				console.log("Salary loaded:", data.data);
-				var arrayDta=data.data;
-			 bindSalaryAllowance (arrayDta);
-			}
 		} catch (error) {
 			console.error('Fetch error:', error);
 		}
 	}
 
-	
-     function formatCurrency(amount) {
-		return '₹' + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-	}
+	// $(document).ready(async function () {
+	// 	//await loadSalaryAllowance();
+	// });
+
+	// async function loadSalaryAllowance() {
+	// 	try {
+	// 		const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetEmployeeSalaryAllowanceByEmployeeId/'+CurrentEmployeeId, {
+	// 			method: 'GET',
+	// 			headers: {
+	// 				'Accept': 'application/json'
+	// 			}
+	// 		});
+
+	// 		const data = await response.json();
+
+	// 		if (data.isSuccess) {
+
+	// 			console.log("Salary loaded:", data.data);
+	// 			var arrayDta=data.data;
+				
+	// 				  bindSalaryAllowance(arrayDta);
+				
+	// 		}
+	// 		else{
+	// 				$("#SalaryContainer").hide();
+	// 			$("#salaryNoFound").show();
+	// 		}
+	// 	} catch (error) {
+	// 		console.error('Fetch error:', error);
+	// 	}
+	// }
+
+		function formatCurrency(value) {
+			return "₹" + (value ?? 0).toFixed(2);
+		}
 
 	function bindSalaryAllowance(salaryData) {
 		// Earnings
@@ -1978,5 +2028,10 @@
 
 </script>
 
+<script>
 
 
+
+</script>
+
+}

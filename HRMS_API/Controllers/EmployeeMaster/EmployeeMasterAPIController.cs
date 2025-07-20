@@ -491,7 +491,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     return new APIResponse { isSuccess = false, ResponseMessage = "Company details cannot be null." };
                 var check = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)model.EmployeeId);
                 if (check == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid company record." };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid  record." };
 
                 if (model.EmployeeProfileFile != null )
                 {

@@ -83,9 +83,9 @@ namespace HRMS_Infrastructure.Repository.EmergencyContacts
             try
             {
                 var result = await _db.Set<RelationShip>().FromSqlInterpolated($@"
-                EXEC GetRelationShipById
+                EXEC GetAllRelationShips
                     @RelationName= {vmCommonGetById.Title},
-                    @IsDeleted = {vmCommonGetById.IsDeleted}
+                    @IsDeleted = {vmCommonGetById.IsDeleted},
                     @IsEnabled = {vmCommonGetById.IsEnabled}
             ").ToListAsync();
 
@@ -103,7 +103,7 @@ namespace HRMS_Infrastructure.Repository.EmergencyContacts
                 var result = await _db.Set<EmergencyContact>().FromSqlInterpolated($@"
                 EXEC GetRelationShipById
                     @RelationShipId = {vmCommonGetById.Id},
-                    @IsDeleted = {vmCommonGetById.IsDeleted}
+                    @IsDeleted = {vmCommonGetById.IsDeleted},
                     @IsEnabled = {vmCommonGetById.IsEnabled}
             ").ToListAsync();
 

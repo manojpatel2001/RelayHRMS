@@ -19,12 +19,12 @@ namespace HRMS_API.Controllers.EmergencyContacts
             _unitOfWork = unitOfWork;
         }
 
-        [HttpGet("GetAllEmergencyContacts")]
-        public async Task<APIResponse> GetAllEmergencyContacts()
+        [HttpGet("GetAllEmergencyContacts/{EmployeeId}")]
+        public async Task<APIResponse> GetAllEmergencyContacts(int EmployeeId)
         {
             try
             {
-                var data = await _unitOfWork.EmergencyContactRepository.GetAllEmergencyContacts(new vmCommonGetById { });
+                var data = await _unitOfWork.EmergencyContactRepository.GetAllEmergencyContacts(new vmCommonGetById {Id= EmployeeId });
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 

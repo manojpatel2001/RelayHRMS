@@ -160,9 +160,10 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<AttendanceRegularizationVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<AttendanceRegularizationSearchFilterVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<DeleteRecordVModel>().HasNoKey().ToView(null);
-
-
-
+            modelBuilder.Entity<AttachmentDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<ProjectDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<ContractDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<ReportingManagerDetails>().HasNoKey().ToView(null);
 
 
         }

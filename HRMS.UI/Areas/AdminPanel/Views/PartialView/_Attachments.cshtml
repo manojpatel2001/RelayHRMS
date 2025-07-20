@@ -1,4 +1,27 @@
-﻿<div class="card-header bg-primary text-white ">
+﻿@inject IConfiguration Configuration
+@{
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+<style>
+    .table-responsive-fixed {
+        max-height: 200px;
+        min-height: auto;
+        overflow-y: auto;
+    }
+
+    /* Optional: Sticky table header */
+    thead th {
+        position: sticky;
+        top: 0;
+        background-color: #343a40;
+        color: white;
+        z-index: 1;
+    }
+</style>
+
+<div class="card-header bg-primary text-white ">
     <h6>ATTACHMENTS</h6>
 </div>
 
@@ -6,34 +29,45 @@
 
 <div class="card-body px-4">
     <form id="attachmentForm">
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <h6><b>Add Attachment</b></h6>
-            </div>
-        </div>
+        
 
         <div class="row px-5">
             <!-- Document Name -->
             <div class="col-md-6 mb-3">
                 <div class="form-group position-relative">
                     <select id="documentName" class="form-control floating-input">
-                        <option value="">-- Select --</option>
+                        <option value="">Select</option>
                         <option value="Aadhar">Aadhar</option>
                         <option value="PAN Card">PAN Card</option>
                         <option value="Passport">Passport</option>
                     </select>
                     <label class="floating-label" for="documentName">Document Name*</label>
-                    <span id="spnDocumentName" style="color:red; display:none;">Please Select Document Name</span>
                 </div>
+                <span id="spnDocumentName" style="color:red; display:none;">Please Select Document Name</span>
+
             </div>
 
             <!-- Document File -->
             <div class="col-md-6 mb-3">
                 <div class="form-group position-relative">
                     <input type="file" id="documentFile" class="form-control floating-input" />
+                    <!-- Icon positioned inside input -->
+                    <a href="#" target="_blank" id="documentViewLink" style="
+                      display:none;
+                      position: absolute;
+                      right: 10px;
+                      top: 50%;
+                      transform: translateY(-50%);
+                      color: #007bff;
+                      font-size: 18px;
+                      text-decoration: none;
+                      cursor: pointer;">
+                                        view
+                                    </a>
                     <label class="floating-label" for="documentFile">Document*</label>
-                    <span id="spnDocumentFile" style="color:red; display:none;">Please Upload Document</span>
                 </div>
+                <span id="spnDocumentFile" style="color:red; display:none;">Please Upload Document</span>
+
             </div>
         </div>
 
@@ -41,7 +75,7 @@
             <!-- Comments -->
             <div class="col-md-6 mb-3">
                 <div class="form-group position-relative">
-                    <textarea id="attachmentComments" class="form-control floating-input" rows="3"></textarea>
+                    <textarea id="attachmentComments" class="form-control floating-input" placeholder="Comments" rows="3"></textarea>
                     <label class="floating-label" for="attachmentComments">Comments</label>
                 </div>
             </div>
@@ -57,21 +91,274 @@
         <div class="row mt-3">
             <div class="col-md-4"></div>
             <div class="col-md-4 text-center">
-                <button type="button" class="btn btn-primary px-5" style="background-color:#394867 !important" id="btnSaveAttachment">Save</button>
+                <button type="button" class="btn btn-primary " style="background-color:#394867 !important" id="btnSaveAttachment">Save</button>
+                <button type="button" class="btn  " style="background-color:#e2e2e2 !important" id="btnResetAttachment" onclick="resetAttachmentForm()">Reset</button>
+
             </div>
             <div class="col-md-4"></div>
         </div>
+
+
         <hr />
 
-        <div class="row mt-4 mb-0">
-            <div class="col-md-3"></div>
-            <div class="col-md-6 text-center text-danger" style="font-size: 10px;">
-                Note:-Please Click On Update Button To Save Personal Details
-            </div>
-            <div class="col-md-3"></div>
-        </div>
-        <hr class="mt-0" />
+        
     </form>
+
+    <div class="row">
+        <div class="col-md-12 mt-2">
+            <div class="table-responsive table-responsive-fixed">
+                <table class="table table-bordered" id="tableAttachment">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th style="width:20%">Document Name</th>
+                            <th style="width:20%">Attachment</th>
+                            <th style="width:20%">Comment</th>
+                            <th style="width:15%">Expiry Date</th>
+                            <th style="width:15%">Created Date</th>
+                            <th style="width:10%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
+
+
+
+
+<script>
+    let attachmentDetailsId=0;
+    let attachmentDetails=[]
+
+         async function loadAttachmentDetails() {
+        try {
+            const response = await fetch('@baseUrl/AttachmentDetailsAPI/GetAllAttachmentDetails/' + CurrentEmployeeId, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            console.log("dataAttachment", data);
+
+            let tbody = $('#tableAttachment tbody');
+            tbody.empty();
+
+            if (data.isSuccess && data.data.length > 0) {
+                attachmentDetails=data.data;
+                data.data.forEach(row => {
+                    const createdDate = formatToDDMMYYYY(row.createdDate);
+                    const expiryDate = formatToDDMMYYYY(row.dateOfExpiry);
+                    const fileLink = row.documentUrl ? `<a href="${row.documentUrl}" target="_blank">View</a>` : 'N/A';
+
+                    tbody.append(`
+                        <tr>
+                            <td>${row.documentName ?? ''}</td>
+                            <td>${fileLink}</td>
+                            <td>${row.comment ?? ''}</td>
+                            <td>${expiryDate}</td>
+                            <td>${createdDate}</td>
+                            <td>
+                               <div class="d-flex order-actions">
+                                        <a href="javascript:;" class="edit-action me-2" title="Edit" onclick="editAttachment(${row.attachmentDetailsId})">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">
+                                                <path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>
+                                            </svg>
+                                        </a>
+                                        <a href="javascript:;" class="delete-action" title="Delete" onclick="deleteAttachment(${row.attachmentDetailsId})">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
+                                                <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>
+                                            </svg>
+                                        </a>
+                                </div>
+                            </td>
+                        </tr>
+                    `);
+                });
+            } else {
+                tbody.append('<tr><td colspan="6" class="text-center">No data found.</td></tr>');
+            }
+
+        } catch (error) {
+            console.error('Fetch error:', error);
+        }
+    }
+
+
+
+    function formatToDDMMYYYY(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+    }
+
+
+    $(document).ready(function () {
+
+		
+        loadAttachmentDetails();
+	
+        $('#btnSaveAttachment').click(function () {
+            debugger;
+            $('#btnSaveAttachment').prop("disabled", true)
+            if (!validateAttachForm()) {
+                $('#btnSaveAttachment').prop("disabled", false)
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append('EmployeeId', CurrentEmployeeId);
+            formData.append('DocumentName', $('#documentName').val());
+            formData.append('Comment', $('#attachmentComments').val());
+            formData.append('DateOfExpiry', $('#expiryDate').val());
+            const attachUrl=attachmentDetailsId==0?'@baseUrl/AttachmentDetailsAPI/CreateAttachmentDetail':'@baseUrl/AttachmentDetailsAPI/UpdateAttachmentDetail';
+            const methodType=attachmentDetailsId==0?"POST":"PUT";
+
+            formData.append('CreatedBy', user);
+            formData.append('AttachmentDetailsId', attachmentDetailsId);
+
+            var fileInput = $('#documentFile')[0];
+            if (fileInput.files.length > 0) {
+                formData.append('AttachmentFile', fileInput.files[0]);
+            }
+            console.log("formData",formData);
+            debugger
+            $.ajax({
+                url: attachUrl,
+                type:methodType,
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                   if (response.isSuccess) {
+                        round_success_noti(response.responseMessage);
+                        resetAttachmentForm();
+                       loadAttachmentDetails();
+                    } else {
+                        round_error_noti(response.responseMessage);
+                    }
+                    $('#btnSaveAttachment').prop("disabled", false)
+                },
+                error: function (error) {
+                    console.error('Error:', error);
+                    $('#btnSaveAttachment').prop("disabled", false)
+                }
+            });
+        });
+
+
+
+    });
+
+     $('#documentFile').on('change', function() {
+      const fileInput = this;
+      if (fileInput.files && fileInput.files[0]) {
+        const fileAttach = fileInput.files[0];
+        const fileAttachURL = URL.createObjectURL(fileAttach);
+
+        $('#documentViewLink')
+          .attr('href', fileAttachURL)
+          .show();
+      } else {
+        $('#documentViewLink')
+          .attr('href', '#')
+          .hide();
+      }
+    });
+
+    let documentUrl=null;
+    function editAttachment(AttachmentDetaislId){
+        resetEmergencyContactForm();
+        const rowData = attachmentDetails.find(x => x.attachmentDetailsId === AttachmentDetaislId);
+        console.log("attachmentDetails2",attachmentDetails);
+        debugger
+        attachmentDetailsId = AttachmentDetaislId;
+        $('#documentName').val(rowData.documentName);
+        $('#attachmentComments').val(rowData.comment);
+       $('#expiryDate').val(rowData.dateOfExpiry ? rowData.dateOfExpiry.substring(0, 10) : '');
+         if (rowData.documentUrl)
+         {
+             documentUrl=rowData.documentUrl;
+          $('#documentViewLink')
+            .attr('href', rowData.documentUrl)
+            .show();
+        }
+        else {
+          $('#documentViewLink').hide();
+        }
+        $('#btnSaveAttachment').text('Update');
+
+    }
+
+    function deleteAttachment(emergencyContactId){
+                if (!confirm("Are you sure you want to delete?")) {
+                        return; // Cancel the delete operation
+                }
+
+            var deleteObj = {
+                   id:emergencyContactId,
+                deletedBy: localStorage.getItem('EmployeeId')
+            };
+            $.ajax({
+            url: '@baseUrl/AttachmentDetailsAPI/DeleteAttachmentDetail',
+                type: 'DELETE',
+                contentType: 'application/json',
+                data: JSON.stringify(deleteObj),
+                success: function (response) {
+                    if (response.isSuccess) {
+                        round_success_noti(response.responseMessage);
+                       loadAttachmentDetails();
+                    } else {
+                        round_error_noti(response.responseMessage);
+                    }
+
+                },
+                error: function (error) {
+                    console.log('Error deleting attachent!');
+                }
+            });
+    }
+        function validateAttachForm() {
+            let isValid = true;
+
+            if (!$('#documentName').val()) {
+                $('#spnDocumentName').show();
+                isValid = false;
+            } else {
+                $('#spnDocumentName').hide();
+            }
+
+            if ($('#documentFile')[0].files.length === 0 && documentUrl==null) {
+
+                $('#spnDocumentFile').show();
+                isValid = false;
+            } else {
+                $('#spnDocumentFile').hide();
+            }
+
+            return isValid;
+        }
+
+    // Reset form
+     function resetAttachmentForm() {
+        $('#documentName').val('');
+        $('#attachmentComments').val('');
+        $('#expiryDate').val('');
+        $('#documentFile').val('');
+        $('#spnDocumentName, #spnDocumentFile').hide();
+        $('#btnSaveAttachment').prop("disabled", false).text("Save");
+        attachmentDetailsId = 0;
+        documentUrl=null;
+         $('#documentViewLink').hide();
+    }
+
+</script>
 
 
