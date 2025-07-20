@@ -203,11 +203,11 @@ public class ImportDataController : ControllerBase
                 break;
 
             case "MonthlyEar":
-                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year", "Basic", "HRA", "Conveyance", "Medical", "Deputation" };
+                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year", "Basic", "HRA", "Conveyance", "Medical", "Deputation", "ChildEducationAllowance" };
                 break;
 
             case "MonthlyDed":
-                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year","PF", "ESIC", "PT", "Insurance", "LWF","TDS" };
+                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year","PF", "ESIC", "PT", "LWF","TDS" , "TermInsurance" , "GroupMedical" };
                 break;
 
             case "Attendance":
@@ -447,6 +447,7 @@ public class ImportDataController : ControllerBase
                 Conveyance = decimal.TryParse(row[5]?.ToString(), out decimal conveyance) ? conveyance : (decimal?)null,
                 Medical = decimal.TryParse(row[6]?.ToString(), out decimal medical) ? medical : (decimal?)null,
                 Deputation = decimal.TryParse(row[7]?.ToString(), out decimal deputation) ? deputation : (decimal?)null,
+                ChildEducationAllowance = decimal.TryParse(row[8]?.ToString(), out decimal ChildEducationAllowance) ? ChildEducationAllowance : (decimal?)null,
                 Year = year,
                 IsEnabled = true,
                 IsDeleted = false
@@ -458,7 +459,7 @@ public class ImportDataController : ControllerBase
         {
             string codeStr = row[0]?.ToString().Trim();
             string monthStr = row[1]?.ToString().Trim();
-            string yearStr = row[7]?.ToString().Trim();
+            string yearStr = row[2]?.ToString().Trim();
 
             if (string.IsNullOrWhiteSpace(codeStr) &&
                 string.IsNullOrWhiteSpace(monthStr) &&
@@ -493,9 +494,10 @@ public class ImportDataController : ControllerBase
                 PF = decimal.TryParse(row[3]?.ToString(), out decimal pf) ? pf : (decimal?)null,
                 ESIC = decimal.TryParse(row[4]?.ToString(), out decimal esic) ? esic : (decimal?)null,
                 PT = decimal.TryParse(row[5]?.ToString(), out decimal pt) ? pt : (decimal?)null,
-                //Insurance = decimal.TryParse(row[6]?.ToString(), out decimal insurance) ? insurance : (decimal?)null,
-                LWF = decimal.TryParse(row[7]?.ToString(), out decimal lwf) ? lwf : (decimal?)null,
-                TDS = decimal.TryParse(row[8]?.ToString(), out decimal tds) ? tds : (decimal?)null,
+                LWF = decimal.TryParse(row[6]?.ToString(), out decimal lwf) ? lwf : (decimal?)null,
+                TDS = decimal.TryParse(row[7]?.ToString(), out decimal tds) ? tds : (decimal?)null,
+                TermInsurance = decimal.TryParse(row[8]?.ToString(), out decimal TermInsurance) ? TermInsurance : (decimal?)null,
+                GroupMedical = decimal.TryParse(row[9]?.ToString(), out decimal GroupMedical) ? GroupMedical : (decimal?)null,
                 IsEnabled = true,
                 IsDeleted = false
             });
