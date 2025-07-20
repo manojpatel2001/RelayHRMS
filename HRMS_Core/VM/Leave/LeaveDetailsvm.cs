@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.VM.Leave
 {
-    public class LeaveTypevm
+    public class LeaveDetailsvm
     {
-            public string? LeaveType { get; set; }
-            public decimal LeaveValue { get; set; }
-
+        public int Compid { get; set; }
+        public int Empid { get; set; }
     }
 }
