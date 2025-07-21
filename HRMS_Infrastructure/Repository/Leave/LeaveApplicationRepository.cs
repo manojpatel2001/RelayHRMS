@@ -125,8 +125,9 @@ namespace HRMS_Infrastructure.Repository.Leave
             try
             {
                 var result = await _db.Database.ExecuteSqlRawAsync(
-                    "EXEC InsertLeaveApplication @EmplooyeId, @ReportingManagerId, @LeaveType, @ApplicationType, @FromDate, @No_Of_Date, @Todate, @Reason, @Responsibleperson, @Cancel_Weekoff, @Send_Intimate,@LeaveStatus, @CreatedDate, @CreatedBy",
+                    "EXEC InsertLeaveApplication @EmplooyeId,@CompanyId, @ReportingManagerId, @LeaveType, @ApplicationType, @FromDate, @No_Of_Date, @Todate, @Reason, @Responsibleperson, @Cancel_Weekoff, @Send_Intimate,@LeaveStatus, @CreatedDate, @CreatedBy",
                     new SqlParameter("@EmplooyeId", model.EmplooyeId ?? (object)DBNull.Value),
+                    new SqlParameter("@CompanyId", model.CompId ?? (object)DBNull.Value),
                     new SqlParameter("@ReportingManagerId", model.ReportingManagerId ?? (object)DBNull.Value),
                     new SqlParameter("@LeaveType", model.LeaveType ?? (object)DBNull.Value),
                     new SqlParameter("@ApplicationType", model.ApplicationType ?? (object)DBNull.Value),
