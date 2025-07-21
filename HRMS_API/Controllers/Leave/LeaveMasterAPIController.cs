@@ -51,35 +51,35 @@ namespace HRMS_API.Controllers.Leave
         }
 
 
-        [HttpPost("AddLeavemanage")]
-        public async Task<APIResponse> AddLeavemanage(List<int> id,string status)
-        {
-            try
-            {
+        //[HttpPost("AddLeavemanage")]
+        //public async Task<APIResponse> AddLeavemanage(List<int> id,string status)
+        //{
+        //    try
+        //    {
                
-                var data = await _unitOfWork.CompOffDetailsRepository.UpdateLeaveMange(id,status);
-                if (data == null)
-                {
-                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+        //        var data = await _unitOfWork.CompOffDetailsRepository.UpdateLeaveMange(id,status);
+        //        if (data == null)
+        //        {
+        //            return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
 
-                }
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data =data,
-                    ResponseMessage = "Unable to retrieve records, Please try again later!"
-                };
-            }
-            catch (Exception err)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to retrieve records, Please try again later!"
-                };
-            }
-        }
+        //        }
+        //        return new APIResponse
+        //        {
+        //            isSuccess = false,
+        //            Data =data,
+        //            ResponseMessage = "Unable to retrieve records, Please try again later!"
+        //        };
+        //    }
+        //    catch (Exception err)
+        //    {
+        //        return new APIResponse
+        //        {
+        //            isSuccess = false,
+        //            Data = err.Message,
+        //            ResponseMessage = "Unable to retrieve records, Please try again later!"
+        //        };
+        //    }
+        //}
 
 
     }

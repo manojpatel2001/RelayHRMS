@@ -96,10 +96,10 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public Task<bool> UpdateLeaveMange(List<int> ids, string status)
-        {
-            throw new NotImplementedException();
-        }
+        //public Task<bool> UpdateLeaveMange(List<int> ids, string status)
+        //{
+        //    throw new NotImplementedException();
+        //}
 
         public async Task<bool> UpdateLeaveManger(List<int> comoffid, string status)
         {
@@ -136,39 +136,39 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        //public async Task<bool> UpdateLeaveMange(List<int> ids, string status)
-        //{
+        public async Task<bool> UpdateLeavedetails(List<int> ids, string status)
+        {
 
-        //    try
-        //    {
-        //        if (status == "Approved")
-        //        {
-        //            foreach (var id in ids)
-        //            {
+            try
+            {
+                if (status == "Approved")
+                {
+                    foreach (var id in ids)
+                    {
 
 
-        //                var parameters = new[]
-        //                {
-        //                new SqlParameter("@Id", id),
+                        var parameters = new[]
+                        {
+                        new SqlParameter("@Id", id),
 
-        //            };
+                    };
 
-        //                await _db.Database.ExecuteSqlRawAsync(
-        //                    "EXEC sp_DeductLeaveBalance @Id",
-        //                    parameters
-        //                );
-        //            }
+                        await _db.Database.ExecuteSqlRawAsync(
+                            "EXEC sp_DeductLeaveBalance @Id",
+                            parameters
+                        );
+                    }
 
-        //            return true;
-        //        }
+                    return true;
+                }
 
-        //        return false;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine("Error during SP call: " + ex.Message);
-        //        return false;
-        //    }
-        //}
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during SP call: " + ex.Message);
+                return false;
+            }
+        }
     }
 }

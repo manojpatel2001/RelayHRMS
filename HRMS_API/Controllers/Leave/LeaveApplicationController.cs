@@ -178,14 +178,14 @@ namespace HRMS_API.Controllers.Leave
                 if (!isSaved)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
 
-                //if (LVM.Status == "Approved")
-                //{
-                //    var leavemanage = await _unitOfWork.CompOffDetailsRepository.UpdateLeaveMange(LVM.Ids, LVM.Status);
-                //    if (!leavemanage)
-                //        return new APIResponse
-                //        { isSuccess = false, ResponseMessage = "Failed to update leave details." };
+                if (LVM.Status == "Approved")
+                {
+                    var leavemanage = await _unitOfWork.CompOffDetailsRepository.UpdateLeavedetails(LVM.Ids, LVM.Status);
+                    if (!leavemanage)
+                        return new APIResponse
+                        { isSuccess = false, ResponseMessage = "Failed to update leave details." };
 
-                //}
+                }
 
 
                 return new APIResponse { isSuccess = true, ResponseMessage = "Records updated successfully." };
