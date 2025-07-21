@@ -4,6 +4,7 @@
    string baseUrl = ViewBag.BaseUrl;
   string apiBase = ViewBag.BaseUrlAPI;
 }
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -187,17 +188,19 @@
 <div class="form-section" style="margin-top: 30px;">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
         <h6 class="mb-0">Attendance Details</h6>
-        <button class="btn btn-custom mt-2 mt-md-0" id="btnSaveGridData" style="min-width: 90px;">Save</button>
+        <div id="saveButtonContainer" style="display: none;">
+            <button class="btn btn-custom mt-2 mt-md-0" id="btnSaveGridData" style="min-width: 90px;">Save</button>
+        </div>
     </div>
     <div id="attendanceGrid" style="overflow-x: auto;"></div>
 </div>
 
-<!-- 🔙 Back button -->
-<div class="back-btn">
-    <button class="btn btn-custom">Back</button>
-</div>
 
-<script>
+
+<script>    
+
+     const apiBase = '@apiBase';
+
     $(document).ready(function () {
         BindBranchDropdown();
         populateYearDropdown();
@@ -210,7 +213,19 @@
                 $('#employeeDropdown').empty().append('<option value="">--Select Employee--</option>');
             }
         });
+
+           const currentMonthIndex = new Date().getMonth(); // 0 = Jan, 1 = Feb, ..., 11 = Dec
+
+    $('#month option').each(function (index) {
+        if (index > currentMonthIndex) {
+            $(this).remove(); // remove future months
+        }
     });
+
+
+    });
+
+
 
 
         function goBack() {
@@ -251,7 +266,7 @@
     function GetEmployeeByBranchId(branchId) {
         $.ajax({
             type: "GET",
-            url: apiBase + "/EmployeeMasterAPI/GetEmployeeByBranchId"/ + branchId,
+            url: apiBase + "/EmployeeMasterAPI/GetEmployeeByBranchId/" + branchId,
             success: function (response) {
                 if (response?.isSuccess && response?.data) {
                     const $emp = $('#employeeDropdown');
@@ -266,6 +281,7 @@
 
 
     $('.btn-custom:contains("Go")').on('click', function () {
+        debugger;
     clearValidationErrors();
 
     const branch = $('#branch').val();
@@ -327,6 +343,7 @@
     });
 
 
+
          function LoadAttendanceGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
@@ -344,7 +361,15 @@
                 if (e.data.status?.trim().toLowerCase() === "present") {
                     e.cancel = true;
                 }
-            },
+            },  
+            onContentReady: function (e) {
+            if (data && data.length > 0) {
+                $("#saveButtonContainer").show();
+            } else {
+                $("#saveButtonContainer").hide();
+            }
+        },
+
             columns: [
                 { dataField: "for_Date", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
                 { dataField: "fullName", caption: "Employee", allowEditing: false },
@@ -477,34 +502,49 @@
                             showClearButton: true,
                             disabled: rowData.status?.trim().toLowerCase() !== "absent"
                         };
-                    },
+                    },  
                     editing: {
                         allowUpdating: true
-                    }
+                    }  
+       
                 }
             ]
         });
     }
 
 
+        function ClearAttendanceGrid() {
+        $("#attendanceGrid").html("");  // Clear grid
+        $("#saveButtonContainer").hide(); // Hide Save button
+    }
 
+        $("#btnClear").on("click", function () {
+        ClearAttendanceGrid();
+    });
 
     $('#btnSaveGridData').on('click', function () {
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
         gridInstance.saveEditData();
 
         const selectedRows = gridInstance.getSelectedRowsData();
+    if (selectedRows.length === 0) {
+          Swal.fire({
+              icon: 'warning',
+              title: 'Validation',
+              text: 'Please select at least one row to save.'
+          });
+          return;
+      }
 
-        if (selectedRows.length === 0) {
-            $('#validationMsg').text("Please select at least one row to save.");
-            return;
-        }
-
-        const empId = $('#employeeDropdown').val();
-        if (!empId) {
-            $('#validationMsg').text("Please select an employee.");
-            return;
-        }
+      const empId = $('#employeeDropdown').val();
+      if (!empId) {
+          Swal.fire({
+              icon: 'warning',
+              title: 'Validation',
+              text: 'Please select an employee.'
+          });
+          return;
+      }
 
         const rowsToSave = selectedRows
             .filter(row => row.reason && row.reason.trim() !== "")
@@ -526,10 +566,14 @@
                 IsLocked: false,
             }));
 
-        if (rowsToSave.length === 0) {
-            $('#validationMsg').text("Please provide reason before saving.");
-            return;
-        }
+         if (rowsToSave.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Validation',
+            text: 'Please provide reason before saving.'
+        });
+        return;
+    }
 
         $.ajax({
              url: apiBase + "/AttendanceRegularizationAPI/CreateAttendanceRegularization",
@@ -553,15 +597,13 @@
     });
 
 
-        $('.back-btn button').on('click', function () {
-        window.history.back(); // Go to previous page
-    });
+
 
         $('.btn-custom:contains("Clear")').on('click', function () {
         $('#branch').val('');
         $('#month').val('January');
         $('#year').val(new Date().getFullYear());
-        $('#recordtype').val('all');
+        $('#recordtype').val('All');
         $('#employeeDropdown').val('');
             clearValidationErrors();
         // Clear the grid

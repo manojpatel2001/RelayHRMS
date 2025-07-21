@@ -6,6 +6,7 @@
     var uri = new Uri(baseUrl);
     string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -176,6 +177,7 @@
         <div class="action-buttons d-flex justify-content-center gap-3 mt-2">
             <button class="btn btn-custom">Go</button>
             <button class="btn btn-custom">Clear</button>
+            <button class="btn btn-custom" onclick="goBack()">Back</button>
 
         </div>
     </div>
@@ -183,19 +185,16 @@
 
 
 
-<!-- ✅ Save + Grid Section -->
 <div class="form-section" style="margin-top: 30px;">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
         <h6 class="mb-0">Attendance Details</h6>
-        <button class="btn btn-custom mt-2 mt-md-0" id="btnSaveGridData" style="min-width: 90px;">Save</button>
+        <div id="saveButtonContainer" style="display: none;">
+            <button class="btn btn-custom mt-2 mt-md-0" id="btnSaveGridData" style="min-width: 90px;">Save</button>
+        </div>
     </div>
     <div id="attendanceGrid" style="overflow-x: auto;"></div>
 </div>
 
-<!-- 🔙 Back button -->
-<div class="back-btn">
-    <button class="btn btn-custom">Back</button>
-</div>
 
 <script>
     $(document).ready(function () {
@@ -210,7 +209,19 @@
                 $('#employeeDropdown').empty().append('<option value="">--Select Employee--</option>');
             }
         });
+
+           const currentMonthIndex = new Date().getMonth(); // 0 = Jan, 1 = Feb, ..., 11 = Dec
+
+    $('#month option').each(function (index) {
+        if (index > currentMonthIndex) {
+            $(this).remove(); // remove future months
+        }
     });
+    });
+
+         function goBack() {
+        window.history.back(); 
+    }
 
     function BindBranchDropdown() {
         $.ajax({
@@ -340,6 +351,13 @@
                     e.cancel = true;
                 }
             },
+              onContentReady: function (e) {
+            if (data && data.length > 0) {
+                $("#saveButtonContainer").show();
+            } else {
+                $("#saveButtonContainer").hide();
+            }
+        },
             columns: [
                 { dataField: "for_Date", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
                 { dataField: "fullName", caption: "Employee", allowEditing: false },
@@ -483,80 +501,104 @@
 
 
 
-
-    $('#btnSaveGridData').on('click', function () {
+     $('#btnSaveGridData').on('click', function () {
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
         gridInstance.saveEditData();
 
         const selectedRows = gridInstance.getSelectedRowsData();
 
         if (selectedRows.length === 0) {
-            $('#validationMsg').text("Please select at least one row to save.");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select at least one row to save.'
+            });
             return;
         }
 
         const empId = $('#employeeDropdown').val();
         if (!empId) {
-            $('#validationMsg').text("Please select an employee.");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select an employee.'
+            });
             return;
         }
 
-        const rowsToSave = selectedRows
-            .filter(row => row.reason && row.reason.trim() !== "")
-            .map(row => ({
-                EmpId: empId,
-                FullName: row.fullName || "",
-                BranchName: row.branchName || "",
-                ForDate: row.for_Date || row.forDate,
-                ShiftTime: row.shiftTime || "",
-                InTime: row.in_Time,
-                OutTime: row.out_Time,
-                Duration: row.workingHours || "00:00:00",
-                Day: row.dayType || "",
-                Status: row.status || "",
-                Reason: row.reason || "",
-                IsApproved: false,
-                IsPending: true,
-                IsRejected: false,
-                IsLocked: false,
-            }));
+        const validRows = [];
+        selectedRows.forEach(row => {
+            const reason = row.reason?.trim();
+            const dayType = row.dayType?.trim();
 
-        if (rowsToSave.length === 0) {
-            $('#validationMsg').text("Please provide reason before saving.");
+            if (reason && dayType) {
+                validRows.push({
+                    EmpId: empId,
+                    FullName: row.fullName || "",
+                    BranchName: row.branchName || "",
+                    ForDate: row.for_Date || row.forDate,
+                    ShiftTime: row.shiftTime || "",
+                    InTime: row.in_Time,
+                    OutTime: row.out_Time,
+                    Duration: row.workingHours || "00:00:00",
+                    Day: dayType,
+                    Status: row.status || "",
+                    Reason: reason,
+                    IsApproved: false,
+                    IsPending: true,
+                    IsRejected: false,
+                    IsLocked: false
+                });
+            }
+        });
+
+        if (validRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select reason and day type for selected row(s).'
+            });
             return;
         }
 
+        // Save via AJAX
         $.ajax({
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/CreateAttendanceRegularization")',
             type: "POST",
             contentType: "application/json",
-            data: JSON.stringify(rowsToSave),
+            data: JSON.stringify(validRows),
             success: function (response) {
                 if (response?.isSuccess) {
                     round_success_noti(response.responseMessage || "Saved successfully.");
-                    gridInstance.clearSelection();
+                   $("#dxRadioGrid").dxDataGrid("instance").refresh();             
+
                     $("#btnGo").trigger("click");
-                    $('#validationMsg').text(""); // Clear validation message
                 } else {
-                    $('#validationMsg').text("Save failed: " + (response?.responseMessage || "Unknown error"));
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Save Failed',
+                        text: response?.responseMessage || "Unknown error"
+                    });
                 }
             },
             error: function (xhr) {
-                $('#validationMsg').text("Server error: " + xhr.status + " - " + xhr.statusText);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: xhr.status + " - " + xhr.statusText
+                });
             }
         });
     });
 
 
-        $('.back-btn button').on('click', function () {
-        window.history.back(); // Go to previous page
-    });
 
-        $('.btn-custom:contains("Clear")').on('click', function () {
+
+          $('.btn-custom:contains("Clear")').on('click', function () {
         $('#branch').val('');
         $('#month').val('January');
         $('#year').val(new Date().getFullYear());
-        $('#recordtype').val('all');
+        $('#recordtype').val('All');
         $('#employeeDropdown').val('');
             clearValidationErrors();
         // Clear the grid
