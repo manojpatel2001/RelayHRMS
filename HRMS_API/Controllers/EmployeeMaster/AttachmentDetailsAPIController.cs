@@ -15,10 +15,13 @@ namespace HRMS_API.Controllers.EmployeeMaster
     public class AttachmentDetailsAPIController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IConfiguration _configuration;
 
-        public AttachmentDetailsAPIController(IUnitOfWork unitOfWork)
+
+        public AttachmentDetailsAPIController(IUnitOfWork unitOfWork, IConfiguration configuration)
         {
             _unitOfWork = unitOfWork;
+            _configuration = configuration;
         }
 
         [HttpGet("GetAllAttachmentDetails/{EmployeeId}")]
@@ -71,9 +74,14 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Attachment file cannot be null." };
                 }
-                
+                var baseUrl = _configuration["BaseUrlSettings:BaseUrl"];
+                if (string.IsNullOrEmpty(baseUrl))
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please trye again" };
+
+                }
                 var folder = $"uploads/employeeattachment";
-                var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.AttachmentFile, folder, null);
+                var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, model.AttachmentFile, folder, null);
                 if (!string.IsNullOrEmpty(fileUrl))
                 {
                     model.DocumentUrl = fileUrl;
@@ -109,12 +117,18 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 if (existing == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Record not found." };
 
+                var baseUrl = _configuration["BaseUrlSettings:BaseUrl"];
+                if (string.IsNullOrEmpty(baseUrl))
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please trye again" };
+
+                }
                 if (model.AttachmentFile != null)
                 {
                     if (model.AttachmentFile.Length > 0)
                     {
                         var folder = $"uploads/employeeattachment";
-                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.AttachmentFile, folder, existing.DocumentUrl);
+                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, model.AttachmentFile, folder, existing.DocumentUrl);
                         if (!string.IsNullOrEmpty(fileUrl))
                         {
                             model.DocumentUrl = fileUrl;

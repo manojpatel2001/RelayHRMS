@@ -17,10 +17,12 @@ namespace HRMS_API.Controllers.OtherMaster
     {
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IConfiguration _configuration;
 
-        public OrganizationPolicyAPIController(IUnitOfWork unitOfWork)
+        public OrganizationPolicyAPIController(IUnitOfWork unitOfWork, IConfiguration configuration )
         {
             _unitOfWork = unitOfWork;
+            _configuration = configuration;
         }
 
         [HttpGet("GetAllOrganizationPolicy")]
@@ -108,11 +110,17 @@ namespace HRMS_API.Controllers.OtherMaster
                         return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{Policy.OrganizationPolicyName}' already exists" };
                     }
 
+                    var baseUrl = _configuration["BaseUrlSettings:BaseUrl"];
+                    if (string.IsNullOrEmpty(baseUrl))
+                    {
+                        return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please trye again" };
+
+                    }
                     if (Policy.DocumentFile != null)
                     {
 
                         var folder = "uploads/organizationpolicy";
-                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, Policy.DocumentFile, folder, null);
+                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, Policy.DocumentFile, folder, null);
                         Policy.DocumentUrl= fileUrl;
                     }
 
@@ -142,11 +150,17 @@ namespace HRMS_API.Controllers.OtherMaster
                         return new APIResponse() { isSuccess = false, ResponseMessage = $"Please select valid record" };
                     }
 
+                    var baseUrl = _configuration["BaseUrlSettings:BaseUrl"];
+                    if (string.IsNullOrEmpty(baseUrl))
+                    {
+                        return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please trye again" };
+
+                    }
                     if (Policy.DocumentFile != null)
                     {
 
                         var folder = "uploads/organizationpolicy";
-                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, Policy.DocumentFile, folder, checkValidId.DocumentUrl);
+                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, Policy.DocumentFile, folder, checkValidId.DocumentUrl);
                         Policy.DocumentUrl = fileUrl;
                     }
 
@@ -205,11 +219,17 @@ namespace HRMS_API.Controllers.OtherMaster
                     Policy.DocumentUrl = null;
                 }
 
+                var baseUrl = _configuration["BaseUrlSettings:BaseUrl"];
+                if (string.IsNullOrEmpty(baseUrl))
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please trye again" };
+
+                }
                 if (Policy.DocumentFile != null )
                 {
 
                     var folder = "uploads/organizationpolicy";
-                    var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, Policy.DocumentFile, folder, checkValidId.DocumentUrl);
+                    var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, Policy.DocumentFile, folder, checkValidId.DocumentUrl);
                     Policy.DocumentUrl = fileUrl;
                 }
 

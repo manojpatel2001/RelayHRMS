@@ -10,7 +10,8 @@ namespace HRMS_Core.Helper
 {
     public static class UploadDocument
     {
-        public static async Task<string?> UploadAndReplaceDocumentAsync(HttpRequest request, IFormFile document, string folderName, string? existingFileName = null)
+
+        public static async Task<string?> UploadAndReplaceDocumentAsync(string baseUrl, IFormFile document, string folderName, string? existingFileName = null)
         {
             try
             {
@@ -45,10 +46,8 @@ namespace HRMS_Core.Helper
                 }
 
                 // Build full URL
-                var baseUrl = UriHelper.GetDisplayUrl(request);
-                var uri = new Uri(baseUrl);
-                var apiBase = $"{uri.Scheme}://{uri.Host}{(uri.IsDefaultPort ? "" : ":" + uri.Port)}";
-                var fileUrl = $"{apiBase}/{folderName.Replace("\\", "/")}/{newFileName}";
+               
+                var fileUrl = $"{baseUrl}/{folderName.Replace("\\", "/")}/{newFileName}";
 
                 return fileUrl;
             }

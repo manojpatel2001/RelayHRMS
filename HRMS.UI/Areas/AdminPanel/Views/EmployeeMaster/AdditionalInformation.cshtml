@@ -489,9 +489,9 @@
 					<span><strong>Profile Last Updated By:</strong><span id="createdBy"></span>
 						<span id="lastUpdatedBy"></span>
 				     </span>
-					<span class="text-danger cursor-pointer " id="viewEmployeeHistroy">
+					@* <span class="text-danger cursor-pointer " id="viewEmployeeHistroy">
 						<i class="fas fa-history"></i> View Employee History
-					</span>
+					</span> *@
 				</div>
 			</div>
 		</div>
@@ -707,26 +707,34 @@
 		return index;
 	}
 
-	    function getAgeFromDOB(dob) {
-			var birthDate = new Date(dob);
-			var today = new Date();
-			var age = today.getFullYear() - birthDate.getFullYear();
-			var m = today.getMonth() - birthDate.getMonth();
+  async function getAgeFromDOB(dob) {
+			const birthDate = new Date(dob);
+			const today = new Date();
 
-			if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-				age--;
+			let years = today.getFullYear() - birthDate.getFullYear();
+			let months = today.getMonth() - birthDate.getMonth();
+			const days = today.getDate() - birthDate.getDate();
+
+			if (days < 0) {
+				months--;
 			}
 
-			return age;
+			if (months < 0) {
+				years--;
+				months += 12;
+			}
+
+			return { years, months };
 		}
 
+
 	// Sample fill function
-		function fillEmployeeForm(employee) {
+		async function fillEmployeeForm(employee) {
 		// Set values into form fields, handling null or undefined values directly
 		$('#EmployeeId').val(employee.id || '');
 		CurrentEmployeeId = employee.id || '';
-
 		// Personal Information
+		debugger;
 			 $('#createdBy').text(employee.createdByName || '');
 		$('#ddlInitial').val(employee.initial || '');
 		$('#txtFirstName').val(employee.firstName || '');
@@ -735,7 +743,7 @@
 		$('#txtEmpCode').val(employee.alfaCode || '');
 		$('#txtNumberEmpCode').val(employee.employeeCode || '');
 		$('#doj').val(formatDate(employee.dateOfJoining) || '');
-		bindBranch();
+		// bindBranch();
 		$('#ddlBranch').val(employee.branchId || '');
 		LoadWeekOffMaster();
 		$('#ddlGrade').val(employee.gradeId || '');
@@ -747,8 +755,8 @@
 				loadLiveSalaryAllowance();
 			}
 			else{
-					  $("#SalaryContainer").hide();
-					  $("#salaryNoFound").show();
+				$("#SalaryContainer").hide();
+				$("#salaryNoFound").show();
 			}
 		$('#ddlCategory').val(employee.categoryId || '');
 		$('#ddlDepartment').val(employee.departmentId || '');
@@ -772,13 +780,27 @@
 			$('#txtLoginAlias').val(parts[0] || '');
 			$('#txtDomainName').text(parts[1] ? '@@' + parts[1] : '');
 		}
-
 		// Personal Info
-			if(employee.dateOfBirth)
-			{
-			 $('#empAge').text(getAgeFromDOB(employee.dateOfBirth));
+		if (employee.dateOfBirth) {
+			const age = await getAgeFromDOB(employee.dateOfBirth);
+			let ageText = '';
+
+			if (age.years > 0) {
+				ageText += `${age.years} Year${age.years > 1 ? 's' : ''} `;
 			}
-		
+
+			if (age.months > 0) {
+				ageText += `${age.months} Month${age.months > 1 ? 's' : ''}`;
+			}
+
+			// If both years and months are zero, show nothing or something else:
+			if (ageText === '') {
+				ageText = 'Age not available'; // or ''
+			}
+
+			$('#empAge').text(ageText.trim());
+		}
+
 		$('#ddlGender').val(employee.gender || 'Male');
 		$('#inpPersonalEmailId').val(employee.personalEmailId || '');
 		$('#inpFatherName').val(employee.fatherName || '');
@@ -1512,7 +1534,8 @@
 					success: function(response) {
 						if (response.isSuccess) {
 						round_success_noti(response.responseMessage);
-							// resetAllEmployeeData(response.data)
+							 getEmployeeDetailsByCompanyId(CurrentCompanyId);
+
 						} else {
 							round_error_noti(response.responseMessage);
 						}
