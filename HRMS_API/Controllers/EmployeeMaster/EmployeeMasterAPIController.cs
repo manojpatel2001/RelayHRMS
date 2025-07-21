@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using System.Configuration;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HRMS_API.Controllers.EmployeeMaster
@@ -26,11 +27,15 @@ namespace HRMS_API.Controllers.EmployeeMaster
         private readonly UserManager<HRMSUserIdentity> _userManager;
         
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IConfiguration _configuration;
 
-        public EmployeeMasterAPIController(IUnitOfWork unitOfWork, UserManager<HRMSUserIdentity> userManager)
+        
+
+        public EmployeeMasterAPIController(IUnitOfWork unitOfWork, UserManager<HRMSUserIdentity> userManager, IConfiguration configuration)
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
+            _configuration = configuration;
         }
 
 
@@ -525,12 +530,19 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 if (check == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid  record." };
 
+                var baseUrl = _configuration["BaseUrlSettings:BaseUrl"];
+                if (string.IsNullOrEmpty(baseUrl))
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please trye again" };
+
+                }
                 if (model.EmployeeProfileFile != null )
                 {
                     if (model.EmployeeProfileFile.Length > 0)
                     {
+                       
                         var folder = $"uploads/employeeprofile";
-                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.EmployeeProfileFile, folder, check.EmployeeProfileUrl);
+                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, model.EmployeeProfileFile, folder, check.EmployeeProfileUrl);
                         model.EmployeeProfileUrl = fileUrl;
                     }
                     else
@@ -548,7 +560,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     if (model.EmployeeSignatureFile.Length > 0)
                     {
                         var folder = $"uploads/employeesignature";
-                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, model.EmployeeSignatureFile, folder, check.EmployeeSignatureUrl);
+                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, model.EmployeeSignatureFile, folder, check.EmployeeSignatureUrl);
                         model.EmployeeSignatureUrl = fileUrl;
                     }
                     else
