@@ -2,6 +2,7 @@
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.importData;
+using HRMS_Core.VM.Salary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<bool> UpdateEmpAttendance(EmpAttendanceImport empAttendanceImport);
         Task<EmpAttendanceImport> SoftDelete(DeleteRecordVM DeleteRecord);
         Task<List<EmpAttendanceVM>> GetEmpAttendanceDataAsync(SearchFilterModel filter);
+      Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm);
 
     }
 }

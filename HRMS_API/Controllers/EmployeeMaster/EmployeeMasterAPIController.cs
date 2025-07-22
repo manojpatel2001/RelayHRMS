@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Configuration;
+using System.Linq;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HRMS_API.Controllers.EmployeeMaster
@@ -697,6 +698,64 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
+
+
+
+
+        [HttpGet("GetAllEmployeeByBranchId")]
+        public async Task<APIResponse> GetAllEmployeeByBranchId([FromQuery] string? BranchIds)
+        {
+            try
+            {
+                List<int> branchIdList = new List<int>();
+
+                if (!string.IsNullOrWhiteSpace(BranchIds))
+                {
+                    branchIdList = BranchIds
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(id => int.TryParse(id.Trim(), out int val) ? val : (int?)null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id.Value)
+                        .ToList();
+                }
+
+                // Check: if 0 is in the list → treat it as "all branches"
+                bool showAll = branchIdList.Count == 0 || branchIdList.Contains(0);
+
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync(x =>
+                    (showAll || (x.BranchId.HasValue && branchIdList.Contains(x.BranchId.Value))) &&
+                    x.IsDeleted == false &&
+                    x.IsEnabled == true &&
+                    x.IsBlocked == false
+                );
+
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Record not found"
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = ex.Message,
+                    ResponseMessage = "Unable to retrieve records. Please try again later."
+                };
+            }
+        }
+
 
 
     }

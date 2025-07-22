@@ -20,6 +20,7 @@ using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Core.VM.PrivilegeSetting;
+using HRMS_Core.VM.Salary;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -171,6 +172,8 @@ namespace HRMS_Core.DbContext
 
             modelBuilder.Entity<EmpInOutVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<LeaveTypevm>().HasNoKey().ToView(null);
+            modelBuilder.Entity<SalaryReportDTO>().HasNoKey().ToView(null);
+            modelBuilder.Entity<MonthlySalaryRequestViewModel>().HasNoKey().ToView(null);
 
 
         }
