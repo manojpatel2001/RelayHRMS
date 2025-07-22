@@ -195,7 +195,7 @@ public class ImportDataController : ControllerBase
                 expectedHeaders = new List<string> { "City_Name", "State_Name", "Country", "Category", "Entry_Type" };
                 break;
 
-            case "Holiday Master":
+            case "Holiday ":
                 expectedHeaders = new List<string>
             {
                "Holiday_Name", "Branch_Name", "From_Date", "To_Date", "Holiday_Category", "Repeat_Annually", "Half_Day", "Present_Compulsory" , "Optional_Holiday", "Approval_Max_Limit", "Unpaid_Holiday"
