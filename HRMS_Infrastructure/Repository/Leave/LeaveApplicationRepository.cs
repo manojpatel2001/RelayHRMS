@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Leave;
+using HRMS_Core.VM;
 using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface.Leave;
 using Microsoft.Data.SqlClient;
@@ -149,6 +150,24 @@ namespace HRMS_Infrastructure.Repository.Leave
             {
                 Console.WriteLine("InsertLeaveApplicationAsync Error: " + ex.Message);
                 return false;
+            }
+        }
+
+        public async Task<bool> softdelete(LeaveApplication Leave)
+        {
+            var leave = await _db.LeaveApplication.FirstOrDefaultAsync(asd => asd.FromDate == Leave.FromDate);
+            if (leave == null)
+            {
+                return false;
+            }
+            else
+            {
+                leave.IsEnabled = false;
+                leave.IsDeleted = true;
+                leave.DeletedDate = DateTime.UtcNow;
+                leave.DeletedBy = Leave.EmplooyeId?.ToString();
+
+                return true;
             }
         }
 

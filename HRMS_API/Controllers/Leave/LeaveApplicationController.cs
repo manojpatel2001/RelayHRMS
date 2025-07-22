@@ -29,10 +29,28 @@ namespace HRMS_API.Controllers.Leave
             {
                 Leave.CreatedDate = DateTime.Now;
                 Leave.LeaveStatus = "Pending";
+
+                var isexist = await _unitOfWork.LeaveApplicationRepository.GetAsync(asp => asp.EmplooyeId == Leave.EmplooyeId && asp.FromDate == Leave.FromDate && asp.Todate == Leave.Todate);
+             
+                if (isexist != null)
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Alredy leave applyed for this period" };
+
+
+                }
+                var isexistfromdate = await _unitOfWork.LeaveApplicationRepository.GetAsync(asp => asp.EmplooyeId == Leave.EmplooyeId && asp.FromDate == Leave.FromDate && asp.Todate != Leave.Todate);
+
+                if (isexistfromdate != null)
+                {
+                    var issoftdelete = await _unitOfWork.LeaveApplicationRepository.softdelete(Leave);
+
+                }
+
+
                 var isSaved = await _unitOfWork.LeaveApplicationRepository.InsertLeaveApplicationAsync(Leave);
 
                 if (!isSaved)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to insert Comp Off details." };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to insert leave details." };
 
                 return new APIResponse { isSuccess = true, ResponseMessage = "Records Added successfully." };
             }
