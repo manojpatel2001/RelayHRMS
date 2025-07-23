@@ -90,7 +90,7 @@ namespace HRMS_Infrastructure.Interface
         IReportingManagerDetailsRepository ReportingManagerDetailsRepository { get; }
 
         IEmployeeDashboardRepository EmployeeDashboardRepository { get; }
-
+        IMonthlySalaryDetailsRepository MonthlySalaryDetailsRepository { get; }
         void Commit();
         Task CommitAsync();
     }

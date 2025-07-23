@@ -88,29 +88,7 @@ namespace HRMS_Infrastructure.Repository.Salary
         }
 
 
-        public async Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm)
-        {
-
-            try
-            {
-                var stratdate = new SqlParameter("@StartDate", (object?)vm.StartDate ?? DBNull.Value);
-                var enddate = new SqlParameter("@EndDate", (object?)vm.EndDate ?? DBNull.Value);
-                var employeecodes = new SqlParameter("@EmployeeCodes", (object?)vm.EmployeeCodes ?? DBNull.Value);
-                var branchidParam = new SqlParameter("@BranchId", (object?)vm.BranchId ?? DBNull.Value);
-                var action = new SqlParameter("@Action", (object?)vm.Action ?? DBNull.Value);
-
-
-                return await _db.Set<SalaryReportDTO>()
-              .FromSqlRaw("EXEC [dbo].[USP_CalculateMonthlySalary1] @StartDate, @EndDate, @EmployeeCodes,@BranchId,@Action",
-                  stratdate, enddate, employeecodes, branchidParam, action)
-              .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-
-                return new List<SalaryReportDTO>();
-            }
-        }
+  
 
     }
 }

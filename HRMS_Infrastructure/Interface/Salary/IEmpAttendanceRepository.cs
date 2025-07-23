@@ -16,7 +16,6 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<bool> UpdateEmpAttendance(EmpAttendanceImport empAttendanceImport);
         Task<EmpAttendanceImport> SoftDelete(DeleteRecordVM DeleteRecord);
         Task<List<EmpAttendanceVM>> GetEmpAttendanceDataAsync(SearchFilterModel filter);
-      Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm);
 
     }
 }
