@@ -1,3 +1,4 @@
+using HRMS_API.Services;
 using HRMS_Core.DbContext;
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Repository;
@@ -68,6 +69,8 @@ builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+// Register FileUploadService
+builder.Services.AddScoped<FileUploadService>();
 
 var app = builder.Build();
 

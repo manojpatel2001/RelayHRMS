@@ -1,4 +1,8 @@
-﻿var CompnayList = [];
+﻿
+
+
+
+var CompnayList = [];
 var token = localStorage.getItem("authToken");
 var decoded = "";
 if (token) {

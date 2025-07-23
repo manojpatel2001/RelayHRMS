@@ -1,5 +1,5 @@
-﻿using HRMS_Core.ControlPanel.CompanyInformation;
-using HRMS_Core.Helper;
+﻿using HRMS_API.Services;
+using HRMS_Core.ControlPanel.CompanyInformation;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Infrastructure.Interface;
@@ -17,12 +17,13 @@ namespace HRMS_API.Controllers.CompanyInformation
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHttpClientFactory _clientFactory;
         private readonly IConfiguration _configuration;
-
-        public CompanyDetailsAPIController(IUnitOfWork unitOfWork, IHttpClientFactory clientFactory, IConfiguration configuration)
+        private readonly FileUploadService _fileUploadService;
+        public CompanyDetailsAPIController(IUnitOfWork unitOfWork, IHttpClientFactory clientFactory, IConfiguration configuration, FileUploadService fileUploadService)
         {
             _unitOfWork = unitOfWork;
             _clientFactory = clientFactory;
-            _configuration = configuration; ;
+            _configuration = configuration;
+            _fileUploadService = fileUploadService;
         }
 
         [HttpGet("GetAllCompanyDetails")]
@@ -209,18 +210,21 @@ namespace HRMS_API.Controllers.CompanyInformation
                 var check = await _unitOfWork.CompanyDetailsRepository.GetByCompanyId((int)model.companyId);
                 if (check == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid company record." };
-                var baseUrl = _configuration["BaseUrlSettings:BaseUrl"];
-                if (string.IsNullOrEmpty(baseUrl))
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please trye again" };
 
-                }
-                if (model.LogoFile != null || model.LogoFile.Length>0)
+                if (model.LogoFile != null )
                 {
+                    if (model.LogoFile.Length >= 0)
+                    {
+                        var folder = $"uploads/companylogo";
+                        var fileUrl = await _fileUploadService.UploadAndReplaceDocumentAsync( model.LogoFile, folder, null);
+                        if (string.IsNullOrEmpty(fileUrl))
+                        {
+                            return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please try again later." };
 
-                    var folder = $"uploads/companylogo";
-                    var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, model.LogoFile, folder, null);
-                    model.CompanyLogoUrl = fileUrl;
+                        }
+                        model.CompanyLogoUrl = fileUrl;
+                    }
+                   
                 }
                 var result = await _unitOfWork.CompanyDetailsRepository.UpdateCompanyLogo(model);
 
@@ -253,19 +257,34 @@ namespace HRMS_API.Controllers.CompanyInformation
 
                 }
 
-                if (model.LetterHeadHeaderFile != null || model.LetterHeadHeaderFile.Length > 0)
+                if (model.LetterHeadHeaderFile != null)
                 {
+                    if (model.LetterHeadHeaderFile.Length > 0)
+                    {
+                        var folder = $"uploads/companyletterhead";
+                        var fileUrl = await _fileUploadService.UploadAndReplaceDocumentAsync(model.LetterHeadHeaderFile, folder, null);
+                        if (string.IsNullOrEmpty(fileUrl))
+                        {
+                            return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please try again later." };
 
-                    var folder = $"uploads/companyletterhead";
-                    var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, model.LetterHeadHeaderFile, folder, null);
-                    model.LetterHeadHeaderUrl = fileUrl;
+                        }
+
+                        model.LetterHeadHeaderUrl = fileUrl;
+                    }
                 }
-                if (model.LetterHeadFooterFile != null || model.LetterHeadFooterFile.Length > 0)
+                if (model.LetterHeadFooterFile != null)
                 {
+                    if (model.LetterHeadFooterFile.Length > 0)
+                    {
+                        var folder = $"uploads/companyletterhead";
+                        var fileUrl = await _fileUploadService.UploadAndReplaceDocumentAsync(model.LetterHeadFooterFile, folder, null);
+                        if (string.IsNullOrEmpty(fileUrl))
+                        {
+                            return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please try again later." };
 
-                    var folder = $"uploads/companyletterhead";
-                    var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, model.LetterHeadFooterFile, folder, null);
-                    model.LetterHeadFooterUrl = fileUrl;
+                        }
+                        model.LetterHeadFooterUrl = fileUrl;
+                    }
                 }
                 var result = await _unitOfWork.CompanyDetailsRepository.UpdateLetterHead(model);
 
@@ -291,18 +310,19 @@ namespace HRMS_API.Controllers.CompanyInformation
                 if (check == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid company record." };
 
-                var baseUrl = _configuration["BaseUrlSettings:BaseUrl"];
-                if (string.IsNullOrEmpty(baseUrl))
+                if (model.DigitalSignatureFile != null)
                 {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please trye again" };
+                    if (model.DigitalSignatureFile.Length > 0)
+                    {
+                        var folder = $"uploads/companydigitalsignature";
+                        var fileUrl = await _fileUploadService.UploadAndReplaceDocumentAsync(model.DigitalSignatureFile, folder, null);
+                        if (string.IsNullOrEmpty(fileUrl))
+                        {
+                            return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please try again later." };
 
-                }
-                if (model.DigitalSignatureFile != null || model.DigitalSignatureFile.Length > 0)
-                {
-
-                    var folder = $"uploads/companydigitalsignature";
-                    var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, model.DigitalSignatureFile, folder, null);
-                    model.DigitalSignatureUrl = fileUrl;
+                        }
+                        model.DigitalSignatureUrl = fileUrl;
+                    }
                 }
                 // Hash the password before saving it to the database
                 if (!string.IsNullOrEmpty(model.DigitalSignaturePassword))
