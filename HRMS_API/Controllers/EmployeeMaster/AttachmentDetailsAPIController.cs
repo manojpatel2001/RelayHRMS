@@ -1,5 +1,5 @@
-﻿using HRMS_Core.EmployeeMaster;
-using HRMS_Core.Helper;
+﻿using HRMS_API.Services;
+using HRMS_Core.EmployeeMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.ManagePermision;
@@ -16,12 +16,13 @@ namespace HRMS_API.Controllers.EmployeeMaster
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
+        private readonly FileUploadService _fileUploadService;
 
-
-        public AttachmentDetailsAPIController(IUnitOfWork unitOfWork, IConfiguration configuration)
+        public AttachmentDetailsAPIController(IUnitOfWork unitOfWork, IConfiguration configuration, FileUploadService fileUploadService)
         {
             _unitOfWork = unitOfWork;
             _configuration = configuration;
+            _fileUploadService = fileUploadService;
         }
 
         [HttpGet("GetAllAttachmentDetails/{EmployeeId}")]
@@ -74,21 +75,25 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Attachment file cannot be null." };
                 }
-                var baseUrl = _configuration["BaseUrlSettings:BaseUrl"];
-                if (string.IsNullOrEmpty(baseUrl))
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please trye again" };
 
-                }
-                var folder = $"uploads/employeeattachment";
-                var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, model.AttachmentFile, folder, null);
-                if (!string.IsNullOrEmpty(fileUrl))
+                if (model.AttachmentFile != null)
                 {
-                    model.DocumentUrl = fileUrl;
+                    if (model.AttachmentFile.Length > 0)
+                    {
+                        var folder = $"uploads/employeeattachment";
+                        var fileUrl = await _fileUploadService.UploadAndReplaceDocumentAsync(model.AttachmentFile, folder, null);
+                        if (string.IsNullOrEmpty(fileUrl))
+                        {
+                            return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please try again later." };
+
+                        }
+                        model.DocumentUrl = fileUrl;
+                    }
                 }
+                
                 else
                 {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Unable to upload document" };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "File can not be empty." };
 
                 }
 
@@ -117,26 +122,19 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 if (existing == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Record not found." };
 
-                var baseUrl = _configuration["BaseUrlSettings:BaseUrl"];
-                if (string.IsNullOrEmpty(baseUrl))
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please trye again" };
-
-                }
+                
                 if (model.AttachmentFile != null)
                 {
                     if (model.AttachmentFile.Length > 0)
                     {
                         var folder = $"uploads/employeeattachment";
-                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(baseUrl, model.AttachmentFile, folder, existing.DocumentUrl);
-                        if (!string.IsNullOrEmpty(fileUrl))
+                        var fileUrl = await _fileUploadService.UploadAndReplaceDocumentAsync(model.AttachmentFile, folder, existing.DocumentUrl);
+                        if (string.IsNullOrEmpty(fileUrl))
                         {
+                            return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please try again later." };
+
+                        }
                             model.DocumentUrl = fileUrl;
-                        }
-                        else
-                        {
-                            return new APIResponse { isSuccess = false, ResponseMessage = "Unable to upload document" };
-                        }
                     }
                 }
                 else
