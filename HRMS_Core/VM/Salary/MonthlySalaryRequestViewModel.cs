@@ -15,4 +15,12 @@ namespace HRMS_Core.VM.Salary
         public int? BranchId { get; set; }
         public string? Action { get; set; }
     }
+
+    public class SalaryDetailsParameterVm
+    {
+        public int Month { get; set; }
+        public int Year { get; set; }
+        public string? EmployeeCodes { get; set; }
+        public int? BranchId { get; set; }
+    }
 }

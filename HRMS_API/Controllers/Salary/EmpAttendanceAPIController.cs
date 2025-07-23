@@ -195,29 +195,6 @@ namespace HRMS_API.Controllers.Salary
 
 
 
-        [HttpPost("GetMonthlySalary")]
-        public async Task<APIResponse> GetMonthlySalary(MonthlySalaryRequestViewModel vm)
-        {
-            try
-            {
-                var data = await _unitOfWork.EmpAttendanceRepository.GetMonthlySalaryData(vm);
-
-                return new APIResponse()
-                {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Record fetched successfully"
-                };
-            }
-            catch (Exception err)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = null,
-                    ResponseMessage = $"Error: {err.Message}"
-                };
-            }
-        }
+      
     }
 }

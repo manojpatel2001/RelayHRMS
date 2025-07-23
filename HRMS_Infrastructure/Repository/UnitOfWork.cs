@@ -108,6 +108,7 @@ namespace HRMS_Infrastructure.Repository
             ReportingManagerDetailsRepository = new ReportingManagerDetailsRepository(_dbContext);
 
             EmployeeDashboardRepository = new EmployeeDashboardRepository(_dbContext);
+            MonthlySalaryDetailsRepository =new MonthlySalaryDetailsRepository(_dbContext);
 
         }
 
@@ -190,6 +191,9 @@ namespace HRMS_Infrastructure.Repository
         public IReportingManagerDetailsRepository ReportingManagerDetailsRepository { get; set; }
 
         public IEmployeeDashboardRepository EmployeeDashboardRepository { get; set; }
+
+        public IMonthlySalaryDetailsRepository MonthlySalaryDetailsRepository { get; set; }
+
         public void Commit()
         {
             _dbContext.SaveChanges();

@@ -4,7 +4,9 @@
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
     var uri = new Uri(baseUrl);
-    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}"; 
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+
 }
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -135,7 +137,13 @@
     </div>
 </div>
 
-<div id="salaryGridContainer" class="mt-4"></div>
+<div id="salaryGridContainer" class="mt-4"></div>   
+
+<div class="col-md-12 text-center mt-3">
+    <button id="btnProcessSalary" >Process </button>
+    <button id="btnProcessSalary">clear </button>
+
+</div>
 <script>
     $(document).ready(function () {
            let selectedBranchIds = [0];
@@ -262,7 +270,7 @@ const empCodes = employeeIds && employeeIds.length > 0
 
     $.ajax({
         type: "POST",
-        url: '@(baseDomainUrl + "/api/EmpAttendanceAPI/GetMonthlySalary")',
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetMonthlySalary")',
         data: JSON.stringify(requestData),
         contentType: "application/json",
         success: function (response) { 
@@ -286,6 +294,10 @@ function RenderSalaryGrid(data) {
         keyExpr: "employeeId",
         showBorders: true,
         columnAutoWidth: true,
+                 selection: {
+                mode: "multiple", // Enables multiple row selection
+                showCheckBoxesMode: "always" // Always show checkboxes
+            },
         columns: [
     { dataField: "employeeId", caption: "Employee ID", visible: false },
     { dataField: "employeeCode", caption: "Code" },
@@ -340,6 +352,87 @@ function RenderSalaryGrid(data) {
         }
     });
 }
+
+
+    $('#btnProcessSalary').on('click', function () { 
+        const selectedMonth = $('#month').val();
+        const selectedYear = $('#year').val();
+               if (!selectedMonth) {
+            Swal.fire("Validation", "Please select a month.", "warning");
+            return;
+        }
+
+        if (!selectedYear) {
+            Swal.fire("Validation", "Please select a year.", "warning");
+            return;
+        }
+        const monthNumber = new Date(Date.parse(selectedMonth + " 1, 2000")).getMonth() + 1;
+        const startDate = `${selectedYear}-${monthNumber.toString().padStart(2, '0')}-01`;
+        const endDate = new Date(selectedYear, monthNumber, 0).toISOString().slice(0, 10);
+
+        const branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
+
+    const selectedGridRows = $("#salaryGridContainer").dxDataGrid("instance").getSelectedRowsData();
+            const empCodes = selectedGridRows.map(emp => emp.employeeCode).join(",");
+
+        if (!empCodes) {
+            Swal.fire("Validation", "Please select at least one employee from the grid.", "warning");
+            return;
+        }
+
+        const requestData = {
+            StartDate: startDate,
+            EndDate: endDate,
+            EmployeeCodes: empCodes,
+            BranchId: branchIds[0], // Assuming single branch
+            Action: "Insert"
+        };
+
+           processSalaryInsert(requestData);
+    });
+
+
+
+        function processSalaryInsert(payload) {
+        $.ajax({
+            type: "POST",
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/CreateMonthlySalary")',
+            data: JSON.stringify(payload),
+            contentType: "application/json",
+            success: function (response) {
+                if (response.isSuccess) {
+                    Swal.fire({
+                        title: 'Success',
+                        text: response.responseMessage || "Monthly Salary inserted successfully.",
+                        icon: 'success',
+                        confirmButtonText: 'Go to Salary Details'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                                const monthName  = $('#month').val();
+                                const month = new Date(Date.parse(monthName + " 1, 2000")).getMonth() + 1;
+                            const year = $('#year').val();
+                            const selectedRows = $("#salaryGridContainer").dxDataGrid("instance").getSelectedRowsData();
+                            const empCodes = selectedRows.map(emp => emp.employeeCode).join(",");
+                            const branchId = $("#branchDropdown").dxTagBox("instance").option("value")[0];
+
+                            // ✅ Store filter values in localStorage
+                            localStorage.setItem("SalaryMonth", month);
+                            localStorage.setItem("SalaryYear", year);
+                            localStorage.setItem("SalaryEmpCodes", empCodes);
+                            localStorage.setItem("SalaryBranchId", branchId);
+
+                            // ✅ Redirect to home/index
+                                window.location.href = '@UIBaseUrl/AdminPanel/SalaryDetails/index';
+                        }
+                    });
+                }
+            },
+            error: function (xhr) {
+                Swal.fire("Error", "Failed to insert salary data.", "error");
+                console.log(xhr);
+            }
+        });
+    }
 
 
 </script>
