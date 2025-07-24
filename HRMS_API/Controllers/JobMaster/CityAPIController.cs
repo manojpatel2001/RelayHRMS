@@ -2,6 +2,7 @@
 using HRMS_Core.VM;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,7 @@ namespace HRMS_API.Controllers.JobMaster
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CityAPIController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
