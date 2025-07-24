@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface.JobMaster;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -15,46 +16,125 @@ namespace HRMS_Infrastructure.Repository.JobMaster
     {
         private readonly HRMSDbContext _db;
 
-        public StateRepository(HRMSDbContext db) : base(db) 
+        public StateRepository(HRMSDbContext db): base(db)
         {
             _db = db;
         }
 
-        public async Task<State> SoftDelete(DeleteRecordVM DeleteRecord)
+
+        public async Task<VMCommonResult> CreateState(State model)
         {
-            var state = await _db.States.FirstOrDefaultAsync(asd => asd.StateId == DeleteRecord.Id);
-            if (state == null)
+            try
             {
-                return state;
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC ManageState
+                        @Action = {"CREATE"},
+                        @StateName = {model.StateName},
+                        @CountryName = {model.CountryName},
+                        @PTDeductionType = {model.PTDeductionType},
+                        @PTDeductionPeriod = {model.PTDeductionPeriod},
+                        @EnrollmentCertificateNo = {model.EnrollmentCertificateNo},
+                        @ESICStateCode = {model.ESICStateCode},
+                        @ESICRegisteredOfficeAddress = {model.ESICRegisteredOfficeAddress},
+                        @ApplicablePTSettingForMale_Female = {model.ApplicablePTSettingForMale_Female},
+                        @CreatedBy = {model.CreatedBy}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
-            else
+            catch
             {
-                state.IsEnabled = false;
-                state.IsDeleted = true;
-                state.DeletedDate = DateTime.UtcNow;
-                state.DeletedBy = DeleteRecord.DeletedBy;
-                return state;
+                return new VMCommonResult { Id = 0 };
             }
         }
 
-        public async Task<bool> UpdateState(State state)
+        public async Task<VMCommonResult> UpdateState(State model)
         {
-            var existingRecord = await _db.States.SingleOrDefaultAsync(asd => asd.StateId == state.StateId);
-            if (existingRecord == null)
+            try
             {
-                return false;
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC ManageState
+                        @Action = {"UPDATE"},
+                        @StateId = {model.StateId},
+                        @StateName = {model.StateName},
+                        @CountryName = {model.CountryName},
+                        @PTDeductionType = {model.PTDeductionType},
+                        @PTDeductionPeriod = {model.PTDeductionPeriod},
+                        @EnrollmentCertificateNo = {model.EnrollmentCertificateNo},
+                        @ESICStateCode = {model.ESICStateCode},
+                        @ESICRegisteredOfficeAddress = {model.ESICRegisteredOfficeAddress},
+                        @ApplicablePTSettingForMale_Female = {model.ApplicablePTSettingForMale_Female},
+                        @UpdatedBy = {model.UpdatedBy}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
-            existingRecord.StateName = state.StateName;
-            existingRecord.CountryName = state.CountryName;
-            existingRecord.PTDeductionType = state.PTDeductionType;
-            existingRecord.PTDeductionPeriod = state.PTDeductionPeriod;
-            existingRecord.EnrollmentCertificateNo = state.EnrollmentCertificateNo;
-            existingRecord.ESICStateCode = state.ESICStateCode;
-            existingRecord.ESICRegisteredOfficeAddress = state.ESICRegisteredOfficeAddress;
-            existingRecord.ApplicablePTSettingForMale_Female = state.ApplicablePTSettingForMale_Female;
-            existingRecord.UpdatedBy = state.UpdatedBy;
-            existingRecord.UpdatedDate = DateTime.UtcNow;
-            return true;
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> DeleteState(DeleteRecordVM deleteRecord)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC ManageState
+                        @Action = {"DELETE"},
+                        @StateId = {deleteRecord.Id},
+                        @DeletedBy = {deleteRecord.DeletedBy}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        // Optional: If you have stored procedures for these
+        public async Task<List<State>> GetAllStates(vmCommonGetById filters)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(filters.Title))
+                {
+                    filters.Title = "";
+                }
+                var result = await _db.Set<State>().FromSqlInterpolated($@"
+                    EXEC GetAllStates
+                        @IsDeleted = {filters.IsDeleted},
+                        @IsEnabled = {filters.IsEnabled},
+                          @StateName={filters.Title}
+                ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<State>();
+            }
+        }
+
+        public async Task<State?> GetStateById(vmCommonGetById filter)
+        {
+            try
+            {
+                var result = await _db.Set<State>().FromSqlInterpolated($@"
+                    EXEC GetStateById
+                        @StateId = {filter.Id},
+                        @IsDeleted = {filter.IsDeleted},
+                        @IsEnabled = {filter.IsEnabled}
+                ").ToListAsync();
+
+                return result.FirstOrDefault();
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }
