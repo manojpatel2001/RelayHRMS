@@ -310,8 +310,8 @@ const empCodes = employeeIds && employeeIds.length > 0
 });
 
 
-function RenderSalaryGrid(data) {
-          $("#salaryGridContainer").dxDataGrid({
+    function RenderSalaryGrid(data) {
+           $("#salaryGridContainer").dxDataGrid({
             dataSource: data,
             keyExpr: "employeeId",
             showBorders: true,
@@ -326,24 +326,47 @@ function RenderSalaryGrid(data) {
                 allowExportSelectedData: true,
                 formats: ['xlsx'],
                 customizeExcelCell: (options) => {
-                    // Customize Excel cell formatting if needed
-                    if(options.gridCell.rowType === "header") {
+                    if (options.gridCell.rowType === "header") {
                         options.font.bold = true;
-                        options.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF3E4B6D" } };
+                        options.fill = {
+                            type: "pattern",
+                            pattern: "solid",
+                            fgColor: { argb: "FF3E4B6D" }
+                        };
                         options.font.color = { argb: "FFFFFFFF" };
                     }
                 }
             },
             onExporting: function(e) {
+                // Get selected rows
+                const selectedRowsData = e.component.getSelectedRowsData();
+
+                // Check if trying to export selected rows with none selected
+                if (e.exportMode === 'selected' && selectedRowsData.length === 0) {
+                    e.cancel = true; // This is crucial to prevent default export
+
+                    // Use DevExtreme notification instead of Swal for better integration
+                    DevExpress.ui.notify({
+                        message: "Please select at least one row to export",
+                        type: "warning",
+                        displayTime: 3000,
+                        closeOnClick: true
+                    });
+
+                    return; // Exit the function
+                }
+
+                // Proceed with custom export if validation passes
                 const workbook = new ExcelJS.Workbook();
                 const worksheet = workbook.addWorksheet('MonthlySalary');
 
-                // Add header row
+                // Add header row with styling
                 const headerRow = worksheet.addRow(
-                    e.component.getVisibleColumns().map(column => column.caption)
+                    e.component.getVisibleColumns()
+                        .filter(column => column.visible !== false)
+                        .map(column => column.caption)
                 );
 
-                // Style header row
                 headerRow.eachCell((cell) => {
                     cell.fill = {
                         type: 'pattern',
@@ -356,15 +379,19 @@ function RenderSalaryGrid(data) {
                     };
                 });
 
-                // Add data rows
-                const selectedRowsData = e.component.getSelectedRowsData();
-                const dataToExport = selectedRowsData.length > 0 ? selectedRowsData : e.component.getDataSource().items();
+                // Prepare data for export
+                const dataToExport = e.exportMode === 'selected' ?
+                    selectedRowsData :
+                    e.component.getDataSource().items();
 
+                // Add data rows
                 dataToExport.forEach((row) => {
                     const dataRow = [];
-                    e.component.getVisibleColumns().forEach(column => {
-                        dataRow.push(row[column.dataField]);
-                    });
+                    e.component.getVisibleColumns()
+                        .filter(column => column.visible !== false)
+                        .forEach(column => {
+                            dataRow.push(row[column.dataField]);
+                        });
                     worksheet.addRow(dataRow);
                 });
 
@@ -380,12 +407,22 @@ function RenderSalaryGrid(data) {
                     column.width = maxLength < 10 ? 10 : maxLength + 2;
                 });
 
-                // Generate Excel file
+                // Generate and save Excel file
                 workbook.xlsx.writeBuffer().then((buffer) => {
-                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'MonthlySalary.xlsx');
+                    saveAs(
+                        new Blob([buffer], { type: 'application/octet-stream' }),
+                        'MonthlySalary_' + new Date().toISOString().slice(0, 10) + '.xlsx'
+                    );
                 });
 
                 e.cancel = true; // Prevent default export behavior
+            },
+            onSelectionChanged: function(e) {
+                // Disable export button when no rows selected
+                const exportButton = e.component.getButton("exportButton");
+                if (exportButton) {
+                    exportButton.option("disabled", e.selectedRowsData.length === 0);
+                }
             },
             toolbar: {
                 items: [
@@ -393,9 +430,29 @@ function RenderSalaryGrid(data) {
                     {
                         widget: "dxButton",
                         options: {
+                            name: "exportButton",
                             icon: "export",
+                            hint: "Export to Excel",
+                            disabled: true, // Initially disabled
                             onClick: function() {
-                                $("#salaryGridContainer").dxDataGrid("instance").exportToExcel(false);
+                                const grid = $("#salaryGridContainer").dxDataGrid("instance");
+                                const selectedRows = grid.getSelectedRowsData();
+
+                                if (selectedRows.length === 0) {
+                                    DevExpress.ui.notify({
+                                        message: "Please select at least one row to export",
+                                        type: "warning",
+                                        displayTime: 3000,
+                                        closeOnClick: true
+                                    });
+                                    return;
+                                }
+                                grid.exportToExcel({
+                                    selectedRowsOnly: true,
+                                    customizeCell: function(options) {
+                                        // Customize cell if needed
+                                    }
+                                });
                             }
                         },
                         location: "after"
@@ -415,45 +472,37 @@ function RenderSalaryGrid(data) {
                 allowedPageSizes: [10, 20, 50],
                 showInfo: true
             },
-        columns: [
-    { dataField: "employeeId", caption: "Employee ID", visible: false },
-    { dataField: "employeeCode", caption: "Code" },
-    { dataField: "employeeName", caption: "Name" },
-    { dataField: "grossSalary", caption: "Gross Salary" },
-    { dataField: "payableDays", caption: "Payable Days" },
-  //  { dataField: "monthDays", caption: "Month Days" },
-   // { dataField: "holiday", caption: "Holiday" },
-    { dataField: "absentDays", caption: "Absent Days" },
-    { dataField: "presentDays", caption: "Present Days" },
-    { dataField: "weekOff", caption: "Week Off" },
-    { dataField: "leave", caption: "Leave" },
-    { dataField: "salaryDays", caption: "Salary Days" },
- //   { dataField: "monthNumber", caption: "Month No." },
- //   { dataField: "monthName", caption: "Month" },
-  //  { dataField: "year", caption: "Year" },
-    { dataField: "basicSalary", caption: "Basic Salary" },
-    { dataField: "hra", caption: "HRA" },
-    { dataField: "conveyanceAllowance", caption: "Conveyance" },
-    { dataField: "childEducationAllowance", caption: "Child Edu. Allowance" },
-    { dataField: "medicalAllowance", caption: "Medical Allowance" },
-    { dataField: "deputationAllowance", caption: "Deputation Allowance" },
-    { dataField: "totalGrossSalary", caption: "Total Gross Salary" },
-    { dataField: "pf", caption: "PF" },
-    { dataField: "esic", caption: "ESIC" },
-    { dataField: "professionalTax", caption: "Professional Tax" },
-   // { dataField: "groupMedical", caption: "Group Medical" },
-  //  { dataField: "termInsurance", caption: "Term Insurance" },
-    { dataField: "lwf", caption: "LWF" },
-    { dataField: "tds", caption: "TDS" },
-    { dataField: "loan", caption: "Loan" },
-    { dataField: "totalDeductions", caption: "Total Deductions" },
-    { dataField: "netSalary", caption: "Net Salary" }
-            // Add more fields as needed
-        ],
-    
-    });
-           $("#salaryActions").show();
-}
+            columns: [
+                { dataField: "employeeId", caption: "Employee ID", visible: false },
+                { dataField: "employeeCode", caption: "Code" },
+                { dataField: "employeeName", caption: "Name" },
+                { dataField: "grossSalary", caption: "Gross Salary", dataType: "number", format: "#,##0" },
+                { dataField: "payableDays", caption: "Payable Days" },
+                { dataField: "absentDays", caption: "Absent Days" },
+                { dataField: "presentDays", caption: "Present Days" },
+                { dataField: "weekOff", caption: "Week Off" },
+                { dataField: "leave", caption: "Leave" },
+                { dataField: "salaryDays", caption: "Salary Days" },
+                { dataField: "basicSalary", caption: "Basic Salary", dataType: "number", format: "#,##0" },
+                { dataField: "hra", caption: "HRA", dataType: "number", format: "#,##0" },
+                { dataField: "conveyanceAllowance", caption: "Conveyance", dataType: "number", format: "#,##0" },
+                { dataField: "childEducationAllowance", caption: "Child Edu. Allowance", dataType: "number", format: "#,##0" },
+                { dataField: "medicalAllowance", caption: "Medical Allowance", dataType: "number", format: "#,##0" },
+                { dataField: "deputationAllowance", caption: "Deputation Allowance", dataType: "number", format: "#,##0" },
+                { dataField: "totalGrossSalary", caption: "Total Gross Salary", dataType: "number", format: "#,##0" },
+                { dataField: "pf", caption: "PF", dataType: "number", format: "#,##0" },
+                { dataField: "esic", caption: "ESIC", dataType: "number", format: "#,##0" },
+                { dataField: "professionalTax", caption: "Professional Tax", dataType: "number", format: "#,##0" },
+                { dataField: "lwf", caption: "LWF", dataType: "number", format: "#,##0" },
+                { dataField: "tds", caption: "TDS", dataType: "number", format: "#,##0" },
+                { dataField: "loan", caption: "Loan", dataType: "number", format: "#,##0" },
+                { dataField: "totalDeductions", caption: "Total Deductions", dataType: "number", format: "#,##0" },
+                { dataField: "netSalary", caption: "Net Salary", dataType: "number", format: "#,##0" }
+            ]
+        });
+
+        $("#salaryActions").show();
+    }
 
 
 
