@@ -29,13 +29,16 @@ namespace HRMS_Infrastructure.Repository.Leave
             {
                 var parameters = new[]
                 {
-                        new SqlParameter("@LeaveType", (object?)filter.SearchType ?? DBNull.Value),
+                        new SqlParameter("@LeaveType", (object?)filter.LeaveType ?? DBNull.Value),
                         new SqlParameter("@LeaveStatus", (object?)filter.Status ?? DBNull.Value),
                           new SqlParameter("@EmpId", (object?)filter.Emplooyeid ?? DBNull.Value),
+                          new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
+                          new SqlParameter("@SearchFor", (object?)filter.SearchFor ?? DBNull.Value),
+
                 };
 
                 var result = await _db.Set<VMLeaveApplicationSearchResult>()
-                    .FromSqlRaw("EXEC SP_GetLeaveApplications @LeaveType, @LeaveStatus,@EmpId", parameters)
+                    .FromSqlRaw("EXEC SP_GetLeaveApplications @LeaveType, @LeaveStatus,@EmpId,@CompId,@SearchFor", parameters)
                     .ToListAsync();
 
                 return result;
@@ -54,12 +57,13 @@ namespace HRMS_Infrastructure.Repository.Leave
                 var parameters = new[]
                 {
                     new SqlParameter("@SearchType", (object?)filter.SearchType ?? DBNull.Value),
-                    new SqlParameter("@SearchFor", (object?)filter.Status ?? DBNull.Value),
+                    new SqlParameter("@SearchFor", (object?)filter.SearchFor ?? DBNull.Value),
                     new SqlParameter("@EmpId", (object?)filter.Emplooyeid ?? DBNull.Value),
+                        new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
                 };
 
                         var result = await _db.Set<VmLeaveApplicationforApprove>()
-                            .FromSqlRaw("EXEC SP_GetLeaveApplicationsForAproval @SearchType, @SearchFor,@EmpId", parameters)
+                            .FromSqlRaw("EXEC SP_GetLeaveApplicationsForAproval @SearchType, @SearchFor,@EmpId,@CompId", parameters)
                             .ToListAsync();
 
                         return result;
@@ -78,13 +82,15 @@ namespace HRMS_Infrastructure.Repository.Leave
                 var parameters = new[]
                 {
                     new SqlParameter("@SearchType", (object?)filter.SearchType ?? DBNull.Value),
-                    new SqlParameter("@SearchFor", (object?)filter.Status ?? DBNull.Value),
-                    new SqlParameter("@BranchId", (object?)filter.Status ?? DBNull.Value)
+                    new SqlParameter("@SearchFor", (object?)filter.SearchFor ?? DBNull.Value),
+                    new SqlParameter("@BranchId", (object?)filter.BranchId ?? DBNull.Value),
+                    new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
+
                    
                 };
 
                 var result = await _db.Set<VmLeaveApplicationforApprove>()
-                    .FromSqlRaw("EXEC SP_GetLeaveApplicationsForApprovalAdmin @SearchType, @SearchFor,@BranchId", parameters)
+                    .FromSqlRaw("EXEC SP_GetLeaveApplicationsForApprovalAdmin @SearchType, @SearchFor,@BranchId,@CompId", parameters)
                     .ToListAsync();
 
                 return result;

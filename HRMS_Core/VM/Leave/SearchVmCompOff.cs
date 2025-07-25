@@ -14,5 +14,8 @@ namespace HRMS_Core.VM.Leave
         public DateTime? ExtraWorkDate { get; set; }    // opt
         public int? Emplooyeid { get; set; }
         public int? BranchId { get; set; }
+        public int? CompId { get; set; }
+        public int? LeaveType { get; set; }
+
     }
 }
