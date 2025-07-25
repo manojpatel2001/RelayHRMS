@@ -98,7 +98,7 @@
         </div>
         <div class="col-md-4 d-flex align-items-center">
             <label for="input1" class="form-label mb-0 me-2" style="width: 120px;">Search For:</label>
-            <input type="text" class="form-control form-control-sm" id="input1" placeholder="Enter Leave Type">
+            <input type="text" class="form-control form-control-sm" id="input1" placeholder="Search Employee code or Name" disabled>
         </div>
       </div>
 
@@ -143,6 +143,10 @@
 
     const apiBase = '@apiBase';
     const Empid = parseInt(localStorage.getItem("EmployeeId"));
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany || '{}');
+    const Compid = parseInt(companyDetails.CompanyId);
+
 
     $(document).ready(function () {
          fetchLeaveData();
@@ -163,12 +167,17 @@
             fetchLeaveData();
         });
 
+         $('#Leavetypeid').change(function () {
+            $('#input1').prop('disabled', $(this).val() === '0');
+        });
+
         // Clear button
         $('#clearbuttonid').on('click', function () {
             $('#Leavetypeid').val('');
-            $('#input1').val('');
+            $('#input1').val('').prop('disabled', true);
             $('input[name="leaveStatus"]').prop('checked', false);
             $('#resultBody').empty().append('<tr><td colspan="10" class="text-center">No records found.</td></tr>');
+            fetchLeaveData();
         });
 
     function loadSearchByOptions() {
@@ -179,10 +188,13 @@
             success: function (res) {
                 const dropdown = $('#Leavetypeid');
                 dropdown.empty().append(`<option value="0">-- Select --</option>`);
+               
 
                 if (res.isSuccess && res.data) {
                     $.each(res.data, function (i, item) {
-                        dropdown.append(`<option value="${item.leavetypeid}">${item.leaveName}</option>`);
+                        console.log("leavid",item);
+                         console.log("Adding option:", item.leavtypeid, item.leaveName);
+                        dropdown.append(`<option value="${item.leavtypeid}">${item.leaveName}</option>`);
                     });
                 }
             },
@@ -203,20 +215,31 @@
 
         // Main AJAX function
         function fetchLeaveData() {
+
+             if ($("#attendanceGrid").data("dxDataGrid")) {
+            $("#attendanceGrid").dxDataGrid("dispose");
+            $("#attendanceGrid").empty(); // Optional: clear DOM
+             }
+        
+          const searchFor = $('#input1').val().trim();
+           const leaveTypeRaw = $('#Leavetypeid').val();
+           console.log("LeaveTypeRaw:", leaveTypeRaw);
             debugger;
             let filter = {
-                    LeaveType: $('#Leavetypeid').val() || null,    // string like "1"
+                  LeaveType: leaveTypeRaw === "0" || !leaveTypeRaw ? 0 : parseInt(leaveTypeRaw),
                     Status: $('input[name="leaveStatus"]:checked').val() || null,
-                    Emplooyeid:Empid
+                    SearchFor: searchFor,
+                    Emplooyeid:Empid,
+                     CompId:Compid
 
             };
+            console.log("Final filter sent to API:", filter);
 
-            
             $.ajax({
                 url: apiBase + '/LeaveApplication/GetLeaveApplications',
                 method: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify(filter),
+                data: JSON.stringify(filter ),
                      success: function (data) {
                     if (data.isSuccess && data.data && data.data.length > 0) {
                         allData = data.data;
@@ -240,6 +263,7 @@
 
 
         function renderTable(data) {
+            
             debugger;
             console.log("data",data);
             $("#attendanceGrid").dxDataGrid({
@@ -258,6 +282,7 @@
                 columns: [
                     { dataField: "leaveApplicationId", caption: "ApplicationId", width: 80,cssClass: "text-center-cell" },
                     { dataField: "employeeName", caption: "Employee Name",cssClass: "text-center-cell" },
+                    { dataField: "leaveTypeName", caption: "Leave Type",cssClass: "text-center-cell" },
                     { dataField: "reportingPersonName", caption: "Reporting Person",cssClass: "text-center-cell" },
                     { dataField: "fromDate", caption: "From Date", dataType: "date", format: "dd/MM/yyyy" ,cssClass: "text-center-cell"},
                     { dataField: "todate", caption: "To Date", dataType: "date", format: "dd/MM/yyyy" ,cssClass: "text-center-cell"},
