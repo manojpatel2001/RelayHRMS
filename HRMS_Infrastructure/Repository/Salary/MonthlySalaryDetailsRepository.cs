@@ -1,7 +1,9 @@
 ﻿using HRMS_Core.DbContext;
+using HRMS_Core.Master.JobMaster;
 using HRMS_Core.PrivilegeSetting;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Salary;
 using Microsoft.Data.SqlClient;
@@ -110,6 +112,43 @@ namespace HRMS_Infrastructure.Repository.Salary
             {
 
                 return new List<SalaryDetailViewModel>();
+            }
+        }
+
+        public async Task<VMCommonResult> DeleteSalaryDetails(DeleteRecordVModel deleteRecordVM)
+        {
+            try
+            {
+                string ids = string.Join(",", deleteRecordVM.Id); // Convert List<int> to "1,2,3"
+
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+            EXEC DeleteSalaryDetails                    
+                @Ids = {ids},
+                @DeletedBy = {deleteRecordVM.DeletedBy}
+        ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch (Exception)
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+
+        public async Task<SalaryDetailForGetById?> GetBySalaryDetailsId(List<int> Id)
+        {
+            try
+            {
+                var result = await _db.Set<SalaryDetailForGetById>()
+                                      .FromSqlInterpolated($"EXEC GetBySalaryDetailsId @Ids = {Id}")
+                                      .ToListAsync();
+
+                return result.FirstOrDefault();
+            }
+            catch (Exception)
+            {
+                return null;
             }
         }
     }

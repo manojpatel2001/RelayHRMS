@@ -176,6 +176,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<MonthlySalaryRequestViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<SalaryDetailViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<SalaryDetailsParameterVm>().HasNoKey().ToView(null);
+            modelBuilder.Entity<SalaryDetailForGetById>().HasNoKey().ToView(null);
 
 
         }
