@@ -180,5 +180,33 @@ namespace HRMS_Infrastructure.Repository.Leave
                 return false;
             }
         }
+
+
+
+        public async Task<List<VMCompOffDetails>> GetCompOffApplicationsAdmin(SearchVmCompOff filter)
+        {
+            try
+            {
+
+                var parameters = new[]
+                {
+                    new SqlParameter("@SearchType", string.IsNullOrEmpty(filter.SearchType) ? DBNull.Value : filter.SearchType),
+                    new SqlParameter("@SearchFor", string.IsNullOrEmpty(filter.SearchFor) ? DBNull.Value : filter.SearchFor),
+                    new SqlParameter("@Status", string.IsNullOrEmpty(filter.Status) ? DBNull.Value : filter.Status),
+                    new SqlParameter("@EmpId", (object?)filter.Emplooyeid ?? DBNull.Value),
+                    new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
+                };
+
+                return await _db.Set<VMCompOffDetails>()
+                    .FromSqlRaw("EXEC GetCompOffApplicationsAdmin @SearchType, @SearchFor, @Status, @EmpId,@CompId", parameters)
+                .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetCompOffApplicationsAsync Error: " + ex.Message);
+                return new List<VMCompOffDetails>();
+            }
+        }
+
     }
 }

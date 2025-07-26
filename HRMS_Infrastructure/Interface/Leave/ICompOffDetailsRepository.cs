@@ -17,5 +17,6 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<bool> UpdateLeaveManger(List<int> comoffid, string status);
         Task<bool> UpdateLeavedetails(List<int> ids, string status);
         Task<List<VMCompOffDetails>> GetCompOffApplicationsAsync(SearchVmCompOff filter);
+        Task<List<VMCompOffDetails>> GetCompOffApplicationsAdmin(SearchVmCompOff filter);
     }
 }
