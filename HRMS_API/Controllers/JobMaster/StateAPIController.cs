@@ -11,7 +11,7 @@ namespace HRMS_API.Controllers.JobMaster
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    //[Authorize]
     public class StateAPIController : ControllerBase
     {
          private readonly IUnitOfWork _unitOfWork;

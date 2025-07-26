@@ -13,6 +13,7 @@ using Microsoft.Identity.Client;
 using OfficeOpenXml;
 using System.Data;
 using System.Data.OleDb;
+using System.Reflection.Emit;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -61,7 +62,8 @@ public class ImportDataController : ControllerBase
                 for (int col = 1; col <= colCount; col++)
                     dt.Columns.Add(worksheet.Cells[1, col].Text);
 
-                for (int row = request.RowFrom; row <= request.RowTo; row++)
+                int startRow = Math.Max(request.RowFrom, 2); // Ensure we never start before row 2
+                for (int row = startRow; row <= request.RowTo; row++)
                 {
                     var dataRow = dt.NewRow();
                     bool isRowEmpty = true;
@@ -97,8 +99,9 @@ public class ImportDataController : ControllerBase
                 for (int col = 0; col < sheet.Columns.Count; col++)
                     dt.Columns.Add(sheet.Rows[0][col]?.ToString());
 
-                // Read data rows between RowFrom and RowTo
-                for (int row = request.RowFrom - 1; row <= request.RowTo - 1 && row < sheet.Rows.Count; row++)
+        
+                int startRow = Math.Max(request.RowFrom - 1, 1); // Ensure we never start before row 1
+                for (int row = startRow; row <= request.RowTo - 1 && row < sheet.Rows.Count; row++)
                 {
                     var sourceRow = sheet.Rows[row];
                     var dataRow = dt.NewRow();
@@ -184,18 +187,18 @@ public class ImportDataController : ControllerBase
                 break;
 
             case "Designation":
-                expectedHeaders = new List<string> { "DesignationName", "DesignationCode" };
+                expectedHeaders = new List<string> { "Designation_Name", "Designation_Code" };
                 break;
 
             case "Bank":
-                expectedHeaders = new List<string> { "BankName", "BankCode", "BranchName", "AccountNo", "Address", "City", "BankBSRCode", "IsDefault" };
+                expectedHeaders = new List<string> { "Bank_Name", "Bank_Code", "Branch_Name", "Account_No", "Address", "City", "Bank_BSR_Code", "IS_Default" };
                 break;
 
             case "City":
                 expectedHeaders = new List<string> { "City_Name", "State_Name", "Country", "Category", "Entry_Type" };
                 break;
 
-            case "Holiday ":
+            case "Holiday":
                 expectedHeaders = new List<string>
             {
                "Holiday_Name", "Branch_Name", "From_Date", "To_Date", "Holiday_Category", "Repeat_Annually", "Half_Day", "Present_Compulsory" , "Optional_Holiday", "Approval_Max_Limit", "Unpaid_Holiday"
@@ -207,11 +210,14 @@ public class ImportDataController : ControllerBase
                 break;
 
             case "MonthlyDed":
-                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year","PF", "ESIC", "PT", "LWF","TDS" , "TermInsurance" , "GroupMedical" };
+                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year","PF", "ESIC", "PT", "LWF","TDS" , "TermInsurance" , "GroupMedical" , "Loan" };
                 break;
 
             case "Attendance":
                 expectedHeaders = new List<string> { "Alpha Emp Code", "Month", "Year", "1", "2", "3", "4", "5", "6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31" };
+                break;
+            case "LeaveOpening":
+                expectedHeaders = new List<string> { "EmployeeCode", "LeaveType", "Opening", "Grade", "EffectiveDate"};
                 break;
 
             default:
@@ -248,7 +254,7 @@ public class ImportDataController : ControllerBase
                 return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
             }
 
-            var exists = await _unitOfWork.BranchRepository.GetAsync(x => x.BranchCode == code && x.IsEnabled == true && x.IsDeleted != true);
+            var exists = await _unitOfWork.BranchRepository.GetAsync(x => x.BranchCode == code && x.BranchName==name && x.CityName ==city && x.IsEnabled == true && x.IsDeleted != true);
             if (exists != null)
                 return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Branch Code", code, "Enter unique Branch Code.", type));
 
@@ -297,7 +303,7 @@ public class ImportDataController : ControllerBase
                 return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
             var exists = await _unitOfWork.DesignationRepository.GetAsync(x => x.DesignationName == name && x.IsEnabled == true && x.IsDeleted != true);
             if (exists != null)
-                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Department", name, "Enter unique Department name.", type));
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Designation", name, "Enter unique Designation name.", type));
 
             await _unitOfWork.DesignationRepository.AddAsync(new Designation
             {
@@ -351,13 +357,13 @@ public class ImportDataController : ControllerBase
        
             if (state == null)
             {
-                return (false, false, true, CreateErrorRow(rowIndex, "Invalid State", "", "", type));
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid State", stateName , "Enter Valid State name.", type));
 
             }
             var exists = await _unitOfWork.CityRepository.GetAsync(x => x.CityName == cityname && x.StateId == state.StateId && x.IsEnabled == true && x.IsDeleted != true);
             if (exists != null)
             {
-                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Branch Code", cityname, "Enter unique Branch Code.", type));
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate city name ", cityname, "Enter unique city name.", type));
 
             }
             await _unitOfWork.CityRepository.AddAsync(new City
@@ -374,15 +380,25 @@ public class ImportDataController : ControllerBase
             return (true, false, false, null);
         }
 
-        else if (type == "Holiday Master")
+        else if (type == "Holiday")
         {
             string name = row[0]?.ToString().Trim();
+            string Branchname = row[1]?.ToString().Trim();
             DateTime fromDate = DateTime.TryParse(row[2]?.ToString(), out DateTime parsedDate) ? parsedDate : DateTime.MinValue;
 
-            if (string.IsNullOrWhiteSpace(name) && fromDate == DateTime.MinValue)
+            if (string.IsNullOrWhiteSpace(Branchname) && fromDate == DateTime.MinValue)
             {
                 return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
             }
+
+
+            var branch = await _unitOfWork.BranchRepository.GetAsync(x => x.BranchName == Branchname && x.IsEnabled == true && x.IsDeleted != true);
+            if (branch != null)
+            {
+                return (false, true, false, CreateErrorRow(rowIndex, "Invalid Branch name", Branchname, "Employee not found or inactive", type));
+
+            }
+
             var exists = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayName == name && x.IsEnabled == true && x.IsDeleted != true);
             if (exists != null)
             {
@@ -394,14 +410,14 @@ public class ImportDataController : ControllerBase
             {
                 HolidayName = name,
                 FromDate = fromDate,
-                BranchId = int.TryParse(row[2]?.ToString(), out int branchId) ? branchId : 0,
-                ToDate = DateTime.TryParse(row[5]?.ToString(), out DateTime toDate) ? toDate : DateTime.MinValue,
-                Holidaycategory = row[7]?.ToString(),
-                RepeatAnnually = bool.TryParse(row[8]?.ToString(), out bool repeat) ? repeat : false,
-                HalfDay = bool.TryParse(row[9]?.ToString(), out bool halfDay) ? halfDay : false,
-                PresentCompulsory = bool.TryParse(row[10]?.ToString(), out bool compulsory) ? compulsory : false,
-                OptionalHoliday = bool.TryParse(row[12]?.ToString(), out bool optional) ? optional : false,
-                ApprovalMaxLimit = row[13]?.ToString() ?? "0",
+                BranchId = branch.BranchId,
+                ToDate = DateTime.TryParse(row[3]?.ToString(), out DateTime toDate) ? toDate : DateTime.MinValue,
+                Holidaycategory = row[4]?.ToString(),
+                RepeatAnnually = bool.TryParse(row[5]?.ToString(), out bool repeat) ? repeat : false,
+                HalfDay = bool.TryParse(row[6]?.ToString(), out bool halfDay) ? halfDay : false,
+                PresentCompulsory = bool.TryParse(row[7]?.ToString(), out bool compulsory) ? compulsory : false,
+                OptionalHoliday = bool.TryParse(row[8]?.ToString(), out bool optional) ? optional : false,
+                ApprovalMaxLimit = row[9]?.ToString() ?? "0",               
                 IsEnabled = true,
                 IsDeleted = false
             });
@@ -421,9 +437,7 @@ public class ImportDataController : ControllerBase
             {
                 return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
             }
-
-            if (!int.TryParse(codeStr, out int code))
-                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Code", codeStr, "Code must be a valid number", type));
+   
 
             if (!int.TryParse(monthStr, out int month))
                 return (false, false, true, CreateErrorRow(rowIndex, "Invalid Month", monthStr, "Month must be a valid number", type));
@@ -432,15 +446,22 @@ public class ImportDataController : ControllerBase
                 return (false, false, true, CreateErrorRow(rowIndex, "Invalid Year", yearStr, "Year must be a valid number", type));
 
 
-            var exists = await _unitOfWork.EarningRepository.GetAsync(x => x.EmployeeId == code && x.Month == month && x.Year == year && x.IsEnabled == true && x.IsDeleted != true);
+            var Empcode = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.EmployeeCode == codeStr && x.IsEnabled == true && x.IsDeleted != true && x.IsBlocked==false);
+            if (Empcode != null)
+            {
+                return (false, true, false, CreateErrorRow(rowIndex, "Invalid Employee Code", codeStr,"Employee not found or inactive", type));
+
+            }
+
+            var exists = await _unitOfWork.EarningRepository.GetAsync(x => x.EmployeeId == Empcode.Id && x.Month == month && x.Year == year && x.IsEnabled == true && x.IsDeleted != true);
             if (exists != null)
             {
-                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate  Employee code", codeStr, "Enter unique Employee code.", type));
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Earning  Data ", codeStr, "Enter unique Earning data.", type));
 
             }
             await _unitOfWork.EarningRepository.AddAsync(new Earning
             {
-                EmployeeId = code,
+                EmployeeId = Empcode.Id,
                 Month = month,
                 Basic = decimal.TryParse(row[3]?.ToString(), out decimal basic) ? basic : (decimal?)null,
                 HRA = decimal.TryParse(row[4]?.ToString(), out decimal hra) ? hra : (decimal?)null,
@@ -468,17 +489,19 @@ public class ImportDataController : ControllerBase
                 return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
             }
 
-            if (!int.TryParse(codeStr, out int code))
-                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Code", codeStr, "Code must be a valid number", type));
-
             if (!int.TryParse(monthStr, out int month))
                 return (false, false, true, CreateErrorRow(rowIndex, "Invalid Month", monthStr, "Month must be a valid number", type));
 
             if (!int.TryParse(yearStr, out int year))
                 return (false, false, true, CreateErrorRow(rowIndex, "Invalid Year", yearStr, "Year must be a valid number", type));
+            var Empcode = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.EmployeeCode == codeStr && x.IsEnabled == true && x.IsDeleted != true );
+            if (Empcode != null)
+            {
+                return (false, true, false, CreateErrorRow(rowIndex, "Employee not found or inactive", codeStr, "Enter valid Employee Code ", type));
 
+            }
 
-            var exists = await _unitOfWork.DeductionRepository.GetAsync(x => x.EmployeeId == code && x.Month == month && x.Year == year && x.IsEnabled == true && x.IsDeleted != true);
+            var exists = await _unitOfWork.DeductionRepository.GetAsync(x => x.EmployeeId == Empcode.Id && x.Month == month && x.Year == year && x.IsEnabled == true && x.IsDeleted != true);
             if (exists != null)
             {
                 return (false, true, false, CreateErrorRow(rowIndex, "Duplicate  Employee code", codeStr, "Enter unique Employee code.", type));
@@ -488,7 +511,7 @@ public class ImportDataController : ControllerBase
 
             await _unitOfWork.DeductionRepository.AddAsync(new Deduction
             {
-                EmployeeId = code,
+                EmployeeId = Empcode.Id,
                 Month = month,
                 Year = year,
                 PF = decimal.TryParse(row[3]?.ToString(), out decimal pf) ? pf : (decimal?)null,
@@ -498,6 +521,7 @@ public class ImportDataController : ControllerBase
                 TDS = decimal.TryParse(row[7]?.ToString(), out decimal tds) ? tds : (decimal?)null,
                 TermInsurance = decimal.TryParse(row[8]?.ToString(), out decimal TermInsurance) ? TermInsurance : (decimal?)null,
                 GroupMedical = decimal.TryParse(row[9]?.ToString(), out decimal GroupMedical) ? GroupMedical : (decimal?)null,
+                Loan = decimal.TryParse(row[10]?.ToString(), out decimal Loan) ? Loan : (decimal?)null,                             
                 IsEnabled = true,
                 IsDeleted = false
             });
@@ -509,6 +533,7 @@ public class ImportDataController : ControllerBase
             string monthStr = row[1]?.ToString()?.Trim();
             string yearStr = row[2]?.ToString()?.Trim();
 
+            // Skip blank rows
             if (string.IsNullOrWhiteSpace(empStr) &&
                 string.IsNullOrWhiteSpace(monthStr) &&
                 string.IsNullOrWhiteSpace(yearStr))
@@ -516,24 +541,76 @@ public class ImportDataController : ControllerBase
                 return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
             }
 
+            // Validate month
             if (!int.TryParse(monthStr, out int month))
-            { return (false, false, true, CreateErrorRow(rowIndex, "Invalid Month", monthStr, "Month must be a valid number", type)); }
+            {
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Month", monthStr, "Month must be a valid number", type));
+            }
+
+            // Validate year
             if (string.IsNullOrWhiteSpace(yearStr) || !int.TryParse(yearStr, out int year))
             {
                 return (false, false, true, CreateErrorRow(rowIndex, "Invalid Year", yearStr, "Year must be a valid number", type));
             }
 
-            var Epl = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.EmployeeCode == empStr && x.IsEnabled == true && x.IsDeleted != true);
+            // Validate employee
+            var Epl = await _unitOfWork.EmployeeManageRepository.GetAsync(x =>
+                x.EmployeeCode == empStr && x.IsEnabled == true && x.IsDeleted != true && x.IsBlocked == false);
+
             if (Epl == null)
             {
                 return (false, false, true, CreateErrorRow(rowIndex, "Invalid Emp_Code", empStr, "Employee not found or inactive", type));
             }
+            // Duplicate check
+            var existing = await _unitOfWork.EmpAttendanceRepository.GetAsync(x =>
+                x.Emp_ID == Epl.Id &&
+                x.Month == month &&
+                x.Year == year &&
+                x.Cmp_ID == Epl.CompanyId &&
+                x.IsDeleted != true
+            );
 
-            List<string> dailyAttendance = new();
-            for (int i = 4; i < 34; i++) // 4 to 33 = 30 days
+            if (existing != null)
             {
-                string val = row[i]?.ToString()?.Trim().ToUpper() ?? "";
+                return (false, false, true,
+                    CreateErrorRow(rowIndex, "Duplicate Record", empStr,
+                    $"Attendance for EmployeeCode {empStr} in {monthStr}/{yearStr} already exists", type));
+            }
+            List<string> dailyAttendance = new();
+            bool anyBlankDay = false;
+            string[] allowedCodes = { "P", "A", "W", "HF", "LWP", "PL", "COM", "H" };
+
+            for (int day = 0; day < 31; day++) // Loop through columns 3 to 33 (Day1 to Day31)
+            {
+                string val = row[3 + day]?.ToString()?.Trim().ToUpper() ?? "";
+
+                if (string.IsNullOrWhiteSpace(val))
+                {
+                    anyBlankDay = true;
+                }
+                else if (!allowedCodes.Contains(val))
+                {
+                    return (false, false, true, CreateErrorRow(
+                        rowIndex,
+                        "Invalid Attendance Code",
+                        val,
+                        $"Day {day + 1}: Valid codes are {string.Join(",", allowedCodes)}",
+                        type
+                    ));
+                }
+
                 dailyAttendance.Add(val);
+            }
+
+            if (anyBlankDay)
+            {
+                return (false, false, true, CreateErrorRow(
+                    rowIndex,
+                    "Invalid Attendance",
+                    "",
+                    "One or more day(s) attendance is blank. Attendance required for all 31 days.",
+                    type
+                ));
             }
 
             string attDetail = string.Join(",", dailyAttendance);
@@ -543,6 +620,7 @@ public class ImportDataController : ControllerBase
                 Emp_ID = Epl.Id,
                 Month = month,
                 Year = year,
+                Cmp_ID = Epl.CompanyId,
                 Att_Detail = attDetail,
                 IsEnabled = true,
                 IsDeleted = false
@@ -550,6 +628,8 @@ public class ImportDataController : ControllerBase
 
             return (true, false, false, null);
         }
+
+
         else if (type == "LeaveOpening")
         {
             string empStr = row[0]?.ToString()?.Trim();         // EmployeeCode
@@ -572,7 +652,13 @@ public class ImportDataController : ControllerBase
 
             if (Leave == null)
             {
-                return (false, false, true, CreateErrorRow(rowIndex, "Invalid State", "", "", type));
+                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Leave Type", leaveStr, "Enter valid Leave", type));
+
+            }
+            var exists = await _unitOfWork.LeaveOpeningRepository.GetAsync(x => x.EMP_Id == emp.Id && x.comp_id == emp.CompanyId && x.LeaveId == Leave.Leave_TypeId && x.IsEnabled == true && x.IsDeleted != true);
+            if (exists != null)
+            {
+                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Leave", empStr, "Enter unique Leave.", type));
 
             }
 
