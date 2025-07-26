@@ -24,17 +24,27 @@ namespace HRMS_Infrastructure.Repository.Leave
 
         public async Task<List<VMCompOffDetails>> GetCompOffApplicationsAsync(SearchVmCompOff filter)
         {
-            var parameters = new[]
+            try
             {
-            new SqlParameter("@SearchType", string.IsNullOrEmpty(filter.SearchType) ? DBNull.Value : filter.SearchType),
-            new SqlParameter("@SearchFor", string.IsNullOrEmpty(filter.SearchFor) ? DBNull.Value : filter.SearchFor),
-            new SqlParameter("@Status", string.IsNullOrEmpty(filter.Status) ? DBNull.Value : filter.Status),
-            new SqlParameter("@ExtraWorkDate", filter.ExtraWorkDate.HasValue ? filter.ExtraWorkDate.Value.Date : (object)DBNull.Value)
-            };
 
-            return await _db.Set<VMCompOffDetails>()
-                .FromSqlRaw("EXEC GetCompOffApplications @SearchType, @SearchFor, @Status, @ExtraWorkDate", parameters)
+                var parameters = new[]
+                {
+                    new SqlParameter("@SearchType", string.IsNullOrEmpty(filter.SearchType) ? DBNull.Value : filter.SearchType),
+                    new SqlParameter("@SearchFor", string.IsNullOrEmpty(filter.SearchFor) ? DBNull.Value : filter.SearchFor),
+                    new SqlParameter("@Status", string.IsNullOrEmpty(filter.Status) ? DBNull.Value : filter.Status),
+                    new SqlParameter("@EmpId", (object?)filter.Emplooyeid ?? DBNull.Value),
+                    new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
+                };
+
+                return await _db.Set<VMCompOffDetails>()
+                    .FromSqlRaw("EXEC GetCompOffApplications @SearchType, @SearchFor, @Status, @EmpId,@CompId", parameters)
                 .ToListAsync();
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("GetCompOffApplicationsAsync Error: " + ex.Message);
+                return new List<VMCompOffDetails>();
+            }
         }
 
         public async Task<bool> InsertCompOffAsync(Comp_Off_Details model)
