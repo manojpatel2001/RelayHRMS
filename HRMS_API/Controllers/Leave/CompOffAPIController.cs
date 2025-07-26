@@ -157,6 +157,30 @@ namespace HRMS_API.Controllers.Leave
             }
         }
 
+        [HttpPost("GetCompOffApplicationsAdmin")]
+        public async Task<APIResponse> GetCompOffApplicationsAdmin([FromBody] SearchVmCompOff search)
+        {
+            try
+            {
+                var data = await _unitOfWork.CompOffDetailsRepository.GetCompOffApplicationsAdmin(search);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
 
     }
 }
