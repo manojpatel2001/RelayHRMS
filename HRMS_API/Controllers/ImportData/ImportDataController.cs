@@ -393,9 +393,9 @@ public class ImportDataController : ControllerBase
 
 
             var branch = await _unitOfWork.BranchRepository.GetAsync(x => x.BranchName == Branchname && x.IsEnabled == true && x.IsDeleted != true);
-            if (branch != null)
+            if (branch == null)
             {
-                return (false, true, false, CreateErrorRow(rowIndex, "Invalid Branch name", Branchname, "Employee not found or inactive", type));
+                return (false, true, false, CreateErrorRow(rowIndex, "Invalid Branch name", Branchname, "Enter Valid Branch Name", type));
 
             }
 
@@ -447,7 +447,7 @@ public class ImportDataController : ControllerBase
 
 
             var Empcode = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.EmployeeCode == codeStr && x.IsEnabled == true && x.IsDeleted != true && x.IsBlocked==false);
-            if (Empcode != null)
+            if (Empcode == null)
             {
                 return (false, true, false, CreateErrorRow(rowIndex, "Invalid Employee Code", codeStr,"Employee not found or inactive", type));
 
@@ -495,7 +495,7 @@ public class ImportDataController : ControllerBase
             if (!int.TryParse(yearStr, out int year))
                 return (false, false, true, CreateErrorRow(rowIndex, "Invalid Year", yearStr, "Year must be a valid number", type));
             var Empcode = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.EmployeeCode == codeStr && x.IsEnabled == true && x.IsDeleted != true );
-            if (Empcode != null)
+            if (Empcode == null)
             {
                 return (false, true, false, CreateErrorRow(rowIndex, "Employee not found or inactive", codeStr, "Enter valid Employee Code ", type));
 
@@ -559,7 +559,7 @@ public class ImportDataController : ControllerBase
 
             if (Epl == null)
             {
-                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Emp_Code", empStr, "Employee not found or inactive", type));
+                return (false, false, true, CreateErrorRow(rowIndex, "Employee not found or inactive", empStr, "Enter Valid Employee Code", type));
             }
             // Duplicate check
             var existing = await _unitOfWork.EmpAttendanceRepository.GetAsync(x =>
@@ -645,7 +645,7 @@ public class ImportDataController : ControllerBase
             var emp = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.EmployeeCode == empStr && x.IsEnabled == true && x.IsDeleted != true);
             if (emp == null)
             {
-                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Emp_Code", empStr, "Employee not found or inactive", type));
+                return (false, false, true, CreateErrorRow(rowIndex, "Employee not found or inactive", empStr, "Enter Valid Employee Code", type));
             }
 
             var Leave = await _unitOfWork.LeaveMasterRepository.GetAsync(x => x.Leave_Type.ToLower() == leaveStr.ToLower() && x.IsEnabled == true && x.IsDeleted != true);
