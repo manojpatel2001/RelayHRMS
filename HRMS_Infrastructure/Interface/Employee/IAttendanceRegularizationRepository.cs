@@ -18,7 +18,7 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<bool> UpdateAttendanceRegularization(AttendanceRegularization attendanceRegularization);
         Task<List<AttendanceRegularization>> SoftDelete(DeleteRecordVModel DeleteRecord);
         Task<List<AttendanceRegularizationVM>> GetAttendanceRegularization(AttendanceRegularizationSearchFilterVM attendance);
-        Task<bool> Update(AttendanceRegularization Record);
+        Task<bool> Update(AttendanceRegularization Record ,int empInOutId);
         Task<List<EmpInOutVM>> GetEmployeeInOut( int? EmpId , DateTime? ForDate);
     }
 }

@@ -227,7 +227,13 @@
             }
         });
 
-           const currentMonthIndex = new Date().getMonth(); // 0 = Jan, 1 = Feb, ..., 11 = Dec
+
+    });
+
+
+
+
+     const currentMonthIndex = new Date().getMonth(); // 0 = Jan, 1 = Feb, ..., 11 = Dec
 
     $('#month option').each(function (index) {
         if (index > currentMonthIndex) {
@@ -235,14 +241,9 @@
         }
     });
 
-    });
-
-
          function goBack() {
         window.history.back();
     }
-
-
 
 
     function     BindBranchDropdown(){
@@ -307,13 +308,12 @@
         });
     }
 
-                   async function showLoder(){
+        async function showLoder(){
           $('#grid-loader').addClass('d-flex').show();
         }
         async function hideLoder(){
                 $('#grid-loader').removeClass('d-flex').hide();
         }
-
 
     $('.btn-custom:contains("Go")').on('click', function () {
     clearValidationErrors();
@@ -374,10 +374,7 @@
                 }
         });
     });
-
-
-         function LoadAttendanceGrid(data) {
-
+    function LoadAttendanceGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             showBorders: true,
@@ -391,32 +388,51 @@
                 allowUpdating: true
             },
             onEditingStart: function (e) {
-                if (e.data.status?.trim().toLowerCase() === "present") {
+                const status = e.data.status?.trim().toLowerCase();
+                if (status === "present") {
                     e.cancel = true;
+                    DevExpress.ui.notify("Editing not allowed for Present records.", "warning", 2000);
                 }
             },
-              onContentReady: function (e) {
-            if (data && data.length > 0) {
-                $("#saveButtonContainer").show();
-            } else {
-                $("#saveButtonContainer").hide();
-            }
-        },
+            onContentReady: function (e) {
+                if (data && data.length > 0) {
+                    $("#saveButtonContainer").show();
+                } else {
+                    $("#saveButtonContainer").hide();
+                }
+            },
             columns: [
-                { dataField: "for_Date", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
-                { dataField: "fullName", caption: "Employee", allowEditing: false },
-                { dataField: "branchName", caption: "Branch", allowEditing: false },
-                { dataField: "shiftTime", caption: "Shift Time", allowEditing: false },
-
-                 {
+                {
+                    dataField: "for_Date",
+                    caption: "Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: 100
+                },
+                {
+                    dataField: "fullName",
+                    caption: "Employee",
+                    allowEditing: false
+                },
+                {
+                    dataField: "branchName",
+                    caption: "Branch",
+                    allowEditing: false
+                },
+                {
+                    dataField: "shiftTime",
+                    caption: "Shift Time",
+                    allowEditing: false
+                },
+                {
                     dataField: "in_Time",
                     caption: "In Time",
                     cellTemplate: function (container, options) {
                         const value = options.data.in_Time
                             ? new Date(options.data.in_Time).toLocaleTimeString('en-GB', {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                              })
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })
                             : "--";
                         $("<div>")
                             .text(value)
@@ -437,9 +453,9 @@
                     cellTemplate: function (container, options) {
                         const value = options.data.out_Time
                             ? new Date(options.data.out_Time).toLocaleTimeString('en-GB', {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                              })
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })
                             : "--";
                         $("<div>")
                             .text(value)
@@ -461,22 +477,31 @@
                     allowEditing: false,
                     cellTemplate: function (container, options) {
                         const status = options.data.status;
-                        const text = status === 'Present' ? 'P' : 'A';
-                        const color = status === 'Present' ? 'green' : 'red';
-                        $('<div>').text(text)
+                        let text = "A";
+                        let color = "red";
+
+                        if (status === "Present") {
+                            text = "P";
+                            color = "green";
+                        } else if (status === "Half Day") {
+                            text = "HF";
+                            color = "orange";
+                        }
+
+                        $("<div>")
+                            .text(text)
                             .css({
                                 color: color,
-                                fontWeight: 'bold',
-                                textAlign: 'center'
+                                fontWeight: "bold",
+                                textAlign: "center"
                             })
                             .appendTo(container);
                     }
                 },
-
                 {
                     dataField: "reason",
                     caption: "Reason",
-                        width: 180,
+                    width: 180,
                     lookup: {
                         dataSource: [
                             { ID: "Forgot To Punch/Sign", Name: "Forgot To Punch/Sign" },
@@ -492,32 +517,32 @@
                         return rowData.reason || "--Select--";
                     },
                     allowEditing: function (rowData) {
-                        return rowData.status?.trim().toLowerCase() === "absent";
+                        const status = rowData.status?.trim().toLowerCase();
+                        return status === "absent" || status === "half day";
                     },
                     editorOptions: function (rowData) {
+                        const status = rowData.status?.trim().toLowerCase();
                         return {
                             showClearButton: true,
-                            disabled: rowData.status?.trim().toLowerCase() !== "absent"
+                            disabled: !(status === "absent" || status === "half day")
                         };
                     },
                     editing: {
                         allowUpdating: true
                     }
                 },
-
                 {
                     dataField: "workingHours",
                     caption: "Working Hours",
                     allowEditing: false,
                     calculateCellValue: function () {
-                        return "00:00:00";
+                        return "00:00:00"; // Placeholder – can be calculated dynamically if needed
                     }
                 },
-
                 {
                     dataField: "dayType",
                     caption: "Day Type",
-                        width: 140,
+                    width: 140,
                     lookup: {
                         dataSource: [
                             { id: "Full Day", name: "Full Day" },
@@ -531,12 +556,14 @@
                         return rowData.dayType || "--Select--";
                     },
                     allowEditing: function (rowData) {
-                        return rowData.status?.trim().toLowerCase() === "absent";
+                        const status = rowData.status?.trim().toLowerCase();
+                        return status === "absent" || status === "half day";
                     },
                     editorOptions: function (rowData) {
+                        const status = rowData.status?.trim().toLowerCase();
                         return {
                             showClearButton: true,
-                            disabled: rowData.status?.trim().toLowerCase() !== "absent"
+                            disabled: !(status === "absent" || status === "half day")
                         };
                     },
                     editing: {
@@ -546,7 +573,6 @@
             ]
         });
     }
-
 
 
      $('#btnSaveGridData').on('click', function () {
@@ -646,8 +672,6 @@
                
         });
     });
-
-
 
 
           $('.btn-custom:contains("Clear")').on('click', function () {
