@@ -8,7 +8,7 @@
 }
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <style>
     body {
@@ -170,7 +170,7 @@
                     <option>All</option>
                     <option>Present</option>
                     <option>Absent</option>
-                </select>  
+                </select>
                 <div class="text-danger field-error" id="recordTypeError"></div>
             </div>
         </div>
@@ -184,6 +184,18 @@
     </div>
 </div>
 
+
+<div id="grid-loader"
+     class="grid-loader justify-content-center align-items-center flex-column"
+     style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+
+    <img src="@baseDomainUrl/loders/loder.png"
+         class="grid-logo-spinner"
+         style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+
+    <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+</div>
 <div class="form-section" style="margin-top: 30px;">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
         <h6 class="mb-0">Attendance Details</h6>
@@ -196,6 +208,12 @@
 
 
 <script>
+
+           const savedCompany = localStorage.getItem('selectedCompany');
+       var companyDetails = JSON.parse(savedCompany);
+       const CompanyId=companyDetails.CompanyId;
+       const EmployeeId=localStorage.getItem('EmployeeId');
+       const Token=localStorage.getItem("authToken");
     $(document).ready(function () {
         BindBranchDropdown();
         populateYearDropdown();
@@ -215,29 +233,45 @@
         if (index > currentMonthIndex) {
             $(this).remove(); // remove future months
         }
-    }); 
+    });
 
     });
 
 
          function goBack() {
-        window.history.back(); 
+        window.history.back();
     }
 
-    function BindBranchDropdown() {
-        $.ajax({
-            type: "GET",
-            url: '@(baseDomainUrl + "/api/BranchAPI/GetAllBranch")',
-            success: function (response) {
-                if (response?.data?.length > 0) {
-                    let $branch = $('#branch');
-                    $branch.empty().append('<option value="">--Select--</option>');
-                    $.each(response.data, function (i, item) {
-                        $branch.append('<option value="' + item.branchId + '">' + item.branchName + '</option>');
+
+
+
+    function     BindBranchDropdown(){
+       $.ajax({
+            url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+            method: 'GET',
+                headers: {
+                        'Authorization': 'Bearer ' + Token
+                    },
+            success: function(data) {
+                if(data.isSuccess){
+                        var dropdown = $('#branch');
+                    dropdown.empty();
+                    dropdown.append('<option disabled selected value="">Select</option>');
+                    $.each(data.data, function(index, company) {
+                        dropdown.append($('<option>', {
+                            value: company.branchId,
+                            text: company.branchName
+                        }));
                     });
+
+
                 }
+            },
+            error: function(error) {
+                console.error('Error fetching branch data:', error);
             }
         });
+
     }
 
 
@@ -273,8 +307,15 @@
         });
     }
 
+                   async function showLoder(){
+          $('#grid-loader').addClass('d-flex').show();
+        }
+        async function hideLoder(){
+                $('#grid-loader').removeClass('d-flex').hide();
+        }
 
-    $('.btn-custom:contains("Go")').on('click', function () {   
+
+    $('.btn-custom:contains("Go")').on('click', function () {
     clearValidationErrors();
     const branch = $('#branch').val();
     const emp = $('#employeeDropdown').val();
@@ -302,7 +343,7 @@
         $('#recordTypeError').text("Please select Record Type.");
         hasError = true;
     }
-
+      showLoder();
         // Valid: proceed
      const formData = new FormData();
     formData.append("BranchId", branch);
@@ -327,12 +368,15 @@
             },
             error: function () {
                 $('#validationMsg').text("Something went wrong while fetching data.");
-            }
+            },
+                complete: function () {
+                    hideLoder(); // Always hide loader after completion
+                }
         });
     });
 
 
-         function LoadAttendanceGrid(data) { 
+         function LoadAttendanceGrid(data) {
 
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
@@ -364,50 +408,52 @@
                 { dataField: "branchName", caption: "Branch", allowEditing: false },
                 { dataField: "shiftTime", caption: "Shift Time", allowEditing: false },
 
-                {
+                 {
                     dataField: "in_Time",
                     caption: "In Time",
-                    allowEditing: false,
                     cellTemplate: function (container, options) {
                         const value = options.data.in_Time
-                            ? new Date(options.data.in_Time).toLocaleString('en-GB')
+                            ? new Date(options.data.in_Time).toLocaleTimeString('en-GB', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                              })
                             : "--";
-                        $('<div>')
+                        $("<div>")
                             .text(value)
                             .css({
-                                textAlign: 'center',
-                                border: '1px solid #ddd',
-                                padding: '6px',
-                                borderRadius: '4px',
-                                backgroundColor: '#f5f5f5',
-                                fontSize: '12px'
+                                textAlign: "center",
+                                border: "1px solid #ddd",
+                                padding: "6px",
+                                borderRadius: "4px",
+                                backgroundColor: "#f5f5f5",
+                                fontSize: "12px"
                             })
                             .appendTo(container);
                     }
                 },
-
                 {
                     dataField: "out_Time",
                     caption: "Out Time",
-                    allowEditing: false,
                     cellTemplate: function (container, options) {
                         const value = options.data.out_Time
-                            ? new Date(options.data.out_Time).toLocaleString('en-GB')
+                            ? new Date(options.data.out_Time).toLocaleTimeString('en-GB', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                              })
                             : "--";
-                        $('<div>')
+                        $("<div>")
                             .text(value)
                             .css({
-                                textAlign: 'center',
-                                border: '1px solid #ddd',
-                                padding: '6px',
-                                borderRadius: '4px',
-                                backgroundColor: '#f5f5f5',
-                                fontSize: '12px'
+                                textAlign: "center",
+                                border: "1px solid #ddd",
+                                padding: "6px",
+                                borderRadius: "4px",
+                                backgroundColor: "#f5f5f5",
+                                fontSize: "12px"
                             })
                             .appendTo(container);
                     }
                 },
-
                 {
                     dataField: "status",
                     caption: "Present Day",
@@ -430,6 +476,7 @@
                 {
                     dataField: "reason",
                     caption: "Reason",
+                        width: 180,
                     lookup: {
                         dataSource: [
                             { ID: "Forgot To Punch/Sign", Name: "Forgot To Punch/Sign" },
@@ -470,6 +517,7 @@
                 {
                     dataField: "dayType",
                     caption: "Day Type",
+                        width: 140,
                     lookup: {
                         dataSource: [
                             { id: "Full Day", name: "Full Day" },
@@ -525,7 +573,7 @@
             });
             return;
         }
-
+             showLoder();
         const validRows = [];
         selectedRows.forEach(row => {
             const reason = row.reason?.trim();
@@ -569,9 +617,16 @@
             data: JSON.stringify(validRows),
             success: function (response) {
                 if (response?.isSuccess) {
+                      hideLoder();
                     round_success_noti(response.responseMessage || "Saved successfully.");
-                   $("#dxRadioGrid").dxDataGrid("instance").refresh();             
-
+                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance"); 
+        const selectedKeys = gridInstance.getSelectedRowKeys();  
+        let currentData = gridInstance.option("dataSource");
+        const updatedData = currentData.filter(item => {
+            return !selectedKeys.includes(item.for_Date);
+        });
+        gridInstance.option("dataSource", updatedData);
+        gridInstance.refresh();
                     $("#btnGo").trigger("click");
                 } else {
                     Swal.fire({
@@ -587,7 +642,8 @@
                     title: 'Server Error',
                     text: xhr.status + " - " + xhr.statusText
                 });
-            }
+            },
+               
         });
     });
 
