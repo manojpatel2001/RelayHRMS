@@ -248,6 +248,17 @@
         <button id="btnClear">Clear</button>
     </div>
 
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+
+        <img src="@baseDomainUrl/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+
+        <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+    </div>
     <!-- Error Grid -->
     <div id="errorGridContainer" style="display:none; margin: 40px;">
         <div class="header">Import Error Record(s)</div>
@@ -283,56 +294,71 @@
                 }
             });
 
-            // Import button
-            $('#btnImport').click(function () {
-                var activeTab = $('.tab-content.active').attr('id'); // master, employee, leave, salary
-                var selectedType = $('input[name="' + activeTab + '"]:checked').val();
-                var file = $('#' + activeTab + 'FileInput')[0]?.files[0];
-                var sheetName = $('#' + activeTab + 'SheetName').val();
-                var rowFrom = $('#' + activeTab + 'RowFrom').val();
-                var rowTo = $('#' + activeTab + 'RowTo').val();
 
-                if (!selectedType) return Swal.fire("Warning", "Please select a type", "warning");
-                if (!file) return Swal.fire("Warning", "Please upload a file", "warning");
-                if (!sheetName) return Swal.fire("Warning", "Please enter sheet name", "warning");
-                if (!rowFrom) return Swal.fire("Warning", "Please enter 'Row From'", "warning");
-                if (!rowTo) return Swal.fire("Warning", "Please enter 'Row To'", "warning");
+                    async function showLoder(){
+          $('#grid-loader').addClass('d-flex').show();
+        }
+        async function hideLoder(){
+                $('#grid-loader').removeClass('d-flex').hide();
+        }
 
-                var formData = new FormData();
-                formData.append("File", file);
-                formData.append("Type", selectedType);
-                formData.append("SheetName", sheetName);
-                formData.append("RowFrom", rowFrom);
-                formData.append("RowTo", rowTo);
+                 $('#btnImport').click(function () {
+            var activeTab = $('.tab-content.active').attr('id'); // master, employee, leave, salary
+            var selectedType = $('input[name="' + activeTab + '"]:checked').val();
+            var file = $('#' + activeTab + 'FileInput')[0]?.files[0];
+            var sheetName = $('#' + activeTab + 'SheetName').val();
+            var rowFrom = $('#' + activeTab + 'RowFrom').val();
+            var rowTo = $('#' + activeTab + 'RowTo').val();
 
-                $.ajax({
-                    url: '@baseDomainUrl/api/ImportData/Upload',
-                    type: 'POST',
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    success: function (res) {
-                        if (res.isSuccess) {
-                            if (res.data?.length) {
-                                Swal.fire("Partial Success", res.responseMessage, "warning");
-                                showErrorGrid(res.data);
-                            } else {
-                                Swal.fire("Success", res.responseMessage, "success");
-                            }
+            // Validation
+            if (!selectedType) return Swal.fire("Warning", "Please select a type", "warning");
+            if (!file) return Swal.fire("Warning", "Please upload a file", "warning");
+            if (!sheetName) return Swal.fire("Warning", "Please enter sheet name", "warning");
+            if (!rowFrom) return Swal.fire("Warning", "Please enter 'Row From'", "warning");
+            if (!rowTo) return Swal.fire("Warning", "Please enter 'Row To'", "warning");
+
+            // Show loader
+            showLoder();
+
+            var formData = new FormData();
+            formData.append("File", file);
+            formData.append("Type", selectedType);
+            formData.append("SheetName", sheetName);
+            formData.append("RowFrom", rowFrom);
+            formData.append("RowTo", rowTo);
+
+            $.ajax({
+                url: '@baseDomainUrl/api/ImportData/Upload',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (res) {
+                    if (res.isSuccess) {
+                        if (res.data?.length) {
+                            Swal.fire("Partial Success", res.responseMessage, "warning");
+                            showErrorGrid(res.data);
                         } else {
-                            if (res.data?.length) {
-                                Swal.fire("Error", res.responseMessage, "error");
-                                showErrorGrid(res.data);
-                            } else {
-                                Swal.fire("Failed", res.responseMessage, "error");
-                            }
+                            Swal.fire("Success", res.responseMessage, "success");
                         }
-                    },
-                    error: function () {
-                        Swal.fire("Error", "Something went wrong while importing!", "error");
+                    } else {
+                        if (res.data?.length) {
+                            Swal.fire("Error", res.responseMessage, "error");
+                            showErrorGrid(res.data);
+                        } else {
+                            Swal.fire("Failed", res.responseMessage, "error");
+                        }
                     }
-                });
+                },
+                error: function () {
+                    Swal.fire("Error", "Something went wrong while importing!", "error");
+                },
+                complete: function () {
+                    hideLoder(); // Always hide loader after completion
+                }
             });
+        });
+
 
             $('#btnBack').click(function () {
                 history.back();
