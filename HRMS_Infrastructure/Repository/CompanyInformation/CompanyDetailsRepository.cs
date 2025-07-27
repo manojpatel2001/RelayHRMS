@@ -23,15 +23,15 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
             _db = db;
         }
 
-        public async Task<List<vmGetAllCompanyDetails>> GetAllCompanyDetails()
+        public async Task<List<vmGetAllCompanyDetailsForGrid>> GetAllCompanyDetails()
         {
             try
             {
-                return await _db.Set<vmGetAllCompanyDetails>().FromSqlInterpolated($"EXEC GetAllCompanyDetails").ToListAsync();
+                return await _db.Set<vmGetAllCompanyDetailsForGrid>().FromSqlInterpolated($"EXEC GetAllCompanyDetails").ToListAsync();
             }
             catch
             {
-                return new List<vmGetAllCompanyDetails>();
+                return new List<vmGetAllCompanyDetailsForGrid>();
             }
         }
 

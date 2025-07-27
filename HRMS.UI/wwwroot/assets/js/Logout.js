@@ -65,12 +65,10 @@ $(document).ready(function () {
     $('#companyDrop').on('click', function () {
         openCompanyModal(uiBaseUrlLayout, BaseUrlLayout, CompnayList, function (selectedCompany) {
             if (selectedCompany) {
-                console.log("Selected company:", selectedCompany);
                 localStorage.removeItem('selectedCompany');
                 localStorage.setItem('selectedCompany', JSON.stringify(selectedCompany));
                 location.reload();
             } else {
-                console.log(" No company selected or user canceled.");
             }
         });
     });
