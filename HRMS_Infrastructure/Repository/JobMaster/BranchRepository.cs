@@ -2,6 +2,7 @@
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.JobMaster;
+using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface.JobMaster;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -21,48 +22,130 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             _db = db;
         }
 
-        public async Task<bool> UpdateBranch(Branch branch)
+        public async Task<VMCommonResult> CreateBranch(Branch model)
         {
-            var existingRecord = await _db.Branch.SingleOrDefaultAsync(asd => asd.BranchId == branch.BranchId);
-            if (existingRecord == null)
+            try
             {
-                return false;
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageBranch
+                    @Action = {"CREATE"},
+                    @BranchName = {model.BranchName},
+                    @BranchCode = {model.BranchCode},
+                    @Address = {model.Address},
+                    @CityId = {model.CityId},
+                    @CountryName = {model.CountryName},
+                    @StateId = {model.StateId},
+                    @GSTIN_No = {model.GSTIN_No},
+                    @IsActive = {model.IsActive},
+                    @CreatedBy = {model.CreatedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
-            existingRecord.BranchName = branch.BranchName;
-            existingRecord.BranchCode = branch.BranchCode;
-            existingRecord.CompanyName = branch.CompanyName;
-            existingRecord.Address = branch.Address;
-            //existingRecord.CityId = branch.CityId;
-            existingRecord.CityName = branch.CityName;
-            existingRecord.CountryName = branch.CountryName;
-            existingRecord.State = branch.State;    
-            existingRecord.SalaryStartDate = branch.SalaryStartDate;
-            existingRecord.ContractorBranch = branch.ContractorBranch;
-            existingRecord.RegistrationCertificateNo = branch.RegistrationCertificateNo;
-            existingRecord.Zone = branch.Zone;
-            existingRecord.WardNumber = branch.WardNumber;
-            existingRecord.CensusNumber = branch.CensusNumber;
-            existingRecord.PFNo = branch.PFNo;
-            existingRecord.ESICNo = branch.ESICNo;
-            existingRecord.UpdatedBy = branch.UpdatedBy;
-            existingRecord.UpdatedDate = DateTime.UtcNow;
-            return true;
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
         }
 
-        public async Task<Branch> SoftDelete(DeleteRecordVM DeleteRecord)
+        public async Task<VMCommonResult> UpdateBranch(Branch model)
         {
-            var branch = await _db.Branch.FirstOrDefaultAsync(asd => asd.BranchId == DeleteRecord.Id);
-            if (branch == null)
+            try
             {
-                return branch;
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageBranch
+                    @Action = {"UPDATE"},
+                    @BranchId = {model.BranchId},
+                    @BranchName = {model.BranchName},
+                    @BranchCode = {model.BranchCode},
+                    @Address = {model.Address},
+                    @CityId = {model.CityId},
+                    @CountryName = {model.CountryName},
+                    @StateId = {model.StateId},
+                    @GSTIN_No = {model.GSTIN_No},
+                    @IsActive = {model.IsActive},
+                    @UpdatedBy = {model.UpdatedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
-            else
+            catch
             {
-                branch.IsEnabled = false;
-                branch.IsDeleted = true;
-                branch.DeletedDate = DateTime.UtcNow;
-                branch.DeletedBy = DeleteRecord.DeletedBy;
-                return branch;
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> DeleteBranch(DeleteRecordVM deleteRecord)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageBranch
+                    @Action = {"DELETE"},
+                    @BranchId = {deleteRecord.Id},
+                    @DeletedBy = {deleteRecord.DeletedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<List<vmGetAllBranches>> GetAllBranches(vmCommonGetById filters)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetAllBranches>().FromSqlInterpolated($@"
+                EXEC GetAllBranches
+                    @IsDeleted = {filters.IsDeleted},
+                    @IsEnabled = {filters.IsEnabled},
+                    @BranchName = {filters.Title}
+            ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<vmGetAllBranches>();
+            }
+        }
+
+        public async Task<Branch?> GetBranchById(vmCommonGetById filter)
+        {
+            try
+            {
+                var result = await _db.Set<Branch>().FromSqlInterpolated($@"
+                EXEC GetBranchById
+                    @BranchId = {filter.Id},
+                    @IsDeleted = {filter.IsDeleted},
+                    @IsEnabled = {filter.IsEnabled}
+            ").ToListAsync();
+
+                return result.FirstOrDefault();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        public async Task<List<vmGetAllCityByStateId>> GetAllCityByStateId(vmCommonGetById filter)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetAllCityByStateId>().FromSqlInterpolated($@"
+                EXEC GetAllCityByStateId
+                    @StateId = {filter.Id}
+                    
+            ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<vmGetAllCityByStateId>();
             }
         }
 
@@ -75,6 +158,41 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             catch
             {
                 return new List<BranchUserStatsModel>();
+            }
+        }
+
+        public async Task<vmCheckExistBranchCode?> CheckExistBranchCode(vmCommonGetById filter)
+        {
+            try
+            {
+                var result = await _db.Set<vmCheckExistBranchCode>().FromSqlInterpolated($@"
+                EXEC CheckExistBranchCode
+                    @BranchCode = {filter.Title}
+            ").ToListAsync();
+
+                return result.FirstOrDefault();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task<List<vmGetAllBranchesListByCompanyId>> GetAllBranchesListByCompanyId(vmCommonGetById filter)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetAllBranchesListByCompanyId>().FromSqlInterpolated($@"
+                EXEC GetAllBranchesListByCompanyId
+                    @CompanyId = {filter.CompanyId}
+                    
+            ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<vmGetAllBranchesListByCompanyId>();
             }
         }
     }

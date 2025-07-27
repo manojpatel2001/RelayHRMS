@@ -14,5 +14,6 @@ namespace HRMS_Core.VM.ManagePermision
         public bool? IsDeleted { get; set; } = false;
         public bool? IsEnabled { get; set; } = true;
         public bool? IsBlocked { get; set; } = false;
+        public int? CompanyId { get; set; } = 0;
     }
 }
