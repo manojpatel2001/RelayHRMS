@@ -17,21 +17,12 @@ namespace HRMS_Core.Master.JobMaster
         public int BranchId { get; set; }
         public string? BranchName { get; set; }
         public string? BranchCode { get; set; }
-        public string? CompanyName { get; set; }
         public string? Address { get; set; }
-
-        public string? CityName { get; set; }
+        public int? CityId{ get; set; }
         public string? CountryName { get; set; }   
-        public string? State { get; set; }   
+        public int? StateId { get; set; }   
+        public string? GSTIN_No { get; set; }
+        public bool? IsActive { get; set; } = false;
 
-        public DateTime SalaryStartDate { get; set; }
-        public bool ContractorBranch { get; set; } =false;
-
-        public string? RegistrationCertificateNo { get; set; }
-        public string? Zone { get; set; }
-        public string? WardNumber { get; set; }
-        public string? CensusNumber { get; set; }
-        public string? PFNo { get; set; }
-        public string? ESICNo { get; set; }
     }
 }

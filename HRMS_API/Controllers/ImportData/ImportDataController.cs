@@ -262,10 +262,10 @@ public class ImportDataController : ControllerBase
             {
                 BranchCode = code,
                 BranchName = name,
-                CityName = city,
-                Address = row[3]?.ToString(),
-                CompanyName = row[4]?.ToString(),
-                State = state,
+                //CityName = city,
+                //Address = row[3]?.ToString(),
+                //CompanyName = row[4]?.ToString(),
+                //State = state,
                 CountryName = country,
                 IsEnabled = true,
                 IsDeleted = false
@@ -287,7 +287,7 @@ public class ImportDataController : ControllerBase
             await _unitOfWork.DepartmentRepository.AddAsync(new Department
             {
                 DepartmentName = name,
-                SortingNo = int.TryParse(row[1]?.ToString(), out int sortNo) ? sortNo : 0,
+               // SortingNo = int.TryParse(row[1]?.ToString(), out int sortNo) ? sortNo : 0,
                 IsEnabled = true,
                 IsDeleted = false
             });

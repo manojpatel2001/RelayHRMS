@@ -1,6 +1,8 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.JobMaster;
+using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface.JobMaster;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -20,39 +22,122 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             _db = db;
         }
 
-        public async Task<Department> SoftDelete(DeleteRecordVM DeleteRecord)
+        public async Task<VMCommonResult> CreateDepartment(Department model)
         {
-            var department = await _db.Departments.FirstOrDefaultAsync(asd => asd.DepartmentId == DeleteRecord.Id);
-            if (department == null)
+            try
             {
-                return department;
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageDepartment
+                    @Action = {"CREATE"},
+                    @DepartmentName = {model.DepartmentName},
+                    @DepartmentCode = {model.DepartmentCode},
+                    @CompanyId = {model.CompanyId},
+                    @IsActive = {model.IsActive},
+                    @CreatedBy = {model.CreatedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
-            else
+            catch
             {
-                department.IsEnabled = false;
-                department.IsDeleted = true;
-                department.DeletedDate = DateTime.UtcNow;
-                department.DeletedBy = DeleteRecord.DeletedBy;
-                return department;
+                return new VMCommonResult { Id = 0 };
             }
         }
 
-        public async Task<bool> UpdateDepartment(Department department)
+        public async Task<VMCommonResult> UpdateDepartment(Department model)
         {
-            var existingRecord = await _db.Departments.SingleOrDefaultAsync(asd => asd.DepartmentId == department.DepartmentId);
-            if (existingRecord == null)
+            try
             {
-                return false;
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageDepartment
+                    @Action = {"UPDATE"},
+                    @DepartmentId = {model.DepartmentId},
+                    @DepartmentName = {model.DepartmentName},
+                    @DepartmentCode = {model.DepartmentCode},
+                    @CompanyId = {model.CompanyId},
+                    @IsActive = {model.IsActive},
+                    @UpdatedBy = {model.UpdatedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
-            existingRecord.DepartmentName = department.DepartmentName;
-            existingRecord.Code = department.Code;
-            existingRecord.SortingNo = department.SortingNo;
-            existingRecord.IsEnabled = department.IsEnabled;
-            existingRecord.MinimumWages = department.MinimumWages;
-            existingRecord.OJTApplicable = department.OJTApplicable;
-            existingRecord.UpdatedBy = department.UpdatedBy;
-            existingRecord.UpdatedDate = DateTime.UtcNow;
-            return true;
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> DeleteDepartment(DeleteRecordVM deleteRecord)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageDepartment
+                    @Action = {"DELETE"},
+                    @DepartmentId = {deleteRecord.Id},
+                    @DeletedBy = {deleteRecord.DeletedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<List<Department>> GetAllDepartments(vmCommonGetById filters)
+        {
+            try
+            {
+                var result = await _db.Set<Department>().FromSqlInterpolated($@"
+                EXEC GetAllDepartments
+                    @IsDeleted = {filters.IsDeleted},
+                    @IsEnabled = {filters.IsEnabled},
+                    @DepartmentName = {filters.Title}
+            ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<Department>();
+            }
+        }
+
+        public async Task<Department?> GetDepartmentById(vmCommonGetById filter)
+        {
+            try
+            {
+                var result = await _db.Set<Department>().FromSqlInterpolated($@"
+                EXEC GetDepartmentById
+                    @DepartmentId = {filter.Id},
+                    @IsDeleted = {filter.IsDeleted},
+                    @IsEnabled = {filter.IsEnabled}
+            ").ToListAsync();
+
+                return result.FirstOrDefault();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        public async Task<vmCheckExistDepartmentCode?> CheckExistDepartmentCode(vmCommonGetById filter)
+        {
+            try
+            {
+                var result = await _db.Set<vmCheckExistDepartmentCode>().FromSqlInterpolated($@"
+                EXEC CheckExistDepartmentCode
+                   @DepartmentCode = {filter.Title}
+            ").ToListAsync();
+
+                return result.FirstOrDefault();
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }
