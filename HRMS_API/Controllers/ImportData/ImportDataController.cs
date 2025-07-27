@@ -254,7 +254,7 @@ public class ImportDataController : ControllerBase
                 return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
             }
 
-            var exists = await _unitOfWork.BranchRepository.GetAsync(x => x.BranchCode == code && x.BranchName==name && x.CityName ==city && x.IsEnabled == true && x.IsDeleted != true);
+            var exists = await _unitOfWork.BranchRepository.GetAsync(x => x.BranchCode == code && x.BranchName==name  && x.IsEnabled == true && x.IsDeleted != true);
             if (exists != null)
                 return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Branch Code", code, "Enter unique Branch Code.", type));
 
