@@ -182,6 +182,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmCheckExistDepartmentCode>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmCheckExistBranchCode>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllBranchesListByCompanyId>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllCompanyDetailsForGrid>().HasNoKey().ToView(null);
 
 
         }
