@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250727180834_DistrictId")]
+    partial class DistrictId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2444,6 +2447,12 @@ namespace HRMS_Core.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("HolidayMasterId"));
 
+                    b.Property<string>("ApprovalMaxLimit")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -2456,17 +2465,17 @@ namespace HRMS_Core.Migrations
                     b.Property<DateTime?>("DeletedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FromDate")
+                    b.Property<DateTime>("FromDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("HalfDay")
+                        .HasColumnType("bit");
 
                     b.Property<string>("HolidayName")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Holidaycategory")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("IsActive")
-                        .HasColumnType("bit");
 
                     b.Property<bool?>("IsBlocked")
                         .HasColumnType("bit");
@@ -2480,16 +2489,25 @@ namespace HRMS_Core.Migrations
                     b.Property<string>("MessageText")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool?>("MultipleHoliday")
+                    b.Property<bool>("MultipleHoliday")
                         .HasColumnType("bit");
 
-                    b.Property<bool?>("RepeatAnnually")
+                    b.Property<bool>("OptionalHoliday")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("StateId")
-                        .HasColumnType("int");
+                    b.Property<bool>("PresentCompulsory")
+                        .HasColumnType("bit");
 
-                    b.Property<DateTime?>("ToDate")
+                    b.Property<bool>("RepeatAnnually")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("SMS")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("State")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ToDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("UpdatedBy")
@@ -2499,6 +2517,8 @@ namespace HRMS_Core.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("HolidayMasterId");
+
+                    b.HasIndex("BranchId");
 
                     b.ToTable("HolidayMaster");
                 });
@@ -6516,6 +6536,17 @@ namespace HRMS_Core.Migrations
                     b.Navigation("PermanentThana");
 
                     b.Navigation("PresentThana");
+                });
+
+            modelBuilder.Entity("HRMS_Core.Master.CompanyStructure.HolidayMaster", b =>
+                {
+                    b.HasOne("HRMS_Core.Master.JobMaster.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.JobMaster.City", b =>

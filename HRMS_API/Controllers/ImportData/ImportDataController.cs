@@ -406,21 +406,21 @@ public class ImportDataController : ControllerBase
 
             }
 
-            await _unitOfWork.HolidayMasterRepository.AddAsync(new HolidayMaster
-            {
-                HolidayName = name,
-                FromDate = fromDate,
-                BranchId = branch.BranchId,
-                ToDate = DateTime.TryParse(row[3]?.ToString(), out DateTime toDate) ? toDate : DateTime.MinValue,
-                Holidaycategory = row[4]?.ToString(),
-                RepeatAnnually = bool.TryParse(row[5]?.ToString(), out bool repeat) ? repeat : false,
-                HalfDay = bool.TryParse(row[6]?.ToString(), out bool halfDay) ? halfDay : false,
-                PresentCompulsory = bool.TryParse(row[7]?.ToString(), out bool compulsory) ? compulsory : false,
-                OptionalHoliday = bool.TryParse(row[8]?.ToString(), out bool optional) ? optional : false,
-                ApprovalMaxLimit = row[9]?.ToString() ?? "0",               
-                IsEnabled = true,
-                IsDeleted = false
-            });
+            //await _unitOfWork.HolidayMasterRepository.AddAsync(new HolidayMaster
+            //{
+            //    HolidayName = name,
+            //    FromDate = fromDate,
+            //    BranchId = branch.BranchId,
+            //    ToDate = DateTime.TryParse(row[3]?.ToString(), out DateTime toDate) ? toDate : DateTime.MinValue,
+            //    Holidaycategory = row[4]?.ToString(),
+            //    RepeatAnnually = bool.TryParse(row[5]?.ToString(), out bool repeat) ? repeat : false,
+            //    HalfDay = bool.TryParse(row[6]?.ToString(), out bool halfDay) ? halfDay : false,
+            //    PresentCompulsory = bool.TryParse(row[7]?.ToString(), out bool compulsory) ? compulsory : false,
+            //    OptionalHoliday = bool.TryParse(row[8]?.ToString(), out bool optional) ? optional : false,
+            //    ApprovalMaxLimit = row[9]?.ToString() ?? "0",               
+            //    IsEnabled = true,
+            //    IsDeleted = false
+            //});
 
             return (true, false, false, null);
         }

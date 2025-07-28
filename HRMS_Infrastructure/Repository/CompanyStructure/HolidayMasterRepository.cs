@@ -2,6 +2,7 @@
 using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyStructure;
+using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface.CompanyStructure;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -21,134 +22,115 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
             _db = db;
         }
 
-        public async Task<VMCommonResult> CreateHolidayMaster(vmCreateHoliayMaster holidayMaster)
+        public async Task<VMCommonResult> CreateHoliday(HolidayMaster model)
         {
             try
             {
                 var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                    EXEC CreateHolidayMaster
-                        @HolidayName = {holidayMaster.HolidayName},
-                        @State = {holidayMaster.State},
-                        @BranchId = {holidayMaster.BranchId},
-                        @MultipleHoliday = {holidayMaster.MultipleHoliday},
-                        @FromDate = {holidayMaster.FromDate},
-                        @ToDate = {holidayMaster.ToDate},
-                        @MessageText = {holidayMaster.MessageText},
-                        @Holidaycategory = {holidayMaster.Holidaycategory},
-                        @RepeatAnnually = {holidayMaster.RepeatAnnually},
-                        @HalfDay = {holidayMaster.HalfDay},
-                        @PresentCompulsory = {holidayMaster.PresentCompulsory},
-                        @SMS = {holidayMaster.SMS},
-                        @OptionalHoliday = {holidayMaster.OptionalHoliday},
-                        @ApprovalMaxLimit = {holidayMaster.ApprovalMaxLimit},
-                        @IsDeleted = {holidayMaster.IsDeleted},
-                        @IsEnabled = {holidayMaster.IsEnabled},
-                        @IsBlocked = {holidayMaster.IsBlocked},
-                        @CreatedDate = {holidayMaster.CreatedDate},
-                        @CreatedBy = {holidayMaster.CreatedBy},
-                        @UpdatedDate = {holidayMaster.UpdatedDate},
-                        @UpdatedBy = {holidayMaster.UpdatedBy},
-                        @DeletedDate = {holidayMaster.DeletedDate},
-                        @DeletedBy = {holidayMaster.DeletedBy}
-                ").ToListAsync();
+                EXEC ManageHolidayMaster
+                    @Action = {"CREATE"},
+                    @HolidayName = {model.HolidayName},
+                    @StateId = {model.StateId},
+                    @MultipleHoliday = {model.MultipleHoliday},
+                    @FromDate = {model.FromDate},
+                    @ToDate = {model.ToDate},
+                    @MessageText = {model.MessageText},
+                    @HolidayCategory = {model.Holidaycategory},
+                    @RepeatAnnually = {model.RepeatAnnually},
+                    @IsActive = {model.IsActive},
+                    @CreatedBy = {model.CreatedBy}
+            ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult
-                {
-                    Id = 0,
-                };
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
-            catch (Exception ex)
+            catch
             {
-                // Optional: log ex here
-                return new VMCommonResult
-                {
-                    Id = 0,
-                };
+                return new VMCommonResult { Id = 0 };
             }
         }
 
-
-        public async Task<VMCommonResult> DeleteHolidayMaster(DeleteRecordVM deleteRecordVM)
+        public async Task<VMCommonResult> UpdateHoliday(HolidayMaster model)
         {
             try
             {
                 var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                    EXEC DeleteHolidayMaster
-                        @HolidayMasterId = {deleteRecordVM.Id},
-                        @DeletedBy = {deleteRecordVM.DeletedBy},
-                        @DeletedDate = {deleteRecordVM.DeletedDate}
-                ").ToListAsync();
+                EXEC ManageHolidayMaster
+                    @Action = {"UPDATE"},
+                    @HolidayMasterId = {model.HolidayMasterId},
+                    @HolidayName = {model.HolidayName},
+                    @StateId = {model.StateId},
+                    @MultipleHoliday = {model.MultipleHoliday},
+                    @FromDate = {model.FromDate},
+                    @ToDate = {model.ToDate},
+                    @MessageText = {model.MessageText},
+                    @HolidayCategory = {model.Holidaycategory},
+                    @RepeatAnnually = {model.RepeatAnnually},
+                    @IsActive = {model.IsActive},
+                    @UpdatedBy = {model.UpdatedBy}
+            ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult
-                {
-                    Id = 0
-                };
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
-            catch (Exception ex)
+            catch
             {
-                // Optional: Log ex
-                return new VMCommonResult
-                {
-                    Id = 0
-                };
+                return new VMCommonResult { Id = 0 };
             }
         }
 
-        public async Task<List<vmGetAllHolidayMaster>> GetAllHolidayMaster()
+        public async Task<VMCommonResult> DeleteHoliday(DeleteRecordVM deleteRecord)
         {
             try
             {
-                var result = await _db.Set<vmGetAllHolidayMaster>().FromSqlRaw(@" EXEC GetAllHolidayMaster").ToListAsync();
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageHolidayMaster
+                    @Action = {"DELETE"},
+                    @HolidayMasterId = {deleteRecord.Id},
+                    @DeletedBy = {deleteRecord.DeletedBy}
+            ").ToListAsync();
 
-                // Return an empty list if result is null
-                return result ?? new List<vmGetAllHolidayMaster>();
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
-            catch (Exception ex)
+            catch
             {
-                // Optional: Log ex
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<List<vmGetAllHolidayMaster>> GetAllHolidayMaster(vmCommonGetById filters)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetAllHolidayMaster>().FromSqlInterpolated($@"
+                EXEC GetAllHolidayMaster
+                     @HolidayName={filters.Title},
+                    @IsDeleted = {filters.IsDeleted},
+                    @IsEnabled = {filters.IsEnabled}
+            ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
                 return new List<vmGetAllHolidayMaster>();
             }
         }
 
-
-        public async Task<VMCommonResult> UpdateHolidayMaster(vmCreateHoliayMaster holidayMaster)
+        public async Task<vmGetAllHolidayMaster?> GetHolidayMasterById(vmCommonGetById filter)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                    EXEC UpdateHolidayMaster
-                        @HolidayMasterId = {holidayMaster.HolidayMasterId},
-                        @HolidayName = {holidayMaster.HolidayName},
-                        @State = {holidayMaster.State},
-                        @BranchId = {holidayMaster.BranchId},
-                        @MultipleHoliday = {holidayMaster.MultipleHoliday},
-                        @FromDate = {holidayMaster.FromDate},
-                        @ToDate = {holidayMaster.ToDate},
-                        @MessageText = {holidayMaster.MessageText},
-                        @Holidaycategory = {holidayMaster.Holidaycategory},
-                        @RepeatAnnually = {holidayMaster.RepeatAnnually},
-                        @HalfDay = {holidayMaster.HalfDay},
-                        @PresentCompulsory = {holidayMaster.PresentCompulsory},
-                        @SMS = {holidayMaster.SMS},
-                        @OptionalHoliday = {holidayMaster.OptionalHoliday},
-                        @ApprovalMaxLimit = {holidayMaster.ApprovalMaxLimit},
-                        @UpdatedDate = {holidayMaster.UpdatedDate},
-                        @UpdatedBy = {holidayMaster.UpdatedBy}
-                        
-                ").ToListAsync();
+                var result = await _db.Set<vmGetAllHolidayMaster>().FromSqlInterpolated($@"
+                EXEC GetHolidayMasterById
+                    @HolidayMasterId = {filter.Id},
+                    @IsDeleted = {filter.IsDeleted},
+                    @IsEnabled = {filter.IsEnabled}
+            ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult
-                {
-                    Id = 0
-                };
+                return result.FirstOrDefault();
             }
-            catch (Exception ex)
+            catch
             {
-                // Optional: Log ex
-                return new VMCommonResult
-                {
-                    Id = 0
-                };
+                return null;
             }
         }
 
