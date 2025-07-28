@@ -109,7 +109,26 @@
                     <div class="dashboard-grid-container">
                         <div class="dashboard-header">Employees Detail</div>
                         @*            <div id="rowCount" class="text-end text-muted mt-1 me-2" style="font-size: 13px;"></div> *@
-                        <div id="employeeGrid" class="p-2"></div>
+
+                        <div class="grid-wrapper " style="position: relative; ">
+                            <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+                                 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+                                <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px;                                            height: 30px; animation: spin 1s linear infinite;" />
+                                <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+                            </div>
+                            <div id="gridTag">
+                                <div class="rowCount" id="rowCountEmployee"></div>
+                                <div id="employeeGrid" class="p-2"></div>
+                            </div>
+                            <div id="noRecord" style="display:none;">
+                                No Record Found!
+                            </div>
+
+
+                        </div>
+
+                        
                     </div>
                 </div>
 
@@ -133,17 +152,21 @@
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-
+            const Token=localStorage.getItem("authToken");
+        const userId=localStorage.getItem("EmployeeId");
         $(document).ready(function () {
             BranchData();
         });
 
         function BranchData() {
-            debugger;
-            $.ajax({
+        $('#grid-loader').addClass('d-flex').show();         
+        $.ajax({
                 type: "GET",
                  url: '@baseDomainUrl/api/BranchAPI/GetBranchWiseEmpCount',
-                success: function (data) { arguments
+                 headers: {
+                        'Authorization': 'Bearer ' + Token
+                    },
+                success: function (data) { 
                     if (data.isSuccess && data.data.length > 0) {
                         $("#employeeGrid").dxDataGrid({
                             dataSource: data.data,
@@ -172,17 +195,20 @@
                                     { column: "leftLastMonth", summaryType: "sum" }
                                 ]
                             },
-                                 onContentReady(e) {
-            const totalRecords = e.component.option("dataSource").length;
-            $('#rowCount').html('Total Records: ' + totalRecords);
-        }
+                             onContentReady(e) {
+                                               
+                                  $('#grid-loader').removeClass('d-flex').hide()
+                                const totalRecords = e.component.option("dataSource").length;
+                               // $('#rowCountEmployee').html('Total Records: ' + totalRecords);
+                            }
                         });
                     } else {
-                        DevExpress.ui.notify("No data found.", "warning", 3000);
+                       round_error_noti("No record found!");
+                        $('#grid-loader').removeClass('d-flex').hide()
                     }
                 },
                 error: function (xhr, status, error) {
-                    DevExpress.ui.notify("Error fetching data: " + status, "error", 3000);
+                     $('#grid-loader').removeClass('d-flex').hide()
                     console.error("AJAX Error: ", error);
                 }
             });
