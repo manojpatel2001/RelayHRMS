@@ -32,7 +32,7 @@ namespace HRMS_Core.Master.CompanyStructure
         public bool OptionalHoliday { get; set; } = false;
         public string? ApprovalMaxLimit { get; set; } = "0";
 
-        public bool? RepeatAnnually { get; set; } = false;
+       
         public bool? IsActive { get; set; } = false;
        
 
