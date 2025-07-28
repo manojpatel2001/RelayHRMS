@@ -24,9 +24,19 @@ namespace HRMS_Core.Master.CompanyStructure
         public string? MessageText { get; set; }
         public string? Holidaycategory { get; set; }
 
+
+        public bool RepeatAnnually { get; set; } = false;
+        public bool HalfDay { get; set; } = false;
+        public bool PresentCompulsory { get; set; } = false;
+        public bool SMS { get; set; } = false;
+        public bool OptionalHoliday { get; set; } = false;
+        public string? ApprovalMaxLimit { get; set; } = "0";
+
         public bool? RepeatAnnually { get; set; } = false;
         public bool? IsActive { get; set; } = false;
        
 
+
+        public int? CompanyId { get; set; }
     }
 }

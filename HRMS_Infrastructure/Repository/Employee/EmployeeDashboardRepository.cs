@@ -20,12 +20,12 @@ namespace HRMS_Infrastructure.Repository.Employee
 
         private readonly HRMSDbContext _db;
 
-        public EmployeeDashboardRepository(HRMSDbContext db) 
+        public EmployeeDashboardRepository(HRMSDbContext db)
         {
             _db = db;
         }
 
-        public async  Task<List<RecentEmployeeVM>> GetRecentJoinedEmployees(int Companyid)
+        public async Task<List<RecentEmployeeVM>> GetRecentJoinedEmployees(int Companyid)
         {
             try
             {
@@ -77,7 +77,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var parameters = new[]
                 {
                     new SqlParameter("@CompanyId", Companyid)
-                   
+
                 };
 
                 var result = await _db.Set<WishesReportVM>()
@@ -115,5 +115,30 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
 
         }
+
+        public async Task<List<UpcommingholidaysVM>> Getupcommingholidays(int Compid)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@CompanyId", Compid)
+
+                    };
+
+                var result = await _db.Set<UpcommingholidaysVM>()
+                    .FromSqlRaw("EXEC sp_GetUpcomingHolidays @CompanyId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<UpcommingholidaysVM>();
+            }
+        }
+
+      
+
     }
 }

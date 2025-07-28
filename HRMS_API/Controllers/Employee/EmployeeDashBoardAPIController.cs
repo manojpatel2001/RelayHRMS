@@ -95,5 +95,24 @@ namespace HRMS_API.Controllers.Employee
         }
 
 
+        [HttpGet("Getupcommingholidays")]
+        public async Task<APIResponse> Getupcommingholidays(int Compid)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeDashboardRepository.Getupcommingholidays(Compid);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
     }
 }
