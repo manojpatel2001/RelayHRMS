@@ -29,6 +29,7 @@ namespace HRMS_Core.VM.Employee
         public DateTime For_Date { get; set; }
         public DateTime? In_Time { get; set; }
         public DateTime? Out_Time { get; set; }
+        public int LastRecordId { get; set; }
     }
 
 }

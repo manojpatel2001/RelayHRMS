@@ -176,7 +176,17 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<MonthlySalaryRequestViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<SalaryDetailViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<SalaryDetailsParameterVm>().HasNoKey().ToView(null);
+
             modelBuilder.Entity<UpcommingholidaysVM>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<SalaryDetailForGetById>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllBranches>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllCityByStateId>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmCheckExistDepartmentCode>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmCheckExistBranchCode>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllBranchesListByCompanyId>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllCompanyDetailsForGrid>().HasNoKey().ToView(null);
+
 
 
         }

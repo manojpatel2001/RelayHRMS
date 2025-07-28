@@ -16,10 +16,10 @@ namespace HRMS_Core.Master.JobMaster
         [Key] 
         public int DepartmentId { get; set; }
         public string? DepartmentName { get; set; }
-        public string? Code { get; set; }
-        public int? SortingNo { get; set; } = 0;
-        public int? MinimumWages { get; set; } = 0;
-        public bool OJTApplicable { get; set; } = false;
+        public string? DepartmentCode { get; set; }
+        public int? CompanyId { get; set; }
+      
+        public bool?IsActive  { get; set; } = false;
 
 
     }

@@ -91,7 +91,7 @@
                             type="button"
                             class="btn mr-1 rounded-1"
                             style="background-color:#2395c6; color:white;">
-                        Add 
+                        Add Company
                     </button>
                 </div>
             </div>
@@ -102,15 +102,24 @@
         <div class="row mt-2">
             <div class="col-md-12">
                 <div class="form-group">
-                    <div class="rowCount" id="rowCountCompanyDetails"></div>
-                    <div id="gridContainerCompanyDetails">
+                    <div class="grid-wrapper " style="position: relative; ">
+                        <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+                             style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+                            <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px;                                            height: 30px; animation: spin 1s linear infinite;" />
+                            <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
 
-                        <div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
+                        </div>
+                        <div id="gridTag">
+
+                            <div class="rowCount" id="rowCountCompanyDetails"></div>
+                            <div id="gridContainerCompanyDetails"></div>
+                        </div>
+                        <div id="noRecord" style="display:none;">
+                            No Record Found!
                         </div>
                     </div>
+
+
                 </div>
             </div>
         </div>
@@ -448,6 +457,16 @@
                                 </div>
                             </div>
 
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group mt-3 position-relative">
+                                    <div id="branchTagBox"></div>
+                                    <span id="spnBranchTagBox" style="color:red; display:none;">Please  Select Branch</span>
+
+                                </div>
+                             </div>
                         </div>
                         <hr class="mb-2"/>
                         <div class="row mb-2">
@@ -857,8 +876,13 @@
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
+   
 <script>
+        const Token=localStorage.getItem("authToken");
+            const userId=localStorage.getItem("EmployeeId");
     let CompanyId=0;
+    let branchIds=null;
+
     $("#AddCompanyDetails").click( () => {
         CompanyId=0;
             resetCompanyFormFields();
@@ -875,6 +899,70 @@
             });
 
        });
+
+
+
+            async function loadBranchesList()
+            {
+                    $.ajax({
+                    type: "GET",
+                    url: '@baseUrl/BranchAPI/GetAllBranches',
+                    headers: {
+                        'Authorization': 'Bearer ' + Token
+                    },
+                    success: function (response) {
+                        if(response.isSuccess){
+                              $("#branchTagBox").dxTagBox({
+                             items: response.data,
+                                valueExpr: "branchId",            // store ID
+                                displayExpr: "branchName",        // show name
+                                placeholder: "Select branches...",
+                                showSelectionControls: true,
+                                searchEnabled: true,
+                                searchExpr: ["branchId", "branchName"],
+                                multiline: true,
+                                 showDropDownButton: true,
+                                onValueChanged: function (e) {
+
+                                    var selectedIds = e.value;
+                                    var idString = selectedIds.join(",");
+                                     branchIds=idString;
+                                }
+                            });
+
+                        }
+                        else{
+                                $("#branchTagBox").dxTagBox({
+                                 items: [],
+                                    valueExpr: "branchId",            // store ID
+                                    displayExpr: "branchName",        // show name
+                                    placeholder: "Select branches...",
+                                    showSelectionControls: true,
+                                    searchEnabled: true,
+                                    searchExpr: ["branchId", "branchName"],
+                                    multiline: true,
+                                     showDropDownButton: true,
+                                    onValueChanged: function (e) {
+
+                                        var selectedIds = e.value;
+                                        var idString = selectedIds.join(",");
+                                         branchIds=idString;
+                                    }
+                                });
+                        }
+
+                    },
+                    error: function () {
+
+                        console.error("Unable to load branch");
+                    }
+                });
+
+            }
+
+        $(document).ready(()=>{
+            loadBranchesList();
+        })
 
        // logo upload
        $(() => {
@@ -949,11 +1037,11 @@
         localStorage.removeItem('companyDetailsLocalStorage');
         CompanyDetailsDataTable();
           bindState();
-            bindCity();
     });
 
 
     function CompanyDetailsDataTable() {
+       $('#grid-loader').addClass('d-flex').show();
         $.ajax({
             type: "GET",
             url: '@baseUrl/CompanyDetailsAPI/GetAllCompanyDetails',
@@ -1046,6 +1134,7 @@
                             { dataField: 'selectWeekOffDay', caption: 'Week Off Day', alignment: 'center', width: 150 },
                             { dataField: 'alternateWeekOffDay', caption: 'Alternate Week Off Day', alignment: 'center', width: 150 },
                             { dataField: 'alternateFullWeekOff', caption: 'Alternate Full Week Off', alignment: 'center', width: 150 },
+                            { dataField: 'branchNames', caption: 'Branch Names', alignment: 'center', width: 150 },
                             // { dataField: 'companyLogoUrl', caption: 'Company Logo URL', alignment: 'center', width: 200 },
                             // { dataField: 'digitalSignatureUrl', caption: 'Digital Signature URL', alignment: 'center', width: 200 },
                             // { dataField: 'digitalSignaturePassword', caption: 'Digital Signature Password', alignment: 'center', width: 200 },
@@ -1055,9 +1144,7 @@
                                 caption: '',
                                 alignment: 'center',
                                 width: '50px',
-                                type: 'buttons',
-                                fixed: true,
-                                fixedPosition: 'right',
+                               
                                 cellTemplate: function(container, options) {
                                     var buttonElement = $('<div class="d-flex order-actions">' +
                                         '<a href="javascript:;" class="edit-action" title="Edit Company">' +
@@ -1074,11 +1161,7 @@
                             {
                                 dataField: '',
                                 caption: '',
-                                alignment: 'center',
-                                width: '50px',
-                                type: 'buttons',
-                                fixed: true,
-                                fixedPosition: 'right',
+                                
                                 cellTemplate: function(container, options) {
                                     var buttonElement = $('<div class="d-flex order-actions">' +
                                         '<a href="javascript:;" class="delete-action" title="Delete Company">' +
@@ -1108,6 +1191,9 @@
                         columnFixing: {
                             enabled: true
                         },
+                         loadPanel: {
+                            enabled: false
+                        },
                         scrolling: {
                             mode: "standard",
                             useNative: false,
@@ -1115,12 +1201,15 @@
                             scrollByThumb: true,
                         },
                         onContentReady(e) {
+                                    $('#grid-loader').removeClass('d-flex').hide();
+
                                 $('#rowCountCompanyDetails').html('Total Records: ' + e.component.totalCount());
                         }
                     });
                 }
             },
             error: function(xhr, status, error) {
+                                             $('#grid-loader').removeClass('d-flex').hide();
                 console.error("AJAX Error: " + status + " - " + error);
             }
         });
@@ -1130,6 +1219,9 @@
           $.ajax({
               type: "GET",
                url: '@baseUrl/StateAPI/GetAllState',
+                   headers: {
+                                'Authorization': 'Bearer ' + Token
+                            },
               success: function (data) {
                   if (data.isSuccess ) {
                         const $dropdown = $('#txtstate');
@@ -1148,26 +1240,44 @@
           });
       }
 
-      function bindCity() {
-        $.ajax({
-            type: "GET",
-              url: '@baseUrl/CityAPI/GetAllCity', // Replace with your actual API endpoint
-            success: function(data) {
-                if (data.isSuccess) {
-                    const $dropdown = $('#txtcity');
-                    $dropdown.empty();
-                    $dropdown.append('<option value="" selected disabled>Select City</option>');
+     $("#txtstate").change(() => {
+      BindCity();
+    })
+    function BindCity() {
+              var stateId = $("#txtstate").val();
+          if (!stateId) {
+            return Promise.resolve();  // return a resolved promise if no state selected
+          }
 
-                    $.each(data.data, function(index, city) {
-                        $dropdown.append(`<option value="${city.cityID}">${city.cityName}</option>`);
-                    });
-                }
+          // Return the ajax Promise so caller can await it
+          return $.ajax({
+            type: "GET",
+            url: "@baseUrl/BranchAPI/GetAllCityByStateId/" + stateId,
+            headers: {
+              'Authorization': 'Bearer ' + Token
             },
-            error: function(xhr, status, error) {
-                console.error("Error fetching cities:", error);
+            success: function (data) {
+              if (data.isSuccess) {
+                    var dropdown = $('#txtcity');
+                dropdown.empty();
+                dropdown.append('<option disabled selected value="">Select</option>');
+                $.each(data.data, function (index, company) {
+                  dropdown.append($('<option>', {
+                    value: company.cityId,
+                    text: company.cityName
+                  }));
+                });
+              } else {
+                round_error_noti("No city available for this state");
+              }
+            },
+            error: function (xhr, status, error) {
+              console.error("Unable to load city");
             }
-        });
-    }
+          });
+        }
+
+
 
          let selectWeekOffDay = [];
            let resultSelectWeekOffDay=null
@@ -1300,12 +1410,12 @@
                 $("#spndomainName").hide();
             }
 
-            // if (!alternateFullWeekOff) {
-            //     $("#spnalternateFullWeekOff").show();
-            //     isValid = false;
-            // } else {
-            //     $("#spnalternateFullWeekOff").hide();
-            // }
+             if (!branchIds) {
+                    $("#spnBranchTagBox").show();
+                isValid = false;
+            } else {
+                    $("#spnBranchTagBox").hide();
+            }
 
             if (!isValid) {
                 $("#btnAddCompanyDetails").prop("disabled", false);
@@ -1336,6 +1446,7 @@
                 domainName: domainName === "" ? null : domainName,
                 companyCode: companyCode === "" ? null : companyCode,
                 lwfNo: lwfNo === "" ? null : lwfNo,
+                 BranchIds:branchIds,
                // employeeCodeSetting: employeeCodeSetting === "" ? null : employeeCodeSetting,
                 inOutDuration: inOutDuration === "" ? null : inOutDuration,
                 hierarchyDesignation: hierarchyDesignation,
@@ -1604,13 +1715,14 @@
     });
 
    
-      function updateCompanyDetails(data) {
+      async function updateCompanyDetails(data) {
               resetCompanyFormFields();
         CompanyId=data.companyId
         $("#txtcompanyName").val(data.companyName || "");
         $("#txtcompanyAddress").val(data.companyAddress || "");
-        $("#txtcity").val(data.cityId || "");
         $("#txtstate").val(data.stateId || "");
+            await  BindCity();
+          $("#txtcity").val(data.cityId || "");
         $("#txtpinCode").val(data.pinCode || "");
         if (data.country) {
             $("#txtcountry option").filter(function() {
@@ -1633,6 +1745,19 @@
         $("#txtinOutDuration").val(data.inOutDuration || "");
         $("#txtemployeeLicense").val(data.employeeLicense || "");
         $("#txtEmailSignature").val(data.emailSignature || "");
+         if(data.branchIds){
+                 var selectedIdsArray = data.branchIds.split(",").map(function(branchId) {
+                    return branchId.trim();          // trim spaces
+                    });
+            // Set to dxTagBox
+                var tagBox = $("#branchTagBox").dxTagBox("instance");
+                        var tagBranchBox = $("#branchTagBox").dxTagBox("instance");
+                    if (tagBranchBox) {
+                       tagBox.option("value", selectedIdsArray);
+
+                    }
+                    branchIds=data.branchIds;
+         }
 
         // Set checkbox values
         $("#txtpfApplicable").prop("checked", data.pfApplicable || false);
@@ -1689,6 +1814,7 @@
                //director details
                 localStorage.removeItem('directorDetailsLocalStorage');
                  DirectorDetailsDataTable();
+                            $("#btnAddCompanyDetails").text("Update");
 
                 $(".compnayFormType").text("Update");
             $('#addCompanyDetailsModal').modal('show');
@@ -1708,15 +1834,23 @@
         $("#spncountry").hide();
         $("#spnfromDate").hide();
         $("#spndomainName").hide();
+         $("#spnBranchTagBox").hide();
+         branchIds=null;
         CompanyId=0;
+               var tagBranchBox = $("#branchTagBox").dxTagBox("instance");
+        if (tagBranchBox) {
+            tagBranchBox.option("value", []);
+        }
        $("#btnAddCompanyDetails").prop("disabled", false);
+       $("#btnAddCompanyDetails").text("Add");
+
          $(".compnayFormType").text("Add");
         $("#txtcompanyName").val("");
         $("#txtcompanyAddress").val("");
         $("#txtpinCode").val("");
         $("#txtphoneNo").val("");
         $("#txtemailAddress").val("");
-            $("#txtdateFormat").val("dd/MM/yyyy");
+          $("#txtdateFormat").val("dd/MM/yyyy");
         $("#txtfromDate").val("");
         $("#txtwebsite").val("");
         $("#txtpfTrustNo").val("");

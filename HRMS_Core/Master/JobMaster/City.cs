@@ -27,5 +27,6 @@ namespace HRMS_Core.Master.JobMaster
         [ValidateNever]
         public CityCategory? CityCategory { get; set; } 
         public string? Remarks { get; set; }   
+        public int? DistrictId { get; set; }   
     }
 }

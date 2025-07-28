@@ -74,7 +74,6 @@ namespace HRMS_API.Controllers.Employee
             }
 
         }
-
         [HttpPost("CreateAttendanceRegularization")]
         public async Task<APIResponse> CreateAttendanceRegularization(List<AttendanceRegularization> attendances)
         {
@@ -91,61 +90,51 @@ namespace HRMS_API.Controllers.Employee
 
                 foreach (var attendance in attendances)
                 {
-                    if (attendance == null)
+                    if (attendance == null || !attendance.ForDate.HasValue || string.IsNullOrWhiteSpace(attendance.ShiftTime))
                         continue;
 
                     attendance.CreatedDate = DateTime.UtcNow;
 
-                    // --- 1. Parse ShiftTime ---
-                    TimeSpan shiftStart = TimeSpan.MinValue;
-                    TimeSpan shiftEnd = TimeSpan.MinValue;
+                    TimeSpan shiftStart, shiftEnd;
+                    string[] delimiters = new[] { "-", "to", "TO" };
+                    var parts = attendance.ShiftTime.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
 
-                    if (!string.IsNullOrEmpty(attendance.ShiftTime))
+                    if (parts.Length != 2 ||
+                        !TimeSpan.TryParse(parts[0].Trim(), out shiftStart) ||
+                        !TimeSpan.TryParse(parts[1].Trim(), out shiftEnd) ||
+                        shiftStart == TimeSpan.Zero || shiftEnd == TimeSpan.Zero)
                     {
-                        string[] delimiters = new[] { "-", "to", "TO" };
-                        var parts = attendance.ShiftTime.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
-
-                        if (parts.Length == 2)
-                        {
-                            bool isStartParsed = TimeSpan.TryParse(parts[0].Trim(), out shiftStart);
-                            bool isEndParsed = TimeSpan.TryParse(parts[1].Trim(), out shiftEnd);
-
-                            if (!isStartParsed || !isEndParsed || shiftStart == TimeSpan.Zero || shiftEnd == TimeSpan.Zero)
-                                continue; // skip this record if invalid
-                        }
-                        else
-                        {
-                            continue; // invalid format
-                        }
+                        continue; 
                     }
-                    else
-                    {
-                        continue; // shift time missing
-                    }
+                    DateTime baseDate = attendance.ForDate.Value.Date;
+                    DateTime? inTime = null, outTime = null;
 
-                    // --- 2. Set InTime and OutTime based on Day ---
-                    if (attendance.ForDate.HasValue)
-                    {
-                        DateTime baseDate = attendance.ForDate.Value.Date;
+                    TimeSpan shiftDuration = shiftEnd - shiftStart;
+                    TimeSpan halfShift = TimeSpan.FromMinutes(shiftDuration.TotalMinutes / 2);
 
-                        if (attendance.Day == "Full Day")
-                        {
-                            attendance.InTime ??= baseDate.Add(shiftStart);
-                            attendance.OutTime ??= baseDate.Add(shiftEnd);
-                        }
-                        else if (attendance.Day == "First Half")
-                        {
-                            attendance.InTime ??= baseDate.Add(shiftStart);
-                            attendance.OutTime ??= baseDate.Add(shiftStart + ((shiftEnd - shiftStart) / 2));
-                        }
-                        else if (attendance.Day == "Second Half")
-                        {
-                            attendance.InTime ??= baseDate.Add(shiftStart + ((shiftEnd - shiftStart) / 2));
-                            attendance.OutTime ??= baseDate.Add(shiftEnd);
-                        }
+                    switch (attendance.Day?.Trim().ToLower())
+                    {
+                        case "full day":
+                            inTime = baseDate.Add(shiftStart);
+                            outTime = baseDate.Add(shiftEnd);
+                            break;
+
+                        case "first half":
+                            inTime = baseDate.Add(shiftStart);
+                            outTime = baseDate.Add(shiftStart + halfShift);
+                            break;
+
+                        case "second half":
+                            inTime = baseDate.Add(shiftStart + halfShift);
+                            outTime = baseDate.Add(shiftEnd);
+                            break;
+
+                        default:
+                            continue; 
                     }
 
-                    // --- 3. Calculate Duration ---
+                    attendance.InTime = inTime;
+                    attendance.OutTime = outTime;
                     if (attendance.InTime.HasValue && attendance.OutTime.HasValue)
                     {
                         var duration = attendance.OutTime.Value - attendance.InTime.Value;
@@ -171,10 +160,11 @@ namespace HRMS_API.Controllers.Employee
                 {
                     isSuccess = false,
                     Data = err.Message,
-                    ResponseMessage = "Unable to add records, Please try again later!"
+                    ResponseMessage = "Unable to add records, please try again later!"
                 };
             }
         }
+
 
 
 
@@ -251,16 +241,16 @@ namespace HRMS_API.Controllers.Employee
 
                     if (record.IsApproved)
                     {
-                        var existingInOutList = await _unitOfWork.EmployeeInOut
-                            .GetAllAsync(x => x.Emp_Id == record.EmpId && x.For_Date == record.ForDate);
-                        //  var existingInOutList = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeInOut(attendance.EmpId , attendance.ForDate);
+                        //var existingInOutList = await _unitOfWork.EmployeeInOut
+                        //    .GetAllAsync(x => x.Emp_Id == record.EmpId && x.For_Date == record.ForDate);
+                          var existingInOutList = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeInOut(attendance.EmpId , attendance.ForDate);
 
                         var existingInOut = existingInOutList.FirstOrDefault();
 
                         if (existingInOut != null)
                         {
-                          
-                            await _unitOfWork.AttendanceRegularizationRepository.Update(attendance);
+                            int empInOutId = existingInOut.LastRecordId;
+                            await _unitOfWork.AttendanceRegularizationRepository.Update(attendance , empInOutId);
                         }
                         else
                         {

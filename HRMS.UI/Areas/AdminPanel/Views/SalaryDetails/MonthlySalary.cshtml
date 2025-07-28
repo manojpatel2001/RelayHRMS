@@ -11,12 +11,22 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
 
 <style>
+    body {
+        background-color: white !important;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
+
     .salary-box {
+        background-color: white !important;
         border: 1px solid #ccc;
         padding: 20px;
-        background-color: #f8f9fc;
         border-radius: 5px;
     }
 
@@ -44,17 +54,6 @@
         width: 180px;
     }
 
-    .btn-go {
-        background-color: #3e4b6d;
-        color: white;
-        padding: 6px 25px;
-        font-weight: bold;
-        border: none;
-    }
-
-        .btn-go:hover {
-            background-color: #2c3752;
-        }
 
     .btn-go {
         background-color: #3e4b6d;
@@ -100,6 +99,22 @@
     } 
     .small-dropdown {
         width: 180px !important;
+    } 
+
+    .dx-list-select-all {
+        background-color: transparent !important;
+        color: #333 !important;
+        font-weight: normal;
+        padding: 8px 12px;
+    }
+
+        .dx-list-select-all.dx-state-hover {
+            background-color: #f8f8f8 !important;
+        }
+
+    .dx-placeholder {
+        color: #999 !important;
+        font-weight: normal;
     }
 </style>
 
@@ -159,6 +174,7 @@
     </div>
 </div>
 
+
 <div id="salaryGridContainer" class="mt-4"></div>   
 
 <div class="col-md-12 text-center mt-3" id="salaryActions" style="display: none;">
@@ -167,6 +183,13 @@
 </div>
 
 <script>
+
+                   const savedCompany = localStorage.getItem('selectedCompany');
+           var companyDetails = JSON.parse(savedCompany);
+           const CompanyId=companyDetails.CompanyId;
+           const EmployeeId=localStorage.getItem('EmployeeId');
+           const Token=localStorage.getItem("authToken");
+
     $(document).ready(function () {
            let selectedBranchIds = [0];
         BindBranchDropdown();
@@ -191,9 +214,12 @@
 
     function BindBranchDropdown() {
         $.ajax({
-            type: "GET",
-            url: '@(baseDomainUrl + "/api/BranchAPI/GetAllBranch")',
-            success: function (response) {
+                    url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+                method: 'GET',
+                    headers: {
+                            'Authorization': 'Bearer ' + Token
+                        },
+            success: function (response) { 
                 if (response?.data?.length > 0) {
                     $("#branchDropdown").dxTagBox({
                         items: response.data,
@@ -248,9 +274,9 @@
                         applyValueMode: "instantly",
                         multiline: false,
                         minSearchLength: 0,
-                        width: "100%",
+                        width: "300%",
                         onOpened: function () {
-                            $(".dx-overlay-content").css("max-width", "400px");
+                            $(".dx-overlay-content").css("max-width", "300px");
                         }
                     });
 
@@ -310,71 +336,200 @@ const empCodes = employeeIds && employeeIds.length > 0
 });
 
 
-function RenderSalaryGrid(data) {
-    $("#salaryGridContainer").dxDataGrid({
-        dataSource: data,
-        keyExpr: "employeeId",
-        showBorders: true,
-        columnAutoWidth: true,
-                 selection: {
-                mode: "multiple", // Enables multiple row selection
-                showCheckBoxesMode: "always" // Always show checkboxes
+    function RenderSalaryGrid(data) {
+           $("#salaryGridContainer").dxDataGrid({
+            dataSource: data,
+            keyExpr: "employeeId",
+            showBorders: true,
+            columnAutoWidth: true,
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
             },
-        columns: [
-    { dataField: "employeeId", caption: "Employee ID", visible: false },
-    { dataField: "employeeCode", caption: "Code" },
-    { dataField: "employeeName", caption: "Name" },
-    { dataField: "grossSalary", caption: "Gross Salary" },
-    { dataField: "payableDays", caption: "Payable Days" },
-    { dataField: "monthDays", caption: "Month Days" },
-    { dataField: "holiday", caption: "Holiday" },
-    { dataField: "absentDays", caption: "Absent Days" },
-    { dataField: "presentDays", caption: "Present Days" },
-    { dataField: "weekOff", caption: "Week Off" },
-    { dataField: "leave", caption: "Leave" },
-    { dataField: "salaryDays", caption: "Salary Days" },
-    { dataField: "monthNumber", caption: "Month No." },
-    { dataField: "monthName", caption: "Month" },
-    { dataField: "year", caption: "Year" },
-    { dataField: "basicSalary", caption: "Basic Salary" },
-    { dataField: "hra", caption: "HRA" },
-    { dataField: "conveyanceAllowance", caption: "Conveyance" },
-    { dataField: "childEducationAllowance", caption: "Child Edu. Allowance" },
-    { dataField: "medicalAllowance", caption: "Medical Allowance" },
-    { dataField: "deputationAllowance", caption: "Deputation Allowance" },
-    { dataField: "totalGrossSalary", caption: "Total Gross Salary" },
-    { dataField: "pf", caption: "PF" },
-    { dataField: "esic", caption: "ESIC" },
-    { dataField: "professionalTax", caption: "Professional Tax" },
-    { dataField: "groupMedical", caption: "Group Medical" },
-    { dataField: "termInsurance", caption: "Term Insurance" },
-    { dataField: "lwf", caption: "LWF" },
-    { dataField: "tds", caption: "TDS" },
-    { dataField: "totalDeductions", caption: "Total Deductions" },
-    { dataField: "netSalary", caption: "Net Salary" }
-            // Add more fields as needed
-        ],
-        export: {
-            enabled: true,
-            fileName: "MonthlySalary",
-            allowExportSelectedData: true
-        },
-        searchPanel: {
-            visible: true,
-            width: 240,
-            placeholder: "Search..."
-        },
-        paging: {
-            pageSize: 10
-        },
-        pager: {
-            showPageSizeSelector: true,
-            allowedPageSizes: [10, 20, 50],
-            showInfo: true
-        }
-    });
-           $("#salaryActions").show();
-}
+            export: {
+                enabled: true,
+                fileName: "MonthlySalary",
+                allowExportSelectedData: true,
+                formats: ['xlsx'],
+                customizeExcelCell: (options) => {
+                    if (options.gridCell.rowType === "header") {
+                        options.font.bold = true;
+                        options.fill = {
+                            type: "pattern",
+                            pattern: "solid",
+                            fgColor: { argb: "FF3E4B6D" }
+                        };
+                        options.font.color = { argb: "FFFFFFFF" };
+                    }
+                }
+            },
+            onExporting: function(e) {
+                // Get selected rows
+                const selectedRowsData = e.component.getSelectedRowsData();
+
+                // Check if trying to export selected rows with none selected
+                if (e.exportMode === 'selected' && selectedRowsData.length === 0) {
+                    e.cancel = true; // This is crucial to prevent default export
+
+                    // Use DevExtreme notification instead of Swal for better integration
+                    DevExpress.ui.notify({
+                        message: "Please select at least one row to export",
+                        type: "warning",
+                        displayTime: 3000,
+                        closeOnClick: true
+                    });
+
+                    return; // Exit the function
+                }
+
+                // Proceed with custom export if validation passes
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('MonthlySalary');
+
+                // Add header row with styling
+                const headerRow = worksheet.addRow(
+                    e.component.getVisibleColumns()
+                        .filter(column => column.visible !== false)
+                        .map(column => column.caption)
+                );
+
+                headerRow.eachCell((cell) => {
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FF3E4B6D' }
+                    };
+                    cell.font = {
+                        color: { argb: 'FFFFFFFF' },
+                        bold: true
+                    };
+                });
+
+                // Prepare data for export
+                const dataToExport = e.exportMode === 'selected' ?
+                    selectedRowsData :
+                    e.component.getDataSource().items();
+
+                // Add data rows
+                dataToExport.forEach((row) => {
+                    const dataRow = [];
+                    e.component.getVisibleColumns()
+                        .filter(column => column.visible !== false)
+                        .forEach(column => {
+                            dataRow.push(row[column.dataField]);
+                        });
+                    worksheet.addRow(dataRow);
+                });
+
+                // Auto-fit columns
+                worksheet.columns.forEach(column => {
+                    let maxLength = 0;
+                    column.eachCell({ includeEmpty: true }, cell => {
+                        const columnLength = cell.value ? cell.value.toString().length : 0;
+                        if (columnLength > maxLength) {
+                            maxLength = columnLength;
+                        }
+                    });
+                    column.width = maxLength < 10 ? 10 : maxLength + 2;
+                });
+
+                // Generate and save Excel file
+                workbook.xlsx.writeBuffer().then((buffer) => {
+                    saveAs(
+                        new Blob([buffer], { type: 'application/octet-stream' }),
+                        'MonthlySalary_' + new Date().toISOString().slice(0, 10) + '.xlsx'
+                    );
+                });
+
+                e.cancel = true; // Prevent default export behavior
+            },
+            onSelectionChanged: function(e) {
+                // Disable export button when no rows selected
+                const exportButton = e.component.getButton("exportButton");
+                if (exportButton) {
+                    exportButton.option("disabled", e.selectedRowsData.length === 0);
+                }
+            },
+            toolbar: {
+                items: [
+                    "searchPanel",
+                    {
+                        widget: "dxButton",
+                        options: {
+                            name: "exportButton",
+                            icon: "export",
+                            hint: "Export to Excel",
+                            disabled: true, // Initially disabled
+                            onClick: function() {
+                                const grid = $("#salaryGridContainer").dxDataGrid("instance");
+                                const selectedRows = grid.getSelectedRowsData();
+
+                                if (selectedRows.length === 0) {
+                                    DevExpress.ui.notify({
+                                        message: "Please select at least one row to export",
+                                        type: "warning",
+                                        displayTime: 3000,
+                                        closeOnClick: true
+                                    });
+                                    return;
+                                }
+                                grid.exportToExcel({
+                                    selectedRowsOnly: true,
+                                    customizeCell: function(options) {
+                                        // Customize cell if needed
+                                    }
+                                });
+                            }
+                        },
+                        location: "after"
+                    }
+                ]
+            },
+            searchPanel: {
+                visible: true,
+                width: 240,
+                placeholder: "Search..."
+            },
+            paging: {
+                pageSize: 10
+            },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 20, 50],
+                showInfo: true
+            },
+            columns: [
+                { dataField: "employeeId", caption: "Employee ID", visible: false },
+                { dataField: "employeeCode", caption: "Code" },
+                { dataField: "employeeName", caption: "Name" },
+                { dataField: "grossSalary", caption: "Gross Salary", dataType: "number", format: "#,##0" },
+                { dataField: "payableDays", caption: "Payable Days" },
+                { dataField: "absentDays", caption: "Absent Days" },
+                { dataField: "presentDays", caption: "Present Days" },
+                { dataField: "weekOff", caption: "Week Off" },
+                { dataField: "leave", caption: "Leave" },
+                { dataField: "salaryDays", caption: "Salary Days" },
+                { dataField: "basicSalary", caption: "Basic Salary", dataType: "number", format: "#,##0" },
+                { dataField: "hra", caption: "HRA", dataType: "number", format: "#,##0" },
+                { dataField: "conveyanceAllowance", caption: "Conveyance", dataType: "number", format: "#,##0" },
+                { dataField: "childEducationAllowance", caption: "Child Edu. Allowance", dataType: "number", format: "#,##0" },
+                { dataField: "medicalAllowance", caption: "Medical Allowance", dataType: "number", format: "#,##0" },
+                { dataField: "deputationAllowance", caption: "Deputation Allowance", dataType: "number", format: "#,##0" },
+                { dataField: "totalGrossSalary", caption: "Total Gross Salary", dataType: "number", format: "#,##0" },
+                { dataField: "pf", caption: "PF", dataType: "number", format: "#,##0" },
+                { dataField: "esic", caption: "ESIC", dataType: "number", format: "#,##0" },
+                { dataField: "professionalTax", caption: "Professional Tax", dataType: "number", format: "#,##0" },
+                { dataField: "lwf", caption: "LWF", dataType: "number", format: "#,##0" },
+                { dataField: "tds", caption: "TDS", dataType: "number", format: "#,##0" },
+                { dataField: "loan", caption: "Loan", dataType: "number", format: "#,##0" },
+                { dataField: "totalDeductions", caption: "Total Deductions", dataType: "number", format: "#,##0" },
+                { dataField: "netSalary", caption: "Net Salary", dataType: "number", format: "#,##0" }
+            ]
+        });
+
+        $("#salaryActions").show();
+    }
+
 
 
     $('#btnProcessSalary').on('click', function () { 
@@ -457,27 +612,27 @@ function RenderSalaryGrid(data) {
         });
     }
 
-        $('#btnClearSalary').on('click', function () {
-        // Reset dropdowns
-        $('#month').prop('selectedIndex', 0);
-        $('#year').val(new Date().getFullYear());
-
-        // Reset branch dropdown
+       $('#btnClearSalary').on('click', function () {
+        $('#month').prop('selectedIndex', 0); // Reset to first option
+        $('#year').val(new Date().getFullYear()); // Reset to current year
         const branchDropdown = $("#branchDropdown").dxTagBox("instance");
         if (branchDropdown) {
-            branchDropdown.option("value", []);
+            branchDropdown.option("value", []); // Clear selected values
         }
 
-        // Reset employee dropdown
         const empDropdown = $("#employeeDropdown").dxTagBox("instance");
         if (empDropdown) {
-            empDropdown.option("value", []);
+            empDropdown.option("value", []); // Clear selected values
         }
+        const salaryGrid = $("#salaryGridContainer").dxDataGrid("instance");
+        if (salaryGrid) {
+            salaryGrid.option({
+                dataSource: [], // Clear data
+                columns: [] // Remove all column headings
+            });
 
-        // Clear the grid
-        $("#salaryGridContainer").dxDataGrid("instance")?.option("dataSource", []);
-
-        // Hide action buttons
+            salaryGrid.refresh();
+        }
         $("#salaryActions").hide();
     });
 

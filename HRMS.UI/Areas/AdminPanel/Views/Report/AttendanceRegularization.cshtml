@@ -130,7 +130,7 @@
             <input type="date" class="form-control form-control-sm" id="fromdate" style="width: 180px;" />
         </div>
         <div class="col-md-5 d-flex align-items-center">
-            <label for="todate" class="form-label mb-0 me-2" style="width: 90px;">To Date:</label>
+            <label for="todate" class="form-label mb-0 me-2" style="width: 120px;">To Date:</label>
             <input type="date" class="form-control form-control-sm" id="todate" style="width: 180px;" />
         </div>
     </div>
@@ -180,12 +180,24 @@
 <!-- Delete Button + Grid Container -->
 <div class="container mt-3">
     <!-- Action Buttons Row -->
-    <div class="d-flex justify-content-end mb-2" id="actionButtons" style="display: none;">
-        <button id="btnDelete" class="btn-custom me-2">Delete</button>
-        <button id="btnApprove" class="btn-custom me-2">Approve</button>
-        <button id="btnReject" class="btn-custom">Reject</button>
-    </div>
+   <div id="actionButtons" class="custom-action-buttons text-end mb-2">
+        <button id="btnDelete" class="btn btn-custom">Delete</button>
+        <button id="btnApprove" class="btn btn-custom">Approve</button>
+        <button id="btnReject" class="btn btn-custom">Reject</button>
+</div>
+    <!--Loader-->
 
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+
+        <img src="@baseDomainUrl/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+
+        <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+    </div>
     <!-- Grid -->
     <div id="attendanceGrid"></div>
 </div>
@@ -193,8 +205,8 @@
 <script>
 
         $(document).ready(function () {
-        $('#r2').prop('checked', true); // Default to Pending
-        $('#btnGo').click(); // Trigger initial load
+        $('#r2').prop('checked', true); 
+        $('#btnGo').click(); 
             $("#btnApprove").click(function () {
         updateAttendanceStatus("Approved");
     });
@@ -206,11 +218,10 @@
     let selectedKeys = [];
 
 
-            function goBack() {
+      function goBack() {
         window.history.back(); 
     }
     function getStatus() {
-        debugger;
         if ($('#r2').is(':checked')) return 'Pending';
         if ($('#r3').is(':checked')) return 'Approved';
         if ($('#r4').is(':checked')) return 'Rejected';
@@ -226,6 +237,14 @@
             default: return null;
         }
     }
+
+
+          async function showLoder(){
+          $('#grid-loader').addClass('d-flex').show();
+        }
+        async function hideLoder(){
+                $('#grid-loader').removeClass('d-flex').hide();
+        }
     function loadGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
@@ -265,9 +284,9 @@
         $("#actionButtons").show();
     }
 
-    // Go Button Click
+
     $('#btnGo').on('click', function () {
-        debugger;
+               showLoder();
         let model = {
             SearchBy: getSearchByText($('#searchby').val()),
             SearchValue: $('#searchfor').val(),
@@ -282,23 +301,33 @@
             data: JSON.stringify(model),
             contentType: 'application/json',
             success: function (res) {
-                console.log("res" ,res);
-                if (res.isSuccess) {
+                if (res.isSuccess) {                    
                     loadGrid(res.data); 
-                } else {
-                    Swal.fire('No Data', res.responseMessage, 'warning');
+                        $("#actionButtons").show();
+                            $("#btnDelete").show();
+                         $("#btnApprove").show();
+                         $("#btnReject").show();
+                } else {         
+                       $("#actionButtons").hide();
+                         $("#btnDelete").hide();
+                         $("#btnApprove").hide();
+                         $("#btnReject").hide();
+                       round_error_noti(res.responseMessage || 'No Data');
                 }
             },
-            error: function () {
-                Swal.fire('Error', 'Something went wrong.', 'error');
-            }
+            error: function () {               
+                   round_error_noti(res.responseMessage || 'No Data');
+            },
+            complete: function () {
+
+            hideLoder();
+        }
         });
     });
 
-    // Delete Button Click
-       $('#btnDelete').on('click', function () {
-        debugger;
 
+
+       $('#btnDelete').on('click', function () {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedIds = grid.getSelectedRowKeys(); 
 
@@ -307,11 +336,10 @@
             return;
         }
 
-        console.log("selectedIds", selectedIds);
-
+               showLoder();
         const deletePayload = {
-            Id: selectedIds,      // ✅ Now contains proper ID array
-            DeletedBy: ""         // Fill if needed
+            Id: selectedIds,     
+            DeletedBy: ""        
         };
 
         $.ajax({
@@ -322,71 +350,90 @@
             success: function (res) {
                 if (res.isSuccess) {
                     round_success_noti(res.responseMessage || "Deleted successfully.");
-                    $("#btnGo").click(); // Refresh grid
+                      selectedRowKeys.forEach(function (key) {
+                    grid.deleteRow(grid.getRowIndexByKey(key));
+                });
+                    $("#btnGo").click(); 
                 } else {
                     round_error_noti(res.responseMessage || "Deletion failed.");
                 }
             },
             error: function () {
                 round_error_noti("Something went wrong during deletion.");
-            }
+            },
+            complete: function () {
+
+            hideLoder();
+        }
         });
     });
 
        function updateAttendanceStatus(status) {
-               debugger;
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
         console.log("selectedRows",selectedRows);
         if (selectedRows.length === 0) {
-            Swal.fire("Please select at least one record.");
+           round_error_noti("Please select at least one record.");
             return;
         }
-
-        // Attach status to each selected row object
         selectedRows.forEach(function (row) {
             row.status = status; 
    
         });
-
+            showLoder();
         $.ajax({
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/UpdateAttendanceRegularization")',
             type: "PUT",
-            data: JSON.stringify(selectedRows),  // 🔁 Send full selected rows
+            data: JSON.stringify(selectedRows), 
             contentType: "application/json",
             success: function (response) {
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage || "Status updated successfully.");
-                    $("#btnGo").click(); // Reload data
+                        const selectedKeys = grid.getSelectedRowKeys(); 
+                let dataSource = grid.option("dataSource");
+                const updatedData = dataSource.filter(item => {
+                    return !selectedKeys.includes(item.attendanceRegularizationId);
+                });
+                grid.option("dataSource", updatedData);
+                grid.refresh();
                 } else {
-                    round_success_noti(response.responseMessage || "Update failed.", "error");
+                    round_error_noti(response.responseMessage || "Update failed.", "error");
 
                 }
             },
             error: function () {
-              round_success_noti(response.responseMessage || "Error", "Something went wrong during update.", "error");
-            }
+              round_error_noti(response.responseMessage || "Error", "Something went wrong during update.", "error");
+            },   
+            complete: function () {
+     
+            hideLoder();
+        }
         });
     }
 
-        $("#btnClear").click(function () {
-        $("#searchby").val("1");
-        $("#searchfor").val("");
-        $("#fromdate").val("");
-        $("#todate").val("");
+
+      $("#btnClear").click(function () {
+        // Reset form
+        $('#searchby').val("1");
+        $('#searchfor').val('');
+        $('#fromdate').val('');
+        $('#todate').val('');
         $("input[name='type']").prop('checked', false);
-        $("#r2").prop('checked', true); // default to Pending
+        $('#r2').prop('checked', true);
 
+        // Completely destroy and recreate empty grid
+        $("#attendanceGrid").dxDataGrid("dispose");
+        $("#attendanceGrid").dxDataGrid({
+            dataSource: [],
+            showBorders: true
+        });
 
-        const grid = $("#attendanceGrid").dxDataGrid("instance");
-        if (grid) {
-            grid.option("dataSource", []);
-        }
-
-        // Hide action buttons
+        // Hide buttons
         $("#actionButtons").hide();
+            $("#btnDelete").hide();
+    $("#btnApprove").hide();
+    $("#btnReject").hide();
     });
-
 
 
 

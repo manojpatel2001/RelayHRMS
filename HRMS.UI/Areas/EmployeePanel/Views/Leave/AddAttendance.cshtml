@@ -1,8 +1,12 @@
-﻿@{
+﻿@inject IConfiguration Configuration
+@{
     ViewData["Title"] = "Shift Changes Details";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
    string baseUrl = ViewBag.BaseUrl;
   string apiBase = ViewBag.BaseUrlAPI;
+    string baseUrls = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrls);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -182,7 +186,17 @@
     </div>
 </div>
 
+<div id="grid-loader"
+     class="grid-loader justify-content-center align-items-center flex-column"
+     style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
 
+    <img src="@baseDomainUrl/loders/loder.png"
+         class="grid-logo-spinner"
+         style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+
+    <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+</div>
 
 <!-- ✅ Save + Grid Section -->
 <div class="form-section" style="margin-top: 30px;">
@@ -197,8 +211,14 @@
 
 
 
-<script>    
+<script>
 
+
+           const savedCompany = localStorage.getItem('selectedCompany');
+       var companyDetails = JSON.parse(savedCompany);
+       const CompanyId=companyDetails.CompanyId;
+       const EmployeeId=localStorage.getItem('EmployeeId');
+       const Token=localStorage.getItem("authToken");
      const apiBase = '@apiBase';
 
     $(document).ready(function () {
@@ -214,43 +234,51 @@
             }
         });
 
-           const currentMonthIndex = new Date().getMonth(); // 0 = Jan, 1 = Feb, ..., 11 = Dec
+      
 
-    $('#month option').each(function (index) {
+    });
+
+        const currentMonthIndex = new Date().getMonth();
+
+       $('#month option').each(function (index) {
         if (index > currentMonthIndex) {
             $(this).remove(); // remove future months
         }
     });
 
 
-    });
-
-
-
-
         function goBack() {
         window.history.back(); // Navigates to the previous page
-    }
-
-    function BindBranchDropdown() {
-        $.ajax({
-            type: "GET",
-            url: apiBase + "/BranchAPI/GetAllBranch",
-            success: function (response) {
-                if (response?.data?.length > 0) {
-                    let $branch = $('#branch');
-                    $branch.empty().append('<option value="">--Select--</option>');
-                    $.each(response.data, function (i, item) {
-                        $branch.append('<option value="' + item.branchId + '">' + item.branchName + '</option>');
-                    });
                 }
+
+
+        function     BindBranchDropdown(){
+       $.ajax({
+            url: apiBase + '/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+            method: 'GET',
+                headers: {
+                        'Authorization': 'Bearer ' + Token
+                    },
+            success: function(data) {
+                if(data.isSuccess){
+                        var dropdown = $('#branch');
+                    dropdown.empty();
+                    dropdown.append('<option disabled selected value="">Select</option>');
+                    $.each(data.data, function(index, company) {
+                        dropdown.append($('<option>', {
+                            value: company.branchId,
+                            text: company.branchName
+                        }));
+                    });
+
+
+                }
+            },
+            error: function(error) {
+                console.error('Error fetching branch data:', error);
             }
         });
-    }
 
-        function clearValidationErrors() {
-        $('.field-error').text('');
-        $('#validationMsg').text('');
     }
 
     function populateYearDropdown() {
@@ -280,16 +308,36 @@
     }
 
 
-    $('.btn-custom:contains("Go")').on('click', function () {
-        debugger;
-    clearValidationErrors();
+      async function showLoder(){
+          $('#grid-loader').addClass('d-flex').show();
+        }
+        async function hideLoder(){
+                $('#grid-loader').removeClass('d-flex').hide();
+        }
 
+
+
+            function clearValidationErrors() {
+        $('.field-error').text('');
+        $('#validationMsg').text('');
+    }
+
+        function ClearAttendanceGrid() {
+        $("#attendanceGrid").html("");  // Clear grid
+        $("#saveButtonContainer").hide(); // Hide Save button
+    }
+
+        $("#btnClear").on("click", function () {
+        ClearAttendanceGrid();
+    });
+
+        $('.btn-custom:contains("Go")').on('click', function () {
+    clearValidationErrors();
     const branch = $('#branch').val();
     const emp = $('#employeeDropdown').val();
     const month = $('#month')[0].selectedIndex + 1;
     const year = $('#year').val();
     const record = $('#recordtype').val();
-
 
     if (!year) {
         $('#yearError').text("Please select Year.");
@@ -311,12 +359,10 @@
         $('#recordTypeError').text("Please select Record Type.");
         hasError = true;
     }
-
-
-
+      showLoder();
         // Valid: proceed
-        const formData = new FormData();
-        formData.append("BranchId", branch);
+     const formData = new FormData();
+    formData.append("BranchId", branch);
     formData.append("EmpId", emp);
     formData.append("Month", month);
     formData.append("Year", year);
@@ -330,7 +376,7 @@
             processData: false,
             success: function (response) {
                 if (response?.isSuccess) {
-                    $('#validationMsg').text(""); // Clear validation if success
+                    $('#validationMsg').text("");   // Clear validation if success
                     LoadAttendanceGrid(response.data);
                 } else {
                     $('#validationMsg').text("No records found.");
@@ -338,13 +384,15 @@
             },
             error: function () {
                 $('#validationMsg').text("Something went wrong while fetching data.");
-            }
+            },
+                complete: function () {
+                    hideLoder(); // Always hide loader after completion
+                }
         });
     });
 
 
-
-         function LoadAttendanceGrid(data) {
+        function LoadAttendanceGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             showBorders: true,
@@ -358,68 +406,88 @@
                 allowUpdating: true
             },
             onEditingStart: function (e) {
-                if (e.data.status?.trim().toLowerCase() === "present") {
+                const status = e.data.status?.trim().toLowerCase();
+                if (status === "present") {
                     e.cancel = true;
+                    DevExpress.ui.notify("Editing not allowed for Present records.", "warning", 2000);
                 }
-            },  
+            },
             onContentReady: function (e) {
-            if (data && data.length > 0) {
-                $("#saveButtonContainer").show();
-            } else {
-                $("#saveButtonContainer").hide();
-            }
-        },
-
+                if (data && data.length > 0) {
+                    $("#saveButtonContainer").show();
+                } else {
+                    $("#saveButtonContainer").hide();
+                }
+            },
             columns: [
-                { dataField: "for_Date", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
-                { dataField: "fullName", caption: "Employee", allowEditing: false },
-                { dataField: "branchName", caption: "Branch", allowEditing: false },
-                { dataField: "shiftTime", caption: "Shift Time", allowEditing: false },
-
+                {
+                    dataField: "for_Date",
+                    caption: "Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: 100
+                },
+                {
+                    dataField: "fullName",
+                    caption: "Employee",
+                    allowEditing: false
+                },
+                {
+                    dataField: "branchName",
+                    caption: "Branch",
+                    allowEditing: false
+                },
+                {
+                    dataField: "shiftTime",
+                    caption: "Shift Time",
+                    allowEditing: false
+                },
                 {
                     dataField: "in_Time",
                     caption: "In Time",
-                    allowEditing: false,
                     cellTemplate: function (container, options) {
                         const value = options.data.in_Time
-                            ? new Date(options.data.in_Time).toLocaleString('en-GB')
+                            ? new Date(options.data.in_Time).toLocaleTimeString('en-GB', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })
                             : "--";
-                        $('<div>')
+                        $("<div>")
                             .text(value)
                             .css({
-                                textAlign: 'center',
-                                border: '1px solid #ddd',
-                                padding: '6px',
-                                borderRadius: '4px',
-                                backgroundColor: '#f5f5f5',
-                                fontSize: '12px'
+                                textAlign: "center",
+                                border: "1px solid #ddd",
+                                padding: "6px",
+                                borderRadius: "4px",
+                                backgroundColor: "#f5f5f5",
+                                fontSize: "12px"
                             })
                             .appendTo(container);
                     }
                 },
-
                 {
                     dataField: "out_Time",
                     caption: "Out Time",
-                    allowEditing: false,
                     cellTemplate: function (container, options) {
                         const value = options.data.out_Time
-                            ? new Date(options.data.out_Time).toLocaleString('en-GB')
+                            ? new Date(options.data.out_Time).toLocaleTimeString('en-GB', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })
                             : "--";
-                        $('<div>')
+                        $("<div>")
                             .text(value)
                             .css({
-                                textAlign: 'center',
-                                border: '1px solid #ddd',
-                                padding: '6px',
-                                borderRadius: '4px',
-                                backgroundColor: '#f5f5f5',
-                                fontSize: '12px'
+                                textAlign: "center",
+                                border: "1px solid #ddd",
+                                padding: "6px",
+                                borderRadius: "4px",
+                                backgroundColor: "#f5f5f5",
+                                fontSize: "12px"
                             })
                             .appendTo(container);
                     }
                 },
-
                 {
                     dataField: "status",
                     caption: "Present Day",
@@ -427,21 +495,31 @@
                     allowEditing: false,
                     cellTemplate: function (container, options) {
                         const status = options.data.status;
-                        const text = status === 'Present' ? 'P' : 'A';
-                        const color = status === 'Present' ? 'green' : 'red';
-                        $('<div>').text(text)
+                        let text = "A";
+                        let color = "red";
+
+                        if (status === "Present") {
+                            text = "P";
+                            color = "green";
+                        } else if (status === "Half Day") {
+                            text = "HF";
+                            color = "orange";
+                        }
+
+                        $("<div>")
+                            .text(text)
                             .css({
                                 color: color,
-                                fontWeight: 'bold',
-                                textAlign: 'center'
+                                fontWeight: "bold",
+                                textAlign: "center"
                             })
                             .appendTo(container);
                     }
                 },
-
                 {
                     dataField: "reason",
                     caption: "Reason",
+                    width: 180,
                     lookup: {
                         dataSource: [
                             { ID: "Forgot To Punch/Sign", Name: "Forgot To Punch/Sign" },
@@ -457,31 +535,32 @@
                         return rowData.reason || "--Select--";
                     },
                     allowEditing: function (rowData) {
-                        return rowData.status?.trim().toLowerCase() === "absent";
+                        const status = rowData.status?.trim().toLowerCase();
+                        return status === "absent" || status === "half day";
                     },
                     editorOptions: function (rowData) {
+                        const status = rowData.status?.trim().toLowerCase();
                         return {
                             showClearButton: true,
-                            disabled: rowData.status?.trim().toLowerCase() !== "absent"
+                            disabled: !(status === "absent" || status === "half day")
                         };
                     },
                     editing: {
                         allowUpdating: true
                     }
                 },
-
                 {
                     dataField: "workingHours",
                     caption: "Working Hours",
                     allowEditing: false,
                     calculateCellValue: function () {
-                        return "00:00:00";
+                        return "00:00:00"; // Placeholder – can be calculated dynamically if needed
                     }
                 },
-
                 {
                     dataField: "dayType",
                     caption: "Day Type",
+                    width: 140,
                     lookup: {
                         dataSource: [
                             { id: "Full Day", name: "Full Day" },
@@ -495,121 +574,143 @@
                         return rowData.dayType || "--Select--";
                     },
                     allowEditing: function (rowData) {
-                        return rowData.status?.trim().toLowerCase() === "absent";
+                        const status = rowData.status?.trim().toLowerCase();
+                        return status === "absent" || status === "half day";
                     },
                     editorOptions: function (rowData) {
+                        const status = rowData.status?.trim().toLowerCase();
                         return {
                             showClearButton: true,
-                            disabled: rowData.status?.trim().toLowerCase() !== "absent"
+                            disabled: !(status === "absent" || status === "half day")
                         };
-                    },  
+                    },
                     editing: {
                         allowUpdating: true
-                    }  
-       
+                    }
                 }
             ]
         });
     }
-
-
-        function ClearAttendanceGrid() {
-        $("#attendanceGrid").html("");  // Clear grid
-        $("#saveButtonContainer").hide(); // Hide Save button
-    }
-
-        $("#btnClear").on("click", function () {
-        ClearAttendanceGrid();
-    });
-
-    $('#btnSaveGridData').on('click', function () { 
-        debugger;
+     $('#btnSaveGridData').on('click', function () {
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
         gridInstance.saveEditData();
 
         const selectedRows = gridInstance.getSelectedRowsData();
-    if (selectedRows.length === 0) {
-          Swal.fire({
-              icon: 'warning',
-              title: 'Validation',
-              text: 'Please select at least one row to save.'
-          });
-          return;
-      }
 
-      const empId = $('#employeeDropdown').val();
-      if (!empId) {
-          Swal.fire({
-              icon: 'warning',
-              title: 'Validation',
-              text: 'Please select an employee.'
-          });
-          return;
-      }
+        if (selectedRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select at least one row to save.'
+            });
+            return;
+        }
 
-        const rowsToSave = selectedRows
-            .filter(row => row.reason && row.reason.trim() !== "")
-            .map(row => ({
-                EmpId: empId,
-                FullName: row.fullName || "",
-                BranchName: row.branchName || "",
-                ForDate: row.for_Date || row.forDate,
-                ShiftTime: row.shiftTime || "",
-                InTime: row.in_Time,
-                OutTime: row.out_Time,
-                Duration: row.workingHours || "00:00:00",
-                Day: row.dayType || "",
-                Status: row.status || "",
-                Reason: row.reason || "",
-                IsApproved: false,
-                IsPending: true,
-                IsRejected: false,
-                IsLocked: false,
-            }));
+        const empId = $('#employeeDropdown').val();
+        if (!empId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select an employee.'
+            });
+            return;
+        }
+             showLoder();
+        const validRows = [];
+        selectedRows.forEach(row => {
+            const reason = row.reason?.trim();
+            const dayType = row.dayType?.trim();
 
-         if (rowsToSave.length === 0) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Validation',
-            text: 'Please provide reason before saving.'
+            if (reason && dayType) {
+                validRows.push({
+                    EmpId: empId,
+                    FullName: row.fullName || "",
+                    BranchName: row.branchName || "",
+                    ForDate: row.for_Date || row.forDate,
+                    ShiftTime: row.shiftTime || "",
+                    InTime: row.in_Time,
+                    OutTime: row.out_Time,
+                    Duration: row.workingHours || "00:00:00",
+                    Day: dayType,
+                    Status: row.status || "",
+                    Reason: reason,
+                    IsApproved: false,
+                    IsPending: true,
+                    IsRejected: false,
+                    IsLocked: false
+                });
+            }
         });
-        return;
-    }
 
+        if (validRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select reason and day type for selected row(s).'
+            });
+            return;
+        }
+
+        // Save via AJAX
         $.ajax({
              url: apiBase + "/AttendanceRegularizationAPI/CreateAttendanceRegularization",
             type: "POST",
             contentType: "application/json",
-            data: JSON.stringify(rowsToSave),
+            data: JSON.stringify(validRows),
             success: function (response) {
                 if (response?.isSuccess) {
+                      hideLoder();
                     round_success_noti(response.responseMessage || "Saved successfully.");
-                    gridInstance.clearSelection();
+                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+        const selectedKeys = gridInstance.getSelectedRowKeys();
+        let currentData = gridInstance.option("dataSource");
+        const updatedData = currentData.filter(item => {
+            return !selectedKeys.includes(item.for_Date);
+        });
+        gridInstance.option("dataSource", updatedData);
+        gridInstance.refresh();
                     $("#btnGo").trigger("click");
-                    $('#validationMsg').text(""); // Clear validation message
                 } else {
-                    $('#validationMsg').text("Save failed: " + (response?.responseMessage || "Unknown error"));
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Save Failed',
+                        text: response?.responseMessage || "Unknown error"
+                    });
                 }
             },
             error: function (xhr) {
-                $('#validationMsg').text("Server error: " + xhr.status + " - " + xhr.statusText);
-            }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: xhr.status + " - " + xhr.statusText
+                });
+            },
+
         });
     });
 
 
-
-
-        $('.btn-custom:contains("Clear")').on('click', function () {
+      $('.btn-custom:contains("Clear")').on('click', function () {
         $('#branch').val('');
         $('#month').val('January');
         $('#year').val(new Date().getFullYear());
         $('#recordtype').val('All');
         $('#employeeDropdown').val('');
-            clearValidationErrors();
-        // Clear the grid
+        clearValidationErrors();
+
+        // Hide Save button
+        $('#saveButtonContainer').hide();
+
+        // Clear grid content
         const grid = $("#attendanceGrid").dxDataGrid("instance");
-        grid.option("dataSource", []);
+        if (grid) {
+            grid.option("dataSource", []);
+            grid.refresh();
+        } else {
+            $("#attendanceGrid").html(""); // In case grid was not initialized
+        }
     });
+
+
 
 </script>

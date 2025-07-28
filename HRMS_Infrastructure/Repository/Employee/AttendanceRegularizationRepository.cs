@@ -100,9 +100,9 @@ namespace HRMS_Infrastructure.Repository.Employee
         }
 
 
-        public async Task<bool> Update(AttendanceRegularization Record)
+        public async Task<bool> Update(AttendanceRegularization Record , int empInOutId)
         {
-            var existingRecord = await _db.EmployeeInOutRecord.SingleOrDefaultAsync(asd => asd.Emp_Id == Record.EmpId && asd.For_Date == Record.ForDate);
+            var existingRecord = await _db.EmployeeInOutRecord.SingleOrDefaultAsync(asd => asd.Emp_IO_Id==empInOutId  && asd.Emp_Id == Record.EmpId && asd.For_Date == Record.ForDate);
             if (existingRecord == null)
             {
                 return false;
@@ -110,7 +110,7 @@ namespace HRMS_Infrastructure.Repository.Employee
 
             existingRecord.In_Time = Record.InTime;
             existingRecord.Out_Time = Record.OutTime;
-            //   existingRecord.Duration = Record.Duration;
+            existingRecord.Duration = Record.Duration.ToString();
             existingRecord.Reason = Record.Reason;
             existingRecord.UpdatedBy = Record.UpdatedBy;
             existingRecord.UpdatedDate = DateTime.UtcNow;

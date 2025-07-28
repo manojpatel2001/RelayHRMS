@@ -13,10 +13,9 @@ namespace HRMS_Core.VM.CompanyStructure
     {
         public int? HolidayMasterId { get; set; }
         public string? HolidayName { get; set; }
-        public string? State { get; set; }
-        public int? BranchId { get; set; }
-        public string? BranchName { get; set; }
-        
+        public string? StateName { get; set; }
+        public int? StateId { get; set; }
+       
         public bool? MultipleHoliday { get; set; } 
         public DateTime? FromDate { get; set; }
         public DateTime? ToDate { get; set; }
@@ -25,13 +24,7 @@ namespace HRMS_Core.VM.CompanyStructure
         public string? Holidaycategory { get; set; }
 
         public bool? RepeatAnnually { get; set; } 
-        public bool? HalfDay { get; set; } = false;
-        public bool? PresentCompulsory { get; set; } 
-        public bool? SMS { get; set; } = false;
-        public bool? OptionalHoliday { get; set; } 
-        public string? ApprovalMaxLimit { get; set; } 
-        public DateTime? CreatedDate { get; set; } 
-        public string? CreatedBy { get; set; } 
-        public bool? IsEnabled { get; set; } 
+        public bool? IsActive { get; set; } 
+       
     }
 }
