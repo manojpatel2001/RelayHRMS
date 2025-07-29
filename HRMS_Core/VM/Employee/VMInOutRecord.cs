@@ -8,10 +8,13 @@ namespace HRMS_Core.VM.Employee
 {
     public class VMInOutRecord
     {
-        public DateTime For_Date { get; set; }
-        public string Day_Name { get; set; }
-        public string In_Time { get; set; }
-        public string Out_Time { get; set; }
+        public DateTime? For_Date { get; set; }
+        public string? Day_Name { get; set; }
+        public string? In_Time { get; set; }
+        public string? Out_Time { get; set; }
         public string? Duration { get; set; }
+        public string? EmployeeCode { get; set; }
+        public string? BranchName { get; set; }
+        public string? EmployeeName { get; set; }
     }
 }
