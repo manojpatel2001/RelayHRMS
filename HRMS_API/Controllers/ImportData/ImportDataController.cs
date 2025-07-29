@@ -179,11 +179,11 @@ public class ImportDataController : ControllerBase
         switch (type)
         {
             case "Branch":
-                expectedHeaders = new List<string> { "Branch_Code", "Branch_Name", "Branch_City", "Branch_Address", "Comp_Name", "State_Name", "Country_Name" };
+                expectedHeaders = new List<string> { "Branch_Code", "Branch_Name", "Country_Name" };
                 break;
 
             case "Department":
-                expectedHeaders = new List<string> { "Department_Name", "Department_Disp_No" };
+                expectedHeaders = new List<string> { "Department_Name" };
                 break;
 
             case "Designation":
@@ -244,12 +244,10 @@ public class ImportDataController : ControllerBase
         {
             string code = row[0]?.ToString()?.Trim();
             string name = row[1]?.ToString()?.Trim();
-            string city = row[2]?.ToString()?.Trim();
-            string state = row[5]?.ToString()?.Trim();
-            string country = row[6]?.ToString()?.Trim();
+            string country = row[2]?.ToString()?.Trim();
 
-            if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(city) &&
-                string.IsNullOrWhiteSpace(state) && string.IsNullOrWhiteSpace(country))
+            if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name) && 
+            string.IsNullOrWhiteSpace(country))
             {
                 return (false, false, true, CreateErrorRow(rowIndex, "Blank row", "", "Row appears empty", type));
             }
@@ -262,10 +260,6 @@ public class ImportDataController : ControllerBase
             {
                 BranchCode = code,
                 BranchName = name,
-                //CityName = city,
-                //Address = row[3]?.ToString(),
-                //CompanyName = row[4]?.ToString(),
-                //State = state,
                 CountryName = country,
                 IsEnabled = true,
                 IsDeleted = false
