@@ -25,9 +25,19 @@ namespace HRMS_API.Controllers.Employee
             try
             {
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-                var companyid = await _unitOfWork.EmployeeManageRepository.GetAsync(asp => asp.Id == model.Emp_Id);
-                model.Com_Id = companyid.CompanyId;
                 model.Ip_adrress = ipAddress;
+
+                var isexist = await _unitOfWork.EmployeeInOut.GetAsync(asp => asp.Emp_Id == model.Emp_Id && asp.In_Time != null && asp.Out_Time == null);
+                if(isexist != null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        
+                        ResponseMessage = "You are already in."
+                    };
+                }
+               
                 var data = await _unitOfWork.EmployeeInOut.CreateEmpInOut(model);
                 if (data == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
@@ -74,7 +84,7 @@ namespace HRMS_API.Controllers.Employee
                     return new APIResponse
                     {
                         isSuccess = false,
-                        ResponseMessage = "No matching IN record found or update failed."
+                        ResponseMessage = "You are already out."
                     };
                 }
 
