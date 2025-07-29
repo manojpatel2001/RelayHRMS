@@ -25,8 +25,6 @@ namespace HRMS_API.Controllers.Employee
             try
             {
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-                //var companyid = await _unitOfWork.EmployeeManageRepository.GetAsync(asp => asp.Id == model.Emp_Id);
-                //model.Com_Id = companyid.CompanyId;
                 model.Ip_adrress = ipAddress;
 
                 var isexist = await _unitOfWork.EmployeeInOut.GetAsync(asp => asp.Emp_Id == model.Emp_Id && asp.In_Time != null && asp.Out_Time == null);
