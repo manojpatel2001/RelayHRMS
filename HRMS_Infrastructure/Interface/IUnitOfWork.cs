@@ -91,6 +91,7 @@ namespace HRMS_Infrastructure.Interface
 
         IEmployeeDashboardRepository EmployeeDashboardRepository { get; }
         IMonthlySalaryDetailsRepository MonthlySalaryDetailsRepository { get; }
+        IMyProfileRepository myProfileRepository { get; }
         void Commit();
         Task CommitAsync();
     }
