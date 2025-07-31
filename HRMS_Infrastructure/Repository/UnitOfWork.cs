@@ -109,6 +109,7 @@ namespace HRMS_Infrastructure.Repository
 
             EmployeeDashboardRepository = new EmployeeDashboardRepository(_dbContext);
             MonthlySalaryDetailsRepository =new MonthlySalaryDetailsRepository(_dbContext);
+       
 
         }
 
@@ -193,6 +194,9 @@ namespace HRMS_Infrastructure.Repository
         public IEmployeeDashboardRepository EmployeeDashboardRepository { get; set; }
 
         public IMonthlySalaryDetailsRepository MonthlySalaryDetailsRepository { get; set; }
+
+        public IMyProfileRepository myProfileRepository { get; set; }
+
 
         public void Commit()
         {
