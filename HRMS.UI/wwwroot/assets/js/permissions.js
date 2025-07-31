@@ -4,7 +4,6 @@ var decodedToken = "";
 if (token) {
     $(".body-hiden-wrapper").show();
     var decodedToken = jwt_decode(token);
-    console.log("decodeToken", decodedToken)
     var permissions = decodedToken.Permission;
 
     /*Super Admin */
