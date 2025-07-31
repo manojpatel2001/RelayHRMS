@@ -22,5 +22,7 @@ namespace HRMS_Core.Master.JobMaster
         public string? Allow_ReimEligibilityAmount { get; set; }
         public bool? AbscondingReminderEmail { get; set; } = false;
 
+        public int? CompanyId { get; set; }
+
     }
 }
