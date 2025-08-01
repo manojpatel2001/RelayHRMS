@@ -4,6 +4,7 @@ using HRMS_Core.PrivilegeSetting;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Salary;
 using Microsoft.Data.SqlClient;
@@ -93,26 +94,21 @@ namespace HRMS_Infrastructure.Repository.Salary
             throw new NotImplementedException();
         }
 
+        
         public async Task<List<SalaryDetailViewModel>> GetSalaryDetails(SalaryDetailsParameterVm vm)
         {
+
+
             try
             {
-                var stratdate = new SqlParameter("@MonthNumber", (object?)vm.Month ?? DBNull.Value);
-                var enddate = new SqlParameter("@Year", (object?)vm.Year ?? DBNull.Value);
-                var employeecodes = new SqlParameter("@EmployeeCode", (object?)vm.EmployeeCodes ?? DBNull.Value);
-                var branchidParam = new SqlParameter("@BranchId", (object?)vm.BranchId ?? DBNull.Value);
-
-
-                return await _db.Set<SalaryDetailViewModel>()
-              .FromSqlRaw("EXEC [dbo].[usp_GetSalaryDetailsByMonthYear] @MonthNumber, @Year, @EmployeeCode,@BranchId",
-                  stratdate, enddate, employeecodes, branchidParam)
-              .ToListAsync();
+                var result= await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId={vm.BranchId}").ToListAsync();
+                return result;
             }
-            catch (Exception ex)
+            catch
             {
-
                 return new List<SalaryDetailViewModel>();
             }
+            
         }
 
         public async Task<VMCommonResult> DeleteSalaryDetails(DeleteRecordVModel deleteRecordVM)
