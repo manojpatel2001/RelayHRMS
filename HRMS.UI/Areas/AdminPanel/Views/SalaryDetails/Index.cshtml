@@ -136,6 +136,12 @@
                 padding-left: 0 !important;
             }
         }
+
+    #salaryGridContainer {
+        max-height: 200px;
+       
+    }
+
     </style>
 
     <div class="container-fluid py-3">
@@ -257,18 +263,20 @@
                const EmployeeId=localStorage.getItem('EmployeeId');
                const Token=localStorage.getItem("authToken");
 
-        $(document).ready(function () {
-        const savedMonth = localStorage.getItem("SalaryMonth");
-        const savedYear = localStorage.getItem("SalaryYear");
-        const savedEmpCodes = localStorage.getItem("SalaryEmpCodes");
-        const savedBranchId = localStorage.getItem("SalaryBranchId");
+     $(document).ready( async function () {
+           const savedMonth = localStorage.getItem("SalaryMonth") ;
+            const savedYear = localStorage.getItem("SalaryYear") ;
+            const savedEmpCodes = localStorage.getItem("SalaryEmpCodes") || "";
+            const savedBranchId = localStorage.getItem("SalaryBranchId") || 0;
+            BindBranchDropdown();
+        await populateYearDropdown();
 
         if (savedMonth && savedYear) {
             $('#month').val(savedMonth);
             $('#year').val(savedYear);
             $('#empCode').val(savedEmpCodes);
             $('#branch').val(savedBranchId);
-
+        
             // Delay to ensure UI is ready
             setTimeout(() => { 
                 fetchAndBindSalaryData(savedMonth, savedYear, savedEmpCodes, savedBranchId);
@@ -281,8 +289,7 @@
         localStorage.removeItem("SalaryEmpCodes");
         localStorage.removeItem("SalaryBranchId");
 
-        BindBranchDropdown();
-        populateYearDropdown();
+        
            $("#btnDelete").hide();
            $("#actionButtons").hide();
               $('#monthError').hide();
@@ -302,7 +309,7 @@
                 if (response?.data?.length > 0) {
                     let $branch = $('#branch');
                     $branch.empty();
-                    $branch.append('<option value="">--Select--</option>');
+                    $branch.append('<option value="">Select</option>');
                     $.each(response.data, function (i, item) {
                         $branch.append('<option value="' + item.branchId + '">' + item.branchName + '</option>');
                     });
@@ -319,33 +326,42 @@
       window.location.href = '@UIBaseUrl/AdminPanel/Home/index';
     }
 
-        function populateYearDropdown() {
-            var startYear = 2024;
-            var currentYear = new Date().getFullYear();
-            var yearDropdown = document.getElementById("year");
+     async function populateYearDropdown() {
+        try {
+            const startYear = 2024;
+            const currentYear = new Date().getFullYear();
+            const yearDropdown = document.getElementById("year");
 
-            yearDropdown.innerHTML = ""; // clear existing
+            yearDropdown.innerHTML = ""; // Clear existing options
+            yearDropdown.style.fontSize = "13px"; // Apply small font size
 
-            // Apply small font size to the dropdown
-            yearDropdown.style.fontSize = "13px"; // Match your label size
-
-            var defaultOption = document.createElement("option");
+            const defaultOption = document.createElement("option");
             defaultOption.value = "";
             defaultOption.text = "--Select--";
             yearDropdown.appendChild(defaultOption);
 
-            for (var year = currentYear; year >= startYear; year--) {
-                var option = document.createElement("option");
+            for (let year = startYear; year <= currentYear; year++) {
+                const option = document.createElement("option");
                 option.value = year;
                 option.text = year;
                 yearDropdown.appendChild(option);
             }
 
-            yearDropdown.value = "";
-        }
+            yearDropdown.value = ""; // Reset selection
 
+            return "Year dropdown populated successfully";
+        } catch (error) {
+            throw new Error("Failed to populate year dropdown: " + error.message);
+        }
+    }
+
+
+        $('#empCode,#month,#branch,#year').focus(()=>{
+            $('#btnGo').prop("disabled",false);
+        })
 
     $('#btnGo').on('click', function () {
+        $('#btnGo').prop("disabled",true);
         const month = $('#month').val();
     const year = $('#year').val();
     const empCode = $('#empCode').val();
@@ -367,9 +383,12 @@
         $('#yearError').hide();
     }
 
-    if (!isValid) return;
+    if (!isValid) {
+          $('#btnGo').prop("disabled",false);
+        return;
+    }
 
-    fetchAndBindSalaryData(month, year, empCode, branch);
+     fetchAndBindSalaryData(month, year, empCode, branch);
 
     });
 
@@ -379,12 +398,12 @@
             Swal.fire("Validation", "Please select both Month and Year.", "warning");
             return;
         }
-
+        debugger
         const requestData = {
             Month: parseInt(month),
             Year: parseInt(year),
-            EmployeeCodes: empCode && empCode !== "" ? empCode : null,
-            BranchId: branch && branch !== "" ? parseInt(branch) : null
+            EmployeeCodes:  empCode === "" ?'': empCode ,
+            BranchId: branch === "" ? 0:parseInt(branch) 
         };
 
         $.ajax({
@@ -393,65 +412,64 @@
             data: JSON.stringify(requestData),
             contentType: "application/json",
             success: function (response) {
+               
                 if (response.isSuccess) { 
                      $("#btnDelete").show();
                 $("#actionButtons").show();
-                    $("#salaryGridContainer").dxDataGrid({
-                        dataSource: response.data,
-                        keyExpr: "employeeCode",
-                        showBorders: true,
-                              columnAutoWidth: true,
-                 selection: {
-                mode: "multiple", // Enables multiple row selection
-                showCheckBoxesMode: "always" // Always show checkboxes
-            },
-                        paging: { pageSize: 10 },
-                        columns: [
-                            { dataField: "id", caption: "ID", visible: false },
-                            { dataField: "employeeCode", caption: "Employee Code" },
-                            { dataField: "employeeName", caption: "Name" },
-                            { dataField: "branchName", caption: "Branch" },
-                            // { dataField: "monthName", caption: "Month" },
-                            // { dataField: "year", caption: "Year" },
-                            { dataField: "grossSalary", caption: "Gross Salary" },
-                            { dataField: "netSalary", caption: "Net Salary" },
-                            { dataField: "presentDays", caption: "Present Days" },
-                            { dataField: "absentDays", caption: "Absent Days" },
-                            { dataField: "salaryDays", caption: "Salary Days" },
-                            { dataField: "totalDeductions", caption: "Deductions" },
-                            { dataField: "createdDate", caption: "Created", dataType: "date" },
-      {
-        caption: "View",
-        cellTemplate: function (container, options) {
-            $("<i>")
-              .addClass("fas fa-magnifying-glass") 
-                .css({
-                    cursor: "pointer",
-                    color: "#007bff", // optional: blue color
-                    fontSize: "18px",
-                    padding: "5px"
-                })
-                .attr("title", "View Salary Slip")
-                .on('click', function () {
-                    showSalarySlipModal(options.data); // call your function
-                })
-                .appendTo(container);
-        }
-    }
-                            ] ,
-                     onContentReady: function (e) {
-                const rowCount = data.length;
-                const rowHeight = 40; // approx row height in pixels
-                const headerHeight = 40;
-                const totalHeight = headerHeight + (rowCount * rowHeight);
-                e.component.option("height", totalHeight);
-            }
+                           $("#salaryGridContainer").dxDataGrid({
+                dataSource: response.data,
+                keyExpr: "employeeCode",
+                showBorders: true,
+                columnAutoWidth: true,
+                selection: {
+                    mode: "multiple",
+                    showCheckBoxesMode: "always"
+                },
+                paging: {
+                    enabled: false // Disable paging to allow scrolling
+                },
+                scrolling: {
+                    mode: "virtual" // Enables smooth scrolling
+                },
+                columns: [
+                    { dataField: "id", caption: "ID", visible: false },
+                    { dataField: "employeeCode", caption: "Employee Code" },
+                    { dataField: "employeeName", caption: "Name" },
+                    { dataField: "branchName", caption: "Branch" },
+                    { dataField: "grossSalary", caption: "Gross Salary" },
+                    { dataField: "netSalary", caption: "Net Salary" },
+                    { dataField: "presentDays", caption: "Present Days" },
+                    { dataField: "absentDays", caption: "Absent Days" },
+                    { dataField: "salaryDays", caption: "Salary Days" },
+                    { dataField: "totalDeductions", caption: "Deductions" },
+                    { dataField: "createdDate", caption: "Created", dataType: "date" },
+                    {
+                        caption: "View",
+                        cellTemplate: function (container, options) {
+                            $("<i>")
+                                .addClass("fas fa-magnifying-glass")
+                                .css({
+                                    cursor: "pointer",
+                                    color: "#007bff",
+                                    fontSize: "18px",
+                                    padding: "5px"
+                                })
+                                .attr("title", "View Salary Slip")
+                                .on('click', function () {
+                                    showSalarySlipModal(options.data);
+                                })
+                                .appendTo(container);
+                        }
+                    }
+                ],
+            });
 
-                    });
+
       
                 } else {
+                    $('#btnGo').prop("disabled",false);
                        $("#btnDeleteSalary").hide();
-                $("#actionButtons").hide();
+                             $("#actionButtons").hide();
                     Swal.fire("Error", response.responseMessage, "error");
                 }
             },
