@@ -118,6 +118,14 @@
         font-size: 12px;
         margin-top: 2px;
     }
+
+    .dx-cell-truncate {
+        max-width: 150px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+    }
 </style>
 
 <div class="section-header">
@@ -200,7 +208,7 @@
 </div>
 
 <!-- ✅ Save + Grid Section -->
-<div class="form-section" style="margin-top: 30px;">
+<div class="form-section" id="attendanceSection" style="margin-top: 30px; display: none;">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
         <h6 class="mb-0">Attendance Details</h6>
         <div id="saveButtonContainer" style="display: none;">
@@ -318,20 +326,12 @@
 
 
 
-            function clearValidationErrors() {
+         function clearValidationErrors() {
         $('.field-error').text('');
         $('#validationMsg').text('');
     }
 
-        function ClearAttendanceGrid() {
-        $("#attendanceGrid").html("");  // Clear grid
-        $("#saveButtonContainer").hide(); // Hide Save button
-    }
-
-        $("#btnClear").on("click", function () {
-        ClearAttendanceGrid();
-    });
-
+ 
         $('.btn-custom:contains("Go")').on('click', function () {
     clearValidationErrors();
     const branch = $('#branch').val();
@@ -375,18 +375,21 @@
             data: formData,
             contentType: false,
             processData: false,
-           success: function (response) {
+              success: function (response) {
             if (response?.isSuccess) {
                 $('#validationMsg').text("");
                 LoadAttendanceGrid(response.data);
                 if (response.data && response.data.length > 0) {
                     $("#saveButtonContainer").show();
+                    $("#attendanceSection").show();
                 } else {
                     $("#saveButtonContainer").hide();
+                    $("#attendanceSection").hide();
                 }
             } else {
                 $('#validationMsg').text("No records found.");
                 $("#saveButtonContainer").hide();
+                $("#attendanceSection").hide();
             }
         },
             error: function () {
@@ -408,6 +411,7 @@
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
+            height:"auto",
             editing: {
                 mode: "cell",
                 allowUpdating: true
@@ -431,17 +435,20 @@
                 {
                     dataField: "fullName",
                     caption: "Employee",
-                    allowEditing: false
+                    allowEditing: false ,
+                    width: 100
                 },
                 {
                     dataField: "branchName",
                     caption: "Branch",
-                    allowEditing: false
+                    allowEditing: false,
+                    width: 100
                 },
                 {
                     dataField: "shiftTime",
                     caption: "Shift Time",
-                    allowEditing: false
+                    allowEditing: false,
+                    width: 80
                 },
                 {
                     dataField: "in_Time",
@@ -464,7 +471,8 @@
                                 fontSize: "12px"
                             })
                             .appendTo(container);
-                    }
+                    },
+                    width: 100
                 },
                 {
                     dataField: "out_Time",
@@ -487,7 +495,8 @@
                                 fontSize: "12px"
                             })
                             .appendTo(container);
-                    }
+                    },
+                    width: 100
                 },
                 {
                     dataField: "status",
@@ -556,7 +565,8 @@
                     allowEditing: false,
                     calculateCellValue: function () {
                         return "00:00:00"; // Placeholder – can be calculated dynamically if needed
-                    }
+                    },
+                    width: 90
                 },
                 {
                     dataField: "dayType",
@@ -590,13 +600,21 @@
                     }
                 }
             ],
-                 onContentReady: function (e) {
-            const rowCount = data.length;
-            const rowHeight = 40; // approx row height in pixels
-            const headerHeight = 40;
-            const totalHeight = headerHeight + (rowCount * rowHeight);
-            e.component.option("height", totalHeight);
+                onCellPrepared: function (e) {
+        if (e.rowType === "data" && e.value) {
+            const $cell = $(e.cellElement);
+
+            // Apply inline ellipsis styles
+            $cell.css({
+                "overflow": "hidden",
+                "text-overflow": "ellipsis",
+                "white-space": "nowrap"
+            });
+
+            // Show tooltip on hover
+            $cell.attr("title", e.value.toString());
         }
+    }
 
         });
     }
@@ -667,8 +685,8 @@
             contentType: "application/json",
             data: JSON.stringify(validRows),
             success: function (response) {
-                if (response?.isSuccess) {
                       hideLoder();
+                if (response?.isSuccess) {               
                     round_success_noti(response.responseMessage || "Saved successfully.");
                     const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
         const selectedKeys = gridInstance.getSelectedRowKeys();
@@ -707,17 +725,14 @@
         $('#employeeDropdown').val('');
         clearValidationErrors();
 
-        // Hide Save button
-        $('#saveButtonContainer').hide();
+           $("#saveButtonContainer").hide();
+        $("#attendanceSection").hide();
 
-        // Clear grid content
-        const grid = $("#attendanceGrid").dxDataGrid("instance");
-        if (grid) {
-            grid.option("dataSource", []);
-            grid.refresh();
-        } else {
-            $("#attendanceGrid").html(""); // In case grid was not initialized
-        }
+    const grid = $("#attendanceGrid").dxDataGrid("instance");
+    if (grid) {
+        grid.option("dataSource", []);
+        grid.refresh();
+    }
     });
 
 
