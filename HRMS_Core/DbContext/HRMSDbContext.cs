@@ -187,6 +187,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllBranchesListByCompanyId>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllCompanyDetailsForGrid>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmMyProfile>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeDirectoryResultVM>().HasNoKey().ToView(null);
 
 
 
