@@ -196,7 +196,8 @@
 
     <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
 </div>
-<div class="form-section" style="margin-top: 30px;">
+
+<div class="form-section" id="attendanceSection" style="margin-top: 30px; display: none;">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
         <h6 class="mb-0">Attendance Details</h6>
         <div id="saveButtonContainer" style="display: none;">
@@ -358,14 +359,23 @@
             data: formData,
             contentType: false,
             processData: false,
-            success: function (response) {
-                if (response?.isSuccess) {
-                    $('#validationMsg').text("");   // Clear validation if success
-                    LoadAttendanceGrid(response.data);
+           success: function (response) {
+            if (response?.isSuccess) {
+                $('#validationMsg').text("");
+                LoadAttendanceGrid(response.data);
+                if (response.data && response.data.length > 0) {
+                    $("#saveButtonContainer").show();
+                    $("#attendanceSection").show();
                 } else {
-                    $('#validationMsg').text("No records found.");
+                    $("#saveButtonContainer").hide();
+                    $("#attendanceSection").hide();
                 }
-            },
+            } else {
+                $('#validationMsg').text("No records found.");
+                $("#saveButtonContainer").hide();
+                $("#attendanceSection").hide();
+            }
+        },
             error: function () {
                 $('#validationMsg').text("Something went wrong while fetching data.");
             },
@@ -383,6 +393,7 @@
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
+            height:"auto",
             editing: {
                 mode: "cell",
                 allowUpdating: true
@@ -392,13 +403,6 @@
                 if (status === "present") {
                     e.cancel = true;
                     DevExpress.ui.notify("Editing not allowed for Present records.", "warning", 2000);
-                }
-            },
-            onContentReady: function (e) {
-                if (data && data.length > 0) {
-                    $("#saveButtonContainer").show();
-                } else {
-                    $("#saveButtonContainer").hide();
                 }
             },
             columns: [
@@ -570,15 +574,7 @@
                         allowUpdating: true
                     }
                 }
-            ],
-            
-                 onContentReady: function (e) {
-            const rowCount = data.length;
-            const rowHeight = 40; // approx row height in pixels
-            const headerHeight = 40;
-            const totalHeight = headerHeight + (rowCount * rowHeight);
-            e.component.option("height", totalHeight);
-        }
+            ]
 
         });
     }
@@ -651,8 +647,8 @@
             contentType: "application/json",
             data: JSON.stringify(validRows),
             success: function (response) {
-                if (response?.isSuccess) {
                       hideLoder();
+                if (response?.isSuccess) {              
                     round_success_noti(response.responseMessage || "Saved successfully.");
                     const gridInstance = $("#attendanceGrid").dxDataGrid("instance"); 
         const selectedKeys = gridInstance.getSelectedRowKeys();  
@@ -690,9 +686,15 @@
         $('#recordtype').val('All');
         $('#employeeDropdown').val('');
             clearValidationErrors();
-        // Clear the grid
-        const grid = $("#attendanceGrid").dxDataGrid("instance");
+          $("#saveButtonContainer").hide();
+        $("#attendanceSection").hide();
+
+    const grid = $("#attendanceGrid").dxDataGrid("instance");
+    if (grid) {
         grid.option("dataSource", []);
+        grid.refresh();
+    }
+
     });
 
 </script>

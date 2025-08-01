@@ -238,12 +238,15 @@
         }
         async function hideLoder(){
                 $('#grid-loader').removeClass('d-flex').hide();
-        }
+        } 
+
+
     function loadGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             keyExpr: "attendanceRegularizationId", // must be unique
             showBorders: true,
+            height:"auto",
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
@@ -273,14 +276,7 @@
                         return "";
                     }
                 }
-            ],
-                 onContentReady: function (e) {
-            const rowCount = data.length;
-            const rowHeight = 40; // approx row height in pixels
-            const headerHeight = 40;
-            const totalHeight = headerHeight + (rowCount * rowHeight);
-            e.component.option("height", totalHeight);
-        }
+            ]
 
         });
         $("#actionButtons").show();
@@ -373,11 +369,24 @@
        function updateAttendanceStatus(status) {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
-        console.log("selectedRows",selectedRows);
         if (selectedRows.length === 0) {
            round_error_noti("Please select at least one record.");
             return;
         }
+          if (status === "Rejected") {
+        const approvedRecords = selectedRows.filter(row => row.isApproved);
+        if (approvedRecords.length > 0) {
+           Swal.fire({
+        title: "Not Allowed",
+        text: "Approved records cannot be rejected.",
+        icon: "error",
+        customClass: {
+            popup: 'swal-small'
+        }
+    });
+            return;
+        }
+    }
         selectedRows.forEach(function (row) {
             row.status = status; 
    
@@ -422,15 +431,11 @@
         $('#todate').val('');
         $("input[name='type']").prop('checked', false);
         $('#r2').prop('checked', true);
-
-        // Completely destroy and recreate empty grid
         $("#attendanceGrid").dxDataGrid("dispose");
         $("#attendanceGrid").dxDataGrid({
             dataSource: [],
             showBorders: true
         });
-
-        // Hide buttons
         $("#actionButtons").hide();
             $("#btnDelete").hide();
     $("#btnApprove").hide();

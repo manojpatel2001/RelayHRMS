@@ -93,18 +93,21 @@ namespace HRMS_API.Controllers.Employee
                     if (attendance == null || !attendance.ForDate.HasValue || string.IsNullOrWhiteSpace(attendance.ShiftTime))
                         continue;
 
-            //        var alreadyExists = await _unitOfWork.AttendanceRegularizationRepository
-            //.GetAsync(x =>
-            //    x.EmpId == attendance.EmpId &&
-            //    x.ForDate == attendance.ForDate &&
-                
-            //x.IsEnabled == true &&
-            //    x.IsDeleted == false);
+                    var exists = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x =>
+                      x.EmpId == attendance.EmpId &&
+                      x.ForDate == attendance.ForDate &&
+                      x.IsEnabled == true &&
+                      x.IsDeleted == false);
 
-            //        if (alreadyExists != null)
-            //        {
-            //            continue;
-            //        }
+                    if (exists != null)
+                    {
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = $"Request already exists for EmpId {attendance.EmpId} on {attendance.ForDate:yyyy-MM-dd}"
+                        };
+                    }
+
 
                     attendance.CreatedDate = DateTime.UtcNow;
 
