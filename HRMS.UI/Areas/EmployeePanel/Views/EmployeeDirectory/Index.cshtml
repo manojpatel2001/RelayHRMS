@@ -94,6 +94,17 @@
     .small-dropdown {
         width: 180px !important;
     }
+
+    .card {
+        border-radius: 12px;
+        transition: transform 0.2s ease-in-out;
+    }
+
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
 </style>
 
 
@@ -128,7 +139,7 @@
         
         
         <div class="col-md-4 d-flex align-items-center">
-            <label for="designationid" class="fixed-label">Department:</label>
+            <label for="designationid" class="fixed-label">Designation:</label>
 
             <div id="designationid"></div>
         </div>
@@ -175,11 +186,14 @@
 
 <div class="form-section">
     <div class="container mt-3">
-        
-        <div id="attendanceGrid"></div>
+        <!-- Container for cards -->
+        <div id="employeeCardContainer" class="row"></div>
+
+        <!-- Record summary -->
         <div id="recordSummary" class="text-center mt-2 text-muted"></div>
     </div>
 </div>
+
 
 
 <script>
@@ -198,7 +212,11 @@
         loadbrach();
         loaddepartment();
         loaddesignation();
-       
+
+          $('#gobutoonid').on('click', function () {
+
+             loademployeedirecotry();
+         });
 
     });
 
@@ -280,7 +298,7 @@
     }
 
 
-         function loaddesignation() {
+   function loaddesignation() {
         $.ajax({
             url: `${apiBase}/DesignationAPI/GetAllDesignationByCompanyId/${Compid}`,
             method: 'GET',
@@ -293,7 +311,7 @@
                         items: response.data,
                         displayExpr: "designationName",
                         valueExpr: "designationId",
-                        placeholder: "--Select Department--",
+                        placeholder: "--Select Designation--",
                         showSelectionControls: true,
                         searchEnabled: true,
                         showClearButton: true,
@@ -313,7 +331,77 @@
                 }
             }
         });
+   }
+
+
+
+        function loademployeedirecotry() {
+           
+         const status = $('#employeeid').val();
+         let isenable = null, isdeleted = null;
+
+         if (status === "1") {
+             isenable = 1; isdeleted = 0;
+         } else if (status === "2") {
+             isenable = 0; isdeleted = 1;
+         }
+
+         const payload = {
+                 BranchId: $('#branchid').dxTagBox("instance").option("value").join(','),     
+             DepartmentId: $('#departmentid').dxTagBox("instance").option("value").join(','), 
+             DesignationId: $('#designationid').dxTagBox("instance").option("value").join(','),
+                    EmpCodeName: $('#empid').val(),
+             isenable: isenable,
+             isdeleted: isdeleted
+         };
+           console.log("payload",payload);
+
+         $.ajax({
+               url: `${apiBase}/EmployeeDirecotryAPI/GetEmployeeDirectory`,
+             method: 'POST',
+             contentType: 'application/json',
+             data: JSON.stringify(payload),
+             success: function (response) {
+                 if (response.isSuccess && response.data.length > 0) {
+                     renderCards(response.data);
+                     $('#recordSummary').text(`${response.data.length} Records Found.`);
+                 } else {
+                     $('#employeeCardContainer').html('<div class="text-center text-muted">No records found.</div>');
+                     $('#recordSummary').text('');
+                 }
+             },
+             error: function (xhr) {
+                 Swal.fire("❌ Server error", xhr.responseText, "error");
+             }
+         });
+     }
+
+        function renderCards(data) {
+        let html = '';
+
+        data.forEach(emp => {
+            const imageUrl = emp.employeeProfileUrl || '/images/default-user.png';
+            html += `
+                <div class="col-md-3 mb-4">
+                    <div class="card p-3 h-100 shadow-sm">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="${imageUrl}" alt="Profile" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover; border: 2px solid #ccc;" />
+                            <div>
+                                <h6 class="mb-1">${emp.employeeCode}</h6>
+                                <strong>${emp.fullName}</strong>
+                            </div>
+                        </div>
+                        <div><strong>Gender:</strong> ${emp.gender || '-'}</div>
+                        <div><strong>Branch:</strong> ${emp.branchName || '-'}</div>
+                        <div><strong>Department:</strong> ${emp.departmentName || '-'}</div>
+                        <div><strong>Designation:</strong> ${emp.designationName || '-'}</div>
+                        <div><strong>DOJ:</strong> ${emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        $('#employeeCardContainer').html(html);
     }
-      
 
 </script>
