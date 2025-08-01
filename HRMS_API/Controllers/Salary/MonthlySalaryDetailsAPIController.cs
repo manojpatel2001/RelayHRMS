@@ -44,6 +44,14 @@ namespace HRMS_API.Controllers.Salary
             try
             {
                 var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetSalaryDetails(vm);
+                if(data==null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Record fetched successfully"
+                    };
+                }
 
                 return new APIResponse()
                 {
@@ -69,6 +77,14 @@ namespace HRMS_API.Controllers.Salary
             try
             {
                 var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetMonthlySalaryData(vm);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Record fetched successfully"
+                    };
+                }
 
                 return new APIResponse()
                 {
@@ -96,6 +112,14 @@ namespace HRMS_API.Controllers.Salary
             try
             {
                 var data = await _unitOfWork.MonthlySalaryDetailsRepository.CreateSalaryDetails(vm);
+                if (data.Id == null)
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Record fetched successfully"
+                    };
+                }
 
                 return new APIResponse()
                 {
