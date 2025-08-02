@@ -44,7 +44,7 @@ $(document).ready(function () {
         $('.user-img').attr('src', BaseDomainUrl + '/default-image/avatar-2.png');
     }
     $(".user-name").text(FullName);
-    $(".designattion").text(Designation);
+    $(".designation").text(Designation);
 
 
     document.querySelectorAll('.custom-tooltip').forEach((el) => {
