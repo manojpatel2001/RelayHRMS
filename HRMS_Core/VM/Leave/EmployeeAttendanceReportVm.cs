@@ -18,10 +18,10 @@ namespace HRMS_Core.VM.Leave
         [NotMapped]
         public IDictionary<string, object> Days { get; set; } = new ExpandoObject();
 
-        public int? P { get; set; }
-        public int? A { get; set; }
-        public int? W { get; set; }
-        public int? L { get; set; }
-        public int? H { get; set; }
+        public string? P { get; set; }
+        public string? A { get; set; }
+        public string? W { get; set; }
+        public string? L { get; set; }
+        public string? H { get; set; }
     }
 }

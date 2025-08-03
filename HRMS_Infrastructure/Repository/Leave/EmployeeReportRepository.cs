@@ -55,11 +55,11 @@ namespace HRMS_Infrastructure.Repository.Leave
                                 BranchName = reader["BranchName"]?.ToString(),
                                 EmployeeCode = reader["EmployeeCode"]?.ToString(),
                                 FullName = reader["FullName"]?.ToString(),
-                                P = reader["P"] as int?,
-                                A = reader["A"] as int?,
-                                W = reader["W"] as int?,
-                                L = reader["L"] as int?,
-                                H = reader["H"] as int?
+                                P = reader["P"].ToString(),
+                                A = reader["A"].ToString(),
+                                W = reader["W"].ToString(),
+                                L = reader["L"].ToString(),
+                                H = reader["H"].ToString()
                             };
 
                             foreach (var col in columnNames)
