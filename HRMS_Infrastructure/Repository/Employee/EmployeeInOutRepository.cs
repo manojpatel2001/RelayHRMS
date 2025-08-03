@@ -2,6 +2,8 @@
 using HRMS_Core.Employee;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Core.VM.Ess.InOut;
 using HRMS_Core.VM.importData;
 using HRMS_Infrastructure.Interface.Employee;
 using Microsoft.Data.SqlClient;
@@ -14,7 +16,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace HRMS_Infrastructure.Repository.Employee
 {
-    public class EmployeeInOutRepository : Repository<EmployeeInOutRecord>, IEmployeeInOut
+    public class EmployeeInOutRepository : Repository<EmployeeInOutRecord>, IEmployeeInOutRepository
     {
         private readonly HRMSDbContext _db;
 
@@ -69,51 +71,18 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<VMCommonResult> CreateEmpInOut(EmployeeInOutRecord Record)
+        public async Task<VMCommonResult> CreateEmpInOut(vmInOut Record)
         {
             try
             {
                 var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                    EXEC InsertEmployeeInOutRecord_sp
-                        @Emp_Id = {Record.Emp_Id},
-                        @Com_Id = {Record.Com_Id},
-                        @For_Date = {Record.For_Date},
-                        @In_Time = {Record.In_Time},
-                        @Out_Time = {Record.Out_Time},
-                        @Duration = {Record.Duration},
-                        @Reason = {Record.Reason},
-                        @Ip_adrress = {Record.Ip_adrress},
-                        @In_Date_Time = {Record.In_Date_Time},
-                        @Out_Date_Time = {Record.Out_Date_Time},
-                        @Skip_Count = {Record.Skip_Count},
-                        @Late_Calc_Not_App = {Record.Late_Calc_Not_App},
-                        @Chk_By_Superior = {Record.Chk_By_Superior},
-                        @Sup_Comment = {Record.Sup_Comment},
-                        @Half_Full_day = {Record.Half_Full_day},
-                        @Is_Cancel_Late_In = {Record.Is_Cancel_Late_In},
-                        @Is_Cancel_Early_Out = {Record.Is_Cancel_Early_Out},
-                        @Is_Default_In = {Record.Is_Default_In},
-                        @Is_Default_Out = {Record.Is_Default_Out},
-                        @Cmp_prp_in_flag = {Record.Cmp_prp_in_flag},
-                        @Cmp_prp_out_flag = {Record.Cmp_prp_out_flag},
-                        @is_Cmp_purpose = {Record.is_Cmp_purpose},
-                        @App_Date = {Record.App_Date},
-                        @Apr_Date = {Record.Apr_Date},
-                        @System_date = {Record.System_date},
-                        @Other_Reason = {Record.Other_Reason},
-                        @ManualEntryFlag = {Record.ManualEntryFlag},
-                        @statusFlag = {Record.statusFlag},
-                        @In_Admin_Time = {Record.In_Admin_Time},
-                        @Out_Admin_Time = {Record.Out_Admin_Time},
-                        @IsDeleted = {Record.IsDeleted},
-                        @IsEnabled = {Record.IsEnabled},
-                        @IsBlocked = {Record.IsBlocked},
-                        @CreatedDate = {Record.CreatedDate},
-                        @CreatedBy = {Record.CreatedBy},
-                        @UpdatedDate = {Record.UpdatedDate},
-                        @UpdatedBy = {Record.UpdatedBy},
-                        @DeletedDate = {Record.DeletedDate},
-                        @DeletedBy = {Record.DeletedBy}
+                    EXEC USP_InsertAttendanceLog
+                        @EmployeeId = {Record.EmployeeId},
+                        @CompanyId = {Record.CompanyId},
+                        @Mode = {Record.Mode},
+                        @PunchDateTime = {Record.PunchDateTime},
+                        @CreatedBy = {Record.CreatedBy}
+                    
                 ").ToListAsync();
 
                 return result.FirstOrDefault() ?? new VMCommonResult { Id = null };
@@ -169,6 +138,36 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
+
+
+        public async Task<List<vmGetMonthlyAttendanceLog>> GetMonthlyAttendanceLog(vmInOutParameter vmInOutParameter)
+        {
+            try
+            {
+                var result= await _db.Set<vmGetMonthlyAttendanceLog>()
+                                .FromSqlInterpolated($"EXEC GetMonthlyAttendanceLog  @MonthNumber={vmInOutParameter.MonthNumber}, @Year={vmInOutParameter.year},  @EmployeeId = {vmInOutParameter.EmployeeId},@CompanyId={vmInOutParameter.CompanyId}")
+                                .ToListAsync();
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<vmGetMonthlyAttendanceLog>();
+            }
+        }
+        public async Task<List<vmGetMonthlyAttendanceDetails>> GetMonthlyAttendanceDetails(vmInOutParameter vmInOutParameter)
+        {
+            try
+            {
+                var result= await _db.Set<vmGetMonthlyAttendanceDetails>()
+                                .FromSqlInterpolated($"EXEC GetMonthlyAttendanceDetails  @MonthNumber={vmInOutParameter.MonthNumber}, @Year={vmInOutParameter.year},  @EmployeeId = {vmInOutParameter.EmployeeId},@CompanyId={vmInOutParameter.CompanyId}")
+                                .ToListAsync();
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<vmGetMonthlyAttendanceDetails>();
+            }
+        }
         public async Task<List<VMInOutRecord>> GetMultipleInOutRecordAsync(int empid, string Month, string Year)
         {
             try

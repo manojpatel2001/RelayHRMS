@@ -14,6 +14,7 @@ using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.CompanyStructure;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Core.VM.Ess.InOut;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.Leave;
@@ -188,6 +189,8 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllCompanyDetailsForGrid>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmMyProfile>().HasNoKey().ToView(null);
             modelBuilder.Entity<EmployeeDirectoryResultVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetMonthlyAttendanceLog>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetMonthlyAttendanceDetails>().HasNoKey().ToView(null);
 
 
 
