@@ -28,13 +28,13 @@ namespace HRMS_API.Controllers.Employee
                
                 var data = await _unitOfWork.EmployeeInOutRepository.CreateEmpInOut(model);
                 if (data == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Unable to punch for now. Please try again later." };
 
                 return new APIResponse
                 {
                     isSuccess = true,
                     Data = data,
-                    ResponseMessage = "Records have been added successfully."
+                    ResponseMessage = "Punch have been added successfully."
                 };
             }
             catch (Exception ex)
@@ -42,7 +42,7 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = "Unable to add records. Please try again later."
+                    ResponseMessage = "Unable to punch for now. Please try again later."
                 };
             }
         }
