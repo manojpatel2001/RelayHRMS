@@ -8,14 +8,19 @@ namespace HRMS_Core.VM.Employee
 {
     public class EmployeeInOutReportVM
     {
-        public DateTime For_Date { get; set; }
-        public int Id { get; set; }
         public string? FullName { get; set; }
+        public string? EmployeeCode { get; set; }
+        public string? ShiftTime { get; set; } // e.g., "08:00 to 17:00"
         public string? BranchName { get; set; }
-        public DateTime? In_Time { get; set; }
-        public DateTime? Out_Time { get; set; }
-        public string? ShiftTime { get; set; }
-        public TimeSpan? Duration { get; set; }
-        public string? Status { get; set; }
+        public DateTime? ShiftDate { get; set; }
+
+        public string? InTime { get; set; }       // Can be "-" or a time string
+        public string? OutTime { get; set; }      // Can be "-" or a time string
+        public decimal? WorkingHours { get; set; }
+
+        public string? AttendanceStatus { get; set; } // e.g., "P", "A", "HF"
+        public decimal? SalaryDay { get; set; }
+
+        public DateTime? CreatedOn { get; set; }
     }
 }
