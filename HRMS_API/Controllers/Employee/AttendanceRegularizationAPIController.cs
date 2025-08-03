@@ -282,7 +282,7 @@ namespace HRMS_API.Controllers.Employee
                                 CreatedBy = ""
                             };
 
-                            await _unitOfWork.EmployeeInOut.AddAsync(newInOut);
+                            await _unitOfWork.EmployeeInOutRepository.AddAsync(newInOut);
                         }
                     }
                 }

@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.Employee;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Ess.InOut;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -20,25 +21,12 @@ namespace HRMS_API.Controllers.Employee
         }
 
         [HttpPost("CreateEmpINOut")]
-        public async Task<APIResponse> CreateEmpINOut([FromBody] EmployeeInOutRecord model)
+        public async Task<APIResponse> CreateEmpINOut([FromBody] vmInOut model)
         {
             try
             {
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-                model.Ip_adrress = ipAddress;
-
-                var isexist = await _unitOfWork.EmployeeInOut.GetAsync(asp => asp.Emp_Id == model.Emp_Id && asp.In_Time != null && asp.Out_Time == null);
-                if(isexist != null)
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = true,
-                        
-                        ResponseMessage = "You are already in."
-                    };
-                }
                
-                var data = await _unitOfWork.EmployeeInOut.CreateEmpInOut(model);
+                var data = await _unitOfWork.EmployeeInOutRepository.CreateEmpInOut(model);
                 if (data == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -72,7 +60,7 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Emp_Id, For_Date, Out_Time, and UpdatedBy are required."
                     };
                 }
-                bool isUpdated = await _unitOfWork.EmployeeInOut.UpdateEmployeeOutTimeAsync(
+                bool isUpdated = await _unitOfWork.EmployeeInOutRepository.UpdateEmployeeOutTimeAsync(
                     request.Emp_Id.Value,
                     request.For_Date.Value,
                     request.Out_Time.Value,
@@ -105,6 +93,39 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
+        [HttpPost("GetMonthlyAttendanceDetails")]
+        public async Task<APIResponse> GetMonthlyAttendanceDetails(vmInOutParameter vmInOutParameter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetMonthlyAttendanceDetails(vmInOutParameter);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+        [HttpPost("GetMonthlyAttendanceLog")]
+        public async Task<APIResponse> GetMonthlyAttendanceLog(vmInOutParameter vmInOutParameter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetMonthlyAttendanceLog(vmInOutParameter);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
         [HttpPost("FirstInOut")]
         public async Task<APIResponse> FirstInOut([FromForm] int empid, [FromForm] string Month, [FromForm] string Year)
         {
@@ -118,7 +139,7 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Emp_Id,Month,Year are required."
                     };
                 }
-                var data = await _unitOfWork.EmployeeInOut.GetInOutRecord(empid, Month, Year
+                var data = await _unitOfWork.EmployeeInOutRepository.GetInOutRecord(empid, Month, Year
                );
 
                 if (data == null)
@@ -161,7 +182,7 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Emp_Id,Month,Year are required."
                     };
                 }
-                var data = await _unitOfWork.EmployeeInOut.GetMultipleInOutRecordAsync(empid, Month, Year);
+                var data = await _unitOfWork.EmployeeInOutRepository.GetMultipleInOutRecordAsync(empid, Month, Year);
 
 
                 if (data == null)
@@ -205,7 +226,7 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Emp_Id,Month,Year are required."
                     };
                 }
-                var data = await _unitOfWork.EmployeeInOut.AttendanceMultipleInOutReport(empid, Month, Year);
+                var data = await _unitOfWork.EmployeeInOutRepository.AttendanceMultipleInOutReport(empid, Month, Year);
 
 
                 if (data == null)
@@ -247,7 +268,7 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Emp_Id,Month,Year are required."
                     };
                 }
-                var data = await _unitOfWork.EmployeeInOut.AttendancefirstInOutReport(empid, Month, Year);
+                var data = await _unitOfWork.EmployeeInOutRepository.AttendancefirstInOutReport(empid, Month, Year);
 
 
                 if (data == null)
@@ -291,7 +312,7 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Emp_Id, Month, Year are required."
                     };
                 }
-                var data = await _unitOfWork.EmployeeInOut.GetEmployeeInOutReport(outFilterVM);
+                var data = await _unitOfWork.EmployeeInOutRepository.GetEmployeeInOutReport(outFilterVM);
 
                 if (data == null || !data.Any())
                 {

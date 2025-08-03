@@ -55,7 +55,7 @@ namespace HRMS_Infrastructure.Interface
         IPrivilegeMasterRepository PrivilegeMasterRepository { get; }
         IPrivilegeDetailsRepository PrivilegeDetailsRepository { get; }
 
-        IEmployeeInOut EmployeeInOut { get; }
+        IEmployeeInOutRepository EmployeeInOutRepository { get; }
 
         IEarningRepository EarningRepository { get; }
         IDeductionRepository DeductionRepository { get; }

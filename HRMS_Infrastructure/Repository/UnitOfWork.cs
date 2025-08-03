@@ -72,7 +72,7 @@ namespace HRMS_Infrastructure.Repository
             PrivilegeMasterRepository = new PrivilegeMasterRepository(_dbContext);
             PrivilegeDetailsRepository = new PrivilegeDetailsRepository(_dbContext);
 
-            EmployeeInOut = new EmployeeInOutRepository(_dbContext);
+            EmployeeInOutRepository = new EmployeeInOutRepository(_dbContext);
 
             EarningRepository = new EarningRepository(_dbContext); 
             DeductionRepository = new DeductionRepository(_dbContext);
@@ -157,7 +157,7 @@ namespace HRMS_Infrastructure.Repository
 
         public IDeductionRepository DeductionRepository { get; set; }
 
-        public IEmployeeInOut EmployeeInOut { get; set; }
+        public IEmployeeInOutRepository EmployeeInOutRepository { get; set; }
         public IPermissionRepository PermissionRepository { get; set; }
         public IRolePermissionRepository RolePermissionRepository { get; set; }
         public IRoleRepository RoleRepository { get; set; }
