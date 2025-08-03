@@ -130,12 +130,12 @@ namespace HRMS_Infrastructure.Repository.Employee
             {
                 var branchidParam = new SqlParameter("@BranchId", (object?)outFilterVM.BranchId ?? DBNull.Value);
                 var empCodeParam = new SqlParameter("@EmpId", (object?)outFilterVM.EmpId ?? DBNull.Value);
-                var monthParam = new SqlParameter("@Month", (object?)outFilterVM.Month ?? DBNull.Value);
-                var yearParam = new SqlParameter("@Year", (object?)outFilterVM.Year ?? DBNull.Value);
+                var monthParam = new SqlParameter("@StartDate", (object?)outFilterVM.StartDate ?? DBNull.Value);
+                var yearParam = new SqlParameter("@EndDate", (object?)outFilterVM.EndDate ?? DBNull.Value);
                 var recordtypeParam = new SqlParameter("@RecordType", (object?)outFilterVM.RecordType ?? DBNull.Value);
 
                 return await _db.Set<EmployeeInOutReportVM>()
-              .FromSqlRaw("EXEC [dbo].[GetEmployeeInOutReport] @BranchId, @EmpId, @Month,@Year, @RecordType",
+              .FromSqlRaw("EXEC [dbo].[GetEmployeeInOutReport] @BranchId, @EmpId, @StartDate,@EndDate, @RecordType",
                   branchidParam, empCodeParam, monthParam, yearParam, recordtypeParam)
               .ToListAsync();
             }
