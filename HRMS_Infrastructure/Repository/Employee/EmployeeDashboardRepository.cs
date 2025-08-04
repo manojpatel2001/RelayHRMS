@@ -116,18 +116,19 @@ namespace HRMS_Infrastructure.Repository.Employee
 
         }
 
-        public async Task<List<UpcommingholidaysVM>> Getupcommingholidays(int Compid)
+        public async Task<List<UpcommingholidaysVM>> Getupcommingholidays(int Compid, int EmployeeId)
         {
             try
             {
                 var parameters = new[]
                 {
-                    new SqlParameter("@CompanyId", Compid)
+                    new SqlParameter("@CompanyId", Compid) ,
+                    new SqlParameter("@EmployeeId", EmployeeId)
 
                     };
 
                 var result = await _db.Set<UpcommingholidaysVM>()
-                    .FromSqlRaw("EXEC sp_GetUpcomingHolidays @CompanyId", parameters)
+                    .FromSqlRaw("EXEC sp_GetUpcomingHolidays @CompanyId  , @EmployeeId", parameters)
                     .ToListAsync();
 
                 return result;
