@@ -96,11 +96,11 @@ namespace HRMS_API.Controllers.Employee
 
 
         [HttpGet("Getupcommingholidays")]
-        public async Task<APIResponse> Getupcommingholidays(int Compid)
+        public async Task<APIResponse> Getupcommingholidays(int Compid , int EmployeeId)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeDashboardRepository.Getupcommingholidays(Compid);
+                var data = await _unitOfWork.EmployeeDashboardRepository.Getupcommingholidays(Compid , EmployeeId);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)

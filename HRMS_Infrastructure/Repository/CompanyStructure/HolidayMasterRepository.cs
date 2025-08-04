@@ -37,6 +37,7 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
                     @MessageText = {model.MessageText},
                     @HolidayCategory = {model.Holidaycategory},
                     @RepeatAnnually = {model.RepeatAnnually},
+                    @CompanyId ={model.CompanyId},
                     @IsActive = {model.IsActive},
                     @CreatedBy = {model.CreatedBy}
             ").ToListAsync();
@@ -65,6 +66,7 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
                     @MessageText = {model.MessageText},
                     @HolidayCategory = {model.Holidaycategory},
                     @RepeatAnnually = {model.RepeatAnnually},
+                    @CompanyId ={model.CompanyId},
                     @IsActive = {model.IsActive},
                     @UpdatedBy = {model.UpdatedBy}
             ").ToListAsync();
