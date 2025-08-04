@@ -1,12 +1,11 @@
 ﻿// Public function to load modal partial and company data
 function openCompanyModal(partialUrl, apiUrl, CompanyList, callback) {
     if (!partialUrl || typeof partialUrl !== 'string') {
-        console.warn("Invalid partial view base URL.");
         if (typeof callback === 'function') callback(null);
         return;
     }
     $.ajax({
-        url: partialUrl + '/PartialView/LoadCompanyModal',
+        url: partialUrl + '/AdminPanel/PartialView/LoadCompanyModal',
         type: 'GET',
         success: function (html) {
             $('#companyModalContainer').html(html);
@@ -15,7 +14,6 @@ function openCompanyModal(partialUrl, apiUrl, CompanyList, callback) {
             bindCompanyModalEvents(callback);
         },
         error: function () {
-            console.error('❌ Failed to load company modal partial from: ' + partialUrl);
             if (typeof callback === 'function') callback(null);
         }
     });
@@ -23,7 +21,6 @@ function openCompanyModal(partialUrl, apiUrl, CompanyList, callback) {
 
 // Load company data and populate boxes
 function loadCompanyDetails(CompanyList, callback) {
-    debugger
     $('#companyLoader').show();
 
     // Get the container element
@@ -32,7 +29,6 @@ function loadCompanyDetails(CompanyList, callback) {
 
     // Check if CompanyList exists and has data
     if (!CompanyList || CompanyList.length === 0) {
-        console.warn("No company data provided");
         $('#companyLoader').hide();
         container.show();
         return;
@@ -52,9 +48,7 @@ function loadCompanyDetails(CompanyList, callback) {
 
     // Bind click events for company selection
     $('.company-box').off('click').on('click', function () {
-        debugger
         const companyData = $(this).data('company');
-        console.log("Company selected:", companyData);
 
         // Hide modal and execute callback
         $('#companyModal').fadeOut();
@@ -71,7 +65,6 @@ function loadCompanyDetails(CompanyList, callback) {
 function bindCompanyModalEvents(callback) {
     // Handle close button
     $('.close-company').off('click').on('click', function () {
-        console.log("Cancel clicked");
         $('#companyModal').fadeOut();
         if (typeof callback === 'function') callback(null);
     });

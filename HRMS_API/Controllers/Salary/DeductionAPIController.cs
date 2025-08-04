@@ -40,11 +40,11 @@ namespace HRMS_API.Controllers.Salary
 
 
         [HttpGet("GetByDeductionId/{id}")]
-        public async Task<APIResponse> GetByDeductionId(int EarningId)
+        public async Task<APIResponse> GetByDeductionId(int Id)
         {
             try
             {
-                var data = await _unitOfWork.DeductionRepository.GetAsync(x => x.DeductionId == EarningId && x.IsEnabled == true && x.IsDeleted == false);
+                var data = await _unitOfWork.DeductionRepository.GetAsync(x => x.DeductionId == Id && x.IsEnabled == true && x.IsDeleted == false);
                 if (data == null)
                 {
                     return new APIResponse
@@ -81,7 +81,7 @@ namespace HRMS_API.Controllers.Salary
             {
                 if (deduction == null)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Shift details cannot be null" };
+                    return new APIResponse() { isSuccess = false, ResponseMessage = "deduction details cannot be null" };
                 }
 
                 deduction.CreatedDate = DateTime.UtcNow;
@@ -184,7 +184,7 @@ namespace HRMS_API.Controllers.Salary
                 return new APIResponse
                 {
                     isSuccess = false,
-                    Data = null, // ✅ Set Data to null (not a string)
+                    Data = err.Message, // ✅ Set Data to null (not a string)
                     ResponseMessage = $"Error: {err.Message}" // still show message in ResponseMessage
                 };
             }

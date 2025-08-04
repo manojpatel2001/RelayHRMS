@@ -14,10 +14,11 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<List<vmGetAllEmployee>> GetAllEmployee(int companyId);
         Task<List<vmGetAllEmployee>> GetAllEmployeeByIsBlocked(bool IsBlocked,int companyId);
         Task<vmGetAllEmployee?> GetEmployeeById(int Id);
-        Task<VMCommonResult> CreateEmployee(vmEmployeeData employee);
-        Task<VMCommonResult> UpdateEmployee(vmEmployeeData employee);
+        Task<List<vmUpdateEmployee>> GetAllEmployeeForUpdate(int companyId);
+        Task<VMCommonResult> UpdateEmployee(vmUpdateEmployee employee);
         Task<VMCommonResult> DeleteEmployee(DeleteRecordVM deleteRecord);
         Task<VMCommonResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model);
         Task<vmGetNextEmployeeCode?> GetNextEmployeeCode(int CompanyId);
+        Task<VMGetExistEmployeeCode?> GetExistEmployeeCode(vmCommonParameters vmCommonParameters);
     }
 }

@@ -40,6 +40,8 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
         public IActionResult AttendanceRegister()
         {
             ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrlAPI = _configuration["BaseUrlSettings:baseUrl"];
+
 
             return View();
         }
@@ -120,6 +122,12 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
             return View();
         }
         public IActionResult leaveapplicationreport()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+        public IActionResult AttendanceMultipleInOutReport()
         {
             ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
 

@@ -32,12 +32,13 @@ namespace HRMS_Infrastructure.Repository.Salary
                 var monthParam = new SqlParameter("@Month", (object?)filter.Month ?? DBNull.Value);
                 var yearParam = new SqlParameter("@Year", (object?)filter.Year ?? DBNull.Value);
                 var empCodeParam = new SqlParameter("@EmpCode", (object?)filter.EmpCode ?? DBNull.Value);
+                var branchidParam = new SqlParameter("@BranchId", (object?)filter.BranchId ?? DBNull.Value);
                 var startDateParam = new SqlParameter("@StartDate", (object?)filter.StartDate ?? DBNull.Value);
                 var endDateParam = new SqlParameter("@EndDate", (object?)filter.EndDate ?? DBNull.Value);
 
                 return await _db.Set<GetAllEarningData>()
-              .FromSqlRaw("EXEC [dbo].[GetMonthlyEarningData] @Month, @Year, @EmpCode, @StartDate, @EndDate",
-                  monthParam, yearParam, empCodeParam, startDateParam, endDateParam)
+              .FromSqlRaw("EXEC [dbo].[GetMonthlyEarningData] @Month, @Year, @EmpCode,@BranchId, @StartDate, @EndDate",
+                  monthParam, yearParam, empCodeParam, branchidParam, startDateParam, endDateParam)
               .ToListAsync();
             }
             catch (Exception ex)
@@ -66,7 +67,7 @@ namespace HRMS_Infrastructure.Repository.Salary
 
         public async Task<bool> UpdateEarning(Earning earning)
         {
-            var existingRecord = await _db.Earning.SingleOrDefaultAsync(asd => asd.EarningId == earning.EarningId);
+            var existingRecord = await _db.Earning.SingleOrDefaultAsync(e => e.EarningId == earning.EarningId);
             if (existingRecord == null)
             {
                 return false;

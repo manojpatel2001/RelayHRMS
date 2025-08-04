@@ -62,7 +62,8 @@ namespace HRMS_API.Controllers.Authentication
                     RoleName = "Super Admin",
                     RoleSlug = "super-admin",
                     Permissions = new List<string> { "all-admin" },
-                    Company = JsonSerializer.Serialize(company)
+                    Company = JsonSerializer.Serialize(company),
+                    IsPasswordChange=true
                 };
 
                 // Generate JWT token
@@ -73,7 +74,7 @@ namespace HRMS_API.Controllers.Authentication
 
             }
             else
-            {
+            {   
                 // Find the user by email
                 var user = await _userManager.FindByEmailAsync(model.Email);
                 if (user == null)
@@ -87,7 +88,7 @@ namespace HRMS_API.Controllers.Authentication
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Invalid email or password." };
                 }
-                var emp_company = await _unitOfWork.CompanyDetailsRepository.GetCompanyListByCompanyId((int)user.CompanyId);
+                var emp_company = await _unitOfWork.UserCompanyPermissionsRepository.GetCompanyPermissionsListByEmployeeId(user.Id);
                 var DesignationDetails = await _unitOfWork.DesignationRepository.GetAsync(x=>x.DesignationId== user.DesignationId) ;
                 var roleAndPermission = await _unitOfWork.RolePermissionRepository.GetEmployeeRolesAndPermissions(user.Id);
                 var permssions = new List<string>();
@@ -111,7 +112,8 @@ namespace HRMS_API.Controllers.Authentication
                     RoleName = roleAndPermission.FirstOrDefault()?.RoleName,
                     RoleSlug = roleAndPermission.FirstOrDefault()?.RoleSlug,
                     Permissions = permssions,
-                    Company = JsonSerializer.Serialize(emp_company)
+                    Company = JsonSerializer.Serialize(emp_company),
+                    IsPasswordChange=user.IsPasswordChange
                 };
 
                 // Generate JWT token
@@ -140,6 +142,7 @@ namespace HRMS_API.Controllers.Authentication
                 new Claim("FullName", user.FullName ?? ""),
                 new Claim("Designation", user.Designation ?? ""),
                 new Claim("ProfileUrl", user.ProfileUrl ?? ""),
+                new Claim("IsPasswordChange", user.IsPasswordChange.ToString() ?? ""),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 

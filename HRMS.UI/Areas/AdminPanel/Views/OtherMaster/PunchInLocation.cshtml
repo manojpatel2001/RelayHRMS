@@ -1,0 +1,75 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "ManageState";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Get Address - Free Nominatim API</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>s
+        #result {
+            margin-top: 15px;
+            padding: 10px;
+            font-family: monospace;
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="getAddressBtn">📍 Get Address (Free API)</button>
+    <div id="result"></div>
+
+    <script>
+        $('#getAddressBtn').click(function () {
+            $('#result').html("Fetching location...");
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    $.get(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, function (data) {
+                        const address = data.address || {};
+                        $('#result').html(`
+                            <strong>Full Address:</strong> ${data.display_name} <br/>
+                            <strong>City:</strong> ${address.city || address.town || address.village || ''} <br/>
+                            <strong>State:</strong> ${address.state || ''} <br/>
+                            <strong>Country:</strong> ${address.country || ''} <br/>
+                            <strong>Postal Code:</strong> ${address.postcode || ''} <br/>
+                            <strong>Latitude:</strong> ${lat} <br/>
+                            <strong>Longitude:</strong> ${lon}
+                        `);
+
+                        // Optional: Send to your server
+                        /*
+                        $.post('/api/save-location', {
+                            address: data.display_name,
+                            city: address.city || address.town || address.village || '',
+                            state: address.state || '',
+                            country: address.country || '',
+                            postalCode: address.postcode || '',
+                            latitude: lat,
+                            longitude: lon
+                        });
+                        */
+                    });
+                }, function (error) {
+                    $('#result').html("❌ Error getting location: " + error.message);
+                }, {
+                    enableHighAccuracy: true,
+                    timeout: 10000
+                });
+            } else {
+                $('#result').html("❌ Geolocation not supported.");
+            }
+        });
+    </script>
+
+</body>
+</html>
+

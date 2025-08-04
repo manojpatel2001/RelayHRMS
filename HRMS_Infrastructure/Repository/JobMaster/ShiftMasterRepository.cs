@@ -49,7 +49,7 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             sm.EndTime = shiftMaster.EndTime;
             sm.IsHalfDay = shiftMaster.IsHalfDay;
             sm.IsTrainingShift = shiftMaster.IsTrainingShift;
-            sm.ShiftBreaks = shiftMaster.ShiftBreaks;
+            //sm.ShiftBreaks = shiftMaster.ShiftBreaks;
             sm.StartTime = shiftMaster.StartTime;
             sm.UpdatedBy = shiftMaster.UpdatedBy;
             sm.UpdatedDate = DateTime.UtcNow;

@@ -1,0 +1,2194 @@
+﻿@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "Additional Information";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+	var uri = new Uri(baseUrl);
+	string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+<style>
+    .modal-fullscreen {
+        max-width: 90%;
+        width: 90%;
+        height: 90%;
+        margin: 2% 4% 4% 4%;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 4px !important;
+        
+    }
+
+    .modal-content 
+    {
+        height: 100%;
+        overflow-y: auto;
+        border-radius: 4px !important;
+    }
+
+    .modal-header, .modal-footer {
+        flex: 0 0 auto;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    /* Tooltip button styles */
+    .tooltip-button {
+        background-color: blue;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    /* Tooltip styles */
+    .tooltip-text {
+        display: none;
+        position: absolute;
+        background-color: #ffffe0;
+        border: 1px solid #ccc;
+        padding: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        width: 250px;
+        bottom: 100%; /* Position above the button */
+        right: 0; /* Align with the button */
+        margin-bottom: 10px; /* Add some space between the button and the tooltip */
+    }
+
+        .tooltip-button:hover + .tooltip-text,
+        .tooltip-text:hover {
+            display: block;
+        }
+
+
+</style>
+
+
+<div class="card">
+    <div class="card-header bg-transparent ml-0 py-0">
+        <div class="row">
+            <div class="col-6">
+                <h6 class="pt-2 mb-0">
+                    Company Details
+                </h6>
+            </div>
+
+            <div class="col-6 d-flex justify-content-end align-items-center">
+                <div  style="color:#32393f; cursor:pointer;">
+                    <button id="AddCompanyDetails"
+                            type="button"
+                            class="btn mr-1 rounded-1"
+                            style="background-color:#2395c6; color:white;">
+                        Add Company
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <div class="grid-wrapper " style="position: relative; ">
+                        <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+                             style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+                            <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px;                                            height: 30px; animation: spin 1s linear infinite;" />
+                            <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+                        </div>
+                        <div id="gridTag">
+
+                            <div class="rowCount" id="rowCountCompanyDetails"></div>
+                            <div id="gridContainerCompanyDetails"></div>
+                        </div>
+                        <div id="noRecord" style="display:none;">
+                            No Record Found!
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<div class="modal fade" id="addCompanyDetailsModal" tabindex="-1" aria-labelledby="addCompanyDetailsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title btn-heading-title" id="addCompanyDetailsLabel">Company Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="row">
+
+                    <!-- Left side: 8 columns -->
+                    <div class="col-md-8 border-end mb-3 pe-4">
+                        <h6 class="btn-heading-title bg-secondary text-white p-2 mb-3"><span class="compnayFormType">Add</span> Company Details</h6>
+
+                        <div class="row mb-3 gy-3">
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtcompanyName" placeholder="Company Name" />
+                                    <label class="floating-label" for="txtcompanyName">Company Name *</label>
+                                </div>
+                                <span id="spncompanyName" style="color:red; display:none;">Please Enter Company Name</span>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <textarea class="form-control floating-input" id="txtcompanyAddress" rows="1" placeholder="Company Address"></textarea>
+                                    <label class="floating-label" for="txtcompanyAddress">Company Address *</label>
+                                </div>
+                                <span id="spncompanyAddress" style="color:red; display:none;">Please Enter Company Address</span>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <select class="form-select floating-input" id="txtcity">
+                                        <option value="" selected disabled>Select City</option>
+                                        
+                                    </select>
+                                    <label class="floating-label" for="txtcity">City *</label>
+                                </div>
+                                <span id="spncity" style="color:red; display:none;">Please Select City</span>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <select class="form-select floating-input" id="txtstate">
+                                        <option value="" selected disabled>Select State</option>
+                                        
+                                    </select>
+                                    <label class="floating-label" for="txtstate">State *</label>
+                                </div>
+                                <span id="spnstate" style="color:red; display:none;">Please Select State</span>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtpinCode">
+                                    <label class="floating-label" for="txtpinCode">Pin Code *</label>
+                                </div>
+                                <span id="spnpinCode" style="color:red; display:none;">Please Enter Pin Code</span>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    
+                                    <select class="form-select floating-input" id="txtcountry">
+                                        <option selected value="">Select Country</option>
+                                        <option value="1">INDIA</option>
+                                        
+                                    </select>
+                                    <label class="floating-label" for="txtcountry">Country</label>
+                                </div>
+                                <span id="spncountry" style="color:red; display:none;">Please Select Country</span>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtphoneNo" placeholder="Phone No">
+                                    <label class="floating-label" for="txtphoneNo">Phone No</label>
+                                </div>
+                                <span id="spnphoneNo" style="color:red; display:none;">Please Enter Phone No</span>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="email" class="form-control floating-input" id="txtemailAddress" placeholder="Email Address">
+                                    <label class="floating-label" for="txtemailAddress">Email Address</label>
+                                </div>
+                                <span id="spnemailAddress" style="color:red; display:none;">Please Enter Email Address</span>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <select class="form-select floating-input" id="txtdateFormat">
+                                        <option selected>dd/MM/yyyy</option>
+                                        <option>MM/dd/yyyy</option>
+                                        <option>yyyy-MM-dd</option>
+                                    </select>
+                                    <label class="floating-label" for="txtdateFormat">Date Format</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="date" class="form-control floating-input" id="txtfromDate">
+                                    <label class="floating-label" for="txtfromDate">From Date *</label>
+                                    <span id="spnfromDate" style="color:red; display:none;">Please Enter From Date</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtwebsite" placeholder="Enter Website">
+                                    <label class="floating-label" for="txtwebsite">Website</label>
+                                    <span id="spnwebsite" style="color:red; display:none;">Please Enter Website</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtpfTrustNo" placeholder="Enter PF Trust No">
+                                    <label class="floating-label" for="txtpfTrustNo">PF Trust No</label>
+                                </div>
+                                <span id="spnpfTrustNo" style="color:red; display:none;">Please Enter PF Trust No</span>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative form-check">
+                                    <input type="checkbox" class="form-check-input" id="txtpfApplicable">
+                                    <label class="form-check-label" for="txtpfApplicable">PF Applicable</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 tagPFNo " style="display:none;">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtPFNo" placeholder="Enter PF Trust No">
+                                    <label class="floating-label" for="txtPFNo">PF No</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group position-relative form-check">
+                                    <input type="checkbox" class="form-check-input" id="txtesicApplicable">
+                                    <label class="form-check-label" for="txtesicApplicable">ESIC Applicable</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 tagESICNo " style="display:none;">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtESICNo" placeholder="Enter PF Trust No">
+                                    <label class="floating-label" for="txtESICNo">ESIC No</label>
+                                </div>
+                            </div>
+                          
+
+                            
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txttanNo" placeholder="TAN No">
+                                    <label class="floating-label" for="txttanNo">TAN No</label>
+                                    <span id="spntanNo" style="color:red; display:none;">Please Enter TAN No</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtpanNo" placeholder="eg. AABBC1234D">
+                                    <label class="floating-label" for="txtpanNo">PAN No</label>
+                                    <span id="spnpanNo" style="color:red; display:none;">Please Enter PAN No</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtdomainName" placeholder="@@demo.com">
+                                    <label class="floating-label" for="txtdomainName">Domain Name *</label>
+                                    <span id="spndomainName" style="color:red; display:none;">Please Enter Domain Name</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtcompanyCode" placeholder="Company Code">
+                                    <label class="floating-label" for="txtcompanyCode">Company Code</label>
+                                    <span id="spncompanyCode" style="color:red; display:none;">Please Enter Company Code</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="txtlwfNo" placeholder="LWF No">
+                                    <label class="floating-label" for="txtlwfNo">LWF No</label>
+                                    <span id="spnlwfNo" style="color:red; display:none;">Please Enter LWF No</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    Employee Code Setting:
+                                    <label class=" cursor-pointer text-primary ms-2" data-bs-toggle="modal" data-bs-target="#employeeCodeSettingModal">
+                                        Click here
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="number" class="form-control floating-input" id="txtinOutDuration" placeholder="In-Out Duration (in Sec)">
+                                    <label class="floating-label" for="txtinOutDuration">In-Out Duration (in Sec)</label>
+                                    <span id="spninOutDuration" style="color:red; display:none;">Please Enter In-Out Duration</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative form-check">
+                                    <input type="checkbox" class="form-check-input" id="txthierarchyDesignation">
+                                    <label class="form-check-label" for="txthierarchyDesignation">Reporting Hierarchy Designation wise</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <select class="form-select floating-input" id="txtemployeeLicense">
+                                        <option selected disabled value="">Select Employee License</option>
+                                        <option value="1000">1000</option>
+                                        <option value="2000">2000</option>
+                                        <option value="3000">3000</option>
+                                        <!-- Add more options as needed -->
+                                    </select>
+                                    <label class="floating-label" for="txtemployeeLicense">Employee License</label>
+                                 
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group  position-relative">
+                                    E-mail Signature:
+                                    <label class=" cursor-pointer text-primary ms-2" data-bs-toggle="modal" data-bs-target="#emailSignatureModal">
+                                        Click here
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group position-relative form-check">
+                                    <input type="checkbox" class="form-check-input" id="txtcontractorCompany">
+                                    <label class="form-check-label" for="txtcontractorCompany">Contractor Company</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    Other Detail:
+                                    <label class=" cursor-pointer text-primary ms-2 otherDetailModal" data-bs-toggle="modal" data-bs-target="#otherDetailModal">
+                                        Click here
+                                    </label>
+                                </div>
+                            </div>
+
+                            
+                            <div class="col-md-4 ">
+                                <div class="form-group position-relative mt-2 form-check">
+                                    <input type="checkbox" class="form-check-input" id="txtdigitalSignature">
+                                    <label class="form-check-label" for="txtdigitalSignature">Digital Signature</label>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="form-group position-relative">
+                                    <label class="form-check-label"><strong>Select WeekOff Day: </strong></label>
+                                    <div class="form-check form-check-inline">
+                                        <input type="checkbox" class="form-check-input alternateWeekOffDay" value="Monday" id="alternateWeekOffDayMonday">
+                                        <label class="form-check-label" for="alternateWeekOffDayMonday">Monday</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="checkbox" class="form-check-input alternateWeekOffDay" value="Tuesday" id="alternateWeekOffDayTuesday">
+                                        <label class="form-check-label" for="alternateWeekOffDayTuesday">Tuesday</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="checkbox" class="form-check-input alternateWeekOffDay" value="Wednesday" id="alternateWeekOffDayWednesday">
+                                        <label class="form-check-label" for="alternateWeekOffDayWednesday">Wednesday</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="checkbox" class="form-check-input alternateWeekOffDay" value="Thursday" id="alternateWeekOffDayThursday">
+                                        <label class="form-check-label" for="alternateWeekOffDayThursday">Thursday</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="checkbox" class="form-check-input alternateWeekOffDay" value="Friday" id="alternateWeekOffDayFriday">
+                                        <label class="form-check-label"  for="alternateWeekOffDayFriday">Friday</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="checkbox" class="form-check-input alternateWeekOffDay" value="Saturday" id="alternateWeekOffDaySaturday">
+                                        <label class="form-check-label" for="alternateWeekOffDaySaturday">Saturday</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="checkbox" class="form-check-input alternateWeekOffDay" value="Sunday" id="alternateWeekOffDaySunday">
+                                        <label class="form-check-label" for="alternateWeekOffDaySunday">Sunday</label>
+                                    </div>
+                                </div>
+                             </div>
+                            <div class="col-md-4">
+                                <div class="form-group position-relative ">
+                                    <select class="form-control floating-input" id="alternateWeekOffDay">
+                                        <option value="">Select Alternate WeekOff Day</option>
+                                        <option value="Monday">Monday</option>
+                                        <option value="Tuesday">Tuesday</option>
+                                        <option value="Wednesday">Wednesday</option>
+                                        <option value="Thursday">Thursday</option>
+                                        <option value="Friday">Friday</option>
+                                        <option value="Saturday">Saturday</option>
+                                        <option value="Sunday">Sunday</option>
+                                    </select>
+                                    <label class="floating-label" for="alternateWeekOffDay">Alternate WeekOff Day </label>
+                                </div>
+                              </div>
+                            <div class="col-md-4">
+                                <div class="form-group position-relative">
+                                    <input type="text" class="form-control floating-input" id="alternateFullWeekOff" placeholder="eg. #2#4#">
+                                    <label class="floating-label" for="alternateFullWeekOff">Alternate Full WeekOff *</label>
+                                    <button class="tooltip-button" id="tooltipButton" tabindex="0">?</button>
+                                    <div class="tooltip-text" tabindex="0">
+                                        When you select Alternate WeekOff Day then Alternate WeekOff Week is mandatory. Specify the Alternate WeekOff Week number separated by # character (i.e. for Second & Fourth WeekOff enter value #2#4#)
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group mt-3 position-relative">
+                                    <div id="branchTagBox"></div>
+                                    <span id="spnBranchTagBox" style="color:red; display:none;">Please  Select Branch</span>
+
+                                </div>
+                             </div>
+                        </div>
+                        <hr class="mb-2"/>
+                        <div class="row mb-2">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-primary px-5 " id="btnAddCompanyDetails" style="background-color:#2395c6; color:white;">Add</button>
+                            </div>
+                            <div class="col-md-4"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right side: 4 columns -->
+                    <div class="col-md-4 ps-4 text-center mx-auto">
+                        <div class="row p-0">
+                           <div class="col-md-12 p-0">
+                            <h6 class="btn-heading-title bg-secondary text-white p-2 mb-3">Add Company Logo</h6>
+
+                            <!-- Preview Box -->
+                            <div class="mb-3">
+                                <img src="@baseDomainUrl/uploads/defaultuserprofile/defaultlogo.jpg"
+                                     id="previewLogo"
+                                     alt="Logo Preview"
+                                     class="img-fluid border border-secondary rounded"
+                                     style="max-height: 200px;" />
+                            </div>
+
+                            <!-- File Input -->
+                            <div class="mb-3">
+                                <input class="form-control" type="file" id="companyLogo" accept=".jpg,image/jpeg">
+                            </div>
+
+                       
+                            <!-- Checkbox -->
+                            <div class="mb-1">
+                                <div class="form-check d-inline-block">
+                                    <input type="checkbox" class="form-check-input" id="displayLogin">
+                                    <label class="form-check-label" for="displayLogin">Display on login screen</label>
+                                </div>
+                            </div>
+                            <!-- JPG Only Label -->
+                            <div class="mb-2">
+                                <span class="text-muted">(Only JPG)</span>
+                            </div>
+
+                            <!-- Upload Button -->
+                            <div class="mb-3">
+                                    <button class="btn btn-primary d-none" style="background-color:#2395c6; color:white;" id="btnChangeLogo">Change Logo</button>
+                            </div>
+                        </div>
+                        
+                            <div class="col-md-12 p-0">
+                                <h6 class="btn-heading-title bg-secondary text-white p-2 mb-3">Letter Head</h6>
+                                <div class="mb-2">
+                                    <span class="text-muted">
+                                        (Preferred File Resolution Is 800 * 150 Pixels)
+                                    </span>
+                                </div>
+                                <div class="mb-3">
+                                    <button class="btn btn-primary " data-bs-toggle="modal" data-bs-target="#addLetterHeadModel" style="background-color:#2395c6; color:white;" id="btnUploadLetterHead">Upload Letter Head</button>
+                                </div>
+                            </div>
+                            <div class="col-md-12 p-0 tagDigitalSignature" style="display:none;">
+                                <h6 class="btn-heading-title bg-secondary text-white p-2 mb-3">Digital Signature</h6>
+                                <div class="mb-1">
+                                    <input class="form-control" type="file" id="digitalSignature" accept=".pfx">
+                                </div>
+
+                                <div class="mb-2">
+                                    <span class="text-muted">(Only PFX)</span>
+                                </div>
+
+                                <div class="mb-2">
+                                    <div class="form-group position-relative">
+                                        <input type="text" class="form-control floating-input" id="signaturePassword" placeholder="LWF No">
+                                        <label class="floating-label" for="signaturePassword">Password</label>
+                                    </div>
+                                    <span id="spnSignaturePassword" style="color:red; display:none;">Please Enter Passowrd</span>
+
+                                </div>
+
+
+                                <div class="mb-3">
+                                    <button class="btn btn-primary " style="background-color:#2395c6; color:white;" id="btnUploadSignature">Upload</button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- The Modal -->
+<div class="modal trigger-company-modal" id="employeeCodeSettingModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title btn-heading-title" id="exampleModalLabel">
+                    <span class="formType">Employee CodeSetting </span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#addEmployeeModal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="row ">
+                    <!-- Digits For Employee Code -->
+                    <div class="col-md-12 mb-2">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="txtDigits" placeholder="Digits For Employee Code">
+                            <label class="floating-label" for="txtDigits">Digits For Employee Code</label>
+                        </div>
+                    </div>
+                    <div class="col-md-12 mb-2">
+                        <div class="form-group position-relative">
+                            <input type="text" readonly class="form-control floating-input" id="txtSampleCode" placeholder="Sample Code">
+                            <label class="floating-label" for="txtSampleCode">Sample Code</label>
+                        </div>
+                    </div>
+                    
+                </div>
+
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal trigger-company-modal" id="otherDetailModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title btn-heading-title" id="exampleModalLabel">
+                    <span class="formType">Other Detail</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#addEmployeeModal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+
+                <div style="border: 1px solid #ccc; padding: 20px; border-radius: 5px; margin: 5px; position: relative;">
+                    <div style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px; font-weight: bold;">
+                        DIRECTOR DETAIL
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-group position-relative">
+                                <input type="text" class="form-control floating-input" id="directorName" placeholder="Name">
+                                <label class="floating-label" for="directorName">Name</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-group position-relative">
+                                <input type="text" class="form-control floating-input" id="directorAddress" placeholder="Address">
+                                <label class="floating-label" for="directorAddress">Address</label>
+                            </div>
+                            <span id="spnDirectorAddress" class="error-message" style="display: none; color: red;">Address is required</span>
+
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-group position-relative">
+                                <input type="date" class="form-control floating-input" id="directorDOB" placeholder="Date of Birth">
+                                <label class="floating-label" for="directorDOB">Date of Birth</label>
+                            </div>
+                            <span id="spnDirectorDOB" class="error-message" style="display: none; color: red;">Date of Birth is required</span>
+
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-group position-relative">
+                                <input type="text" class="form-control floating-input" id="directorBranch" placeholder="Branch">
+                                <label class="floating-label" for="directorBranch">Branch</label>
+                                <span id="spnDirectorBranch" class="error-message" style="display: none; color: red;">Branch is required</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-group position-relative">
+                                <input type="text" class="form-control floating-input" id="directorDesignation" placeholder="Designation">
+                                <label class="floating-label" for="directorDesignation">Designation</label>
+                            </div>
+                            <span id="spnDirectorDesignation" class="error-message" style="display: none; color: red;">Designation is required</span>
+
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <button type="button" class="btn btn-primary" style="background-color:#2395c6; color:white;" id="saveDirectorDetail">Save</button>
+                            <button type="button" class="btn  ms-2" style="background-color:lightgray;"  id="resetDirectorDetail">Reset</button>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <div class="rowCount" id="rowCountDirector"></div>
+                                <div id="gridContainerDirector">
+                               
+                                    <div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+          
+                <!--hr manager-->
+                <div class="row mt-3">
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="hrManager" placeholder="HR Manager">
+                            <label class="floating-label" for="hrManager">HR Manager (Offer Letter)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="hrManagerDesignation" placeholder="Designation">
+                            <label class="floating-label" for="hrManagerDesignation">Designation of HR Manager (Offer Letter)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="natureOfBusiness" placeholder="Nature of Business">
+                            <label class="floating-label" for="natureOfBusiness">Nature Of Business</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="date" class="form-control floating-input" id="dateOfFactorySetup" placeholder="Date of Factory/Esta. Setup">
+                            <label class="floating-label" for="dateOfFactorySetup">Date of Factory/Esta. Setup</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="factoryType" placeholder="Factory/Esta. Type">
+                            <label class="floating-label" for="factoryType">Factory/Esta. Type</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="factoryLicenseOffice" placeholder="Factory/Esta. License Office">
+                            <label class="floating-label" for="factoryLicenseOffice">Factory/Esta. License Office</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="factoryRegistrationNo" placeholder="Factory/Esta. Registration No.">
+                            <label class="floating-label" for="factoryRegistrationNo">Factory/Esta. Registration No.</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="factoryLicenseNo" placeholder="Factory/Esta. License No.">
+                            <label class="floating-label" for="factoryLicenseNo">Factory/Esta. License No.</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="tdsDeductor" placeholder="TDS Deductor">
+                            <label class="floating-label" for="tdsDeductor">TDS Deductor (Form 16)</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="fatherName" placeholder="Father Name">
+                            <label class="floating-label" for="fatherName">Father Name (Form 16)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="managerDesignation" placeholder="Designation">
+                            <label class="floating-label" for="managerDesignation">Designation of Manager (Form 16)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <textarea class="form-control floating-input" id="citAddress" placeholder="CIT Address"></textarea>
+                            <label class="floating-label" for="citAddress">CIT Address</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="text" class="form-control floating-input" id="citCity" placeholder="CIT City">
+                            <label class="floating-label" for="citCity">CIT City</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="number" class="form-control floating-input" id="citPin" placeholder="CIT PIN" min="0">
+                            <label class="floating-label" for="citPin">CIT PIN</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group position-relative">
+                            <input type="date" class="form-control floating-input" id="issueDate" placeholder="Issue Date">
+                            <label class="floating-label" for="issueDate">Issue Date (Form 16)</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group form-check position-relative">
+                            <input type="checkbox" class="form-check-input" id="gstTravelExpenses">
+                            <label class="form-check-label" for="gstTravelExpenses">GST (For Travel Expenses)</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal trigger-company-modal" id="emailSignatureModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title btn-heading-title" id="exampleModalLabel">
+                    <span class="formType">Email Signature</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#addEmployeeModal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <textarea style="width: 100%; height: 300px;" id="txtEmailSignature"></textarea>
+
+            </div>
+           
+
+        </div>
+    </div>
+</div>
+
+<div class="modal trigger-company-modal" id="addLetterHeadModel" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title btn-heading-title"><span class="formType">Update</span> Company Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body modal-body-font">
+                <div class="row">
+                    <!-- Effective Date -->
+                    <div class="col-md-6">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="date" class="form-control floating-input" id="effectiveDate" required />
+                            <label class="floating-label" for="effectiveDate">Effective Date *</label>
+                        </div>
+                    </div>
+
+                    <!-- Company Name -->
+                    <div class="col-md-6">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="text" class="form-control floating-input" id="companyName" placeholder=" " required />
+                            <label class="floating-label" for="companyName">Company Name *</label>
+                        </div>
+                    </div>
+
+                    <!-- Company Address -->
+                    <div class="col-md-12">
+                        <div class="form-group mt-3 position-relative">
+                            <textarea class="form-control floating-input" id="companyAddress" rows="3" placeholder=" " required></textarea>
+                            <label class="floating-label" for="companyAddress">Company Address *</label>
+                        </div>
+                    </div>
+
+                    <!-- Letter Head (Header) -->
+                    <div class="col-md-6">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="file" class="form-control floating-input" id="letterHeadHeader" accept=".jpg,.jpeg,.png,.pdf" />
+                            <label class="floating-label" for="letterHeadHeader">Letter Head (Header)</label>
+                        </div>
+                    </div>
+
+                    <!-- Letter Head (Footer) -->
+                    <div class="col-md-6">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="file" class="form-control floating-input" id="letterHeadFooter" accept=".jpg,.jpeg,.png,.pdf" />
+                            <label class="floating-label" for="letterHeadFooter">Letter Head (Footer)</label>
+                        </div>
+                    </div>
+
+                  
+                </div>
+            </div>
+
+            <div class="modal-footer btn-heading-title">
+                <button type="button" class="btn btn-primary" id="btnUpdateCompany" style="background-color:#2395c6; color:white;">Update</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+   
+<script>
+        const Token=localStorage.getItem("authToken");
+            const userId=localStorage.getItem("EmployeeId");
+    let CompanyId=0;
+    let branchIds=null;
+
+    $("#AddCompanyDetails").click( () => {
+        CompanyId=0;
+            resetCompanyFormFields();
+      $("#addCompanyDetailsModal").modal('show');
+    })
+
+       $(() => {
+            //  $('.trigger-company-modal').on('shown.bs.modal', function () {
+            //    $('#addCompanyDetailsModal').modal('show');
+            // });
+
+            $('.trigger-company-modal').on('hidden.bs.modal', function () {
+                $('#addCompanyDetailsModal').modal('show');
+            });
+
+       });
+
+
+
+            async function loadBranchesList()
+            {
+                    $.ajax({
+                    type: "GET",
+                    url: '@baseUrl/BranchAPI/GetAllBranches',
+                    headers: {
+                        'Authorization': 'Bearer ' + Token
+                    },
+                    success: function (response) {
+                        if(response.isSuccess){
+                              $("#branchTagBox").dxTagBox({
+                             items: response.data,
+                                valueExpr: "branchId",            // store ID
+                                displayExpr: "branchName",        // show name
+                                placeholder: "Select branches...",
+                                showSelectionControls: true,
+                                searchEnabled: true,
+                                searchExpr: ["branchId", "branchName"],
+                                multiline: true,
+                                 showDropDownButton: true,
+                                onValueChanged: function (e) {
+
+                                    var selectedIds = e.value;
+                                    var idString = selectedIds.join(",");
+                                     branchIds=idString;
+                                }
+                            });
+
+                        }
+                        else{
+                                $("#branchTagBox").dxTagBox({
+                                 items: [],
+                                    valueExpr: "branchId",            // store ID
+                                    displayExpr: "branchName",        // show name
+                                    placeholder: "Select branches...",
+                                    showSelectionControls: true,
+                                    searchEnabled: true,
+                                    searchExpr: ["branchId", "branchName"],
+                                    multiline: true,
+                                     showDropDownButton: true,
+                                    onValueChanged: function (e) {
+
+                                        var selectedIds = e.value;
+                                        var idString = selectedIds.join(",");
+                                         branchIds=idString;
+                                    }
+                                });
+                        }
+
+                    },
+                    error: function () {
+
+                        console.error("Unable to load branch");
+                    }
+                });
+
+            }
+
+        $(document).ready(()=>{
+            loadBranchesList();
+        })
+
+       // logo upload
+       $(() => {
+        $('#companyLogo').on('change', function () {
+            const file = this.files[0];
+
+            if (file) {
+                const fileType = file.type.toLowerCase();
+                const fileName = file.name.toLowerCase();
+                if (fileType === 'image/jpeg' && fileName.endsWith('.jpg')) {
+                    const reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        $('#previewLogo').attr('src', e.target.result);
+                    };
+
+                    reader.readAsDataURL(file);
+
+                    // Show Upload Button
+                    $('#btnChangeLogo').removeClass('d-none');
+                } else {
+                    round_error_noti('Only JPG files are allowed.');
+                    $('#companyLogo').val('');
+                    $('#btnChangeLogo').addClass('d-none');
+                }
+            } else {
+                // Reset if no file selected
+                $('#btnChangeLogo').addClass('d-none');
+            }
+        });
+
+        // Upload button click (you can connect this to your backend logic)
+        $('#uploadLogoBtn').on('click', function () {
+            alert('Upload logic goes here.');
+        });
+    });
+
+   $(() => {
+     $('#txtpfApplicable').change(function() {
+          if ($(this).is(':checked'))
+          {
+               $(".tagPFNo").show();
+          }
+          else{
+              $(".tagPFNo").hide();
+          }
+     })
+
+      $('#txtesicApplicable').change(function() {
+          if ($(this).is(':checked'))
+          {
+               $(".tagESICNo").show();
+          }
+          else{
+              $(".tagESICNo").hide();
+          }
+     })
+
+      $('#txtdigitalSignature').change(function() {
+           if ($(this).is(':checked'))
+           {
+                  $(".tagDigitalSignature").show();
+           }
+           else{
+                 $(".tagDigitalSignature").hide();
+           }
+      })
+  })
+
+
+    $(document).ready(function() {
+        localStorage.removeItem('companyDetailsLocalStorage');
+        CompanyDetailsDataTable();
+          bindState();
+    });
+
+
+    function CompanyDetailsDataTable() {
+       $('#grid-loader').addClass('d-flex').show();
+        $.ajax({
+            type: "GET",
+            url: '@baseUrl/CompanyDetailsAPI/GetAllCompanyDetails',
+            success: function(data) {
+                if (data.isSuccess) {
+                    $("#gridContainerCompanyDetails").dxDataGrid({
+                        dataSource: data.data,
+                        stateStoring: {
+                            enabled: true,
+                            type: 'localStorage',
+                            storageKey: 'companyDetailsLocalStorage'
+                        },
+                        rowHeight: 50, // Set the row height here
+                        width: '100%', // Set the width of the grid to 100% of its container
+                        columns: [
+                            {
+                                dataField: 'companyName',
+                                caption: 'Company Name',
+                                alignment: 'center',
+                                fixed: true,
+                                fixedPosition: 'left',
+                                width: 200 // Set specific width for this column
+                            },
+                            { dataField: 'companyAddress', caption: 'Address', alignment: 'center', width: 200 },
+                            { dataField: 'cityName', caption: 'City', alignment: 'center', width: 150 },
+                            { dataField: 'stateName', caption: 'State', alignment: 'center', width: 150 },
+                            { dataField: 'pinCode', caption: 'PIN Code', alignment: 'center', width: 100 },
+                            { dataField: 'country', caption: 'Country', alignment: 'center', width: 150 },
+                            { dataField: 'phoneNo', caption: 'Phone', alignment: 'center', width: 150 },
+                            { dataField: 'emailAddress', caption: 'Email', alignment: 'center', width: 200 },
+                            { dataField: 'dateFormat', caption: 'Date Format', alignment: 'center', width: 150 },
+                            { dataField: 'fromDate', caption: 'From Date', alignment: 'center', dataType: 'date', width: 150 },
+                            { dataField: 'website', caption: 'Website', alignment: 'center', width: 200 },
+                            { dataField: 'pfTrustNo', caption: 'PF Trust No', alignment: 'center', width: 150 },
+                            {
+                                dataField: 'pfApplicable',
+                                caption: 'PF Applicable',
+                                alignment: 'center',
+                                cellTemplate: function(container, options) {
+                                    $('<div>').text(options.value ? 'Yes' : 'No').appendTo(container);
+                                },
+                                width: 150
+                            },
+                            { dataField: 'pfNo', caption: 'PF No', alignment: 'center', width: 150 },
+                            {
+                                dataField: 'esicApplicable',
+                                caption: 'ESIC Applicable',
+                                alignment: 'center',
+                                cellTemplate: function(container, options) {
+                                    $('<div>').text(options.value ? 'Yes' : 'No').appendTo(container);
+                                },
+                                width: 150
+                            },
+                            { dataField: 'esicNo', caption: 'ESIC No', alignment: 'center', width: 150 },
+                            { dataField: 'tanNo', caption: 'TAN No', alignment: 'center', width: 150 },
+                            { dataField: 'panNo', caption: 'PAN No', alignment: 'center', width: 150 },
+                            { dataField: 'domainName', caption: 'Domain Name', alignment: 'center', width: 150 },
+                            { dataField: 'companyCode', caption: 'Company Code', alignment: 'center', width: 150 },
+                            { dataField: 'lwfNo', caption: 'LWF No', alignment: 'center', width: 150 },
+                            { dataField: 'inOutDuration', caption: 'In-Out Duration', alignment: 'center', width: 150 },
+                            {
+                                dataField: 'hierarchyDesignation',
+                                caption: 'Hierarchy Designation',
+                                alignment: 'center',
+                                cellTemplate: function(container, options) {
+                                    $('<div>').text(options.value ? 'Yes' : 'No').appendTo(container);
+                                },
+                                width: 150
+                            },
+                            { dataField: 'employeeLicense', caption: 'Employee License', alignment: 'center', width: 150 },
+                            { dataField: 'emailSignature', caption: 'Email Signature', alignment: 'center', width: 200 },
+                            {
+                                dataField: 'contractorCompany',
+                                caption: 'Contractor Company',
+                                alignment: 'center',
+                                cellTemplate: function(container, options) {
+                                    $('<div>').text(options.value ? 'Yes' : 'No').appendTo(container);
+                                },
+                                width: 150
+                            },
+                            {
+                                dataField: 'isDigitalSignature',
+                                caption: 'Is Digital Signature',
+                                alignment: 'center',
+                                cellTemplate: function(container, options) {
+                                    $('<div>').text(options.value ? 'Yes' : 'No').appendTo(container);
+                                },
+                                width: 150
+                            },
+                            { dataField: 'selectWeekOffDay', caption: 'Week Off Day', alignment: 'center', width: 150 },
+                            { dataField: 'alternateWeekOffDay', caption: 'Alternate Week Off Day', alignment: 'center', width: 150 },
+                            { dataField: 'alternateFullWeekOff', caption: 'Alternate Full Week Off', alignment: 'center', width: 150 },
+                            { dataField: 'branchNames', caption: 'Branch Names', alignment: 'center', width: 150 },
+                            // { dataField: 'companyLogoUrl', caption: 'Company Logo URL', alignment: 'center', width: 200 },
+                            // { dataField: 'digitalSignatureUrl', caption: 'Digital Signature URL', alignment: 'center', width: 200 },
+                            // { dataField: 'digitalSignaturePassword', caption: 'Digital Signature Password', alignment: 'center', width: 200 },
+                           
+                             {
+                                dataField: '',
+                                caption: '',
+                                alignment: 'center',
+                                width: '50px',
+                               
+                                cellTemplate: function(container, options) {
+                                    var buttonElement = $('<div class="d-flex order-actions">' +
+                                        '<a href="javascript:;" class="edit-action" title="Edit Company">' +
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+                                        '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+                                        '</svg>' +
+                                        '</a>' +
+                                        '</div>')
+                                        .on('dxclick', function() {
+                                            updateCompanyDetails(options.data);
+                                        }).appendTo(container);
+                                }
+                            },
+                            {
+                                dataField: '',
+                                caption: '',
+                                
+                                cellTemplate: function(container, options) {
+                                    var buttonElement = $('<div class="d-flex order-actions">' +
+                                        '<a href="javascript:;" class="delete-action" title="Delete Company">' +
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+                                        '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+                                        '</svg>' +
+                                        '</a>' +
+                                        '</div>')
+                                        .on('dxclick', function() {
+                                              deleteCompanyDetails(options.data);
+                                        }).appendTo(container);
+                                }
+                            }
+                        ],
+                        columnsAutoWidth: false, // Disable auto width to use specified widths
+                        wordWrapEnabled: false,
+                        rowAlternationEnabled: false,
+                        showBorders: true,
+                        grouping: { autoExpandAll: true },
+                        paging: { pageSize: 10 },
+                        pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+                        headerFilter: { visible: true },
+                        filterRow: { visible: true, applyFilter: "auto" },
+                        allowColumnResizing: true,
+                        groupPanel: { visible: true },
+                        searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+                        columnFixing: {
+                            enabled: true
+                        },
+                         loadPanel: {
+                            enabled: false
+                        },
+                        scrolling: {
+                            mode: "standard",
+                            useNative: false,
+                            scrollByContent: true,
+                            scrollByThumb: true,
+                        },
+                        onContentReady(e) {
+                                    $('#grid-loader').removeClass('d-flex').hide();
+
+                                $('#rowCountCompanyDetails').html('Total Records: ' + e.component.totalCount());
+                        }
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                                             $('#grid-loader').removeClass('d-flex').hide();
+                console.error("AJAX Error: " + status + " - " + error);
+            }
+        });
+    }
+
+      function bindState() {
+          $.ajax({
+              type: "GET",
+               url: '@baseUrl/StateAPI/GetAllState',
+                   headers: {
+                                'Authorization': 'Bearer ' + Token
+                            },
+              success: function (data) {
+                  if (data.isSuccess ) {
+                        const $dropdown = $('#txtstate');
+                      $dropdown.empty();
+                      $dropdown.append('<option value="" selected disabled>Select State </option>');
+
+                      $.each(data.data, function (index, state) {
+                            $dropdown.append(`<option value="${state.stateId}" >${state.stateName}</option>`);
+                      });
+                  }
+              },
+              error: function (xhr, status, error) {
+                  console.error("Error fetching states:", error);
+
+              }
+          });
+      }
+
+     $("#txtstate").change(() => {
+      BindCity();
+    })
+    function BindCity() {
+              var stateId = $("#txtstate").val();
+          if (!stateId) {
+            return Promise.resolve();  // return a resolved promise if no state selected
+          }
+
+          // Return the ajax Promise so caller can await it
+          return $.ajax({
+            type: "GET",
+            url: "@baseUrl/BranchAPI/GetAllCityByStateId/" + stateId,
+            headers: {
+              'Authorization': 'Bearer ' + Token
+            },
+            success: function (data) {
+              if (data.isSuccess) {
+                    var dropdown = $('#txtcity');
+                dropdown.empty();
+                dropdown.append('<option disabled selected value="">Select</option>');
+                $.each(data.data, function (index, company) {
+                  dropdown.append($('<option>', {
+                    value: company.cityId,
+                    text: company.cityName
+                  }));
+                });
+              } else {
+                round_error_noti("No city available for this state");
+              }
+            },
+            error: function (xhr, status, error) {
+              console.error("Unable to load city");
+            }
+          });
+        }
+
+
+
+         let selectWeekOffDay = [];
+           let resultSelectWeekOffDay=null
+    $(document).ready(function() {
+        $(".alternateWeekOffDay").change(function() {
+            if ($(this).is(":checked")) {
+                if (selectWeekOffDay.length >= 2) {
+                    alert("You can only select up to two days as alternate week off days.");
+                    $(this).prop("checked", false); // Uncheck the third checkbox
+                } else {
+                    selectWeekOffDay.push($(this).val());
+                }
+            } else {
+                // Remove the unchecked value from the array
+                let index = selectWeekOffDay.indexOf($(this).val());
+                if (index !== -1) {
+                    selectWeekOffDay.splice(index, 1);
+                }
+            }
+
+            // Convert the array to a comma-separated string or set to null if empty
+              resultSelectWeekOffDay = selectWeekOffDay.length > 0 ? selectWeekOffDay.join(", ") : null;
+        });
+    });
+    // null set function
+  
+        function getValueOrNull(selector) {
+            var value = selector.val();
+            return value === "" ? null : value;
+        }
+
+    $("#btnAddCompanyDetails").click(async function () {
+        $("#btnAddCompanyDetails").prop("disabled", true);
+
+        // Gather input values
+          let companyName = $("#txtcompanyName").val()?.trim() ?? null;
+        let companyAddress = $("#txtcompanyAddress").val()?.trim() ?? null;
+        let cityId = $("#txtcity").val() ?? null;
+        let cityName = $("#txtcity option:selected").text() ?? null;
+        let stateId = $("#txtstate").val() ?? null;
+        let stateName = $("#txtstate option:selected").text() ?? null;
+        let pinCode = $("#txtpinCode").val()?.trim() ?? null;
+        let country = $("#txtcountry option:selected").text() ?? null;
+        let phoneNo = $("#txtphoneNo").val()?.trim() ?? null;
+        let emailAddress = $("#txtemailAddress").val()?.trim() ?? null;
+        let dateFormat = $("#txtdateFormat").val() ?? null;
+        let fromDate = $("#txtfromDate").val() ?? null;
+        let website = $("#txtwebsite").val()?.trim() ?? null;
+        let pfTrustNo = $("#txtpfTrustNo").val()?.trim() ?? null;
+        let pfApplicable = $("#txtpfApplicable").is(":checked") ?? false;
+        let pfNo = $("#txtPFNo").val()?.trim() ?? null;
+        let esicApplicable = $("#txtesicApplicable").is(":checked") ?? false;
+        let esicNo = $("#txtESICNo").val()?.trim() ?? null;
+        let tanNo = $("#txttanNo").val()?.trim() ?? null;
+        let panNo = $("#txtpanNo").val()?.trim() ?? null;
+        let domainName = $("#txtdomainName").val()?.trim() ?? null;
+        let companyCode = $("#txtcompanyCode").val()?.trim() ?? null;
+        let lwfNo = $("#txtlwfNo").val()?.trim() ?? null;
+      //  let employeeCodeSetting = "EMP123"; // Placeholder, replace with actual logic
+        let inOutDuration = $("#txtinOutDuration").val()?.trim() ?? null;
+        let hierarchyDesignation = $("#txthierarchyDesignation").is(":checked") ?? false;
+        let employeeLicense = $("#txtemployeeLicense").val() ?? null;
+          let emailSignature =  $("#txtEmailSignature").val() ?? null;
+        let contractorCompany = $("#txtcontractorCompany").is(":checked") ?? false;
+        let digitalSignature = $("#txtdigitalSignature").is(":checked") ?? false;
+        let isDigitalSignature = digitalSignature;
+   
+        // Alternate WeekOff Day
+   
+        let alternateWeekOffDay = $("#alternateWeekOffDay").val() ?? null;
+        let alternateFullWeekOff = $("#alternateFullWeekOff").val()?.trim() ?? null;
+
+
+        // Validation
+        let isValid = true;
+
+            if (!companyName) {
+                $("#spncompanyName").show();
+                isValid = false;
+            } else {
+                $("#spncompanyName").hide();
+            }
+
+            if (!companyAddress) {
+                $("#spncompanyAddress").show();
+                isValid = false;
+            } else {
+                $("#spncompanyAddress").hide();
+            }
+
+            if (!cityId) {
+                $("#spncity").show();
+                isValid = false;
+            } else {
+                $("#spncity").hide();
+            }
+
+            if (!stateId) {
+                $("#spnstate").show();
+                isValid = false;
+            } else {
+                $("#spnstate").hide();
+            }
+
+            if (!pinCode) {
+                $("#spnpinCode").show();
+                isValid = false;
+            } else {
+                $("#spnpinCode").hide();
+            }
+
+            if (!country) {
+                $("#spncountry").show();
+                isValid = false;
+            } else {
+                $("#spncountry").hide();
+            }
+
+            if (!fromDate) {
+                $("#spnfromDate").show();
+                isValid = false;
+            } else {
+                $("#spnfromDate").hide();
+            }
+
+            if (!domainName) {
+                $("#spndomainName").show();
+                isValid = false;
+            } else {
+                $("#spndomainName").hide();
+            }
+
+             if (!branchIds) {
+                    $("#spnBranchTagBox").show();
+                isValid = false;
+            } else {
+                    $("#spnBranchTagBox").hide();
+            }
+
+            if (!isValid) {
+                $("#btnAddCompanyDetails").prop("disabled", false);
+                return;
+            }
+
+        // Create the model
+              let model = {
+                companyId: CompanyId,
+                companyName: companyName === "" ? null : companyName,
+                companyAddress: companyAddress === "" ? null : companyAddress,
+                cityId: cityId === "" ? null : cityId,
+                stateId: stateId === "" ? null : stateId,
+                pinCode: pinCode === "" ? null : pinCode,
+                country: country === "" ? null : country,
+                phoneNo: phoneNo === "" ? null : phoneNo,
+                emailAddress: emailAddress === "" ? null : emailAddress,
+                dateFormat: dateFormat === "" ? null : dateFormat,
+                fromDate: fromDate === "" ? null : fromDate,
+                website: website === "" ? null : website,
+                pfTrustNo: pfTrustNo === "" ? null : pfTrustNo,
+                pfApplicable: pfApplicable,
+                pfNo: pfNo === "" ? null : pfNo,
+                esicApplicable: esicApplicable,
+                esicNo: esicNo === "" ? null : esicNo,
+                tanNo: tanNo === "" ? null : tanNo,
+                panNo: panNo === "" ? null : panNo,
+                domainName: domainName === "" ? null : domainName,
+                companyCode: companyCode === "" ? null : companyCode,
+                lwfNo: lwfNo === "" ? null : lwfNo,
+                 BranchIds:branchIds,
+               // employeeCodeSetting: employeeCodeSetting === "" ? null : employeeCodeSetting,
+                inOutDuration: inOutDuration === "" ? null : inOutDuration,
+                hierarchyDesignation: hierarchyDesignation,
+                employeeLicense: employeeLicense === "" ? null : employeeLicense,
+                emailSignature: emailSignature === "" ? null : emailSignature,
+                contractorCompany: contractorCompany,
+                isDigitalSignature: isDigitalSignature,
+                selectWeekOffDay: resultSelectWeekOffDay === "" ? null : resultSelectWeekOffDay,
+                alternateWeekOffDay: alternateWeekOffDay === "" ? null : alternateWeekOffDay,
+                alternateFullWeekOff: alternateFullWeekOff === "" ? null : alternateFullWeekOff,
+                //employee code setting
+             
+                sampleCode: getValueOrNull($("#txtSampleCode")),
+                //other details
+                  hrManager: getValueOrNull($("#hrManager")),
+                hrManagerDesignation: getValueOrNull($("#hrManagerDesignation")),
+                natureOfBusiness: getValueOrNull($("#natureOfBusiness")),
+                dateOfFactorySetup: getValueOrNull($("#dateOfFactorySetup")),
+                factoryType: getValueOrNull($("#factoryType")),
+                factoryLicenseOffice: getValueOrNull($("#factoryLicenseOffice")),
+                factoryRegistrationNo: getValueOrNull($("#factoryRegistrationNo")),
+                factoryLicenseNo: getValueOrNull($("#factoryLicenseNo")),
+                tdsDeductor: getValueOrNull($("#tdsDeductor")),
+                fatherName: getValueOrNull($("#fatherName")),
+                managerDesignation: getValueOrNull($("#managerDesignation")),
+                citAddress: getValueOrNull($("#citAddress")),
+                citCity: getValueOrNull($("#citCity")),
+                    citPin: $("#citPin").val()==0?null:$("#citPin").val(),
+                issueDate: getValueOrNull($("#issueDate")),
+                gstTravelExpenses: $("#gstTravelExpenses").is(":checked"),
+
+                createdBy: null,
+                updatedBy: null
+              };
+
+
+
+        // AJAX request
+        $.ajax({
+             url: '@baseUrl/CompanyDetailsAPI/CreateCompanyDetails',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(model),
+            success: function(response) {
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage);
+                    CompanyDetailsDataTable(); 
+                  //$('#addCompanyDetailsModal').modal('hide');
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+                $("#btnAddCompanyDetails").prop("disabled", false);
+            },
+            error: function(xhr, status, error) {
+                round_error_noti('Unable to save company details');
+                $("#btnAddCompanyDetails").prop("disabled", false);
+            }
+        });
+
+          
+
+
+    });
+
+
+    function deleteCompanyDetails(data) {
+             if (!confirm("Are you sure you want to delete this reason?")) {
+                 return; // Cancel the delete operation
+             }
+
+             var deleteObj = {
+                 id: data.companyId,
+                 deletedBy: null // Set this to the actual user if needed
+             };
+
+             $.ajax({
+                   url: '@baseUrl/CompanyDetailsAPI/DeleteCompanyDetails',
+                 type: 'DELETE',
+                 contentType: 'application/json',
+                 data: JSON.stringify(deleteObj),
+                 success: function (response) {
+                     if (response.isSuccess) {
+                         round_success_noti(response.responseMessage);
+                     } else {
+                         round_error_noti(response.responseMessage);
+                     }
+                             CompanyDetailsDataTable();
+                 },
+                 error: function (error) {
+                     console.log('Error deleting company details!');
+                 }
+             });
+         }
+
+
+// change logo
+
+   $(document).ready(function() {
+        // Show the Change Logo button when a file is selected
+         $('#displayLogin').change(function() {
+            if($(this).is(':checked'))
+                 $('#btnChangeLogo').removeClass('d-none');
+             else
+                 $('#btnChangeLogo').addClass('d-none');
+
+           });
+
+
+        // Handle the Change Logo button click
+        $('#btnChangeLogo').click(function() {
+            var fileInput = $('#companyLogo')[0];
+            var file = fileInput.files[0];
+
+            // Validate the file
+            if (!file) {
+                  round_error_noti('Please select a file.');
+                return;
+            }
+              const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+              if (extension!='.jpg') {
+                  round_error_noti('Please upload only a JPG file.');
+                return;
+            }
+            // Create FormData object
+            var formData = new FormData();
+              formData.append('CompanyId',CompanyId );
+            formData.append('LogoFile', file);
+            formData.append('IsDisplayOnLogin', $('#displayLogin').is(':checked'));
+
+            // Make AJAX call
+            $.ajax({
+                url: '@baseUrl/CompanyDetailsAPI/ChangeCompanyLogo', 
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if(response.isSuccess)
+                    {
+                        round_success_noti(response.responseMessage)
+                           $('#previewLogo').attr('src', response.data.companyLogoUrl);
+                    }
+                    else{
+                        round_error_noti(response.responseMessage)
+                    }
+                },
+                error: function(xhr, status, error) {
+                      alerround_error_notit('An error occurred while changing the logo.');
+                }
+            });
+        });
+    });
+
+    // upload letter header
+    $(document).ready(function() {
+        $('#btnUpdateCompany').click(function() {
+            // Get the values from the form
+            var companyName = $('#companyName').val();
+            var companyAddress = $('#companyAddress').val();
+            var effectiveDate = $('#effectiveDate').val();
+
+            // Create FormData object
+            var formData = new FormData();
+            formData.append('companyId', CompanyId);
+            formData.append('CompanyName', companyName);
+            formData.append('CompanyAddress', companyAddress);
+            formData.append('EffectiveDate', effectiveDate);
+
+            // Append files to FormData
+            var headerFile = $('#letterHeadHeader')[0].files[0];
+            var footerFile = $('#letterHeadFooter')[0].files[0];
+
+            if (headerFile) {
+                formData.append('LetterHeadHeaderFile', headerFile);
+            }
+
+            if (footerFile) {
+                formData.append('LetterHeadFooterFile', footerFile);
+            }
+
+            // Make AJAX call
+            $.ajax({
+                    url: '@baseUrl/CompanyDetailsAPI/UpdateLetterHead',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                      if(response.isSuccess)
+                        {
+                            round_success_noti(response.responseMessage)
+                            $('#addLetterHeadModel').modal('hide');
+
+                        }
+                        else{
+                            round_error_noti(response.responseMessage)
+                        }
+                },
+                error: function(xhr, status, error) {
+                    alert('An error occurred while updating the letterhead.');
+                }
+            });
+        });
+    });
+
+    // upload digital signature
+    $(document).ready(function() {
+        $('#btnUploadSignature').click(function() {
+            var fileInput = $('#digitalSignature')[0];
+            var file = fileInput.files[0];
+            var password = $('#signaturePassword').val();
+              
+            if (!file) 
+            {
+                $('#spnSignaturePassword').hide();
+                round_error_noti('Please select a PFX file.');
+                return;
+            }
+
+            const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (extension!='.pfx') 
+            {
+                round_error_noti('Please upload only a PFX file.');
+                return;
+            }
+            if (!password) {
+                $('#spnSignaturePassword').show();
+                return;
+            }
+            else
+            {
+                $('#spnSignaturePassword').hide();
+            }
+
+            var formData = new FormData();
+                formData.append('CompanyId', CompanyId);
+                formData.append('DigitalSignatureFile', file);
+                formData.append('DigitalSignaturePassword', password);
+                formData.append('IsDigitalSignature', $("#txtdigitalSignature").is(":checked"));
+
+            $.ajax({
+                url: '@baseUrl/CompanyDetailsAPI/UpdateDigitalSignature', 
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if(response.isSuccess)
+                    {
+                        round_success_noti(response.responseMessage)
+                        $('#spnSignaturePassword').hide();
+                        $('#digitalSignature').val('');
+                        $('#signaturePassword').val('');
+
+                    }
+                    else{
+                        round_error_noti(response.responseMessage)
+                    }
+                    
+                },
+                error: function(xhr, status, error) {
+                   round_error_noti('An error occurred while uploading digital signature!');
+                }
+            });
+        });
+    });
+
+   
+      async function updateCompanyDetails(data) {
+              resetCompanyFormFields();
+        CompanyId=data.companyId
+        $("#txtcompanyName").val(data.companyName || "");
+        $("#txtcompanyAddress").val(data.companyAddress || "");
+        $("#txtstate").val(data.stateId || "");
+            await  BindCity();
+          $("#txtcity").val(data.cityId || "");
+        $("#txtpinCode").val(data.pinCode || "");
+        if (data.country) {
+            $("#txtcountry option").filter(function() {
+                return $(this).text() === data.country;
+            }).prop("selected", true);
+        }
+        $("#txtphoneNo").val(data.phoneNo || "");
+        $("#txtemailAddress").val(data.emailAddress || "");
+            $("#txtdateFormat").val(data.dateFormat || "dd/MM/yyyy");
+         $("#txtfromDate").val(data.fromDate ? new Date(data.fromDate).toISOString().split('T')[0] : "");
+        $("#txtwebsite").val(data.website || "");
+        $("#txtpfTrustNo").val(data.pfTrustNo || "");
+        $("#txtPFNo").val(data.pfNo || "");
+        $("#txtESICNo").val(data.esicNo || "");
+        $("#txttanNo").val(data.tanNo || "");
+        $("#txtpanNo").val(data.panNo || "");
+        $("#txtdomainName").val(data.domainName || "");
+        $("#txtcompanyCode").val(data.companyCode || "");
+        $("#txtlwfNo").val(data.lwfNo || "");
+        $("#txtinOutDuration").val(data.inOutDuration || "");
+        $("#txtemployeeLicense").val(data.employeeLicense || "");
+        $("#txtEmailSignature").val(data.emailSignature || "");
+         if(data.branchIds){
+                 var selectedIdsArray = data.branchIds.split(",").map(function(branchId) {
+                    return branchId.trim();          // trim spaces
+                    });
+            // Set to dxTagBox
+                var tagBox = $("#branchTagBox").dxTagBox("instance");
+                        var tagBranchBox = $("#branchTagBox").dxTagBox("instance");
+                    if (tagBranchBox) {
+                       tagBox.option("value", selectedIdsArray);
+
+                    }
+                    branchIds=data.branchIds;
+         }
+
+        // Set checkbox values
+        $("#txtpfApplicable").prop("checked", data.pfApplicable || false);
+        $("#txtesicApplicable").prop("checked", data.esicApplicable || false);
+        $("#txthierarchyDesignation").prop("checked", data.hierarchyDesignation || false);
+        $("#txtcontractorCompany").prop("checked", data.contractorCompany || false);
+        $("#txtdigitalSignature").prop("checked", data.isDigitalSignature || false);
+
+        // Set selected options for dropdowns
+        $("#txtcity option").filter(function() {
+            return $(this).text() === data.cityName;
+        }).prop("selected", true);
+
+        $("#txtstate option").filter(function() {
+            return $(this).text() === data.stateName;
+        }).prop("selected", true);
+
+        // Set alternate week off day values
+        $("#alternateWeekOffDay").val(data.alternateWeekOffDay || "");
+        $("#alternateFullWeekOff").val(data.alternateFullWeekOff || "");
+
+        // Handle selectWeekOffDay
+        if (data.selectWeekOffDay) {
+            let weekOffDays = data.selectWeekOffDay.split(", ").map(day => day.trim());
+            weekOffDays.forEach(day => {
+                    $(`.alternateWeekOffDay[value="${day}"]`).prop("checked", true);
+            });
+        }
+
+        //company logo
+            $('#previewLogo').attr('src',data.companyLogoUrl||"@baseDomainUrl/uploads/defaultuserprofile/defaultlogo.jpg");
+            $('#displayLogin').prop("checked", data.isDisplayOnLogin || false);
+
+            //Employeecode setting
+            $("#txtDigits").val(data.digitsForEmployeeCode || "");
+                $("#txtSampleCode").val(data.sampleCode);
+                // other details
+                $("#hrManager").val(data.hrManager || "");
+                $("#hrManagerDesignation").val(data.hrManagerDesignation || "");
+                $("#natureOfBusiness").val(data.natureOfBusiness || "");
+                $("#dateOfFactorySetup").val(data.dateOfFactorySetup ? new Date(data.dateOfFactorySetup).toISOString().split('T')[0] : "");
+                $("#factoryType").val(data.factoryType || "");
+                $("#factoryLicenseOffice").val(data.factoryLicenseOffice || "");
+                $("#factoryRegistrationNo").val(data.factoryRegistrationNo || "");
+                $("#factoryLicenseNo").val(data.factoryLicenseNo || "");
+                $("#tdsDeductor").val(data.tdsDeductor || "");
+                $("#fatherName").val(data.fatherName || "");
+                $("#managerDesignation").val(data.managerDesignation || "");
+                $("#citAddress").val(data.citAddress || "");
+                $("#citCity").val(data.citCity || "");
+                $("#citPin").val(data.citPin || "");
+                $("#issueDate").val(data.issueDate ? new Date(data.issueDate).toISOString().split('T')[0] : "");
+                $("#gstTravelExpenses").prop("checked", data.gstTravelExpenses || false);
+               //director details
+                localStorage.removeItem('directorDetailsLocalStorage');
+                 DirectorDetailsDataTable();
+                            $("#btnAddCompanyDetails").text("Update");
+
+                $(".compnayFormType").text("Update");
+            $('#addCompanyDetailsModal').modal('show');
+
+                //// director details
+           
+
+    }
+
+     function resetCompanyFormFields() {
+        // Reset text inputs
+        $("#spncompanyName").hide();
+        $("#spncompanyAddress").hide();
+        $("#spncity").hide();
+        $("#spnstate").hide();
+        $("#spnpinCode").hide();
+        $("#spncountry").hide();
+        $("#spnfromDate").hide();
+        $("#spndomainName").hide();
+         $("#spnBranchTagBox").hide();
+         branchIds=null;
+        CompanyId=0;
+               var tagBranchBox = $("#branchTagBox").dxTagBox("instance");
+        if (tagBranchBox) {
+            tagBranchBox.option("value", []);
+        }
+       $("#btnAddCompanyDetails").prop("disabled", false);
+       $("#btnAddCompanyDetails").text("Add");
+
+         $(".compnayFormType").text("Add");
+        $("#txtcompanyName").val("");
+        $("#txtcompanyAddress").val("");
+        $("#txtpinCode").val("");
+        $("#txtphoneNo").val("");
+        $("#txtemailAddress").val("");
+          $("#txtdateFormat").val("dd/MM/yyyy");
+        $("#txtfromDate").val("");
+        $("#txtwebsite").val("");
+        $("#txtpfTrustNo").val("");
+        $("#txtPFNo").val("");
+        $("#txtESICNo").val("");
+        $("#txttanNo").val("");
+        $("#txtpanNo").val("");
+        $("#txtdomainName").val("");
+        $("#txtcompanyCode").val("");
+        $("#txtlwfNo").val("");
+        $("#txtinOutDuration").val("");
+        $("#txtemployeeLicense").val("");
+        $("#txtEmailSignature").val("");
+
+        // Reset checkboxes
+        $("#txtpfApplicable").prop("checked", false);
+        $("#txtesicApplicable").prop("checked", false);
+        $("#txthierarchyDesignation").prop("checked", false);
+        $("#txtcontractorCompany").prop("checked", false);
+        $("#txtdigitalSignature").prop("checked", false);
+
+        // Reset dropdowns to default selected option
+        $("#txtcity").val("");
+        $("#txtstate").val("");
+        $("#txtcountry").val("");
+
+        // Reset alternate week off day values
+        $("#alternateWeekOffDay").val("");
+        $("#alternateFullWeekOff").val("");
+
+        $(".alternateWeekOffDay").prop("checked", false);
+        $('#displayLogin').prop("checked",false);
+        // employee code setting
+             $("#txtDigits").val("");
+        $("#txtSampleCode").val("");
+
+       
+        //other details
+         $("#hrManager").val("");
+        $("#hrManagerDesignation").val("");
+        $("#natureOfBusiness").val("");
+        $("#dateOfFactorySetup").val("");
+        $("#factoryType").val("");
+        $("#factoryLicenseOffice").val("");
+        $("#factoryRegistrationNo").val("");
+        $("#factoryLicenseNo").val("");
+        $("#tdsDeductor").val("");
+        $("#fatherName").val("");
+        $("#managerDesignation").val("");
+        $("#citAddress").val("");
+        $("#citCity").val("");
+        $("#citPin").val("");
+        $("#issueDate").val("");
+        $("#gstTravelExpenses").prop("checked", false);
+        resetDirectorField();
+    }
+
+    // Employee code setting
+     $(document).ready(function() {
+        
+        $('#txtDigits').on('input', function() {
+            updateSampleCode();
+        });
+
+    
+        function updateSampleCode() 
+        {
+            const digits = $('#txtDigits').val();
+            if (digits) {
+                const zeros = '0'.repeat(digits - 1);
+                $('#txtSampleCode').val(zeros + '1');
+            }
+
+        }
+    });
+
+    // dirctor details
+
+    
+       
+  function DirectorDetailsDataTable() {
+      if (CompanyId == 0) {
+             return;
+        }
+      $.ajax({
+        type: "GET",
+        url: '@baseUrl/DirectorDetailsAPI/GetDirectorDetailsByCompanyId/'+CompanyId,
+        success: function (data) {
+          if (data.isSuccess) {
+            $("#gridContainerDirector").dxDataGrid({
+              dataSource: data.data,
+              stateStoring: {
+                enabled: true,
+                type: 'localStorage',
+                storageKey: 'directorDetailsLocalStorage'
+              },
+
+              columns: [
+                { dataField: 'directorName', caption: 'Director Name', alignment: 'center' },
+                { dataField: 'directorAddress', caption: 'Director Address', alignment: 'center' },
+                { dataField: 'directorBranch', caption: 'Branch', alignment: 'center' },
+                { dataField: 'directorDesignation', caption: 'Designation', alignment: 'center' },
+                { dataField: 'companyName', caption: 'Company Name', alignment: 'center' },
+                
+                {
+                  dataField: '',
+                  caption: '',
+                  alignment: 'center',
+                  width: '50px',
+                  type: 'buttons',
+                  cellTemplate: function (container, options) {
+                    var buttonElement = $('<div class="d-flex order-actions">' +
+                      '<a href="javascript:;" class="edit-action" title="Edit Director">' +
+                      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+                      '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+                      '</svg>' +
+                      '</a>' +
+                      '</div>')
+                      .on('dxclick', function () {
+                        updateDirectorDetails(options.data);
+                      }).appendTo(container);
+                  }
+                },
+                {
+                  dataField: '',
+                  caption: '',
+                  alignment: 'center',
+                  width: '50px',
+                  type: 'buttons',
+                  cellTemplate: function (container, options) {
+                    var buttonElement = $('<div class="d-flex order-actions">' +
+                      '<a href="javascript:;" class="delete-action" title="Delete Director">' +
+                      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+                      '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+                      '</svg>' +
+                      '</a>' +
+                      '</div>')
+                      .on('dxclick', function () {
+                        deleteDirectorDetails(options.data);
+                      }).appendTo(container);
+                  }
+                }
+              ],
+
+              columnsAutoWidth: true,
+              showBorders: true,
+              paging: { pageSize: 10 },
+              pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 25, 50, 100]
+              },
+              filterRow: { visible: true, applyFilter: "auto" },
+              headerFilter: { visible: true },
+              groupPanel: { visible: true },
+              searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+              onContentReady(e) {
+                    $('#rowCountDirector').html('Total Records: ' + e.component.totalCount());
+              }
+            });
+          }
+        },
+        error: function (xhr, status, error) {
+          console.error("AJAX Error: " + status + " - " + error);
+        }
+      });
+    }
+
+
+
+     $("#saveDirectorDetail").click(async function() {
+        if (CompanyId == 0) {
+             round_error_noti("Please add company details before adding or updating a director.");
+             return;
+        }
+
+        $("#saveDirectorDetail").prop("disabled", true);
+
+        // Collect form data
+        let directorName = $("#directorName").val()?.trim();
+        let directorAddress = $("#directorAddress").val()?.trim();
+        let directorDOB = $("#directorDOB").val();
+        let directorBranch = $("#directorBranch").val()?.trim();
+        let directorDesignation = $("#directorDesignation").val()?.trim();
+             // Validation
+            let isValid = true;
+
+            if (!directorName) {
+                $("#spnDirectorName").show();
+                isValid = false;
+            } else {
+                $("#spnDirectorName").hide();
+            }
+
+            if (!directorAddress) {
+                $("#spnDirectorAddress").show();
+                isValid = false;
+            } else {
+                $("#spnDirectorAddress").hide();
+            }
+
+            if (!directorDOB) {
+                $("#spnDirectorDOB").show();
+                isValid = false;
+            } else {
+                $("#spnDirectorDOB").hide();
+            }
+
+            if (!directorBranch) {
+                $("#spnDirectorBranch").show();
+                isValid = false;
+            } else {
+                $("#spnDirectorBranch").hide();
+            }
+
+            if (!directorDesignation) {
+                $("#spnDirectorDesignation").show();
+                isValid = false;
+            } else {
+                $("#spnDirectorDesignation").hide();
+            }
+
+            if (!isValid) {
+                $("#saveDirectorDetail").prop("disabled", false);
+                return;
+            }
+  
+        // Create the model
+        let model = {
+             DirectorDetailsId: DirectorDetailsId || 0,
+             CompanyId:CompanyId,
+            DirectorName: directorName,
+            DirectorAddress: directorAddress,
+            DirectorDOB: directorDOB,
+            DirectorBranch: directorBranch,
+            DirectorDesignation: directorDesignation,
+            CreatedBy: null,
+            UpdatedBy: null
+        };
+
+        // AJAX call
+        $.ajax({
+            url: DirectorDetailsId == 0 ? '@baseUrl/DirectorDetailsAPI/CreateDirectorDetails' : '@baseUrl/DirectorDetailsAPI/UpdateDirectorDetails',
+                type: DirectorDetailsId == 0 ? 'POST' : 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(model),
+            success: function(response) {
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage);
+                        DirectorDetailsDataTable(); // Refresh your data table
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+                $("#saveDirectorDetail").prop("disabled", false);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+                round_error_noti('Unable to save director details');
+                $("#saveDirectorDetail").prop("disabled", false);
+            }
+        });
+    });
+
+    function resetDirectorField(){
+        $("#saveDirectorDetail").text("Save");
+            DirectorDetailsId=0;
+        $("#directorName").val('');
+        $("#directorAddress").val('');
+        $("#directorDOB").val('');
+        $("#directorBranch").val('');
+        $("#directorDesignation").val('');
+
+        // Hide error messages
+        $("#spnDirectorName").hide();
+        $("#spnDirectorAddress").hide();
+        $("#spnDirectorDOB").hide();
+        $("#spnDirectorBranch").hide();
+        $("#spnDirectorDesignation").hide();
+    }
+
+        $("#resetDirectorDetail").click(()=>{
+              $("#saveDirectorDetail").text("Save");
+                  resetDirectorField();
+        })
+     let DirectorDetailsId=0;
+    function updateDirectorDetails(directorDetail)
+    {
+         $("#saveDirectorDetail").text("Update");
+         DirectorDetailsId=directorDetail.directorDetailsId;
+        $("#directorName").val(directorDetail.directorName || '');
+        $("#directorAddress").val(directorDetail.directorAddress || '');
+
+        if (directorDetail.directorDOB) {
+            const dob = new Date(directorDetail.directorDOB);
+            const formattedDOB = dob.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+            $("#directorDOB").val(formattedDOB);
+        } else {
+            $("#directorDOB").val('');
+        }
+
+        $("#directorBranch").val(directorDetail.directorBranch || '');
+        $("#directorDesignation").val(directorDetail.directorDesignation || '');
+
+        // Hide error messages
+        $("#spnDirectorName").hide();
+        $("#spnDirectorAddress").hide();
+        $("#spnDirectorDOB").hide();
+        $("#spnDirectorBranch").hide();
+        $("#spnDirectorDesignation").hide();
+    }
+
+        function deleteDirectorDetails(data) {
+               if (!confirm("Are you sure you want to delete this director details?")) {
+                   return; // Cancel the delete operation
+               }
+
+               var deleteObj = {
+                   id: data.directorDetailsId,
+                   deletedBy: null 
+               };
+
+               $.ajax({
+                       url: '@baseUrl/DirectorDetailsAPI/DeleteDirectorDetails',
+                   type: 'DELETE',
+                   contentType: 'application/json',
+                   data: JSON.stringify(deleteObj),
+                   success: function (response) {
+                       if (response.isSuccess) {
+                           round_success_noti(response.responseMessage);
+                       } else {
+                           round_error_noti(response.responseMessage);
+                       }
+                                 DirectorDetailsDataTable();
+                   },
+                   error: function (error) {
+                       console.log('Error deleting director details!');
+                   }
+               });
+        }
+</script>
+
+

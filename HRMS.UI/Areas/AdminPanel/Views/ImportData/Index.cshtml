@@ -1,0 +1,683 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Import Data";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<title>Search Panel</title>
+<!-- jQuery + Bootstrap + SweetAlert -->
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f6f6fc;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 5px 15px;
+        font-weight: bold;
+    }
+
+        .btn-custom:hover {
+            background-color: #2c3752;
+        }
+
+    label.form-label-fixed {
+        width: 180px;
+    }
+
+    .search-panel-wrapper {
+        max-width: 100%; /* or 1200px if you want fixed width */
+        margin: auto;
+    }
+
+    .search-panel-container {
+        background-color: #3e4b6d; /* Same as button */
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 18px;
+        color: white; /* Change from #32393f to white */
+        margin: 0;
+    }
+
+    .btn-add {
+        background-color: #2395c6;
+        color: white;
+        font-size: 14px;
+        padding: 6px 15px;
+        border: none;
+        border-radius: 4px;
+        text-decoration: none
+    }
+
+        .btn-add:hover {
+            background-color: #2395c6;
+        }
+
+    .main-header {
+        background-color: #4a5670;
+        color: white;
+        padding: 8px 20px;
+        font-weight: bold;
+    }
+
+    .tab-button {
+        background-color: #4a5670;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        margin-right: 2px;
+    }
+
+        .tab-button.active {
+            background-color: #ff9900;
+            color: white;
+        }
+
+    .section-box {
+        border: 1px solid #aaa;
+        padding: 15px;
+        margin-top: 10px;
+    }
+
+    .btn-action {
+        background-color: #4a5670;
+        color: white;
+        padding: 6px 20px;
+        border: none;
+        margin-right: 10px;
+    }
+
+        .btn-action:hover {
+            opacity: 0.9;
+        }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 5px;
+    }  
+
+</style>
+
+<input type="hidden" id="loggedUser" value="@User.Identity.Name" />
+
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search Panel</div>
+            <a href="/AdminPanel/ImportData/ImportData" class="btn-add">Add</a>
+        </div>
+    </div>
+</div>
+
+<div class="form-section">
+
+    <!-- Top Row -->
+    <div class="row align-items-center mb-2">
+        <div class="col-md-3">
+            <input type="checkbox" id="chkBetween" />
+            <label for="chkBetween" class="ms-1">Between Date Range</label>
+        </div>
+
+        <div class="col-md-3 d-none" id="dateRangeFields">
+            <label class="form-label-fixed">Start Date:</label>
+            <input type="text" id="startDate" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-3 d-none" id="endDateField">
+            <label class="form-label-fixed">End Date:</label>
+            <input type="text" id="endDate" class="form-control form-control-sm" />
+        </div>
+
+
+        <div class="col-md-3" id="monthField">
+            <label class="form-label-fixed">Month<span class="text-danger">*</span>:</label>
+            <select class="form-select form-select-sm" id="month">
+                <option value="">--Select--</option>
+                <option value="1">Jan</option>
+                <option value="2">Feb</option>
+                <option value="3">Mar</option>
+                <option value="4">Apr</option>
+                <option value="5">May</option>
+                <option value="6">Jun</option>
+                <option value="7">Jul</option>
+                <option value="8">Aug</option>
+                <option value="9">Sep</option>
+                <option value="10">Oct</option>
+                <option value="11">Nov</option>
+                <option value="12">Dec</option>
+            </select>
+        </div>
+
+        <div class="col-md-3" id="yearField">
+            <label class="form-label-fixed">Year <span class="text-danger">*</span>:</label>
+            <select class="form-select form-select-sm" id="year">
+                <option value="">--Select--</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 2nd Row -->
+    <!-- 2nd Row: Realigned to be under Month and Year -->
+    <div class="row mb-2">
+        <div class="col-md-3 offset-md-3">
+            <label class="form-label-fixed">Employee Code:</label>
+            <input type="text" class="form-control form-control-sm" id="empCode">
+        </div>
+        <div class="col-md-3 offset-md-0">
+            <label class="form-label-fixed">Branch:</label>
+            <select class="form-select form-select-sm" id="branch">
+            </select>
+
+        </div>
+    </div>
+
+
+    <!-- 4th Row (Radio + Add Allowance) -->
+    <div class="row align-items-center mb-2">
+        <div class="col-md-3">
+            <input type="radio" name="type" id="r2">
+            <label for="r2" class="ms-1">Attendance</label>
+        </div>
+        <div class="col-md-3">
+            <input type="radio" name="type" id="r3">
+            <label for="r3" class="ms-1">Monthly Earning</label>
+        </div>
+        <div class="col-md-3">
+            <input type="radio" name="type" id="r4">
+            <label for="r4" class="ms-1">Monthly Deduction</label>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button class="btn btn-primary me-2" id="btnGo" style="background-color: #2395c6;">Go</button>
+            <button class="btn btn-custom" id="btnClear">Clear</button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Section heading based on selected radio and grid -->
+<div id="selectedSectionHeading" class="search-panel-container d-none mt-3">
+    <div class="search-panel-row">
+        <div class="search-heading" id="radioHeadingText">Selected Section</div>
+    </div>
+</div>
+
+
+<div id="gridSection" class="d-none">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span id="recordCount" class="fw-bold">Total Records: 0</span>
+        <button class="btn btn-sm btn-success" id="btnExportExcel">
+            Export 
+        </button>
+    </div>
+    <div id="dxRadioGrid"></div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        BindBranchDropdown();
+        populateYearDropdown();
+
+      
+    $('#r2').prop('checked', true); // Default radio checked
+    $('#radioHeadingText').text('Attendance'); // Default heading
+    $('#selectedSectionHeading').removeClass('d-none'); // Show heading
+    $('#gridSection').addClass('d-none'); // Hide grid by default
+
+        // Set current month date range
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = ('0' + (date.getMonth() + 1)).slice(-2);
+            const day = ('0' + date.getDate()).slice(-2);
+            return `${day}-${month}-${year}`;
+        }
+
+        function fillCurrentMonthDates() {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            $('#startDate').val(formatDate(firstDay));
+            $('#endDate').val(formatDate(lastDay));
+        }
+
+
+      $('#btnExportExcel').click(function () {
+        const gridInstance = $("#dxRadioGrid").dxDataGrid("instance");
+
+        if (!gridInstance) {
+            Swal.fire("No Grid", "Grid is not initialized.", "warning");
+            return;
+        }
+
+        const visibleColumns = gridInstance.getVisibleColumns().filter(col => col.caption && col.dataField);
+        const data = gridInstance.getDataSource().items();
+
+        if (!data || data.length === 0) {
+            Swal.fire("No Data", "No records to export.", "info");
+            return;
+        }
+
+        const selectedTypeText = $('input[name="type"]:checked').next('label').text().trim().replace(/\s+/g, '');
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Report");
+
+        // 🔸 Define header style
+        const headerRow = worksheet.addRow(visibleColumns.map(col => col.caption));
+        headerRow.eachCell((cell) => {
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; // white text
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF3E4B6D' } // dark blue header
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        });
+
+        // 🔸 Add data rows
+        data.forEach(row => {
+            const rowData = visibleColumns.map(col => row[col.dataField]);
+            const dataRow = worksheet.addRow(rowData);
+
+            dataRow.eachCell((cell) => {
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            });
+        });
+
+        // 🔸 Auto-fit columns
+        worksheet.columns.forEach(column => {
+            let maxLength = 10;
+            column.eachCell({ includeEmpty: true }, cell => {
+                const cellValue = cell.value ? cell.value.toString() : '';
+                maxLength = Math.max(maxLength, cellValue.length);
+            });
+            column.width = maxLength + 2;
+        });
+
+        // 🔸 Download Excel file
+        workbook.xlsx.writeBuffer().then(function (buffer) {
+            const blob = new Blob([buffer], { type: "application/octet-stream" });
+            saveAs(blob, selectedTypeText + ".xlsx");
+        });
+    });
+
+
+
+
+        // Toggle Month/Year vs Date Range
+        $('#chkBetween').change(function () {
+            if ($(this).is(':checked')) {
+                $('#monthField, #yearField').hide();
+                $('#dateRangeFields, #endDateField').removeClass('d-none');
+                fillCurrentMonthDates();
+            } else {
+                $('#monthField, #yearField').show();
+                $('#dateRangeFields, #endDateField').addClass('d-none');
+            }
+
+            const grid = $("#dxRadioGrid").dxDataGrid("instance");
+            if (grid) grid.option("dataSource", []);
+            $("#recordCount").text('');
+            $('#gridSection').addClass('d-none');
+        });
+
+        // Radio Button change
+        $('input[name="type"]').change(function () {
+            const selectedText = $(this).next('label').text().trim();
+            $('#radioHeadingText').text(selectedText);
+            $('#selectedSectionHeading').removeClass('d-none');
+            $('#gridSection').addClass('d-none');
+        });
+
+        // GO Button
+        $('#btnGo').click(function () {
+        const selectedType = $('input[name="type"]:checked').attr('id');
+
+        // Validation
+        const isBetween = $('#chkBetween').is(':checked');
+        const month = $('#month').val();
+        const year = $('#year').val();
+        const startDate = $('#startDate').val();
+        const endDate = $('#endDate').val();
+
+        if (isBetween) {
+            if (!startDate || !endDate) {
+                Swal.fire("Validation Error", "Start Date and End Date are required.", "warning");
+                return;
+            }
+        } else {
+            if (!month || !year) {
+                Swal.fire("Validation Error", "Month and Year are required.", "warning");
+                return;
+            }
+        }
+
+        if (selectedType) {
+            callSearchAPI(selectedType);
+        } else {
+            Swal.fire("Select Type", "Please select one option", "warning");
+        }
+    });
+
+
+        // CLEAR Button
+        $('#btnClear').click(function () {
+            $('input[type="text"]').val('');
+            $('select').val('');
+            $('#chkBetween').prop('checked', false).trigger('change');
+            $('#r2').prop('checked', true).trigger('change');
+            $('#selectedSectionHeading').addClass('d-none');
+            $('#gridSection').addClass('d-none');
+        });
+
+        // BACK Button
+        $('#btnBack').click(function () {
+            history.back();
+        });
+    });
+
+
+    function callSearchAPI(type) { 
+        const isBetween = $('#chkBetween').is(':checked');
+        const parseDate = (val) => {
+        if (!val) return null;
+        const parts = val.split('-'); // Input: "25-07-2025"
+        if (parts.length !== 3) return null;
+
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // JS months are 0-based
+        const year = parseInt(parts[2], 10);
+
+        const date = new Date(Date.UTC(year, month, day));
+        return isNaN(date) ? null : date.toISOString();
+    };
+
+
+        const data = {
+            month: isBetween ? null : parseInt($('#month').val()) || null,
+            year: isBetween ? null : parseInt($('#year').val()) || null,
+            empCode: $('#empCode').val()?.trim() || null,
+            branchId: parseInt($('#branch').val()) || null,
+            startDate: isBetween ? parseDate($('#startDate').val()) : null,
+            endDate: isBetween ? parseDate($('#endDate').val()) : null,
+            isBetween: isBetween
+        };
+        const apiUrls = {
+            r1: '@(baseDomainUrl + "/api/AllowanceAPI/GetAllowanceData")',
+            r2: '@(baseDomainUrl + "/api/EmpAttendanceAPI/GetEmpAttendance")',
+            r3: '@(baseDomainUrl + "/api/EarningAPI/GetEarningData")',
+            r4: '@(baseDomainUrl + "/api/DeductionAPI/GetDeductionData")'
+        };
+
+        const gridColumns = {
+            r1: [
+                { dataField: "employeeCode", caption: "Employee Code" },
+                { dataField: "allowanceType", caption: "Allowance Type" },
+                { dataField: "amount", caption: "Amount", format: "fixedPoint" },
+                { dataField: "month", caption: "Month" },
+                { dataField: "year", caption: "Year" }
+            ],
+            r2: [
+                { dataField: "empAttendanceId", visible: false },
+                { dataField: "employeeCode", caption: "Employee Code" },
+                { dataField: "att_Detail", caption: "Attendance Details" },
+                { dataField: "month", caption: "Month" },
+                { dataField: "year", caption: "Year" },
+                { dataField: "fullName", caption: "Employee Name" },
+                { dataField: "branchName", caption: "Branch Name" }
+            ],
+            r3: [
+                { dataField: "earningId", visible: false },
+                { dataField: "employeeCode", caption: "Employee Code" },
+                { dataField: "fullName", caption: "Employee Name" },
+                { dataField: "basic", caption: "Basic", format: "fixedPoint" },
+                { dataField: "hra", caption: "HRA", format: "fixedPoint" },
+                { dataField: "conveyance", caption: "Conveyance", format: "fixedPoint" },
+                { dataField: "medical", caption: "Medical", format: "fixedPoint" },
+                { dataField: "month", caption: "Month" },
+                { dataField: "year", caption: "Year" }
+            ],
+            r4: [
+                { dataField: "deductionId", visible: false },
+                { dataField: "employeeCode", caption: "Employee Code" },
+                { dataField: "fullName", caption: "Employee Name" },
+                { dataField: "month", caption: "Month" },
+                { dataField: "year", caption: "Year" },
+                { dataField: "pf", caption: "PF", format: "fixedPoint" },
+                { dataField: "esic", caption: "ESIC", format: "fixedPoint" },
+                { dataField: "pt", caption: "PT", format: "fixedPoint" },
+                { dataField: "insurance", caption: "Insurance", format: "fixedPoint" },
+                { dataField: "lwf", caption: "LWF", format: "fixedPoint" },
+                { dataField: "tds", caption: "TDS", format: "fixedPoint" }
+            ]
+            ,
+                 onContentReady: function (e) {
+            const rowCount = data.length;
+            const rowHeight = 40; 
+            const headerHeight = 40;
+            const totalHeight = headerHeight + (rowCount * rowHeight);
+            e.component.option("height", totalHeight);
+        }
+
+        };
+
+        const url = apiUrls[type];
+        const columns = [...gridColumns[type]];
+
+        columns.push({
+            type: 'buttons',
+            caption: 'Action',
+            width: 50,
+            cellTemplate: function (container, options) {
+                $('<div class="d-flex justify-content-center">' +
+                    '<a href="javascript:;" class="text-danger" title="Delete">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+                    '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+                    '</svg>' +
+                    '</a>' +
+                    '</div>')
+                    .on('click', function () {
+                        deleteRecord(options.data);
+                    })
+                    .appendTo(container);
+            }
+        });
+
+        if (!url || !columns) {
+            Swal.fire("Error", "Invalid section selected", "error");
+            return;
+        }
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function (response) {
+                if (response?.isSuccess && Array.isArray(response.data) && response.data.length > 0) {
+                    $("#recordCount").text("Total Records: " + response.data.length);
+                    const $grid = $("#dxRadioGrid");
+                    if ($grid.hasClass("dx-widget")) {
+                        const gridInstance = $grid.dxDataGrid("instance");
+                        gridInstance.option("dataSource", response.data);
+                        gridInstance.option("columns", columns);
+                    } else {
+                        $grid.empty();
+                        $grid.dxDataGrid({
+                            dataSource: response.data,
+                            columns: columns,
+                            height: 400,
+                            showBorders: true,
+                            paging: { pageSize: 10 },
+                            pager: {
+                                showPageSizeSelector: true,
+                                allowedPageSizes: [10, 25, 50, 100],
+                                showInfo: true
+                            },
+                            headerFilter: { visible: true },
+                            filterRow: { visible: true, applyFilter: "auto" },
+                            allowColumnReordering: true,
+                            allowColumnResizing: true,
+                            columnsAutoWidth: true
+                        });
+                    }
+                    $('#gridSection').removeClass('d-none').show();
+                } else {
+                    $("#recordCount").text('');
+                    Swal.fire("No Data", "No records found", "info");
+                    const grid = $("#dxRadioGrid").dxDataGrid("instance");
+                    if (grid) grid.option("dataSource", []);
+                    $('#gridSection').addClass('d-none');
+                }
+            },
+            error: function (xhr) {
+                let errMsg = "Something went wrong";
+                if (xhr.responseJSON?.ResponseMessage) {
+                    errMsg = xhr.responseJSON.ResponseMessage;
+                }
+                Swal.fire("Error", errMsg, "error");
+                const grid = $("#dxRadioGrid").dxDataGrid("instance");
+                if (grid) grid.option("dataSource", []);
+                $('#gridSection').addClass('d-none');
+            }
+        });
+    }
+
+    function deleteRecord(rowData) {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "Do you want to delete this record?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Yes, delete it!"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const currentType = $('input[name="type"]:checked').attr("id");
+
+                const deleteUrls = {
+                    r1: '@(baseDomainUrl + "/api/AllowanceAPI/Delete")',
+                    r2: '@(baseDomainUrl + "/api/EmpAttendanceAPI/Delete")',
+                    r3: '@(baseDomainUrl + "/api/EarningAPI/Delete")',
+                    r4: '@(baseDomainUrl + "/api/DeductionAPI/Delete")'
+                };
+
+                const idFields = {
+                    r1: 'allowanceId',
+                    r2: 'empAttendanceId',
+                    r3: 'earningId',
+                    r4: 'deductionId'
+                };
+
+                const deleteUrl = deleteUrls[currentType];
+                const idField = idFields[currentType];
+
+                if (!deleteUrl || !idField || !rowData[idField]) {
+                    Swal.fire("Error", "Invalid delete information", "error");
+                    return;
+                }
+
+                const payload = {
+                    Id: rowData[idField],
+                    DeletedBy: ""
+                };
+
+                $.ajax({
+                    url: deleteUrl,
+                    type: 'DELETE',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (response) {
+                        if (response?.isSuccess) {
+                            Swal.fire("Deleted!", response.responseMessage || "Record deleted.", "success");
+                            callSearchAPI(currentType);
+                        } else {
+                            Swal.fire("Error", response.responseMessage || "Delete failed.", "error");
+                        }
+                    },
+                    error: function () {
+                        Swal.fire("Error", "Delete request failed.", "error");
+                    }
+                });
+            }
+        });
+    }
+
+    function BindBranchDropdown() {
+        $.ajax({
+            type: "GET",
+            url: '@(baseDomainUrl + "/api/BranchAPI/GetAllBranch")',
+            success: function (response) {
+                if (response?.data?.length > 0) {
+                    let $branch = $('#branch');
+                    $branch.empty();
+                    $branch.append('<option value="">--Select--</option>');
+                    $.each(response.data, function (i, item) {
+                        $branch.append('<option value="' + item.branchId + '">' + item.branchName + '</option>');
+                    });
+                }
+            },
+            error: function () {
+                console.log("Failed to load branches.");
+            }
+        });
+    }
+
+    function populateYearDropdown() {
+        var startYear = 2024;
+        var currentYear = new Date().getFullYear();
+        var yearDropdown = document.getElementById("year");
+
+        for (var year = startYear; year <= currentYear; year++) {
+            var option = document.createElement("option");
+            option.value = year;
+            option.text = year;
+            yearDropdown.appendChild(option);
+        }
+    }
+</script>
+

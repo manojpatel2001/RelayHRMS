@@ -1,8 +1,10 @@
 ﻿using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
+using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
@@ -53,7 +55,7 @@ namespace HRMS_Infrastructure.Interface
         IPrivilegeMasterRepository PrivilegeMasterRepository { get; }
         IPrivilegeDetailsRepository PrivilegeDetailsRepository { get; }
 
-        IEmployeeInOut EmployeeInOut { get; }
+        IEmployeeInOutRepository EmployeeInOutRepository { get; }
 
         IEarningRepository EarningRepository { get; }
         IDeductionRepository DeductionRepository { get; }
@@ -65,8 +67,32 @@ namespace HRMS_Infrastructure.Interface
         ISuperAdminDetailsRepository SuperAdminDetailsRepository { get; }
 
         IEmpAttendanceRepository EmpAttendanceRepository { get; }
+        ILeaveDetailsRepository LeaveDetailsRepository { get; }
+        ILeaveMasterRepository LeaveMasterRepository { get; }
+        ICompOffDetailsRepository CompOffDetailsRepository { get; }
+        ILeaveOpeningRepository LeaveOpeningRepository { get; }
+
+        ILeaveApplicationRepository LeaveApplicationRepository { get; }
 
 
+        IEmployeeSalaryAllowanceRepository EmployeeSalaryAllowanceRepository { get; }
+        IUserCompanyPermissionsRepository UserCompanyPermissionsRepository { get; }
+        IEmergencyContactRepository EmergencyContactRepository { get; }
+        IBusinessSegmentRepository BusinessSegmentRepository { get; }
+        IRelationShipRepository RelationShipRepository { get; }
+        IPasswordHistory PasswordHistory { get; }
+
+        IEmployeeReport EmployeeReport { get; }
+        IAttendanceRegularizationRepository AttendanceRegularizationRepository { get; }
+        IAttachmentDetailsRepository AttachmentDetailsRepository { get; }
+        IContractDetailsRepository ContractDetailsRepository { get; }
+        IProjectDetailsRepository ProjectDetailsRepository { get; }
+        IReportingManagerDetailsRepository ReportingManagerDetailsRepository { get; }
+
+        IEmployeeDashboardRepository EmployeeDashboardRepository { get; }
+        IMonthlySalaryDetailsRepository MonthlySalaryDetailsRepository { get; }
+        IMyProfileRepository myProfileRepository { get; }
+        IEmployeeDirectory employeeDirectory { get; }
         void Commit();
         Task CommitAsync();
     }

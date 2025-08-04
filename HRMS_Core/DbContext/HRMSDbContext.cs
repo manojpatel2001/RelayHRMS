@@ -14,11 +14,14 @@ using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.CompanyStructure;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Core.VM.Ess.InOut;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.JobMaster;
+using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Core.VM.PrivilegeSetting;
+using HRMS_Core.VM.Salary;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -27,7 +30,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static HRMS_Core.VM.importData.GetAllDeductionData;
 using EmployeePersonalInfo = HRMS_Core.EmployeeMaster.EmployeePersonalInfo;
 
 namespace HRMS_Core.DbContext
@@ -94,6 +96,14 @@ namespace HRMS_Core.DbContext
         public DbSet<EmpAttendanceImport> EmpAttendanceImport { get; set; }
         public DbSet<LeaveMaster> LeaveMaster { get; set; }
         public DbSet<LeaveDetails> LeaveDetails { get; set; }
+        public DbSet<Comp_Off_Details> Comp_Off_Details { get; set; }
+        public DbSet<LeaveOpening> LeaveOpening { get; set; }
+
+        public DbSet<LeaveApplication> LeaveApplication { get; set; }
+
+        public DbSet<PasswordHistory> PasswordHistory { get; set; }
+        public DbSet<AttendanceRegularization> AttendanceRegularization { get; set; }
+
 
 
 
@@ -124,6 +134,66 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<SearchFilterModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetAllDeductionData>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetAllEarningData>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmpAttendanceVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<BranchUserStatsModel>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<PermissionDto>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<VMCompOffDetails>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<VMLeaveApplicationSearchResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<VmLeaveApplicationforApprove>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<EmployeeSalaryAllowanceVM>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<vmGetLiveEmployeeSalaryAllowance>().HasNoKey().ToView(null);
+            modelBuilder.Entity<AttendanceInOutReportVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<VMGetExistEmployeeCode>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmUpdateEmployee>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmergencyContact>().HasNoKey().ToView(null);
+            modelBuilder.Entity<RelationShip>().HasNoKey().ToView(null);
+            modelBuilder.Entity<BankDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<BusinessSegment>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<EmployeeInOutFilterVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeInOutReportVM>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<EmployeeAttendanceReportVm>().HasNoKey().ToView(null);
+            modelBuilder.Entity<AttendanceRegularizationVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<AttendanceRegularizationSearchFilterVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<DeleteRecordVModel>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<AttachmentDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<ProjectDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<ContractDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<ReportingManagerDetails>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<WishesReportVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<RecentEmployeeVM>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<EmpInOutVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<LeaveTypevm>().HasNoKey().ToView(null);
+            modelBuilder.Entity<SalaryReportDTO>().HasNoKey().ToView(null);
+            modelBuilder.Entity<MonthlySalaryRequestViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<SalaryDetailViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<SalaryDetailsParameterVm>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<UpcommingholidaysVM>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<SalaryDetailForGetById>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllBranches>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllCityByStateId>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmCheckExistDepartmentCode>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmCheckExistBranchCode>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllBranchesListByCompanyId>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllCompanyDetailsForGrid>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmMyProfile>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeDirectoryResultVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetMonthlyAttendanceLog>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetMonthlyAttendanceDetails>().HasNoKey().ToView(null);
+
+
+
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

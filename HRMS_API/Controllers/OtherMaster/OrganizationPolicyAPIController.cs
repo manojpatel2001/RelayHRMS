@@ -1,4 +1,4 @@
-﻿using HRMS_Core.Helper;
+﻿using HRMS_API.Services;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
@@ -17,10 +17,13 @@ namespace HRMS_API.Controllers.OtherMaster
     {
 
         private readonly IUnitOfWork _unitOfWork;
-
-        public OrganizationPolicyAPIController(IUnitOfWork unitOfWork)
+        private readonly IConfiguration _configuration;
+        private readonly FileUploadService _fileUploadService;
+        public OrganizationPolicyAPIController(IUnitOfWork unitOfWork, IConfiguration configuration , FileUploadService fileUploadService)
         {
             _unitOfWork = unitOfWork;
+            _configuration = configuration;
+            _fileUploadService=fileUploadService;
         }
 
         [HttpGet("GetAllOrganizationPolicy")]
@@ -108,12 +111,20 @@ namespace HRMS_API.Controllers.OtherMaster
                         return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{Policy.OrganizationPolicyName}' already exists" };
                     }
 
+                  
                     if (Policy.DocumentFile != null)
                     {
+                        if (Policy.DocumentFile.Length > 0)
+                        {
+                            var folder = "uploads/organizationpolicy";
+                            var fileUrl = await _fileUploadService.UploadAndReplaceDocumentAsync( Policy.DocumentFile, folder, null);
+                            if (string.IsNullOrEmpty(fileUrl))
+                            {
+                                return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please try again later." };
 
-                        var folder = "uploads/organizationpolicy";
-                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, Policy.DocumentFile, folder, null);
-                        Policy.DocumentUrl= fileUrl;
+                            }
+                            Policy.DocumentUrl = fileUrl;
+                        }
                     }
 
                     var result = await _unitOfWork.OrganizationPolicyRepository.CreateOrganizationPolicy(Policy);
@@ -142,11 +153,17 @@ namespace HRMS_API.Controllers.OtherMaster
                         return new APIResponse() { isSuccess = false, ResponseMessage = $"Please select valid record" };
                     }
 
+                  
                     if (Policy.DocumentFile != null)
                     {
 
                         var folder = "uploads/organizationpolicy";
-                        var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, Policy.DocumentFile, folder, checkValidId.DocumentUrl);
+                        var fileUrl = await _fileUploadService.UploadAndReplaceDocumentAsync( Policy.DocumentFile, folder, checkValidId.DocumentUrl);
+                        if (string.IsNullOrEmpty(fileUrl))
+                        {
+                            return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please try again later." };
+
+                        }
                         Policy.DocumentUrl = fileUrl;
                     }
 
@@ -205,12 +222,20 @@ namespace HRMS_API.Controllers.OtherMaster
                     Policy.DocumentUrl = null;
                 }
 
-                if (Policy.DocumentFile != null )
-                {
 
-                    var folder = "uploads/organizationpolicy";
-                    var fileUrl = await UploadDocument.UploadAndReplaceDocumentAsync(Request, Policy.DocumentFile, folder, checkValidId.DocumentUrl);
-                    Policy.DocumentUrl = fileUrl;
+                if (Policy.DocumentFile != null)
+                {
+                    if (Policy.DocumentFile.Length > 0) 
+                    { 
+                        var folder = "uploads/organizationpolicy";
+                        var fileUrl = await _fileUploadService.UploadAndReplaceDocumentAsync(Policy.DocumentFile, folder, checkValidId.DocumentUrl);
+                        if (string.IsNullOrEmpty(fileUrl))
+                        {
+                            return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong. Please try again later." };
+
+                        }
+                        Policy.DocumentUrl = fileUrl;
+                   }
                 }
 
                 Policy.UpdatedDate = DateTime.UtcNow;

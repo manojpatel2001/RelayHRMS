@@ -2,9 +2,11 @@
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
+using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
@@ -12,9 +14,11 @@ using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.CompanyInformation;
 using HRMS_Infrastructure.Repository.CompanyStructure;
+using HRMS_Infrastructure.Repository.EmergencyContacts;
 using HRMS_Infrastructure.Repository.Employee;
 using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
+using HRMS_Infrastructure.Repository.Leave;
 using HRMS_Infrastructure.Repository.ManagePermissions;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
@@ -68,7 +72,7 @@ namespace HRMS_Infrastructure.Repository
             PrivilegeMasterRepository = new PrivilegeMasterRepository(_dbContext);
             PrivilegeDetailsRepository = new PrivilegeDetailsRepository(_dbContext);
 
-            EmployeeInOut = new EmployeeInOutRepository(_dbContext);
+            EmployeeInOutRepository = new EmployeeInOutRepository(_dbContext);
 
             EarningRepository = new EarningRepository(_dbContext); 
             DeductionRepository = new DeductionRepository(_dbContext);
@@ -80,6 +84,33 @@ namespace HRMS_Infrastructure.Repository
             RoleRepository = new RoleRepository(_dbContext); 
             EmpAttendanceRepository = new EmpAttendanceRepository(_dbContext);
 
+            CompOffDetailsRepository = new CompOffDetailsRepository(_dbContext);
+            LeaveMasterRepository = new LeaveMasterRepository(_dbContext);
+            LeaveDetailsRepository = new LeaveDetailsRepository(_dbContext);
+            LeaveOpeningRepository = new LeaveOpeningRepository(_dbContext);
+
+            LeaveApplicationRepository = new LeaveApplicationRepository(_dbContext);
+
+            EmployeeSalaryAllowanceRepository = new EmployeeSalaryAllowanceRepository(_dbContext);
+            UserCompanyPermissionsRepository = new UserCompanyPermissionsRepository(_dbContext);
+            EmergencyContactRepository = new EmergencyContactRepository(_dbContext);
+            RelationShipRepository = new RelationShipRepository(_dbContext);
+            BusinessSegmentRepository = new BusinessSegmentRepository(_dbContext);
+
+
+            PasswordHistory = new PasswordHistoryRepository(_dbContext);
+            EmployeeReport = new EmployeeReportRepository(_dbContext);
+            AttendanceRegularizationRepository = new AttendanceRegularizationRepository(_dbContext);
+
+            AttachmentDetailsRepository = new AttachmentDetailsRepository(_dbContext);
+            ContractDetailsRepository = new ContractDetailsRepository(_dbContext);
+            ProjectDetailsRepository = new ProjectDetailsRepository(_dbContext);
+            ReportingManagerDetailsRepository = new ReportingManagerDetailsRepository(_dbContext);
+
+            EmployeeDashboardRepository = new EmployeeDashboardRepository(_dbContext);
+            MonthlySalaryDetailsRepository =new MonthlySalaryDetailsRepository(_dbContext);
+
+            employeeDirectory = new EmployeeDirecotryRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -126,7 +157,7 @@ namespace HRMS_Infrastructure.Repository
 
         public IDeductionRepository DeductionRepository { get; set; }
 
-        public IEmployeeInOut EmployeeInOut { get; set; }
+        public IEmployeeInOutRepository EmployeeInOutRepository { get; set; }
         public IPermissionRepository PermissionRepository { get; set; }
         public IRolePermissionRepository RolePermissionRepository { get; set; }
         public IRoleRepository RoleRepository { get; set; }
@@ -135,6 +166,38 @@ namespace HRMS_Infrastructure.Repository
 
         public IEmpAttendanceRepository EmpAttendanceRepository { get; set; }
 
+        public ILeaveDetailsRepository LeaveDetailsRepository { get; set; }
+
+        public ILeaveMasterRepository LeaveMasterRepository { get; set; }
+
+        public ICompOffDetailsRepository CompOffDetailsRepository { get; set; }
+
+        public ILeaveOpeningRepository LeaveOpeningRepository {  get; set; }
+        public IEmployeeSalaryAllowanceRepository EmployeeSalaryAllowanceRepository {  get; set; }
+
+        public IPasswordHistory PasswordHistory {  get; set; }
+
+        public ILeaveApplicationRepository LeaveApplicationRepository { get; set; }
+        public IUserCompanyPermissionsRepository UserCompanyPermissionsRepository { get; set; }
+        public IEmergencyContactRepository EmergencyContactRepository { get; set; }
+        public IRelationShipRepository RelationShipRepository { get; set; }
+        public IBusinessSegmentRepository BusinessSegmentRepository { get; set; }
+
+        public IEmployeeReport EmployeeReport { get; set; }
+
+        public IAttendanceRegularizationRepository AttendanceRegularizationRepository { get; set; }
+        public IAttachmentDetailsRepository AttachmentDetailsRepository { get; set; }
+        public IContractDetailsRepository ContractDetailsRepository { get; set; }
+        public IProjectDetailsRepository ProjectDetailsRepository { get; set; }
+        public IReportingManagerDetailsRepository ReportingManagerDetailsRepository { get; set; }
+
+        public IEmployeeDashboardRepository EmployeeDashboardRepository { get; set; }
+
+        public IMonthlySalaryDetailsRepository MonthlySalaryDetailsRepository { get; set; }
+
+        public IMyProfileRepository myProfileRepository { get; set; }
+
+        public IEmployeeDirectory employeeDirectory { get; set; }
 
         public void Commit()
         {

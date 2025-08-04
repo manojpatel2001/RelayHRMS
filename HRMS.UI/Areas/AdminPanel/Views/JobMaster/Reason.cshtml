@@ -1,0 +1,484 @@
+﻿@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "Reason";
+	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+
+<div class="card">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row">
+			<div class="col-6">
+				<h6 class="pt-2 mb-0">
+					Reason 
+				</h6>
+			</div>
+
+			<div class="col-6 d-flex justify-content-end align-items-center">
+				<div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
+					<i class="fadeIn animated bx bx-refresh" id="refreshData" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Refresh Data"></i>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card-body">
+		<div class="row">
+			<div class="col-md-12 btn-heading-title">
+				<div class="input-group mb-2">
+					<button id="addReason"
+							type="button"
+							class="btn mr-1 rounded-1"
+							style="background-color:#2395c6; color:white;">
+						Add Reason
+					</button>
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-12">
+				<div class="form-group">
+					<div class="rowCount" id="rowCount1"></div>
+					<div id="gridContainerReason">
+						@* <div class="spinner-border text-primary" role="status">
+							<span class="visually-hidden">Loading...</span>
+						</div> *@
+						<div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
+							<div class="spinner-border text-primary" role="status">
+								<span class="visually-hidden">Loading...</span>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="modal fade" id="addReasonModel" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Create</span> Resaon</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font">
+				<div class="row">
+					<div class="col-md-6">
+						<div class="form-group mt-3 position-relative">
+							<input type="text"
+								   class="form-control floating-input"
+								   placeholder="Reason Name"
+								   id="txtReasonName" />
+							<label class="floating-label" for="txtHolidayName">Reason Name</label>
+							<span id="spnReasonName" style="color:red; display:none;">Please Enter Reason Name</span>
+
+						</div>
+					</div>
+					<div class="col-md-6">
+						<div class="form-group mt-3 position-relative">
+							<select id="dropdownReasonType" class="form-control floating-input">
+								<option value="" selected disabled>Reason Type</option>
+									<option selected="selected" value="AR">Attendance Regularization</option>
+									<option value="OT">OT</option>
+									<option value="GatePass">Gate Pass</option>
+									<option value="Advance">Advance</option>
+									<option value="Increment">Increment</option>
+									<option value="Appraisal">Appraisal</option>
+									<option value="MA">Mobile Attendance</option>
+									<option value="HD">Help Desk</option>
+									<option value="Exit">Exit</option>
+									<option value="Left">Left</option>
+
+							</select>
+
+							<label class="floating-label" for="dropdownReasonType">Reason Type</label>
+
+						</div>
+					</div>
+					
+
+
+				</div>
+
+				<div class="row" id="tagPassType" style="display:none;">
+
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<b>Gate Pass Type: </b>
+						</div>
+					</div>
+
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<label>Personal </label>
+							<input type="radio"
+								   name="gate"
+								   checked
+								   class="form-control-input"
+								   placeholder=""
+								   id="rdPersonal" />
+						</div>
+
+					</div>
+
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<label>
+								Official
+							</label>
+							<input type="radio"
+								   name="gate"
+								   class="form-control-input"
+								   placeholder=""
+								   id="rdOfficial" />
+						</div>
+
+					</div>
+
+				</div>
+
+				
+				<div class="row">
+					<div class="col-md-6">
+						<div class="form-group mt-3 position-relative">
+							<label>Is Active</label>
+							<input type="checkbox"
+								   class="form-control-input"
+								   placeholder=""
+								   id="chkIsActive" />
+						</div>
+					</div>
+
+					<div class="col-md-6" id="TagCommentMandatory" >
+						<div class="form-group mt-3 position-relative">
+							<label>Is Comment Mandatory</label>
+							<input type="checkbox"
+								   class="form-control-input"
+								   placeholder=""
+								   id="chkIsCommentMandatory" />
+						</div>
+					</div>
+
+				</div>
+
+
+			</div>
+			<div class="modal-footer btn-heading-title">
+				<button type="button" class="btn btn-primary" id="btnCreateReason" style="background-color:#2395c6; color:white;">Create</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+	   let ReasonId=0;
+
+	   $("#addReason").click( () => {
+			   resetReasonForm();
+			  $("#btnCreateReason").prop("disabled", false);
+		   $('.formType').text('Create');
+				 $('#btnCreateReason').text('Create');
+		   $("#addReasonModel").modal('show');
+
+	   })
+
+
+		 $("#refreshData").click(() => {
+				localStorage.removeItem('reasonMasterLocalStorage');
+				resetGridFilters( $('#gridContainerReason').dxDataGrid('instance'));
+				ReasonMasterDataTable();
+		});
+
+
+		function resetGridFilters(gridInstance) {
+		  if (gridInstance) {
+		   gridInstance.clearFilter();            // Clear all filters
+		   gridInstance.clearSorting();           // Clear all sorting
+
+		  }
+		 }
+
+	   $(()=>{
+
+			 $("#dropdownReasonType").change(function () {
+				var selectValue = $(this).val();
+
+				// Toggle TagCommentMandatory
+				$("#TagCommentMandatory").toggle(selectValue === "AR");
+
+				// Toggle tagPassType
+				$("#tagPassType").toggle(selectValue === "GatePass");
+			});
+
+
+	   })
+
+
+
+	   $(()=>{
+		   localStorage.removeItem('reasonMasterLocalStorage');
+		   ReasonMasterDataTable();
+	   })
+
+	function ReasonMasterDataTable() {
+	  $.ajax({
+		type: "GET",
+		url: '@baseUrl/ReasonAPI/GetAllReasons', 
+		success: function (data) {
+		  if (data.isSuccess) {
+			//console.log(data);
+
+			$("#gridContainerReason").dxDataGrid({
+			  dataSource: data.data,
+			  stateStoring: {
+				enabled: true,
+				type: 'localStorage',
+				storageKey: 'reasonMasterLocalStorage'
+			  },
+
+			  columns: [
+				
+
+				{ dataField: 'reasonName', caption: 'Reason Name', alignment: 'center' },
+				{ dataField: 'reasonType', caption: 'Reason Type', alignment: 'center' },
+				{
+				  dataField: 'isActive',
+				  caption: 'Active',
+				  alignment: 'center',
+				  cellTemplate: function (container, options) {
+					$('<div>').text(options.value ? 'Yes' : 'No').appendTo(container);
+				  }
+				},
+				{
+				  dataField: 'isCommentMandatory',
+				  caption: 'Comment Mandatory',
+				  alignment: 'center',
+				  cellTemplate: function (container, options) {
+					$('<div>').text(options.value ? 'Yes' : 'No').appendTo(container);
+				  }
+				},
+					{
+					  dataField: '',
+					  caption: '',
+					  alignment: 'center',
+					  width: '50px',
+					  type: 'buttons',
+					  cellTemplate: function (container, options) {
+						var buttonElement = $('<div class="d-flex order-actions">' +
+						  '<a href="javascript:;" class="edit-action" title="Edit Reason">' +
+						  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+						  '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+						  '</svg>' +
+						  '</a>' +
+						  '</div>')
+						  .on('dxclick', function () {
+							updateReason(options.data);
+						  }).appendTo(container);
+					  }
+					},
+					{
+					  dataField: '',
+					  caption: '',
+					  alignment: 'center',
+					  width: '50px',
+					  type: 'buttons',
+					  cellTemplate: function (container, options) {
+						var buttonElement = $('<div class="d-flex order-actions">' +
+						  '<a href="javascript:;" class="delete-action" title="Delete Reason">' +
+						  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+						  '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+						  '</svg>' +
+						  '</a>' +
+						  '</div>')
+						  .on('dxclick', function () {
+							deleteReason(options.data);
+						  }).appendTo(container);
+					  }
+					}
+				
+			  ],
+
+			  columnsAutoWidth: true,
+			  showBorders: true,
+			  paging: { pageSize: 10 },
+			  pager: {
+				showPageSizeSelector: true,
+				allowedPageSizes: [10, 25, 50, 100]
+			  },
+			  filterRow: { visible: true, applyFilter: "auto" },
+			  headerFilter: { visible: true },
+			  groupPanel: { visible: true },
+			  searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+			  onContentReady(e) {
+				$('#rowCount1').html('Total Records: ' + e.component.totalCount());
+			  }
+			});
+		  }
+		},
+		error: function (xhr, status, error) {
+		  console.error("AJAX Error: " + status + " - " + error);
+		}
+	  });
+	}
+
+
+	$("#btnCreateReason").click(async function () {
+		$("#btnCreateReason").prop("disabled", true);
+
+		let reasonName = $("#txtReasonName").val()?.trim();
+		let reasonType = $("#dropdownReasonType").val();
+		let isActive = $("#chkIsActive").is(":checked");
+		let isCommentMandatory = $("#chkIsCommentMandatory").is(":checked");
+
+		// Gate Pass Type
+		let gatePassType = null;
+		if (reasonType === "GatePass") {
+			if ($("#rdPersonal").is(":checked")) {
+				gatePassType = "Personal";
+			} else if ($("#rdOfficial").is(":checked")) {
+				gatePassType = "Official";
+			}
+		}
+
+		// Validation
+		let isValid = true;
+
+		if (!reasonName) {
+			$("#spnReasonName").show();
+			isValid = false;
+		} else {
+			$("#spnReasonName").hide();
+		}
+
+		
+		if (!isValid) {
+			$("#btnCreateReason").prop("disabled", false);
+			return;
+		}
+
+		let model = {
+			ReasonId: ReasonId || 0,
+			ReasonName: reasonName,
+			ReasonType: reasonType,
+			GatePassType: gatePassType,
+			IsActive: isActive,
+			IsCommentMandatory: isCommentMandatory,
+			CreatedBy: null,  
+			UpdatedBy: null  
+		};
+
+		$.ajax({
+			url: ReasonId == 0 ? '@baseUrl/ReasonAPI/CreateReason' : '@baseUrl/ReasonAPI/UpdateReason',
+			type: ReasonId == 0 ? 'POST' : 'PUT',
+			contentType: 'application/json',
+			data: JSON.stringify(model),
+			success: function (response) {
+				if (response.isSuccess) {
+					round_success_noti(response.responseMessage);
+					ReasonMasterDataTable(); // refresh your data table
+					$('#addReasonModel').modal('hide');
+				} else {
+					round_error_noti(response.responseMessage);
+				}
+				$("#btnCreateReason").prop("disabled", false);
+
+			},
+			error: function (xhr, status, error) {
+				console.error('Error:', error);
+				round_error_noti('Unable to save reason');
+			}
+		});
+	});
+
+
+ function updateReason(data) {
+		 resetReasonForm();
+		ReasonId = data.reasonId || 0;
+
+		$("#txtReasonName").val(data.reasonName || '');
+		$("#dropdownReasonType").val(data.reasonType || '');
+
+		if (data.reasonType === "GatePass") {
+			$("#tagPassType").show();
+
+			if (data.gatePassType === "Personal") {
+				$("#rdPersonal").prop("checked", true);
+			} else if (data.gatePassType === "Official") {
+				$("#rdOfficial").prop("checked", true);
+			} else {
+				$("input[name='gate']").prop("checked", false);
+			}
+		} else {
+			$("#tagPassType").hide();
+			$("input[name='gate']").prop("checked", false);
+		}
+
+		$("#chkIsActive").prop("checked", data.isActive || false);
+
+		$("#chkIsCommentMandatory").prop("checked", data.isCommentMandatory || false);
+			$("#TagCommentMandatory").toggle(data.reasonType === "AR");
+		 $("#btnCreateReason").prop("disabled", false);
+		$(".formType").text("Update");
+		$("#btnCreateReason").text("Update");
+
+		$('#addReasonModel').modal('show');
+	}
+
+function resetReasonForm() {
+		ReasonId = 0;
+		$("#txtReasonName").val('');
+		$("#dropdownReasonType").val('AR');
+		$("#spnReasonName").hide();
+		$("#tagPassType").hide();
+		$("rdPersonal").prop("checked", true);
+		$("#chkIsActive").prop("checked", false);
+		$("#chkIsCommentMandatory").prop("checked", false);
+
+	}
+
+
+
+
+	   function deleteReason(data) {
+		   if (!confirm("Are you sure you want to delete this reason?")) {
+			   return; // Cancel the delete operation
+		   }
+
+		   var deleteObj = {
+			   id: data.reasonId,
+			   deletedBy: null // Set this to the actual user if needed
+		   };
+
+		   $.ajax({
+			   url: '@baseUrl/ReasonAPI/DeleteReason',
+			   type: 'DELETE',
+			   contentType: 'application/json',
+			   data: JSON.stringify(deleteObj),
+			   success: function (response) {
+				   if (response.isSuccess) {
+					   round_success_noti(response.responseMessage);
+				   } else {
+					   round_error_noti(response.responseMessage);
+				   }
+						  ReasonMasterDataTable();
+			   },
+			   error: function (error) {
+				   console.log('Error deleting reason!');
+			   }
+		   });
+	   }
+
+
+
+
+
+</script>

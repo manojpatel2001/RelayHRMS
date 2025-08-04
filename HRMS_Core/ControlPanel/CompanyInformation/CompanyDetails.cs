@@ -20,13 +20,7 @@ namespace HRMS_Core.ControlPanel.CompanyInformation
         public string? CompanyName { get; set; }
         public string? CompanyAddress { get; set; }
         public int? CityId { get; set; }
-        [ForeignKey(nameof(CityId))]
-        [ValidateNever]
-        public City? City { get; set; }
         public int? StateId { get; set; }
-        [ForeignKey(nameof(StateId))]
-        [ValidateNever]
-        public State? State { get; set; }
         public string? PinCode { get; set; }
         public string? Country { get; set; }
         public string? PhoneNo { get; set; }
@@ -52,6 +46,7 @@ namespace HRMS_Core.ControlPanel.CompanyInformation
         public string? SelectWeekOffDay { get; set; }
         public string? AlternateWeekOffDay { get; set; }
         public string? AlternateFullWeekOff { get; set; }
+        public string? BranchIds { get; set; }
         //change logo
         public string? CompanyLogoUrl { get; set; }
         public bool? IsDisplayOnLogin { get; set; }

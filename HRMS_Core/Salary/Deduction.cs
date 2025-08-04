@@ -20,10 +20,12 @@ namespace HRMS_Core.Salary
         
         public decimal? PF { get; set; }
         public decimal? ESIC { get; set; }
-        public decimal? PT { get; set; }
-        public decimal? Insurance { get; set; }
+        public decimal? PT { get; set; }     
         public decimal? LWF { get; set; }
         public decimal? TDS { get; set; }
+        public decimal? TermInsurance { get; set; }
+        public decimal? GroupMedical { get; set; }
+        public decimal? Loan { get; set; }
         public int? Month { get; set; }  
         public int? Year { get; set; }
     }

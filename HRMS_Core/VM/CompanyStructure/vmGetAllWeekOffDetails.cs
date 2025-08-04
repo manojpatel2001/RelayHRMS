@@ -14,13 +14,9 @@ namespace HRMS_Core.VM.CompanyStructure
         public int? WeekOffDetailsId { get; set; }
         public int? BranchId { get; set; }
         public string? BranchName { get; set; }
-        public string? SundayWeekOffDay { get; set; }
-        public string? MondayWeekOffDay { get; set; }
-        public string? TuesdayWeekOffDay { get; set; }
-        public string? WednesdayWeekOffDay { get; set; }
-        public string? ThursdayWeekOffDay { get; set; }
-        public string? FridayWeekOffDay { get; set; }
-        public string? SaturdayWeekOffDay { get; set; }
+        public int? CompanyId { get; set; }
+        public string? WeekOffName { get; set; }
+        public string? WeekOffDay { get; set; }
         public string? CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
         public bool? IsEnabled { get; set; }

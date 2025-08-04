@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyStructure;
+using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -24,7 +25,7 @@ namespace HRMS_API.Controllers.CompanyStructure
         {
             try
             {
-                var data = await _unitOfWork.HolidayMasterRepository.GetAllHolidayMaster();
+                var data = await _unitOfWork.HolidayMasterRepository.GetAllHolidayMaster(new vmCommonGetById { });
                 if (data == null || !data.Any())
                 {
                     return new APIResponse
@@ -51,7 +52,7 @@ namespace HRMS_API.Controllers.CompanyStructure
         {
             try
             {
-                var data = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayMasterId == holidayMasterId && x.IsEnabled == true && x.IsDeleted == false);
+                var data = await _unitOfWork.HolidayMasterRepository.GetHolidayMasterById(new vmCommonGetById {Id=holidayMasterId });
                 if (data == null)
                 {
                     return new APIResponse
@@ -80,7 +81,7 @@ namespace HRMS_API.Controllers.CompanyStructure
         }
 
         [HttpPost("CreateHolidayMaster")]
-        public async Task<APIResponse> CreateHolidayMaster(vmCreateHoliayMaster holidayMaster)
+        public async Task<APIResponse> CreateHolidayMaster(HolidayMaster holidayMaster)
         {
             try
             {
@@ -88,63 +89,30 @@ namespace HRMS_API.Controllers.CompanyStructure
                 {
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Holiday master details cannot be null" };
                 }
-                var newData = new List<HolidayMaster>();
 
-                if (holidayMaster.HolidayMasterId == 0)
+                var exists = await _unitOfWork.HolidayMasterRepository.GetAllHolidayMaster(new vmCommonGetById { Title = holidayMaster.HolidayName.ToLower() });
+
+                
+                if (exists.Any(x => x.HolidayName == holidayMaster.HolidayName && x.StateId == holidayMaster.StateId))
                 {
-                   
-                    foreach (BrancheAndLimit branch  in holidayMaster.Branches)
+                    return new APIResponse
                     {
-                        holidayMaster.BranchId = branch.BranchId;
-                        holidayMaster.ApprovalMaxLimit=branch.ApprovalMaxLimit;
-                        var isExists = await _unitOfWork.HolidayMasterRepository.GetAllAsync(asd => asd.HolidayName.ToLower().Trim() == holidayMaster.HolidayName.ToLower().Trim()
-                      && asd.State == holidayMaster.State && asd.BranchId == holidayMaster.BranchId && asd.IsEnabled == true && asd.IsDeleted == false);
-                        if (isExists.Any())
-                        {
-                            return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists" };
-                        }
-
-
-                        holidayMaster.CreatedDate = DateTime.UtcNow;
-                        var result = await _unitOfWork.HolidayMasterRepository.CreateHolidayMaster(holidayMaster);
-                        if (result.Id > 0)
-                        {
-                            var newHolidayMaster = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayMasterId == result.Id);
-                            newData.Add(newHolidayMaster);
-                        }
-                    }
-                    return new APIResponse() { isSuccess = true, Data = newData, ResponseMessage = "The record has been saved successfully" };
-
+                        isSuccess = false,
+                        ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists for the selected state."
+                    };
                 }
-                else
+
+
+                var result = await _unitOfWork.HolidayMasterRepository.CreateHoliday(holidayMaster);
+                if (result.Id > 0)
                 {
-                    var checkValidId = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayMasterId == holidayMaster.HolidayMasterId && x.IsEnabled == true && x.IsDeleted == false);
-                    if (checkValidId == null)
-                    {
-                        return new APIResponse() { isSuccess = false, ResponseMessage = "Please select a valid record" };
-                    }
-
-
-                    var isExists = await _unitOfWork.HolidayMasterRepository.GetAllAsync(asd => asd.HolidayName.ToLower().Trim() == holidayMaster.HolidayName.ToLower().Trim()
-                && asd.State == holidayMaster.State && asd.BranchId == holidayMaster.BranchId && asd.HolidayMasterId != holidayMaster.HolidayMasterId && asd.IsEnabled == true && asd.IsDeleted == false);
-                    if (isExists.Any())
-                    {
-                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists" };
-                    }
-
-
-                    holidayMaster.UpdatedDate = DateTime.UtcNow;
-                    var result = await _unitOfWork.HolidayMasterRepository.UpdateHolidayMaster(holidayMaster);
-                    if (result.Id > 0)
-                    {
-                        var updatedHolidayMaster = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayMasterId == holidayMaster.HolidayMasterId);
-                        return new APIResponse() { isSuccess = true, Data = updatedHolidayMaster, ResponseMessage = "The record has been updated successfully" };
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "The record has been saved successfully" };
 
                     }
 
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Unable to update record" };
+                    return new APIResponse() { isSuccess = false,  ResponseMessage = "Unable to save record!" };
 
-                }
+               
             }
             catch (Exception err)
             {
@@ -158,7 +126,7 @@ namespace HRMS_API.Controllers.CompanyStructure
         }
 
         [HttpPut("UpdateHolidayMaster")]
-        public async Task<APIResponse> UpdateHolidayMaster(vmCreateHoliayMaster holidayMaster)
+        public async Task<APIResponse> UpdateHolidayMaster(HolidayMaster holidayMaster)
         {
             try
             {
@@ -167,29 +135,30 @@ namespace HRMS_API.Controllers.CompanyStructure
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Holiday master details cannot be null or invalid" };
                 }
 
-                var checkValidId = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayMasterId == holidayMaster.HolidayMasterId && x.IsEnabled == true && x.IsDeleted == false);
-                if (checkValidId == null)
+                var check = await _unitOfWork.HolidayMasterRepository.GetHolidayMasterById(new vmCommonGetById { Id = holidayMaster.HolidayMasterId});
+                if (check == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
+
+                var exists = await _unitOfWork.HolidayMasterRepository.GetAllHolidayMaster(new vmCommonGetById { Title = holidayMaster.HolidayName.ToLower() });
+               
+                if (exists.Any(x => x.HolidayName == holidayMaster.HolidayName
+                 && x.StateId == holidayMaster.StateId
+                 && x.HolidayMasterId != holidayMaster.HolidayMasterId)) // exclude current
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Please select a valid record" };
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists for the selected state."
+                    };
                 }
 
-                
-                    var isExists = await _unitOfWork.HolidayMasterRepository.GetAllAsync(asd => asd.HolidayName.ToLower().Trim() == holidayMaster.HolidayName.ToLower().Trim()
-                && asd.State == holidayMaster.State && asd.BranchId == holidayMaster.BranchId && asd.HolidayMasterId != holidayMaster.HolidayMasterId && asd.IsEnabled == true && asd.IsDeleted == false);
-                    if (isExists.Any())
-                    {
-                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists" };
-                    }
 
+                var result = await _unitOfWork.HolidayMasterRepository.UpdateHoliday(holidayMaster);
+                if (result.Id > 0)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "The record has been updated successfully" };
 
-                    holidayMaster.UpdatedDate = DateTime.UtcNow;
-                    var result = await _unitOfWork.HolidayMasterRepository.UpdateHolidayMaster(holidayMaster);
-                    if (result.Id > 0)
-                    {
-                        var updatedHolidayMaster = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayMasterId == holidayMaster.HolidayMasterId);
-                      return new APIResponse() { isSuccess = true, Data = updatedHolidayMaster, ResponseMessage = "The record has been updated successfully" };
-
-                    }
+                }
 
                 return new APIResponse() { isSuccess = false, ResponseMessage = "Unable to update record" };
 
@@ -215,14 +184,12 @@ namespace HRMS_API.Controllers.CompanyStructure
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
                 }
 
-                var checkValidId = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayMasterId == deleteRecordVM.Id && x.IsEnabled == true && x.IsDeleted == false);
-                if (checkValidId == null)
-                {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Please select a valid record" };
-                }
+                var check = await _unitOfWork.HolidayMasterRepository.GetHolidayMasterById(new vmCommonGetById { Id = deleteRecordVM.Id });
+                if (check == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
 
-                deleteRecordVM.DeletedDate = DateTime.UtcNow;
-                var result = await _unitOfWork.HolidayMasterRepository.DeleteHolidayMaster(deleteRecordVM);
+
+                var result = await _unitOfWork.HolidayMasterRepository.DeleteHoliday(deleteRecordVM);
                 if (result.Id > 0)
                 {
                     var deletedHolidayMaster = await _unitOfWork.HolidayMasterRepository.GetAsync(x => x.HolidayMasterId == deleteRecordVM.Id);

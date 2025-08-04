@@ -1,0 +1,1614 @@
+﻿@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "Employee Master";
+	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+	string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
+	var uriAPI = new Uri(baseUrl);
+	string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
+}
+<style>
+	.custom-radio {
+		display: inline-block;
+		cursor: pointer;
+	}
+
+	.custom-label {
+		display: inline-block;
+		margin: 0.5rem;
+		cursor: pointer;
+		transition: all 0.3s ease;
+	}
+
+	.custom-radio:checked + .custom-label {
+		color: blue;
+	}
+
+	#EmployeeFilter{
+		border:2px solid black;
+	}
+
+	/* Tooltip button styles */
+	.tooltip-button {
+		background-color: blue;
+		color: white;
+		border-radius: 50%;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		position: absolute;
+		right: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+
+	/* Tooltip styles */
+	.tooltip-text {
+		display: none;
+		position: absolute;
+		background-color: #ffffe0;
+		border: 1px solid #ccc;
+		padding: 10px;
+		box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+		z-index: 1000;
+		width: 250px;
+		top: 0;
+		right: 30px;
+	}
+
+		.tooltip-button:hover + .tooltip-text,
+		.tooltip-text:hover {
+			display: block;
+		}
+
+	
+	.input-icon-right {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: #6c757d;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+
+</style>
+
+
+<div class="card ">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row m-2">
+			<div class="col-6 ">
+				<h6 class=" mb-0">
+					Employee Master
+				</h6>
+			</div>
+
+			<div class="col-6 d-flex justify-content-end align-items-center">
+				<div  style="color:#32393f; cursor:pointer;">
+@* 					<i class="fadeIn animated bx bx-refresh" id="refreshData" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Refresh Data"></i>
+ *@				
+                    <button id="addEmployee"
+							type="button"
+							class="btn mr-1 rounded-1 "
+							style="background-color:#2395c6; color:white;">
+						Add 
+					</button>
+                </div>
+			</div>
+		</div>
+	</div>
+	<div class="card-body">
+    @* <div class="row">
+        <div class="col-md-12 btn-heading-title">
+            <div class="input-group mb-2">
+                <button id="addEmployee"
+                        type="button"
+                        class="btn mr-1 rounded-1"
+                        style="background-color:#2395c6; color:white;">
+                    Add Employee
+                </button>
+            </div>
+        </div>
+    </div> *@
+		<div class="row mt-4 mb-2">
+			<div class="col-7">
+				<div class="form-group" id="EmployeeFilter">
+					<div class=" row ps-1">
+						<div class="col-md-4 p">
+							<input type="radio" name="employeeFilter" id="allEmployee" value="AllEmployee" class="custom-radio" checked>
+							<label for="allEmployee" class="custom-label">All Employee</label>
+						</div>
+						<div class="col-md-4">
+							<input type="radio" name="employeeFilter" id="leftEmployee" value="LeftEmployee" class=" custom-radio">
+							<label for="leftEmployee" class="custom-label">Left Employee</label>
+						</div>
+						<div class="col-md-4">
+							<input type="radio" name="employeeFilter" id="currentEmployee" value="CurrentEmployee" class="custom-radio">
+							<label for="currentEmployee" class="custom-label">Current Employee</label>
+						</div>
+				    </div>
+				</div>
+			</div>
+		</div>
+
+
+    <div class="row">
+        <div class="col-md-12 ">
+            <div class="form-group gridTag">
+					
+					<div class="grid-wrapper " style="position: relative; ">
+						<div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+							 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+							<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+							<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+						</div>
+						<div class="rowCount" id="rowCountEmployee"></div>
+						<div id="gridAllContainerEmployee" class="gridContainer"></div>
+						<div id="gridLeftContainerEmployee" style="display:none;"></div>
+						<div id="gridCurrentContainerEmployee" style="display:none;"></div>
+					</div>
+
+
+					
+            </div>
+			<div id="spnNoRecord" style="display:none;">No Record Found!</div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+
+<div class="modal fade" id="addEmployeeModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+	<div class="modal-dialog modal-xl">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h6 class="modal-title btn-heading-title"><span class="formType">Add</span> Employee Details</h6>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font" style="font-size:12px;">
+				<form id="employeeForm">
+
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-select floating-input" id="ddlInitial">
+									<option value="">Select</option>
+									<option>Mr.</option>
+									<option>Mrs.</option>
+									<option>Ms.</option>
+								</select>
+								<label class="floating-label" for="ddlInitial">Initial<span class="required-star">*</span></label>
+
+							</div>
+							<span id="spnInitial" style="color:red; display:none;">Please Select Initial</span>
+
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="text" class="form-control floating-input" id="txtFirstName" placeholder="First Name">
+								<label class="floating-label" for="txtFirstName">First Name<span class="required-star">*</span></label>
+
+							</div>
+							<span id="spnFirstName" style="color:red; display:none;">Please Enter First Name</span>
+
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="text" class="form-control floating-input" id="txtMiddleName" placeholder="Middle Name">
+								<label class="floating-label" for="txtMiddleName">Middle Name</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="text" class="form-control floating-input" id="txtLastName" placeholder="Last Name">
+								<label class="floating-label" for="txtLastName">Last Name</label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="row">
+								
+								<div class="col-md-4 ">
+									<div class="form-group mt-3 position-relative">
+										Employee Code<span class="required-star">*</span>:
+									</div>
+								</div>
+								<div class="col-md-4 p-0">
+									<div class="form-group mt-3 position-relative">
+										<input type="text"  class="form-control floating-input" id="txtEmpCode" placeholder="HRMS" value="">
+									</div>
+								</div>
+								<div class="col-md-4">
+									<div class="form-group mt-3 position-relative">
+										<input type="text"  class="form-control floating-input" id="txtNumberEmpCode" placeholder="0001" value="">
+									</div>
+									
+								</div>
+								<span id="spnStringCode" style="color:red; display:none;">Please Enter String Code</span>
+								<span id="spnNumberCode" style="color:red; display:none;">Please Select Number Code</span>
+
+							</div>
+							
+						</div>
+
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="date" class="form-control floating-input" id="doj" placeholder=" ">
+								<label class="floating-label" for="doj">Date of Joining<span class="required-star">*</span></label>
+							</div>
+							<span id="spnDoj" style="color:red; display:none;">Please Select Date Of Joining</span>
+
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-select floating-input" id="ddlBranch">
+									<option  value="">Select</option>
+								</select>
+								<label class="floating-label" for="ddlBranch">Branch<span class="required-star">*</span></label>
+							</div>
+							<span id="spnBranch" style="color:red; display:none;">Please Select Branch</span>
+
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-select floating-input" id="ddlGrade">
+									<option value="">Select</option>
+@* 									<option value="">MANAGEMENT</option>
+ *@								</select>
+								<label class="floating-label" for="ddlGrade">Grade<span class="required-star">*</span></label>
+							</div>
+							<span id="spnGrade" style="color:red; display:none;">Please Select Grade</span>
+
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-select floating-input" id="ddlShift">
+									<option value="">Select</option>
+								</select>
+								<label class="floating-label" for="ddlShift">Shift<span class="required-star">*</span></label>
+							</div>
+							<span id="spnShift" style="color:red; display:none;">Please Select Shift</span>
+
+						</div>
+					
+
+					
+						@* <div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="text" class="form-control floating-input" id="txtCTC" placeholder=" ">
+								<label class="floating-label" for="txtCTC">CTC</label>
+							</div>
+						</div> *@
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-select floating-input" id="ddlDesignation">
+									<option value="">Select </option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlDesignation">Designation<span class="required-star">*</span></label>
+							</div>
+							<span id="spnDesignation" style="color:red; display:none;">Please Select Designation</span>
+
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<label class="floating-label" for="txtGrossSalary">Gross Salary</label>
+								<div class="input-group">
+									<input type="text"
+										   class="form-control floating-input"
+										   id="txtGrossSalary"
+										   placeholder="Gross Salary"
+										   step="1" min="0"
+										   oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+									<span class="input-group-text p-0 px-1">
+										<i class="bx bx-building allowanceIcon" style="font-size: 18px;cursor:pointer"></i>
+									</span>
+								</div>
+							</div>
+						</div>
+
+					
+					
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-select floating-input" id="ddlCategory">
+									<option value="">Select</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlCategory">Category<span class="required-star">*</span></label>
+							</div>
+							<span id="spnCategory" style="color:red; display:none;">Please Select Category</span>
+
+						</div>
+						@* <div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="number" class="form-control floating-input" id="txtBasicSalary" placeholder=" " min="0">
+								<label class="floating-label" for="txtBasicSalary">Basic Salary </label>
+							</div>
+						</div> *@
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-select floating-input" id="ddlDepartment">
+									<option value="">Select</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlDepartment">Department<span class="required-star">*</span></label>
+							</div>
+							<span id="spnDepartment" style="color:red; display:none;">Please Select Department</span>
+
+						</div>
+						
+				
+
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-select floating-input" id="ddlEmpType">
+									<option value="">Select</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlEmpType">Employee Type<span class="required-star">*</span></label>
+							</div>
+							<span id="spnEmployeeType" style="color:red; display:none;">Please Select Employee Type</span>
+
+						</div>
+
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="date" class="form-control floating-input" id="dob" placeholder=" ">
+								<label class="floating-label" for="dob">Date of Birth<span class="required-star">*</span></label>
+							</div>
+							<span id="spnBirth" style="color:red; display:none;">Please Select Date Of Birth</span>
+
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-select floating-input" id="ddlRole">
+									<option value="">Select</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlRole">Role<span class="required-star">*</span></label>
+							</div>
+							<span id="spnRole" style="color:red; display:none;">Please select Role</span>
+
+						</div>
+
+						<div class="col-md-4">
+							<div class="form-group mt-3">
+								@* <label for="txtLoginAlias">Login Alias<span class="required-star">*</span></label>
+*@
+								<div class="input-group">
+									<!-- Prefix text inside the input group -->
+									<!-- Input field -->
+									<input type="text" class="form-control floating-input w-50" id="txtLoginAlias" placeholder="Login Alias">
+									<span class="input-group-text p-0 w-50" id="txtDomainName"
+										  style="white-space: nowrap;
+											 overflow: hidden;
+											 text-overflow: ellipsis;
+											 display: inline-block;
+											 padding: 6px 10px;">
+									</span>
+
+								</div>
+
+								<!-- Error message -->
+								<span id="spnLoginAlias" style="color:red; display:none;">Please Enter Login Alias</span>
+							</div>
+						</div>
+
+
+
+						@* <div class="col-md-4">
+							<div class="form-group mt-4 position-relative">
+								Scheme Assign:
+								<label class="scheme-assign-label cursor-pointer text-primary ms-2" data-bs-toggle="modal" data-bs-target="#schemeAssignModal">
+									Click here
+								</label>
+
+						   </div>
+						</div> *@
+
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<input type="password" class="form-control floating-input" id="txtPassword" value="Relay@@123" placeholder="Password" style="padding-right: 40px;">
+								<label class="floating-label" for="txtPassword">Password <span class="required-star">*</span></label>
+
+								<!-- Boxicons eye icon -->
+								<i id="togglePassword" class='bx bx-show'
+								   style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); cursor: pointer; font-size: 1.2rem; color: #666;">
+								</i>
+							</div>
+
+							<span id="spnPassword" style="color:red; display:none;">Please Enter Password</span>
+							<span id="spnPasswordError" style="color:red; display:none;">Please Enter Valid Password</span>
+						</div>
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-select floating-input" id="ddlWeekOfAssign">
+									<option value="">Select</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="ddlWeekOfAssign">WeekOff Assign</label>
+							</div>
+							<span id="spnWeekOff" style="color:red; display:none;">Please Enter Week Off</span>
+
+						</div>
+						
+						<div class="col-md-2">
+							<div class="form-check mt-4">
+								<input class="form-check-input" type="checkbox" id="pt" checked>
+								<label class="form-check-label" for="pt">PT</label>
+							</div>
+						</div>
+
+						<div class="col-md-2">
+							<div class="form-check mt-4">
+								<input class="form-check-input" type="checkbox" id="checkInOut">
+								<label class="form-check-label" for="checkInOut">Punch In Out</label>
+							</div>
+						</div>
+					</div>
+
+					
+
+				</form>
+			</div>
+
+			<div class="modal-footer btn-heading-title">
+				<button type="button" class="btn btn-primary" id="btnCreateEmployee" style="background-color:#2395c6; color:white;">Save</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<!-- The Modal -->
+<div class="modal " id="schemeAssignModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel">
+					<span class="formType">Scheme Assigned Details</span>
+				</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#addEmployeeModal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font">
+				<table class="table table-bordered">
+					<thead>
+						<tr>
+							<th style="width:25%">Scheme Type</th>
+							<th style="width:25%">Scheme</th>
+							<th style="width:25%">Scheme Type</th>
+							<th style="width:25%">Scheme</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Attendance Regularization</td>
+							<td>
+								<div class="form-group mt-2 position-relative ">
+									<select class="form-control floating-input" id="ddlRegularization">
+										<option value="">Select Scheme</option>
+										<option>Regularization1</option>
+										<!-- Add more options as needed -->
+									</select>
+									<label class="floating-label" for="ddlRegularization">Attendance Regularization</label>
+								</div>
+							</td>
+							<td>Leave Application</td>
+							<td>
+								<div class="form-group mt-2 position-relative ">
+									<select class="form-control floating-input" id="ddlLeave">
+										<option value="">Select Scheme</option>
+										<option>Leave_1</option>
+										<!-- Add more options as needed -->
+									</select>
+									<label class="floating-label" for="ddlLeave">Leave Application</label>
+								</div>
+							</td>
+						</tr>
+						<tr>
+							<td>Claim Application</td>
+							<td>
+								<div class="form-group mt-2 position-relative ">
+									<select class="form-control floating-input" id="ddlClaim">
+										<option value="">Select Scheme</option>
+										<option>Claim1</option>
+										<!-- Add more options as needed -->
+									</select>
+									<label class="floating-label" for="ddlClaim">Claim Application</label>
+								</div>
+							</td>
+							<td>Loan Application</td>
+							<td>
+								<div class="form-group mt-2 position-relative ">
+									<select class="form-control floating-input" id="ddlLoan">
+										<option value="">Select Scheme</option>
+										<option>Loan1</option>
+										<!-- Add more options as needed -->
+									</select>
+									<label class="floating-label" for="ddlLoan">Loan Application</label>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			
+		</div>
+	</div>
+</div>
+
+
+<div class="modal" id="SalaryAllowanceModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+	<div class="modal-dialog modal-xl">
+		<div class="modal-content">
+			<div class="modal-header">
+				
+				<button type="button" class="btn-close " id="closeBtnSalary" ></button>
+			</div>
+
+			<div class="modal-body modal-body-font">
+				<div style="max-height: 70vh; overflow-y: auto;">
+ 						<div id="SalaryPartialView">
+							<!-- Your dynamic content goes here -->
+						</div>
+				  </div>
+				</div>
+		</div>
+	</div>
+</div>
+
+<a id="redirectLinkUpdate" href="@UIBaseUrlLayout/AdminPanel/EmployeeMaster/AdditionalInformation" style="display: none;"></a>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+<script>
+	const savedCompany = localStorage.getItem('selectedCompany');
+	var companyDetails = JSON.parse(savedCompany);
+	const CompanyId=companyDetails.CompanyId;
+	const EmployeeId=localStorage.getItem('EmployeeId');
+	const Token=localStorage.getItem("authToken");
+	let ReasonId=0;
+	$("#addEmployee").click( () => {
+	    $("#btnCreateEmployee").prop("disabled", false);
+	     resetEmployeeMasterField();
+		 $('#pt').prop('checked', true);
+		$("#addEmployeeModal").modal('show');
+
+	})
+	$("#WeekAssign").click(()=>{
+	   $("#weekOffAssignModal").modal('show');
+
+	})
+	$("#closeBtnSalary,#closeBtnWeekOff").click(()=>{
+	   $("#weekOffAssignModal").modal('hide');
+	   $("#SalaryAllowanceModal").modal('hide');
+	   
+	})
+			
+	$(document).ready(async function() {
+		try {
+			
+		    GetNextEmployeeCode();
+
+			// Ensure localStorage item is removed
+			localStorage.removeItem('employeeDetailsLocalStorage');
+			
+			$("#rowCountEmployee").text("");
+			// Load initial employee data
+			await EmployeeDetailsDataTable('#gridAllContainerEmployee', '@baseUrl/EmployeeMasterAPI/GetAllEmployee');
+
+			// Attach event listener to radio buttons
+			$('input[name="employeeFilter"]').change(async function() {
+				if ($(this).is(':checked')) {
+					const selectedValue = $(this).val();
+					// Define employeeUrl based on selected value
+					let IsBlocked=true;
+					let employeeUrl="";
+					let gridId="";
+					if (selectedValue === 'AllEmployee') {
+						$("#gridLeftContainerEmployee").hide();
+						$("#gridAllContainerEmployee").show();
+						$("#gridCurrentContainerEmployee").hide();
+						gridId = "#gridAllContainerEmployee";
+						employeeUrl = '@baseUrl/EmployeeMasterAPI/GetAllEmployee';
+					} else if (selectedValue === 'LeftEmployee') {
+						IsBlocked = true;
+						$("#gridLeftContainerEmployee").show();
+						$("#gridAllContainerEmployee").hide();
+						$("#gridCurrentContainerEmployee").hide();
+						gridId = "#gridLeftContainerEmployee";
+						employeeUrl = '@baseUrl/EmployeeMasterAPI/GetAllEmployeeByIsBlocked/' + IsBlocked;
+					} else if (selectedValue === 'CurrentEmployee') {
+						$("#gridLeftContainerEmployee").hide();
+						$("#gridAllContainerEmployee").hide();
+						$("#gridCurrentContainerEmployee").show();
+						gridId = "#gridCurrentContainerEmployee";
+						IsBlocked = false;
+						employeeUrl = '@baseUrl/EmployeeMasterAPI/GetAllEmployeeByIsBlocked/' + IsBlocked;
+					}
+
+
+					// Clear previous grid data and show loading spinner
+					$("#rowCountEmployee").text("");
+					
+					// Ensure EmployeeDetailsDataTable is defined and call it
+					if (typeof EmployeeDetailsDataTable === 'function') {
+						await EmployeeDetailsDataTable(gridId, employeeUrl);
+					} else {
+						console.error('EmployeeDetailsDataTable is not defined');
+					}
+				}
+			});
+		} catch (error) {
+			console.error('Error loading company details:', error);
+		}
+	});
+
+	
+	async function EmployeeDetailsDataTable(gridId, employeeUrl) {
+		if (!CompanyId) {
+			round_error_noti("Please select company");
+			return;
+		}
+		if(gridId=='#gridAllContainerEmployee')
+		{
+			$("#allEmployee").prop("checked", true);
+		}
+			 $('#grid-loader').addClass('d-flex').show();
+			$.ajax({
+				type: "GET",
+				url: employeeUrl + "?companyId=" + CompanyId,
+				success: function(data) {
+					if (data.isSuccess) {
+						$("#spnNoRecord").hide();
+						$(".gridTag").show();
+						$(gridId).dxDataGrid({
+							dataSource: data.data,
+							rowHeight: 40,
+							width: '100%',
+							columns: [
+
+								{
+									dataField: 'alfaEmployeeCode',
+									caption: 'Employee Code',
+								
+								},
+								{ dataField: 'fullName', caption: 'Full Name',     },
+									{ dataField: 'branchName', caption: 'Branch',   },
+							    { dataField: 'gradeName', caption: 'Grade',   },
+								{ dataField: 'departmentName', caption: 'Department',  },
+								{ dataField: 'designationName', caption: 'Designation',  },
+								 {dataField: 'dateOfJoining', caption: 'Date of Joining',  dataType: 'date',format: 'dd-MM-yyyy'  },
+								  { dataField: 'loginAlias', caption: 'Login Alias'},
+								//  { dataField: 'shift', caption: 'Shift',  width: 100 },
+								// { dataField: 'ctc', caption: 'CTC',  width: 150 },
+								// { dataField: 'grossSalary', caption: 'Gross Salary',  width: 150 },
+								// { dataField: 'category', caption: 'Category',  width: 150 },
+								// { dataField: 'basicSalary', caption: 'Basic Salary',  width: 150 },
+								// { dataField: 'employeeType', caption: 'Employee Type',  width: 150 },
+								// { dataField: 'dateOfBirth', caption: 'Date of Birth',  dataType: 'date', width: 150 },
+								// { dataField: 'userPrivilege', caption: 'User Privilege',  width: 150 },
+								// { dataField: 'loginAlias', caption: 'Login Alias',  width: 150 },
+								// {
+								// 	dataField: 'isBlocked',
+								// 	caption: 'Blocked',
+								// 	alignment: 'center',
+								// 	cellTemplate: function(container, options) {
+								// 		$('<div>').text(options.value ? 'Yes' : 'No').appendTo(container);
+								// 	},
+								// 	width: 100
+								// },
+								// { dataField: 'createdDate', caption: 'Created Date',  dataType: 'date', width: 150 },
+								
+								{
+									dataField: '',
+									caption: '',
+									width: '50px',									
+									cellTemplate: function(container, options) {
+										var buttonElement = $('<div class="d-flex order-actions">' +
+											'<a href="javascript:;" class="edit-action" title="Edit Employee">' +
+											'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+											'<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+											'</svg>' +
+											'</a>' +
+											'</div>')
+											.on('dxclick', function() {
+												updateEmployeeDetails(options.data);
+											}).appendTo(container);
+									}
+								},
+								{
+									dataField: '',
+									caption: '',
+									width: '50px',									
+									cellTemplate: function(container, options) {
+										var buttonElement = $('<div class="d-flex order-actions">' +
+											'<a href="javascript:;" class="delete-action" title="Delete Employee">' +
+											'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+											'<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+											'</svg>' +
+											'</a>' +
+											'</div>')
+											.on('dxclick', function() {
+												deleteEmployeeDetails(options.data);
+											}).appendTo(container);
+									}
+								}
+							],
+							columnsAutoWidth: false,
+							wordWrapEnabled: false,
+							showBorders: true,
+							rowAlternationEnabled: false,
+							showBorders: true,
+							grouping: { autoExpandAll: true },
+							paging: { pageSize: 10 },
+							pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+							headerFilter: { visible: true },
+							filterRow: { visible: true, applyFilter: "auto" },
+							allowColumnResizing: true,
+							groupPanel: { visible: true },
+							searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+							columnFixing: {
+								enabled: true
+							},
+							scrolling: {
+								mode: "standard",
+								useNative: false,
+								scrollByContent: true,
+								scrollByThumb: true,
+							},
+							onContentReady(e) {
+								$('#rowCountEmployee').html('Total Records: ' + e.component.totalCount());
+							}
+						});
+							  
+
+					} else {
+							$(".gridTag").hide();
+						$("#spnNoRecord").show();
+					}
+
+					 $('#grid-loader').removeClass('d-flex').hide();
+				},
+				error: function(xhr, status, error) {
+					console.error("AJAX Error: " + status + " - " + error);
+				}
+			})
+	}
+
+
+
+		   function deleteEmployeeDetails(data) {
+			   if (!confirm("Are you sure you want to delete this employee?")) {
+				   return; // Cancel the delete operation
+			   }
+
+			   var deleteObj = {
+				   id:0,
+				   emp_id: data.id,
+				   deletedBy: null // Set this to the actual user if needed
+			   };
+			   $.ajax({
+				   url: '@baseUrl/EmployeeMasterAPI/DeleteEmployee',
+				   type: 'DELETE',
+				   contentType: 'application/json',
+				   data: JSON.stringify(deleteObj),
+				   success: function (response) {
+					   if (response.isSuccess) {
+						   round_success_noti(response.responseMessage);
+		                EmployeeDetailsDataTable('#gridAllContainerEmployee', '@baseUrl/EmployeeMasterAPI/GetAllEmployee');
+
+					   } else {
+						   round_error_noti(response.responseMessage);
+					   }
+							 
+				   },
+				   error: function (error) {
+					   console.log('Error deleting reason!');
+				   }
+			   });
+		   }
+
+    function bindDesignation(){
+
+	   $.ajax({
+				url: '@baseUrl/DesignationAPI/GetAllDesignation',
+				method: 'GET',
+				success: function(data) {
+					if(data.isSuccess){
+						var dropdown = $('#ddlDesignation');
+						dropdown.empty();
+						dropdown.append('<option disabled selected value="">Select </option>');
+						$.each(data.data, function(index, company) {
+							dropdown.append($('<option>', {
+								value: company.designationId,
+								text: company.designationName
+							}));
+						});
+							
+
+					}
+				},
+				error: function(error) {
+					console.error('Error fetching designation data:', error);
+				}
+			});
+			
+	 }
+	
+	 function bindDepartment(){
+
+	   $.ajax({
+				url: '@baseUrl/DepartmentAPI/GetAllDepartments',
+				method: 'GET',
+					headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+				success: function(data) {
+					if(data.isSuccess){
+						var dropdown = $('#ddlDepartment');
+						dropdown.empty();
+						dropdown.append('<option disabled selected value="">Select </option>');
+						$.each(data.data, function(index, company) {
+							dropdown.append($('<option>', {
+								value: company.departmentId,
+								text: company.departmentName
+							}));
+						});
+
+
+					}
+				},
+				error: function(error) {
+					console.error('Error fetching designation data:', error);
+				}
+			});
+
+	 }
+	 function bindGrade(){
+	   $.ajax({
+				url: '@baseUrl/GradeAPI/GetAllGrade',
+				method: 'GET',
+				success: function(data) {
+					if(data.isSuccess){
+						var dropdown = $('#ddlGrade');
+						dropdown.empty();
+						dropdown.append('<option disabled selected value="">Select</option>');
+						$.each(data.data, function(index, company) {
+							dropdown.append($('<option>', {
+								value: company.gradeId,
+								text: company.gradeName
+							}));
+						});
+
+
+					}
+				},
+				error: function(error) {
+					console.error('Error fetching grade data:', error);
+				}
+			});
+
+	 }
+
+
+	function bindBranch(){
+
+	   $.ajax({
+			url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+			method: 'GET',
+				headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+			success: function(data) {
+				if(data.isSuccess){
+					var dropdown = $('#ddlBranch');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.branchId,
+							text: company.branchName
+						}));
+					});
+
+
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching branch data:', error);
+			}
+		});
+
+	}
+
+	function bindEmployeeType(){
+
+	   $.ajax({
+			url: '@baseUrl/EmployeeTypeAPI/GetAllEmployeeTypes',
+			method: 'GET',
+			success: function(data) {
+				if(data.isSuccess){
+					var dropdown = $('#ddlEmpType');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.employeeTypeId,
+							text: company.employeeTypeName
+						}));
+					});
+
+
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching category data:', error);
+			}
+		});
+
+	}
+	function bindCategory(){
+
+	   $.ajax({
+			url: '@baseUrl/CategoryAPI/GetAllCategories',
+			method: 'GET',
+			success: function(data) {
+				if(data.isSuccess){
+					var dropdown = $('#ddlCategory');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.categoryId,
+							text: company.categoryName
+						}));
+					});
+
+
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching category data:', error);
+			}
+		});
+
+	}
+	function bindShift(){
+
+	   $.ajax({
+			url: '@baseUrl/ShiftMasterAPI/GetAllShifts',
+			method: 'GET',
+			success: function(data) {
+				if(data.isSuccess){
+					var dropdown = $('#ddlShift');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.shiftID,
+							text: company.shiftName
+						}));
+					});
+
+
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching category data:', error);
+			}
+		});
+
+	}
+	function LoadWeekOffMaster()
+	{
+		 let branchId = $('#ddlBranch').val();
+
+			// Validation
+			if (!branchId) {
+				round_error_noti("Please select branch first!");
+				return;
+			} 
+			var data={
+				branchId:branchId,
+				CompanyId:CompanyId
+			}
+			// API call
+			$.ajax({
+				url: '@baseUrl/WeekOffMasterAPI/GetAllWeekOffDetails',
+				type: "Post",
+				contentType: 'application/json',
+				data: JSON.stringify(data),
+				success: function (res) {
+					
+					if(res.isSuccess){
+							var dropdown = $('#ddlWeekOfAssign');
+							dropdown.empty();
+							dropdown.append('<option disabled selected value="">Select</option>');
+							let sundayValue = null;
+							$.each(res.data, function(index, company) {
+								dropdown.append($('<option>', {
+									value: company.weekOffDetailsId,
+									text: company.weekOffName
+								}));
+								   // Check if the name is "Sunday"
+								if (company.weekOffName.toLowerCase() === 'sunday') {
+									sundayValue = company.weekOffDetailsId;
+								}
+							});
+						    if (sundayValue !== null) {
+								dropdown.val(sundayValue);
+							}
+					}
+				},
+				error: function () {
+					round_error_noti("Failed to fetch week off data.");
+				}
+			});
+
+	}
+	async function GetExistEmployeeCode()
+	{
+		 var NumberCode = $('#txtNumberEmpCode').val();
+
+			// Validation
+			if (!NumberCode) {
+				round_error_noti("Please enter employee code");
+				return;
+			} 
+			var data={
+				EmployeeCode:NumberCode,
+				CompanyId:CompanyId
+			}
+			// API call
+			$.ajax({
+				url: '@baseUrl/EmployeeMasterAPI/GetExistEmployeeCode',
+				type: "Post",
+				contentType: 'application/json',
+				data: JSON.stringify(data),
+				success: function (res) {
+					if(res.isSuccess){
+						if(res.data.employeeCode!=null){	
+						  round_error_noti(`The '${res.data.employeeCode}' is already exist!`)
+						}
+					}
+				},
+				error: function () {
+					round_error_noti("Failed to fetch exist employeeCode.");
+				}
+			});
+
+	}
+	$(document).ready(function() {
+		loadBindRoleOption();
+		bindBranch();
+		bindDesignation();
+		bindDepartment();
+		bindGrade();
+		bindCategory();
+		bindEmployeeType();
+		bindShift();
+		$("#ddlBranch").change(()=>{
+			LoadWeekOffMaster();
+		})
+		$('#txtLoginAlias').on('input', function () {
+            var inputVal = $(this).val();
+            var domain = $('#txtDomainName').text().trim();
+
+            if (inputVal.includes('@@')) {
+				round_error_noti(`The domain "${domain}" is already added.`);
+                
+                // Optionally remove the '@@' from the input
+                $(this).val(inputVal.replace('@@', ''));
+            }
+        });
+
+		$('#togglePassword').click(function() {
+			let passwordInput = $('#txtPassword');
+			let type = passwordInput.attr('type') === 'password' ? 'text' : 'password';
+			passwordInput.attr('type', type);
+
+			// Toggle icon class
+			$(this).toggleClass('bx-show bx-hide');
+		});
+		$('#txtNumberEmpCode').blur(async function() {
+			await GetExistEmployeeCode();
+		});
+	$('#btnCreateEmployee').click(function() {
+			$("#btnCreateEmployee").prop("disabled", true);
+			// Capture form values in variables
+			var initial = $('#ddlInitial').val();
+			var firstName = $('#txtFirstName').val().trim();
+			var middleName = $('#txtMiddleName').val().trim();
+			var lastName = $('#txtLastName').val().trim();
+			var employeeStringCode = $('#txtEmpCode').val(); // Assuming the first input is for EmployeeStringCode
+			var employeeNumberCode = $('#txtNumberEmpCode').val(); // Assuming the second input is for EmployeeNumberCode
+			var dateOfJoining = $('#doj').val();
+			var branch = $('#ddlBranch').val();
+			var grade = $('#ddlGrade').val();
+			var shift = $('#ddlShift').val();
+			var ctc = null;
+			var designation = $('#ddlDesignation').val();
+			var grossSalary = $('#txtGrossSalary').val().trim();
+			var category = $('#ddlCategory').val();
+			var basicSalary = null;
+			var department = $('#ddlDepartment').val();
+			var employeeType = $('#ddlEmpType').val();
+			var dateOfBirth = $('#dob').val();
+			var RoleId = $('#ddlRole').val();
+			var loginAlias = $('#txtLoginAlias').val().trim();
+			var password = $('#txtPassword').val().trim();
+			var domainName = $('#txtDomainName').text().trim();
+			var weekOfAssignId = $('#ddlWeekOfAssign').val();
+			var pt = $('#pt').is(':checked');
+			var checkInOut = $('#checkInOut').is(':checked');
+			 var patternPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@@$!%*?&])[A-Za-z\d@@$!%*?&]{8,}$/;
+
+       
+			
+			var Company = CompanyId;
+				// Validate required fields
+	           var isValid = true;
+
+				if (!initial) {
+					$('#spnInitial').show();
+					isValid = false;
+				}
+				else{
+					$('#spnInitial').hide();
+				}
+
+				if (!firstName) {
+					$('#spnFirstName').show();
+					isValid = false;
+				}
+				else{
+					$('#spnFirstName').hide();
+				}
+				if (!employeeStringCode) {
+					$('#spnNumberCode').hide();
+					$('#spnStringCode').show();
+					isValid = false;
+				}
+				else{
+					$('#spnStringCode').hide();
+	                if (!spnNumberCode) {
+						$('#spnNumberCode').show();
+						isValid = false;
+					}
+					else{
+						$('#spnNumberCode').hide();
+					}
+				}
+				if (!dateOfJoining) {
+					$('#spnDoj').show();
+					isValid = false;
+				}
+				else{
+					$('#spnDoj').hide();
+				}
+				if (!branch) {
+					$('#spnBranch').show();
+					isValid = false;
+				}
+				else{
+					$('#spnBranch').hide();
+				}
+				if (!grade) {
+					$('#spnGrade').show();
+					isValid = false;
+				}
+				else{
+					$('#spnGrade').hide();
+				}
+				if (!shift) {
+					$('#spnShift').show();
+					isValid = false;
+				}
+				else{
+					$('#spnShift').hide();
+				}
+				if (!designation) {
+					$('#spnDesignation').show();
+					isValid = false;
+				}
+				else{
+					$('#spnDesignation').hide();
+				}
+				if (!category) {
+					$('#spnCategory').show();
+					isValid = false;
+				}
+				else{
+					$('#spnCategory').hide();
+				}
+				if (!department) {
+					$('#spnDepartment').show();
+					isValid = false;
+				}
+				else{
+					$('#spnDepartment').hide();
+				}
+				if (!employeeType) {
+					$('#spnEmployeeType').show();
+					isValid = false;
+				}
+				else{
+					$('#spnEmployeeType').hide();
+				}
+				if (!dateOfBirth) {
+					$('#spnBirth').show();
+					isValid = false;
+				}
+				else{
+					$('#spnBirth').hide();
+				}
+				if (!RoleId) {
+					$('#spnRole').show();
+					isValid = false;
+				}
+				else{
+					$('#spnRole').hide();
+				}
+
+
+				if (!loginAlias) {
+					$('#spnLoginAlias').show();
+					isValid = false;
+				}else{
+					$('#spnLoginAlias').hide();
+				}
+
+				if (!password) {
+					$('#spnPasswordError').hide();
+					$('#spnPassword').show();
+					isValid = false;
+				}
+				else{
+					$('#spnPassword').hide();
+					if (patternPassword.test(password)) {
+						$('#spnPasswordError').hide();
+						
+					} else {
+						$('#spnPasswordError').show();
+					}
+				}
+				if (!weekOfAssignId) {
+					$('#spnWeekOff').show();
+					isValid = false;
+				}else{
+					$('#spnWeekOff').hide();
+				}
+
+				if (!isValid) {
+					$("#btnCreateEmployee").prop("disabled", false);
+					return; 
+				}
+			// Create employeeData object
+						var employeeData = {
+						Id:null,
+						CompanyId:Company===""?null:Company,
+						Initial: initial === "" ? null : initial,
+						FirstName: firstName === "" ? null : firstName,
+						MiddleName: middleName === "" ? null : middleName,
+						LastName: lastName === "" ? null : lastName,
+						FullName: `${initial} ${firstName} ${middleName} ${lastName}`.trim(),
+						EmployeeCode: `${employeeNumberCode}`.trim(),
+						AlfaCode: `${employeeStringCode}`.trim(),
+						AlfaEmployeeCode: `${employeeStringCode}${employeeNumberCode}`.trim(),
+						DateOfJoining: dateOfJoining === "" ? null : dateOfJoining,
+						BranchId: branch === "" ? null : branch,
+						GradeId: grade === "" ? null : grade,
+						ShiftMasterId: shift === "" ? null : shift,
+						DesignationId: designation === "" ? null : designation,
+						GrossSalary: grossSalary === "" ? null : grossSalary,
+						CategoryId: category === "" ? null : category,
+						BasicSalary: null,
+						DepartmentId: department === "" ? null : department,
+						EmployeeTypeId: employeeType === "" ? null : employeeType,
+						DateOfBirth: dateOfBirth === "" ? null : dateOfBirth,
+						RoleId: RoleId === "" ? 0 : RoleId,
+						LoginAlias: loginAlias === "" ? null : `${loginAlias}${domainName}`,
+						Password: password,
+						
+						Pt: pt === "" ? false : pt,
+						
+						// Default values for properties not present in the JavaScript object
+						
+					
+						CreatedBy: EmployeeId,
+						UpdatedBy: null,
+						
+						EmployeeProfileUrl: null,
+						EmployeeSignatureUrl: null,
+						WeekOffDetailsId:weekOfAssignId==""?null:weekOfAssignId,
+						IsPermissionPunchInOut:checkInOut
+					};
+					//console.log("employeeData: ", employeeData);
+
+
+
+			// Send data to server using AJAX
+				$.ajax({
+					url: '@baseUrl/EmployeeMasterAPI/CreateEmployee',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(employeeData),
+					success: function(response) {
+						if (response.isSuccess) {
+							round_success_noti(response.responseMessage);
+					      EmployeeDetailsDataTable('#gridAllContainerEmployee', '@baseUrl/EmployeeMasterAPI/GetAllEmployee');
+							GetNextEmployeeCode();
+						  $("#addEmployeeModal").modal('hide');
+						} else {
+							round_error_noti(response.responseMessage);
+						}
+						$("#btnCreateEmployee").prop("disabled", false);
+					},
+					error: function(xhr, status, error) {
+						$("#btnCreateEmployee").prop("disabled", false);
+
+						console.error('Error:', error);
+						
+					}
+				});
+
+		});
+	});
+
+	
+	// Cancel button logic
+	function resetEmployeeMasterField () 
+	{
+		// Text inputs
+		$('#txtFirstName').val('');
+		$('#txtMiddleName').val('');
+		$('#txtLastName').val('');
+
+		$('#txtGrossSalary').val('');
+		$('#txtLoginAlias').val('');
+
+		// Dropdowns
+		$('#ddlInitial').val('');
+		$('#ddlBranch').val('');
+		$('#ddlGrade').val('');
+		$('#ddlShift').val('');
+		$('#ddlDesignation').val('');
+		$('#ddlCategory').val('');
+		$('#ddlDepartment').val('');
+		$('#ddlEmpType').val('');
+		$('#ddlRole').val('');
+
+		// Dates
+		$('#doj').val('');
+		$('#dob').val('');
+
+		
+		$('#pt').prop('checked', false);
+		
+		// Hide validation messages (assuming they are spans with IDs like spnFirstName)
+		$('[id^="spn"]').hide();
+
+		// Optional: disable Create button again if needed
+		$('#btnCreateEmployee').prop('disabled', false);
+	};
+
+
+	function updateEmployeeDetails(data)
+	{
+			// Remove the CurrentCompanyId from localStorage
+		localStorage.removeItem('CurrentEmployeeId');
+		localStorage.setItem('CurrentEmployeeId', data.id);
+		//window.location.href = '@UIBaseUrlLayout/AdminPanel/EmployeeMaster/AdditionalInformation';
+		$('#redirectLinkUpdate')[0].click();
+	}
+
+	function GetNextEmployeeCode(){
+		if (!CompanyId) {
+			round_error_noti("Please select company");
+			return;
+		}
+	   $.ajax({
+			url: '@baseUrl/EmployeeMasterAPI/GetNextEmployeeCode/'+CompanyId,
+			method: 'GET',
+			success: function(data) {
+				if(data.isSuccess){
+					// Extract values from the data object
+					const nextEmployeeCode = data.data.nextEmployeeCode;
+					const digitsForEmployeeCode = data.data.digitsForEmployeeCode;
+					const companyCode=data.data.companyCode;
+
+					// Ensure nextEmployeeCode is treated as a number
+					const numericCode = Number(nextEmployeeCode);
+
+					// Format the nextEmployeeCode with leading zeros
+					const formattedEmployeeCode = numericCode.toString().padStart(digitsForEmployeeCode, '0');
+
+					// Set the formatted employee code into the input field
+					$('#txtNumberEmpCode').val(formattedEmployeeCode);
+					$('#txtEmpCode').val(companyCode);
+					  $('#txtDomainName').text(data.data.domainName).attr('title', data.data.domainName);
+
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching branch data:', error);
+			}
+		});
+
+
+	}
+
+
+	async function loadBindRoleOption() {
+
+		try {
+			const response = await fetch('@baseUrl/RoleAPI/GetAllRoles', {
+				method: 'GET',
+				headers: {
+							'Authorization': 'Bearer ' + Token
+					},
+			});
+
+			const data = await response.json();
+
+			if (data.isSuccess) {
+
+				var arrayDta=data.data;
+				 var dropdowns = $('#ddlRole');
+							dropdowns.empty();
+							dropdowns.append(
+								$('<option>', {
+								value: '',
+								text: 'Select',
+								selected: true,
+								disabled: true
+								})
+							);
+
+							$.each(data.data, function(index, role) {
+									dropdowns.append($('<option >', {
+									value: role.id,
+									text: role.name
+								}));
+							});
+			}
+		} catch (error) {
+			console.error('Fetch error:', error);
+		}
+	}
+
+</script>
+
+<script>
+
+
+	$(document).on('click', '.allowanceIcon', function (e) {
+		var grossSalary = $('#txtGrossSalary').val();
+		if(!grossSalary)
+		{
+			round_error_noti("Please enter gross salary");
+			return;
+		}
+		$('#SalaryAllowanceModal').modal('show');
+	});
+
+
+	function handleAllowanceIconClick() {
+	  // Do something useful
+	  alert('Allowance icon clicked!');
+	}
+
+	$(document).ready(function () {
+		
+        $.get('@Url.Action("Allowance", "PartialView")', function (response) {
+            $('#SalaryPartialView').html(response);
+        });
+    });
+
+	$('#txtGrossSalary').blur(async function () {
+		await loadSalaryAllowance();
+
+	});
+	async function loadSalaryAllowance() {
+	var grossSalary = $('#txtGrossSalary').val();
+	if(!grossSalary)
+	{
+		return;
+	}
+	   try {
+			const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetLiveEmployeeSalaryAllowance/'+grossSalary, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+
+			const data = await response.json();
+			if (data.isSuccess) {
+				var arrayDta = data.data;
+				bindSalaryAllowance(arrayDta);
+				
+
+			}
+		} catch (error) {
+			console.error('Fetch error:', error);
+		}
+	}
+
+
+	 function formatCurrency(amount) {
+		return '₹' + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+	}
+
+	function bindSalaryAllowance(salaryData) {
+		// Earnings
+		$('#monthlyGross').text(formatCurrency(salaryData.totalGrossSalary));
+		$('#AnualGross').text(formatCurrency(salaryData.totalGrossSalary * 12));
+
+		$('#basicSalaryMonth').text(formatCurrency(salaryData.basicSalary));
+		$('#basicSalaryYear').text(formatCurrency(salaryData.basicSalary * 12));
+		$('#hraMonth').text(formatCurrency(salaryData.hra));
+		$('#hraYear').text(formatCurrency(salaryData.hra * 12));
+		$('#deputationAllowanceMonth').text(formatCurrency(salaryData.deputationAllowance));
+		$('#deputationAllowanceYear').text(formatCurrency(salaryData.deputationAllowance * 12));
+		$('#conveyanceAllowanceMonth').text(formatCurrency(salaryData.conveyanceAllowance));
+		$('#conveyanceAllowanceYear').text(formatCurrency(salaryData.conveyanceAllowance * 12));
+		$('#medicalAllowanceMonth').text(formatCurrency(salaryData.medicalAllowance));
+		$('#medicalAllowanceYear').text(formatCurrency(salaryData.medicalAllowance * 12));
+		$('#childEducationAllowanceMonth').text(formatCurrency(salaryData.childEducationAllowance));
+		$('#childEducationAllowanceYear').text(formatCurrency(salaryData.childEducationAllowance * 12));
+		$('#totalGrossMonth').text(formatCurrency(salaryData.totalGrossSalary));
+		$('#totalGrossYear').text(formatCurrency(salaryData.totalGrossSalary * 12));
+
+		// Deductions
+		$('#pfMonth').text(formatCurrency(salaryData.employeePF));
+		$('#pfYear').text(formatCurrency(salaryData.employeePF * 12));
+		$('#esiMonth').text(formatCurrency(salaryData.employeeESI));
+		$('#esiYear').text(formatCurrency(salaryData.employeeESI * 12));
+		$('#ptMonth').text(formatCurrency(salaryData.professionalTax));
+		$('#ptYear').text(formatCurrency(salaryData.professionalTax * 12));
+		$('#groupMedicalMonth').text(formatCurrency(salaryData.groupMedical));
+		$('#groupMedicalYear').text(formatCurrency(salaryData.groupMedical * 12));
+		$('#termInsuranceMonth').text(formatCurrency(salaryData.termInsurance));
+		$('#termInsuranceYear').text(formatCurrency(salaryData.termInsurance * 12));
+		$('#totalDeductionMonth').text(formatCurrency(salaryData.totalDeductions));
+		$('#totalDeductionYear').text(formatCurrency(salaryData.totalDeductions * 12));
+
+		// Net Salary
+		$('#netSalaryMonth').text(formatCurrency(salaryData.netSalary));
+		$('#netSalaryYear').text(formatCurrency(salaryData.netSalary * 12));
+
+		// CTC calculation
+		$('#CalculationGrossMonth').text(formatCurrency(salaryData.ctc));
+		$('#CalculationGrossYear').text(formatCurrency(salaryData.ctc * 12));
+		$('#CalculationPFMonth').text(formatCurrency(salaryData.employeePF));
+		$('#CalculationPFYear').text(formatCurrency(salaryData.employeePF * 12));
+		$('#CalculationESIMonth').text(formatCurrency(salaryData.employeeESI));
+		$('#CalculationESIMonth').text(formatCurrency(salaryData.employeeESI * 12));
+		// CTC
+		$('#ctcMonth').text(formatCurrency(salaryData.ctc));
+		$('#ctcYear').text(formatCurrency(salaryData.ctc * 12));
+
+		// Summary
+		$('#summaryCtc').text(formatCurrency(salaryData.ctc));
+		$('#summaryNet').text(formatCurrency(salaryData.netSalary));
+		$('#summaryAnnual').text(formatCurrency(salaryData.ctc * 12));
+	}
+
+
+</script>

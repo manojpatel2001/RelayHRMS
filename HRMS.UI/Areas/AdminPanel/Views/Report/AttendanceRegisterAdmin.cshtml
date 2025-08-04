@@ -1,0 +1,504 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Attendance Register";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Register</title>
+
+    <!-- DevExtreme -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/devextreme@23.2.3/dist/css/dx.light.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/devextreme@23.2.3/dist/js/dx.all.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: #3f4d6b;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+            .back-btn:hover {
+                background-color: #dfe6f1;
+            }
+
+
+        .main {
+            display: flex;
+            height: calc(100vh - 50px);
+        }
+
+        .left-section, .right-section {
+            width: 50%;
+            padding: 30px;
+            background-color: #fff;
+            box-sizing: border-box;
+        }
+
+        .separator {
+            width: 1px;
+            background-color: #ccc;
+        }
+
+        .date-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 13px;
+            color: #333;
+        }
+
+        select,
+        input[type="date"] {
+            padding: 4px 6px;
+            font-size: 13px;
+            height: 32px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            width: 130px; /* 🔧 Fix width */
+            box-sizing: border-box;
+        }
+
+        .btn-group {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px; /* 🔧 Gap between buttons */
+        }
+
+            .btn-group button,
+            .header + .main button {
+                padding: 6px 14px;
+                font-size: 13px;
+                min-width: 70px;
+            }
+
+        button {
+            border: none;
+            background-color: #3f4d6b;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #recordCount {
+            color: red;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        #employeeGrid {
+            height: calc(100vh - 180px);
+        }
+
+        #monthSelect,
+        #yearSelect {
+            padding: 4px 6px;
+            font-size: 13px;
+            height: 30px;
+            width: 110px; /* ✅ chhota fix width */
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+
+        .back-btn {
+            float: right;
+            margin-top: 20px;
+            margin-right: 40px;
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <div class="header">
+        ATTENDANCE REGISTER
+    </div>
+
+
+    <div class="main">
+        <!-- Left Section -->
+        <div class="left-section">
+            <div class="date-row">
+                <div class="form-group" style="width: 180px; display: inline-block; margin-right: 20px;">
+                    <label for="monthSelect">Month:</label>
+                    <select id="monthSelect" class="form-control">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>               
+                </div>
+                <div class="form-group" style="width: 120px; display: inline-block;">
+                    <label for="yearSelect">Year:</label>
+                    <select id="yearSelect" class="form-control"></select>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button onclick="onFind()" id="btnfind">Find</button>
+                <button onclick="onClear()">Clear</button>
+                 <button onclick="goBack()">Back</button>
+            </div>
+        </div>
+
+        <!-- Vertical Separator -->
+        <div class="separator"></div>
+
+        <!-- Right Section -->
+        <div class="right-section">
+            <div class="d-flex justify-content-between align-items-center">
+                <div id="recordCount">0 Records found.</div>
+                <button id="btnView">View</button>
+            </div>
+            <div id="employeeGrid"></div>
+        </div>
+    </div>
+
+
+    <!-- Modal -->
+    <div class="modal fade" id="attendanceModal" tabindex="-1" aria-labelledby="attendanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen  modal-dialog-scrollable" style="overflow-y: auto; max-height: 80vh; padding: 1rem;">
+            <div class="modal-content" >
+                <div class="modal-header">
+                    <h5 class="modal-title" id="attendanceModalLabel">Attendance Report</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="attendanceModalBody" ></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+                const Empid = parseInt(localStorage.getItem("EmployeeId"));
+        const Role = localStorage.getItem("RoleSlug");
+        const savedCompany = localStorage.getItem('selectedCompany');
+        const companyDetails = JSON.parse(savedCompany || '{}');
+        const Compname = companyDetails.CompanyName;   Compname
+
+
+             $(document).ready(function () {
+
+
+                 populateYearDropdown();
+                              onFind();
+            $('#monthSelect').val(new Date().getMonth() + 1); // Set current month as default
+                 
+        });
+
+                function goBack() {
+            window.history.back(); // Navigates to the previous page
+        }
+
+
+                   function populateYearDropdown() {
+                        const startYear = 2024;
+                        const currentYear = new Date().getFullYear();
+                         const yearDropdown = $("#yearSelect");
+                        yearDropdown.empty();
+                        for (let year = currentYear; year >= startYear; year--) {
+                    yearDropdown.append(`<option value="${year}">${year}</option>`);        }
+                        yearDropdown.val(currentYear);
+                    }
+
+        function onFind() { 
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployees")',
+                type: "GET",
+                dataType: "json",
+                success: function (response) {
+                    const employeeData = response.data || response;
+
+                    const grid = $("#employeeGrid").dxDataGrid({
+                        dataSource: employeeData,
+                        keyExpr: "employeeCode",
+                        selection: {
+                            mode: "multiple",
+                            showCheckBoxesMode: "always"
+                        },
+                        showBorders: true,
+                        columnAutoWidth: true,
+                      
+                        columns: [
+                            { dataField: "employeeCode", caption: "Employee Code", width: 150 },
+                            { dataField: "fullName", caption: "Employee Name" }
+                        ]
+                    }).dxDataGrid("instance");
+
+                    $('#recordCount').text(`${employeeData.length} Records found.`);
+                },
+                error: function () {
+                    Swal.fire('Error', 'Failed to load employees.', 'error');
+                }
+            });
+        }
+
+        function onClear() {
+            $('#fromDate, #toDate').val('');
+            $('#employeeGrid').dxDataGrid("instance").option("dataSource", []);
+            $('#recordCount').text('0 Records found.');
+        }
+
+        $('#btnView').on('click', function () {
+
+            var selectedYear = $('#yearSelect').val();     // e.g. "2025"
+            var selectedMonth = $('#monthSelect').val();   // e.g. "7"
+
+            const month = parseInt(selectedMonth);         // e.g. 7
+            const year = parseInt(selectedYear);           // e.g. 2025
+
+            const grid = $('#employeeGrid').dxDataGrid("instance");
+            const selected = grid.getSelectedRowsData();
+
+            if (!selected.length) {
+                Swal.fire('Warning', 'Select at least one employee.', 'warning');
+                return;
+            }
+
+            const empCodes = selected.map(emp => emp.employeeCode);
+
+            const paddedMonth = String(month).padStart(2, '0');
+            const startDate = `${year}-${paddedMonth}-01`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const endDate = `${year}-${paddedMonth}-${lastDay}`;
+
+            const request = {
+                StartDate: startDate,
+                EndDate: endDate,
+                EmployeeCodes: empCodes,
+            };
+
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/EmployeeReportAPI/Attendencereport")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(request),
+                success: function (res) {
+                    if (!res || !res.data || res.data.length === 0) {
+                        $('#attendanceModalBody').html('<p class="text-danger">No attendance records found.</p>');
+                        const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+                        modal.show();
+                        return;
+                    }
+
+                    renderAttendanceTable(res.data, startDate, endDate);
+                },
+                error: function () {
+                    Swal.fire('Error', 'Something went wrong while fetching data.', 'error');
+                }
+            });
+        });
+
+
+               function renderAttendanceTable(data, startDate, endDate) {
+            const dayRow = data[0];
+            const dayKeys = Object.keys(dayRow.days).sort((a, b) => parseInt(a) - parseInt(b));
+
+            const formatDate = (dateStr) => {
+                const [yyyy, mm, dd] = dateStr.split("-");
+                return `${dd}-${mm}-${yyyy}`;
+            };
+            const today = formatDate(new Date().toISOString().split('T')[0]);
+
+            let header = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div id="reportInfo">
+                    <strong>Company:</strong> ${Compname} &nbsp;&nbsp;
+                    <strong>From:</strong> ${formatDate(startDate)} &nbsp;&nbsp;
+                    <strong>To:</strong> ${formatDate(endDate)} &nbsp;&nbsp;
+                    <strong>Print Date:</strong> ${today}
+                </div>
+                <button class="btn btn-success btn-sm" id="btnExportExcel">Export to Excel</button>
+            </div>`;
+
+            let html = `<div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th class="text-nowrap">Branch</th>
+                            <th class="text-nowrap">Emp Code</th>
+                            <th class="text-nowrap" style="min-width: 180px;">Employee</th>`;
+
+            dayKeys.forEach(day => {
+                const dayLabel = `${day} (${dayRow.days[day]})`;
+                html += `<th class="text-center" style="min-width: 45px;">${dayLabel}</th>`;
+            });
+
+            html += `
+                <th class="text-nowrap">Total P</th>
+                <th class="text-nowrap">Total A</th>
+                <th class="text-nowrap">Total W</th>
+                <th class="text-nowrap">Total L</th>
+                <th class="text-nowrap">Total H</th>
+            </tr>
+            </thead>
+            <tbody>`;
+
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                html += `<tr>
+                    <td>${row.branchName ?? ''}</td>
+                    <td>${row.employeeCode ?? ''}</td>
+                    <td>${row.fullName ?? ''}</td>`;
+
+                dayKeys.forEach(day => {
+                    const value = row.days?.[day] ?? '';
+                    const redClass = value === 'A' ? 'text-danger fw-bold' : '';
+                    html += `<td class="text-center ${redClass}">${value}</td>`;
+                });
+
+                html += `
+                    <td class="text-center">${row.p ?? 0}</td>
+                    <td class="text-center text-danger">${row.a ?? 0}</td>
+                    <td class="text-center">${row.w ?? 0}</td>
+                    <td class="text-center">${row.l ?? 0}</td>
+                    <td class="text-center">${row.h ?? 0}</td>
+                </tr>`;
+            }
+
+            html += `</tbody></table></div>`;
+
+            $('#attendanceModalBody').html(header + html);
+            const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+            modal.show();
+        }
+
+        $(document).on('click', '#attendanceModal .btn-close', function () {
+    const grid = $('#employeeGrid').dxDataGrid("instance");
+    if (grid) {
+        grid.clearSelection();
+        console.log("Selection cleared from btn-close click");
+    }
+});
+
+
+            $('#attendanceModal').on('hidden.bs.modal', function () {
+            const grid = $('#employeeGrid').dxDataGrid("instance");
+            if (grid) {
+                grid.clearSelection();
+                console.log("Selection cleared from modal hidden");
+            }
+        });
+        
+        
+        $(document).on('click', '#btnExportExcel', function () {
+            const table = document.querySelector("#attendanceModalBody table");
+            if (!table) {
+                Swal.fire('Error', 'No table found to export.', 'error');
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Attendance");
+
+            // Create table header row with styling
+            const headerRow = [];
+            table.querySelectorAll("thead tr th").forEach(th => {
+                headerRow.push(th.innerText.trim());
+            });
+            worksheet.addRow(headerRow);
+
+            // Apply style to header
+            worksheet.getRow(1).eachCell(cell => {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF343A40' } // Bootstrap dark
+                };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            });
+
+            // Add table rows
+            table.querySelectorAll("tbody tr").forEach(tr => {
+                const row = [];
+                tr.querySelectorAll("td").forEach(td => {
+                    row.push(td.innerText.trim());
+                });
+                worksheet.addRow(row);
+            });
+
+            // Apply border to all data cells
+            worksheet.eachRow((row, rowNumber) => {
+                row.eachCell(cell => {
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                });
+            });
+
+            // Auto width for columns
+            worksheet.columns.forEach(column => {
+                let maxLength = 10;
+                column.eachCell({ includeEmpty: true }, cell => {
+                    const length = cell.value ? cell.value.toString().length : 10;
+                    if (length > maxLength) {
+                        maxLength = length;
+                    }
+                });
+                column.width = maxLength + 2;
+            });
+
+            // Save file
+            workbook.xlsx.writeBuffer().then(buffer => {
+                const now = new Date();
+                const fileName = `Attendance_Report_${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}.xlsx`;
+                const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                saveAs(blob, fileName);
+            });
+        });
+
+    </script>
+</body>
+</html>

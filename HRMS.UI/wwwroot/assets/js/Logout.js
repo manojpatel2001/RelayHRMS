@@ -1,4 +1,8 @@
-﻿var CompnayList = [];
+﻿
+
+
+
+var CompnayList = [];
 var token = localStorage.getItem("authToken");
 var decoded = "";
 if (token) {
@@ -26,7 +30,6 @@ $('#btnLogout').click(function () {
 
 
 $(document).ready(function () {
-
     const savedCompany = localStorage.getItem('selectedCompany');
     var company = JSON.parse(savedCompany);
     var FullName = decoded.FullName;
@@ -41,7 +44,7 @@ $(document).ready(function () {
         $('.user-img').attr('src', BaseDomainUrl + '/default-image/avatar-2.png');
     }
     $(".user-name").text(FullName);
-    $(".designattion").text(Designation);
+    $(".designation").text(Designation);
 
 
     document.querySelectorAll('.custom-tooltip').forEach((el) => {
@@ -62,12 +65,10 @@ $(document).ready(function () {
     $('#companyDrop').on('click', function () {
         openCompanyModal(uiBaseUrlLayout, BaseUrlLayout, CompnayList, function (selectedCompany) {
             if (selectedCompany) {
-                console.log("Selected company:", selectedCompany);
                 localStorage.removeItem('selectedCompany');
                 localStorage.setItem('selectedCompany', JSON.stringify(selectedCompany));
                 location.reload();
             } else {
-                console.log(" No company selected or user canceled.");
             }
         });
     });

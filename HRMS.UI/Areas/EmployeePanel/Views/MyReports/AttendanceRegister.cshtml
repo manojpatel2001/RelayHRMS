@@ -1,9 +1,17 @@
 ﻿@{
-    ViewData["Title"] = "Shift Changes Details";
+    ViewData["Title"] = "Attendance Register";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
+    string apiBase = ViewBag.BaseUrlAPI;
 }
-<link href="~/commoncss.css" rel="stylesheet" />
+
+<!-- CSS -->
+
+<!-- JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
 
 <style>
     .fixed-label {
@@ -12,42 +20,323 @@
         margin-bottom: 0;
         text-align: right;
     }
+
+    #attendanceModalBody table th,
+    #attendanceModalBody table td {
+        font-weight: normal;
+        font-size: 13px;
+    }
+
+    #attendanceModalBody table thead th {
+        font-weight: bold;
+    }
+
+    .custom-modal-width {
+        max-width: 98% !important;
+    }
 </style>
 
-<div class="card">
+<!-- Modal -->
+<div class="modal fade" id="attendanceModal" tabindex="-1" aria-labelledby="attendanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl custom-modal-width">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Attendance Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="attendanceModalBody">
+                <!-- Report info and export button will be injected here -->
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Heading -->
-    <div class="card-header bg-transparent py-2 d-flex justify-content-center align-items-center" style="height: 60px;">
-        <h6 class="mb-0 text-center">ATTENDANCE REGISTER</h6>
+<!-- Main Card -->
+<div class="card">
+    <div class="card-header bg-transparent py-2 text-center">
+        <h6 class="mb-0">ATTENDANCE REGISTER</h6>
     </div>
 
     <div class="card-body">
         <form>
             <div class="col-md-8 mx-auto">
-
-                <!-- From / To -->
                 <div class="row mb-2">
-                    <div class="col-md-6 d-flex align-items-center mb-2">
-                        <label for="fromid" class="fixed-label me-2">From Date<span class="text-danger">*</span>:</label>
-                        <input type="date" class="form-control form-control-sm" id="fromid" />
+                    <div class="col-md-4 d-flex align-items-center">
+                        <label for="month" class="fixed-label">Month<span class="text-danger">*</span>:</label>
+                        <select class="form-select form-select-sm" id="month">
+                            <option value="">--Select--</option>
+                            @for (int i = 1; i <= 12; i++)
+                            {
+                                <option value="@i">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(i)</option>
+                            }
+                        </select>
                     </div>
-                    <div class="col-md-6 d-flex align-items-center mb-2">
-                        <label for="toid" class="fixed-label me-2">To Date<span class="text-danger">*</span>:</label>
-                        <input type="date" class="form-control form-control-sm" id="toid" />
+                    <div class="col-md-4 d-flex align-items-center">
+                        <label for="year" class="fixed-label">Year<span class="text-danger">*</span>:</label>
+                        <input type="number" class="form-control form-control-sm" id="year" min="2000" max="2100" value="@DateTime.Now.Year" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-center">
+                        <label for="branchid" class="fixed-label">Branch:</label>
+                        <select class="form-select form-select-sm" id="branchid">
+                            <option value="0">-- Select --</option>
+                        </select>
                     </div>
                 </div>
 
-                
-
-                <!-- Buttons Centered -->
-                <div class="row justify-content-center">
+                <div class="row justify-content-center mt-3">
                     <div class="col-md-6 d-flex justify-content-center gap-2">
-                        <button type="button" class="btn btn-primary btn-sm">View</button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("Index", "MyReports")'">Back</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="btnView">View</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("index", "Home")'">Back</button>
                     </div>
                 </div>
-
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    const apiBase = '@apiBase';
+    const Empid = parseInt(localStorage.getItem("EmployeeId"));
+    const Role = localStorage.getItem("RoleSlug");
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId=companyDetails.CompanyId;
+    const Compname = companyDetails.CompanyName;
+    const Token=localStorage.getItem("authToken");
+
+    $(document).ready(function () {
+        debugger;
+        GetBranch();
+
+        $('#btnView').on('click', function () {
+    const month = parseInt($('#month').val());
+    const year = parseInt($('#year').val());
+            const branchId = $('#branchid').val();
+
+            if (!month || !year) {
+                Swal.fire('Required', 'Please select month and year.', 'warning');
+                return;
+            }
+
+            const startDate = `${year}-${month.padStart(2, '0')}-01`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const endDate = `${year}-${month.padStart(2, '0')}-${lastDay}`;
+
+            let request;
+
+            if (Role === "super-admin" || Role === "admin") {
+                request = {
+                    startDate: startDate,
+                    endDate: endDate,
+                    branchId: branchId == "0" ? null : parseInt(branchId)
+                };
+            } else {
+                request = {
+                    startDate: startDate,
+                    endDate: endDate,
+                    EmployeeId: Empid,
+                    branchId: branchId == "0" ? null : parseInt(branchId)
+                };
+            }
+
+            $.ajax({
+                url: apiBase + '/EmployeeReportAPI/Attendencereport',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(request),
+                success: function (res) {  
+                    if (!res || !res.data || res.data.length === 0) {
+                        $('#attendanceModalBody').html('<p class="text-danger">No attendance records found.</p>');
+                        const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+                        modal.show();
+                        return;
+                    }
+
+                    renderAttendanceTable(res.data, startDate, endDate);
+                },
+                error: function () {
+                    Swal.fire('Error', 'Something went wrong while fetching data.', 'error');
+                }
+            });
+        });
+    });
+
+     function GetBranch(){
+
+       $.ajax({
+            url: apiBase+'/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+            method: 'GET',
+                headers: {
+                        'Authorization': 'Bearer ' + Token
+                    },
+            success: function(data) {
+                if(data.isSuccess){
+                    var dropdown = $('#branchid');
+                    dropdown.empty();
+                    dropdown.append('<option disabled selected value="">Select</option>');
+                    $.each(data.data, function(index, company) {
+                        dropdown.append($('<option>', {
+                            value: company.branchId,
+                            text: company.branchName
+                        }));
+                    });
+
+
+                }
+            },
+            error: function(error) {
+                console.error('Error fetching branch data:', error);
+            }
+        });
+
+    }
+    function renderAttendanceTable(data, startDate, endDate) {
+        const dayRow = data[0];
+        const dayKeys = Object.keys(dayRow.days).sort((a, b) => parseInt(a) - parseInt(b));
+
+        const formatDate = (dateStr) => {
+            const [yyyy, mm, dd] = dateStr.split("-");
+            return `${dd}-${mm}-${yyyy}`;
+        };
+        const today = formatDate(new Date().toISOString().split('T')[0]);
+
+        let header = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div id="reportInfo">
+                <strong>Company:</strong> ${Compname} &nbsp;&nbsp;
+                <strong>From:</strong> ${formatDate(startDate)} &nbsp;&nbsp;
+                <strong>To:</strong> ${formatDate(endDate)} &nbsp;&nbsp;
+                <strong>Print Date:</strong> ${today}
+            </div>
+            <button class="btn btn-success btn-sm" id="btnExportExcel">Export to Excel</button>
+        </div>`;
+
+        let html = `<div class="table-responsive">
+            <table class="table table-bordered table-sm align-middle">
+                <thead class="table-light text-center">
+                    <tr>
+                        <th class="text-nowrap">Branch</th>
+                        <th class="text-nowrap">Emp Code</th>
+                        <th class="text-nowrap" style="min-width: 180px;">Employee</th>`;
+
+        dayKeys.forEach(day => {
+            const dayLabel = `${day} (${dayRow.days[day]})`;
+            html += `<th class="text-center" style="min-width: 45px;">${dayLabel}</th>`;
+        });
+
+        html += `
+            <th class="text-nowrap">Total P</th>
+            <th class="text-nowrap">Total A</th>
+            <th class="text-nowrap">Total W</th>
+            <th class="text-nowrap">Total L</th>
+            <th class="text-nowrap">Total H</th>
+        </tr>
+        </thead>
+        <tbody>`;
+
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            html += `<tr>
+                <td>${row.branchName ?? ''}</td>
+                <td>${row.employeeCode ?? ''}</td>
+                <td>${row.fullName ?? ''}</td>`;
+
+            dayKeys.forEach(day => {
+                const value = row.days?.[day] ?? '';
+                const redClass = value === 'A' ? 'text-danger fw-bold' : '';
+                html += `<td class="text-center ${redClass}">${value}</td>`;
+            });
+
+            html += `
+                <td class="text-center">${row.p ?? 0}</td>
+                <td class="text-center text-danger">${row.a ?? 0}</td>
+                <td class="text-center">${row.w ?? 0}</td>
+                <td class="text-center">${row.l ?? 0}</td>
+                <td class="text-center">${row.h ?? 0}</td>
+            </tr>`;
+        }
+
+        html += `</tbody></table></div>`;
+
+        $('#attendanceModalBody').html(header + html);
+        const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+        modal.show();
+    }
+
+     $(document).on('click', '#btnExportExcel', function () {
+        const table = document.querySelector("#attendanceModalBody table");
+        if (!table) {
+            Swal.fire('Error', 'No table found to export.', 'error');
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Attendance");
+
+        // Create table header row with styling
+        const headerRow = [];
+        table.querySelectorAll("thead tr th").forEach(th => {
+            headerRow.push(th.innerText.trim());
+        });
+        worksheet.addRow(headerRow);
+
+        // Apply style to header
+        worksheet.getRow(1).eachCell(cell => {
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF343A40' } // Bootstrap dark
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        });
+
+        // Add table rows
+        table.querySelectorAll("tbody tr").forEach(tr => {
+            const row = [];
+            tr.querySelectorAll("td").forEach(td => {
+                row.push(td.innerText.trim());
+            });
+            worksheet.addRow(row);
+        });
+
+        // Apply border to all data cells
+        worksheet.eachRow((row, rowNumber) => {
+            row.eachCell(cell => {
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            });
+        });
+
+        // Auto width for columns
+        worksheet.columns.forEach(column => {
+            let maxLength = 10;
+            column.eachCell({ includeEmpty: true }, cell => {
+                const length = cell.value ? cell.value.toString().length : 10;
+                if (length > maxLength) {
+                    maxLength = length;
+                }
+            });
+            column.width = maxLength + 2;
+        });
+
+        // Save file
+        workbook.xlsx.writeBuffer().then(buffer => {
+            const now = new Date();
+            const fileName = `Attendance_Report_${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}.xlsx`;
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            saveAs(blob, fileName);
+        });
+    });
+
+</script>

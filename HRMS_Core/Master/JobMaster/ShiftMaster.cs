@@ -38,7 +38,7 @@ namespace HRMS_Core.Master.JobMaster
         public bool IsSplitShift { get; set; } = false;
 
         // Navigation property
-        public virtual ICollection<ShiftBreak> ShiftBreaks { get; set; }
+        //public virtual ICollection<ShiftBreak> ShiftBreaks { get; set; }
     }
 
 }

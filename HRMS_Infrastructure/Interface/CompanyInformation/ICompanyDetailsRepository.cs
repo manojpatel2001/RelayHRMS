@@ -11,7 +11,7 @@ namespace HRMS_Infrastructure.Interface.CompanyInformation
 {
     public interface ICompanyDetailsRepository : IRepository<CompanyDetails>
     {
-        Task<List<vmGetAllCompanyDetails>> GetAllCompanyDetails();
+        Task<List<vmGetAllCompanyDetailsForGrid>> GetAllCompanyDetails();
         Task<List<vmGetAllCompanyDetailsList>> GetAllCompanyDetailsList();
         Task<vmGetAllCompanyDetails?> GetByCompanyId(int companyId);
         Task<List<vmGetAllCompanyDetails>> GetCompanyListByCompanyId(int companyId);

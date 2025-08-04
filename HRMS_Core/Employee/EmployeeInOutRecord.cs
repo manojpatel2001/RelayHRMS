@@ -49,6 +49,7 @@ namespace HRMS_Core.Employee
         public string? statusFlag { get; set; }
         public DateTime? In_Admin_Time { get; set; }
         public DateTime? Out_Admin_Time { get; set; }
+        public string? PunchType{ get; set; }
 
     }
 }

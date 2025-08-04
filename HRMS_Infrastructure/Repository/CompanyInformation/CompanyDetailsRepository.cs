@@ -23,15 +23,15 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
             _db = db;
         }
 
-        public async Task<List<vmGetAllCompanyDetails>> GetAllCompanyDetails()
+        public async Task<List<vmGetAllCompanyDetailsForGrid>> GetAllCompanyDetails()
         {
             try
             {
-                return await _db.Set<vmGetAllCompanyDetails>().FromSqlInterpolated($"EXEC GetAllCompanyDetails").ToListAsync();
+                return await _db.Set<vmGetAllCompanyDetailsForGrid>().FromSqlInterpolated($"EXEC GetAllCompanyDetails").ToListAsync();
             }
             catch
             {
-                return new List<vmGetAllCompanyDetails>();
+                return new List<vmGetAllCompanyDetailsForGrid>();
             }
         }
 
@@ -107,6 +107,7 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
                         @IsDisplayOnLogin = {companyDetails.IsDisplayOnLogin},
                         @LetterHeadFooterUrl = {companyDetails.LetterHeadFooterUrl},
                         @LetterHeadHeaderUrl = {companyDetails.LetterHeadHeaderUrl},
+                        @BranchIds = {companyDetails.BranchIds},
                         @IsDeleted = {companyDetails.IsDeleted},
                         @IsEnabled = {companyDetails.IsEnabled},
                         @IsBlocked = {companyDetails.IsBlocked},
@@ -184,6 +185,7 @@ namespace HRMS_Infrastructure.Repository.CompanyInformation
                         @SelectWeekOffDay = {companyDetails.SelectWeekOffDay},
                         @AlternateWeekOffDay = {companyDetails.AlternateWeekOffDay},
                         @AlternateFullWeekOff = {companyDetails.AlternateFullWeekOff},
+                        @BranchIds = {companyDetails.BranchIds},
                         @UpdatedDate = {companyDetails.UpdatedDate},
                         @UpdatedBy = {companyDetails.UpdatedBy},
                         @DigitsForEmployeeCode = {companyDetails.DigitsForEmployeeCode},

@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.DbContext;
+using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.importData;
@@ -29,12 +30,13 @@ namespace HRMS_Infrastructure.Repository.Salary
                 var monthParam = new SqlParameter("@Month", (object?)filter.Month ?? DBNull.Value);
                 var yearParam = new SqlParameter("@Year", (object?)filter.Year ?? DBNull.Value);
                 var empCodeParam = new SqlParameter("@EmpCode", (object?)filter.EmpCode ?? DBNull.Value);
+                var branchidParam = new SqlParameter("@BranchId", (object?)filter.BranchId ?? DBNull.Value);
                 var startDateParam = new SqlParameter("@StartDate", (object?)filter.StartDate ?? DBNull.Value);
                 var endDateParam = new SqlParameter("@EndDate", (object?)filter.EndDate ?? DBNull.Value);
 
                 return await _db.Set<GetAllDeductionData>()
-              .FromSqlRaw("EXEC [dbo].[GetMonthlyDeductionData] @Month, @Year, @EmpCode, @StartDate, @EndDate",
-                  monthParam, yearParam, empCodeParam, startDateParam, endDateParam)
+              .FromSqlRaw("EXEC [dbo].[GetMonthlyDeductionData] @Month, @Year, @EmpCode,@BranchId, @StartDate, @EndDate",
+                  monthParam, yearParam, empCodeParam, branchidParam, startDateParam, endDateParam)
               .ToListAsync();
             }
             catch (Exception ex)
@@ -72,7 +74,7 @@ namespace HRMS_Infrastructure.Repository.Salary
             existingRecord.PF = deduction.PF;
             existingRecord.ESIC = deduction.ESIC;
             existingRecord.PT = deduction.PT;
-            existingRecord.Insurance = deduction.Insurance;
+            //existingRecord.Insurance = deduction.Insurance;
             existingRecord.LWF = deduction.LWF;
             existingRecord.TDS = deduction.TDS;
             existingRecord.UpdatedBy = deduction.UpdatedBy;

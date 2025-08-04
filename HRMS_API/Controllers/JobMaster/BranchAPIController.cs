@@ -1,5 +1,7 @@
 ﻿using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.importData;
+using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Authorization;
@@ -8,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HRMS_API.Controllers.JobMaster
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class BranchAPIController : ControllerBase
@@ -19,13 +22,169 @@ namespace HRMS_API.Controllers.JobMaster
             _unitOfWork = unitOfWork;
         }
 
-        [HttpGet("GetAllBranch")]
-        public async Task<APIResponse> GetAllBranch()
+        [HttpGet("GetAllBranches")]
+        public async Task<APIResponse> GetAllBranches()
         {
             try
             {
-                var data = await _unitOfWork.BranchRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
-                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+                var data = await _unitOfWork.BranchRepository.GetAllBranches(new vmCommonGetById { });
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+
+        [HttpGet("GetBranchById/{id}")]
+        public async Task<APIResponse> GetBranchById(int id)
+        {
+            try
+            {
+                var data = await _unitOfWork.BranchRepository.GetBranchById(new vmCommonGetById { Id = id });
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve record. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetAllCityByStateId/{stateId}")]
+        public async Task<APIResponse> GetAllCityByStateId(int stateId)
+        {
+            try
+            {
+                var data = await _unitOfWork.BranchRepository.GetAllCityByStateId(new vmCommonGetById { Id = stateId });
+                if (data == null||!data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve record. Please try again later." };
+            }
+        }
+
+        [HttpPost("CreateBranch")]
+        public async Task<APIResponse> CreateBranch(Branch model)
+        {
+            try
+            {
+                if (model == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Branch details cannot be null." };
+
+                var exists = await _unitOfWork.BranchRepository.GetAllBranches(new vmCommonGetById { Title = model.BranchName.ToLower() });
+
+                if (exists.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = $"Record with name '{model.BranchName}' already exists." };
+
+                var existBranch = await _unitOfWork.BranchRepository.CheckExistBranchCode(new vmCommonGetById { Title = model.BranchCode });
+                if (existBranch != null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = $"Record with branchCode '{model.BranchCode}' already exists." };
+
+                var result = await _unitOfWork.BranchRepository.CreateBranch(model);
+
+                if (result.Id > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been added successfully." };
+
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to add record. Please try again later." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to add record. Please try again later." };
+            }
+        }
+
+        [HttpPut("UpdateBranch")]
+        public async Task<APIResponse> UpdateBranch(Branch model)
+        {
+            try
+            {
+                if (model == null || model.BranchId == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Branch details cannot be null." };
+
+                var check = await _unitOfWork.BranchRepository.GetBranchById(new vmCommonGetById { Id = model.BranchId });
+                if (check == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
+
+                var exists = await _unitOfWork.BranchRepository.GetAllBranches(new vmCommonGetById { Title = model.BranchName.ToLower() });
+
+                if (exists.Any(x => x.BranchId != model.BranchId && x.BranchName.ToLower() == model.BranchName.ToLower()))
+                    return new APIResponse { isSuccess = false, ResponseMessage = $"Record with name '{model.BranchName}' already exists." };
+
+                var exixtBrnachCode = await _unitOfWork.BranchRepository.CheckExistBranchCode(new vmCommonGetById { Title = model.BranchCode });
+                if (exixtBrnachCode != null)
+                {
+                    if(exixtBrnachCode.BranchId!=model.BranchId)
+                    {
+                        return new APIResponse { isSuccess = false, ResponseMessage = $"Record with BranchCode '{model.BranchCode}' already exists." };
+
+                    }
+                }
+
+                var result = await _unitOfWork.BranchRepository.UpdateBranch(model);
+
+                if (result.Id > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been updated successfully." };
+
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update record. Please try again later." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to update record. Please try again later." };
+            }
+        }
+
+        [HttpDelete("DeleteBranch")]
+        public async Task<APIResponse> DeleteBranch(DeleteRecordVM model)
+        {
+            try
+            {
+                if (model == null || model.Id == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
+
+                var check = await _unitOfWork.BranchRepository.GetBranchById(new vmCommonGetById { Id = model.Id });
+                if (check == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
+
+                var result = await _unitOfWork.BranchRepository.DeleteBranch(model);
+
+                if (result.Id > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been deleted successfully." };
+
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete record. Please try again later." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
+            }
+        }
+
+
+        [HttpGet("GetAllBranchByState/{State}")]
+        public async Task<APIResponse> GetAllBranchByState(string State)
+        {
+            try
+            {
+                //var data = await _unitOfWork.BranchRepository.GetAllAsync(x => x.State.ToLower() == State.ToLower() && x.IsDeleted == false && x.IsEnabled == true);
+                //if (data == null || !data.Any())
+                //{
+                //    return new APIResponse
+                //    {
+                //        isSuccess = false,
+                //        ResponseMessage = "No records found"
+                //    };
+                //}
+                return new APIResponse() { isSuccess = true, Data = null, ResponseMessage = "Records fetched successfully" };
             }
             catch (Exception err)
             {
@@ -39,25 +198,18 @@ namespace HRMS_API.Controllers.JobMaster
         }
 
 
-        [HttpGet("GetByBranchId/{id}")]
-        public async Task<APIResponse> GetByBranchId(int BranchId)
+
+        [HttpGet("GetBranchWiseEmpCount")]
+        public async Task<APIResponse> GetBranchWiseEmpCount()
         {
             try
             {
-                var data = await _unitOfWork.BranchRepository.GetAsync(x => x.BranchId == BranchId && x.IsEnabled == true && x.IsDeleted == false);
-                if (data == null)
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = "Record not found"
-                    };
-                }
+                var data = await _unitOfWork.BranchRepository.GetBranchWiseEmpCount();
 
-                return new APIResponse
+                return new APIResponse()
                 {
                     isSuccess = true,
-                    Data = data,
+                    Data = data, // should be a list/array
                     ResponseMessage = "Record fetched successfully"
                 };
             }
@@ -66,166 +218,28 @@ namespace HRMS_API.Controllers.JobMaster
                 return new APIResponse
                 {
                     isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to retrive records, Please try again later!"
-                };
-            }
-
-        }
-
-
-        [HttpPost("CreateBranch")]
-        public async Task<APIResponse> CreateBranch(Branch branch)
-        {
-            try
-            {
-                if (branch == null)
-                {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Branch details cannot be null" };
-                }
-
-                if(branch.BranchId == 0)
-                {
-                    var isExists = await _unitOfWork.BranchRepository.GetAllAsync(asd => asd.BranchName.ToLower().Trim() == branch.BranchName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
-                    if (isExists.Any())
-                    {
-                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{branch.BranchName}' already exists" };
-                    }
-                    branch.CreatedDate = DateTime.UtcNow;
-                    await _unitOfWork.BranchRepository.AddAsync(branch);
-                    await _unitOfWork.CommitAsync();
-
-                    return new APIResponse() { isSuccess = true, Data = branch, ResponseMessage = "The record has been saved successfully" };
-                }
-                else
-                {
-                    var oldBranch = await _unitOfWork.BranchRepository.GetAsync(asd => asd.BranchId == branch.BranchId && asd.IsEnabled == true && asd.IsDeleted == false);
-
-                    if (oldBranch != null)
-                    {
-                        bool isDeleted = await _unitOfWork.BranchRepository.UpdateBranch(branch);
-                        if (!isDeleted)
-                        {
-                            return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
-                        }
-                        await _unitOfWork.CommitAsync();
-
-                        return new APIResponse() { isSuccess = true, Data = branch, ResponseMessage = "The record has been updated successfully" };
-                    }
-                    else
-                    {
-                        return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
-                    }
-                }
-
-
-                
-            }
-            catch (Exception err)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to add records, Please try again later!"
-                };
-            }
-
-        }
-
-
-        [HttpPut("UpdateBranch")]
-        public async Task<APIResponse> UpdateBranch(Branch branch)
-        {
-            try
-            {
-                if (branch == null)
-                {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Branch details cannot be null" };
-                }
-
-                var oldBranch = await _unitOfWork.BranchRepository.GetAsync(asd => asd.BranchId == branch.BranchId && asd.IsEnabled == true && asd.IsDeleted == false);
-
-                if (oldBranch != null)
-                {
-                    bool isDeleted = await _unitOfWork.BranchRepository.UpdateBranch(branch);
-                    if (!isDeleted)
-                    {
-                        return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
-                    }
-                    await _unitOfWork.CommitAsync();
-
-                    return new APIResponse() { isSuccess = true, Data = branch, ResponseMessage = "The record has been updated successfully" };
-                }
-                else
-                {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Record not found. Please select a valid record" };
-                }
-
-            }
-            catch (Exception err)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to update record, Please try again later!"
+                    Data = err.Message, // ✅ Set Data to null (not a string)
+                    ResponseMessage = $"Error: {err.Message}" // still show message in ResponseMessage
                 };
             }
         }
 
-
-        [HttpDelete("Delete")]
-        public async Task<APIResponse> Delete(DeleteRecordVM DeleteRecord)
+        [HttpGet("GetAllBranchesListByCompanyId/{companyId}")]
+        public async Task<APIResponse> GetAllBranchesListByCompanyId(int companyId)
         {
             try
             {
-                if (DeleteRecord == null)
-                {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
-                }
-
-                var data = await _unitOfWork.BranchRepository.SoftDelete(DeleteRecord);
-                await _unitOfWork.CommitAsync();
-
-                return new APIResponse() { isSuccess = true, Data = DeleteRecord, ResponseMessage = "The record has been deleted successfully" };
-            }
-            catch (Exception err)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to delete records, Please try again later!"
-                };
-            }
-        }
-
-        [HttpGet("GetAllBranchByState/{State}")]
-        public async Task<APIResponse> GetAllBranchByState(string State)
-        {
-            try
-            {
-                var data = await _unitOfWork.BranchRepository.GetAllAsync(x => x.State.ToLower() == State.ToLower() && x.IsDeleted == false && x.IsEnabled == true);
+                var data = await _unitOfWork.BranchRepository.GetAllBranchesListByCompanyId(new vmCommonGetById { CompanyId=companyId});
                 if (data == null || !data.Any())
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = "No records found"
-                    };
-                }
-                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully" };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
             }
-            catch (Exception err)
+            catch (Exception ex)
             {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to retrieve records, Please try again later!"
-                };
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
+
     }
 }

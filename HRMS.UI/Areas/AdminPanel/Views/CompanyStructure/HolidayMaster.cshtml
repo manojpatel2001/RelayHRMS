@@ -1,0 +1,702 @@
+﻿@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "Holiday Master";
+	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+	var uri = new Uri(baseUrl);
+	string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+
+<div class="card">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row">
+			<div class="col-6">
+				<h6 class="pt-2 mb-0">
+					Holiday Master
+				</h6>
+			</div>
+
+			<div class="col-6 d-flex justify-content-end align-items-center">
+				<div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
+					<button id="addHolidayMaster"
+							type="button"
+							class="btn mr-1 rounded-1"
+							style="background-color:#2395c6; color:white;">
+						Add Holiday
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card-body">
+		
+		<div class="row">
+			<div class="col-md-12">
+				<div class="form-group">
+
+					<div class="grid-wrapper " style="position: relative; ">
+						<div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+							 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+							<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px;                                            height: 30px; animation: spin 1s linear infinite;" />
+							<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+						</div>
+						<div id="gridTag">
+							<div class="rowCount" id="rowCount1"></div>
+							<div id="gridContainerHolidayMaster"></div>
+						</div>
+						<div id="noRecord" style="display:none;">
+							No Record Found!
+						</div>
+
+
+					</div>
+
+					
+
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="modal fade" id="addHolidayMasterModel" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Add</span> Holiday Master</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font">
+				<div class="row">
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<input type="text"
+								data-trim-in
+								   class="form-control floating-input"
+								   placeholder="Holiday Name"
+								   id="txtHolidayName" />
+							<label class="floating-label" for="txtHolidayName">Holiday Name<span class="required-star">*</span></label>
+
+						</div>
+						<span id="spnHolidayName" style="color:red; display:none;">Please Enter Holiday Name</span>
+
+					</div>
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<select id="dropdownState" class="form-control floating-input">
+								<option value="" selected disabled>Select State</option>
+
+							</select>
+
+							<label class="floating-label" for="dropdownHoliday">State<span class="required-star">*</span></label>
+
+						</div>
+						<span id="spnState" style="color:red; display:none;">Please Select State</span>
+
+					</div>
+					@* <div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<label class="floating-label" for="branches">Branch</label>
+ 						<div id="branches"></div> <!-- DevExtreme Multi-select will appear here -->
+							<span id="spnBranch" style="color:red; display:none;">Please Select Branch</span>
+						</div>
+					</div> *@
+					
+
+				
+
+				@* <div class="row" id="MaxLimitTable" style="display:none;">
+					<div class="col-md-12">
+						<div class="form-group mt-3 position-relative">
+						<table id="selectedBranchesTable" class="table table-bordered">
+							<thead>
+								<tr>
+										<th style="width: 50%;">Branch Name</th>
+										<th style="width: 50%;">Approval Max Limit</th> <!-- Column title -->
+								</tr>
+							</thead>
+							<tbody></tbody>
+						</table>
+
+						</div>
+					</div>
+				</div> *@
+
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<label>Multiple Holiday:</label>
+							<input type="checkbox"
+								   class="form-control-input"
+								   placeholder=""
+								   id="txtMultipleHoliday" />
+						</div>
+					</div>
+
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<input type="date"
+								   class="form-control floating-input"
+								   placeholder="From Date"
+								   id="txtFromDate" />
+							<label class="floating-label" for="txtFromDate"><span id="spnNameFromDate">Holidate </span> Date<span class="required-star">*</span></label>
+							<span id="spnFromDate" style="color:red; display:none;">Please Select Holiday Date</span>
+
+						</div>
+					</div>
+
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative" id="tagToDate" style="display:none;">
+							<input type="date"
+								   class="form-control floating-input"
+								   placeholder="To Date"
+								   id="txtToDate" />
+							<label class="floating-label" for="txtToDate">To Date<span class="required-star">*</span></label>
+
+						</div>
+						<span id="spnToDate" style="color:red; display:none;">Please Select To Date</span>
+
+					</div>
+
+				
+
+					<div class="col-md-12">
+						<div class="form-group mt-3 position-relative">
+							<textarea class="form-control floating-input"
+									  placeholder="Message Text"
+									  id="txtMessageText"></textarea>
+							<label class="floating-label" for="txtMessageText">Message Text</label>
+
+						</div>
+					</div>
+
+				</div>
+
+				<div class="row">
+
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<b>Holiday Category: </b>
+						</div>
+					</div>
+
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<label>National</label>
+							<input type="radio"
+								   name="category"
+								   checked
+								   class="form-control-input"
+								   placeholder=""
+								   id="txtNational" />
+						</div>
+
+					</div>
+
+					<div class="col-md-4">
+						<div class="form-group mt-3 position-relative">
+							<label>
+								Festival
+							</label>
+							<input type="radio"
+								   name="category"
+								   class="form-control-input"
+								   placeholder=""
+								   id="txtFestival" />
+						</div>
+
+					</div>
+
+				</div>
+
+				<div class="row">
+
+					
+					<div class="col-md-3">
+						<div class="form-group mt-3 position-relative">
+							<label >Repeat Annually </label>
+							<input type="checkbox"
+								   class="form-control-input holiday-checkbox"
+								   placeholder=""
+								   id="checkRepeatAnnually" />
+						</div>
+
+					</div>
+
+				@* 	<div class="col-md-3">
+						<div class="form-group mt-3 position-relative">
+							<label>
+								PresentCompulsory
+							</label>
+							<input type="checkbox"
+								   class="form-control-input"
+								   placeholder=""
+								   id="checkPresentCompulsory" />
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="form-group mt-3 position-relative">
+							<label>
+								SMS
+							</label>
+							<input type="checkbox"
+								   class="form-control-input"
+								   placeholder=""
+								   id="checkSMS" />
+						</div>
+
+					</div>
+
+					<div class="col-md-3">
+						<div class="form-group mt-3 position-relative">
+							<label>Optional Holiday </label>
+							<input type="checkbox"
+								   class="form-control-input holiday-checkbox"
+								   placeholder=""
+								   id="checkOptionalHoliday" />
+						</div>
+
+					</div> *@
+
+				</div>
+
+			</div>
+			<div class="modal-footer btn-heading-title">
+				<button type="button" class="btn btn-primary" id="btnCreateHoliday" style="background-color:#2395c6; color:white;">Save</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script>
+	   const Token=localStorage.getItem("authToken");
+	   const userId=localStorage.getItem("EmployeeId");
+	let HolidayMasterId=0;
+
+	$("#addHolidayMaster").click( () => {
+			 resetHolidayModalFields();
+		$("#addHolidayMasterModel").modal('show');
+
+	})
+
+	$(()=>{
+		bindState();
+		
+
+	})
+
+	function bindState() {
+		$.ajax({
+			type: "GET",
+			 url: '@baseUrl/StateAPI/GetAllState',
+				headers: {
+			   'Authorization': 'Bearer ' + Token
+		   },
+			success: function (data) {
+				if (data.isSuccess ) {
+					const $dropdown = $('#dropdownState');
+					$dropdown.empty();
+					$dropdown.append('<option value="" selected disabled>Select State </option>');
+
+					$.each(data.data, function (index, state) {
+						   $dropdown.append(`<option value="${state.stateId}">${state.stateName}</option>`);
+					});
+				} 
+			},
+			error: function (xhr, status, error) {
+				console.error("Error fetching states:", error);
+				
+			}
+		});
+	}
+
+
+
+
+	$(document).ready(function () {
+
+		$("#txtMultipleHoliday").on("change", function () {
+			   $("#spnFromDate").hide();
+			   $("#spnToDate").hide();
+		   if ($(this).is(":checked"))
+		   {
+				$("#tagToDate").show();
+				$("#spnNameFromDate").text('From');
+		   }
+		   else{
+			   $("#tagToDate").hide();
+				$("#spnNameFromDate").text('Holiday');
+		   }
+		})
+
+	
+	});
+
+
+	$(()=>{
+		localStorage.removeItem('holidayMasterLocalStorage');
+
+		HolidayMasterDataTable();
+	})
+	function HolidayMasterDataTable() {
+		   $('#grid-loader').addClass('d-flex').show();
+		$.ajax({
+			type: "GET",
+			url: '@baseUrl/HolidayMasterAPI/GetAllHolidayMaster', // Updated URL
+			   headers: {
+				  'Authorization': 'Bearer ' + Token
+			  },
+			success: function (data) {
+				if (data.isSuccess) {
+
+					$("#gridContainerHolidayMaster").dxDataGrid({
+						dataSource: data.data,
+						stateStoring: { enabled: true, type: 'localStorage', storageKey: 'holidayMasterLocalStorage' },
+
+						columns: [
+								
+							{ dataField: 'holidayName', caption: 'Holiday Name', alignment: 'center' },
+							{ dataField: 'stateName', caption: 'State Name', alignment: 'center' },
+							{
+								dataField: 'fromDate',
+								caption: 'From Date',
+								dataType: 'date',
+								format: 'dd/MM/yyyy',
+								alignment: 'center'
+							},
+							{
+								dataField: 'toDate',
+								caption: 'To Date',
+								dataType: 'date',
+								format: 'dd/MM/yyyy',
+								alignment: 'center'
+							},
+							{
+								dataField: 'holidaycategory',
+								caption: 'Category',
+								alignment: 'center'
+							},
+							{
+								dataField: 'repeatAnnually',
+								caption: 'Repeat Yearly',
+								alignment: 'center',
+								cellTemplate: function (container, options) {
+									const value = options.value;
+									$('<div>').text(value ? 'Yes' : 'No').appendTo(container);
+								}
+							},
+							// {
+							// 	dataField: 'isActive',
+							// 	caption: 'IsActive',
+							// 	alignment: 'center',
+							// 	cellTemplate: function (container, options) {
+							// 		const value = options.value;
+							// 		$('<div>').text(value ? 'Yes' : 'No').appendTo(container);
+							// 	}
+							// },
+							
+							   {
+							   dataField: '',
+							   caption: '',
+							   alignment: 'center',
+							   dataType: 'string',
+							   format: '',
+							   type: 'buttons',
+							   width: '50px',
+							   cellTemplate: function (container, options) {
+
+								   var buttonElement = $('<div class="d-flex order-actions">' +
+											  '<a href="javascript:;" class="edit-action" title="Edit Holiday">' +
+										   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+										   '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+										   '</svg>' +
+										   '</a>' +
+										   '</div>')
+									   .on('dxclick', function () {
+											  updateHoliday(options.data);
+									   }).appendTo(container);
+
+								   // Optional: update title attribute on SVG for consistency
+								   buttonElement.find('svg').attr('title', 'Edit Holiday');
+							   }
+						   },
+									{
+							   dataField: '',
+							   caption: '',
+							   alignment: 'center',
+							   dataType: 'string',
+							   format: '',
+							   type: 'buttons',
+							   width: '50px',
+							   cellTemplate: function (container, options) {
+								   var buttonElement = $('<div class="d-flex order-actions">' +
+									   '<a href="javascript:;" class="delete-action" title="Delete Holiday">' +
+									   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+									   '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+									   '</svg>' +
+									   '</a>' +
+									   '</div>')
+									   .on('dxclick', function () {
+										   deleteHoliday(options.data);
+									   }).appendTo(container);
+
+								   var svgElement = buttonElement.find('svg');  // Accessing the svg element directly
+								   svgElement.attr('title', 'Delete Holiday');
+							   }
+						   }
+
+						],
+						columnsAutoWidth: true,
+						showBorders: true,
+						paging: { pageSize: 10 },
+						pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+						filterRow: { visible: true, applyFilter: "auto" },
+						headerFilter: { visible: true },
+						groupPanel: { visible: true },
+						searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+						   loadPanel: {
+							   enabled: false
+						   },
+						onContentReady(e) {
+							   $('#grid-loader').removeClass('d-flex').hide();
+							$('#rowCount1').html('Total Records: ' + e.component.totalCount());
+						}
+					});
+				} 
+			},
+			error: function (xhr, status, error) {
+				   $('#grid-loader').removeClass('d-flex').hide();
+				console.error("AJAX Error: " + status + " - " + error);
+				
+			}
+		});
+	}
+
+	   
+ $("#btnCreateHoliday").click(async function () {
+		$("#btnCreateHoliday").prop("disabled", true);
+		let holidayName = $("#txtHolidayName").val();
+		let state = $("#dropdownState").val();
+		//let branches = $("#branches").dxTagBox("instance").option("value") || [];
+		let fromDate = $("#txtFromDate").val();
+		let toDate = $("#txtToDate").val();
+		let messageText = $("#txtMessageText").val()?.trim();
+
+		if (!$('#txtMultipleHoliday').is(':checked')) {
+			toDate = fromDate;
+		}
+
+		//let approvalLimits = await getSelectedData();
+
+		// Validation
+		let isValid = true;
+
+		if (!holidayName) {
+			$("#spnHolidayName").show();
+			isValid = false;
+		} else {
+			$("#spnHolidayName").hide();
+		}
+
+		if (!state) {
+			$("#spnState").show();
+			isValid = false;
+		} else {
+			$("#spnState").hide();
+		}
+
+		
+		if (!fromDate) {
+		   $("#spnFromDate").show();
+			isValid = false;
+		}
+		else{
+				$("#spnFromDate").hide();
+		}
+
+		if ($('#txtMultipleHoliday').is(':checked')) 
+		{
+			
+			$("#spnFromDate").text("Please Select From Date");
+			if (!toDate) {
+			  $("#spnToDate").show();
+			   isValid = false;
+		   }
+		   else{
+				   $("#spnToDate").hide();
+		   }
+		}
+
+		if (!isValid) 
+		{
+			  $("#btnCreateHoliday").prop("disabled", false);
+		      return;
+		}
+			  var createdBy=HolidayMasterId==0?userId:null;
+				  var updatedBy=HolidayMasterId==0?null:userId;
+		let model = {
+			HolidayMasterId: HolidayMasterId || 0,
+			HolidayName: holidayName,
+			StateId: state,
+			
+			MultipleHoliday: $('#txtMultipleHoliday').is(':checked'),
+			FromDate: fromDate,
+			ToDate: toDate,
+			MessageText: messageText,
+			Holidaycategory: $('input[name="category"]:checked').attr('id') === "txtNational" ? "National" : "Festival",
+			RepeatAnnually: $('#checkRepeatAnnually').is(':checked'),
+		    IsActive:true,
+
+			   Createdby: createdBy,
+			   UpdatedBy: updatedBy
+		};
+
+		$.ajax({
+		  url:HolidayMasterId == 0 ? '@baseUrl/HolidayMasterAPI/CreateHolidayMaster':'@baseUrl/HolidayMasterAPI/UpdateHolidayMaster',
+			type: HolidayMasterId == 0 ? 'POST' : 'PUT',
+			contentType: 'application/json',
+			   headers: {
+				  'Authorization': 'Bearer ' + Token
+			  },
+			data: JSON.stringify(model),
+			success: function (response) {
+				if (response.isSuccess) {
+					round_success_noti(response.responseMessage);
+					HolidayMasterDataTable();
+					$('#addHolidayMasterModel').modal('hide');
+				} else {
+					round_error_noti(response.responseMessage);
+				}
+	     	   $("#btnCreateHoliday").prop("disabled", false);
+
+			},
+			error: function (xhr, status, error) {
+				console.error('Error:', error);
+								 $("#btnCreateHoliday").prop("disabled", false);
+				round_error_noti('Unable to add holiday');
+			}
+		});
+	});
+
+	function updateHoliday(data) {
+		   resetHolidayModalFields();
+			$("#btnCreateHoliday").prop("disabled", false);
+		   $('.formType').text('Update');
+			  $('#btnCreateHoliday').text('Update');
+
+		$('#txtHolidayName').val(data.holidayName);
+		   $("#dropdownState").val(data.stateId||'');
+			
+	    $('#txtFromDate').val(data.fromDate?.substring(0, 10));
+		$('#txtToDate').val(data.toDate?.substring(0, 10));
+		$('#txtMessageText').val(data.messageText || '');
+
+		$('#txtMultipleHoliday').prop('checked', data.multipleHoliday);
+		if(data.multipleHoliday){
+			$('#tagToDate').show();
+				$('#spnNameFromDate').text('From');
+		}
+		else{
+				 $('#tagToDate').hide();
+				   $('#spnNameFromDate').text('Holiday');
+		}
+		if (data.holidaycategory?.toLowerCase() === 'national') {
+			$('#txtNational').prop('checked', true);
+		} else {
+			$('#txtFestival').prop('checked', true);
+		}
+				   HolidayMasterId = data.holidayMasterId;
+
+		$('#checkRepeatAnnually').prop('checked', data.repeatAnnually);
+		
+		$('#addHolidayMasterModel').modal('show');
+
+	}
+
+	function deleteHoliday(data) {
+		if (!confirm("Are you sure you want to delete this holiday?")) {
+			return; // Cancel the delete operation
+		}
+
+		var deleteObj = {
+			id: data.holidayMasterId,
+			deletedBy: userId // Set this to the actual user if needed
+		};
+
+		$.ajax({
+			url: '@baseUrl/HolidayMasterAPI/DeleteHolidayMaster',
+			type: 'DELETE',
+			contentType: 'application/json',
+			   headers: {
+				  'Authorization': 'Bearer ' + Token
+			  },
+			data: JSON.stringify(deleteObj),
+			success: function (response) {
+				if (response.isSuccess) {
+					round_success_noti(response.responseMessage);
+				} else {
+					round_error_noti(response.responseMessage);
+				}
+				   HolidayMasterDataTable();
+			},
+			error: function (error) {
+				console.log('Error deleting holiday!');
+			}
+		});
+	}
+
+
+	function resetHolidayModalFields() {
+		// Reset input fields
+		   HolidayMasterId=0;
+		$('#txtHolidayName').val('');
+		$('#txtFromDate').val('');
+		$('#txtToDate').val('');
+		$('#txtMessageText').val('');
+
+		// Reset dropdowns
+		$('#dropdownState').val('');
+		// $('#dropdownState').prop('disabled',false);
+
+		$('#txtMultipleHoliday').prop('checked', false);
+			$('#tagToDate').hide();
+		$('#spnNameFromDate').text('Holiday');
+		// $('#checkPresentCompulsory').prop('checked', false);
+		// $('#checkSMS').prop('checked', false);
+		// $('#checkOptionalHoliday').prop('checked', false);
+		   $('#txtNational').prop('checked', true);
+
+		// if ($("#branches").dxTagBox("instance")) {
+		// 	$("#branches").dxTagBox("instance").option("value", []);
+		// 	   $("#branches").dxTagBox("instance").option("disabled", true);
+		// }
+
+		// $('#selectedBranchesTable tbody').empty();
+
+		// $('#MaxLimitTable').hide();
+				$("#btnCreateHoliday").prop("disabled", false);
+	$('.formType').text('Add');
+		  $('#btnCreateHoliday').text('Save');
+		   $("#spnToDate").hide();
+			  $("#spnFromDate").hide();
+				 $("#spnState").hide();
+					$("#spnHolidayName").hide();
+	}
+
+
+	$(()=>{
+			 $('#addHolidayMasterModel').on('hidden.bs.modal', function () {
+				   resetHolidayModalFields();
+			   });
+	})
+	
+
+
+</script>

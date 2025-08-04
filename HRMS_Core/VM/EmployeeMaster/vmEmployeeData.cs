@@ -18,6 +18,8 @@ namespace HRMS_Core.VM.EmployeeMaster
         public string? LastName { get; set; }
         public string? FullName { get; set; }
         public string? EmployeeCode { get; set; }
+        public string? AlfaEmployeeCode { get; set; }
+        public string? AlfaCode { get; set; }
         public DateTime? DateOfJoining { get; set; }
         public int? BranchId { get; set; }
         
@@ -41,7 +43,7 @@ namespace HRMS_Core.VM.EmployeeMaster
 
         public string? LoginAlias { get; set; }
         public string? Password { get; set; }
-        public string? ReportingManager { get; set; }
+        public int? ReportingManagerId { get; set; }
         public string? SubBranch { get; set; }
         public string? EnrollNo { get; set; }
 
@@ -55,6 +57,8 @@ namespace HRMS_Core.VM.EmployeeMaster
         public bool? Fixsalary { get; set; } = false;
         public bool? Probation { get; set; } = false;
         public bool? Trainee { get; set; } = false;
+        public int? WeekOffDetailsId { get; set; }
+        public bool? IsPermissionPunchInOut { get; set; } = false;
 
         //base model
         public bool? IsDeleted { get; set; } = false;

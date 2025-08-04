@@ -2,9 +2,95 @@
     ViewData["Title"] = "Employee Panel";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
     string baseUrl = ViewBag.BaseUrl;
+    string apiBase = ViewBag.BaseUrlAPI;
 }
+<link href="~/commoncss.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<title>Search Panel</title>
+
+
 
 <style>
+
+    /* For scrollable card sections */
+    #birthdayid > .px-2,
+    #workanniversaryid,
+    #anniversaryid {
+        max-height: 220px;
+        overflow-y: auto;
+    }
+
+    /* Add bottom padding inside list to avoid last card getting cut */
+    #groupedBirthdayList,
+    #workAnniversaryList,
+    #marriageAnniversaryList {
+        padding-bottom: 20px;
+    }
+
+    /* Card hover effect */
+    .card:hover {
+        transform: scale(1.01);
+        transition: 0.3s ease-in-out;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+    }
+
+    .group-wrapper {
+        text-align: left;
+    }
+    /* Header above grouped items (e.g. Today, 29 Jul 2025 etc.) */
+    .group-header {
+        background-color: #ffa726; /* Soft, slightly muted orange */
+        color: white; /* White text */
+        font-weight: bold;
+        display: inline-block; /* Makes it wrap like a chip */
+        padding: 6px 14px;
+        border-radius: 20px; /* More rounded like a badge */
+        font-size: 14px;
+        margin: 10px 0 8px 0;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1); /* Soft shadow */
+    }
+
+
+        .group-header.highlighted {
+            background-color: #fff3cd; /* Light yellow */
+            border-left: 5px solid #ffc107; /* Yellow border */
+            color: #856404; /* Dark yellow text */
+        }
+
+
+    .birthday-card {
+        display: flex;
+        align-items: center;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        border-radius: 12px;
+        /* 🟢 Soft gray glassy background */
+        background: rgba(240, 240, 240, 0.8); /* light gray with transparency */
+        backdrop-filter: blur(6px); /* for glass effect */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease-in-out;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+        .birthday-card:hover {
+            transform: scale(1.01);
+            background: rgba(240, 240, 240, 0.95); /* slightly less transparent on hover */
+        }
+
+
+        /* Profile image inside card */
+        .birthday-card img {
+            width: 45px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+
+    /* Optional: container styling for ul (not mandatory if not used) */
     .notification-list-container ul {
         max-height: 180px;
         overflow-y: auto;
@@ -13,28 +99,50 @@
         border: 1px solid #ddd;
     }
 
-    .card:hover {
-        transform: scale(1.01);
-        transition: 0.3s ease-in-out;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        cursor: pointer;
+    /*  #workAnniversaryList .list-group-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 15px;
+        }
+
+        #workAnniversaryList img {
+            border: 1px solid #ccc;
+        } */
+
+    .holiday-card {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        background: rgba(240, 240, 240, 0.8); /* Soft gray with transparency */
+        backdrop-filter: blur(6px); /* Glass effect */
+        border-radius: 12px;
+        padding: 12px 14px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease-in-out;
+        border: 1px solid rgba(0, 0, 0, 0.05);
     }
+
+        .holiday-card:hover {
+            transform: scale(1.01);
+            background: rgba(240, 240, 240, 0.95);
+            cursor: pointer;
+        }
+
 </style>
 
 <!-- Dashboard Heading -->
-<div class="card mb-4 border-0 shadow-sm bg-light">
+@* <div class="card mb-4 border-0 shadow-sm bg-light">
     <div class="card-body py-3">
         <div class="row align-items-center">
             <div class="col">
-                <h2 class="text-primary mb-0">Dashboard</h2>
+                <h5 class="text-primary mb-0">Dashboard</h5>
                 
             </div>
         </div>
     </div>
-</div>
+</div> *@
 
 <!-- Main Dashboard Cards -->
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4">
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 essPenalSec">
 
     <div class="col">
         <div id="employeeid" class="card h-100 radius-10 border-start border-3 border-info">
@@ -98,50 +206,85 @@
 <!-- Latest Members & Wishes Section -->
 <div class="row">
     <div class="col-md-3">
-        <div id="latestmemberid" class="card custom-height radius-10 border-start border-0 border-3 border-info">
-            <div class="card-body">
-                <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0">Latest Members</h6>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">No new members found.</p>
-                </div>
+        <div id="latestmemberid" class="card custom-dashboard-height radius-10 border-start border-0 border-3 border-info h-100">
+            <!-- Card Header -->
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">Latest Members</h6>
+                <span id="totalMemberCount" class="text-success"></span>
+            </div>
+
+            <div class="px-3 py-2">
+                <div id="companyNameDisplay" class="text-primary"></div>
+            </div>
+
+            <!-- Scrollable Card Body -->
+            <div class="card-body p-2" style="max-height: 260px; overflow-y: auto;" id="latestMembersContent">
+                <p class="card-text">Loading members...</p>
             </div>
         </div>
     </div>
 
+
     <div class="col-md-6">
-        <div class="card custom-height radius-10 border-start border-0 border-3 border-info">
+        <div class="card custom-dashboard-height radius-10 border-start border-0 border-3 border-info h-100">
+
             <div class="card-body">
                 <ul class="nav nav-tabs" id="wishesid" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active" id="birthday-tab" data-toggle="tab" href="#birthdayid" role="tab">Birthday</a>
+                        <a class="nav-link active p-2" id="birthday-tab" data-toggle="tab" href="#birthdayid" role="tab">
+                            🎂 Birthday
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="workanniversary-tab" data-toggle="tab" href="#workanniversaryid" role="tab">Work Anniversary</a>
+                        <a class="nav-link p-2" id="workanniversary-tab" data-toggle="tab" href="#workanniversaryid" role="tab">
+                            🧑‍💼 Work Anniversary
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="anniversary-tab" data-toggle="tab" href="#anniversaryid" role="tab">Marriage Anniversary</a>
+                        <a class="nav-link p-2" id="anniversary-tab" data-toggle="tab" href="#anniversaryid" role="tab">
+                            💍 Marriage Anniversary
+                        </a>
                     </li>
                 </ul>
 
                 <div class="tab-content mt-3">
+                    <!-- Birthday -->
                     <div class="tab-pane fade show active" id="birthdayid" role="tabpanel">
-                        <p class="card-text">Birthday</p>
+                        <div style="max-height: 220px; overflow-y: auto;" class="px-2">
+                            <div id="groupedBirthdayList" class="list-group">
+                                <p class="text-muted">Loading birthdays...</p>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Work Anniversary -->
                     <div class="tab-pane fade" id="workanniversaryid" role="tabpanel">
-                        <p class="card-text">Work Anniversary</p>
+                        <div style="max-height: 220px; overflow-y: auto;" class="px-2">
+                            <div id="workAnniversaryList" class="list-group">
+                                <!-- Will be filled by JS -->
+                            </div>
+                        </div>
                     </div>
+
+
                     <div class="tab-pane fade" id="anniversaryid" role="tabpanel">
-                        <p class="card-text">Marriage Anniversary</p>
+                        <div style="max-height: 220px; overflow-y: auto; " class="px-2">
+                            <div id="marriageAnniversaryList" class="list-group">
+                                <!-- No default loading text -->
+                            </div>
+                        </div>
                     </div>
+
                 </div>
             </div>
         </div>
     </div>
 
+
+
     <div class="col-md-3">
-        <div class="card custom-height radius-10 border-start border-0 border-3 border-info">
+        <div class="card custom-dashboard-height radius-10 border-start border-0 border-3 border-info h-100">
+
             <div class="card-body">
                 <ul class="nav flex-column nav-tabs" id="oganisationid" role="tablist">
                     <li class="nav-item">
@@ -154,8 +297,9 @@
 
                 <div class="tab-content mt-3">
                     <div class="tab-pane fade show active" id="holidayid" role="tabpanel">
-                        <p class="card-text">Upcoming Holiday</p>
+                        <div id="upcomingHolidayList"></div>
                     </div>
+
                     <div class="tab-pane fade" id="orgid" role="tabpanel">
                         <p class="card-text">Organization Policy</p>
                     </div>
@@ -163,13 +307,14 @@
             </div>
         </div>
     </div>
+
 </div>
 
 <br />
 
 <!-- Calendar and Fame Section -->
 <div class="row">
-    <div class="col-md-3">
+    @*  <div class="col-md-3">
         <div id="calenderid" class="card custom-height radius-10 border-start border-0 border-3 border-info">
             <div class="card-body">
                 <div class="card-header bg-success text-dark">
@@ -180,7 +325,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> *@
 
     <div class="col-md-3">
         <div id="fameid" class="card custom-height radius-10 border-start border-0 border-3 border-info">
@@ -213,4 +358,314 @@
     document.getElementById("reportid").addEventListener("click", function () {
         window.location.href = "@baseUrl/EmployeePanel/Home/Reports";
     });
+    const apiBase = '@apiBase';
+    const baseDomain = new URL(apiBase).origin;
+        console.log(baseDomain);
+
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany);
+    const Compid = parseInt(companyDetails.CompanyId);
+
+        $(document).ready(function () {
+            loadLatestMembers();
+              loadBirthday();
+              loadUpcomingHolidays();
+
+        });
+
+        $('#birthday-tab').on('click', function () {
+         loadBirthday();
+    });
+
+    $('#workanniversary-tab').on('click', function () {
+         loadworkanniversary();
+    });
+
+    $('#anniversary-tab').on('click', function () {
+         loadanniversary();
+    });
+    function loadLatestMembers() {
+         $('#companyNameDisplay').text(companyDetails.CompanyName);
+        const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetRecentJoinedEmployees?Compid=${Compid}`;
+
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+
+                let html = '';
+
+                // ✅ Correct: response.data should be the array
+                const members = response.data;
+
+
+                if (!Array.isArray(members) || members.length === 0) {
+                    html = '<p class="card-text">No new members found.</p>';
+                } else {
+                    html += '<ul class="list-group">';
+                    members.forEach(member => {
+                        const imageUrl = member.employeeProfileUrl || `${baseDomain}/default-image/avatar-2.png`;
+                     const joiningDate = member.dateOfJoining
+                        ? formatDateToDDMMYYYY(member.dateOfJoining)
+                        : '';
+
+                        html += `
+                            <li class="list-group-item d-flex align-items-center">
+                                <img src="${imageUrl}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;" alt="Profile" />
+                                <div>
+                                    <div><strong>${member.fullName}</strong></div>
+                                    <div class="text-muted">${member.designationName ?? ''}</div>
+                                    <small class="text-secondary">Joined: ${joiningDate}</small>
+                                </div>
+                            </li>`;
+                    });
+                    html += '</ul>';
+                }
+
+                $('#latestMembersContent').html(html);
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error:", error);
+                $('#latestmemberid .card-body:last').html('<p class="text-danger">Failed to load members.</p>');
+            }
+        });
+    }
+
+        function formatDateToDDMMYYYY(isoDate) {
+        if (!isoDate) return '';
+
+        const date = new Date(isoDate);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+
+        return `${day}-${month}-${year}`;
+    }
+
+
+            function loadBirthday() {
+        const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetTodayBirthdaysByCompany?Compid=${Compid}`;
+
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+                const members = response.data;
+
+                if (!Array.isArray(members) || members.length === 0) {
+                    $('#groupedBirthdayList').html('<p class="text-muted">No upcoming birthdays found.</p>');
+                    return;
+                }
+
+                const grouped = {};
+                members.forEach(member => {
+                    const dateObj = new Date(member.date);
+                    const key = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); // "30 Jul 2025"
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(member);
+                });
+
+                const todayKey = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+                let html = '';
+                for (const date in grouped) {
+                    const isToday = date === todayKey;
+                      html += `
+                      <div class="group-wrapper">
+                        <div class="group-header">${isToday ? '🎯 Today' : date}</div>
+                      </div>
+                    `;
+
+                    grouped[date].forEach(member => {
+                        const imageUrl = member.employeeProfileUrl ||`${baseDomain}/default-image/avatar-2.png`;
+                        html += `
+                            <div class="birthday-card">
+                                <img src="${imageUrl}" alt="Profile" />
+                                <div>
+                                    <div><strong>${member.fullName}</strong></div>
+                                    <div class="text-muted">${member.designationName ?? ''} | ${member.departmentName ?? ''}</div>
+                                    <div>${member.companyName ?? ''} - ${member.branchName ?? ''}</div>
+                                    <div class="text-primary">Turning Age: ${member.ageInYears ?? ''}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                $('#groupedBirthdayList').html(html);
+            },
+            error: function () {
+                $('#groupedBirthdayList').html('<p class="text-danger">Failed to load birthdays.</p>');
+            }
+        });
+    }
+
+
+
+
+           function loadworkanniversary() {
+        const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetTodayWorkAnniversary?Compid=${Compid}`;
+
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+                const members = response.data;
+
+                if (!Array.isArray(members) || members.length === 0) {
+                    $('#workAnniversaryList').html('<p class="card-text text-muted">No work anniversaries found.</p>');
+                    return;
+                }
+
+                const grouped = {};
+                members.forEach(member => {
+                    const dateObj = new Date(member.date);
+                    const key = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(member);
+                });
+
+                const todayKey = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+                let html = '';
+                for (const date in grouped) {
+                    const isToday = date === todayKey;
+                      html += `
+      <div class="group-wrapper">
+        <div class="group-header">${isToday ? '🎯 Today' : date}</div>
+      </div>
+    `;
+
+                    grouped[date].forEach(member => {
+                        const imageUrl = member.employeeProfileUrl || `${baseDomain}/default-image/avatar-2.png`;
+                        const formattedDate = new Date(member.date).toLocaleDateString('en-GB');
+                        html += `
+                            <div class="birthday-card">
+                                <img src="${imageUrl}" alt="Profile" />
+                                <div>
+                                    <div><strong>${member.fullName}</strong></div>
+                                    <div class="text-muted">${member.designationName ?? ''} | ${member.departmentName ?? ''}</div>
+                                    <div>${member.companyName ?? ''} - ${member.branchName ?? ''}</div>
+                                    <div>Joining Date: ${formattedDate}</div>
+                                    <div>Total Years: ${member.ageInYears ?? ''}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                $('#workAnniversaryList').html(html);
+            },
+            error: function () {
+                $('#workAnniversaryList').html('<p class="text-danger">Failed to load work anniversaries.</p>');
+            }
+        });
+    }
+
+
+
+
+         function loadanniversary() {
+        const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetTodayMarriageAnnivarsary?Compid=${Compid}`;
+
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+                const members = response.data;
+
+                if (!Array.isArray(members) || members.length === 0) {
+                    $('#marriageAnniversaryList').html('<p class="card-text text-muted">No anniversaries found.</p>');
+                    return;
+                }
+
+                const grouped = {};
+                members.forEach(member => {
+                    const dateObj = new Date(member.date);
+                    const key = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(member);
+                });
+
+                const todayKey = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+                let html = '';
+                for (const date in grouped) {
+                    const isToday = date === todayKey;
+                      html += `
+      <div class="group-wrapper">
+        <div class="group-header">${isToday ? '🎯 Today' : date}</div>
+      </div>
+    `;
+
+                    grouped[date].forEach(member => {
+                        const imageUrl = member.employeeProfileUrl || `${baseDomain}/default-image/avatar-2.png`;
+                        const formattedDate = new Date(member.date).toLocaleDateString('en-GB');
+                        html += `
+                            <div class="birthday-card">
+                                <img src="${imageUrl}" alt="Profile" />
+                                <div>
+                                    <div><strong>${member.fullName}</strong></div>
+                                    <div>Marriage Date: ${formattedDate}</div>
+                                    <div>Company: ${member.companyName ?? ''}</div>
+                                    <div>Branch: ${member.branchName ?? ''}</div>
+                                    <div>Designation: ${member.designationName ?? ''}</div>
+                                    <div>Department: ${member.departmentName ?? ''}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                $('#marriageAnniversaryList').html(html);
+            },
+            error: function () {
+                $('#marriageAnniversaryList').html('<p class="text-danger">Failed to load anniversaries.</p>');
+            }
+        });
+    }
+
+
+    function loadUpcomingHolidays() {
+        const apiUrl = `${apiBase}/EmployeeDashBoardAPI/Getupcommingholidays?Compid=${Compid}`;
+
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+                const holidays = response.data;
+                let html = '';
+
+                if (!Array.isArray(holidays) || holidays.length === 0) {
+                    html = '<p class="text-muted">No upcoming holidays found.</p>';
+                } else {
+                    holidays.forEach(holiday => {
+                        const dateObj = new Date(holiday.holidayDate);
+
+                        if (!isNaN(dateObj)) {
+                            const month = dateObj.toLocaleString('en-US', { month: 'short' });
+                            const day = dateObj.getDate().toString().padStart(2, '0');
+
+                            html += `
+                                <div class="holiday-card">
+                                    <div class="date-box">
+                                        <div class="month">${month}</div>
+                                        <div class="day">${day}</div>
+                                    </div>
+                                    <div class="holiday-name">${holiday.holidayName}</div>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+
+                $('#upcomingHolidayList').html(html);
+            },
+            error: function () {
+                $('#upcomingHolidayList').html('<p class="text-danger">Failed to load upcoming holidays.</p>');
+            }
+        });
+    }
+
+
 </script>

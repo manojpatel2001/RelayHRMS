@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.VM;
+using HRMS_Core.VM.CompanyStructure;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -18,12 +19,12 @@ namespace HRMS_API.Controllers.CompanyStructure
             _unitOfWork = unitOfWork;
         }
 
-        [HttpGet("GetAllWeekOffDetails")]
-        public async Task<APIResponse> GetAllWeekOffDetails()
+        [HttpPost("GetAllWeekOffDetails")]
+        public async Task<APIResponse> GetAllWeekOffDetails(vmCommonParameters vmCommonParameters)
         {
             try
             {
-                var data = await _unitOfWork.WeekOffMasterRepository.GetAllWeekOffDetails();
+                var data = await _unitOfWork.WeekOffMasterRepository.GetAllWeekOffDetails(vmCommonParameters);
                 if (data == null || !data.Any())
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Record not found" };
@@ -91,47 +92,54 @@ namespace HRMS_API.Controllers.CompanyStructure
         }
 
         [HttpPost("CreateWeekOffDetails")]
-        public async Task<APIResponse> CreateWeekOffDetails(WeekOffDetails weekOffDetails)
+        public async Task<APIResponse> CreateWeekOffDetails(VmWeekOffMaster weekOffDetails)
         {
             try
             {
                 if (weekOffDetails == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Week off details cannot be null" };
 
-                if (weekOffDetails.WeekOffDetailsId == 0)
+                foreach (var item in weekOffDetails.WeekOff)
                 {
-                    weekOffDetails.CreatedDate = DateTime.UtcNow;
-                    var result = await _unitOfWork.WeekOffMasterRepository.CreateWeekOffDetails(weekOffDetails);
-
-                    if (result.Id > 0)
+                    if (item.WeekOffDetailsId == 0)
                     {
-                        var newWeekOffDetails = await _unitOfWork.WeekOffMasterRepository.GetAsync(asd => asd.WeekOffDetailsId == result.Id);
+                        var weekOff = new WeekOffDetails
+                        {
+                            BranchId= weekOffDetails.BranchId,
+                            CompanyId= weekOffDetails.CompanyId,
+                            WeekOffDay=item.WeekOffDay,
+                            WeekOffName=item.WeekOffName,
+                            CreatedBy=weekOffDetails.CreatedBy,
+                        };
+                        var result = await _unitOfWork.WeekOffMasterRepository.CreateWeekOffDetails(weekOff);
 
-                        return new APIResponse { isSuccess = true, Data = newWeekOffDetails, ResponseMessage = "The record has been saved successfully" };
+                    }
+                    else
+                    {
+                        var checkValidId = await _unitOfWork.WeekOffMasterRepository.GetAsync(asd => asd.WeekOffDetailsId == item.WeekOffDetailsId && asd.IsEnabled == true && asd.IsDeleted == false);
+                        if (checkValidId != null)
+                        {
+                            var weekOff = new WeekOffDetails
+                            {
+                                WeekOffDetailsId = (int)item.WeekOffDetailsId,
+                                BranchId = weekOffDetails.BranchId,
+                                CompanyId = weekOffDetails.CompanyId,
+                                WeekOffDay = item.WeekOffDay,
+                                WeekOffName = item.WeekOffName,
+                                UpdatedBy= weekOffDetails.UpdatedBy
+                            };
+                            var result = await _unitOfWork.WeekOffMasterRepository.UpdateWeekOffDetails(weekOff);
+
+                        }
+
+
+                        
+
                     }
 
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Unable to add record" };
                 }
-                else
-                {
-                    var checkValidId = await _unitOfWork.WeekOffMasterRepository.GetAsync(asd => asd.WeekOffDetailsId == weekOffDetails.WeekOffDetailsId && asd.IsEnabled == true && asd.IsDeleted == false);
-                    if (checkValidId == null)
-                    {
-                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Please select valid record" };
-                    }
+                return new APIResponse { isSuccess = true, ResponseMessage = "The record has been saved successfully" };
 
-                    weekOffDetails.UpdatedDate = DateTime.UtcNow;
-                    var result = await _unitOfWork.WeekOffMasterRepository.UpdateWeekOffDetails(weekOffDetails);
-
-                    if (result.Id > 0)
-                    {
-                        var updatedWeekOffDetails = await _unitOfWork.WeekOffMasterRepository.GetAsync(asd => asd.WeekOffDetailsId == weekOffDetails.WeekOffDetailsId);
-
-                        return new APIResponse { isSuccess = true, Data = updatedWeekOffDetails, ResponseMessage = "The record has been updated successfully" };
-                    }
-
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update record" };
-                }
             }
             catch (Exception ex)
             {

@@ -1,5 +1,7 @@
 ﻿using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.importData;
+using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -80,7 +82,7 @@ namespace HRMS_API.Controllers.Salary
             {
                 if (empAttendance == null)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Shift details cannot be null" };
+                    return new APIResponse() { isSuccess = false, ResponseMessage = "empAttendance details cannot be null" };
                 }
 
                 empAttendance.CreatedDate = DateTime.UtcNow;
@@ -166,5 +168,33 @@ namespace HRMS_API.Controllers.Salary
         }
 
 
+        [HttpPost("GetEmpAttendance")]
+        public async Task<APIResponse> GetEmpAttendance(SearchFilterModel searchFilter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmpAttendanceRepository.GetEmpAttendanceDataAsync(searchFilter);
+
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+
+
+
+      
     }
 }

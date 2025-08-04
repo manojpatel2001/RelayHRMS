@@ -15,6 +15,7 @@ namespace HRMS_Core.Leave
         [Key]
         public int LeaveDetailsId { get; set; }
         public int? Emp_Id { get; set; }
+        public int? Comp_Id { get; set; }
          public string? Comp_Off_Leave { get; set; }
         public string? Half_Leave { get; set; }
         public string? LWP { get; set; }
