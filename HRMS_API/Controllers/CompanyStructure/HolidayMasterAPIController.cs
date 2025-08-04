@@ -92,16 +92,14 @@ namespace HRMS_API.Controllers.CompanyStructure
 
                 var exists = await _unitOfWork.HolidayMasterRepository.GetAllHolidayMaster(new vmCommonGetById { Title = holidayMaster.HolidayName.ToLower() });
 
-                if (holidayMaster.Holidaycategory != "National")
+                
+                if (exists.Any(x => x.HolidayName == holidayMaster.HolidayName && x.StateId == holidayMaster.StateId))
                 {
-                    if (exists.Any(x => x.StateId != holidayMaster.StateId))
-                        return new APIResponse { isSuccess = false, ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists." };
-                }
-                else
-                {
-                    if (exists.Any())
-                        return new APIResponse { isSuccess = false, ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists." };
-
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists for the selected state."
+                    };
                 }
 
 
@@ -142,16 +140,16 @@ namespace HRMS_API.Controllers.CompanyStructure
                     return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
 
                 var exists = await _unitOfWork.HolidayMasterRepository.GetAllHolidayMaster(new vmCommonGetById { Title = holidayMaster.HolidayName.ToLower() });
-                if (holidayMaster.Holidaycategory != "National")
+               
+                if (exists.Any(x => x.HolidayName == holidayMaster.HolidayName
+                 && x.StateId == holidayMaster.StateId
+                 && x.HolidayMasterId != holidayMaster.HolidayMasterId)) // exclude current
                 {
-                    if (exists.Any(x => x.StateId != holidayMaster.StateId && x.HolidayMasterId != holidayMaster.HolidayMasterId && x.HolidayName.ToLower() == holidayMaster.HolidayName.ToLower()))
-                        return new APIResponse { isSuccess = false, ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists." };
-                }
-                else
-                {
-                    if (exists.Any(x =>  x.HolidayMasterId != holidayMaster.HolidayMasterId && x.HolidayName.ToLower() == holidayMaster.HolidayName.ToLower()))
-                        return new APIResponse { isSuccess = false, ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists." };
-
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = $"Record with name '{holidayMaster.HolidayName}' already exists for the selected state."
+                    };
                 }
 
 
