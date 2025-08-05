@@ -106,7 +106,8 @@ namespace HRMS_Infrastructure.Repository.CompanyStructure
                 EXEC GetAllHolidayMaster
                      @HolidayName={filters.Title},
                     @IsDeleted = {filters.IsDeleted},
-                    @IsEnabled = {filters.IsEnabled}
+                    @IsEnabled = {filters.IsEnabled},
+                    @CompanyId={filters.Id}
             ").ToListAsync();
 
                 return result;
