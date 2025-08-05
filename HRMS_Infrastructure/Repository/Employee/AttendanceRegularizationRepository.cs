@@ -138,6 +138,81 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return new List<EmpInOutVM>();
             }
         }
+
+        public async Task<VMCommonResult> Create(AttendanceRegularization model)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC SP_AttendanceRegularization
+                    @Action = {"INSERT"},
+                    @EmpId = {model.EmpId},
+                    @FullName = {model.FullName},
+                    @BranchName = {model.BranchName},
+                    @ForDate = {model.ForDate},
+                    @ShiftTime = {model.ShiftTime},
+                    @InTime = {model.InTime},
+                    @OutTime = {model.OutTime},
+                    @Day = {model.Day},
+                    @Reason = {model.Reason},
+                    @Status = {model.Status},
+                    @CreatedBy = {model.CreatedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> Update(AttendanceRegularization model)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC SP_AttendanceRegularization
+                    @Action = {"UPDATE"},
+                    @EmpId = {model.EmpId},
+                    @FullName = {model.FullName},
+                    @BranchName = {model.BranchName},
+                    @ForDate = {model.ForDate},
+                    @ShiftTime = {model.ShiftTime},
+                    @InTime = {model.InTime},
+                    @OutTime = {model.OutTime},
+                    @Day = {model.Day},
+                    @Reason = {model.Reason},
+                    @Status = {model.Status},
+                    @CreatedBy = {model.CreatedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC SP_AttendanceRegularization
+                    @Action = {"DELETE"},
+                    @BranchId = {deleteRecord.Id},
+                    @DeletedBy = {deleteRecord.DeletedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
     }
 }
 

@@ -211,23 +211,56 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-
-
-        public async Task<bool> Update(AttendanceRegularization Record)
+        public async Task<VMCommonResult> CreateAttendanceDetails(AttendanceDetailsViewModel Record)
         {
-            var existingRecord = await _db.EmployeeInOutRecord.SingleOrDefaultAsync(asd => asd.Emp_Id == Record.EmpId && asd.For_Date == Record.ForDate);
-            if (existingRecord == null)
+            try
             {
-                return false;
-            }
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC SP_AttendanceDetails
+                        @Action = {"INSERT"},
+                        @EmployeeId = {Record.EmployeeId},
+                        @ShiftDate = {Record.ShiftDate},
+                        @InTime = {Record.InTime},
+                        @OutTime = {Record.OutTime},
+                        @WorkingHours = {Record.WorkingHours},
+                        @AttendanceStatus = {Record.AttendanceStatus},
+                        @SalaryDay = {Record.SalaryDay},
+                        @CreatedOn = {Record.CreatedOn}
+                    
+                ").ToListAsync();
 
-            existingRecord.In_Time = Record.InTime;
-            existingRecord.Out_Time = Record.OutTime;
-            //   existingRecord.Duration = Record.Duration;
-            existingRecord.Reason = Record.Reason;
-            existingRecord.UpdatedBy = Record.UpdatedBy;
-            existingRecord.UpdatedDate = DateTime.UtcNow;
-            return true;
+                return result.FirstOrDefault() ?? new VMCommonResult { Id = null };
+            }
+            catch (Exception)
+            {
+                return new VMCommonResult { Id = null };
+            }
+        }
+
+
+        public async Task<VMCommonResult> UpdateAttendanceDetails(AttendanceDetailsViewModel model)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC SP_AttendanceDetails
+                        @Action = {"UPDATE"},
+                        @EmployeeId = {model.EmployeeId},
+                        @ShiftDate = {model.ShiftDate},
+                        @InTime = {model.InTime},
+                        @OutTime = {model.OutTime},
+                        @WorkingHours = {model.WorkingHours},
+                        @AttendanceStatus = {model.AttendanceStatus},
+                        @SalaryDay = {model.SalaryDay},
+                        @CreatedOn = {model.CreatedOn}
+                    
+                ").ToListAsync();
+                return result.FirstOrDefault() ?? new VMCommonResult { Id = null };
+            }
+            catch (Exception)
+            {
+                return new VMCommonResult { Id = null };
+            }
         }
     }
 }
