@@ -15,5 +15,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<WishesReportVM>> GetTodayWorkAnniversary(int Companyid);
         Task<List<RecentEmployeeVM>> GetRecentJoinedEmployees(int Companyid);
         Task<List<UpcommingholidaysVM>> Getupcommingholidays(int Compid ,int EmployeeId);
+        Task<List<EmployeeDirectIndirectReport>> GetDirectIndirectEmp(int Compid ,int EmployeeId ,string Action);
     }
 }
