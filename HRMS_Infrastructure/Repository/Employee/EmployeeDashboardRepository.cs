@@ -25,6 +25,30 @@ namespace HRMS_Infrastructure.Repository.Employee
             _db = db;
         }
 
+        public async Task<List<EmployeeDirectIndirectReport>> GetDirectIndirectEmp(int Compid, int EmployeeId, string Action)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@ReportingId", EmployeeId) ,
+                    new SqlParameter("@CompanyId", Compid) ,
+                    new SqlParameter("@Action", Action) 
+
+                    };
+
+                var result = await _db.Set<EmployeeDirectIndirectReport>()
+                    .FromSqlRaw("EXEC GetDirectOrIndirectEmployees @ReportingId, @CompanyId, @Action", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EmployeeDirectIndirectReport>();
+            }
+        }
+
         public async Task<List<RecentEmployeeVM>> GetRecentJoinedEmployees(int Companyid)
         {
             try
@@ -116,18 +140,19 @@ namespace HRMS_Infrastructure.Repository.Employee
 
         }
 
-        public async Task<List<UpcommingholidaysVM>> Getupcommingholidays(int Compid)
+        public async Task<List<UpcommingholidaysVM>> Getupcommingholidays(int Compid, int EmployeeId)
         {
             try
             {
                 var parameters = new[]
                 {
-                    new SqlParameter("@CompanyId", Compid)
+                    new SqlParameter("@CompanyId", Compid) ,
+                    new SqlParameter("@EmployeeId", EmployeeId)
 
                     };
 
                 var result = await _db.Set<UpcommingholidaysVM>()
-                    .FromSqlRaw("EXEC sp_GetUpcomingHolidays @CompanyId", parameters)
+                    .FromSqlRaw("EXEC sp_GetUpcomingHolidays @CompanyId  , @EmployeeId", parameters)
                     .ToListAsync();
 
                 return result;

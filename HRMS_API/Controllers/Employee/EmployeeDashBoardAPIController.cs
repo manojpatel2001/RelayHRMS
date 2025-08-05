@@ -95,12 +95,30 @@ namespace HRMS_API.Controllers.Employee
         }
 
 
-        [HttpGet("Getupcommingholidays")]
-        public async Task<APIResponse> Getupcommingholidays(int Compid)
+        [HttpGet("GetDirectIndirectEmployee")]
+        public async Task<APIResponse> GetDirectIndirectEmployee(int Compid , int EmployeeId ,string Action )
         {
             try
             {
-                var data = await _unitOfWork.EmployeeDashboardRepository.Getupcommingholidays(Compid);
+                var data = await _unitOfWork.EmployeeDashboardRepository.GetDirectIndirectEmp(Compid , EmployeeId , Action);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+        [HttpGet("Getupcommingholidays")]
+        public async Task<APIResponse> Getupcommingholidays(int Compid , int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeDashboardRepository.Getupcommingholidays(Compid , EmployeeId);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)

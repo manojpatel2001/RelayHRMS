@@ -1,11 +1,12 @@
-﻿@{
-    ViewData["Title"] = "Shift Changes Details";
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "My Team Detail";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
     string baseUrl = ViewBag.BaseUrl;
+    string baseUrls = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrls);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
-
-
-<link href="~/commoncss.css" rel="stylesheet" />
 
 <style>
     .fixed-label {
@@ -15,57 +16,190 @@
         text-align: right;
     }
 
+
+    .section-heading {
+        background-color: #1e3a5f !important; /* Dark blue background */
+        color: white !important; /* White text */
+        font-weight: 600;
+        padding: 8px 15px; /* 4px height - smaller than main heading */
+        border-radius: 0.375rem 0.375rem 0 0; /* Rounded top corners */
+    }
+
+    .card-header.custom-header {
+        background-color: transparent !important;
+        border-bottom: none;
+        padding: 0;
+    }
+
+    /* Radio button styling */
+    .form-check-input:checked {
+        background-color: #1e3a5f;
+        border-color: #1e3a5f;
+    }
+
+    .form-check-label {
+        font-weight: 500;
+        color: #495057;
+    }
+
+    /* Grid container styling */
+    .grid-container {
+        margin-top: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
+
+    /* Radio button container styling */
+    .radio-container {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        padding: 15px;
+        border-radius: 0 0 0.375rem 0.375rem;
+    }
 </style>
-<div class="card">
-    <div class="card-header bg-transparent py-2">
+
+
+
+<div class="card mb-4">
+    <div class="card-header custom-header">
         <div class="row">
-            <div class="col-6">
-                <h4 class="mb-0">My Team Detail</h4>
-            </div>
-        </div>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-header bg-transparent">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h6 class="mb-0">Employee Records</h6>
-                </div>
+            <div class="col">
+                <h6 class="section-heading">Employee Records</h6>
             </div>
         </div>
 
-        <div class="card-body">
+        <!-- Radio buttons directly under Employee Records heading -->
+        <div class="radio-container">
             <form>
-                <div class="col-md-8 mx-auto">
-                    <!-- Radio Buttons -->
-                    <div class="row mb-3">
-                        <div class="col-md-4 d-flex justify-content-center gap-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="Status" id="indirecctid" value="Indirect">
-                                <label class="form-check-label" for="indirecctid">Indirect</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="Status" id="directlyid" value="Direct" checked>
-                                <label class="form-check-label" for="directlyid">Direct</label>
-                            </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-check d-inline-block me-4">
+                            <input class="form-check-input" type="radio" name="Status" id="directid" value="Direct" checked>
+                            <label class="form-check-label" for="directid">Direct</label>
+                        </div>
+                        <div class="form-check d-inline-block">
+                            <input class="form-check-input" type="radio" name="Status" id="indirectid" value="Indirect">
+                            <label class="form-check-label" for="indirectid">Indirect</label>
                         </div>
                     </div>
                 </div>
             </form>
+        </div>
+    </div>
 
-            <!-- Employee Grid -->
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover text-center">
-                    <thead>
-                        <tr>
-                            <th style="  font-size: 1.00rem;">Employee Code</th>
-                            <th style=" font-size: 1.00rem;">Employee Name</th>
-                        </tr>
-                    </thead>
-                    
-                </table>
-            </div>
-
+    <div class="card-body">
+        <!-- Employee Grid -->
+        <div class="grid-container">
+            <div id="employeeGrid"></div>
         </div>
     </div>
 </div>
+
+
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    $(document).ready(function () {
+        let selectedAction = 'Direct';
+
+        // Initialize grid first
+        initializeGrid();
+
+        // Load initial data
+        loadEmployeeGrid(selectedAction);
+
+        // Radio change event
+        $('input[name="Status"]').change(function () {
+            selectedAction = $(this).val();
+            loadEmployeeGrid(selectedAction);
+        });
+    });
+
+    let gridInstance = null;
+
+    function initializeGrid() {
+        // Initialize grid only once
+        if (!gridInstance) {
+            gridInstance = $("#employeeGrid").dxDataGrid({
+                dataSource: [],
+                showBorders: true,
+                rowAlternationEnabled: true,
+                columnAutoWidth: true,
+                showColumnLines: true,
+                showRowLines: true,
+                paging: { pageSize: 10 },
+                pager: {
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [5, 10, 20],
+                    showInfo: true
+                },
+                columns: [
+                    {
+                        dataField: "employeeCode",
+                        caption: "Employee Code",
+                        width: 150
+                    },
+                    {
+                        dataField: "fullName",
+                        caption: "Employee Name"
+                    }
+                ],
+                onContentReady: function(e) {
+                    // Additional styling for grid headers
+                    $('.dx-header-row').css({
+                        'background-color': '#1e3a5f',
+                        'color': 'white',
+                        'font-weight': '600'
+                    });
+                }
+            }).dxDataGrid("instance");
+        }
+    }
+
+    function loadEmployeeGrid(actionType) {
+        $.ajax({
+            type: "GET",
+            url: '@baseUrl/EmployeeDashBoardAPI/GetDirectIndirectEmployee',
+            data: {
+                Compid: CompanyId,
+                EmployeeId: EmployeeId,
+                Action: actionType
+            },
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+
+                if (response.isSuccess) {
+                    const data = response.data;
+                    initializeGrid();
+                    if (gridInstance) {
+                        gridInstance.option("dataSource", data);
+                        gridInstance.refresh();
+                    }
+                } else {
+                    // Show empty grid on error
+                    if (gridInstance) {
+                        gridInstance.option("dataSource", []);
+                        gridInstance.refresh();
+                    }
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr);
+                // Show empty grid on error
+                if (gridInstance) {
+                    gridInstance.option("dataSource", []);
+                    gridInstance.refresh();
+                }
+            }
+        });
+    }
+</script>
