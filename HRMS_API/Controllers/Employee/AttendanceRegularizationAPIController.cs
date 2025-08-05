@@ -75,7 +75,7 @@ namespace HRMS_API.Controllers.Employee
 
         }
         [HttpPost("CreateAttendanceRegularization")]
-        public async Task<APIResponse> CreateAttendanceRegularization(List<AttendanceRegularization> attendances)
+        public async Task<APIResponse> CreateAttendanceRegularization([FromBody] List<AttendanceRegularization> attendances)
         {
             try
             {
@@ -106,59 +106,8 @@ namespace HRMS_API.Controllers.Employee
                             isSuccess = false,
                             ResponseMessage = $"Request already exists for EmpId {attendance.EmpId} on {attendance.ForDate:yyyy-MM-dd}"
                         };
-                    }
-
-
-                    attendance.CreatedDate = DateTime.UtcNow;
-
-                    TimeSpan shiftStart, shiftEnd;
-                    string[] delimiters = new[] { "-", "to", "TO" };
-                    var parts = attendance.ShiftTime.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
-
-                    if (parts.Length != 2 ||
-                        !TimeSpan.TryParse(parts[0].Trim(), out shiftStart) ||
-                        !TimeSpan.TryParse(parts[1].Trim(), out shiftEnd) ||
-                        shiftStart == TimeSpan.Zero || shiftEnd == TimeSpan.Zero)
-                    {
-                        continue; 
-                    }
-                    DateTime baseDate = attendance.ForDate.Value.Date;
-                    DateTime? inTime = null, outTime = null;
-
-                    TimeSpan shiftDuration = shiftEnd - shiftStart;
-                    TimeSpan halfShift = TimeSpan.FromMinutes(shiftDuration.TotalMinutes / 2);
-
-                    switch (attendance.Day?.Trim().ToLower())
-                    {
-                        case "full day":
-                            inTime = baseDate.Add(shiftStart);
-                            outTime = baseDate.Add(shiftEnd);
-                            break;
-
-                        case "first half":
-                            inTime = baseDate.Add(shiftStart);
-                            outTime = baseDate.Add(shiftStart + halfShift);
-                            break;
-
-                        case "second half":
-                            inTime = baseDate.Add(shiftStart + halfShift);
-                            outTime = baseDate.Add(shiftEnd);
-                            break;
-
-                        default:
-                            continue; 
-                    }
-
-                    attendance.InTime = inTime;
-                    attendance.OutTime = outTime;
-                    if (attendance.InTime.HasValue && attendance.OutTime.HasValue)
-                    {
-                        var duration = attendance.OutTime.Value - attendance.InTime.Value;
-                        if (duration.TotalMinutes > 0)
-                            attendance.Duration = duration;
-                    }
-
-                    await _unitOfWork.AttendanceRegularizationRepository.AddAsync(attendance);
+                    }                   
+                    await _unitOfWork.AttendanceRegularizationRepository.Create(attendance);
                 }
 
                 await _unitOfWork.CommitAsync();
@@ -242,8 +191,7 @@ namespace HRMS_API.Controllers.Employee
 
                 foreach (var attendance in attendances)
                 {
-                     var record = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x => x.AttendanceRegularizationId == attendance.AttendanceRegularizationId && x.IsEnabled == true && x.IsDeleted == false);
-
+                    var record = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x => x.AttendanceRegularizationId == attendance.AttendanceRegularizationId && x.IsEnabled == true && x.IsDeleted == false);
 
                     if (record == null) continue;
 
@@ -253,36 +201,51 @@ namespace HRMS_API.Controllers.Employee
                     record.IsRejected = attendance.Status == "Rejected";
                     record.IsPending = attendance.Status == "Pending";
 
-                    await _unitOfWork.AttendanceRegularizationRepository.UpdateAttendanceRegularization(record);
+                    await _unitOfWork.AttendanceRegularizationRepository.Update(record);
 
                     if (record.IsApproved)
                     {
-                        //var existingInOutList = await _unitOfWork.EmployeeInOut
-                        //    .GetAllAsync(x => x.Emp_Id == record.EmpId && x.For_Date == record.ForDate);
-                          var existingInOutList = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeInOut(attendance.EmpId , attendance.ForDate);
+                        var existingInOutList = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeInOut(attendance.EmpId, attendance.ForDate);
 
                         var existingInOut = existingInOutList.FirstOrDefault();
 
                         if (existingInOut != null)
                         {
                             int empInOutId = existingInOut.LastRecordId;
-                            await _unitOfWork.AttendanceRegularizationRepository.Update(attendance , empInOutId);
+
+                            // Fix: Pass the required 'model' argument to UpdateAttendanceDetails
+                            var updateModel = new AttendanceDetailsViewModel
+                            {
+                                EmployeeId = attendance.EmpId,
+                                ShiftDate = attendance.ForDate,
+                                InTime = attendance.InTime ?? DateTime.Now,
+                                OutTime = attendance.OutTime ?? DateTime.Now,
+                                WorkingHours = attendance.Duration.HasValue
+                                    ? (decimal?)Math.Round(attendance.Duration.Value.TotalHours, 2)
+                                    : null,
+                                AttendanceStatus = attendance.Status,
+                                SalaryDay = 1,
+                                CreatedOn = DateTime.Now
+                            };
+
+                            await _unitOfWork.EmployeeInOutRepository.UpdateAttendanceDetails(updateModel);
                         }
                         else
                         {
-                            var newInOut = new EmployeeInOutRecord
+                            var newInOut = new AttendanceDetailsViewModel
                             {
-                                Emp_Id = record.EmpId ?? 0,
-                                For_Date = record.ForDate ?? DateTime.Now,
-                                In_Time = record.InTime,
-                                Out_Time = record.OutTime,
-                                Reason = record.Reason,
-                              //  Duration = record.Duration,
-                                CreatedDate = DateTime.Now,
-                                CreatedBy = ""
+                                EmployeeId = attendance.EmpId,
+                                ShiftDate = attendance.ForDate,
+                                InTime = attendance.InTime ?? DateTime.Now,
+                                OutTime = attendance.OutTime ?? DateTime.Now,
+                                WorkingHours = attendance.Duration.HasValue
+                                    ? (decimal?)Math.Round(attendance.Duration.Value.TotalHours, 2)
+                                    : null,
+                                AttendanceStatus = attendance.Status,
+                                SalaryDay = 1,
+                                CreatedOn = DateTime.Now
                             };
-
-                            await _unitOfWork.EmployeeInOutRepository.AddAsync(newInOut);
+                            await _unitOfWork.EmployeeInOutRepository.CreateAttendanceDetails(newInOut);
                         }
                     }
                 }
@@ -319,7 +282,7 @@ namespace HRMS_API.Controllers.Employee
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
                 }
 
-                var data = await _unitOfWork.AttendanceRegularizationRepository.SoftDelete(DeleteRecord);
+                var data = await _unitOfWork.AttendanceRegularizationRepository.Delete(DeleteRecord);
                 await _unitOfWork.CommitAsync();
 
                 return new APIResponse() { isSuccess = true, Data = DeleteRecord, ResponseMessage = "The record has been deleted successfully" };
