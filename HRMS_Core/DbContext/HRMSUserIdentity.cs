@@ -167,7 +167,8 @@ namespace HRMS_Core.DbContext
         public string? EmployeePTReport{ get; set; }
         public string? EmployeeTaxReport{ get; set; }
         public string? EmployeeESIReport{ get; set; }
-        public string? EmployeeNamePrmaryBank{ get; set; }
+        public string? EmployeeNamePrmaryBank { get; set; }
+        public DateTime? LastLogin { get; set; }
 
 
     }

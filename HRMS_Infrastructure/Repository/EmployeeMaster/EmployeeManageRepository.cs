@@ -292,6 +292,23 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
+        public async Task<VMCommonResult> UpdateLastLogin(int empid, int compId)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC sp_UpdateLastLogin 
+                       
+                        @Empid = {empid},
+                        @Compid = {compId}
+                ").ToListAsync();
 
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
     }
 }
