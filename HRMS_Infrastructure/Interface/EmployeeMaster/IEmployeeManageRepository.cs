@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.DbContext;
+using HRMS_Core.EmployeeMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.EmployeeMaster;
 using System;
@@ -20,5 +21,6 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<VMCommonResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model);
         Task<vmGetNextEmployeeCode?> GetNextEmployeeCode(int CompanyId);
         Task<VMGetExistEmployeeCode?> GetExistEmployeeCode(vmCommonParameters vmCommonParameters);
+        Task<VMCommonResult> UpdateLastLogin(int empid, int compId);
     }
 }

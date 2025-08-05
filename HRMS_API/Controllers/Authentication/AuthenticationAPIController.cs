@@ -69,6 +69,9 @@ namespace HRMS_API.Controllers.Authentication
                 // Generate JWT token
                 var token = GenerateJwtToken(userDetails);
 
+               
+
+
                 // Return the token
                 return new APIResponse { isSuccess = true,Data=new {Token=token }, ResponseMessage = "Login Successfully!" };
 
