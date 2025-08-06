@@ -46,6 +46,7 @@ namespace HRMS_API.Controllers.Authentication
             }
 
             var SuperAdmin = await _unitOfWork.SuperAdminDetailsRepository.GetSuperAdminByCredentials(model);
+            var login = await _unitOfWork.EmployeeManageRepository.GetAsync(asp => asp.Email == model.Email && asp.IsEnabled == true);
 
             if (SuperAdmin != null)
             {
@@ -69,7 +70,8 @@ namespace HRMS_API.Controllers.Authentication
                 // Generate JWT token
                 var token = GenerateJwtToken(userDetails);
 
-               
+
+                var lastlogin = await _unitOfWork.EmployeeManageRepository.UpdateLastLogin(login.Id, login.CompanyId.Value);
 
 
                 // Return the token
@@ -121,6 +123,8 @@ namespace HRMS_API.Controllers.Authentication
 
                 // Generate JWT token
                 var token = GenerateJwtToken(userDetails);
+
+                var lastlogin = await _unitOfWork.EmployeeManageRepository.UpdateLastLogin(login.Id, login.CompanyId.Value);
 
                 // Return the token
                 return new APIResponse { isSuccess = true, Data = new { Token = token }, ResponseMessage = "Login Successfully!" };
