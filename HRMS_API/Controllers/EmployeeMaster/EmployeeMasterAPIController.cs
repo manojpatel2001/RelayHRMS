@@ -764,5 +764,26 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
 
 
+        [HttpGet("EmployeePersonalInformation")]
+        public async Task<APIResponse> EmployeePersonalInformation(int empid, int Compid)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.EmployeePersonalInformation(empid,Compid);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
+
     }
 }
