@@ -25,7 +25,7 @@ namespace HRMS_Core.VM.Employee
 
     public class EmpInOutVM
     {
-        public int Emp_Id { get; set; }
+        public int EmployeeId { get; set; }
         public DateTime For_Date { get; set; }
         public DateTime? In_Time { get; set; }
         public DateTime? Out_Time { get; set; }
