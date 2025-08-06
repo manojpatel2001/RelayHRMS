@@ -130,9 +130,6 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
-
-
-
         //[HttpPut("UpdateAttendanceRegularization")]
         //public async Task<APIResponse> UpdateAttendanceRegularization(List<AttendanceRegularization> attendances)
         //{
@@ -213,7 +210,6 @@ namespace HRMS_API.Controllers.Employee
                         {
                             int empInOutId = existingInOut.LastRecordId;
 
-                            // Fix: Pass the required 'model' argument to UpdateAttendanceDetails
                             var updateModel = new AttendanceDetailsViewModel
                             {
                                 EmployeeId = attendance.EmpId,
@@ -268,9 +264,6 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
-
-
-
 
         [HttpDelete("Delete")]
         public async Task<APIResponse> Delete([FromBody] DeleteRecordVModel DeleteRecord)

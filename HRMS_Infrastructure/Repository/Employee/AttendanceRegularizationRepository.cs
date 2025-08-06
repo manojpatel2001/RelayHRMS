@@ -174,6 +174,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
                 EXEC SP_AttendanceRegularization
                     @Action = {"UPDATE"},
+                    @Id ={model.AttendanceRegularizationId}, 
                     @EmpId = {model.EmpId},
                     @FullName = {model.FullName},
                     @BranchName = {model.BranchName},
@@ -199,14 +200,21 @@ namespace HRMS_Infrastructure.Repository.Employee
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                VMCommonResult finalResult = new VMCommonResult();
+
+                foreach (int id in deleteRecord.Id)
+                {
+                    var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
                 EXEC SP_AttendanceRegularization
                     @Action = {"DELETE"},
-                    @BranchId = {deleteRecord.Id},
-                    @DeletedBy = {deleteRecord.DeletedBy}
+                    @Id = {id},
+                    @CreatedBy = {deleteRecord.DeletedBy}
             ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                    finalResult = result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                }
+
+                return finalResult;
             }
             catch
             {
