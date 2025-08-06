@@ -103,6 +103,7 @@ namespace HRMS_Core.DbContext
 
         public DbSet<PasswordHistory> PasswordHistory { get; set; }
         public DbSet<AttendanceRegularization> AttendanceRegularization { get; set; }
+        public DbSet<LeftEmployee> LeftEmployee { get; set; }
 
 
 
