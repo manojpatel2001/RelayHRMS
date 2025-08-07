@@ -71,7 +71,7 @@ namespace HRMS_API.Controllers.Authentication
                 var token = GenerateJwtToken(userDetails);
 
 
-                var lastlogin = await _unitOfWork.EmployeeManageRepository.UpdateLastLogin(login.Id, login.CompanyId.Value);
+                var lastlogin = await _unitOfWork.EmployeeManageRepository.UpdateLastLogin(SuperAdmin.Id, 0);
 
 
                 // Return the token
