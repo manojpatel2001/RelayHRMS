@@ -6,6 +6,9 @@
         public int? year { get; set; } = 0;
         public int? CompanyId { get; set; }= 0;
         public int? EmployeeId { get; set; } = 0;
+        public DateTime? ToDate { get; set; } = DateTime.Now;
+        public DateTime? FromDate { get; set; } = DateTime.Now;
+        public int? MemberId { get; set; } = 0;
         
     }
 }
