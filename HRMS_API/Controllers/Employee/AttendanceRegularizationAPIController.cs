@@ -208,18 +208,17 @@ namespace HRMS_API.Controllers.Employee
 
                         if (existingInOut != null)
                         {
-                            int empInOutId = existingInOut.LastRecordId;
+                            int empInOutId = existingInOut.Id;
 
                             var updateModel = new AttendanceDetailsViewModel
                             {
+                                AttendanceDetailsid= empInOutId,
                                 EmployeeId = attendance.EmpId,
                                 ShiftDate = attendance.ForDate,
                                 InTime = attendance.InTime ?? DateTime.Now,
                                 OutTime = attendance.OutTime ?? DateTime.Now,
-                                WorkingHours = attendance.Duration.HasValue
-                                    ? (decimal?)Math.Round(attendance.Duration.Value.TotalHours, 2)
-                                    : null,
-                                AttendanceStatus = attendance.Status,
+                                WorkingHours = attendance.Duration,
+                                //AttendanceStatus = attendance.Status,
                                 SalaryDay = 1,
                                 CreatedOn = DateTime.Now
                             };
@@ -234,10 +233,8 @@ namespace HRMS_API.Controllers.Employee
                                 ShiftDate = attendance.ForDate,
                                 InTime = attendance.InTime ?? DateTime.Now,
                                 OutTime = attendance.OutTime ?? DateTime.Now,
-                                WorkingHours = attendance.Duration.HasValue
-                                    ? (decimal?)Math.Round(attendance.Duration.Value.TotalHours, 2)
-                                    : null,
-                                AttendanceStatus = attendance.Status,
+                                WorkingHours = attendance.Duration,
+                                //AttendanceStatus = attendance.Status,
                                 SalaryDay = 1,
                                 CreatedOn = DateTime.Now
                             };

@@ -8,6 +8,7 @@ namespace HRMS_Core.VM.Employee
 {
     public class AttendanceDetailsViewModel
     {          
+        public int? AttendanceDetailsid { get; set; }
         public int? EmployeeId { get; set; }
         public DateTime? ShiftDate { get; set; }
         public DateTime? InTime { get; set; }

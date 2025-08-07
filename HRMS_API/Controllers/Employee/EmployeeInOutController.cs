@@ -321,32 +321,7 @@ namespace HRMS_API.Controllers.Employee
                         isSuccess = false,
                         ResponseMessage = "No matching IN record found or update failed."
                     };
-                }
-
-                //// Step 2: Get regularization data
-                //var regData = await _unitOfWork.AttendanceRegularizationRepository
-                //    .GetAllAsync(x => x.IsEnabled== true && x.IsDeleted==false);
-
-                //// Step 3: Filter records
-                //var data = getdata.Where(d =>
-                //{
-                //    if (d.Status == "Absent")
-                //    {
-                //        // Check if any pending/rejected regularization exists
-                //        var hasPendingOrRejected = regData.Any(r =>
-                //            r.EmpId == d.Id &&
-                //            r.ForDate == d.For_Date &&
-                //            (r.IsPending || r.IsRejected)
-                //        );
-
-                //        // If pending or rejected record exists, exclude it
-                //        return !hasPendingOrRejected;
-                //    }
-
-                //    // If not absent, include
-                //    return true;
-                //}).ToList();
-
+                }           
                 return new APIResponse
                 {
                     isSuccess = true,
