@@ -409,7 +409,7 @@
     });
 
 
-     function LoadAttendanceGrid(data) {
+    function LoadAttendanceGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             showBorders: true,
@@ -605,6 +605,11 @@
 
 
 
+       function formatToISOString(dateStr) {
+        const date = new Date(dateStr);
+        return !isNaN(date) ? date.toISOString() : null;
+    }
+
 
      $('#btnSaveGridData').on('click', function () {
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
@@ -630,33 +635,31 @@
             });
             return;
         }
-         
+
         const validRows = [];
         selectedRows.forEach(row => {
             const reason = row.reason?.trim();
             const dayType = row.dayType?.trim();
-
             if (reason && dayType) {
-                validRows.push({
-                    EmpId: empId,
-                    FullName: row.fullName || "",
-                    BranchName: row.branchName || "",
-                    ForDate: row.for_Date || row.forDate,
-                    ShiftTime: row.shiftTime || "",
-                    InTime: row.in_Time,
-                    OutTime: row.out_Time,
-                    Duration: row.workingHours || "00:00:00",
-                    Day: dayType,
-                    Status: row.status || "",
-                    Reason: reason,
-                    IsApproved: false,
-                    IsPending: true,
-                    IsRejected: false,
-                    IsLocked: false
-                });
+                debugger;
+                 validRows.push({
+        EmpId: empId,
+        FullName: row.fullName || "",
+        BranchName: row.branchName || "",
+        ForDate: row.shiftDate,
+        ShiftTime: row.shiftTime || "",
+            InTime: (row.inTime && row.inTime !== "-") ? formatToISOString(row.inTime) : null,
+            OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
+        Day: dayType,
+        Status: row.attendanceStatus || "",
+        Reason: reason,
+        IsApproved: false,
+        IsPending: true,
+        IsRejected: false,
+        IsLocked: false
+    });
             }
         });
-
         if (validRows.length === 0) {
             Swal.fire({
                 icon: 'warning',
@@ -665,26 +668,33 @@
             });
             return;
         }
-            showLoder();
+                     showLoder();
+
         // Save via AJAX
         $.ajax({
-             url: apiBase + "/AttendanceRegularizationAPI/CreateAttendanceRegularization",
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/CreateAttendanceRegularization")',
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify(validRows),
             success: function (response) {
                       hideLoder();
-                if (response?.isSuccess) {               
+                if (response?.isSuccess) {
                     round_success_noti(response.responseMessage || "Saved successfully.");
-                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
-        const selectedKeys = gridInstance.getSelectedRowKeys();
-        let currentData = gridInstance.option("dataSource");
-        const updatedData = currentData.filter(item => {
-            return !selectedKeys.includes(item.for_Date);
-        });
-        gridInstance.option("dataSource", updatedData);
-        gridInstance.refresh();
-                    $("#btnGo").trigger("click");
+              const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+    const selectedRowsData = gridInstance.getSelectedRowsData();
+    let currentData = gridInstance.option("dataSource");
+
+    const updatedData = currentData.filter(item => {
+        return !selectedRowsData.some(sel =>
+            sel.empId === item.empId && new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
+        );
+    });
+
+    gridInstance.option("dataSource", updatedData);
+    gridInstance.refresh();
+    gridInstance.clearSelection(); // optional
+
+    $("#btnGo").trigger("click");
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -694,6 +704,7 @@
                 }
             },
             error: function (xhr) {
+                    hideLoder();
                 Swal.fire({
                     icon: 'error',
                     title: 'Server Error',
@@ -703,6 +714,8 @@
 
         });
     });
+
+
 
 
       $('.btn-custom:contains("Clear")').on('click', function () {

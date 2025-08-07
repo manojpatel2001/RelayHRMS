@@ -587,18 +587,14 @@
         });
     }
 
-        function toTimeSpan(hours) {
-        const mins = Math.round(parseFloat(hours) * 60); // hours to minutes
-        const hh = String(Math.floor(mins / 60)).padStart(2, '0'); // hours part
-        const mm = String(mins % 60).padStart(2, '0');             // minutes part
-        return `${hh}:${mm}:00`; // TimeSpan format "HH:mm:ss"
+  
+
+        function formatToISOString(dateStr) {
+        const date = new Date(dateStr);
+        return !isNaN(date) ? date.toISOString() : null;
     }
 
-
-
      $('#btnSaveGridData').on('click', function () {
-         debugger;
-
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
         gridInstance.saveEditData();
 
@@ -622,15 +618,11 @@
             });
             return;
         }
+
         const validRows = [];
         selectedRows.forEach(row => {
             const reason = row.reason?.trim();
-            const dayType = row.dayType?.trim();
-            const duration = toTimeSpan(row.workingHours);
-        console.log("Row WorkingHours:", row.workingHours, "=> Duration:", duration);
-
-            
-
+            const dayType = row.dayType?.trim();           
             if (reason && dayType) {
                 debugger;
                  validRows.push({
@@ -639,9 +631,8 @@
         BranchName: row.branchName || "",
         ForDate: row.shiftDate,
         ShiftTime: row.shiftTime || "",
-        InTime: row.inTime && row.inTime !== "-" ? row.inTime : null,
-        OutTime: row.outTime && row.outTime !== "-" ? row.outTime : null,
-        Duration: duration,
+            InTime: (row.inTime && row.inTime !== "-") ? formatToISOString(row.inTime) : null,
+            OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
         Day: dayType,
         Status: row.attendanceStatus || "",
         Reason: reason,
@@ -652,7 +643,6 @@
     });
             }
         });
-
         if (validRows.length === 0) {
             Swal.fire({
                 icon: 'warning',
@@ -668,20 +658,26 @@
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/CreateAttendanceRegularization")',
             type: "POST",
             contentType: "application/json",
-            data: JSON.stringify({ attendances: validRows }),
+            data: JSON.stringify(validRows),
             success: function (response) {
                       hideLoder();
                 if (response?.isSuccess) {              
                     round_success_noti(response.responseMessage || "Saved successfully.");
-                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance"); 
-        const selectedKeys = gridInstance.getSelectedRowKeys();  
-        let currentData = gridInstance.option("dataSource");
-        const updatedData = currentData.filter(item => {
-            return !selectedKeys.includes(item.for_Date);
-        });
-        gridInstance.option("dataSource", updatedData);
-        gridInstance.refresh();
-                    $("#btnGo").trigger("click");
+              const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+    const selectedRowsData = gridInstance.getSelectedRowsData();
+    let currentData = gridInstance.option("dataSource");
+
+    const updatedData = currentData.filter(item => {
+        return !selectedRowsData.some(sel =>
+            sel.empId === item.empId && new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
+        );
+    });
+
+    gridInstance.option("dataSource", updatedData);
+    gridInstance.refresh();
+    gridInstance.clearSelection(); // optional
+
+    $("#btnGo").trigger("click");
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -691,7 +687,7 @@
                 }
             },
             error: function (xhr) {
-                    console.log("Error Response:", xhr.responseText);
+                    hideLoder();
                 Swal.fire({
                     icon: 'error',
                     title: 'Server Error',

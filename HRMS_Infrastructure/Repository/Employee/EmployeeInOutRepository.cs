@@ -222,8 +222,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                         @ShiftDate = {Record.ShiftDate},
                         @InTime = {Record.InTime},
                         @OutTime = {Record.OutTime},
-                        @WorkingHours = {Record.WorkingHours},
-                        @AttendanceStatus = {Record.AttendanceStatus},
+                        @WorkingHours = {Record.WorkingHours},                
                         @SalaryDay = {Record.SalaryDay},
                         @CreatedOn = {Record.CreatedOn}
                     
@@ -245,12 +244,12 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
                     EXEC SP_AttendanceDetails
                         @Action = {"UPDATE"},
+                         @Id = {model.AttendanceDetailsid},
                         @EmployeeId = {model.EmployeeId},
                         @ShiftDate = {model.ShiftDate},
                         @InTime = {model.InTime},
                         @OutTime = {model.OutTime},
-                        @WorkingHours = {model.WorkingHours},
-                        @AttendanceStatus = {model.AttendanceStatus},
+                        @WorkingHours = {model.WorkingHours},              
                         @SalaryDay = {model.SalaryDay},
                         @CreatedOn = {model.CreatedOn}
                     
