@@ -326,7 +326,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 };
 
                 var result = await _db.Set<EmployeePersonalInformationVM>()
-                    .FromSqlRaw("EXEC EmployeePersonalInformation @CompanyId", parameters)
+                    .FromSqlRaw("EXEC EmployeePersonalInformation @compid ,@empid", parameters)
                     .ToListAsync();
 
                 return result;

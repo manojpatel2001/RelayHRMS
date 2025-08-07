@@ -9,7 +9,8 @@ namespace HRMS_Core.VM.Employee
     public class EmployeePersonalInformationVM
     {
 
-        public int? EmployeeCode { get; set; }
+        public string? EmployeeProfileUrl { get; set; }
+        public string? EmployeeCode { get; set; }
         public string? FullName { get; set; }
         public string? DesignationName { get; set; }
         public DateTime? LastLogin { get; set; }
