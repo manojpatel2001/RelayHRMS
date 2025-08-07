@@ -765,7 +765,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
 
         [HttpGet("EmployeePersonalInformation")]
-        public async Task<APIResponse> EmployeePersonalInformation(int empid, int Compid)
+        public async Task<APIResponse> EmployeePersonalInformation([FromQuery]int empid,[FromQuery] int Compid)
         {
             try
             {

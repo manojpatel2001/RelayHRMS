@@ -25,6 +25,30 @@ namespace HRMS_Infrastructure.Repository.Employee
             _db = db;
         }
 
+        public async Task<List<GetCountDirectOrIndirectEmployeesVM>> GetCountDirectOrIndirectEmployees( int EmployeeId, int Compid)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@ReportingId", EmployeeId) ,
+                    new SqlParameter("@CompanyId", Compid) ,
+                   
+
+                    };
+
+                var result = await _db.Set<GetCountDirectOrIndirectEmployeesVM>()
+                    .FromSqlRaw("EXEC GetCountDirectOrIndirectEmployees @ReportingId, @CompanyId" ,parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<GetCountDirectOrIndirectEmployeesVM>();
+            }
+        }
+
         public async Task<List<EmployeeDirectIndirectReport>> GetDirectIndirectEmp(int Compid, int EmployeeId, string Action)
         {
             try
