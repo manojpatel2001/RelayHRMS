@@ -126,6 +126,40 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
+        [HttpPost("GetDateWiseAttendanceDetails")]
+        public async Task<APIResponse> GetDateWiseAttendanceDetails(vmInOutParameter vmInOutParameter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetDateWiseAttendanceDetails(vmInOutParameter);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetEmployeesByReportingManager/{EmployeeId}")]
+        public async Task<APIResponse> GetEmployeesByReportingManager(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetEmployeesByReportingManager(EmployeeId);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
         [HttpPost("FirstInOut")]
         public async Task<APIResponse> FirstInOut([FromForm] int empid, [FromForm] string Month, [FromForm] string Year)
         {
