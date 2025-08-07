@@ -168,6 +168,35 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return new List<vmGetMonthlyAttendanceDetails>();
             }
         }
+        public async Task<List<vmGetMonthlyAttendanceDetails>> GetDateWiseAttendanceDetails(vmInOutParameter vmInOutParameter)
+        {
+            try
+            {
+                var result= await _db.Set<vmGetMonthlyAttendanceDetails>()
+                                .FromSqlInterpolated($"EXEC GetDateWiseAttendanceDetails  @FromDate={vmInOutParameter.FromDate}, @ToDate={vmInOutParameter.ToDate},  @EmployeeId = {vmInOutParameter.EmployeeId},@CompanyId={vmInOutParameter.CompanyId},@MemberId={vmInOutParameter.MemberId}")
+                                .ToListAsync();
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<vmGetMonthlyAttendanceDetails>();
+            }
+        }
+
+        public async Task<List<vmGetEmployeesByReportingManager>> GetEmployeesByReportingManager(int EmployeeId)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetEmployeesByReportingManager>()
+                                .FromSqlInterpolated($"EXEC GetEmployeesByReportingManager  @EmployeeId={EmployeeId}")
+                                .ToListAsync();
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<vmGetEmployeesByReportingManager>();
+            }
+        }
         public async Task<List<VMInOutRecord>> GetMultipleInOutRecordAsync(int empid, string Month, string Year)
         {
             try

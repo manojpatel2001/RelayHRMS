@@ -16,4 +16,13 @@
         public int? CompanyId { get; set; }
         public string? CompanyName { get; set; }
     }
+
+    public class vmGetEmployeesByReportingManager
+    {
+        public int? EmployeeId { get; set; }
+        public string? FullName { get; set; }
+        public string? EmployeeCode { get; set; }
+        
+    }
+
 }

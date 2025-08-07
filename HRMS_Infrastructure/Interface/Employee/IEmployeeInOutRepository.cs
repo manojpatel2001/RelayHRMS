@@ -25,5 +25,7 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<VMCommonResult> UpdateAttendanceDetails(AttendanceDetailsViewModel model);
         Task<List<vmGetMonthlyAttendanceDetails>> GetMonthlyAttendanceDetails(vmInOutParameter vmInOutParameter);
         Task<List<vmGetMonthlyAttendanceLog>> GetMonthlyAttendanceLog(vmInOutParameter vmInOutParameter);
+        Task<List<vmGetMonthlyAttendanceDetails>> GetDateWiseAttendanceDetails(vmInOutParameter vmInOutParameter);
+        Task<List<vmGetEmployeesByReportingManager>> GetEmployeesByReportingManager(int EmployeeId);
     }
 }

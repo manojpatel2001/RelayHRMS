@@ -194,6 +194,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetMonthlyAttendanceDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<EmployeeDirectIndirectReport>().HasNoKey().ToView(null);
             modelBuilder.Entity<AttendanceDetailsViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetEmployeesByReportingManager>().HasNoKey().ToView(null);
 
 
 
