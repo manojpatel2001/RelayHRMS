@@ -13,6 +13,8 @@ if (token) {
         //$("#dropdownAdminSwitch").show();
         $("#drpManageRoleAndPermission").show();
         $("#drpCompanyInformationMenu").show();
+        //$("#AddCompanyDetails").show();
+        $("#companyInfo").show();
 
     }
     
