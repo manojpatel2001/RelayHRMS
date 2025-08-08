@@ -29,7 +29,7 @@ namespace HRMS_API.Controllers.ManagePermissions
         {
             try
             {
-                var data = await _unitOfWork.PermissionRepository.GetAllPermissions();
+                var data = await _unitOfWork.PermissionRepository.GetAllPermissions(new vmPermissionPara { });
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -66,23 +66,22 @@ namespace HRMS_API.Controllers.ManagePermissions
             {
                 if (model == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Permission details cannot be null." };
-                var existPermissionName = await _unitOfWork.PermissionRepository.GetAllAsync(x => x.PermissionName.ToLower() == model.PermissionName.ToLower() && x.IsDeleted == false && x.IsEnabled == true);
+                var existPermissionName = await _unitOfWork.PermissionRepository.GetAllPermissions(new vmPermissionPara {PermissionName=model.PermissionName });
                 if (existPermissionName.Any())
                 {
-                    return new APIResponse { isSuccess=false,ResponseMessage=$"Record with permission name '{model.PermissionName}' already added "};
+                    return new APIResponse { isSuccess = false, ResponseMessage = $"Record with permission name '{model.PermissionName}' already added " };
                 }
-                var existSlug = await _unitOfWork.PermissionRepository.GetAllAsync(x => x.Slug.ToLower() == model.Slug.ToLower() && x.IsDeleted == false && x.IsEnabled == true);
+                var existSlug = await _unitOfWork.PermissionRepository.GetAllPermissions(new vmPermissionPara {Slug=model.Slug });
                 if (existSlug.Any())
                 {
-                    return new APIResponse { isSuccess=false,ResponseMessage=$"Record with permission name '{model.Slug}' already added "};
+                    return new APIResponse { isSuccess = false, ResponseMessage = $"Record with permission name '{model.Slug}' already added " };
                 }
-                    
-                    model.CreatedDate = DateTime.UtcNow;
+
                 var result = await _unitOfWork.PermissionRepository.CreatePermission(model);
 
                 if (result.Id > 0)
                 {
-                    var newPermission = await _unitOfWork.PermissionRepository.GetPermissionById(new vmCommonGetById { Id = result.Id, IsDeleted = false, IsEnabled = true });
+                    var newPermission = await _unitOfWork.PermissionRepository.GetPermissionById(new vmCommonGetById { Id = result.Id });
                     return new APIResponse { isSuccess = true, Data = newPermission, ResponseMessage = "The record has been saved successfully." };
                 }
 
@@ -102,21 +101,20 @@ namespace HRMS_API.Controllers.ManagePermissions
                 if (permission == null || permission.PermissionId == 0)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Permission details cannot be null." };
 
-                var checkPermission = await _unitOfWork.PermissionRepository.GetPermissionById(new vmCommonGetById { Id = permission.PermissionId, IsDeleted = false, IsEnabled = true });
+                var checkPermission = await _unitOfWork.PermissionRepository.GetPermissionById(new vmCommonGetById { Id = permission.PermissionId });
                 if (checkPermission == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
 
-                var existPermissionName = await _unitOfWork.PermissionRepository.GetAllAsync(x => x.PermissionId != permission.PermissionId && x.PermissionName.ToLower() == permission.PermissionName.ToLower() && x.IsDeleted == false && x.IsEnabled == true);
-                if (existPermissionName.Any())
+                var existPermissionName = await _unitOfWork.PermissionRepository.GetAllPermissions(new vmPermissionPara { PermissionName = permission.PermissionName });
+                if (existPermissionName.Any(x => x.PermissionId != permission.PermissionId))
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = $"Record with permission name '{permission.PermissionName}' already added " };
                 }
-                var existSlug = await _unitOfWork.PermissionRepository.GetAllAsync(x => x.PermissionId != permission.PermissionId && x.Slug.ToLower() == permission.Slug.ToLower() && x.IsDeleted == false && x.IsEnabled == true);
-                if (existSlug.Any())
+                var existSlug = await _unitOfWork.PermissionRepository.GetAllPermissions(new vmPermissionPara { Slug = permission.Slug });
+                if (existSlug.Any(x=>x.PermissionId!= permission.PermissionId))
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = $"Record with permission name '{permission.Slug}' already added " };
                 }
-                permission.UpdatedDate = DateTime.UtcNow;
                 var result = await _unitOfWork.PermissionRepository.UpdatePermission(permission);
 
                 if (result.Id > 0)
@@ -141,7 +139,7 @@ namespace HRMS_API.Controllers.ManagePermissions
                 if (model == null || model.Id == 0)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
 
-                var checkPermission = await _unitOfWork.PermissionRepository.GetPermissionById(new vmCommonGetById { Id = model.Id, IsDeleted = false, IsEnabled = true });
+                var checkPermission = await _unitOfWork.PermissionRepository.GetPermissionById(new vmCommonGetById { Id = model.Id });
                 if (checkPermission == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
 
@@ -181,7 +179,7 @@ namespace HRMS_API.Controllers.ManagePermissions
                             .Select(x => new
                             {
                                 x.PermissionId,
-                                PermissionName=x.FirstPermissionName,
+                                PermissionName = x.FirstPermissionName,
                                 x.Slug,
                             })
                             .OrderBy(p =>

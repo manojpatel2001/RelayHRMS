@@ -16,20 +16,20 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Repository.ManagePermissions
 {
-    public class PermissionRepository : Repository<Permission>, IPermissionRepository
+    public class PermissionRepository : IPermissionRepository
     {
         private readonly HRMSDbContext _db;
 
-        public PermissionRepository(HRMSDbContext db) : base(db)
+        public PermissionRepository(HRMSDbContext db)
         {
             _db = db;
         }
 
-        public async Task<List<Permission>> GetAllPermissions()
+        public async Task<List<Permission>> GetAllPermissions(vmPermissionPara vmPermissionPara)
         {
             try
             {
-                return await _db.Set<Permission>().FromSqlInterpolated($"EXEC GetAllPermissions").ToListAsync();
+                return await _db.Set<Permission>().FromSqlInterpolated($"EXEC GetAllPermissions @PermissionName={vmPermissionPara.PermissionName},@Slug={vmPermissionPara.Slug}").ToListAsync();
             }
             catch
             {
@@ -64,8 +64,8 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                     @Description = {permission.Description},
                     @PermissionUrl = {permission.PermissionUrl},
                     @GroupName = {permission.GroupName},
-                    @CreatedDate = {permission.CreatedDate},
-                    @CreatedBy = {permission.CreatedBy}
+                    @PermissionType = {permission.PermissionType},
+                    @IsActive = {permission.IsActive}
             ").ToListAsync();
 
                 return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
@@ -89,8 +89,8 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                     @Description = {permission.Description},
                     @PermissionUrl = {permission.PermissionUrl},
                     @GroupName = {permission.GroupName},
-                    @UpdatedDate = {permission.UpdatedDate},
-                    @UpdatedBy = {permission.UpdatedBy}
+                    @PermissionType = {permission.PermissionType},
+                    @IsActive = {permission.IsActive}
             ").ToListAsync();
 
                 return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
@@ -108,9 +108,8 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                 var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
                 EXEC ManagePermission
                     @Action = {"DELETE"},
-                    @PermissionId = {deleteRecord.Id},
-                    @DeletedDate = {deleteRecord.DeletedDate},
-                    @DeletedBy = {deleteRecord.DeletedBy}
+                    @PermissionId = {deleteRecord.Id}
+                    
             ").ToListAsync();
 
                 return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
