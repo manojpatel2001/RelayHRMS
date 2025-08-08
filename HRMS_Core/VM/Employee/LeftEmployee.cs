@@ -20,15 +20,15 @@ namespace HRMS_Core.VM.Employee
         public DateTime? LeftDate { get; set; }
         public string? LeftReason { get; set; }
         public DateTime? RegAcceptDate { get; set; }
-        public bool? IsTerminate { get; set; }
-        public bool? UniformReturn { get; set; }
-        public bool? ExitInterview { get; set; }
+        public bool? IsTerminate { get; set; } = false;
+        public bool? UniformReturn { get; set; } = false;
+        public bool? ExitInterview { get; set; } = false;
         public string? NoticePeriod { get; set; }
-        public bool? IsDeath { get; set; }
+        public bool? IsDeath { get; set; } = false;
         public DateTime? RegDate { get; set; }
-        public bool? IsFnFApplicable { get; set; }
+        public bool? IsFnFApplicable { get; set; } = false;
         public int? RptManagerID { get; set; }
-        public bool? IsRetire { get; set; }
+        public bool? IsRetire { get; set; } = false;
         public int? RequestAprID { get; set; }
         public int? LeftReasonValue { get; set; }
         public string? LeftReasonText { get; set; }

@@ -138,7 +138,9 @@
 
                     <div class="col-md-4 position-relative">
                         <select class="form-select floating-input" id="reason">
+                                  <option selected>Resign</option>
                             <option selected>--Select Reason--</option>
+                      
                         </select>
                         <label class="floating-label" for="reason">Reason</label>
                     </div>
@@ -147,20 +149,29 @@
                         <label class="floating-label" for="otherReason">Other Reason</label>
                     </div>
                     <div class="col-md-4 position-relative   terminated-only common-reason">
-                        <select class="form-select floating-input" id="uniformReturn">
+                        <select class="form-select floating-input" id="uniformReturn">   
+                            <option selected>No</option>
+                            <option selected>Yes</option>
+                            <option selected>NA</option>
                             <option selected>--Select--</option>
                         </select>
                         <label class="floating-label" for="uniformReturn">Uniform Return</label>
                     </div>
 
                     <div class="col-md-4 position-relative terminated-only common-reason">
-                        <select class="form-select floating-input" id="exitInterview">
+                        <select class="form-select floating-input" id="exitInterview">                       
+                            <option selected>No</option>
+                            <option selected>Yes</option>
+                            <option selected>NA</option>
                             <option selected>--Select--</option>
                         </select>
                         <label class="floating-label" for="exitInterview">Exit Interview</label>
                     </div>
                     <div class="col-md-4 position-relative  terminated-only common-reason">
-                        <select class="form-select floating-input" id="noticePeriod">
+                        <select class="form-select floating-input" id="noticePeriod">                          
+                            <option selected>No</option>
+                            <option selected>Yes</option>
+                            <option selected>NA</option>
                             <option selected>--Select--</option>
                         </select>
                         <label class="floating-label" for="noticePeriod">Notice Period</label>
@@ -174,7 +185,13 @@
 
                
                     <div class="col-md-4 position-relative">
-                        <select class="form-select floating-input" id="leftReasonPf">
+                        <select class="form-select floating-input" id="leftReasonPf">          
+                            <option selected>Retirement</option>
+                            <option selected>Death in Service</option>
+                            <option selected>Supernnuation</option>
+                            <option selected>Permanent Disbalemen</option>
+                            <option selected>Classation(Short Service)</option>
+                            <option selected>Death away from service </option>
                             <option selected>--Select--</option>
                         </select>
                         <label class="floating-label" for="leftReasonPf">Left Reason (PF)</label>
@@ -194,13 +211,19 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-            $("#addLeftEmployee").click( () => {
-                 
-              $("#addEmployeeLeftModal").modal('show');
-            })
+    $("#addLeftEmployee").click(() => {
+        $("#addEmployeeLeftModal").modal('show');
+    });
 
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails?.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
 
-     $(document).ready(function () {
+    $(document).ready(function () {
+        BindBranchDropdown();
+
         function hideAllConditionalFields() {
             $('.common-reason').hide();
         }
@@ -243,8 +266,78 @@
             $('#leftDateLabel').text(labelText);
         });
 
-      
-    });
+          $('#branch').on('change', function () {
+            let branchId = $(this).val();
+            if (branchId) {
+                GetEmployeeByBranchId(branchId);
+            } else {
+                $('#employee').empty().append('<option value="">--Select Employee--</option>');
+            }
+        });
+    });   
+
+
+        function  BindBranchDropdown(){
+        debugger;
+       $.ajax({
+            url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+            method: 'GET',
+                headers: {
+                        'Authorization': 'Bearer ' + Token
+                    },
+            success: function(data) {
+                if(data.isSuccess){
+                        var dropdown = $('#branch');
+                    dropdown.empty();
+                    dropdown.append('<option disabled selected value="">Select</option>');
+                    $.each(data.data, function(index, company) {
+                        dropdown.append($('<option>', {
+                            value: company.branchId,
+                            text: company.branchName
+                        }));
+                    });
+
+
+                }
+            },
+            error: function(error) {
+                console.error('Error fetching branch data:', error);
+            }
+        });
+
+    }
+
+       function GetEmployeeByBranchId(branchId) {
+        $.ajax({
+            type: "GET",
+            url: '@baseUrl/EmployeeMasterAPI/GetEmployeeByBranchId/' + branchId,
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response?.isSuccess && response?.data) {
+                    const $emp = $('#employee');
+                    $emp.empty().append('<option disabled selected value="">--Select Employee--</option>');
+                    $.each(response.data, function (i, item) {
+                        $emp.append('<option value="' + item.id + '">' + item.fullName + '</option>');
+                    });
+                    // Remove 'selected' from all except the placeholder
+                    $emp.find('option:not(:first)').prop('selected', false);
+                } else {
+                    // If no data, reset dropdown
+                    $('#employee').empty().append('<option disabled selected value="">--Select Employee--</option>');
+                }
+            },
+            error: function (xhr, status, error) {
+                // Handle error and reset dropdown
+                $('#employee').empty().append('<option disabled selected value="">--Select Employee--</option>');
+                console.error('Error fetching employees:', error);
+            }
+        });
+    }   
+
+
+
 
 </script>
 
