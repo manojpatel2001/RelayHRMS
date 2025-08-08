@@ -15,11 +15,11 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Repository.ManagePermissions
 {
-    public class RolePermissionRepository : Repository<RolePermission>, IRolePermissionRepository
+    public class RolePermissionRepository : IRolePermissionRepository
     {
         private readonly HRMSDbContext _db;
 
-        public RolePermissionRepository(HRMSDbContext db) : base(db)
+        public RolePermissionRepository(HRMSDbContext db)
         {
             _db = db;
         }
@@ -54,14 +54,10 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                 EXEC ManageRolePermission
                     @Action = {"CREATE"},
                     @RoleId = {permission.RoleId},
-                    @PermissionId = {permission.PermissionId},
-                    @CompanyId = {permission.CompanyId},
-                    @IsDeleted = {permission.IsDeleted},
-                    @IsEnabled = {permission.IsEnabled},
-                    @IsBlocked = {permission.IsBlocked},
-                    @CreatedDate = {permission.CreatedDate},
-                    @CreatedBy = {permission.CreatedBy}
-            ").ToListAsync();
+                    @PermissionIds = {permission.PermissionIds},
+                    @CompanyId = {permission.CompanyId}
+                    
+                ").ToListAsync();
 
                 return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
@@ -71,48 +67,8 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
             }
         }
 
-        public async Task<VMCommonResult> UpdateRolePermission(RolePermission permission)
-        {
-            try
-            {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC ManageRolePermission
-                    @Action = {"UPDATE"},
-                    @RolePermissionId = {permission.RolePermissionId},
-                    @RoleId = {permission.RoleId},
-                    @PermissionId = {permission.PermissionId},
-                    @UpdatedDate = {permission.UpdatedDate},
-                    @UpdatedBy = {permission.UpdatedBy}
-            ").ToListAsync();
-
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
-            }
-            catch
-            {
-                return new VMCommonResult { Id = 0 };
-            }
-        }
-
-        public async Task<VMCommonResult> DeleteRolePermission(vmRoleManagePermission delete)
-        {
-            try
-            {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC ManageRolePermission
-                    @Action = {"DELETE"},
-                    @RoleId = {delete.RoleId},
-                    @CompanyId = {delete.CompanyId},
-                    @DeletedBy = {delete.DeletedBy}
-              ").ToListAsync();
-
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
-            }
-            catch
-            {
-                return new VMCommonResult { Id = 0 };
-            }
-        }
-
+       
+       
         public async Task<List<RoleManagePermissionDto>> GetAllRolesWithPermissionByRoleId(vmRoleManagePermission vmRole)
         {
             try

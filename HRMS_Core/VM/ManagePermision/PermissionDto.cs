@@ -15,6 +15,4 @@ namespace HRMS_Core.VM.ManagePermision
         public string GroupName { get; set; }
     }
 
-    
-
 }

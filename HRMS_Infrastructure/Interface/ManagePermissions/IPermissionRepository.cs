@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Interface.ManagePermissions
 {
-    public interface IPermissionRepository : IRepository<Permission>
+    public interface IPermissionRepository 
     {
-        Task<List<Permission>> GetAllPermissions();
+        Task<List<Permission>> GetAllPermissions(vmPermissionPara vmPermissionPara);
         Task<Permission?> GetPermissionById(vmCommonGetById vmCommonGetById);
         Task<VMCommonResult> CreatePermission(Permission permission);
         Task<VMCommonResult> UpdatePermission(Permission permission);

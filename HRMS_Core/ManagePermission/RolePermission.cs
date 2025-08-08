@@ -12,14 +12,14 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.ManagePermission
 {
-    [Table("RolePermission")]
-    public class RolePermission:BaseModel
+    
+    public class RolePermission
     {
-        [Key]
+        
         public int RolePermissionId { get; set; }
         public int? RoleId { get; set; }
         
-        public int? PermissionId { get; set; }
+        public int? PermissionIds { get; set; }
         
         public int? CompanyId { get; set; }
     
