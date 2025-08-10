@@ -42,38 +42,19 @@ namespace HRMS_API.Controllers.ManagePermissions
 
 
         [HttpPost("CreateRolePermission")]
-        public async Task<APIResponse> CreateRolePermission(vmPermisionRole vmPermisionRole)
-        
+        public async Task<APIResponse> CreateRolePermission(RolePermission permission)
+
         {
             try
             {
-                if (vmPermisionRole == null)
-                return new APIResponse { isSuccess = false, ResponseMessage = "Role Permission details cannot be null." };
+                if (permission == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Role Permission details cannot be null." };
 
-                var roleExists = await _unitOfWork.RoleRepository.GetAllAsync(x=>x.Id==vmPermisionRole.RoleId);
-                if (!roleExists.Any())
-                    return new APIResponse { isSuccess = false, ResponseMessage = $"Role cannot found" };
-
-                var permissionExists = await _unitOfWork.RolePermissionRepository.GetAllAsync(x => x.RoleId == vmPermisionRole.RoleId &&x.IsDeleted==false &&x.IsEnabled==true);
-                if (permissionExists.Any())
-                {
-                    var deleteData = new vmRoleManagePermission { RoleId= vmPermisionRole.RoleId,CompanyId= vmPermisionRole .CompanyId};
-                    var deleteRolePermission = await _unitOfWork.RolePermissionRepository.DeleteRolePermission(deleteData);
-                }
-
-                foreach (var permissionId in vmPermisionRole.PermissionIds)
-                {
-                    var newPermission = new RolePermission
-                    {
-                        RoleId = vmPermisionRole.RoleId,
-                        PermissionId = permissionId,
-                        CompanyId= vmPermisionRole.CompanyId
-                    };
-                    var addedResult = await _unitOfWork.RolePermissionRepository.CreateRolePermission(newPermission);
-                }
+                    var addedResult = await _unitOfWork.RolePermissionRepository.CreateRolePermission(permission);
+                
 
                 return new APIResponse { isSuccess = true, ResponseMessage = "Role and permission has been added successfully" };
-             }
+            }
             catch (Exception ex)
             {
                 // This will catch unexpected runtime exceptions
@@ -119,31 +100,7 @@ namespace HRMS_API.Controllers.ManagePermissions
         }
 
 
-        [HttpDelete("DeleteRolePermission")]
-        public async Task<APIResponse> DeleteRolePermission(vmRoleManagePermission model)
-        {
-            try
-            {
-                if (model == null || model.RoleId == 0)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
-
-                var checkPermission = await _unitOfWork.RoleRepository.GetAllAsync(x=>x.Id==model.RoleId&&  x.IsDeleted==false &&x.IsEnabled==true);
-                if (checkPermission == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
-
-                var result = await _unitOfWork.RolePermissionRepository.DeleteRolePermission(model);
-
-                if (result.Id > 0)
-                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been deleted successfully." };
-
-                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete record. Please try again later." };
-            }
-            catch (Exception ex)
-
-            {
-                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
-            }
-        }
+       
 
     }
 }

@@ -83,10 +83,6 @@ namespace HRMS_Core.DbContext
         public DbSet<HRMSRoleIdentity> HRMSRoleIdentity { get; set; }
         public DbSet<HRMSUserRole> HRMSUserRoles { get; set; }
 
-        public DbSet<Permission> Permission { get; set; }
-        public DbSet<RolePermission> RolePermission { get; set; }
-        public DbSet<UserPermission> UserPermission { get; set; }
-
        
         public DbSet<Earning> Earning { get; set; }
         public DbSet<Deduction> Deduction { get; set; }
@@ -200,7 +196,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<AttendanceDetailsViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetEmployeesByReportingManager>().HasNoKey().ToView(null);
             modelBuilder.Entity<VmLeftEmployee>().HasNoKey().ToView(null);
-
+            modelBuilder.Entity<MyTeamleavesVM>().HasNoKey().ToView(null);
 
 
 

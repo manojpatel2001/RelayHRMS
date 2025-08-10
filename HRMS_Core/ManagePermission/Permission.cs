@@ -9,16 +9,19 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.ManagePermission
 {
-    [Table("Permission")]
-    public class Permission:BaseModel
+   
+    public class Permission
     {
-        [Key]
+        
         public int PermissionId { get; set; }
         public string PermissionName { get; set; }
         public string Slug { get; set; }
         public string? Description { get; set; }
         public string? PermissionUrl { get; set; }
         public string? GroupName { get; set; }
+        public string? PermissionType { get; set; }
+        public bool? IsActive { get; set; } = true;
+        public bool? IsDeleted { get; set; } = false;
 
     }
 }
