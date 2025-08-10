@@ -199,6 +199,7 @@ namespace HRMS_Core.DbContext
 
             modelBuilder.Entity<AttendanceDetailsViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetEmployeesByReportingManager>().HasNoKey().ToView(null);
+            modelBuilder.Entity<MyTeamleavesVM>().HasNoKey().ToView(null);
 
 
 
