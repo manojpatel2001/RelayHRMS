@@ -73,6 +73,31 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
+        public async Task<List<MyTeamleavesVM>> GetMyteamleave(int EmpId, int Compid, int Repoid)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@empid", EmpId) ,
+                    new SqlParameter("@companyid", Compid) ,
+                    new SqlParameter("@repoid", Repoid) ,
+
+
+                    };
+
+                var result = await _db.Set<MyTeamleavesVM>()
+                    .FromSqlRaw("EXEC MyTeamLeaves @empid, @companyid , @repoid", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<MyTeamleavesVM>();
+            }
+        }
+
         public async Task<List<RecentEmployeeVM>> GetRecentJoinedEmployees(int Companyid)
         {
             try
