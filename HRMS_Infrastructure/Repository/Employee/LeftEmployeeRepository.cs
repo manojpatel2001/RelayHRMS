@@ -148,7 +148,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var result = await _db.Set<LeftEmployee>().FromSqlInterpolated($@"
                  EXEC sp_LeftEmployee_CRUD
                     @Operation = {"GET"},
-                    @Id = {filter.Id}
+                    @LeftID = {filter.Id}
                    
             ").ToListAsync();
 
