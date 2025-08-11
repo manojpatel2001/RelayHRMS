@@ -125,6 +125,10 @@
         overflow: hidden;
         text-overflow: ellipsis;
         display: inline-block;
+    } 
+    .swal-small {
+        font-size: 14px;
+        padding: 10px;
     }
 </style>
 
@@ -316,6 +320,24 @@
         });
     }
 
+             function GetEmployeeById() { 
+        var empId = $("#employeeDropdown").val();
+        return $.ajax({
+            type: "GET",
+            url: '@baseDomainUrl/api/EmployeeMasterAPI/GetEmployeeById/' + empId,
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (data) {
+                if (data.isSuccess && data.data) {
+
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error: " + status + " - " + error);
+            }
+        });
+    }
 
       async function showLoder(){
           $('#grid-loader').addClass('d-flex').show();
@@ -331,80 +353,89 @@
         $('#validationMsg').text('');
     }
 
- 
+
         $('.btn-custom:contains("Go")').on('click', function () {
-    clearValidationErrors();
-    const branch = $('#branch').val();
-    const emp = $('#employeeDropdown').val();
-      const month = $('#month').val();
-    const year = $('#year').val();
-    const record = $('#recordtype').val();
+        clearValidationErrors();
+        let hasError = false; // Add missing variable
+        const branch = $('#branch').val();
+        const emp = $('#employeeDropdown').val();
+        const month = $('#month').val();
+        const year = $('#year').val();
+        const record = $('#recordtype').val();
 
+        const monthIndex = $('#month').prop('selectedIndex');
+        const monthStr = (monthIndex + 1).toString().padStart(2, '0');
+        const startDate = `${year}-${monthStr}-01`;
+        const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+        const endDate = `${year}-${monthStr}-${lastDay}`;
 
-        const monthIndex = $('#month').prop('selectedIndex'); // Get the zero-based index of the selected month
-    const monthStr = (monthIndex + 1).toString().padStart(2, '0'); // Convert to one-based index and pad with zero
-    const startDate = `${year}-${monthStr}-01`;
-    const lastDay = new Date(year, monthIndex + 1, 0).getDate(); // Increment month index by 1
-    const endDate = `${year}-${monthStr}-${lastDay}`;
+        // Basic field validations
+        if (!year) { $('#yearError').text("Please select Year."); hasError = true; }
+        if (!month || month < 1 || month > 12) { $('#monthError').text("Please select Month."); hasError = true; }
+        if (!branch) { $('#branchError').text("Please select Branch."); hasError = true; }
+        if (!emp) { $('#employeeError').text("Please select Employee."); hasError = true; }
+        if (!record) { $('#recordTypeError').text("Please select Record Type."); hasError = true; }
 
-    if (!year) {
-        $('#yearError').text("Please select Year.");
-        hasError = true;
-    }
-    if (!month || month < 1 || month > 12) {
-        $('#monthError').text("Please select Month.");
-        hasError = true;
-    }
-    if (!branch) {
-        $('#branchError').text("Please select Branch.");
-        hasError = true;
-    }
-    if (!emp) {
-        $('#employeeError').text("Please select Employee.");
-        hasError = true;
-    }
-    if (!record) {
-        $('#recordTypeError').text("Please select Record Type.");
-        hasError = true;
-    }
-      showLoder();
-        // Valid: proceed
-    const formData = new FormData();
-     formData.append("BranchId", branch);
-     formData.append("EmpId", emp);
-     formData.append("StartDate", startDate);
-     formData.append("EndDate", endDate);
-     formData.append("RecordType", record);
+        if (hasError) return;
 
-        $.ajax({
-            url: apiBase + "/EmployeeInOut/GetEmployeeInOutReport",
-            type: 'POST',
-            data: formData,
-            contentType: false,
-            processData: false,
-              success: function (response) {
-            if (response?.isSuccess) {
-                $('#validationMsg').text("");
-                LoadAttendanceGrid(response.data);
-                if (response.data && response.data.length > 0) {
-                    $("#saveButtonContainer").show();
-                    $("#attendanceSection").show();
-                } else {
-                    $("#saveButtonContainer").hide();
-                    $("#attendanceSection").hide();
-                }
-            } else {
-                $('#validationMsg').text("No records found.");
-                $("#saveButtonContainer").hide();
-                $("#attendanceSection").hide();
+        // Now check joining date before proceeding
+        GetEmployeeById().done(function (data) {
+            if (data.isSuccess && data.data) {
+                let joiningDate = new Date(data.data.dateOfJoining);
+                let selectedStartDate = new Date(startDate);
+
+                  if (selectedStartDate < joiningDate) {
+        Swal.fire({
+            text: `Attendance regulation is only allowed from ${joiningDate.toLocaleDateString()}.`,
+            icon: 'warning',
+            width: '300px', // smaller width
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal-small'
             }
-        },
-            error: function () {
-                $('#validationMsg').text("Something went wrong while fetching data.");
-            },
-                complete: function () {
-                    hideLoder(); // Always hide loader after completion
-                }
+        });
+        return;
+    }
+                // Proceed with AJAX only if date is valid
+                showLoder();
+                const formData = new FormData();
+                formData.append("BranchId", branch);
+                formData.append("EmpId", emp);
+                formData.append("StartDate", startDate);
+                formData.append("EndDate", endDate);
+                formData.append("RecordType", record);
+
+                $.ajax({
+                    url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        if (response?.isSuccess) {
+                            $('#validationMsg').text("");
+                            LoadAttendanceGrid(response.data);
+                            if (response.data && response.data.length > 0) {
+                                $("#saveButtonContainer").show();
+                                $("#attendanceSection").show();
+                            } else {
+                                $("#saveButtonContainer").hide();
+                                $("#attendanceSection").hide();
+                            }
+                        } else {
+                            $('#validationMsg').text("No records found.");
+                            $("#saveButtonContainer").hide();
+                            $("#attendanceSection").hide();
+                        }
+                    },
+                    error: function () {
+                        $('#validationMsg').text("Something went wrong while fetching data.");
+                    },
+                    complete: function () {
+                        hideLoder();
+                    }
+                });
+            }
         });
     });
 
