@@ -6,6 +6,7 @@ using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Repository.Employee;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HRMS_API.Controllers.Employee
@@ -65,11 +66,12 @@ namespace HRMS_API.Controllers.Employee
                 {
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
                 }
+                int id = employee.LeftID;
 
-                //var check = await _unitOfWork.leftEmployeeRepository.GetLeftEmpById(new vmCommonGetById { Id = employee.LeftID });
+                var check = await _unitOfWork.leftEmployeeRepository.GetLeftEmpById(new vmCommonGetById { Id = id });
 
-                //if (check == null)
-                //    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
+                if (check == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
 
                 var result = await _unitOfWork.leftEmployeeRepository.UpdateLeftEmployee(employee);
 
@@ -98,11 +100,20 @@ namespace HRMS_API.Controllers.Employee
                 {
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
                 }
+                int id = DeleteRecord.Id;
+
+                var check = await _unitOfWork.leftEmployeeRepository.GetLeftEmpById(new vmCommonGetById { Id = id });
+
+                if (check == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
 
                 var data = await _unitOfWork.leftEmployeeRepository.DeleteLeftEmployee(DeleteRecord);
                 await _unitOfWork.CommitAsync();
 
-                return new APIResponse() { isSuccess = true, Data = DeleteRecord, ResponseMessage = "The record has been deleted successfully" };
+                //if (data.Id > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been updated successfully." };
+
+                //return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update record. Please try again later." };
             }
             catch (Exception err)
             {
