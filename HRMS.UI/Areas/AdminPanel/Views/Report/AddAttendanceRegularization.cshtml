@@ -459,7 +459,6 @@
 
 
 
-
     function LoadAttendanceGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
@@ -468,16 +467,14 @@
             width: "100%",
             columnAutoWidth: true,
             allowColumnResizing: true,
-            paging: {
-                enabled: false
-            },
-           scrolling: {
+            paging: { enabled: false },
+              height: 300, // fixed height for scroll
+    autoHeight: false, // ensure scroll can appear
+    scrolling: {
         mode: "standard",
         useNative: false,
-        showScrollbar: "onHover" // यह रखें
+        showScrollbar: "onHover"
     },
-    height: 300, // यह line को इससे replace करें:
-    autoHeight: true,
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
@@ -486,10 +483,10 @@
                 mode: "cell",
                 allowUpdating: true
             },
-            onContentReady: function(e) {
+            onContentReady: function (e) {
                 e.component.option("width", "100%");
             },
-            onCellPrepared: function(e) {
+            onCellPrepared: function (e) {
                 if (e.rowType === "data") {
                     e.cellElement.css({
                         'padding-top': '2px',
@@ -499,11 +496,15 @@
                     });
                 }
             },
-            onEditingStart: function(e) {
-                const status = e.data.attendanceStatus?.trim().toLowerCase();
-                if (status === "p") {
+            onEditingStart: function (e) {
+                const status = e.data.attendanceStatus?.trim().toUpperCase();
+                if (status === "P" || status === "W" || status === "H") {
                     e.cancel = true;
-                    DevExpress.ui.notify("Editing not allowed for Present records.", "warning", 2000);
+                    let msg =
+                        status === "P" ? "Editing not allowed for Present records." :
+                            status === "W" ? "Editing not allowed for Week Off records." :
+                                "Editing not allowed for Holiday records.";
+                    DevExpress.ui.notify(msg, "warning", 2000);
                 }
             },
             columns: [
@@ -517,10 +518,9 @@
                 },
                 {
                     dataField: "monthDay",
-                    caption: "Day",    
+                    caption: "Day",
                     allowEditing: false,
-                    width: 100,
-                    minWidth: 100
+                    width: 50
                 },
                 {
                     dataField: "fullName",
@@ -544,7 +544,8 @@
                     dataField: "inTime",
                     caption: "In Time",
                     minWidth: 80,
-                    cellTemplate: function(container, options) {
+                    allowEditing: false, // ✅ Read-only
+                    cellTemplate: function (container, options) {
                         const value = options.data.inTime && options.data.inTime !== "-"
                             ? new Date(options.data.inTime).toLocaleTimeString('en-GB', {
                                 hour: '2-digit',
@@ -568,7 +569,8 @@
                     dataField: "outTime",
                     caption: "Out Time",
                     minWidth: 80,
-                    cellTemplate: function(container, options) {
+                    allowEditing: false, // ✅ Read-only
+                    cellTemplate: function (container, options) {
                         const value = options.data.outTime && options.data.outTime !== "-"
                             ? new Date(options.data.outTime).toLocaleTimeString('en-GB', {
                                 hour: '2-digit',
@@ -594,31 +596,17 @@
                     width: 100,
                     minWidth: 100,
                     allowEditing: false,
-                    cellTemplate: function(container, options) {
+                    cellTemplate: function (container, options) {
                         const status = options.data.attendanceStatus?.trim();
                         let color;
                         let text;
 
-                        if (status === "P") {
-                            color = "green";
-                            text = "P";
-                        } else if (status === "HF") {
-                            color = "orange";
-                            text = "HF";
-                        } else if (status === "A") {
-                            color = "red";
-                            text = "A";
-                        }
-                            else if (status === "H") {
-                         color = "blue";
-                             text = "H";
-                          } else if (status === "W") {
-                            color = "purple";
-                             text = "W";
-                              } else {
-                            color = "gray"; // default color
-                            text = status;  // show the actual status text
-                           }
+                        if (status === "P") { color = "green"; text = "P"; }
+                        else if (status === "HF") { color = "orange"; text = "HF"; }
+                        else if (status === "A") { color = "red"; text = "A"; }
+                        else if (status === "H") { color = "blue"; text = "H"; }
+                        else if (status === "W") { color = "purple"; text = "W"; }
+                        else { color = "gray"; text = status; }
 
                         $("<div>")
                             .text(text)
@@ -646,14 +634,14 @@
                         valueExpr: "ID",
                         displayExpr: "Name"
                     },
-                    calculateDisplayValue: function(rowData) {
+                    calculateDisplayValue: function (rowData) {
                         return rowData.reason || "--Select--";
                     },
-                    allowEditing: function(rowData) {
+                    allowEditing: function (rowData) {
                         const status = rowData.attendanceStatus?.trim().toLowerCase();
                         return status === "absent" || status === "half day";
                     },
-                    editorOptions: function(rowData) {
+                    editorOptions: function (rowData) {
                         const status = rowData.attendanceStatus?.trim().toLowerCase();
                         return {
                             showClearButton: true,
@@ -684,14 +672,14 @@
                         valueExpr: "id",
                         displayExpr: "name"
                     },
-                    calculateDisplayValue: function(rowData) {
+                    calculateDisplayValue: function (rowData) {
                         return rowData.dayType || "--Select--";
                     },
-                    allowEditing: function(rowData) {
+                    allowEditing: function (rowData) {
                         const status = rowData.attendanceStatus?.trim().toLowerCase();
                         return status === "absent" || status === "half day";
                     },
-                    editorOptions: function(rowData) {
+                    editorOptions: function (rowData) {
                         const status = rowData.attendanceStatus?.trim().toLowerCase();
                         return {
                             showClearButton: true,
@@ -705,6 +693,7 @@
             ]
         });
     }
+
   
 
             function showAttendanceSummary(data) {
