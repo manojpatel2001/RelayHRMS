@@ -152,5 +152,28 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+
+
+
+        [HttpGet("GetMyteamleave")]
+        public async Task<APIResponse> GetMyteamleave([FromQuery] int empid, [FromQuery] int Compid)
+        {
+            try
+            {
+                var reperting = await _unitOfWork.EmployeeManageRepository.GetAsync(asp => asp.Id == empid);
+                var reportingpersonid = reperting.ReportingManagerId;
+                var data = await _unitOfWork.EmployeeDashboardRepository.GetMyteamleave(empid, Compid, reportingpersonid.Value);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
     }
 }

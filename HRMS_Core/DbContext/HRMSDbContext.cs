@@ -195,12 +195,17 @@ namespace HRMS_Core.DbContext
 
             modelBuilder.Entity<AttendanceDetailsViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetEmployeesByReportingManager>().HasNoKey().ToView(null);
+
             modelBuilder.Entity<SP_Response>().HasNoKey().ToView(null);
             modelBuilder.Entity<Permission>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllEmployeeListByCompanyId>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllUserWithPermissionByCompanyId>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllPermissionByEmployeeId>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetEmployeeById>().HasNoKey().ToView(null);
+
+
+            modelBuilder.Entity<VmLeftEmployee>().HasNoKey().ToView(null);
+            modelBuilder.Entity<MyTeamleavesVM>().HasNoKey().ToView(null);
 
 
 
