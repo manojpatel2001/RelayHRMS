@@ -229,11 +229,11 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async Task<vmGetAllEmployee?> GetEmployeeById(int Id)
+        public async Task<vmGetEmployeeById?> GetEmployeeById(int Id)
         {
             try
             {
-                var result = await _db.Set<vmGetAllEmployee>()
+                var result = await _db.Set<vmGetEmployeeById>()
                                       .FromSqlInterpolated($"EXEC GetEmployeeById @Id = {Id}")
                                       .ToListAsync();
 

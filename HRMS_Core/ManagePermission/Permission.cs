@@ -20,6 +20,8 @@ namespace HRMS_Core.ManagePermission
         public string? PermissionUrl { get; set; }
         public string? GroupName { get; set; }
         public string? PermissionType { get; set; }
+        public int? PermissionRoleType { get; set; }
+        public string? PermissionRoleTypeName { get; set; }
         public bool? IsActive { get; set; } = true;
         public bool? IsDeleted { get; set; } = false;
 

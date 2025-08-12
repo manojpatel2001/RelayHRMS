@@ -11,12 +11,12 @@ namespace HRMS_Infrastructure.Interface.ManagePermissions
 {
     public interface IPermissionRepository 
     {
-        Task<List<Permission>> GetAllPermissions(vmPermissionPara vmPermissionPara);
+        Task<List<Permission>> GetAllPermissions();
         Task<Permission?> GetPermissionById(vmCommonGetById vmCommonGetById);
-        Task<VMCommonResult> CreatePermission(Permission permission);
-        Task<VMCommonResult> UpdatePermission(Permission permission);
-        Task<VMCommonResult> DeletePermission(DeleteRecordVM deleteRecord);
-        Task<List<PermissionDto>> GetAllGroupPermissionList();
+        Task<SP_Response> CreatePermission(Permission permission);
+        Task<SP_Response> UpdatePermission(Permission permission);
+        Task<SP_Response> DeletePermission(DeleteRecordVM deleteRecord);
+        Task<List<PermissionDto>> GetAllGroupPermissionList(string PermissionType);
     }
 
 }

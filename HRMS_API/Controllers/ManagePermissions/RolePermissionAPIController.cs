@@ -42,8 +42,7 @@ namespace HRMS_API.Controllers.ManagePermissions
 
 
         [HttpPost("CreateRolePermission")]
-        public async Task<APIResponse> CreateRolePermission(RolePermission permission)
-
+        public async Task<APIResponse> CreateRolePermission([FromBody]RolePermission permission)
         {
             try
             {
@@ -51,9 +50,12 @@ namespace HRMS_API.Controllers.ManagePermissions
                     return new APIResponse { isSuccess = false, ResponseMessage = "Role Permission details cannot be null." };
 
                     var addedResult = await _unitOfWork.RolePermissionRepository.CreateRolePermission(permission);
-                
 
-                return new APIResponse { isSuccess = true, ResponseMessage = "Role and permission has been added successfully" };
+                if (addedResult.Id > 0)
+                {
+                    return new APIResponse { isSuccess = true, ResponseMessage = "Permission has been assigned successfully" };
+                }
+                return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong!" };
             }
             catch (Exception ex)
             {
@@ -61,7 +63,7 @@ namespace HRMS_API.Controllers.ManagePermissions
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = $"Exception during role creation: {ex.Message}"
+                    ResponseMessage = "Some thing went wrong!"
                 };
             }
         }
@@ -82,6 +84,7 @@ namespace HRMS_API.Controllers.ManagePermissions
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
+
         [HttpPost("GetAllRolesWithPermissionByRoleId")]
         public async Task<APIResponse> GetAllRolesWithPermissionByRoleId(vmRoleManagePermission vmRole)
         {
@@ -99,8 +102,53 @@ namespace HRMS_API.Controllers.ManagePermissions
             }
         }
 
+        [HttpDelete("DeleteRolePermission")]
+        public async Task<APIResponse> DeleteRolePermission(vmRoleManagePermission model)
+        {
+            try
+            {
+                if (model == null || model.RoleId == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
 
-       
+              
+                var result = await _unitOfWork.RolePermissionRepository.DeleteRolePermission(model);
 
+                if (result.Id > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been deleted successfully." };
+
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete record. Please try again later." };
+            }
+            catch (Exception ex)
+
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetAllUserAndRolePermissionList/{EmployeeId}")]
+        public async Task<APIResponse> GetAllUserAndRolePermissionList(int EmployeeId)
+        {
+            try
+            {
+                var roleAndPermission = await _unitOfWork.RolePermissionRepository.GetEmployeeRolesAndPermissions(EmployeeId);
+
+                if (roleAndPermission == null || !roleAndPermission.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                var permssions = new List<string>();
+                foreach (var role in roleAndPermission)
+                {
+                    if (!String.IsNullOrEmpty(role.PermissionSlug))
+                    {
+                        permssions.Add(role.PermissionSlug);
+                    }
+                }
+                return new APIResponse { isSuccess = true, Data = permssions, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
     }
 }

@@ -118,6 +118,25 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                 return new List<vmGetEmployeeRolesAndPermissions>();
             }
         }
+
+        public async Task<VMCommonResult> DeleteRolePermission(vmRoleManagePermission delete)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageRolePermission
+                    @Action = {"DELETE"},
+                    @RoleId = {delete.RoleId},
+                    @CompanyId = {delete.CompanyId}
+              ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
     }
 
 }

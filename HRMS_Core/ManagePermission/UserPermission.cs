@@ -13,11 +13,10 @@ namespace HRMS_Core.ManagePermission
    
     public class UserPermission
     {
-       
         public int UserPermissionId { get; set; }
-        public int? PermissionId { get; set; }
+        public string? PermissionIds { get; set; }
         public int? EmployeeId { get; set; }
+        public int? CompanyId { get; set; }
        
-
     }
 }

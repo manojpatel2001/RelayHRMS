@@ -94,6 +94,7 @@ namespace HRMS_Infrastructure.Interface
         IMyProfileRepository myProfileRepository { get; }
         IEmployeeDirectory employeeDirectory { get; }
         ILeftEmployeeRepository leftEmployeeRepository { get; }
+        IUserPermissionRepository UserPermissionRepository { get; }
         void Commit();
         Task CommitAsync();
     }

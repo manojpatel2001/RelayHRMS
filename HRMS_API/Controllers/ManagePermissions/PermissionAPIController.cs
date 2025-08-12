@@ -29,7 +29,7 @@ namespace HRMS_API.Controllers.ManagePermissions
         {
             try
             {
-                var data = await _unitOfWork.PermissionRepository.GetAllPermissions(new vmPermissionPara { });
+                var data = await _unitOfWork.PermissionRepository.GetAllPermissions();
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -66,26 +66,16 @@ namespace HRMS_API.Controllers.ManagePermissions
             {
                 if (model == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Permission details cannot be null." };
-                var existPermissionName = await _unitOfWork.PermissionRepository.GetAllPermissions(new vmPermissionPara {PermissionName=model.PermissionName });
-                if (existPermissionName.Any())
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = $"Record with permission name '{model.PermissionName}' already added " };
-                }
-                var existSlug = await _unitOfWork.PermissionRepository.GetAllPermissions(new vmPermissionPara {Slug=model.Slug });
-                if (existSlug.Any())
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = $"Record with permission name '{model.Slug}' already added " };
-                }
+             
 
                 var result = await _unitOfWork.PermissionRepository.CreatePermission(model);
 
-                if (result.Id > 0)
+                if (result.Success > 0)
                 {
-                    var newPermission = await _unitOfWork.PermissionRepository.GetPermissionById(new vmCommonGetById { Id = result.Id });
-                    return new APIResponse { isSuccess = true, Data = newPermission, ResponseMessage = "The record has been saved successfully." };
+                    return new APIResponse { isSuccess = true,  ResponseMessage = result.ResponseMessage };
                 }
 
-                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to add record. Please try again later." };
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
             catch (Exception ex)
             {
@@ -101,29 +91,17 @@ namespace HRMS_API.Controllers.ManagePermissions
                 if (permission == null || permission.PermissionId == 0)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Permission details cannot be null." };
 
-                var checkPermission = await _unitOfWork.PermissionRepository.GetPermissionById(new vmCommonGetById { Id = permission.PermissionId });
-                if (checkPermission == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
-
-                var existPermissionName = await _unitOfWork.PermissionRepository.GetAllPermissions(new vmPermissionPara { PermissionName = permission.PermissionName });
-                if (existPermissionName.Any(x => x.PermissionId != permission.PermissionId))
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = $"Record with permission name '{permission.PermissionName}' already added " };
-                }
-                var existSlug = await _unitOfWork.PermissionRepository.GetAllPermissions(new vmPermissionPara { Slug = permission.Slug });
-                if (existSlug.Any(x=>x.PermissionId!= permission.PermissionId))
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = $"Record with permission name '{permission.Slug}' already added " };
-                }
+                
                 var result = await _unitOfWork.PermissionRepository.UpdatePermission(permission);
 
-                if (result.Id > 0)
+                if (result.Success > 0)
                 {
-                    var updatedPermission = await _unitOfWork.PermissionRepository.GetPermissionById(new vmCommonGetById { Id = permission.PermissionId, IsDeleted = false, IsEnabled = true });
-                    return new APIResponse { isSuccess = true, Data = updatedPermission, ResponseMessage = "The record has been updated successfully." };
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
                 }
 
-                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update record. Please try again later." };
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+
+
             }
             catch (Exception ex)
             {
@@ -139,33 +117,31 @@ namespace HRMS_API.Controllers.ManagePermissions
                 if (model == null || model.Id == 0)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
 
-                var checkPermission = await _unitOfWork.PermissionRepository.GetPermissionById(new vmCommonGetById { Id = model.Id });
-                if (checkPermission == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
-
-                model.DeletedDate = DateTime.UtcNow;
+                
                 var result = await _unitOfWork.PermissionRepository.DeletePermission(model);
 
-                if (result.Id > 0)
-                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been deleted successfully." };
+                if (result.Success > 0)
+                {
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                }
 
-                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete record. Please try again later." };
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
             catch (Exception ex)
 
             {
-                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
+                return new APIResponse { isSuccess = false,  ResponseMessage = "Unable to delete record. Please try again later." };
             }
         }
 
-        [HttpGet("GetAllGroupPermissions")]
-        public async Task<APIResponse> GetAllGroupPermissions()
+        [HttpGet("GetAllGroupPermissions/{PermissionType}")]
+        public async Task<APIResponse> GetAllGroupPermissions(string PermissionType)
         {
             try
             {
                 var actionOrder = new List<string> { "View", "Add", "Edit", "Delete", "Block" };
 
-                var data = await _unitOfWork.PermissionRepository.GetAllGroupPermissionList();
+                var data = await _unitOfWork.PermissionRepository.GetAllGroupPermissionList(PermissionType);
 
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
@@ -175,6 +151,7 @@ namespace HRMS_API.Controllers.ManagePermissions
                     .Select(g => new
                     {
                         GroupName = g.Key,
+                        PermissionRoleTypeName = g.Select(x => x.PermissionRoleTypeName).FirstOrDefault(),
                         Permissions = g
                             .Select(x => new
                             {
