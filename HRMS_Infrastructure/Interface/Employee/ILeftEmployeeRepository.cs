@@ -13,9 +13,9 @@ namespace HRMS_Infrastructure.Interface.Employee
 {
     public interface ILeftEmployeeRepository:IRepository<LeftEmployee>
     {
-        Task<VMCommonResult> CreateLeftEmployee(LeftEmployee model);
-        Task<VMCommonResult> UpdateLeftEmployee(LeftEmployee model);
-        Task<VMCommonResult> DeleteLeftEmployee(DeleteRecordVM deleteRecord);
+        Task<SP_Response> CreateLeftEmployee(LeftEmployee model);
+        Task<SP_Response> UpdateLeftEmployee(LeftEmployee model);
+        Task<SP_Response> DeleteLeftEmployee(DeleteRecordVM deleteRecord);
         Task<LeftEmployee?> GetLeftEmpById(vmCommonGetById filter);
         Task<List<VmLeftEmployee>> GetAllLeftEmployee();
     }

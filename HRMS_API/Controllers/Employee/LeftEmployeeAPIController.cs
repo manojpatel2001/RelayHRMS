@@ -49,7 +49,12 @@ namespace HRMS_API.Controllers.Employee
                     return new APIResponse { isSuccess = false, ResponseMessage = "LeftEmployee details cannot be null." };
 
                 var result = await _unitOfWork.leftEmployeeRepository.CreateLeftEmployee(model);
-                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been added successfully." };
+                if (result.Success > 0)
+                {
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                }
+
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
 
             }
             catch (Exception ex)
@@ -66,19 +71,15 @@ namespace HRMS_API.Controllers.Employee
                 {
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
                 }
-                int id = employee.LeftID;
-
-                var check = await _unitOfWork.leftEmployeeRepository.GetLeftEmpById(new vmCommonGetById { Id = id });
-
-                if (check == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
+         
 
                 var result = await _unitOfWork.leftEmployeeRepository.UpdateLeftEmployee(employee);
+                if (result.Success > 0)
+                {
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                }
 
-                //if (result.Id > 0)
-                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been updated successfully." };
-
-                //return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update record. Please try again later." };
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
             catch (Exception err)
             {
@@ -100,20 +101,14 @@ namespace HRMS_API.Controllers.Employee
                 {
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
                 }
-                int id = DeleteRecord.Id;
+             
+                var result = await _unitOfWork.leftEmployeeRepository.DeleteLeftEmployee(DeleteRecord);
+                if (result.Success > 0)
+                {
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                }
 
-                var check = await _unitOfWork.leftEmployeeRepository.GetLeftEmpById(new vmCommonGetById { Id = id });
-
-                if (check == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a valid record." };
-
-                var data = await _unitOfWork.leftEmployeeRepository.DeleteLeftEmployee(DeleteRecord);
-                await _unitOfWork.CommitAsync();
-
-                //if (data.Id > 0)
-                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been updated successfully." };
-
-                //return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update record. Please try again later." };
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
             catch (Exception err)
             {

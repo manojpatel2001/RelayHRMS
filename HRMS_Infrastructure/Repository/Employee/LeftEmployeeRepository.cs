@@ -22,11 +22,11 @@ namespace HRMS_Infrastructure.Repository.Employee
             _db = hRMSDbContext;
         }
 
-        public async Task<VMCommonResult> CreateLeftEmployee(LeftEmployee model)
+        public async Task<SP_Response> CreateLeftEmployee(LeftEmployee model)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
             EXEC sp_LeftEmployee_CRUD
           @Operation = {"CREATE"},
           @CmpID = {model.CmpID},
@@ -53,30 +53,30 @@ namespace HRMS_Infrastructure.Repository.Employee
           @CreatedBy = {model.CreatedBy}
             ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
             }
-            catch
+             catch
             {
-                return new VMCommonResult { Id = 0 };
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
         }
 
-        public async Task<VMCommonResult> DeleteLeftEmployee(DeleteRecordVM deleteRecord)
+        public async Task<SP_Response> DeleteLeftEmployee(DeleteRecordVM deleteRecord)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                 EXEC sp_LeftEmployee_CRUD
                     @Operation = {"DELETE"},
                     @LeftID = {deleteRecord.Id},
                     @DeletedBy = {deleteRecord.DeletedBy}
             ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
             }
             catch
             {
-                return new VMCommonResult { Id = 0 };
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
 
 
@@ -99,11 +99,11 @@ namespace HRMS_Infrastructure.Repository.Employee
         }
 
 
-        public async Task<VMCommonResult> UpdateLeftEmployee(LeftEmployee model)
+        public async Task<SP_Response> UpdateLeftEmployee(LeftEmployee model)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
             EXEC sp_LeftEmployee_CRUD
           @Operation = {"UPDATE"},
           @LeftID = {model.LeftID},
@@ -132,11 +132,11 @@ namespace HRMS_Infrastructure.Repository.Employee
 
             ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
             }
             catch
             {
-                return new VMCommonResult { Id = 0 };
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
         }
 
