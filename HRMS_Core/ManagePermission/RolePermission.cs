@@ -19,7 +19,7 @@ namespace HRMS_Core.ManagePermission
         public int RolePermissionId { get; set; }
         public int? RoleId { get; set; }
         
-        public int? PermissionIds { get; set; }
+        public string? PermissionIds { get; set; }
         
         public int? CompanyId { get; set; }
     

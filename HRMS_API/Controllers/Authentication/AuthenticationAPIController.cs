@@ -58,11 +58,12 @@ namespace HRMS_API.Controllers.Authentication
                     Email = SuperAdmin.Email,
                     FullName = SuperAdmin?.FullName,
                     Designation = "Super Admin",
+                    BranchId=0,
                     ProfileUrl = SuperAdmin?.ProfileImageUrl,
                     Password = SuperAdmin?.Password,
                     RoleName = "Super Admin",
                     RoleSlug = "super-admin",
-                    Permissions = new List<string> { "all-admin" },
+                    //Permissions = new List<string> { "all-admin" },
                     Company = JsonSerializer.Serialize(company),
                     IsPasswordChange=true
                 };
@@ -95,15 +96,8 @@ namespace HRMS_API.Controllers.Authentication
                 }
                 var emp_company = await _unitOfWork.UserCompanyPermissionsRepository.GetCompanyPermissionsListByEmployeeId(user.Id);
                 var DesignationDetails = await _unitOfWork.DesignationRepository.GetAsync(x=>x.DesignationId== user.DesignationId) ;
-                var roleAndPermission = await _unitOfWork.RolePermissionRepository.GetEmployeeRolesAndPermissions(user.Id);
-                var permssions = new List<string>();
-                foreach (var role in roleAndPermission)
-                {
-                    if (!String.IsNullOrEmpty(role.PermissionSlug))
-                    {
-                        permssions.Add(role.PermissionSlug);
-                    }
-                }
+               
+                var employeeDetails= await _unitOfWork.EmployeeManageRepository.GetEmployeeById(user.Id);
 
                 var userDetails = new UserDetailsDto
                 {
@@ -111,12 +105,13 @@ namespace HRMS_API.Controllers.Authentication
                     Email = user.Email,
                     FullName=user?.FullName,
                     Designation= DesignationDetails?.DesignationName,
-                    ProfileUrl=user?.EmployeeProfileUrl,
+                    BranchId = user?.BranchId,
+                    ProfileUrl =user?.EmployeeProfileUrl,
                     Password = user?.Password,
                     PasswordHash = user?.PasswordHash,
-                    RoleName = roleAndPermission.FirstOrDefault()?.RoleName,
-                    RoleSlug = roleAndPermission.FirstOrDefault()?.RoleSlug,
-                    Permissions = permssions,
+                    RoleName = employeeDetails?.RoleName,
+                    RoleSlug = employeeDetails?.RoleSlug,
+                    //Permissions = permssions,
                     Company = JsonSerializer.Serialize(emp_company),
                     IsPasswordChange=user.IsPasswordChange
                 };
@@ -153,17 +148,17 @@ namespace HRMS_API.Controllers.Authentication
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            // ✅ Add multiple Permission claims (array-style)
-            if (user.Permissions.Any()||user.Permissions!=null)
-            {
-                claims.AddRange(user.Permissions.Select(p => new Claim("Permission", p)));
-            }
+            //// ✅ Add multiple Permission claims (array-style)
+            //if (user.Permissions.Any()||user.Permissions!=null)
+            //{
+            //    claims.AddRange(user.Permissions.Select(p => new Claim("Permission", p)));
+            //}
 
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(2),
+                expires: DateTime.UtcNow.AddMinutes(30),
                 signingCredentials: credentials
             );
 
