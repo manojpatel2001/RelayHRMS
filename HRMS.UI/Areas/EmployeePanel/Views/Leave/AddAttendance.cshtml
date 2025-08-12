@@ -19,27 +19,6 @@
         background-color: #ffffff !important;
     }
 
-    .section-header {
-        background-color: #3e4b6d;
-        color: #fff;
-        font-weight: bold;
-        padding: 10px 20px;
-        border-top-left-radius: 6px;
-        border-top-right-radius: 6px;
-        margin: 0 auto;
-        max-width: 1200px;
-        font-size: 18px;
-    }
-
-    .form-section {
-        max-width: 1200px;
-        margin: 0 auto;
-        margin-top: 0;
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        background-color: #fff;
-    }
 
     .form-label {
         font-size: 13px;
@@ -119,16 +98,56 @@
         margin-top: 2px;
     }
 
-    .dx-cell-truncate {
-        max-width: 150px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: inline-block;
-    } 
     .swal-small {
         font-size: 14px;
         padding: 10px;
+    }
+
+    .myGrid, .myCard {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto;
+    }
+
+    #attendanceGrid {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-y: hidden !important; /* Vertical scroll hide */
+        overflow-x: auto !important; /* Horizontal scroll allow */
+    }
+
+    .form-section {
+        max-width: 100% !important;
+        margin-top: 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background-color: #fff;
+    }
+
+    .section-header {
+        background-color: #3e4b6d;
+        color: #fff;
+        font-weight: bold;
+        padding: 10px 20px;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        margin: 0 auto;
+        max-width: 100%;
+    }
+
+    #attendanceGrid .dx-scrollbar-vertical {
+        display: none !important;
+    }
+
+    /* Horizontal scrollbar को mouse over पर show करने के लिए */
+    #attendanceGrid .dx-scrollbar-horizontal {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    #attendanceGrid:hover .dx-scrollbar-horizontal {
+        opacity: 1;
     }
 </style>
 
@@ -211,6 +230,10 @@
     <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
 </div>
 
+<div id="attendanceSummary"
+     style="background-color:#d7f3f4; padding:5px; font-size:14px; font-weight:600; margin-top:10px;">
+</div>
+
 <!-- ✅ Save + Grid Section -->
 <div class="form-section" id="attendanceSection" style="margin-top: 30px; display: none;">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
@@ -237,6 +260,7 @@
     $(document).ready(function () {
         BindBranchDropdown();
         populateYearDropdown();
+                GetEmployeeById();
 
         $('#branch').on('change', function () {
             let branchId = $(this).val();
@@ -246,7 +270,7 @@
                 $('#employeeDropdown').empty().append('<option value="">--Select Employee--</option>');
             }
         });
-
+           $("#attendanceSummary").hide();
       
 
     });
@@ -354,7 +378,9 @@
     }
 
 
+
         $('.btn-custom:contains("Go")').on('click', function () {
+            debugger;
         clearValidationErrors();
         let hasError = false; // Add missing variable
         const branch = $('#branch').val();
@@ -412,8 +438,10 @@
                     contentType: false,
                     processData: false,
                     success: function (response) {
+                            $("#attendanceSummary").show();
                         if (response?.isSuccess) {
                             $('#validationMsg').text("");
+                              showAttendanceSummary(response.data);
                             LoadAttendanceGrid(response.data);
                             if (response.data && response.data.length > 0) {
                                 $("#saveButtonContainer").show();
@@ -440,19 +468,46 @@
     });
 
 
+
+
     function LoadAttendanceGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             showBorders: true,
             keyExpr: "shiftDate",
+            width: "100%",
+            columnAutoWidth: true,
+            allowColumnResizing: true,
+            paging: {
+                enabled: false
+            },
+           scrolling: {
+        mode: "standard",
+        useNative: false,
+        showScrollbar: "onHover" // यह रखें
+    },
+    height: 300, // यह line को इससे replace करें:
+    autoHeight: true,
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
-            height: "auto",
             editing: {
                 mode: "cell",
                 allowUpdating: true
+            },
+            onContentReady: function(e) {
+                e.component.option("width", "100%");
+            },
+            onCellPrepared: function(e) {
+                if (e.rowType === "data") {
+                    e.cellElement.css({
+                        'padding-top': '2px',
+                        'padding-bottom': '2px',
+                        'font-size': '12px',
+                        'line-height': '16px'
+                    });
+                }
             },
             onEditingStart: function(e) {
                 const status = e.data.attendanceStatus?.trim().toLowerCase();
@@ -467,26 +522,38 @@
                     caption: "Date",
                     dataType: "date",
                     format: "dd/MM/yyyy",
-                    width: 100
+                    width: 100,
+                    minWidth: 100
+                },
+                {
+                    dataField: "monthDay",
+                    caption: "Day",
+                    allowEditing: false,
+                    width: 100,
+                    minWidth: 100
                 },
                 {
                     dataField: "fullName",
                     caption: "Employee",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 120
                 },
                 {
                     dataField: "branchName",
                     caption: "Branch",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 100
                 },
                 {
                     dataField: "shiftTime",
                     caption: "Shift Time",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 120
                 },
                 {
                     dataField: "inTime",
                     caption: "In Time",
+                    minWidth: 80,
                     cellTemplate: function(container, options) {
                         const value = options.data.inTime && options.data.inTime !== "-"
                             ? new Date(options.data.inTime).toLocaleTimeString('en-GB', {
@@ -510,6 +577,7 @@
                 {
                     dataField: "outTime",
                     caption: "Out Time",
+                    minWidth: 80,
                     cellTemplate: function(container, options) {
                         const value = options.data.outTime && options.data.outTime !== "-"
                             ? new Date(options.data.outTime).toLocaleTimeString('en-GB', {
@@ -534,6 +602,7 @@
                     dataField: "attendanceStatus",
                     caption: "Present Day",
                     width: 100,
+                    minWidth: 100,
                     allowEditing: false,
                     cellTemplate: function(container, options) {
                         const status = options.data.attendanceStatus?.trim();
@@ -550,6 +619,16 @@
                             color = "red";
                             text = "A";
                         }
+                            else if (status === "H") {
+                         color = "blue";
+                             text = "H";
+                          } else if (status === "W") {
+                            color = "purple";
+                             text = "W";
+                              } else {
+                            color = "gray"; // default color
+                            text = status;  // show the actual status text
+                           }
 
                         $("<div>")
                             .text(text)
@@ -565,6 +644,7 @@
                     dataField: "reason",
                     caption: "Reason",
                     width: 180,
+                    minWidth: 180,
                     lookup: {
                         dataSource: [
                             { ID: "Forgot To Punch/Sign", Name: "Forgot To Punch/Sign" },
@@ -597,12 +677,14 @@
                 {
                     dataField: "workingHours",
                     caption: "Working Hours",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 120
                 },
                 {
                     dataField: "dayType",
                     caption: "Day Type",
                     width: 140,
+                    minWidth: 140,
                     lookup: {
                         dataSource: [
                             { id: "Full Day", name: "Full Day" },
@@ -632,6 +714,41 @@
                 }
             ]
         });
+    }
+
+
+            function showAttendanceSummary(data) {
+        let counts = {
+            P: 0, // Present
+            A: 0, // Absent
+            // L: 0, // Leave
+            W: 0, // Week-off
+            H: 0   // Holiday
+            // Late: 0
+        };
+
+        data.forEach(row => {
+            const status = row.attendanceStatus?.trim().toUpperCase();
+            if (status === "P") counts.P++;
+            else if (status === "A") counts.A++;
+            // else if (status === "L") counts.L++;
+            else if (status === "W") counts.W++;
+            else if (status === "H") counts.H++;
+
+            if (row.lateDeductionDays && row.lateDeductionDays > 0) {
+                counts.Late += row.lateDeductionDays;
+            }
+        });
+
+        const total = data.length;
+
+        $("#attendanceSummary").html(`
+            <span style="color:green;">Present : ${counts.P}</span> &nbsp;&nbsp;
+            <span style="color:red;">Absent : ${counts.A}</span> &nbsp;&nbsp;
+            <span style="color:purple;">Week-off : ${counts.W}</span> &nbsp;&nbsp;
+            <span style="color:blue;">Holiday : ${counts.H}</span> &nbsp;&nbsp;
+            <span>Total : ${total}</span>
+        `);
     }
 
 
@@ -759,6 +876,7 @@
 
            $("#saveButtonContainer").hide();
         $("#attendanceSection").hide();
+             $("#attendanceSummary").hide();
 
     const grid = $("#attendanceGrid").dxDataGrid("instance");
     if (grid) {
