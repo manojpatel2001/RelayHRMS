@@ -32,6 +32,8 @@ namespace HRMS_Core.VM.Employee
         public int? RequestAprID { get; set; }
         public int? LeftReasonValue { get; set; }
         public string? LeftReasonText { get; set; }
-        public int? Res_Id { get; set; }
+        public int? Res_Id { get; set; } 
+        public bool IsLeft { get; set; } 
+        public string? Remark { get; set; } 
     }
 }
