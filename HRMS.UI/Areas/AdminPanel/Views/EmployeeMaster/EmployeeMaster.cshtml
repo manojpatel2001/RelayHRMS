@@ -444,7 +444,18 @@
 							<span id="spnWeekOff" style="color:red; display:none;">Please Enter Week Off</span>
 
 						</div>
-						
+						<div class="col-md-4">
+							<div class="form-group mt-3 position-relative">
+								<select class="form-control floating-input" id="drpReporting">
+									<option disabled selected value="">Select</option>
+									<!-- Add your options here -->
+								</select>
+								<label class="floating-label" for="drpReporting">Reporting Manager<span class="required-star">*</span> </label>
+							</div>
+							<span id="spnReporting" style="color:red; display:none;">Please Select Reporting Manager</span>
+
+						</div>
+
 						<div class="col-md-2">
 							<div class="form-check mt-4">
 								<input class="form-check-input" type="checkbox" id="pt" checked>
@@ -906,6 +917,32 @@
 
 	 }
 
+	 async function bindReporting(){
+
+		$.ajax({
+		type: "GET",
+		url: "@baseUrl/EmployeeMasterAPI/GetAllEmployee"+ "?companyId=" + CompanyId,
+		success: function(data) {
+				if(data.isSuccess){
+						var dropdown = $('#drpReporting');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.id,
+							text: company.fullName+" - "+company.employeeCode
+						}));
+					});
+
+
+				}
+		},
+		error: function(xhr, status, error) {
+			console.error("AJAX Error: " + status + " - " + error);
+		}
+	})
+
+	 }
 
 	function bindBranch(){
 
@@ -1106,6 +1143,7 @@
 		bindCategory();
 		bindEmployeeType();
 		bindShift();
+		bindReporting();
 		$("#ddlBranch").change(()=>{
 			LoadWeekOffMaster();
 		})
@@ -1164,7 +1202,7 @@
 			var checkInOut = $('#checkInOut').is(':checked');
 			 var patternPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@@$!%*?&])[A-Za-z\d@@$!%*?&]{8,}$/;
 
-       
+	        var reportingManager=$('#drpReporting').val();
 			
 			var Company = CompanyId;
 				// Validate required fields
@@ -1301,7 +1339,12 @@
 				}else{
 					$('#spnWeekOff').hide();
 				}
-
+				if (!reportingManager) {
+					$('#spnReporting').show();
+					isValid = false;
+				}else{
+					$('#spnReporting').hide();
+				}
 				if (!isValid) {
 					$("#btnCreateEmployee").prop("disabled", false);
 					return; 
@@ -1332,6 +1375,8 @@
 						RoleId: RoleId === "" ? 0 : RoleId,
 						LoginAlias: loginAlias === "" ? null : `${loginAlias}${domainName}`,
 						Password: password,
+					    ReportingManagerId:reportingManager==""? null:reportingManager,
+
 						
 						Pt: pt === "" ? false : pt,
 						
@@ -1435,7 +1480,6 @@
 			method: 'GET',
 			success: function(data) {
 				if(data.isSuccess){
-					debugger
 					// Extract values from the data object
 					const nextEmployeeCode = data.data.nextEmployeeCode;
 					const digitsForEmployeeCode = data.data.digitsForEmployeeCode;
@@ -1449,7 +1493,7 @@
 
 					// Set the formatted employee code into the input field
 					$('#txtNumberEmpCode').val(formattedEmployeeCode);
-					debugger
+				
 					if(companyCode)
 					{
 						$('#tagtxtEmpCode').show();
