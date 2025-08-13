@@ -216,15 +216,15 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             }
         }
 
-        public async Task<List<EmployeeViewModel>> GetEmployeesByBranchAndUser(int EmpId, int CompId ,int Branchid)
+        public async Task<List<EmployeeViewModel>> GetEmployeesByBranchAndUser(int EmpId, int CompId )
         {
             try
             {
                 var result = await _db.Set<EmployeeViewModel>().FromSqlInterpolated($@"
                 EXEC sp_GetEmployeesByBranchAndUser
                     @LoginEmpId = {EmpId},
-                    @CompanyId ={CompId},
-                    @BranchId ={Branchid}
+                    @CompanyId ={CompId}
+                 
             ").ToListAsync();
 
                 return result;
