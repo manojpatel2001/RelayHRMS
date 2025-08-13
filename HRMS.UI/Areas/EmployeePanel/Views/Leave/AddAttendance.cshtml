@@ -252,20 +252,20 @@
 
            const savedCompany = localStorage.getItem('selectedCompany');
        var companyDetails = JSON.parse(savedCompany);
-       const CompanyId=companyDetails.CompanyId;
-       const EmployeeId=localStorage.getItem('EmployeeId');
+       const CompanyId = companyDetails.CompanyId;
+       const EmployeeId = localStorage.getItem('EmployeeId');
        const Token=localStorage.getItem("authToken");
      const apiBase = '@apiBase';
 
     $(document).ready(function () {
         BindBranchDropdown();
         populateYearDropdown();
-                GetEmployeeById();
+                // GetEmployeeById();
 
         $('#branch').on('change', function () {
             let branchId = $(this).val();
             if (branchId) {
-                GetEmployeeByBranchId(branchId);
+                GetEmployeesByBranchAndUser(branchId);
             } else {
                 $('#employeeDropdown').empty().append('<option value="">--Select Employee--</option>');
             }
@@ -289,34 +289,36 @@
                 }
 
 
-        function     BindBranchDropdown(){
-       $.ajax({
-            url: apiBase + '/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+     function BindBranchDropdown() {
+        $.ajax({
+            url: apiBase + '/BranchAPI/GetBranchesByEmployee?EmpId=' + EmployeeId + '&CompId=' + CompanyId,
             method: 'GET',
-                headers: {
-                        'Authorization': 'Bearer ' + Token
-                    },
-            success: function(data) {
-                if(data.isSuccess){
-                        var dropdown = $('#branch');
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (data) {
+                if (data.isSuccess) {
+                    var dropdown = $('#branch');
                     dropdown.empty();
                     dropdown.append('<option disabled selected value="">Select</option>');
-                    $.each(data.data, function(index, company) {
+
+                    $.each(data.data, function (index, branch) {
                         dropdown.append($('<option>', {
-                            value: company.branchId,
-                            text: company.branchName
+                            value: branch.branchId,
+                            text: branch.branchName
                         }));
                     });
-
-
+                } else {
+                    console.warn(data.responseMessage || 'No records found.');
+                    $('#branch').empty().append('<option disabled selected value="">Select</option>');
                 }
             },
-            error: function(error) {
+            error: function (error) {
                 console.error('Error fetching branch data:', error);
             }
         });
-
     }
+
 
     function populateYearDropdown() {
         const startYear = 2024;
@@ -328,21 +330,32 @@
         yearDropdown.val(currentYear);
     }
 
-    function GetEmployeeByBranchId(branchId) {
+
+    function GetEmployeesByBranchAndUser( BranchId) {
         $.ajax({
             type: "GET",
-            url: apiBase + "/EmployeeMasterAPI/GetEmployeeByBranchId/" + branchId,
+                    url: apiBase + "/BranchAPI/GetEmployeesByBranchAndUser?EmpId=" + EmployeeId + "&CompId=" + CompanyId + "&BranchId=" + BranchId,
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
             success: function (response) {
+                const $emp = $('#employeeDropdown');
+                $emp.empty().append('<option value="">--Select Employee--</option>');
+
                 if (response?.isSuccess && response?.data) {
-                    const $emp = $('#employeeDropdown');
-                    $emp.empty().append('<option value="">--Select Employee--</option>');
                     $.each(response.data, function (i, item) {
                         $emp.append('<option value="' + item.id + '">' + item.fullName + '</option>');
                     });
+                } else {
+                    console.warn(response?.responseMessage || 'No employees found.');
                 }
+            },
+            error: function (err) {
+                console.error("Error fetching employees:", err);
             }
         });
     }
+
 
              function GetEmployeeById() { 
         var empId = $("#employeeDropdown").val();
@@ -380,7 +393,6 @@
 
 
         $('.btn-custom:contains("Go")').on('click', function () {
-            debugger;
         clearValidationErrors();
         let hasError = false; // Add missing variable
         const branch = $('#branch').val();
