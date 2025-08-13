@@ -50,6 +50,8 @@ namespace HRMS_Infrastructure.Repository.Employee
           @Res_Id = {model.Res_Id},
           @IsDeleted = {model.IsDeleted},
           @IsEnabled = {model.IsEnabled},
+          @IsLeft = {model.IsLeft},
+          @Remark = {model.Remark},
           @CreatedBy = {model.CreatedBy}
             ").ToListAsync();
 
@@ -128,6 +130,8 @@ namespace HRMS_Infrastructure.Repository.Employee
           @Res_Id = {model.Res_Id},
           @IsDeleted = {model.IsDeleted},
           @IsEnabled = {model.IsEnabled},
+          @IsLeft = {model.IsLeft},
+          @Remark = {model.Remark},
           @UpdatedBy ={model.UpdatedBy}
 
             ").ToListAsync();
