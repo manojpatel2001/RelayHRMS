@@ -202,10 +202,10 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllUserWithPermissionByCompanyId>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllPermissionByEmployeeId>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetEmployeeById>().HasNoKey().ToView(null);
-
-
             modelBuilder.Entity<VmLeftEmployee>().HasNoKey().ToView(null);
             modelBuilder.Entity<MyTeamleavesVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<BranchViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeViewModel>().HasNoKey().ToView(null);
 
 
 
