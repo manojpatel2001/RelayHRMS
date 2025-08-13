@@ -143,6 +143,43 @@
     #attendanceGrid:hover .dx-scrollbar-horizontal {
         opacity: 1;
     }
+
+    #attendanceGrid .dx-scrollbar-vertical {
+        display: none !important;
+    }
+
+    /* Horizontal scrollbar को mouse over पर show करने के लिए */
+    #attendanceGrid .dx-scrollbar-horizontal {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    #attendanceGrid:hover .dx-scrollbar-horizontal {
+        opacity: 1;
+    }
+
+    /* Chrome, Edge, Safari */
+    #attendanceGrid .dx-scrollable-scroll,
+    #attendanceGrid ::-webkit-scrollbar {
+        width: 6px; /* Patla */
+        height: 6px;
+    }
+
+    #attendanceGrid ::-webkit-scrollbar-thumb {
+        background-color: #999; /* Scroll ka color */
+        border-radius: 3px;
+    }
+
+    #attendanceGrid ::-webkit-scrollbar-track {
+        background-color: #f0f0f0;
+    }
+
+    /* Firefox */
+    #attendanceGrid {
+        scrollbar-width: thin;
+        scrollbar-color: #999 #f0f0f0;
+    }
+
 </style>
 
 
@@ -196,9 +233,15 @@
             <div class="col-md-auto">
                 <label class="form-label">Record Type :</label>
                 <select class="form-select form-select-sm medium-field" id="recordtype">
-                    <option>All</option>
-                    <option>Present</option>
-                    <option>Absent</option>
+                    <option value="All">All</option>
+                    <option value="P">Present</option>
+                    <option value="A">Absent</option>
+                    <option value="H">Holiday</option>
+                    <option value="W">Week Off</option>
+                    <option value="HF">Half Day</option>
+                    @*     <option value="COM">Comp Off</option>
+    <option value="PL">Paid Leave</option>
+    <option value="LWP">Leave Without Pay</option> *@
                 </select>
                 <div class="text-danger field-error" id="recordTypeError"></div>
             </div>
@@ -236,7 +279,8 @@
         <div id="saveButtonContainer" style="display: none;">
             <button class="btn btn-custom mt-2 mt-md-0" id="btnSaveGridData" style="min-width: 90px;">Save</button>
         </div>
-    </div>
+    </div>  
+
     <div id="attendanceGrid" style="overflow-x: auto;"></div>
 </div>
 
@@ -251,6 +295,8 @@
     $(document).ready(function () {
         BindBranchDropdown();
         populateYearDropdown();
+
+
         GetEmployeeById();
         $('#branch').on('change', function () {
             let branchId = $(this).val();
@@ -402,7 +448,7 @@
 
                   if (selectedStartDate < joiningDate) {
         Swal.fire({
-            text: `Attendance regulation is only allowed from ${joiningDate.toLocaleDateString()}.`,
+            text: `Attendance Regularisation is only allowed from ${joiningDate.toLocaleDateString()}.`,
             icon: 'warning',
             width: '300px', // smaller width
             confirmButtonText: 'OK',
@@ -412,6 +458,7 @@
         });
         return;
     }
+
                 // Proceed with AJAX only if date is valid
                 showLoder();
                 const formData = new FormData();
@@ -422,26 +469,45 @@
                 formData.append("RecordType", record);
 
                 $.ajax({
-                    url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
+                    url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReportForAdmin")',
                     type: 'POST',
                     data: formData,
                     contentType: false,
                     processData: false,
-                    success: function (response) {
-                            $("#attendanceSummary").show();
-                        if (response?.isSuccess) {
-                            $('#validationMsg').text("");
-                              showAttendanceSummary(response.data);
-                            LoadAttendanceGrid(response.data);
+                success: function (response) {            
+                        if (response?.isSuccess) {                                     
                             if (response.data && response.data.length > 0) {
+                                        $("#attendanceSummary").show();
+                                showAttendanceSummary(response.data);
+                            LoadAttendanceGrid(response.data);
                                 $("#saveButtonContainer").show();
                                 $("#attendanceSection").show();
                             } else {
+                                        $("#attendanceSummary").hide();
                                 $("#saveButtonContainer").hide();
                                 $("#attendanceSection").hide();
-                            }
-                        } else {
-                            $('#validationMsg').text("No records found.");
+                                  Swal.fire({
+                                      text: "No Record Found.",
+                                          icon: "info",
+                                          confirmButtonText: "OK",
+                                          width: "300px",
+                                           customClass: {
+                                                 popup: 'swal-small'
+                                            }
+                                                    });
+                                            }
+
+                               } else {
+                                 Swal.fire({
+                                      text: "No Record Found.",
+                                          icon: "info",
+                                          confirmButtonText: "OK",
+                                          width: "300px",
+                                           customClass: {
+                                                 popup: 'swal-small'
+                                            }
+                                                    });
+                              $("#attendanceSummary").hide();
                             $("#saveButtonContainer").hide();
                             $("#attendanceSection").hide();
                         }
@@ -472,8 +538,8 @@
     autoHeight: false, // ensure scroll can appear
     scrolling: {
         mode: "standard",
-        useNative: false,
-        showScrollbar: "onHover"
+        useNative: true,
+        showScrollbar: "always"
     },
             selection: {
                 mode: "multiple",
@@ -731,8 +797,6 @@
     }
 
 
-
-
         function formatToISOString(dateStr) {
         const date = new Date(dateStr);
         return !isNaN(date) ? date.toISOString() : null;
@@ -852,6 +916,7 @@
           $("#saveButtonContainer").hide();
         $("#attendanceSection").hide();
         $("#attendanceSummary").hide();
+
 
     const grid = $("#attendanceGrid").dxDataGrid("instance");
     if (grid) {

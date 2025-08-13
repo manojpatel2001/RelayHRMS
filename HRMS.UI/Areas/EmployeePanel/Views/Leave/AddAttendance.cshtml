@@ -1,6 +1,6 @@
 ﻿@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Shift Changes Details";
+    ViewData["Title"] = "Attendance Regularisation";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
    string baseUrl = ViewBag.BaseUrl;
   string apiBase = ViewBag.BaseUrlAPI;
@@ -148,7 +148,30 @@
 
     #attendanceGrid:hover .dx-scrollbar-horizontal {
         opacity: 1;
-    }
+    }   
+
+  /* Chrome, Edge, Safari */
+#attendanceGrid .dx-scrollable-scroll,
+#attendanceGrid ::-webkit-scrollbar {
+    width: 6px;  /* Patla */
+    height: 6px;
+}
+
+#attendanceGrid ::-webkit-scrollbar-thumb {
+    background-color: #999; /* Scroll ka color */
+    border-radius: 3px;
+}
+
+#attendanceGrid ::-webkit-scrollbar-track {
+    background-color: #f0f0f0;
+}
+
+/* Firefox */
+#attendanceGrid {
+    scrollbar-width: thin;
+    scrollbar-color: #999 #f0f0f0;
+}
+
 </style>
 
 <div class="section-header">
@@ -181,7 +204,7 @@
                 </select>
                 <div class="text-danger field-error" id="monthError"></div>
             </div>
-            <div class="col-md-auto">
+       @*      <div class="col-md-auto">
                 <label class="form-label">Branch :</label>
                 <select class="form-select form-select-sm medium-field" id="branch">
                     <option>--Select--</option>
@@ -189,7 +212,7 @@
                 </select>
                 <div class="text-danger field-error" id="branchError"></div>
 
-            </div>
+            </div> *@
             <div class="col-md-auto">
                 <label class="form-label">Employee <span class="text-danger">*</span> :</label>
                 <select class="form-select form-select-sm medium-field" id="employeeDropdown">
@@ -200,11 +223,17 @@
             </div>
             <div class="col-md-auto">
                 <label class="form-label">Record Type :</label>
-                <select class="form-select form-select-sm medium-field" id="recordtype">
-                    <option>All</option>
-                    <option>Present</option>
-                    <option>Absent</option>
-                </select>
+         <select class="form-select form-select-sm medium-field" id="recordtype">
+    <option value="All">All</option>
+    <option value="P">Present</option>
+    <option value="A">Absent</option>
+    <option value="H">Holiday</option>
+    <option value="W">Week Off</option>
+    <option value="HF">Half Day</option>
+@*     <option value="COM">Comp Off</option>
+    <option value="PL">Paid Leave</option>
+    <option value="LWP">Leave Without Pay</option> *@
+</select>
                 <div class="text-danger field-error" id="recordTypeError"></div>
             </div>
         </div>
@@ -258,19 +287,11 @@
      const apiBase = '@apiBase';
 
     $(document).ready(function () {
-        BindBranchDropdown();
+       GetEmployeesByBranchAndUser();
         populateYearDropdown();
                 // GetEmployeeById();
 
-        $('#branch').on('change', function () {
-            let branchId = $(this).val();
-            if (branchId) {
-                GetEmployeesByBranchAndUser(branchId);
-            } else {
-                $('#employeeDropdown').empty().append('<option value="">--Select Employee--</option>');
-            }
-        });
-           $("#attendanceSummary").hide();
+        $("#attendanceSummary").hide();
       
 
     });
@@ -289,35 +310,36 @@
                 }
 
 
-     function BindBranchDropdown() {
-        $.ajax({
-            url: apiBase + '/BranchAPI/GetBranchesByEmployee?EmpId=' + EmployeeId + '&CompId=' + CompanyId,
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
-            success: function (data) {
-                if (data.isSuccess) {
-                    var dropdown = $('#branch');
-                    dropdown.empty();
-                    dropdown.append('<option disabled selected value="">Select</option>');
+    //  function BindBranchDropdown() {
+    //      debugger;
+    //     $.ajax({
+    //         url: apiBase + '/BranchAPI/GetBranchesByEmployee?EmpId=' + EmployeeId + '&CompId=' + CompanyId,
+    //         method: 'GET',
+    //         headers: {
+    //             'Authorization': 'Bearer ' + Token
+    //         },
+    //         success: function (data) {
+    //             if (data.isSuccess) {
+    //                 var dropdown = $('#branch');
+    //                 dropdown.empty();
+    //                 dropdown.append('<option disabled selected value="">Select</option>');
 
-                    $.each(data.data, function (index, branch) {
-                        dropdown.append($('<option>', {
-                            value: branch.branchId,
-                            text: branch.branchName
-                        }));
-                    });
-                } else {
-                    console.warn(data.responseMessage || 'No records found.');
-                    $('#branch').empty().append('<option disabled selected value="">Select</option>');
-                }
-            },
-            error: function (error) {
-                console.error('Error fetching branch data:', error);
-            }
-        });
-    }
+    //                 $.each(data.data, function (index, branch) {
+    //                     dropdown.append($('<option>', {
+    //                         value: branch.branchId,
+    //                         text: branch.branchName
+    //                     }));
+    //                 });
+    //             } else {
+    //                 console.warn(data.responseMessage || 'No records found.');
+    //                 $('#branch').empty().append('<option disabled selected value="">Select</option>');
+    //             }
+    //         },
+    //         error: function (error) {
+    //             console.error('Error fetching branch data:', error);
+    //         }
+    //     });
+    // }
 
 
     function populateYearDropdown() {
@@ -331,10 +353,10 @@
     }
 
 
-    function GetEmployeesByBranchAndUser( BranchId) {
+    function GetEmployeesByBranchAndUser() {
         $.ajax({
             type: "GET",
-                    url: apiBase + "/BranchAPI/GetEmployeesByBranchAndUser?EmpId=" + EmployeeId + "&CompId=" + CompanyId + "&BranchId=" + BranchId,
+            url: apiBase + "/BranchAPI/GetEmployeesByBranchAndUser?EmpId=" + EmployeeId + "&CompId=" + CompanyId ,
             headers: {
                 'Authorization': 'Bearer ' + Token
             },
@@ -395,7 +417,7 @@
         $('.btn-custom:contains("Go")').on('click', function () {
         clearValidationErrors();
         let hasError = false; // Add missing variable
-        const branch = $('#branch').val();
+        // const branch = $('#branch').val();
         const emp = $('#employeeDropdown').val();
         const month = $('#month').val();
         const year = $('#year').val();
@@ -410,7 +432,7 @@
         // Basic field validations
         if (!year) { $('#yearError').text("Please select Year."); hasError = true; }
         if (!month || month < 1 || month > 12) { $('#monthError').text("Please select Month."); hasError = true; }
-        if (!branch) { $('#branchError').text("Please select Branch."); hasError = true; }
+        // if (!branch) { $('#branchError').text("Please select Branch."); hasError = true; }
         if (!emp) { $('#employeeError').text("Please select Employee."); hasError = true; }
         if (!record) { $('#recordTypeError').text("Please select Record Type."); hasError = true; }
 
@@ -424,7 +446,7 @@
 
                   if (selectedStartDate < joiningDate) {
         Swal.fire({
-            text: `Attendance regulation is only allowed from ${joiningDate.toLocaleDateString()}.`,
+            text: `Attendance Regularisation is only allowed from ${joiningDate.toLocaleDateString()}.`,
             icon: 'warning',
             width: '300px', // smaller width
             confirmButtonText: 'OK',
@@ -437,7 +459,7 @@
                 // Proceed with AJAX only if date is valid
                 showLoder();
                 const formData = new FormData();
-                formData.append("BranchId", branch);
+                // formData.append("BranchId", branch);
                 formData.append("EmpId", emp);
                 formData.append("StartDate", startDate);
                 formData.append("EndDate", endDate);
@@ -449,21 +471,40 @@
                     data: formData,
                     contentType: false,
                     processData: false,
-                    success: function (response) {
-                            $("#attendanceSummary").show();
-                        if (response?.isSuccess) {
-                            $('#validationMsg').text("");
-                              showAttendanceSummary(response.data);
-                            LoadAttendanceGrid(response.data);
+                        success: function (response) {           
+                        if (response?.isSuccess) {                                     
                             if (response.data && response.data.length > 0) {
+                                        $("#attendanceSummary").show();
+                                showAttendanceSummary(response.data);
+                            LoadAttendanceGrid(response.data);
                                 $("#saveButtonContainer").show();
-                                $("#attendanceSection").show();
+                                $("#attendanceSection").show();                         
                             } else {
+                                        $("#attendanceSummary").hide();
                                 $("#saveButtonContainer").hide();
                                 $("#attendanceSection").hide();
-                            }
-                        } else {
-                            $('#validationMsg').text("No records found.");
+                                  Swal.fire({
+                                      text: "No Record Found.",
+                                          icon: "info",
+                                          confirmButtonText: "OK",
+                                          width: "300px",
+                                           customClass: {
+                                                 popup: 'swal-small'
+                                            }
+                                                    });
+                                            }
+
+                               } else {
+                                 Swal.fire({
+                                      text: "No Record Found.",
+                                          icon: "info",
+                                          confirmButtonText: "OK",
+                                          width: "300px",
+                                           customClass: {
+                                                 popup: 'swal-small'
+                                            }
+                                                    });
+                              $("#attendanceSummary").hide();
                             $("#saveButtonContainer").hide();
                             $("#attendanceSection").hide();
                         }
@@ -495,8 +536,8 @@
     autoHeight: false, // ensure scroll can appear
     scrolling: {
         mode: "standard",
-        useNative: false,
-        showScrollbar: "onHover"
+        useNative: true,
+        showScrollbar: "always"
     },
             selection: {
                 mode: "multiple",

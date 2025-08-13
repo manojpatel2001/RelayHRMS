@@ -26,6 +26,6 @@ namespace HRMS_Infrastructure.Interface.JobMaster
         Task<List<vmGetAllBranchesListByCompanyId>> GetAllBranchesListByCompanyId(vmCommonGetById filter);
 
         Task<List<BranchViewModel>> GetBranchesByEmployee(int EmpId , int CompId);
-        Task<List<EmployeeViewModel>> GetEmployeesByBranchAndUser(int EmpId , int CompId ,int Branchid);
+        Task<List<EmployeeViewModel>> GetEmployeesByBranchAndUser(int EmpId , int CompId);
     }
 }

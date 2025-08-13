@@ -93,7 +93,7 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<List<EmployeeInOutReportVM>> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM)
+        public async Task<List<EmployeeInOutReportVM>> GetEmployeeInOutReportForAdmin(EmployeeInOutFilterVM outFilterVM)
         {
             try
             {
@@ -104,7 +104,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var recordtypeParam = new SqlParameter("@RecordType", (object?)outFilterVM.RecordType ?? DBNull.Value);
 
                 return await _db.Set<EmployeeInOutReportVM>()
-              .FromSqlRaw("EXEC [dbo].[GetEmployeeInOutReport] @BranchId, @EmpId, @StartDate,@EndDate, @RecordType",
+              .FromSqlRaw("EXEC [dbo].[GetEmployeeInOutReportForAdmin] @BranchId, @EmpId, @StartDate,@EndDate, @RecordType",
                   branchidParam, empCodeParam, monthParam, yearParam, recordtypeParam)
               .ToListAsync();
             }
@@ -114,6 +114,28 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return new List<EmployeeInOutReportVM>();
             }
         }
+
+        public async Task<List<EmployeeInOutReportVM>> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM)
+        {
+            try
+            {
+                var empCodeParam = new SqlParameter("@EmpId", (object?)outFilterVM.EmpId ?? DBNull.Value);
+                var monthParam = new SqlParameter("@StartDate", (object?)outFilterVM.StartDate ?? DBNull.Value);
+                var yearParam = new SqlParameter("@EndDate", (object?)outFilterVM.EndDate ?? DBNull.Value);
+                var recordtypeParam = new SqlParameter("@RecordType", (object?)outFilterVM.RecordType ?? DBNull.Value);
+
+                return await _db.Set<EmployeeInOutReportVM>()
+              .FromSqlRaw("EXEC [dbo].[GetEmployeeInOutReport]  @EmpId, @StartDate,@EndDate, @RecordType",
+                   empCodeParam, monthParam, yearParam, recordtypeParam)
+              .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+
+                return new List<EmployeeInOutReportVM>();
+            }
+        }
+
 
         public async Task<List<VMInOutRecord>> GetInOutRecord(int empid, string month, string year)
         {

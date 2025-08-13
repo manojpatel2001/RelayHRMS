@@ -257,11 +257,11 @@ namespace HRMS_API.Controllers.JobMaster
             }
         }
         [HttpGet("GetEmployeesByBranchAndUser")]
-        public async Task<APIResponse> GetEmployeesByBranchAndUser(int Empid , int CompId , int BranchId)
+        public async Task<APIResponse> GetEmployeesByBranchAndUser(int Empid , int CompId )
         {
             try
             {
-                var data = await _unitOfWork.BranchRepository.GetEmployeesByBranchAndUser (Empid , CompId , BranchId);
+                var data = await _unitOfWork.BranchRepository.GetEmployeesByBranchAndUser (Empid , CompId );
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 

@@ -333,6 +333,45 @@ namespace HRMS_API.Controllers.Employee
 
 
 
+        [HttpPost("GetEmployeeInOutReportForAdmin")]
+        public async Task<APIResponse> GetEmployeeInOutReportForAdmin([FromForm] EmployeeInOutFilterVM outFilterVM)
+        {
+            try
+            {
+                if (outFilterVM == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id, Month, Year are required."
+                    };
+                }
+                var data = await _unitOfWork.EmployeeInOutRepository.GetEmployeeInOutReportForAdmin(outFilterVM);
+
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }           
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while fetching report."
+                };
+            }
+        }
         [HttpPost("GetEmployeeInOutReport")]
         public async Task<APIResponse> GetEmployeeInOutReport([FromForm] EmployeeInOutFilterVM outFilterVM)
         {
