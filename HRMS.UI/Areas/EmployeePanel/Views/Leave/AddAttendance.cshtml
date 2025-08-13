@@ -1,6 +1,6 @@
 ﻿@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Shift Changes Details";
+    ViewData["Title"] = "Attendance Regularisation";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
    string baseUrl = ViewBag.BaseUrl;
   string apiBase = ViewBag.BaseUrlAPI;
@@ -19,27 +19,6 @@
         background-color: #ffffff !important;
     }
 
-    .section-header {
-        background-color: #3e4b6d;
-        color: #fff;
-        font-weight: bold;
-        padding: 10px 20px;
-        border-top-left-radius: 6px;
-        border-top-right-radius: 6px;
-        margin: 0 auto;
-        max-width: 1200px;
-        font-size: 18px;
-    }
-
-    .form-section {
-        max-width: 1200px;
-        margin: 0 auto;
-        margin-top: 0;
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        background-color: #fff;
-    }
 
     .form-label {
         font-size: 13px;
@@ -119,13 +98,80 @@
         margin-top: 2px;
     }
 
-    .dx-cell-truncate {
-        max-width: 150px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: inline-block;
+    .swal-small {
+        font-size: 14px;
+        padding: 10px;
     }
+
+    .myGrid, .myCard {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto;
+    }
+
+    #attendanceGrid {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-y: hidden !important; /* Vertical scroll hide */
+        overflow-x: auto !important; /* Horizontal scroll allow */
+    }
+
+    .form-section {
+        max-width: 100% !important;
+        margin-top: 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background-color: #fff;
+    }
+
+    .section-header {
+        background-color: #3e4b6d;
+        color: #fff;
+        font-weight: bold;
+        padding: 10px 20px;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        margin: 0 auto;
+        max-width: 100%;
+    }
+
+    #attendanceGrid .dx-scrollbar-vertical {
+        display: none !important;
+    }
+
+    /* Horizontal scrollbar को mouse over पर show करने के लिए */
+    #attendanceGrid .dx-scrollbar-horizontal {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    #attendanceGrid:hover .dx-scrollbar-horizontal {
+        opacity: 1;
+    }   
+
+  /* Chrome, Edge, Safari */
+#attendanceGrid .dx-scrollable-scroll,
+#attendanceGrid ::-webkit-scrollbar {
+    width: 6px;  /* Patla */
+    height: 6px;
+}
+
+#attendanceGrid ::-webkit-scrollbar-thumb {
+    background-color: #999; /* Scroll ka color */
+    border-radius: 3px;
+}
+
+#attendanceGrid ::-webkit-scrollbar-track {
+    background-color: #f0f0f0;
+}
+
+/* Firefox */
+#attendanceGrid {
+    scrollbar-width: thin;
+    scrollbar-color: #999 #f0f0f0;
+}
+
 </style>
 
 <div class="section-header">
@@ -158,7 +204,7 @@
                 </select>
                 <div class="text-danger field-error" id="monthError"></div>
             </div>
-            <div class="col-md-auto">
+       @*      <div class="col-md-auto">
                 <label class="form-label">Branch :</label>
                 <select class="form-select form-select-sm medium-field" id="branch">
                     <option>--Select--</option>
@@ -166,7 +212,7 @@
                 </select>
                 <div class="text-danger field-error" id="branchError"></div>
 
-            </div>
+            </div> *@
             <div class="col-md-auto">
                 <label class="form-label">Employee <span class="text-danger">*</span> :</label>
                 <select class="form-select form-select-sm medium-field" id="employeeDropdown">
@@ -177,11 +223,17 @@
             </div>
             <div class="col-md-auto">
                 <label class="form-label">Record Type :</label>
-                <select class="form-select form-select-sm medium-field" id="recordtype">
-                    <option>All</option>
-                    <option>Present</option>
-                    <option>Absent</option>
-                </select>
+         <select class="form-select form-select-sm medium-field" id="recordtype">
+    <option value="All">All</option>
+    <option value="P">Present</option>
+    <option value="A">Absent</option>
+    <option value="H">Holiday</option>
+    <option value="W">Week Off</option>
+    <option value="HF">Half Day</option>
+@*     <option value="COM">Comp Off</option>
+    <option value="PL">Paid Leave</option>
+    <option value="LWP">Leave Without Pay</option> *@
+</select>
                 <div class="text-danger field-error" id="recordTypeError"></div>
             </div>
         </div>
@@ -207,6 +259,10 @@
     <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
 </div>
 
+<div id="attendanceSummary"
+     style="background-color:#d7f3f4; padding:5px; font-size:14px; font-weight:600; margin-top:10px;">
+</div>
+
 <!-- ✅ Save + Grid Section -->
 <div class="form-section" id="attendanceSection" style="margin-top: 30px; display: none;">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
@@ -225,24 +281,17 @@
 
            const savedCompany = localStorage.getItem('selectedCompany');
        var companyDetails = JSON.parse(savedCompany);
-       const CompanyId=companyDetails.CompanyId;
-       const EmployeeId=localStorage.getItem('EmployeeId');
+       const CompanyId = companyDetails.CompanyId;
+       const EmployeeId = localStorage.getItem('EmployeeId');
        const Token=localStorage.getItem("authToken");
      const apiBase = '@apiBase';
 
     $(document).ready(function () {
-        BindBranchDropdown();
+       GetEmployeesByBranchAndUser();
         populateYearDropdown();
+                // GetEmployeeById();
 
-        $('#branch').on('change', function () {
-            let branchId = $(this).val();
-            if (branchId) {
-                GetEmployeeByBranchId(branchId);
-            } else {
-                $('#employeeDropdown').empty().append('<option value="">--Select Employee--</option>');
-            }
-        });
-
+        $("#attendanceSummary").hide();
       
 
     });
@@ -261,34 +310,37 @@
                 }
 
 
-        function     BindBranchDropdown(){
-       $.ajax({
-            url: apiBase + '/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
-            method: 'GET',
-                headers: {
-                        'Authorization': 'Bearer ' + Token
-                    },
-            success: function(data) {
-                if(data.isSuccess){
-                        var dropdown = $('#branch');
-                    dropdown.empty();
-                    dropdown.append('<option disabled selected value="">Select</option>');
-                    $.each(data.data, function(index, company) {
-                        dropdown.append($('<option>', {
-                            value: company.branchId,
-                            text: company.branchName
-                        }));
-                    });
+    //  function BindBranchDropdown() {
+    //      debugger;
+    //     $.ajax({
+    //         url: apiBase + '/BranchAPI/GetBranchesByEmployee?EmpId=' + EmployeeId + '&CompId=' + CompanyId,
+    //         method: 'GET',
+    //         headers: {
+    //             'Authorization': 'Bearer ' + Token
+    //         },
+    //         success: function (data) {
+    //             if (data.isSuccess) {
+    //                 var dropdown = $('#branch');
+    //                 dropdown.empty();
+    //                 dropdown.append('<option disabled selected value="">Select</option>');
 
+    //                 $.each(data.data, function (index, branch) {
+    //                     dropdown.append($('<option>', {
+    //                         value: branch.branchId,
+    //                         text: branch.branchName
+    //                     }));
+    //                 });
+    //             } else {
+    //                 console.warn(data.responseMessage || 'No records found.');
+    //                 $('#branch').empty().append('<option disabled selected value="">Select</option>');
+    //             }
+    //         },
+    //         error: function (error) {
+    //             console.error('Error fetching branch data:', error);
+    //         }
+    //     });
+    // }
 
-                }
-            },
-            error: function(error) {
-                console.error('Error fetching branch data:', error);
-            }
-        });
-
-    }
 
     function populateYearDropdown() {
         const startYear = 2024;
@@ -300,22 +352,51 @@
         yearDropdown.val(currentYear);
     }
 
-    function GetEmployeeByBranchId(branchId) {
+
+    function GetEmployeesByBranchAndUser() {
         $.ajax({
             type: "GET",
-            url: apiBase + "/EmployeeMasterAPI/GetEmployeeByBranchId/" + branchId,
+            url: apiBase + "/BranchAPI/GetEmployeesByBranchAndUser?EmpId=" + EmployeeId + "&CompId=" + CompanyId ,
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
             success: function (response) {
+                const $emp = $('#employeeDropdown');
+                $emp.empty().append('<option value="">--Select Employee--</option>');
+
                 if (response?.isSuccess && response?.data) {
-                    const $emp = $('#employeeDropdown');
-                    $emp.empty().append('<option value="">--Select Employee--</option>');
                     $.each(response.data, function (i, item) {
                         $emp.append('<option value="' + item.id + '">' + item.fullName + '</option>');
                     });
+                } else {
+                    console.warn(response?.responseMessage || 'No employees found.');
                 }
+            },
+            error: function (err) {
+                console.error("Error fetching employees:", err);
             }
         });
     }
 
+
+             function GetEmployeeById() { 
+        var empId = $("#employeeDropdown").val();
+        return $.ajax({
+            type: "GET",
+            url: '@baseDomainUrl/api/EmployeeMasterAPI/GetEmployeeById/' + empId,
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (data) {
+                if (data.isSuccess && data.data) {
+
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error: " + status + " - " + error);
+            }
+        });
+    }
 
       async function showLoder(){
           $('#grid-loader').addClass('d-flex').show();
@@ -331,103 +412,163 @@
         $('#validationMsg').text('');
     }
 
- 
+
+
         $('.btn-custom:contains("Go")').on('click', function () {
-    clearValidationErrors();
-    const branch = $('#branch').val();
-    const emp = $('#employeeDropdown').val();
-      const month = $('#month').val();
-    const year = $('#year').val();
-    const record = $('#recordtype').val();
+        clearValidationErrors();
+        let hasError = false; // Add missing variable
+        // const branch = $('#branch').val();
+        const emp = $('#employeeDropdown').val();
+        const month = $('#month').val();
+        const year = $('#year').val();
+        const record = $('#recordtype').val();
 
+        const monthIndex = $('#month').prop('selectedIndex');
+        const monthStr = (monthIndex + 1).toString().padStart(2, '0');
+        const startDate = `${year}-${monthStr}-01`;
+        const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+        const endDate = `${year}-${monthStr}-${lastDay}`;
 
-        const monthIndex = $('#month').prop('selectedIndex'); // Get the zero-based index of the selected month
-    const monthStr = (monthIndex + 1).toString().padStart(2, '0'); // Convert to one-based index and pad with zero
-    const startDate = `${year}-${monthStr}-01`;
-    const lastDay = new Date(year, monthIndex + 1, 0).getDate(); // Increment month index by 1
-    const endDate = `${year}-${monthStr}-${lastDay}`;
+        // Basic field validations
+        if (!year) { $('#yearError').text("Please select Year."); hasError = true; }
+        if (!month || month < 1 || month > 12) { $('#monthError').text("Please select Month."); hasError = true; }
+        // if (!branch) { $('#branchError').text("Please select Branch."); hasError = true; }
+        if (!emp) { $('#employeeError').text("Please select Employee."); hasError = true; }
+        if (!record) { $('#recordTypeError').text("Please select Record Type."); hasError = true; }
 
-    if (!year) {
-        $('#yearError').text("Please select Year.");
-        hasError = true;
-    }
-    if (!month || month < 1 || month > 12) {
-        $('#monthError').text("Please select Month.");
-        hasError = true;
-    }
-    if (!branch) {
-        $('#branchError').text("Please select Branch.");
-        hasError = true;
-    }
-    if (!emp) {
-        $('#employeeError').text("Please select Employee.");
-        hasError = true;
-    }
-    if (!record) {
-        $('#recordTypeError').text("Please select Record Type.");
-        hasError = true;
-    }
-      showLoder();
-        // Valid: proceed
-    const formData = new FormData();
-     formData.append("BranchId", branch);
-     formData.append("EmpId", emp);
-     formData.append("StartDate", startDate);
-     formData.append("EndDate", endDate);
-     formData.append("RecordType", record);
+        if (hasError) return;
 
-        $.ajax({
-            url: apiBase + "/EmployeeInOut/GetEmployeeInOutReport",
-            type: 'POST',
-            data: formData,
-            contentType: false,
-            processData: false,
-              success: function (response) {
-            if (response?.isSuccess) {
-                $('#validationMsg').text("");
-                LoadAttendanceGrid(response.data);
-                if (response.data && response.data.length > 0) {
-                    $("#saveButtonContainer").show();
-                    $("#attendanceSection").show();
-                } else {
-                    $("#saveButtonContainer").hide();
-                    $("#attendanceSection").hide();
-                }
-            } else {
-                $('#validationMsg').text("No records found.");
-                $("#saveButtonContainer").hide();
-                $("#attendanceSection").hide();
+        // Now check joining date before proceeding
+        GetEmployeeById().done(function (data) {
+            if (data.isSuccess && data.data) {
+                let joiningDate = new Date(data.data.dateOfJoining);
+                let selectedStartDate = new Date(startDate);
+
+                  if (selectedStartDate < joiningDate) {
+        Swal.fire({
+            text: `Attendance Regularisation is only allowed from ${joiningDate.toLocaleDateString()}.`,
+            icon: 'warning',
+            width: '300px', // smaller width
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal-small'
             }
-        },
-            error: function () {
-                $('#validationMsg').text("Something went wrong while fetching data.");
-            },
-                complete: function () {
-                    hideLoder(); // Always hide loader after completion
-                }
+        });
+        return;
+    }
+                // Proceed with AJAX only if date is valid
+                showLoder();
+                const formData = new FormData();
+                // formData.append("BranchId", branch);
+                formData.append("EmpId", emp);
+                formData.append("StartDate", startDate);
+                formData.append("EndDate", endDate);
+                formData.append("RecordType", record);
+
+                $.ajax({
+                    url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                        success: function (response) {           
+                        if (response?.isSuccess) {                                     
+                            if (response.data && response.data.length > 0) {
+                                        $("#attendanceSummary").show();
+                                showAttendanceSummary(response.data);
+                            LoadAttendanceGrid(response.data);
+                                $("#saveButtonContainer").show();
+                                $("#attendanceSection").show();                         
+                            } else {
+                                        $("#attendanceSummary").hide();
+                                $("#saveButtonContainer").hide();
+                                $("#attendanceSection").hide();
+                                  Swal.fire({
+                                      text: "No Record Found.",
+                                          icon: "info",
+                                          confirmButtonText: "OK",
+                                          width: "300px",
+                                           customClass: {
+                                                 popup: 'swal-small'
+                                            }
+                                                    });
+                                            }
+
+                               } else {
+                                 Swal.fire({
+                                      text: "No Record Found.",
+                                          icon: "info",
+                                          confirmButtonText: "OK",
+                                          width: "300px",
+                                           customClass: {
+                                                 popup: 'swal-small'
+                                            }
+                                                    });
+                              $("#attendanceSummary").hide();
+                            $("#saveButtonContainer").hide();
+                            $("#attendanceSection").hide();
+                        }
+                    },
+                    error: function () {
+                        $('#validationMsg').text("Something went wrong while fetching data.");
+                    },
+                    complete: function () {
+                        hideLoder();
+                    }
+                });
+            }
         });
     });
 
 
-     function LoadAttendanceGrid(data) {
+
+
+    function LoadAttendanceGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             showBorders: true,
             keyExpr: "shiftDate",
+            width: "100%",
+            columnAutoWidth: true,
+            allowColumnResizing: true,
+            paging: { enabled: false },
+              height: 300, // fixed height for scroll
+    autoHeight: false, // ensure scroll can appear
+    scrolling: {
+        mode: "standard",
+        useNative: true,
+        showScrollbar: "always"
+    },
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
-            height: "auto",
             editing: {
                 mode: "cell",
                 allowUpdating: true
             },
-            onEditingStart: function(e) {
-                const status = e.data.attendanceStatus?.trim().toLowerCase();
-                if (status === "p") {
+            onContentReady: function (e) {
+                e.component.option("width", "100%");
+            },
+            onCellPrepared: function (e) {
+                if (e.rowType === "data") {
+                    e.cellElement.css({
+                        'padding-top': '2px',
+                        'padding-bottom': '2px',
+                        'font-size': '12px',
+                        'line-height': '16px'
+                    });
+                }
+            },
+            onEditingStart: function (e) {
+                const status = e.data.attendanceStatus?.trim().toUpperCase();
+                if (status === "P" || status === "W" || status === "H") {
                     e.cancel = true;
-                    DevExpress.ui.notify("Editing not allowed for Present records.", "warning", 2000);
+                    let msg =
+                        status === "P" ? "Editing not allowed for Present records." :
+                            status === "W" ? "Editing not allowed for Week Off records." :
+                                "Editing not allowed for Holiday records.";
+                    DevExpress.ui.notify(msg, "warning", 2000);
                 }
             },
             columns: [
@@ -436,27 +577,39 @@
                     caption: "Date",
                     dataType: "date",
                     format: "dd/MM/yyyy",
-                    width: 100
+                    width: 100,
+                    minWidth: 100
+                },
+                {
+                    dataField: "monthDay",
+                    caption: "Day",
+                    allowEditing: false,
+                    width: 50
                 },
                 {
                     dataField: "fullName",
                     caption: "Employee",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 120
                 },
                 {
                     dataField: "branchName",
                     caption: "Branch",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 100
                 },
                 {
                     dataField: "shiftTime",
                     caption: "Shift Time",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 120
                 },
                 {
                     dataField: "inTime",
                     caption: "In Time",
-                    cellTemplate: function(container, options) {
+                    minWidth: 80,
+                    allowEditing: false, // ✅ Read-only
+                    cellTemplate: function (container, options) {
                         const value = options.data.inTime && options.data.inTime !== "-"
                             ? new Date(options.data.inTime).toLocaleTimeString('en-GB', {
                                 hour: '2-digit',
@@ -479,7 +632,9 @@
                 {
                     dataField: "outTime",
                     caption: "Out Time",
-                    cellTemplate: function(container, options) {
+                    minWidth: 80,
+                    allowEditing: false, // ✅ Read-only
+                    cellTemplate: function (container, options) {
                         const value = options.data.outTime && options.data.outTime !== "-"
                             ? new Date(options.data.outTime).toLocaleTimeString('en-GB', {
                                 hour: '2-digit',
@@ -503,22 +658,19 @@
                     dataField: "attendanceStatus",
                     caption: "Present Day",
                     width: 100,
+                    minWidth: 100,
                     allowEditing: false,
-                    cellTemplate: function(container, options) {
+                    cellTemplate: function (container, options) {
                         const status = options.data.attendanceStatus?.trim();
                         let color;
                         let text;
 
-                        if (status === "P") {
-                            color = "green";
-                            text = "P";
-                        } else if (status === "HF") {
-                            color = "orange";
-                            text = "HF";
-                        } else if (status === "A") {
-                            color = "red";
-                            text = "A";
-                        }
+                        if (status === "P") { color = "green"; text = "P"; }
+                        else if (status === "HF") { color = "orange"; text = "HF"; }
+                        else if (status === "A") { color = "red"; text = "A"; }
+                        else if (status === "H") { color = "blue"; text = "H"; }
+                        else if (status === "W") { color = "purple"; text = "W"; }
+                        else { color = "gray"; text = status; }
 
                         $("<div>")
                             .text(text)
@@ -534,6 +686,7 @@
                     dataField: "reason",
                     caption: "Reason",
                     width: 180,
+                    minWidth: 180,
                     lookup: {
                         dataSource: [
                             { ID: "Forgot To Punch/Sign", Name: "Forgot To Punch/Sign" },
@@ -545,14 +698,14 @@
                         valueExpr: "ID",
                         displayExpr: "Name"
                     },
-                    calculateDisplayValue: function(rowData) {
+                    calculateDisplayValue: function (rowData) {
                         return rowData.reason || "--Select--";
                     },
-                    allowEditing: function(rowData) {
+                    allowEditing: function (rowData) {
                         const status = rowData.attendanceStatus?.trim().toLowerCase();
                         return status === "absent" || status === "half day";
                     },
-                    editorOptions: function(rowData) {
+                    editorOptions: function (rowData) {
                         const status = rowData.attendanceStatus?.trim().toLowerCase();
                         return {
                             showClearButton: true,
@@ -566,12 +719,14 @@
                 {
                     dataField: "workingHours",
                     caption: "Working Hours",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 120
                 },
                 {
                     dataField: "dayType",
                     caption: "Day Type",
                     width: 140,
+                    minWidth: 140,
                     lookup: {
                         dataSource: [
                             { id: "Full Day", name: "Full Day" },
@@ -581,14 +736,14 @@
                         valueExpr: "id",
                         displayExpr: "name"
                     },
-                    calculateDisplayValue: function(rowData) {
+                    calculateDisplayValue: function (rowData) {
                         return rowData.dayType || "--Select--";
                     },
-                    allowEditing: function(rowData) {
+                    allowEditing: function (rowData) {
                         const status = rowData.attendanceStatus?.trim().toLowerCase();
                         return status === "absent" || status === "half day";
                     },
-                    editorOptions: function(rowData) {
+                    editorOptions: function (rowData) {
                         const status = rowData.attendanceStatus?.trim().toLowerCase();
                         return {
                             showClearButton: true,
@@ -604,6 +759,46 @@
     }
 
 
+            function showAttendanceSummary(data) {
+        let counts = {
+            P: 0, // Present
+            A: 0, // Absent
+            // L: 0, // Leave
+            W: 0, // Week-off
+            H: 0   // Holiday
+            // Late: 0
+        };
+
+        data.forEach(row => {
+            const status = row.attendanceStatus?.trim().toUpperCase();
+            if (status === "P") counts.P++;
+            else if (status === "A") counts.A++;
+            // else if (status === "L") counts.L++;
+            else if (status === "W") counts.W++;
+            else if (status === "H") counts.H++;
+
+            if (row.lateDeductionDays && row.lateDeductionDays > 0) {
+                counts.Late += row.lateDeductionDays;
+            }
+        });
+
+        const total = data.length;
+
+        $("#attendanceSummary").html(`
+            <span style="color:green;">Present : ${counts.P}</span> &nbsp;&nbsp;
+            <span style="color:red;">Absent : ${counts.A}</span> &nbsp;&nbsp;
+            <span style="color:purple;">Week-off : ${counts.W}</span> &nbsp;&nbsp;
+            <span style="color:blue;">Holiday : ${counts.H}</span> &nbsp;&nbsp;
+            <span>Total : ${total}</span>
+        `);
+    }
+
+
+
+       function formatToISOString(dateStr) {
+        const date = new Date(dateStr);
+        return !isNaN(date) ? date.toISOString() : null;
+    }
 
 
      $('#btnSaveGridData').on('click', function () {
@@ -630,33 +825,31 @@
             });
             return;
         }
-         
+
         const validRows = [];
         selectedRows.forEach(row => {
             const reason = row.reason?.trim();
             const dayType = row.dayType?.trim();
-
             if (reason && dayType) {
-                validRows.push({
-                    EmpId: empId,
-                    FullName: row.fullName || "",
-                    BranchName: row.branchName || "",
-                    ForDate: row.for_Date || row.forDate,
-                    ShiftTime: row.shiftTime || "",
-                    InTime: row.in_Time,
-                    OutTime: row.out_Time,
-                    Duration: row.workingHours || "00:00:00",
-                    Day: dayType,
-                    Status: row.status || "",
-                    Reason: reason,
-                    IsApproved: false,
-                    IsPending: true,
-                    IsRejected: false,
-                    IsLocked: false
-                });
+                debugger;
+                 validRows.push({
+        EmpId: empId,
+        FullName: row.fullName || "",
+        BranchName: row.branchName || "",
+        ForDate: row.shiftDate,
+        ShiftTime: row.shiftTime || "",
+            InTime: (row.inTime && row.inTime !== "-") ? formatToISOString(row.inTime) : null,
+            OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
+        Day: dayType,
+        Status: row.attendanceStatus || "",
+        Reason: reason,
+        IsApproved: false,
+        IsPending: true,
+        IsRejected: false,
+        IsLocked: false
+    });
             }
         });
-
         if (validRows.length === 0) {
             Swal.fire({
                 icon: 'warning',
@@ -665,26 +858,33 @@
             });
             return;
         }
-            showLoder();
+                     showLoder();
+
         // Save via AJAX
         $.ajax({
-             url: apiBase + "/AttendanceRegularizationAPI/CreateAttendanceRegularization",
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/CreateAttendanceRegularization")',
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify(validRows),
             success: function (response) {
                       hideLoder();
-                if (response?.isSuccess) {               
+                if (response?.isSuccess) {
                     round_success_noti(response.responseMessage || "Saved successfully.");
-                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
-        const selectedKeys = gridInstance.getSelectedRowKeys();
-        let currentData = gridInstance.option("dataSource");
-        const updatedData = currentData.filter(item => {
-            return !selectedKeys.includes(item.for_Date);
-        });
-        gridInstance.option("dataSource", updatedData);
-        gridInstance.refresh();
-                    $("#btnGo").trigger("click");
+              const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+    const selectedRowsData = gridInstance.getSelectedRowsData();
+    let currentData = gridInstance.option("dataSource");
+
+    const updatedData = currentData.filter(item => {
+        return !selectedRowsData.some(sel =>
+            sel.empId === item.empId && new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
+        );
+    });
+
+    gridInstance.option("dataSource", updatedData);
+    gridInstance.refresh();
+    gridInstance.clearSelection(); // optional
+
+    $("#btnGo").trigger("click");
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -694,6 +894,7 @@
                 }
             },
             error: function (xhr) {
+                    hideLoder();
                 Swal.fire({
                     icon: 'error',
                     title: 'Server Error',
@@ -703,6 +904,8 @@
 
         });
     });
+
+
 
 
       $('.btn-custom:contains("Clear")').on('click', function () {
@@ -715,6 +918,7 @@
 
            $("#saveButtonContainer").hide();
         $("#attendanceSection").hide();
+             $("#attendanceSummary").hide();
 
     const grid = $("#attendanceGrid").dxDataGrid("instance");
     if (grid) {

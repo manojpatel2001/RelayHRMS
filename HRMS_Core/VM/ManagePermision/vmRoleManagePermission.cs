@@ -10,6 +10,7 @@ namespace HRMS_Core.VM.ManagePermision
     {
         public int? RoleId { set; get; }
         public int? CompanyId { set; get; }
+        public int? EmployeeId { set; get; }
         public string? DeletedBy { set; get; }
     }
 

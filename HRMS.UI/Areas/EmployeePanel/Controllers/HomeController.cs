@@ -22,6 +22,8 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
         public IActionResult EmployeeandTeam()
         {
             ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrlAPI = _configuration["BaseUrlSettings:baseUrl"];
+
             return View();
         }
         public IActionResult Attendanceandleave()

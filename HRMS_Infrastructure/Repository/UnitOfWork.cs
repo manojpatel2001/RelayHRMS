@@ -110,7 +110,9 @@ namespace HRMS_Infrastructure.Repository
             EmployeeDashboardRepository = new EmployeeDashboardRepository(_dbContext);
             MonthlySalaryDetailsRepository =new MonthlySalaryDetailsRepository(_dbContext);
 
-            employeeDirectory = new EmployeeDirecotryRepository(_dbContext);
+            employeeDirectory = new EmployeeDirecotryRepository(_dbContext); 
+            leftEmployeeRepository = new LeftEmployeeRepository(_dbContext);
+            UserPermissionRepository = new UserPermissionRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -198,6 +200,9 @@ namespace HRMS_Infrastructure.Repository
         public IMyProfileRepository myProfileRepository { get; set; }
 
         public IEmployeeDirectory employeeDirectory { get; set; }
+
+        public ILeftEmployeeRepository leftEmployeeRepository { get; set; }
+        public IUserPermissionRepository UserPermissionRepository { get; set; }
 
         public void Commit()
         {

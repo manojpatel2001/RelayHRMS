@@ -57,7 +57,6 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
         public IActionResult MemberDetails()
         {
             ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
-
             return View();
         }
 

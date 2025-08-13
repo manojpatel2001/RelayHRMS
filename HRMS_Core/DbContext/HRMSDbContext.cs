@@ -83,10 +83,6 @@ namespace HRMS_Core.DbContext
         public DbSet<HRMSRoleIdentity> HRMSRoleIdentity { get; set; }
         public DbSet<HRMSUserRole> HRMSUserRoles { get; set; }
 
-        public DbSet<Permission> Permission { get; set; }
-        public DbSet<RolePermission> RolePermission { get; set; }
-        public DbSet<UserPermission> UserPermission { get; set; }
-
        
         public DbSet<Earning> Earning { get; set; }
         public DbSet<Deduction> Deduction { get; set; }
@@ -103,6 +99,7 @@ namespace HRMS_Core.DbContext
 
         public DbSet<PasswordHistory> PasswordHistory { get; set; }
         public DbSet<AttendanceRegularization> AttendanceRegularization { get; set; }
+        public DbSet<LeftEmployee> LeftEmployee { get; set; }
 
 
 
@@ -191,6 +188,25 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<EmployeeDirectoryResultVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetMonthlyAttendanceLog>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetMonthlyAttendanceDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeDirectIndirectReport>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<EmployeePersonalInformationVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetCountDirectOrIndirectEmployeesVM>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<AttendanceDetailsViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetEmployeesByReportingManager>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<SP_Response>().HasNoKey().ToView(null);
+            modelBuilder.Entity<Permission>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllEmployeeListByCompanyId>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllUserWithPermissionByCompanyId>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetAllPermissionByEmployeeId>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetEmployeeById>().HasNoKey().ToView(null);
+            modelBuilder.Entity<VmLeftEmployee>().HasNoKey().ToView(null);
+            modelBuilder.Entity<MyTeamleavesVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<BranchViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeViewModel>().HasNoKey().ToView(null);
+
 
 
 

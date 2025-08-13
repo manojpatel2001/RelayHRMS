@@ -28,13 +28,13 @@ namespace HRMS_API.Controllers.Employee
                
                 var data = await _unitOfWork.EmployeeInOutRepository.CreateEmpInOut(model);
                 if (data == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Unable to punch for now. Please try again later." };
 
                 return new APIResponse
                 {
                     isSuccess = true,
                     Data = data,
-                    ResponseMessage = "Records have been added successfully."
+                    ResponseMessage = "Punch have been added successfully."
                 };
             }
             catch (Exception ex)
@@ -42,7 +42,7 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = "Unable to add records. Please try again later."
+                    ResponseMessage = "Unable to punch for now. Please try again later."
                 };
             }
         }
@@ -115,6 +115,40 @@ namespace HRMS_API.Controllers.Employee
             try
             {
                 var data = await _unitOfWork.EmployeeInOutRepository.GetMonthlyAttendanceLog(vmInOutParameter);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        [HttpPost("GetDateWiseAttendanceDetails")]
+        public async Task<APIResponse> GetDateWiseAttendanceDetails(vmInOutParameter vmInOutParameter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetDateWiseAttendanceDetails(vmInOutParameter);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetEmployeesByReportingManager/{EmployeeId}")]
+        public async Task<APIResponse> GetEmployeesByReportingManager(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetEmployeesByReportingManager(EmployeeId);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -299,6 +333,45 @@ namespace HRMS_API.Controllers.Employee
 
 
 
+        [HttpPost("GetEmployeeInOutReportForAdmin")]
+        public async Task<APIResponse> GetEmployeeInOutReportForAdmin([FromForm] EmployeeInOutFilterVM outFilterVM)
+        {
+            try
+            {
+                if (outFilterVM == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id, Month, Year are required."
+                    };
+                }
+                var data = await _unitOfWork.EmployeeInOutRepository.GetEmployeeInOutReportForAdmin(outFilterVM);
+
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }           
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while fetching report."
+                };
+            }
+        }
         [HttpPost("GetEmployeeInOutReport")]
         public async Task<APIResponse> GetEmployeeInOutReport([FromForm] EmployeeInOutFilterVM outFilterVM)
         {
@@ -321,32 +394,7 @@ namespace HRMS_API.Controllers.Employee
                         isSuccess = false,
                         ResponseMessage = "No matching IN record found or update failed."
                     };
-                }
-
-                //// Step 2: Get regularization data
-                //var regData = await _unitOfWork.AttendanceRegularizationRepository
-                //    .GetAllAsync(x => x.IsEnabled== true && x.IsDeleted==false);
-
-                //// Step 3: Filter records
-                //var data = getdata.Where(d =>
-                //{
-                //    if (d.Status == "Absent")
-                //    {
-                //        // Check if any pending/rejected regularization exists
-                //        var hasPendingOrRejected = regData.Any(r =>
-                //            r.EmpId == d.Id &&
-                //            r.ForDate == d.For_Date &&
-                //            (r.IsPending || r.IsRejected)
-                //        );
-
-                //        // If pending or rejected record exists, exclude it
-                //        return !hasPendingOrRejected;
-                //    }
-
-                //    // If not absent, include
-                //    return true;
-                //}).ToList();
-
+                }           
                 return new APIResponse
                 {
                     isSuccess = true,
