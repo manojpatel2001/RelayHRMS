@@ -215,12 +215,12 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async Task<List<vmGetAllEmployee>> GetAllEmployeeByIsBlocked(bool IsBlocked, int companyId)
+        public async Task<List<vmGetAllEmployee>> GetAllEmployeeActiveOrLeft(bool IsLeft, int companyId)
         {
             try
             {
                 return await _db.Set<vmGetAllEmployee>()
-                                .FromSqlInterpolated($"EXEC GetAllEmployeeByIsBlocked  @IsBlocked = {IsBlocked},@companyId={companyId}")
+                                .FromSqlInterpolated($"EXEC GetAllEmployeeActiveOrLeft  @IsLeft = {IsLeft},@companyId={companyId}")
                                 .ToListAsync();
             }
             catch (Exception)

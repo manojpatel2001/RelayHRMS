@@ -14,7 +14,7 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
     public interface IEmployeeManageRepository:IRepository<HRMSUserIdentity>
     {
         Task<List<vmGetAllEmployee>> GetAllEmployee(int companyId);
-        Task<List<vmGetAllEmployee>> GetAllEmployeeByIsBlocked(bool IsBlocked,int companyId);
+        Task<List<vmGetAllEmployee>> GetAllEmployeeActiveOrLeft(bool IsLeft, int companyId);
         Task<vmGetEmployeeById?> GetEmployeeById(int Id);
         Task<List<vmUpdateEmployee>> GetAllEmployeeForUpdate(int companyId);
         Task<VMCommonResult> UpdateEmployee(vmUpdateEmployee employee);

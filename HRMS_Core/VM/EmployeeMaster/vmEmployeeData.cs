@@ -59,7 +59,7 @@ namespace HRMS_Core.VM.EmployeeMaster
         public bool? Trainee { get; set; } = false;
         public int? WeekOffDetailsId { get; set; }
         public bool? IsPermissionPunchInOut { get; set; } = false;
-
+        public bool? IsLeft { get; set; } = false;
         //base model
         public bool? IsDeleted { get; set; } = false;
         public bool? IsEnabled { get; set; } = true;
