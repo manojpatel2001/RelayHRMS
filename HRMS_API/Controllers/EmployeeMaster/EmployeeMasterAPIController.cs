@@ -167,8 +167,8 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     CompanyId = employeeData.CompanyId,
                     Pt = employeeData.Pt,
                     WeekOffDetailsId=(int)employeeData.WeekOffDetailsId,
-                    IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut
-
+                    IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut,
+                    IsLeft=employeeData.IsLeft
                 };
 
                 // Create the user
@@ -459,12 +459,12 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
-        [HttpGet("GetAllEmployeeByIsBlocked/{IsBlocked}")]
-        public async Task<APIResponse> GetAllEmployeeByIsBlocked( bool IsBlocked,int companyId)
+        [HttpGet("GetAllEmployeeActiveOrLeft/{IsLeft}")]
+        public async Task<APIResponse> GetAllEmployeeActiveOrLeft( bool IsLeft, int companyId)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeByIsBlocked(IsBlocked, companyId);
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeActiveOrLeft(IsLeft, companyId);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 

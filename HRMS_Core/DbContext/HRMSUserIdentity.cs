@@ -63,6 +63,7 @@ namespace HRMS_Core.DbContext
         public bool? Fixsalary { get; set; } = false;
         public bool? Probation { get; set; } = false;
         public bool? Trainee { get; set; } = false;
+        public bool? IsLeft { get; set; } = false;
 
         //base model
         public bool? IsDeleted { get; set; } = false;

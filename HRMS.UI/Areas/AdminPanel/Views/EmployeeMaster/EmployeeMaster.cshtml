@@ -115,26 +115,29 @@
             </div>
         </div>
     </div> *@
-		<div class="row mt-4 mb-2">
-			<div class="col-7">
-				<div class="form-group" id="EmployeeFilter">
-					<div class=" row ps-1">
-						<div class="col-md-4 p">
-							<input type="radio" name="employeeFilter" id="allEmployee" value="AllEmployee" class="custom-radio" checked>
-							<label for="allEmployee" class="custom-label">All Employee</label>
-						</div>
-						<div class="col-md-4">
-							<input type="radio" name="employeeFilter" id="leftEmployee" value="LeftEmployee" class=" custom-radio">
-							<label for="leftEmployee" class="custom-label">Left Employee</label>
-						</div>
-						<div class="col-md-4">
-							<input type="radio" name="employeeFilter" id="currentEmployee" value="CurrentEmployee" class="custom-radio">
-							<label for="currentEmployee" class="custom-label">Current Employee</label>
-						</div>
-				    </div>
+		<div class="row mt-3 mb-2">
+			<div class="col-sm-4 p-0">
+				<div class="btn-group-toggle d-flex flex-wrap" data-toggle="buttons">
+					<div class="col-sm-12 col-md-4 p-0 pb-1 ">
+						<label class="btn btn-secondary active">
+							<input type="radio" name="options" id="option1" value="AllEmployee" autocomplete="off" checked> All Employee
+						</label>
+					</div>
+					<div class="col-sm-12 col-md-4 p-0 pb-1 ">
+						<label class="btn btn-secondary">
+							<input type="radio" name="options" id="option2" value="LeftEmployee" autocomplete="off"> Left Employee
+						</label>
+					</div>
+					<div class="col-sm-12 col-md-4 p-0 pb-1 ">
+						<label class="btn btn-secondary">
+							<input type="radio" name="options" id="option3" value="CurrentEmployee" autocomplete="off"> Current Employee
+						</label>
+					</div>
 				</div>
 			</div>
 		</div>
+
+		
 
 
     <div class="row">
@@ -593,6 +596,53 @@
 	const EmployeeId=localStorage.getItem('EmployeeId');
 	const Token=localStorage.getItem("authToken");
 	let ReasonId=0;
+
+
+
+	$('input[name="options"]').change( async function() {
+		$('label.btn').removeClass('active');
+		$(this).parent().addClass('active');
+		const name = $(this).attr('name');
+		
+		// Use name and value as needed
+	   const selectedValue = $(this).val();
+		// Define employeeUrl based on selected value
+		let IsLeft=true;
+		let employeeUrl="";
+		let gridId="";
+		if (selectedValue === 'AllEmployee') {
+			$("#gridLeftContainerEmployee").hide();
+			$("#gridAllContainerEmployee").show();
+			$("#gridCurrentContainerEmployee").hide();
+			gridId = "#gridAllContainerEmployee";
+			employeeUrl = '@baseUrl/EmployeeMasterAPI/GetAllEmployee';
+		} else if (selectedValue === 'LeftEmployee') {
+			IsLeft = true;
+			$("#gridLeftContainerEmployee").show();
+			$("#gridAllContainerEmployee").hide();
+			$("#gridCurrentContainerEmployee").hide();
+			gridId = "#gridLeftContainerEmployee";
+			employeeUrl = '@baseUrl/EmployeeMasterAPI/GetAllEmployeeActiveOrLeft/' + IsLeft;
+		} else if (selectedValue === 'CurrentEmployee') {
+			$("#gridLeftContainerEmployee").hide();
+			$("#gridAllContainerEmployee").hide();
+			$("#gridCurrentContainerEmployee").show();
+			gridId = "#gridCurrentContainerEmployee";
+			IsLeft = false;
+			employeeUrl = '@baseUrl/EmployeeMasterAPI/GetAllEmployeeActiveOrLeft/' + IsLeft;
+		}
+
+
+		// Clear previous grid data and show loading spinner
+		$("#rowCountEmployee").text("");
+
+		// Ensure EmployeeDetailsDataTable is defined and call it
+		if (typeof EmployeeDetailsDataTable === 'function') {
+			await EmployeeDetailsDataTable(gridId, employeeUrl);
+		} else {
+			console.error('EmployeeDetailsDataTable is not defined');
+		}
+	});
 	$("#addEmployee").click( () => {
 	    $("#btnCreateEmployee").prop("disabled", false);
 	     resetEmployeeMasterField();
@@ -622,48 +672,7 @@
 			// Load initial employee data
 			await EmployeeDetailsDataTable('#gridAllContainerEmployee', '@baseUrl/EmployeeMasterAPI/GetAllEmployee');
 
-			// Attach event listener to radio buttons
-			$('input[name="employeeFilter"]').change(async function() {
-				if ($(this).is(':checked')) {
-					const selectedValue = $(this).val();
-					// Define employeeUrl based on selected value
-					let IsBlocked=true;
-					let employeeUrl="";
-					let gridId="";
-					if (selectedValue === 'AllEmployee') {
-						$("#gridLeftContainerEmployee").hide();
-						$("#gridAllContainerEmployee").show();
-						$("#gridCurrentContainerEmployee").hide();
-						gridId = "#gridAllContainerEmployee";
-						employeeUrl = '@baseUrl/EmployeeMasterAPI/GetAllEmployee';
-					} else if (selectedValue === 'LeftEmployee') {
-						IsBlocked = true;
-						$("#gridLeftContainerEmployee").show();
-						$("#gridAllContainerEmployee").hide();
-						$("#gridCurrentContainerEmployee").hide();
-						gridId = "#gridLeftContainerEmployee";
-						employeeUrl = '@baseUrl/EmployeeMasterAPI/GetAllEmployeeByIsBlocked/' + IsBlocked;
-					} else if (selectedValue === 'CurrentEmployee') {
-						$("#gridLeftContainerEmployee").hide();
-						$("#gridAllContainerEmployee").hide();
-						$("#gridCurrentContainerEmployee").show();
-						gridId = "#gridCurrentContainerEmployee";
-						IsBlocked = false;
-						employeeUrl = '@baseUrl/EmployeeMasterAPI/GetAllEmployeeByIsBlocked/' + IsBlocked;
-					}
-
-
-					// Clear previous grid data and show loading spinner
-					$("#rowCountEmployee").text("");
-					
-					// Ensure EmployeeDetailsDataTable is defined and call it
-					if (typeof EmployeeDetailsDataTable === 'function') {
-						await EmployeeDetailsDataTable(gridId, employeeUrl);
-					} else {
-						console.error('EmployeeDetailsDataTable is not defined');
-					}
-				}
-			});
+			
 		} catch (error) {
 			console.error('Error loading company details:', error);
 		}
@@ -771,7 +780,7 @@
 							headerFilter: { visible: true },
 							filterRow: { visible: true, applyFilter: "auto" },
 							allowColumnResizing: true,
-							groupPanel: { visible: true },
+							groupPanel: { visible: false },
 							searchPanel: { visible: true, width: 240, placeholder: "Search..." },
 							columnFixing: {
 								enabled: true
