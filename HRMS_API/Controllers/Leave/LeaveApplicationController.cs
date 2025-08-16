@@ -253,6 +253,41 @@ namespace HRMS_API.Controllers.Leave
         }
 
 
+        [HttpPost("GetLeaveApproval")]
+        public async Task<APIResponse> GetLeaveApproval([FromBody] LeaveApp_Param vm)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveApplicationRepository.GetLeaveApproval(vm);
+
+                if (data == null || data.Count == 0)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No leave records found."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Leave records fetched successfully."
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve leave records. Please try again later!"
+                };
+            }
+        }
+
+
         [HttpPost("GetLeaveType")]
         public async Task<APIResponse> GetLeaveType([FromBody] LeaveDetailsvm vm)
         {
