@@ -74,6 +74,17 @@
         .text-center-cell > div {
             text-align: center !important;
         }
+
+    .error-message {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+    }
+
+    .is-invalid {
+        border-color: #dc3545 !important;
+    }
 </style>
 <div class="search-panel-wrapper">
     <div class="search-panel-container">
@@ -123,6 +134,7 @@
                     <select class="form-control form-control-sm" id="Leavetypeid">
                         <option value="0">-- Select --</option>
                     </select>
+                    <span class="error-message" id="leaveTypeError">Please select leave type</span>
                 </div>
             </div>
 
@@ -138,6 +150,7 @@
                         <input class="form-check-input" type="radio" name="leaveStatus" id="Previousmonthid" value="Previous">
                         <label class="form-check-label" for="Previousmonthid">Previous Month</label>
                     </div>
+                    <span class="error-message" id="applicationTypeError">Please select application type</span>
                 </div>
             </div>
 
@@ -146,10 +159,12 @@
                 <div class="col-md-6">
                     <label class="form-label">From Date:</label>
                     <input type="date" class="form-control" id="formdateid">
+                    <span class="error-message" id="fromDateError">Please select from date</span>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">To Date:</label>
                     <input type="date" class="form-control" id="todateid" readonly>
+                    <span class="error-message" id="toDateError">Please enter number of days first</span>
                 </div>
             </div>
 
@@ -157,7 +172,8 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label">No. of Days:</label>
-                    <input type="number" class="form-control" id="nodaysid" min="1">
+                    <input type="number" class="form-control" id="nodaysid" min="0.5" step="0.5">
+                    <span class="error-message" id="daysError">Invalid period! Please enter full days (1, 2, 3...) or half days (0.5, 1.5, 2.5...)</span>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Responsible:</label>
@@ -172,6 +188,7 @@
                 <div class="col-md-12">
                     <label class="form-label">Reason:</label>
                     <textarea class="form-control" id="resonid" rows="3"></textarea>
+                    <span class="error-message" id="reasonError">Please enter reason for leave</span>
                 </div>
             </div>
 
@@ -196,7 +213,7 @@
     </div>
 </div>
 
-                  
+
 <script>
     const apiBase = '@apiBase';
     const Empid = parseInt(localStorage.getItem("EmployeeId"));
@@ -208,10 +225,10 @@
     $(document).ready(function () {
         loadSearchByOptions();
 
-           const today = new Date();          
+           const today = new Date();
 
             const day = String(today.getDate()).padStart(2, '0');
-            const month = String(today.getMonth() + 1).padStart(2, '0'); 
+            const month = String(today.getMonth() + 1).padStart(2, '0');
             const year = today.getFullYear();
 
             const formattedDate = `${day}-${month}-${year}`;
@@ -227,11 +244,25 @@
             $('#nodaysid').trigger('input');
         });
 
+        // Validate number of days input
         $('#nodaysid').on('input', function () {
-            const fromDateStr = $('#formdateid').val();
-            const noOfDays = parseInt($(this).val(), 10);
+            const value = parseFloat($(this).val());
+            const isValid = validateDays(value);
 
-            if (!fromDateStr || isNaN(noOfDays)) {
+            if (!isValid && $(this).val() !== '') {
+                $(this).addClass('is-invalid');
+                $('#daysError').show();
+                $('#todateid').val('').prop('readonly', true);
+                return;
+            } else {
+                $(this).removeClass('is-invalid');
+                $('#daysError').hide();
+            }
+
+            const fromDateStr = $('#formdateid').val();
+            const noOfDays = parseFloat($(this).val());
+
+            if (!fromDateStr || isNaN(noOfDays) || noOfDays <= 0) {
                 $('#todateid').val('').prop('readonly', true);
                 return;
             }
@@ -247,11 +278,71 @@
         });
 
         $('#submitid').on('click', function () {
+            // Clear all previous errors
+            $('.error-message').hide();
+            $('.form-control, .form-select').removeClass('is-invalid');
+
+            let hasError = false;
+
             const leaveType = $('#Leavetypeid').val();
             const applicationType = $('input[name="leaveStatus"]:checked').val();
+            const noOfDays = parseFloat($('#nodaysid').val());
+            const fromDate = $('#formdateid').val();
+            const toDate = $('#todateid').val();
+            const reason = $('#resonid').val().trim();
 
-            if (leaveType === "0" || !applicationType || !$('#formdateid').val() || !$('#todateid').val() || !$('#nodaysid').val() || !$('#resonid').val()) {
-                Swal.fire("All fields are required", "", "warning");
+            // Validate days
+            if (!validateDays(noOfDays)) {
+                $('#nodaysid').addClass('is-invalid');
+                $('#daysError').show();
+                hasError = true;
+            }
+
+            // Validate leave type
+            if (leaveType === "0") {
+                $('#Leavetypeid').addClass('is-invalid');
+                $('#leaveTypeError').show();
+                hasError = true;
+            }
+
+            // Validate application type
+            if (!applicationType) {
+                $('#applicationTypeError').show();
+                hasError = true;
+            }
+
+            // Validate from date
+            if (!fromDate) {
+                $('#formdateid').addClass('is-invalid');
+                $('#fromDateError').show();
+                hasError = true;
+            }
+
+            // Validate to date
+            if (!toDate) {
+                $('#todateid').addClass('is-invalid');
+                $('#toDateError').show();
+                hasError = true;
+            }
+
+            // Validate number of days
+            if (!$('#nodaysid').val()) {
+                if (!$('#nodaysid').hasClass('is-invalid')) {
+                    $('#nodaysid').addClass('is-invalid');
+                    $('#daysError').text('Please enter number of days').show();
+                }
+                hasError = true;
+            }
+
+            // Validate reason
+            if (!reason) {
+                $('#resonid').addClass('is-invalid');
+                $('#reasonError').show();
+                hasError = true;
+            }
+
+            // If any validation failed, stop here
+            if (hasError) {
                 return;
             }
 
@@ -261,10 +352,10 @@
                 ReportingManagerId: parseInt($('#reportingManagerId').val()),
                 LeaveType: parseInt(leaveType),
                 ApplicationType: applicationType,
-                FromDate: $('#formdateid').val(),
-                Todate: $('#todateid').val(),
-                No_Of_Date: parseFloat($('#nodaysid').val()),
-                Reason: $('#resonid').val(),
+                FromDate: fromDate,
+                Todate: toDate,
+                No_Of_Date: noOfDays,
+                Reason: reason,
                 Responsibleperson: parseInt($('#responsibleid').val()) || null,
                 // Cancel_Weekoff: $('#weekid').val() === "1",
                 // Send_Intimate: $('#weekid').val()
@@ -291,8 +382,21 @@
 
         $('#clearbuttonid').on('click', function () {
             $('#leaveForm')[0].reset();
+            $('.form-control, .form-select').removeClass('is-invalid');
+            $('.error-message').hide();
         });
     });
+
+    // Function to validate days - only allow full days or half days
+    function validateDays(days) {
+        if (isNaN(days) || days <= 0) {
+            return false;
+        }
+
+        // Check if the number is either a whole number or ends with .5
+        const decimalPart = days % 1;
+        return decimalPart === 0 || decimalPart === 0.5;
+    }
 
     function loadSearchByOptions() {
         $.ajax({
