@@ -209,6 +209,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<salaryslipParam>().HasNoKey().ToView(null);
             modelBuilder.Entity<LeaveApprovalReportVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<LeaveApp_Param>().HasNoKey().ToView(null);
+            modelBuilder.Entity<LeaveBalanceViewModel>().HasNoKey().ToView(null);
 
 
 

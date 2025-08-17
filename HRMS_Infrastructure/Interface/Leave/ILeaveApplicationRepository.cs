@@ -16,6 +16,7 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<List<VmLeaveApplicationforApprove>> GetLeaveApplicationsforApproveAdmin(SearchVmCompOff filter);
         Task<List<LeaveTypevm>> GetLeaveDetails(LeaveDetailsvm vm);
         Task<List<LeaveApprovalReportVM>> GetLeaveApproval(LeaveApp_Param vm);
+        Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveApp_Param vm);
         Task<bool> Updateapproval(List<int> applicationid, string status,DateTime Date);
         Task<bool> softdelete(LeaveApplication Leave);
 
