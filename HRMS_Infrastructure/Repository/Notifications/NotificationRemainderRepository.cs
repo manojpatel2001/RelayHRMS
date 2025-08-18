@@ -41,7 +41,7 @@ namespace HRMS_Infrastructure.Repository.Notifications
             try
             {
                 var result = await _db.Set<NotificationRemainders>()
-                    .FromSqlInterpolated($"EXEC GetNotificationRemainderById @NotificationRemainderId = {notificationRemainderId}")
+                    .FromSqlInterpolated($"EXEC GetNotificationById @NotificationRemainderId = {notificationRemainderId}")
                     .ToListAsync();
                 return result.FirstOrDefault()??null;
             }

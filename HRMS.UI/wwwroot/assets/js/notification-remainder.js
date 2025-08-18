@@ -263,7 +263,9 @@ function updateNotificationList(notificationDetails) {
             case 'Leave Approval':
                 href = '/EmployeePanel/Leave/LeaveApproval';
                 break;
-           
+            case 'CompOff Application':
+                href = '/EmployeePanel/CompOffApplication/CompOffApproval';
+                break;
             default:
                 href = '#'; // Default fallback
         }
