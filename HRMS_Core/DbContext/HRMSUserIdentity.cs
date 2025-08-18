@@ -64,6 +64,7 @@ namespace HRMS_Core.DbContext
         public bool? Probation { get; set; } = false;
         public bool? Trainee { get; set; } = false;
         public bool? IsLeft { get; set; } = false;
+        public bool? IsPFApplicable { get; set; } = true;
 
         //base model
         public bool? IsDeleted { get; set; } = false;
