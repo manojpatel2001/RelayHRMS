@@ -203,6 +203,7 @@ namespace HRMS_Infrastructure.Repository.Leave
                     @Cancel_Weekoff = {model.Cancel_Weekoff},
                     @Send_Intimate = {model.Send_Intimate},
                     @LeaveStatus = {model.LeaveStatus},
+                    @Day = {model.Day},
                     @CreatedDate = {model.CreatedDate},
                     @CreatedBy = {model.CreatedBy}
             ").ToListAsync();
@@ -277,6 +278,25 @@ namespace HRMS_Infrastructure.Repository.Leave
             {
                 return null;
             }
+        }
+
+        public async Task<List<ActiveLeaveDetailsvm>> GetActiveLeaveDetails()
+        {
+            try
+            {
+              
+                var result = await _db.Set<ActiveLeaveDetailsvm>()
+                    .FromSqlRaw("EXEC GetActiveLeaveDetails" )
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetActiveLeaveDetails Error: " + ex.Message);
+                return new List<ActiveLeaveDetailsvm>();
+            }
+
         }
     }
 }
