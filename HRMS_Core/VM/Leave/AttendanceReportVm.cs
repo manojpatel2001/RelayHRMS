@@ -9,8 +9,7 @@ namespace HRMS_Core.VM.Leave
     public class AttendanceReportVm
     {
 
-        public List<string>? EmployeeCodes { get; set; }
-        public int? BranchId { get; set; }
+        public List<int>? EmployeeIds { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
     }

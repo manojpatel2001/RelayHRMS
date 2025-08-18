@@ -147,5 +147,20 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return null;
             }
         }
+
+        public async Task<List<SalaryDetailViewModel>> GetSalarySlip(salaryslipParam vm)
+        {
+
+            try
+            {
+                var result = await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetSalarySlip @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeId={vm.EmployeeId}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<SalaryDetailViewModel>();
+            }
+
+        }
     }
 }

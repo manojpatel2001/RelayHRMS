@@ -104,6 +104,62 @@ namespace HRMS_Infrastructure.Repository.Leave
 
         }
 
+        public async Task<List<LeaveApprovalReportVM>> GetLeaveApproval(LeaveApp_Param vm)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@StartDate", (object?)vm.StartDate ?? DBNull.Value),
+                    new SqlParameter("@EndDate", (object?)vm.EndDate ?? DBNull.Value),
+                    new SqlParameter("@Status", (object?)vm.Status ?? DBNull.Value),
+                    new SqlParameter("@EmpId", (object?)vm.EmpId ?? DBNull.Value),
+                    new SqlParameter("@CompId", (object?)vm.CompId ?? DBNull.Value)
+
+                };
+
+                var result = await _db.Set<LeaveApprovalReportVM>()
+                    .FromSqlRaw("EXEC SP_GetLeaveApproval @StartDate, @EndDate,@Status,@EmpId,@CompId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SP_GetLeaveApproval Error: " + ex.Message);
+                return new List<LeaveApprovalReportVM>();
+            }
+
+        }
+
+        public async Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveApp_Param vm)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                             
+                    new SqlParameter("@CompId", (object?)vm.CompId ?? DBNull.Value),
+                    new SqlParameter("@EmpId", (object?)vm.EmpId ?? DBNull.Value),
+                     new SqlParameter("@StartDate", (object?)vm.StartDate ?? DBNull.Value),
+                    new SqlParameter("@EndDate", (object?)vm.EndDate ?? DBNull.Value),
+                      new SqlParameter("@LeaveType", (object?)vm.Status ?? DBNull.Value)
+                };
+
+                var result = await _db.Set<LeaveBalanceViewModel>()
+                    .FromSqlRaw("EXEC GetLeaveBalance @CompId, @EmpId,@StartDate,@EndDate,@LeaveType", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetLeaveBalance Error: " + ex.Message);
+                return new List<LeaveBalanceViewModel>();
+            }
+
+        }
+
         public async Task<List<LeaveTypevm>> GetLeaveDetails(LeaveDetailsvm vm)
         {
             try

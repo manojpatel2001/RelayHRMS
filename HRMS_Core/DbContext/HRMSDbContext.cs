@@ -208,8 +208,14 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<MyTeamleavesVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<BranchViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<EmployeeViewModel>().HasNoKey().ToView(null);
+
             modelBuilder.Entity<NotificationRemainders>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllNotificationByUserId>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<salaryslipParam>().HasNoKey().ToView(null);
+            modelBuilder.Entity<LeaveApprovalReportVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<LeaveApp_Param>().HasNoKey().ToView(null);
+            modelBuilder.Entity<LeaveBalanceViewModel>().HasNoKey().ToView(null);
 
 
 
