@@ -22,7 +22,7 @@ namespace HRMS_Core.Leave
         public string? ApplicationType { get; set; }
         public DateTime? ApplicationDate { get; set; }
         public DateTime? FromDate { get; set; }
-        public int? No_Of_Date { get; set; }
+        public decimal? No_Of_Date { get; set; }
         public DateTime? Todate { get; set; }
         public string? Reason { get; set; }
         public int? Responsibleperson { get; set; }
@@ -30,5 +30,6 @@ namespace HRMS_Core.Leave
         public string? Send_Intimate { get; set; }
         public string? LeaveStatus { get; set; }
         public DateTime? ApprovalDate { get; set; }
+        public string? Day { get; set; }
     }
 }
