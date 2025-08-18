@@ -1,9 +1,14 @@
-﻿using HRMS_Core.Leave;
+﻿using HRMS_API.NotificationService.HubService;
+using HRMS_API.NotificationService.ManageService;
+using HRMS_Core.Leave;
+using HRMS_Core.Notifications;
 using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Repository;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace HRMS_API.Controllers.Leave
 {
@@ -11,14 +16,13 @@ namespace HRMS_API.Controllers.Leave
     [ApiController]
     public class CompOffAPIController : ControllerBase
     {
-
         private readonly IUnitOfWork _unitOfWork;
-
-        public CompOffAPIController(IUnitOfWork unitOfWork)
+        private readonly IHubContext<NotificationRemainderHub> _hubContext;
+        public CompOffAPIController(IUnitOfWork unitOfWork, IHubContext<NotificationRemainderHub> hubContext)
         {
             _unitOfWork = unitOfWork;
+            _hubContext = hubContext;
         }
-
 
         [HttpPost("CompOffDetailsApplication")]
 
@@ -42,10 +46,33 @@ namespace HRMS_API.Controllers.Leave
                     Emp_Code = empcode?.EmployeeCode
 
                 };
+               
                 var isSaved = await _unitOfWork.CompOffDetailsRepository.InsertCompOffAsync(comoffdata);
 
-                if (!isSaved)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to insert Comp Off details." };
+                if (isSaved.Success <= 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = isSaved.ResponseMessage };
+
+                //Notification send to reporting persion
+                var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)COA.Emp_Id);
+                var notification = new NotificationRemainders()
+                {
+                    NotificationMessage = $"{employeeDetails?.FullName} has applied for CompOff for Extra Work On : {COA.Extra_Work_Day:dd-MM-yyyy}. Awaiting your approval.",
+                    NotificationTime = DateTime.UtcNow,
+                    SenderId = COA.Emp_Id.ToString(),
+                    ReceiverIds = COA.Rep_Person_Id.ToString(),
+                    NotificationType = NotificationType.CompOffApplication,
+                    NotificationAffectedId = isSaved.Success
+                };
+                var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                if (savedNotification.Success > 0)
+                {
+                    notification.NotificationRemainderId = savedNotification.Success;
+                    var reprtingConnection = NotificationRemainderConnectionManager.GetConnection(COA.Rep_Person_Id.ToString());
+                    if (!string.IsNullOrEmpty(reprtingConnection))
+                    {
+                        await _hubContext.Clients.Client(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                    }
+                }
 
                 return new APIResponse { isSuccess = true, ResponseMessage = "Records Added successfully." };
             }
@@ -53,11 +80,7 @@ namespace HRMS_API.Controllers.Leave
             {
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to add records. Please try again later." };
             }
-
-
-
-
-
+        
         }
 
 
