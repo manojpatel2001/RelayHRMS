@@ -1,10 +1,15 @@
-﻿using HRMS_Core.Leave;
+﻿
+using HRMS_API.NotificationService.HubService;
+using HRMS_API.NotificationService.ManageService;
+using HRMS_Core.Leave;
+using HRMS_Core.Notifications;
 using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Net.Sockets;
 
 namespace HRMS_API.Controllers.Leave
@@ -15,10 +20,12 @@ namespace HRMS_API.Controllers.Leave
     {
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IHubContext<NotificationRemainderHub> _hubContext;
 
-        public LeaveApplicationController(IUnitOfWork unitOfWork)
+        public LeaveApplicationController(IUnitOfWork unitOfWork, IHubContext<NotificationRemainderHub> hubContext)
         {
             _unitOfWork = unitOfWork;
+            _hubContext = hubContext;
         }
 
         [HttpPost("AddLeaveapplication")]
@@ -49,14 +56,37 @@ namespace HRMS_API.Controllers.Leave
 
                 var isSaved = await _unitOfWork.LeaveApplicationRepository.InsertLeaveApplicationAsync(Leave);
 
-                if (!isSaved)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to insert leave details." };
+                if (isSaved.Success<=0)
+                    return new APIResponse { isSuccess = false, ResponseMessage =isSaved.ResponseMessage };
+
+                //Notification send to reporting persion
+                var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)Leave.EmplooyeId);
+                var notification = new NotificationRemainders()
+                {
+                    NotificationMessage = $"{employeeDetails?.FullName} has applied for leave from {Leave.FromDate:dd-MM-yyyy} to {Leave.Todate:dd-MM-yyyy}. Awaiting your approval.",
+                    NotificationTime = DateTime.UtcNow,
+                    SenderId = Leave.EmplooyeId.ToString(),
+                    ReceiverIds=Leave.ReportingManagerId.ToString(),
+                    NotificationType= NotificationType.LeaveApproval,
+                    NotificationAffectedId=isSaved.Success
+                };
+                var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                if (savedNotification.Success > 0)
+                {
+                    notification.NotificationRemainderId = savedNotification.Success;
+                    var reprtingConnection = NotificationRemainderConnectionManager.GetConnection(Leave.ReportingManagerId.ToString());
+                    if (!string.IsNullOrEmpty(reprtingConnection))
+                    {
+                        await _hubContext.Clients.Client(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                    }
+                }
+
 
                 return new APIResponse { isSuccess = true, ResponseMessage = "Records Added successfully." };
             }
             catch (Exception ex)
             {
-                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to add records. Please try again later." };
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to add records. Please try again later." };
             }
 
 
@@ -205,7 +235,35 @@ namespace HRMS_API.Controllers.Leave
 
                 }
 
+                ////Notification send to reporting persion
+                //foreach(var applicationId in LVM.Ids)
+                //{
+                //    var applicationDetails = await _unitOfWork.LeaveApplicationRepository.GetLeaveApplicationById(applicationId);
+                //    if (applicationDetails != null)
+                //    {
+                //        var reportingDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)applicationDetails.ReportingManagerId);
 
+                //        var notification = new NotificationRemainders()
+                //        {
+                //            NotificationMessage = $"{employeeDetails?.FullName} has {LVM.Status} your leave.",
+                //            NotificationTime = DateTime.UtcNow,
+                //            SenderId = LVM.EmployeeId.ToString(),
+                //            ReceiverIds = employee.ToString(),
+                //            NotificationType = NotificationType.LeaveApplication,
+                //            NotificationAffectedId = applicationId
+                //        };
+                //        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                //        if (savedNotification.Success > 0)
+                //        {
+                //            notification.NotificationRemainderId = savedNotification.Success;
+                //            var reprtingConnection = NotificationRemainderConnectionManager.GetConnection(Leave.ReportingManagerId.ToString());
+                //            if (!string.IsNullOrEmpty(reprtingConnection))
+                //            {
+                //                await _hubContext.Clients.Client(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                //            }
+                //        }
+                //    }
+                //}
                 return new APIResponse { isSuccess = true, ResponseMessage = "Records updated successfully." };
             }
             catch (Exception ex)
@@ -284,6 +342,23 @@ namespace HRMS_API.Controllers.Leave
                     Data = err.Message,
                     ResponseMessage = "Unable to retrieve leave records. Please try again later!"
                 };
+            }
+        }
+
+        [HttpGet("GetLeaveApplicationById/{leaveApplicationId}")]
+        public async Task<APIResponse> GetLeaveApplicationById(int leaveApplicationId)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveApplicationRepository.GetLeaveApplicationById(leaveApplicationId);
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve record. Please try again later." };
             }
         }
     }
