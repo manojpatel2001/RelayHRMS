@@ -4,7 +4,7 @@
     {
         public static readonly string LeaveApproval = "Leave Approval";
         public static readonly string LeaveApplication = "Leave Application";
-        
+        public static readonly string CompOffApplication = "CompOff Application";
     }
 
 }
