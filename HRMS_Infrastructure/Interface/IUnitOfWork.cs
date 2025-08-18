@@ -6,6 +6,7 @@ using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
+using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Salary;
@@ -95,6 +96,7 @@ namespace HRMS_Infrastructure.Interface
         IEmployeeDirectory employeeDirectory { get; }
         ILeftEmployeeRepository leftEmployeeRepository { get; }
         IUserPermissionRepository UserPermissionRepository { get; }
+        INotificationRemainderRepository NotificationRemainderRepository { get; }
         void Commit();
         Task CommitAsync();
     }

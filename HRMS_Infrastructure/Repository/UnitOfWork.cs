@@ -8,6 +8,7 @@ using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
+using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Salary;
@@ -20,6 +21,7 @@ using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.Leave;
 using HRMS_Infrastructure.Repository.ManagePermissions;
+using HRMS_Infrastructure.Repository.Notifications;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
 using HRMS_Infrastructure.Repository.Salary;
@@ -113,6 +115,7 @@ namespace HRMS_Infrastructure.Repository
             employeeDirectory = new EmployeeDirecotryRepository(_dbContext); 
             leftEmployeeRepository = new LeftEmployeeRepository(_dbContext);
             UserPermissionRepository = new UserPermissionRepository(_dbContext);
+            NotificationRemainderRepository = new NotificationRemainderRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -203,6 +206,7 @@ namespace HRMS_Infrastructure.Repository
 
         public ILeftEmployeeRepository leftEmployeeRepository { get; set; }
         public IUserPermissionRepository UserPermissionRepository { get; set; }
+        public INotificationRemainderRepository NotificationRemainderRepository { get; set; }
 
         public void Commit()
         {
