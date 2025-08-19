@@ -23,5 +23,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<VMCommonResult> Create(AttendanceRegularization model);
         Task<VMCommonResult> Update(AttendanceRegularization model);
         Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord);
+        Task<List<AttendanceDetails>>  GetAttendanceDetails(EmployeeInOutFilterVM outFilterVM);
     }
 }

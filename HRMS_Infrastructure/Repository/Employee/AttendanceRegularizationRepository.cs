@@ -221,6 +221,26 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return new VMCommonResult { Id = 0 };
             }
         }
+
+        public async Task<List<AttendanceDetails>> GetAttendanceDetails(EmployeeInOutFilterVM outFilterVM)
+        {
+            try
+            {          
+                var monthParam = new SqlParameter("@StartDate", (object?)outFilterVM.StartDate ?? DBNull.Value);
+                var yearParam = new SqlParameter("@EndDate", (object?)outFilterVM.EndDate ?? DBNull.Value);
+                var empCodeParam = new SqlParameter("@EmpId", (object?)outFilterVM.EmpId ?? DBNull.Value);
+
+                return await _db.Set<AttendanceDetails>()
+              .FromSqlRaw("EXEC SP_GetAttendanceDetails @StartDate,@EndDate,@EmpId",
+                    monthParam, yearParam, empCodeParam)
+              .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+
+                return new List<AttendanceDetails>();
+            }
+        }
     }
 }
 
