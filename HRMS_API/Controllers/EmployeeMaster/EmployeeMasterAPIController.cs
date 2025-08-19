@@ -168,7 +168,8 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     Pt = employeeData.Pt,
                     WeekOffDetailsId=(int)employeeData.WeekOffDetailsId,
                     IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut,
-                    IsLeft=employeeData.IsLeft
+                    IsLeft=employeeData.IsLeft,
+                    IsPFApplicable=employeeData.IsPFApplicable
                 };
 
                 // Create the user
