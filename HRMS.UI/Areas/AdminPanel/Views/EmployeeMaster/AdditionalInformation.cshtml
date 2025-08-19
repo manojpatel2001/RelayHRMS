@@ -251,11 +251,23 @@
 							</div>
 							<div class="col-md-4">
 								<div class="form-group mt-3 position-relative">
-									<input type="text" class="form-control floating-input" id="txtGrossSalary" placeholder="Gross Salary " step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-									<label class="floating-label" for="txtGrossSalary">Gross Salary </label>
+									<input type="text" class="form-control  data-decimal floating-input" id="txtGrossSalary" placeholder="Gross Salary " step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+									<label class="floating-label" for="txtGrossSalary">Gross Salary<span class="required-star">*</span> </label>
 								</div>
+								<span id="spnGrossSalary" style="color:red; display:none;">Please Enter GrossSalary</span>
+
 							</div>
 
+							
+
+							<div class="col-md-4">
+								<div class="form-group mt-3 position-relative">
+									<input type="text" data-decimal class="form-control floating-input" id="txtBasicSalary" placeholder="Basic Salary">
+									<label class="floating-label" for="txtBasicSalary">Basic Salary<span class="required-star">*</span></label>
+								</div>
+								<span id="spnBasicSalary" style="color:red; display:none;">Please Enter Basic Salary</span>
+
+							</div>
 
 							<div class="col-md-4">
 								<div class="form-group mt-3 position-relative">
@@ -389,6 +401,13 @@
 								<div class="form-check mt-4">
 									<input class="form-check-input" type="checkbox" id="checkInOut">
 									<label class="form-check-label" for="checkInOut">Punch In Out</label>
+								</div>
+							</div>
+
+							<div class="col-md-2">
+								<div class="form-check mt-4">
+									<input class="form-check-input" checked type="checkbox" id="isPFApplicable">
+									<label class="form-check-label" for="isPFApplicable">Is PF Applicable</label>
 								</div>
 							</div>
 
@@ -595,6 +614,7 @@
 		// })
 		let employeeList = [];
 		let currentIndex =0;
+		let UserId=localStorage.getItem('EmployeeId');
 		let CurrentEmployeeId=localStorage.getItem('CurrentEmployeeId');
 		const savedCompany = localStorage.getItem('selectedCompany');
 		var companyDetails = JSON.parse(savedCompany);
@@ -726,7 +746,7 @@
 
 
 	// Sample fill function
-		async function fillEmployeeForm(employee) {
+	async function fillEmployeeForm(employee) {
 		// Set values into form fields, handling null or undefined values directly
 		$('#EmployeeId').val(employee.id || '');
 		CurrentEmployeeId = employee.id || '';
@@ -751,12 +771,14 @@
 		$('#ddlDesignation').val(employee.designationId || '');
 		$('#txtGrossSalary').val(employee.grossSalary || '');
 			if(employee.grossSalary){
-				loadLiveSalaryAllowance();
+				await loadLiveSalaryAllowance();
 			}
 			else{
 				$("#SalaryContainer").hide();
 				$("#salaryNoFound").show();
 			}
+		  $('#txtBasicSalary').val(employee.basicSalary || '');
+
 		$('#ddlCategory').val(employee.categoryId || '');
 		$('#ddlDepartment').val(employee.departmentId || '');
 		$('#ddlEmpType').val(employee.employeeTypeId || '');
@@ -769,6 +791,7 @@
 		$('#pt').prop('checked', employee.pt || false);
 		$('#checkInOut').prop('checked', employee.isPermissionPunchInOut || false);
 		$('#chkSameAs').prop('checked', employee.sameAsPresentAddress || false);
+			 $('#isPFApplicable').prop('checked', employee.isPFApplicable || false);
 
 		// Other fields
 		$('#ddlWeekOfAssign').val(employee.weekOffDetailsId || '');
@@ -1239,7 +1262,7 @@
 			var designation = $('#ddlDesignation').val();
 			var grossSalary = $('#txtGrossSalary').val().trim();
 			var category = $('#ddlCategory').val();
-			var basicSalary = null;
+			 var basicSalary = $('#txtBasicSalary').val();
 			var department = $('#ddlDepartment').val();
 			var employeeType = $('#ddlEmpType').val();
 			var dateOfBirth = $('#dob').val();
@@ -1252,7 +1275,7 @@
 			var checkInOut = $('#checkInOut').is(':checked');
 			 var patternPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@@$!%*?&])[A-Za-z\d@@$!%*?&]{8,}$/;
 			var reportingManager=$('#drpReporting').val();
-
+		  var isPFApplicable = $('#isPFApplicable').is(':checked');
 			var Company = CurrentCompanyId;
 
 
@@ -1317,6 +1340,21 @@
 				}
 				else{
 					$('#spnDesignation').hide();
+				}
+
+				if (!grossSalary) {
+					$('#spnGrossSalary').show();
+					isValid = false;
+				}
+				else{
+					$('#spnGrossSalary').hide();
+				}
+				if (!basicSalary) {
+					$('#spnBasicSalary').show();
+					isValid = false;
+				}
+				else{
+					$('#spnBasicSalary').hide();
 				}
 				if (!category) {
 					$('#spnCategory').show();
@@ -1416,7 +1454,7 @@
 						DesignationId: designation === "" ? null : designation,
 						GrossSalary: grossSalary === "" ? null : grossSalary,
 						CategoryId: category === "" ? null : category,
-						BasicSalary: null,
+						BasicSalary: basicSalary==""?null:basicSalary,
 						DepartmentId: department === "" ? null : department,
 						EmployeeTypeId: employeeType === "" ? null : employeeType,
 						DateOfBirth: dateOfBirth === "" ? null : dateOfBirth,
@@ -1425,12 +1463,12 @@
 						//Password: password,
 					     ReportingManagerId:reportingManager==""? null:reportingManager,
 						Pt: pt === "" ? false : pt,
-
+						IsPFApplicable:isPFApplicable,
 						// Default values for properties not present in the JavaScript object
 
 
 						CreatedBy: null,
-						UpdatedBy: `${CurrentEmployeeId}`,
+						UpdatedBy: `${UserId}`,
 
 						EmployeeProfileUrl: null,
 						EmployeeSignatureUrl: null,
@@ -1918,20 +1956,26 @@
 
 	});
 	async function loadLiveSalaryAllowance() {
-	var grossSalary = $('#txtGrossSalary').val();
-	if(!grossSalary)
-	{
-		$("#SalaryContainer").hide();
-			$("#salaryNoFound").show();
-		return;
-	}
-	   try {
-			const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetLiveEmployeeSalaryAllowance/'+grossSalary, {
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
+			var grossSalary = $('#txtGrossSalary').val();
+		var isPFApplicable = $('#isPFApplicable').is(':checked');
+			
+		if(!grossSalary)
+		{
+			$("#SalaryContainer").hide();
+		    $("#salaryNoFound").show();
+			return;
+		}
+		   try {
+					const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetLiveEmployeeSalaryAllowance', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							IsPFApplicable: isPFApplicable,
+							GrossSalary: grossSalary
+						})
+					});
 
 			const data = await response.json();
 			if (data.isSuccess) {
@@ -1991,7 +2035,7 @@
 		// Earnings
 		$('#monthlyGross').text(formatCurrency(salaryData.totalGrossSalary));
 		$('#AnualGross').text(formatCurrency(salaryData.totalGrossSalary * 12));
-
+			$('#txtBasicSalary').val(salaryData.basicSalary);
 		$('#basicSalaryMonth').text(formatCurrency(salaryData.basicSalary));
 		$('#basicSalaryYear').text(formatCurrency(salaryData.basicSalary * 12));
 		$('#hraMonth').text(formatCurrency(salaryData.hra));

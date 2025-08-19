@@ -68,6 +68,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @UpdatedBy = {employee.UpdatedBy},
                         @WeekOffDetailsId = {employee.WeekOffDetailsId},
                         @IsPermissionPunchInOut = {employee.IsPermissionPunchInOut},
+                        @IsPFApplicable = {employee.IsPFApplicable},
 
                         -- Personal Info
                         @Gender = {employee.Gender},
