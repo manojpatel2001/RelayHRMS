@@ -217,6 +217,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<LeaveApp_Param>().HasNoKey().ToView(null);
             modelBuilder.Entity<LeaveBalanceViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<ActiveLeaveDetailsvm>().HasNoKey().ToView(null);
+            modelBuilder.Entity<AttendanceDetails>().HasNoKey().ToView(null);
 
 
 
