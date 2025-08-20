@@ -67,17 +67,17 @@ namespace HRMS_API.Controllers.Leave
                     NotificationTime = DateTime.UtcNow,
                     SenderId = Leave.EmplooyeId.ToString(),
                     ReceiverIds=Leave.ReportingManagerId.ToString(),
-                    NotificationType= NotificationType.LeaveApproval,
+                    NotificationType= NotificationType.LeaveApplication,
                     NotificationAffectedId=isSaved.Success
                 };
                 var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
                 if (savedNotification.Success > 0)
                 {
                     notification.NotificationRemainderId = savedNotification.Success;
-                    var reprtingConnection = NotificationRemainderConnectionManager.GetConnection(Leave.ReportingManagerId.ToString());
-                    if (!string.IsNullOrEmpty(reprtingConnection))
+                    var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(Leave.ReportingManagerId.ToString());
+                    if (reprtingConnection.Any())
                     {
-                        await _hubContext.Clients.Client(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                        await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
                     }
                 }
 
@@ -223,7 +223,7 @@ namespace HRMS_API.Controllers.Leave
 
                 var isSaved = await _unitOfWork.LeaveApplicationRepository.Updateapproval(LVM.Ids, LVM.Status,LVM.Date);
 
-                if (!isSaved)
+                if (isSaved.Success<1)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
 
                 if (LVM.Status == "Approved")
@@ -235,35 +235,35 @@ namespace HRMS_API.Controllers.Leave
 
                 }
 
-                ////Notification send to reporting persion
-                //foreach(var applicationId in LVM.Ids)
-                //{
-                //    var applicationDetails = await _unitOfWork.LeaveApplicationRepository.GetLeaveApplicationById(applicationId);
-                //    if (applicationDetails != null)
-                //    {
-                //        var reportingDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)applicationDetails.ReportingManagerId);
+                //Notification send to reporting persion
+                foreach (var applicationId in LVM.Ids)
+                {
+                    var applicationDetails = await _unitOfWork.LeaveApplicationRepository.GetLeaveApplicationById(applicationId);
+                    if (applicationDetails != null)
+                    {
+                        var reportingDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)applicationDetails.ReportingManagerId);
 
-                //        var notification = new NotificationRemainders()
-                //        {
-                //            NotificationMessage = $"{employeeDetails?.FullName} has {LVM.Status} your leave.",
-                //            NotificationTime = DateTime.UtcNow,
-                //            SenderId = LVM.EmployeeId.ToString(),
-                //            ReceiverIds = employee.ToString(),
-                //            NotificationType = NotificationType.LeaveApplication,
-                //            NotificationAffectedId = applicationId
-                //        };
-                //        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
-                //        if (savedNotification.Success > 0)
-                //        {
-                //            notification.NotificationRemainderId = savedNotification.Success;
-                //            var reprtingConnection = NotificationRemainderConnectionManager.GetConnection(Leave.ReportingManagerId.ToString());
-                //            if (!string.IsNullOrEmpty(reprtingConnection))
-                //            {
-                //                await _hubContext.Clients.Client(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
-                //            }
-                //        }
-                //    }
-                //}
+                        var notification = new NotificationRemainders()
+                        {
+                            NotificationMessage = $"{reportingDetails?.FullName} has {LVM.Status} your leave from {applicationDetails.FromDate:dd-MM-yyyy} to {applicationDetails.Todate:dd-MM-yyyy} ",
+                            NotificationTime = DateTime.UtcNow,
+                            SenderId = applicationDetails.EmplooyeId.ToString(),
+                            ReceiverIds = applicationDetails.ReportingManagerId.ToString(),
+                            NotificationType = NotificationType.LeaveApproval,
+                            NotificationAffectedId = applicationId
+                        };
+                        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                        if (savedNotification.Success > 0)
+                        {
+                            notification.NotificationRemainderId = savedNotification.Success;
+                            var employeeConnection = NotificationRemainderConnectionManager.GetConnections(applicationDetails.EmplooyeId.ToString());
+                            if (employeeConnection.Any())
+                            {
+                                await _hubContext.Clients.Clients(employeeConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                            }
+                        }
+                    }
+                }
                 return new APIResponse { isSuccess = true, ResponseMessage = "Records updated successfully." };
             }
             catch (Exception ex)

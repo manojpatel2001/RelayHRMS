@@ -15,7 +15,7 @@ namespace HRMS_API.NotificationService.HubService
                 if (!string.IsNullOrEmpty(userId))
                 {
                     NotificationRemainderConnectionManager.AddConnection(userId, Context.ConnectionId);
-                    var connection = NotificationRemainderConnectionManager.GetConnection(userId);
+                    var connection = NotificationRemainderConnectionManager.GetConnections(userId);
 
                 }
             }
@@ -36,7 +36,7 @@ namespace HRMS_API.NotificationService.HubService
                 var userId = Context.GetHttpContext()?.Request.Query["userId"];  // Or get from query string/context
                 if (!string.IsNullOrEmpty(userId))
                 {
-                    NotificationRemainderConnectionManager.RemoveConnection(userId);
+                    NotificationRemainderConnectionManager.RemoveConnection(userId,Context.ConnectionId);
                 }
             }
             catch (Exception ex)

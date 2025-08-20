@@ -257,11 +257,13 @@ function updateNotificationList(notificationDetails) {
     }
     $("#notificationCount").text(notificationDetails.notificationCount);
     const notificationsHtml = notificationsList.map(notification => {
-
         let href = '#';
         switch (notification.notificationType) {
-            case 'Leave Approval':
+            case 'Leave Application':
                 href = '/EmployeePanel/Leave/LeaveApproval';
+                break;
+            case 'Leave Approval':
+                href = '/EmployeePanel/Leave/LeaveApplication';
                 break;
             case 'CompOff Application':
                 href = '/EmployeePanel/CompOffApplication/CompOffApproval';

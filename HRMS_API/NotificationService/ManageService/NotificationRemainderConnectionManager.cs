@@ -4,67 +4,42 @@ namespace HRMS_API.NotificationService.ManageService
 {
     public static class NotificationRemainderConnectionManager
     {
-        private static readonly ConcurrentDictionary<string, string> _connections = new();
+        private static readonly ConcurrentDictionary<string, HashSet<string>> _connections = new();
 
-        /// <summary>
-        /// Adds or updates a user's connection ID (replaces old connection if exists)
-        /// </summary>
-        public static void AddConnection(string? userId, string connectionId)
+        public static void AddConnection(string userId, string connectionId)
         {
-            try
-            {
-                if (!string.IsNullOrEmpty(userId))
+            if (string.IsNullOrEmpty(userId)) return;
+
+            _connections.AddOrUpdate(
+                userId,
+                new HashSet<string> { connectionId },
+                (_, existingConnections) =>
                 {
-                    _connections.AddOrUpdate(userId, connectionId, (_, _) => connectionId);
+                    existingConnections.Add(connectionId);
+                    return existingConnections;
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[AddConnection] Error: {ex.Message}");
-            }
+            );
         }
 
-        /// <summary>
-        /// Removes a user's connection
-        /// </summary>
-        public static void RemoveConnection(string? userId)
+        public static void RemoveConnection(string userId, string connectionId)
         {
-            try
+            if (string.IsNullOrEmpty(userId)) return;
+
+            if (_connections.TryGetValue(userId, out var connections))
             {
-                if (!string.IsNullOrEmpty(userId))
-                {
+                connections.Remove(connectionId);
+                if (connections.Count == 0)
                     _connections.TryRemove(userId, out _);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[RemoveConnection] Error: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Gets a user's connection ID (if exists)
-        /// </summary>
-        public static string? GetConnection(string? userId)
+        public static IEnumerable<string> GetConnections(string userId)
         {
-            try
-            {
-                if (!string.IsNullOrEmpty(userId))
-                {
-                    _connections.TryGetValue(userId, out var connectionId);
-                    return connectionId;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[GetConnection] Error: {ex.Message}");
-                return null;
-            }
+            if (_connections.TryGetValue(userId, out var connections))
+                return connections;
+            return Enumerable.Empty<string>();
         }
+
 
 
         public static IEnumerable<string> GetAllUsers()
