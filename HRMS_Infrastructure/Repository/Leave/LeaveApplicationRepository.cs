@@ -234,18 +234,19 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<SP_Response> Updateapproval(List<int> applicationIds, string status, DateTime date)
+        public async Task<SP_Response> Updateapproval(LeaveaprovalVM LVM)
         {
             try
             {
-                string idsString = string.Join(",", applicationIds);
+                string idsString = string.Join(",", LVM.Ids);
                 
                     var result = await _db.Set<SP_Response>()
                         .FromSqlInterpolated($@"
                        EXEC SP_LeaveApproveReject
                         @ApplicationIds = {idsString},
-                        @LeaveStatus = {status},
-                        @ApproveDate = {date}
+                        @LeaveStatus = {LVM.Status},
+                        @ApproveDate = {LVM.Date},
+                         @EmployeeId={LVM.EmployeeId.ToString()}
                        ")
                         .ToListAsync();
 

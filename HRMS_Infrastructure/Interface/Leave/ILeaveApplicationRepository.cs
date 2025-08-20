@@ -19,7 +19,7 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<List<ActiveLeaveDetailsvm>> GetActiveLeaveDetails();
         Task<List<LeaveApprovalReportVM>> GetLeaveApproval(LeaveApp_Param vm);
         Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveApp_Param vm);
-        Task<SP_Response> Updateapproval(List<int> applicationid, string status,DateTime Date);
+        Task<SP_Response> Updateapproval(LeaveaprovalVM LVM);
         Task<bool> softdelete(LeaveApplication Leave);
         Task<LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId);
 

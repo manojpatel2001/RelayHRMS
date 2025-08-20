@@ -1,4 +1,5 @@
 ﻿using HRMS_API.NotificationService.HubService;
+using HRMS_Core.VM.Notifications;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -58,12 +59,12 @@ namespace HRMS_API.Controllers.Notifications
             }
         }
 
-        [HttpGet("ReadNotificationRemainder/{notificationType}")]
-        public async Task<APIResponse> GetNotificationRemainderById(string notificationType)
+        [HttpPost("ReadNotificationRemainder")]
+        public async Task<APIResponse> GetNotificationRemainderById(vmReadNotificationRemainder vmReadNotificationRemainder)
         {
             try
             {
-                var data = await _unitOfWork.NotificationRemainderRepository.ReadNotificationRemainder(notificationType);
+                var data = await _unitOfWork.NotificationRemainderRepository.ReadNotificationRemainder(vmReadNotificationRemainder);
                 if (data.Success>0)
                 return new APIResponse { isSuccess = true,  ResponseMessage = data.ResponseMessage };
 
