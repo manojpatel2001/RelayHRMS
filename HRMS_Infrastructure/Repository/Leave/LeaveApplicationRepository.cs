@@ -234,36 +234,30 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<bool> Updateapproval(List<int> applicationid, string status, DateTime Date)
+        public async Task<SP_Response> Updateapproval(List<int> applicationIds, string status, DateTime date)
         {
-           
             try
             {
-                foreach (var id in applicationid)
-                {
-                    var parameters = new[]
-                    {
-                        new SqlParameter("@ApplicationId", id),
-                        new SqlParameter("@LeaveStatus", status),
-                        new SqlParameter("@ApproveDate", Date)
-                    };
+                string idsString = string.Join(",", applicationIds);
+                
+                    var result = await _db.Set<SP_Response>()
+                        .FromSqlInterpolated($@"
+                       EXEC SP_LeaveApproveReject
+                        @ApplicationIds = {idsString},
+                        @LeaveStatus = {status},
+                        @ApproveDate = {date}
+                       ")
+                        .ToListAsync();
 
-                    await _db.Database.ExecuteSqlRawAsync(
-                        "EXEC SP_LeaveApproveReject @ApplicationId, @LeaveStatus,@ApproveDate",
-                        parameters
-                    );
-                }
 
-                return true;
+                return result.FirstOrDefault()??new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong" };
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error during SP call: " + ex.Message);
-                return false;
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
-        
-
         }
+
 
         public async Task<LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId)
         {

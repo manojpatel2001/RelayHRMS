@@ -67,10 +67,10 @@ namespace HRMS_API.Controllers.Leave
                 if (savedNotification.Success > 0)
                 {
                     notification.NotificationRemainderId = savedNotification.Success;
-                    var reprtingConnection = NotificationRemainderConnectionManager.GetConnection(COA.Rep_Person_Id.ToString());
-                    if (!string.IsNullOrEmpty(reprtingConnection))
+                    var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(COA.Rep_Person_Id.ToString());
+                    if (reprtingConnection.Any())
                     {
-                        await _hubContext.Clients.Client(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                        await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
                     }
                 }
 
