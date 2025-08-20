@@ -111,6 +111,7 @@ namespace HRMS_Infrastructure.Repository
             MonthlySalaryDetailsRepository =new MonthlySalaryDetailsRepository(_dbContext);
 
             employeeDirectory = new EmployeeDirecotryRepository(_dbContext);
+            myProfileRepository = new MyProfileRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
