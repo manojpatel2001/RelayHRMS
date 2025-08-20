@@ -1,10 +1,9 @@
 ﻿
-
 const userIdNotification = localStorage.getItem("EmployeeId");
-const token = localStorage.getItem("authToken");
+const tokenNotification = localStorage.getItem("authToken");
 const notificationConnection = new signalR.HubConnectionBuilder()
     .withUrl(`${BaseDomainUrl}/notificationRemainderHub?userId=${userIdNotification}`, {
-        accessTokenFactory: () => token
+        accessTokenFactory: () => tokenNotification
     })
   //  .configureLogging(signalR.LogLevel.Information) // Detailed logging
     .withAutomaticReconnect()
@@ -182,7 +181,7 @@ async function loadAllUnreadNotification() {
         const response = await fetch(BaseUrlLayout + '/NotificationRemainderAPI/GetAllNotificationByUserId/' + parseInt(userIdNotification), {
             method: 'GET',
             headers: {
-                'Authorization': 'Bearer ' + token,
+                'Authorization': 'Bearer ' + tokenNotification,
                 'Content-Type': 'application/json' // Important for JSON payloads
             }
         });
@@ -237,9 +236,37 @@ function closeNotificationDropdown() {
 
 
 
-function redirectPage(pageUrl)
+async function redirectPage(pageUrl,notificationType)
 {
+    if (notificationType == "Leave Approval")
+    {
+        await readNotification(notificationType);
+    }
     window.location.href = pageUrl;
+}
+
+async function readNotification(notificationType)
+{
+    try {
+        const response = await fetch(BaseUrlLayout + '/NotificationRemainderAPI/ReadNotificationRemainder', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + tokenNotification,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                UserId: userIdNotification,
+                notificationType: notificationType
+            })
+        });
+
+
+        const notificationData = await response.json();
+       
+       
+    } catch (error) {
+        console.log('Fetch error:', error);
+    }
 }
 function updateNotificationList(notificationDetails) {
     var notificationsList = notificationDetails.notifications;
@@ -273,7 +300,7 @@ function updateNotificationList(notificationDetails) {
         }
 
         return `
-                    <div class="notification-item" onclick=redirectPage("${uiBaseUrlLayout}${href}")>
+                    <div class="notification-item" onclick='redirectPage("${uiBaseUrlLayout}${href}", "${notification.notificationType}")'>
                     <span class="notification-item-count">${notification.notificationTypeCount}</span>
                         <div class="notification-content">
                             <div class="notification-title">${notification.notificationType}</div>

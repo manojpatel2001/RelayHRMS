@@ -213,7 +213,7 @@ namespace HRMS_API.Controllers.Leave
         {
             try
             {
-                LVM.Date = DateTime.Now;
+                LVM.Date = DateTime.UtcNow;
 
                 if (LVM.Ids == null || !LVM.Ids.Any() || string.IsNullOrEmpty(LVM.Status))
                 {
@@ -221,7 +221,7 @@ namespace HRMS_API.Controllers.Leave
                 }
                 
 
-                var isSaved = await _unitOfWork.LeaveApplicationRepository.Updateapproval(LVM.Ids, LVM.Status,LVM.Date);
+                var isSaved = await _unitOfWork.LeaveApplicationRepository.Updateapproval(LVM);
 
                 if (isSaved.Success<1)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
@@ -241,7 +241,7 @@ namespace HRMS_API.Controllers.Leave
                     var applicationDetails = await _unitOfWork.LeaveApplicationRepository.GetLeaveApplicationById(applicationId);
                     if (applicationDetails != null)
                     {
-                        var reportingDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)applicationDetails.ReportingManagerId);
+                        var reportingDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)LVM.EmployeeId);
 
                         var notification = new NotificationRemainders()
                         {

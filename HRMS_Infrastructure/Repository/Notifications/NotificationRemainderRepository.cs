@@ -74,7 +74,7 @@ namespace HRMS_Infrastructure.Repository.Notifications
             }
         }
 
-        public async Task<SP_Response> ReadNotificationRemainder(string notificationType)
+        public async Task<SP_Response> ReadNotificationRemainder(vmReadNotificationRemainder vmReadNotificationRemainder)
         {
             try
             {
@@ -82,7 +82,8 @@ namespace HRMS_Infrastructure.Repository.Notifications
                     .FromSqlInterpolated($@"
                         EXEC ManageNotificationRemainder
                             @Action = {"READ"},
-                            @NotificationType = {notificationType}    
+                            @NotificationType = {vmReadNotificationRemainder.NotificationType} ,   
+                            @ReceiverIds = {vmReadNotificationRemainder.UserId}    
                     ")
                     .ToListAsync();
                 return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
