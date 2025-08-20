@@ -8,6 +8,8 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 
+
+
 <title>Search Panel</title>
 
 
@@ -126,6 +128,7 @@
             background: rgba(240, 240, 240, 0.95);
             cursor: pointer;
         }
+
 
 </style>
 
@@ -301,7 +304,7 @@
                     </div>
 
                     <div class="tab-pane fade" id="orgid" role="tabpanel">
-                        <p class="card-text">Organization Policy</p>
+                        <div id="organizationPolicyList"></div>
                     </div>
                 </div>
             </div>
@@ -327,7 +330,7 @@
         </div>
     </div> *@
 
-    <div class="col-md-3">
+   @*  <div class="col-md-3">
         <div id="fameid" class="card custom-height radius-10 border-start border-0 border-3 border-info">
             <div class="card-body">
                 <div class="card-header text-dark" style="background-color: pink;">
@@ -338,7 +341,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> *@
 </div>
 
 <!-- Navigation Scripts -->
@@ -348,20 +351,31 @@
     });
 
     document.getElementById("attendanceleaveid").addEventListener("click", function () {
-        window.location.href = "@baseUrl/EmployeePanel/Home/AttendanceLeave";
+        window.location.href = "@baseUrl/EmployeePanel/Home/Attendanceandleave";
     });
 
-    document.getElementById("salaryid").addEventListener("click", function () {
-        window.location.href = "@baseUrl/EmployeePanel/Home/Salary";
+    // document.getElementById("salaryid").addEventListener("click", function () {
+    //     window.location.href = "@baseUrl/EmployeePanel/Home/Salary";
+    // });
+
+        document.getElementById("salaryid").addEventListener("click", function () {
+        Swal.fire({
+            title: "Page Under Development",
+            text: "This feature is coming soon!",
+            icon: "info",
+            confirmButtonText: "OK"
+        });
     });
 
     document.getElementById("reportid").addEventListener("click", function () {
-        window.location.href = "@baseUrl/EmployeePanel/Home/Reports";
-    });
+        // window.location.href = "@baseUrl/EmployeePanel/Home/Reports";
+        window.location.href="@baseUrl/EmployeePanel/MyReports/Index";
+    });   
+
+
     const apiBase = '@apiBase';
     const baseDomain = new URL(apiBase).origin;
-        console.log(baseDomain);
-
+    const Empid = parseInt(localStorage.getItem("EmployeeId"));
     const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany);
     const Compid = parseInt(companyDetails.CompanyId);
@@ -370,7 +384,7 @@
             loadLatestMembers();
               loadBirthday();
               loadUpcomingHolidays();
-
+              loadOrganizationPolicies();
         });
 
         $('#birthday-tab').on('click', function () {
@@ -627,8 +641,7 @@
 
 
     function loadUpcomingHolidays() {
-        const apiUrl = `${apiBase}/EmployeeDashBoardAPI/Getupcommingholidays?Compid=${Compid}`;
-
+    const apiUrl = `${apiBase}/EmployeeDashBoardAPI/Getupcommingholidays?Compid=${Compid}&EmployeeId=${Empid}`;
         $.ajax({
             url: apiUrl,
             type: 'GET',
@@ -667,5 +680,97 @@
         });
     }
 
+    function loadOrganizationPolicies() {
+        const apiUrl = `${apiBase}/OrganizationPolicyAPI/GetAllOrganizationPolicy`;
+
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+                const policies = response.data;
+                let html = '';
+
+                if (!Array.isArray(policies) || policies.length === 0) {
+                    html = '<p class="text-muted">No organization policies found.</p>';
+                } else {
+                    policies.forEach(policy => {
+                        const documentUrl = policy.documentUrl;
+
+                        html += `
+                            <div class="d-flex align-items-center mb-2 p-2 policy-item">
+                                <img src="https://cdn-icons-png.flaticon.com/512/337/337946.png"
+                                     alt="PDF"
+                                     style="width:24px; height:24px; margin-right:8px;">
+                                <span class="text-primary policy-link"
+                                      style="cursor: pointer; text-decoration: underline;"
+                                      onclick="openPDFCustomViewer('${documentUrl}', '${policy.organizationPolicyName}')">
+                                    ${policy.organizationPolicyName}
+                                </span>
+                            </div>
+                        `;
+                    });
+                }
+
+                $('#organizationPolicyList').html(html);
+            },
+            error: function (xhr, status, error) {
+                console.error("Failed to load policies:", error);
+                $('#organizationPolicyList').html('<p class="text-danger">Failed to load organization policies.</p>');
+            }
+        });
+    }
+
+    // Custom PDF viewer function (view-only, no download)
+    function openPDFCustomViewer(url, fileName) {
+        const modalHtml = `
+            <div class="modal fade" id="customPdfViewer" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-fullscreen">
+                    <div class="modal-content">
+                        <div class="modal-header bg-light">
+                            <div class="d-flex align-items-center">
+                                <img src="https://cdn-icons-png.flaticon.com/512/337/337946.png"
+                                     style="width:24px; height:24px; margin-right:8px;" alt="PDF">
+                                <h5 class="modal-title mb-0">${fileName}</h5>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-success me-3">📖 Document Preview</span>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                        </div>
+                        <div class="modal-body p-0" style="background: #f8f9fa;">
+                            <div id="pdfLoadingSpinner" class="text-center p-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading document preview...</p>
+                            </div>
+                            <iframe id="pdfFrame"
+                                      src="${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&zoom=80"
+                                    style="width:100%; height:calc(100vh - 140px); border:none; display:none;"
+                                    onload="hidePdfLoadingSpinner()"
+                                    title="${fileName}">
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        $('#customPdfViewer').remove();
+        $('body').append(modalHtml);
+        $('#customPdfViewer').modal('show');
+    }
+
+    function hidePdfLoadingSpinner() {
+        $('#pdfLoadingSpinner').hide();
+        $('#pdfFrame').show();
+    }
+
+
+    function openPDFViewOnly(url, fileName) {
+        const viewOnlyUrl = `${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&zoom=100`;
+        window.open(viewOnlyUrl, '_blank', 'noopener,noreferrer,toolbar=0,menubar=0,location=0');
+    }
+        
 
 </script>

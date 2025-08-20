@@ -63,6 +63,8 @@ namespace HRMS_Core.DbContext
         public bool? Fixsalary { get; set; } = false;
         public bool? Probation { get; set; } = false;
         public bool? Trainee { get; set; } = false;
+        public bool? IsLeft { get; set; } = false;
+        public bool? IsPFApplicable { get; set; } = true;
 
         //base model
         public bool? IsDeleted { get; set; } = false;
@@ -167,7 +169,8 @@ namespace HRMS_Core.DbContext
         public string? EmployeePTReport{ get; set; }
         public string? EmployeeTaxReport{ get; set; }
         public string? EmployeeESIReport{ get; set; }
-        public string? EmployeeNamePrmaryBank{ get; set; }
+        public string? EmployeeNamePrmaryBank { get; set; }
+        public DateTime? LastLogin { get; set; }
 
 
     }

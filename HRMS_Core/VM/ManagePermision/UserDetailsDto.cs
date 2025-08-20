@@ -13,6 +13,7 @@ namespace HRMS_Core.VM.ManagePermision
         public string? Designation { get; set; }
         public string? ProfileUrl { get; set; }
         public string? Email { get; set; }
+        public int? BranchId { get; set; }
 
         // ⚠️ Be careful exposing Password or PasswordHash in DTOs.
         public string? Password { get; set; }

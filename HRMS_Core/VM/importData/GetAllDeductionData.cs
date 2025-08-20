@@ -16,7 +16,6 @@ namespace HRMS_Core.VM.importData
         public decimal? PF { get; set; }
         public decimal? ESIC { get; set; }
         public decimal? PT { get; set; }
-        public decimal? Insurance { get; set; }
         public decimal? LWF { get; set; }
         public decimal? TDS { get; set; }
         public string? BranchName { get; set; }

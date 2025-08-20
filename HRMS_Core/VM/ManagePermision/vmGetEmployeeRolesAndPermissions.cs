@@ -11,5 +11,6 @@ namespace HRMS_Core.VM.ManagePermision
         public string? RoleName { set; get; }
         public string? RoleSlug { set; get; }
         public string? PermissionSlug { set; get; }
+        public string? PermissionType { set; get; }
     }
 }

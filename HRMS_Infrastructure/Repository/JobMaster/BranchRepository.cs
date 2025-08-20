@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface.JobMaster;
@@ -193,6 +194,44 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             catch
             {
                 return new List<vmGetAllBranchesListByCompanyId>();
+            }
+        }
+
+        public async Task<List<BranchViewModel>> GetBranchesByEmployee(int EmpId, int CompId)
+        {
+            try
+            {
+                var result = await _db.Set<BranchViewModel>().FromSqlInterpolated($@"
+                EXEC sp_GetBranchesByEmployee
+                    @LoginEmpId ={EmpId},
+                    @CompanyId={CompId}
+                    
+            ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<BranchViewModel>();
+            }
+        }
+
+        public async Task<List<EmployeeViewModel>> GetEmployeesByBranchAndUser(int EmpId, int CompId )
+        {
+            try
+            {
+                var result = await _db.Set<EmployeeViewModel>().FromSqlInterpolated($@"
+                EXEC sp_GetEmployeesByBranchAndUser
+                    @LoginEmpId = {EmpId},
+                    @CompanyId ={CompId}
+                 
+            ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<EmployeeViewModel>();
             }
         }
     }

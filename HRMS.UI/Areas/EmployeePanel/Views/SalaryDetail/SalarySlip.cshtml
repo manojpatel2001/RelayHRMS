@@ -1,0 +1,949 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payslip Management System</title>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f8f9fa;
+        color: #333;
+        line-height: 1.5;
+    }
+
+    .container {
+        width: 100%;
+        margin: 0 auto;
+     padding: 20px;
+        max-width: 100%;
+   
+    }
+
+    .search-form {
+        padding: 24px;
+        display: flex;
+        align-items: flex-end;
+        gap: 20px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+
+
+    .search-panel, .payslip-card {
+        width: 100%;
+        max-width: none;
+    }
+
+    .search-panel {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        margin-bottom: 24px;
+        overflow: hidden;
+        border: 1px solid #e9ecef;
+    }
+
+    .search-panel-container {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    .search-panel h2 {
+        background: #3e4b6d;
+        color: white;
+        padding: 18px 24px;
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .search-form {
+        padding: 24px;
+        display: flex;
+        align-items: flex-end;
+        gap: 20px;
+        flex-wrap: nowrap;
+        background: #fafbfc;
+    }
+
+
+
+    .form-group label {
+        font-size: 14px;
+        color: #495057;
+        font-weight: 500;
+        margin-bottom: 4px;
+        flex: 1;
+    }
+
+    .form-group input {
+        padding: 10px 14px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background: white;
+        font-family: inherit;
+    }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+    .search-btn {
+        background: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 11px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        height: fit-content;
+        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+        flex-shrink: 0;
+        min-width: 80px;
+    }
+
+        .search-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+    .payslip-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .payslip-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e9ecef;
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+
+        .payslip-card:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+    .payslip-header {
+        padding: 20px 24px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fafbfc;
+        border-bottom: 1px solid #e9ecef;
+        transition: background-color 0.2s ease;
+    }
+
+        .payslip-header:hover {
+            background: #f1f3f4;
+        }
+
+    .payslip-title {
+        font-weight: 600;
+        font-size: 16px;
+        color: #4f46e5;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .net-amount {
+        font-weight: 600;
+        color: #059669;
+        font-size: 16px;
+    }
+
+    .download-btn {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+    }
+
+        .download-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+    .pdf-icon {
+        font-size: 14px;
+    }
+
+    .expand-icon {
+        font-size: 14px;
+        color: #6b7280;
+        transition: transform 0.3s ease;
+    }
+
+        .expand-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+    .payslip-details {
+        padding: 24px;
+        display: none;
+    }
+
+        .payslip-details.show {
+            display: block;
+        }
+
+    .attendance-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 16px;
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        border: 1px solid #e9ecef;
+    }
+
+    .attendance-item {
+        text-align: center;
+        padding: 12px;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+        .attendance-item .label {
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .attendance-item .value {
+            font-weight: 700;
+            color: #374151;
+            font-size: 16px;
+        }
+
+    .components-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .component-group {
+        background: #fafbfc;
+        border-radius: 8px;
+        padding: 20px;
+        border: 1px solid #e9ecef;
+    }
+
+        .component-group h3 {
+            color: #374151;
+            font-size: 16px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+    .earnings h3 {
+        color: #059669;
+    }
+
+    .deductions h3 {
+        color: #dc2626;
+    }
+
+    .component-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f1f3f4;
+    }
+
+        .component-item:last-child {
+            border-bottom: none;
+        }
+
+    .component-name {
+        color: #4b5563;
+        font-size: 14px;
+    }
+
+    .component-amount {
+        font-weight: 600;
+        color: #111827;
+        font-size: 14px;
+        font-family: 'Courier New', monospace;
+    }
+
+    .totals {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 2px solid #e9ecef;
+        gap: 20px;
+    }
+
+    .total-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 18px;
+        border-radius: 8px;
+        font-weight: 600;
+        min-width: 180px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .gross-total {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+    }
+
+    .net-total {
+        background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
+        color: #1e40af;
+        font-size: 16px;
+        border: 1px solid #93c5fd;
+    }
+
+    .email-btn {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        margin-top: 20px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+        .email-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+    .loading {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+        font-size: 16px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e9ecef;
+    }
+
+    .currency {
+        font-family: 'Courier New', monospace;
+    }
+
+    @@media (max-width: 768px) {
+        .container {
+            padding: 16px;
+        }
+
+        .search-form {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 20px;
+        }
+
+        .form-group {
+            min-width: auto;
+            max-width: none;
+            flex: none;
+        }
+
+        .search-btn {
+            min-width: auto;
+        }
+
+        .components-section {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .totals {
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .total-item {
+            min-width: auto;
+        }
+
+        .payslip-header {
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .header-right {
+            width: 100%;
+            justify-content: space-between;
+        }
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    select {
+        padding: 6px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 200px;
+    }
+
+    .search-btn {
+        background-color: #2563eb;
+        color: white;
+        padding: 6px 14px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+        .search-btn:hover {
+            background-color: #1d4ed8;
+        }
+
+</style>
+
+<div class="container">
+    <div class="search-panel">
+        <h2>Search Panel</h2>
+        <form class="search-form" id="searchForm">
+            <div class="form-group">
+                <label for="month">Month <span style="color: #dc2626;">*</span></label>
+                <select id="month" name="month" required>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="year">Year <span style="color: #dc2626;">*</span></label>
+                <select id="year" name="year" required>
+                    <option value="2024">2024</option>
+                    <option value="2025" selected>2025</option>
+                    <option value="2026">2026</option>
+                </select>
+            </div>
+            <button type="submit" class="search-btn" id="btnGo">Go</button>
+
+        </form>
+    </div>
+
+
+    <div id="payslipContainer" class="payslip-container">
+        <div class="loading" id="loadingIndicator">Loading payslips...</div>
+    </div>
+</div>
+
+
+    <script>
+
+
+let samplePayslipData = [];
+let payslipManager;
+// Function to handle the Go button click  
+     const savedCompany = localStorage.getItem('selectedCompany');
+               var companyDetails = JSON.parse(savedCompany);
+               const CompanyId=companyDetails.CompanyId;
+               const EmployeeId=localStorage.getItem('EmployeeId');
+               const Token=localStorage.getItem("authToken");
+
+
+function handleGoButtonClick(e) {
+
+    e.preventDefault(); // Prevent form submission
+    
+    var month = $('#month').val();
+    var year = $('#year').val();
+
+    if (!month || !year) {
+        Swal.fire("Validation", "Please select both Month and Year.", "warning");
+        return;
+    }
+
+    // Show loading indicator
+    if (payslipManager) {
+        payslipManager.showLoading();
+    }
+
+    const requestData = {
+        Month: parseInt(month),
+        Year: parseInt(year),
+        EmployeeId: EmployeeId 
+    };
+
+    $.ajax({
+        url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetSalarySlip")',
+        type: "POST",
+        data: JSON.stringify(requestData),
+        contentType: "application/json",
+        success: function (response) {
+            console.log("Success:", response);
+
+            if (response && response.isSuccess && Array.isArray(response.data)) {
+                // Map the API response to the expected format
+                samplePayslipData = response.data.map(item => ({
+                    id: item.id,
+                    month: `${item.monthName} - ${year}`,
+                    employeeCode: item.employeeCode || 'N/A',
+                    employeeName: item.employeeName || 'N/A',
+                    netAmount: item.netSalary,
+                    presentDays: item.presentDays,
+                    salaryDays: item.salaryDays,
+                    holidays: item.holiday,
+                    weekOff: item.weekOff,
+                    monthDays: item.monthDays || 30,
+                    absentDays: item.absentDays || 0,
+                    leave: item.leave || 0,
+                    earnings: [
+                        { name: "Basic Salary", amount: item.basicSalary || 0 },
+                        { name: "HRA", amount: item.hra || 0 },
+                        { name: "Conveyance", amount: item.conveyanceAllowance || 0 },
+                        { name: "Medical", amount: item.medicalAllowance || 0 },
+                        { name: "Child Education", amount: item.childEducationAllowance || 0 },
+                        { name: "Deputation Allowance", amount: item.deputationAllowance || 0 }
+                    ].filter(earning => earning.amount > 0),
+                    deductions: [
+                        { name: "PF", amount: item.pf || 0 },
+                        { name: "ESIC", amount: item.esic || 0 },
+                        { name: "Professional Tax", amount: item.professionalTax || 0 },
+                        { name: "Group Medical", amount: item.groupMedical || 0 },
+                        { name: "Term Insurance", amount: item.termInsurance || 0 },
+                        { name: "LWF", amount: item.lwf || 0 },
+                        { name: "TDS", amount: item.tds || 0 },
+                        { name: "Loan", amount: item.loan || 0 }
+                    ].filter(deduction => deduction.amount > 0),
+                    grossSalary: item.totalGrossSalary,
+                    totalDeductions: item.totalDeductions
+                }));
+
+                console.log("Mapped Payslip Data:", samplePayslipData);
+                
+                // Update the payslip manager with new data
+                if (payslipManager) {
+                    payslipManager.updatePayslips(samplePayslipData);
+                }
+                
+            } else {
+                // Hide loading and show message
+                if (payslipManager) {
+                    payslipManager.hideLoading();
+                }
+                Swal.fire("No Data", "No salary records found for the selected month/year.", "info");
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("Error:", error);
+            if (payslipManager) {
+                payslipManager.hideLoading();
+            }
+            Swal.fire("Error", "An error occurred while fetching salary records.", "error");
+        }
+    });
+}
+
+class PayslipManager {
+    constructor() {
+        this.payslips = [];
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+        this.showInitialMessage();
+    }
+
+    bindEvents() {
+        // Form submission is handled by the jQuery click handler above
+        // No need for additional form binding here
+    }
+
+    showInitialMessage() {
+        document.getElementById('loadingIndicator').textContent = 'Please select month and year, then click "Go" to view payslips.';
+    }
+
+    showLoading() {
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('loadingIndicator').textContent = 'Loading payslips...';
+        document.querySelectorAll('.payslip-card').forEach(card => card.remove());
+    }
+
+    hideLoading() {
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+
+    updatePayslips(newPayslips) {
+        this.payslips = newPayslips;
+        this.renderPayslips();
+        this.hideLoading();
+    }
+
+    async loadPayslips(filters = null) {
+        try {
+            const data = samplePayslipData;
+            this.payslips = data;
+            this.renderPayslips();
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error loading payslips:', error);
+            document.getElementById('loadingIndicator').textContent = 'Error loading payslips';
+        }
+    }
+
+    renderPayslips() {
+        const container = document.getElementById('payslipContainer');
+        document.querySelectorAll('.payslip-card').forEach(card => card.remove());
+
+        if (this.payslips.length === 0) {
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('loadingIndicator').textContent = 'No payslips found for the selected criteria.';
+            return;
+        }
+
+        this.payslips.forEach(payslip => {
+            const card = this.createPayslipCard(payslip);
+            container.appendChild(card);
+        });
+    }
+
+    createPayslipCard(payslip) {
+        // Calculate totals
+        const totalEarnings = payslip.earnings.reduce((sum, e) => sum + e.amount, 0);
+        const totalDeductions = payslip.deductions.reduce((sum, d) => sum + d.amount, 0);
+
+        const card = document.createElement('div');
+        card.className = 'payslip-card';
+        card.innerHTML = `
+            <div class="payslip-header" onclick="this.parentElement.querySelector('.payslip-details').classList.toggle('show'); this.querySelector('.expand-icon').classList.toggle('rotated');">
+                <div class="payslip-title">${payslip.month} - ${payslip.employeeName}</div>
+                <div class="header-right">
+                    <div class="net-amount">Net Amount: ₹<span class="currency">${payslip.netAmount.toFixed(2)}</span></div>
+                    <button class="download-btn" onclick="event.stopPropagation(); payslipManager.downloadPDF(${payslip.id})">
+                        <span class="pdf-icon">📄</span> PDF
+                    </button>
+                    <div class="expand-icon">▼</div>
+                </div>
+            </div>
+            <div class="payslip-details">
+                <style>
+                    .compact-table {
+                        margin-bottom: 8px !important;
+                        font-size: 13px !important;
+                    }
+                    .compact-table thead th {
+                        background-color: #f8f9fa !important;
+                        padding: 8px !important;
+                        font-weight: 600;
+                        border: 1px solid #dee2e6;
+                    }
+                    .compact-table tbody td {
+                        padding: 6px 8px !important;
+                        border: 1px solid #dee2e6;
+                    }
+                    .employee-info {
+                        background: #f8f9fa;
+                        padding: 12px;
+                        border-radius: 6px;
+                        margin-bottom: 16px;
+                        font-size: 12px;
+                        border: 1px solid #e9ecef;
+                    }
+                    .info-row {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 4px;
+                    }
+                    .info-item {
+                        flex: 1;
+                        margin-right: 12px;
+                    }
+                    .info-item:last-child {
+                        margin-right: 0;
+                    }
+                </style>
+
+                <!-- Employee Information -->
+                <div class="employee-info">
+                    <div class="info-row">
+                        <div class="info-item"><strong>Employee:</strong> ${payslip.employeeCode} - ${payslip.employeeName}</div>
+                        <div class="info-item"><strong>Present:</strong> ${payslip.presentDays} | <strong>Week off:</strong> ${payslip.weekOff}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-item"><strong>Month Days:</strong> ${payslip.monthDays} | <strong>Holiday:</strong> ${payslip.holidays}</div>
+                        <div class="info-item"><strong>Absent:</strong> ${payslip.absentDays} | <strong>Salary Days:</strong> ${payslip.salaryDays}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-item"><strong>Paid Leave Days:</strong> ${payslip.leave}</div>
+                    </div>
+                </div>
+
+                <!-- Earnings and Deductions Tables -->
+                <div class="components-section">
+                    <!-- Earnings Table -->
+                    <div class="component-group earnings">
+                        <table class="table table-bordered compact-table" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th colspan="2" class="text-center" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); color: #065f46;">Earnings</th>
+                                </tr>
+                                <tr style="background-color: #f1f5f9;">
+                                    <th style="width: 70%">Component</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${payslip.earnings.map(earning => `
+                                    <tr>
+                                        <td>${earning.name}</td>
+                                        <td class="text-end">₹${earning.amount.toFixed(2)}</td>
+                                    </tr>
+                                `).join('')}
+                                <tr style="font-weight: 600; background-color: #f0fdf4;">
+                                    <td>Total Earnings</td>
+                                    <td class="text-end">₹${totalEarnings.toFixed(2)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Deductions Table -->
+                    <div class="component-group deductions">
+                        <table class="table table-bordered compact-table" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th colspan="2" class="text-center" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #991b1b;">Deductions</th>
+                                </tr>
+                                <tr style="background-color: #f1f5f9;">
+                                    <th style="width: 70%">Component</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${payslip.deductions.map(deduction => `
+                                    <tr>
+                                        <td>${deduction.name}</td>
+                                        <td class="text-end">₹${deduction.amount.toFixed(2)}</td>
+                                    </tr>
+                                `).join('')}
+                                <tr style="font-weight: 600; background-color: #fef2f2;">
+                                    <td>Total Deductions</td>
+                                    <td class="text-end">₹${totalDeductions.toFixed(2)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Net Salary -->
+                <div class="totals">                
+                    <div class="total-item net-total">
+                        <span>Net Salary</span>
+                        <span class="currency">₹${payslip.netAmount.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                <button class="email-btn" onclick="payslipManager.emailPayslip(${payslip.id})">
+                    📧 Email Detailed Payslip
+                </button>
+            </div>
+        `;
+        return card;
+    }
+
+    downloadPDF(payslipId) {
+        const payslip = this.payslips.find(p => p.id === payslipId);
+        if (!payslip) return;
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Set font
+        doc.setFont("helvetica");
+
+        // Header with border
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
+        doc.rect(10, 10, 190, 40); // Header border
+
+        doc.setFontSize(22);
+        doc.setFont("helvetica", "bold");
+        doc.text('PAYSLIP', 105, 25, { align: 'center' });
+
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "normal");
+        doc.text(payslip.month, 105, 40, { align: 'center' });
+
+        let yPos = 70;
+
+        // Attendance Summary with border
+        doc.rect(10, yPos - 5, 190, 25);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text('ATTENDANCE SUMMARY', 15, yPos);
+        
+        yPos += 12;
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Present Days: ${payslip.presentDays}`, 20, yPos);
+        doc.text(`Salary Days: ${payslip.salaryDays}`, 70, yPos);
+        doc.text(`Holidays: ${payslip.holidays}`, 120, yPos);
+        doc.text(`Week Off: ${payslip.weekOff}`, 160, yPos);
+
+        yPos += 25;
+
+        // Earnings and Deductions Headers
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text('EARNINGS', 20, yPos);
+        doc.text('DEDUCTIONS', 110, yPos);
+        
+        // Draw vertical line to separate earnings and deductions
+        doc.line(105, yPos - 5, 105, yPos + (Math.max(payslip.earnings.length, payslip.deductions.length) * 7) + 10);
+        
+        yPos += 10;
+
+        // Draw horizontal line under headers
+        doc.line(10, yPos - 2, 200, yPos - 2);
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        
+        let maxLength = Math.max(payslip.earnings.length, payslip.deductions.length);
+
+        for (let i = 0; i < maxLength; i++) {
+            if (payslip.earnings[i]) {
+                // Earnings
+                doc.text(payslip.earnings[i].name, 15, yPos);
+                doc.text(`Rs. ${payslip.earnings[i].amount.toFixed(2)}`, 100, yPos, { align: 'right' });
+            }
+
+            if (payslip.deductions[i]) {
+                // Deductions
+                doc.text(payslip.deductions[i].name, 110, yPos);
+                doc.text(`Rs. ${payslip.deductions[i].amount.toFixed(2)}`, 195, yPos, { align: 'right' });
+            }
+            yPos += 7;
+        }
+
+        // Add some space before totals
+        yPos += 10;
+
+        // Draw horizontal line before totals
+        doc.setLineWidth(1);
+        doc.line(10, yPos, 200, yPos);
+        yPos += 15;
+
+        // Totals section
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        
+        // Gross Salary
+        doc.text('Gross Salary:', 15, yPos);
+        doc.text(`Rs. ${payslip.grossSalary.toFixed(2)}`, 100, yPos, { align: 'right' });
+
+        // Total Deductions
+        doc.text('Total Deductions:', 110, yPos);
+        doc.text(`Rs. ${payslip.totalDeductions.toFixed(2)}`, 195, yPos, { align: 'right' });
+
+        yPos += 20;
+
+        // Net Salary with highlight box
+        doc.setFillColor(240, 240, 240);
+        doc.rect(10, yPos - 8, 190, 15, 'F');
+        doc.rect(10, yPos - 8, 190, 15);
+        
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text('Net Salary:', 20, yPos);
+        doc.text(`Rs. ${payslip.netAmount.toFixed(2)}`, 180, yPos, { align: 'right' });
+
+        // Footer
+        yPos += 30;
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "italic");
+        doc.text('This is a system generated payslip.', 105, yPos, { align: 'center' });
+
+        // Download
+        const fileName = `payslip-${payslip.month.replace(' - ', '-').replace(/[^a-zA-Z0-9-]/g, '')}.pdf`;
+        doc.save(fileName);
+    }
+
+    emailPayslip(payslipId) {
+        // Add your email functionality here
+        console.log('Email payslip for ID:', payslipId);
+        Swal.fire("Info", "Email functionality to be implemented.", "info");
+    }
+}
+
+// Initialize the payslip manager when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    window.payslipManager = new PayslipManager();
+    payslipManager = window.payslipManager;
+    
+    // Bind the Go button click event after PayslipManager is initialized
+    $('#btnGo').on('click', handleGoButtonClick);
+});
+    </script>

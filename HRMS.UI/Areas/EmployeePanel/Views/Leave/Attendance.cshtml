@@ -14,8 +14,6 @@
 
 
 <title>Search Panel</title>
-
-<!-- jQuery + Bootstrap + SweetAlert -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 
@@ -223,7 +221,6 @@
 
     // Get selected status from radio buttons
     function getStatus() {
-        debugger;
         if ($('#r2').is(':checked')) return 'Pending';
         if ($('#r3').is(':checked')) return 'Approved';
         if ($('#r4').is(':checked')) return 'Rejected';
@@ -347,7 +344,7 @@
             return;
         }
 
-               // showLoder();
+               showLoder();
         const deletePayload = {
             Id: selectedIds,
             DeletedBy: ""
@@ -361,8 +358,10 @@
             success: function (res) {
                 if (res.isSuccess) {
                     round_success_noti(res.responseMessage || "Deleted successfully.");
-                      selectedRowKeys.forEach(function (key) {
+               
+                       selectedIds.forEach(function (key) {
                     grid.deleteRow(grid.getRowIndexByKey(key));
+                
                 });
                     $("#btnGo").click();
                 } else {
@@ -374,20 +373,20 @@
             },
             complete: function () {
 
-            // hideLoder();
+            hideLoder();
         }
         });
     });
 
 
-          function updateAttendanceStatus(status) {
+         function updateAttendanceStatus(status) {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
         if (selectedRows.length === 0) {
            round_error_noti("Please select at least one record.");
             return;
         }
-        if (status === "Rejected") {
+          if (status === "Rejected") {
         const approvedRecords = selectedRows.filter(row => row.isApproved);
         if (approvedRecords.length > 0) {
            Swal.fire({
@@ -401,17 +400,49 @@
             return;
         }
     }
+
+         if (status === "Approved") {
+        const approvedRecords = selectedRows.filter(row => row.isApproved);
+        if (approvedRecords.length > 0) {
+           Swal.fire({
+        title: "Not Allowed",
+        text: "Already  Approved.",
+        icon: "error",
+        customClass: {
+            popup: 'swal-small'
+        }
+    });
+            return;
+        }
+    }
+
+      if (status === "Rejected") {
+        const approvedRecords = selectedRows.filter(row => row.isRejected);
+        if (approvedRecords.length > 0) {
+           Swal.fire({
+        title: "Not Allowed",
+        text: "Already  Rejected.",
+        icon: "error",
+        customClass: {
+            popup: 'swal-small'
+        }
+    });
+            return;
+        }
+    }
+
         selectedRows.forEach(function (row) {
             row.status = status;
 
         });
-            // showLoder();
+            showLoder();
         $.ajax({
-            url: apiBase + "/AttendanceRegularizationAPI/UpdateAttendanceRegularization",
+             url: apiBase + "/AttendanceRegularizationAPI/UpdateAttendanceRegularization",
             type: "PUT",
             data: JSON.stringify(selectedRows),
             contentType: "application/json",
             success: function (response) {
+                        hideLoder();
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage || "Status updated successfully.");
                         const selectedKeys = grid.getSelectedRowKeys();
@@ -427,15 +458,12 @@
                 }
             },
             error: function () {
+                        hideLoder();
               round_error_noti(response.responseMessage || "Error", "Something went wrong during update.", "error");
-            },
-            complete: function () {
+            }
 
-            // hideLoder();
-        }
         });
     }
-
 
 
 
