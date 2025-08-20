@@ -12,7 +12,7 @@ namespace HRMS_Infrastructure.Interface.Leave
 {
     public interface ICompOffDetailsRepository:IRepository<Comp_Off_Details>
     {
-        Task<bool> InsertCompOffAsync(Comp_Off_Details model);
+        Task<SP_Response> InsertCompOffAsync(Comp_Off_Details model);
         Task<bool> Updateapproval(List<int> comoffid, string status);
         Task<bool> UpdateLeaveManger(List<int> comoffid, string status);
         Task<bool> UpdateLeavedetails(List<int> ids, string status);

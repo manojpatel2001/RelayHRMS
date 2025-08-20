@@ -34,12 +34,10 @@ namespace HRMS_Infrastructure.Repository.Leave
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@StartDate", vm.StartDate);
                     cmd.Parameters.AddWithValue("@EndDate", vm.EndDate);
-                    cmd.Parameters.AddWithValue("@EmployeeCodes",
-                    (vm.EmployeeCodes != null && vm.EmployeeCodes.Any())
-                     ? string.Join(",", vm.EmployeeCodes)
-                     : (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@BranchId", vm.BranchId ?? (object)DBNull.Value);
-
+                    string employeeIdsString = vm.EmployeeIds != null && vm.EmployeeIds.Any()
+                    ? string.Join(",", vm.EmployeeIds)
+                           : null;
+                    cmd.Parameters.AddWithValue("@EmployeeIds", (object)employeeIdsString ?? DBNull.Value);
                     await conn.OpenAsync();
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {

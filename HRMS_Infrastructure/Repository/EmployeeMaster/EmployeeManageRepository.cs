@@ -2,18 +2,21 @@
 using HRMS_Core.DbContext;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Repository.EmployeeMaster
 {
-    public class EmployeeManageRepository:Repository<HRMSUserIdentity>, IEmployeeManageRepository
+    public class EmployeeManageRepository : Repository<HRMSUserIdentity>, IEmployeeManageRepository
     {
         private HRMSDbContext _db;
 
@@ -22,8 +25,8 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             _db = db;
         }
 
-        
-      
+
+
         public async Task<VMCommonResult> UpdateEmployee(vmUpdateEmployee employee)
         {
             try
@@ -65,6 +68,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @UpdatedBy = {employee.UpdatedBy},
                         @WeekOffDetailsId = {employee.WeekOffDetailsId},
                         @IsPermissionPunchInOut = {employee.IsPermissionPunchInOut},
+                        @IsPFApplicable = {employee.IsPFApplicable},
 
                         -- Personal Info
                         @Gender = {employee.Gender},
@@ -185,7 +189,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async  Task<List<vmGetAllEmployee>> GetAllEmployee(int companyId)
+        public async Task<List<vmGetAllEmployee>> GetAllEmployee(int companyId)
         {
             try
             {
@@ -198,7 +202,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 return new List<vmGetAllEmployee>();
             }
         }
-        public async  Task<List<vmUpdateEmployee>> GetAllEmployeeForUpdate(int companyId)
+        public async Task<List<vmUpdateEmployee>> GetAllEmployeeForUpdate(int companyId)
         {
             try
             {
@@ -212,12 +216,12 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async Task<List<vmGetAllEmployee>> GetAllEmployeeByIsBlocked(bool IsBlocked, int companyId)
+        public async Task<List<vmGetAllEmployee>> GetAllEmployeeActiveOrLeft(bool IsLeft, int companyId)
         {
             try
             {
                 return await _db.Set<vmGetAllEmployee>()
-                                .FromSqlInterpolated($"EXEC GetAllEmployeeByIsBlocked  @IsBlocked = {IsBlocked},@companyId={companyId}")
+                                .FromSqlInterpolated($"EXEC GetAllEmployeeActiveOrLeft  @IsLeft = {IsLeft},@companyId={companyId}")
                                 .ToListAsync();
             }
             catch (Exception)
@@ -226,11 +230,11 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async Task<vmGetAllEmployee?> GetEmployeeById(int Id)
+        public async Task<vmGetEmployeeById?> GetEmployeeById(int Id)
         {
             try
             {
-                var result = await _db.Set<vmGetAllEmployee>()
+                var result = await _db.Set<vmGetEmployeeById>()
                                       .FromSqlInterpolated($"EXEC GetEmployeeById @Id = {Id}")
                                       .ToListAsync();
 
@@ -242,7 +246,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        public async  Task<VMCommonResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model)
+        public async Task<VMCommonResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model)
         {
             try
             {
@@ -269,7 +273,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     .FromSqlInterpolated($"EXEC GetNextEmployeeCode @CompanyId = {companyId}")
                     .ToListAsync();
 
-                return result.FirstOrDefault()??null;
+                return result.FirstOrDefault() ?? null;
             }
             catch (Exception)
             {
@@ -284,7 +288,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     .FromSqlInterpolated($"EXEC GetExistEmployeeCode @CompanyId = {vmCommonParameters.CompanyId},@EmployeeCode = {vmCommonParameters.EmployeeCode}")
                     .ToListAsync();
 
-                return result.FirstOrDefault()??null;
+                return result.FirstOrDefault() ?? null;
             }
             catch (Exception)
             {
@@ -292,6 +296,48 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
+        public async Task<VMCommonResult> UpdateLastLogin(int empid, int compId)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC sp_UpdateLastLogin 
+                       
+                        @Empid = {empid},
+                        @Compid = {compId}
+                ").ToListAsync();
 
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<List<EmployeePersonalInformationVM>> EmployeePersonalInformation(int empid, int compId)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@compid", compId),
+                    new SqlParameter("@empid", empid)
+
+                };
+
+                var result = await _db.Set<EmployeePersonalInformationVM>()
+                    .FromSqlRaw("EXEC EmployeePersonalInformation @compid ,@empid", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EmployeePersonalInformationVM>();
+            }
+           
+          
+        }
     }
 }

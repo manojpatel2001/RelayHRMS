@@ -21,7 +21,7 @@ namespace HRMS_Core.VM.Employee
         public string? ShiftTime { get; set; }
         public DateTime? InTime { get; set; }
         public DateTime? OutTime { get; set; }
-        public TimeSpan? Duration { get; set; }
+        public decimal? Duration { get; set; }
         public string? Day { get; set; }
      
         public string? Reason { get; set; }

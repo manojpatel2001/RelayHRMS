@@ -21,7 +21,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             _db = db;
         }
 
-        public async Task<vmGetLiveEmployeeSalaryAllowance?> GetLiveEmployeeSalaryAllowance(decimal GrossSalary)
+        public async Task<vmGetLiveEmployeeSalaryAllowance?> GetLiveEmployeeSalaryAllowance(salaryPara salaryPara)
         {
             try
             {
@@ -29,7 +29,8 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 EXEC USP_CalculateSalaryStructure
                     @Action = {"GET"},
                    
-                    @GrossSalary = {GrossSalary}
+                    @GrossSalary = {salaryPara.GrossSalary},
+                    @IsPFApplicable = {salaryPara.IsPFApplicable}
                     
             ").AsNoTracking().ToListAsync();
 

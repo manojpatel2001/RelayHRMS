@@ -138,6 +138,109 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return new List<EmpInOutVM>();
             }
         }
+
+        public async Task<VMCommonResult> Create(AttendanceRegularization model)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC SP_AttendanceRegularization
+                    @Action = {"INSERT"},
+                    @EmpId = {model.EmpId},
+                    @FullName = {model.FullName},
+                    @BranchName = {model.BranchName},
+                    @ForDate = {model.ForDate},
+                    @ShiftTime = {model.ShiftTime},
+                    @InTime = {model.InTime},
+                    @OutTime = {model.OutTime},
+                    @Day = {model.Day},
+                    @Reason = {model.Reason},
+                    @Status = {model.Status},
+                    @CreatedBy = {model.CreatedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> Update(AttendanceRegularization model)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC SP_AttendanceRegularization
+                    @Action = {"UPDATE"},
+                    @Id ={model.AttendanceRegularizationId}, 
+                    @EmpId = {model.EmpId},
+                    @FullName = {model.FullName},
+                    @BranchName = {model.BranchName},
+                    @ForDate = {model.ForDate},
+                    @ShiftTime = {model.ShiftTime},
+                    @InTime = {model.InTime},
+                    @OutTime = {model.OutTime},
+                    @Day = {model.Day},
+                    @Reason = {model.Reason},
+                    @Status = {model.Status},
+                    @CreatedBy = {model.CreatedBy}
+            ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord)
+        {
+            try
+            {
+                VMCommonResult finalResult = new VMCommonResult();
+
+                foreach (int id in deleteRecord.Id)
+                {
+                    var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC SP_AttendanceRegularization
+                    @Action = {"DELETE"},
+                    @Id = {id},
+                    @CreatedBy = {deleteRecord.DeletedBy}
+            ").ToListAsync();
+
+                    finalResult = result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                }
+
+                return finalResult;
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<List<AttendanceDetails>> GetAttendanceDetails(EmployeeInOutFilterVM outFilterVM)
+        {
+            try
+            {          
+                var monthParam = new SqlParameter("@StartDate", (object?)outFilterVM.StartDate ?? DBNull.Value);
+                var yearParam = new SqlParameter("@EndDate", (object?)outFilterVM.EndDate ?? DBNull.Value);
+                var empCodeParam = new SqlParameter("@EmpId", (object?)outFilterVM.EmpId ?? DBNull.Value);
+
+                return await _db.Set<AttendanceDetails>()
+              .FromSqlRaw("EXEC SP_GetAttendanceDetails @StartDate,@EndDate,@EmpId",
+                    monthParam, yearParam, empCodeParam)
+              .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+
+                return new List<AttendanceDetails>();
+            }
+        }
     }
 }
 

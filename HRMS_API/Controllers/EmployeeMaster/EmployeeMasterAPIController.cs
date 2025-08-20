@@ -167,8 +167,9 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     CompanyId = employeeData.CompanyId,
                     Pt = employeeData.Pt,
                     WeekOffDetailsId=(int)employeeData.WeekOffDetailsId,
-                    IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut
-
+                    IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut,
+                    IsLeft=employeeData.IsLeft,
+                    IsPFApplicable=employeeData.IsPFApplicable
                 };
 
                 // Create the user
@@ -276,17 +277,17 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     }
                 }
 
-                // Reset password if a new password is provided
-                if (!string.IsNullOrEmpty(employeeData.Password))
-                {
+                //// Reset password if a new password is provided
+                //if (!string.IsNullOrEmpty(employeeData.Password))
+                //{
 
-                    var token = await _userManager.GeneratePasswordResetTokenAsync(oldUser);
-                    var resetPasswordResult = await _userManager.ResetPasswordAsync(oldUser, token, employeeData.Password);
-                    if (!resetPasswordResult.Succeeded)
-                    {
-                        return new APIResponse { isSuccess = false, ResponseMessage = "Failed to reset password." };
-                    }
-                }
+                //    var token = await _userManager.GeneratePasswordResetTokenAsync(oldUser);
+                //    var resetPasswordResult = await _userManager.ResetPasswordAsync(oldUser, token, employeeData.Password);
+                //    if (!resetPasswordResult.Succeeded)
+                //    {
+                //        return new APIResponse { isSuccess = false, ResponseMessage = "Failed to reset password." };
+                //    }
+                //}
                 
                 // Update other user properties
                 var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployee(employeeData);
@@ -459,12 +460,12 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
-        [HttpGet("GetAllEmployeeByIsBlocked/{IsBlocked}")]
-        public async Task<APIResponse> GetAllEmployeeByIsBlocked( bool IsBlocked,int companyId)
+        [HttpGet("GetAllEmployeeActiveOrLeft/{IsLeft}")]
+        public async Task<APIResponse> GetAllEmployeeActiveOrLeft( bool IsLeft, int companyId)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeByIsBlocked(IsBlocked, companyId);
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeActiveOrLeft(IsLeft, companyId);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -758,6 +759,27 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     isSuccess = false,
                     Data = ex.Message,
                     ResponseMessage = "Unable to retrieve records. Please try again later."
+                };
+            }
+        }
+
+
+
+        [HttpGet("EmployeePersonalInformation")]
+        public async Task<APIResponse> EmployeePersonalInformation([FromQuery]int empid,[FromQuery] int Compid)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.EmployeePersonalInformation(empid,Compid);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
                 };
             }
         }
