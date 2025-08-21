@@ -205,16 +205,16 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     };
                     var CreateHistory = await _unitOfWork.PasswordHistory.CreateHistoryPassword(history);
 
-                    var leavedetails = new LeaveDetails
-                    {
-                        Emp_Id = employee.Id,
-                        Comp_Id = employee.CompanyId,
-                        CreatedBy = employeeData.CreatedBy,
-                        CreatedDate = DateTime.Now,
+                    //var leavedetails = new LeaveDetails
+                    //{
+                    //    Emp_Id = employee.Id,
+                    //    Comp_Id = employee.CompanyId,
+                    //    CreatedBy = employeeData.CreatedBy,
+                    //    CreatedDate = DateTime.Now,
 
 
-                    };
-                    var isleavemange = await _unitOfWork.LeaveDetailsRepository.InsertLeaveManageAsync(leavedetails);
+                    //};
+                    //var isleavemange = await _unitOfWork.LeaveDetailsRepository.InsertLeaveManageAsync(leavedetails);
 
 
                     return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
