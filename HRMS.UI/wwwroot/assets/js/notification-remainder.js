@@ -238,7 +238,7 @@ function closeNotificationDropdown() {
 
 async function redirectPage(pageUrl,notificationType)
 {
-    if (notificationType == "Leave Approval")
+    if (notificationType == "Leave Approval" || notificationType =="CompOff Approval")
     {
         await readNotification(notificationType);
     }
@@ -294,6 +294,9 @@ function updateNotificationList(notificationDetails) {
                 break;
             case 'CompOff Application':
                 href = '/EmployeePanel/CompOffApplication/CompOffApproval';
+                break;
+            case 'CompOff Approval':
+                href = '/EmployeePanel/CompOffApplication/Index';
                 break;
             default:
                 href = '#'; // Default fallback

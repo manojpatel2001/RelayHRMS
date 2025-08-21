@@ -82,7 +82,7 @@ namespace HRMS_API.Controllers.Leave
                 }
 
 
-                return new APIResponse { isSuccess = true, ResponseMessage = "Records Added successfully." };
+                return new APIResponse { isSuccess = true, ResponseMessage = isSaved.ResponseMessage };
             }
             catch (Exception ex)
             {
@@ -235,7 +235,7 @@ namespace HRMS_API.Controllers.Leave
 
                 }
 
-                //Notification send to reporting persion
+                //Notification send to employee persion
                 foreach (var applicationId in LVM.Ids)
                 {
                     var applicationDetails = await _unitOfWork.LeaveApplicationRepository.GetLeaveApplicationById(applicationId);
@@ -247,8 +247,8 @@ namespace HRMS_API.Controllers.Leave
                         {
                             NotificationMessage = $"{reportingDetails?.FullName} has {LVM.Status} your leave from {applicationDetails.FromDate:dd-MM-yyyy} to {applicationDetails.Todate:dd-MM-yyyy} ",
                             NotificationTime = DateTime.UtcNow,
-                            SenderId = applicationDetails.EmplooyeId.ToString(),
-                            ReceiverIds = applicationDetails.ReportingManagerId.ToString(),
+                            SenderId = reportingDetails?.Id.ToString(),
+                            ReceiverIds =  applicationDetails.EmplooyeId.ToString(),
                             NotificationType = NotificationType.LeaveApproval,
                             NotificationAffectedId = applicationId
                         };
@@ -264,7 +264,7 @@ namespace HRMS_API.Controllers.Leave
                         }
                     }
                 }
-                return new APIResponse { isSuccess = true, ResponseMessage = "Records updated successfully." };
+                return new APIResponse { isSuccess = true, ResponseMessage = isSaved.ResponseMessage };
             }
             catch (Exception ex)
             {

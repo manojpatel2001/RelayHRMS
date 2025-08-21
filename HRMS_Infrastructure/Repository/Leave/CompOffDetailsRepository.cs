@@ -77,32 +77,29 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<bool> Updateapproval(List<int> comoffid, string status)
+        public async Task<SP_Response> UpdateCompOffApproval(ApproveandrejectVM compOffVM)
         {
             try
             {
-                foreach (var id in comoffid)
-                {
-                    var parameters = new[]
-                    {
-                new SqlParameter("@compOffDetailsId", id),
-                new SqlParameter("@status", status)
-            };
+                string idsString = string.Join(",", compOffVM.CompoffIds);
 
-                    await _db.Database.ExecuteSqlRawAsync(
-                        "EXEC UpdateCompOffApproval @compOffDetailsId, @status",
-                        parameters
-                    );
-                }
+                var result = await _db.Set<SP_Response>()
+                    .FromSqlInterpolated($@"
+                EXEC UpdateCompOffApproval
+                @compOffDetailsIds = {idsString},
+                @status = {compOffVM.Status},
+                @ApprovedBy = {compOffVM.EmployeeId.ToString()}
+            ")
+                    .ToListAsync();
 
-                return true;
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong" };
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error during SP call: " + ex.Message);
-                return false;
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
+
 
         //public Task<bool> UpdateLeaveMange(List<int> ids, string status)
         //{
@@ -203,6 +200,21 @@ namespace HRMS_Infrastructure.Repository.Leave
             {
                 Console.WriteLine("GetCompOffApplicationsAsync Error: " + ex.Message);
                 return new List<VMCompOffDetails>();
+            }
+        }
+
+        public async Task<Comp_Off_Details?> GetCompOffApplicationById(int Comp_Off_DetailsId)
+        {
+            try
+            {
+                var result = await _db.Set<Comp_Off_Details>()
+                    .FromSqlInterpolated($"EXEC GetCompOffApplicationById @Comp_Off_DetailsId = {Comp_Off_DetailsId}")
+                    .ToListAsync();
+                return result.FirstOrDefault() ?? null;
+            }
+            catch
+            {
+                return null;
             }
         }
 
