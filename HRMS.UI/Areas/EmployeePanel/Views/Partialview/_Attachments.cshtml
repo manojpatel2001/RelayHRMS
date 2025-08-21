@@ -1,12 +1,15 @@
 ﻿@inject IConfiguration Configuration
 @{
-    Layout = null;
+
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 
 }
 <!--
 Attachments -->
 <div id="form-section-area">
+
     <div id="Attachments-form" class="card p-3 form-section">
         <div class="form-heading">Attachments</div>
 
@@ -16,36 +19,187 @@ Attachments -->
                 <!-- Attachments -->
                 <div class="col-md-4 d-flex align-items-start">
                     <label class="form-label-fixed mb-0 me-2">Document Name <span class="text-danger">*</span> :</label>
-                    <select class="form-select form-select-sm" style="width: 230px;">
-                        <option value="">-- Select --</option>
+                    <select id="documentName" class="form-control floating-input">
+                        <option value="">Select</option>
+                        <option value="Aadhar">Aadhar</option>
+                        <option value="PAN Card">PAN Card</option>
+                        <option value="Passport">Passport</option>
                     </select>
                 </div>
 
                 <!-- Years of Experience -->
                 <div class="col-md-4 d-flex align-items-start">
                     <label class="form-label-fixed mb-0">Documents :</label>
-                    <input type="file" class="form-control form-control-sm">
+                    <input type="file" class="form-control form-control-sm" id="documentFile">
                 </div>
 
                 <!-- Comments -->
                 <div class="col-md-4 d-flex align-items-start">
                     <label class="form-label-fixed mb-0 me-2">Comments :</label>
-                    <textarea class="form-control form-control-sm" rows="1" style="width: 230px;"></textarea>
+                    <textarea class="form-control form-control-sm" rows="1" style="width: 230px;" id="attachmentComments"></textarea>
                 </div>
             </div>
         </div>
 
         <!-- Submit button -->
         <div class="text-center mb-3">
-            <button class="btn btn-primary btn-sm">Submit</button>
+            <button type="button" class="btn btn-primary " style="background-color:#394867 !important" id="btnSaveAttachment">Save</button>
+            <button type="button" class="btn  " style="background-color:#e2e2e2 !important" id="btnResetAttachment" onclick="resetAttachmentForm()">Reset</button>
+
         </div>
 
         <!-- New Heading like "Attachments Records" -->
         <div class="form-heading">Attachments Records</div>
 
-        <!-- Delete Button aligned to right -->
+
+        <div class="row">
+            <div class="col-md-12 mt-2">
+                <div class="table-responsive table-responsive-fixed">
+                    <table class="table table-bordered" id="tableAttachment">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th style="width:20%">Document Name</th>
+                                <th style="width:20%">Attachment</th>
+                                <th style="width:20%">Comment</th>
+                                <th style="width:15%">Expiry Date</th>
+                                <th style="width:15%">Created Date</th>
+                                <th style="width:10%">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @* <!-- Delete Button aligned to right -->
         <div class="text-end mb-3">
             <button class="btn btn-primary btn-sm">Delete</button>
-        </div>
+        </div> *@
     </div>
-</div>   
+</div>
+
+
+<script>
+    (function () {
+        const CurrentEmployeeId = localStorage.getItem('EmployeeId'); // Employee ID
+        const user = CurrentEmployeeId;
+        let attachmentDetailsId = 0;
+
+        // Load attachments on page ready
+        $(document).ready(function () {
+            loadAttachmentDetails();
+
+            // Save / Create Attachment
+            $('#btnSaveAttachment').click(function () {
+                $('#btnSaveAttachment').prop("disabled", true);
+
+                // Validation
+                if ($('#documentName').val() === "") {
+                    round_error_noti("Please select document name.");
+                    $('#btnSaveAttachment').prop("disabled", false);
+                    return;
+                }
+
+                const fileInput = $('#documentFile')[0];
+                if (fileInput.files.length === 0 && attachmentDetailsId === 0) {
+                    round_error_noti("Please upload a document file.");
+                    $('#btnSaveAttachment').prop("disabled", false);
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('EmployeeId', CurrentEmployeeId);
+                formData.append('DocumentName', $('#documentName').val());
+                formData.append('Comment', $('#attachmentComments').val());
+                formData.append('AttachmentDetailsId', attachmentDetailsId);
+                formData.append('CreatedBy', user);
+
+                if (fileInput.files.length > 0) {
+                    formData.append('AttachmentFile', fileInput.files[0]);
+                }
+
+                const isNew = attachmentDetailsId === 0;
+                const url = isNew
+                    ? '@baseUrl/AttachmentDetailsAPI/CreateAttachmentDetail'
+                    : '@baseUrl/AttachmentDetailsAPI/UpdateAttachmentDetail';
+
+                const methodType = isNew ? 'POST' : 'PUT';
+
+                $.ajax({
+                    url: url,
+                    type: methodType,
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        if (response.isSuccess) {
+                            round_success_noti(response.responseMessage);
+                            resetAttachmentForm();
+                            loadAttachmentDetails();
+                        } else {
+                            round_error_noti(response.responseMessage);
+                        }
+                        $('#btnSaveAttachment').prop("disabled", false);
+                    },
+                    error: function (err) {
+                        console.error("Attachment Save Error:", err);
+                        round_error_noti("Something went wrong while saving attachment!");
+                        $('#btnSaveAttachment').prop("disabled", false);
+                    }
+                });
+            });
+        });
+
+        // Load attachment records
+        function loadAttachmentDetails() {
+            $.ajax({
+                url: `@baseUrl/AttachmentDetailsAPI/GetAllAttachmentDetails/${CurrentEmployeeId}`,
+                type: 'GET',
+                contentType: 'application/json',
+                success: function (response) {
+                    const tbody = $('#tableAttachment tbody');
+                    tbody.empty();
+
+                    if (response.isSuccess && response.data && response.data.length > 0) {
+                        response.data.forEach(item => {
+                            const row = `
+                                <tr>
+                                    <td>${item.documentName || ''}</td>
+                                    <td>
+                                        ${item.documentUrl ? `<a href="${item.documentUrl}" target="_blank">View</a>` : 'N/A'}
+                                    </td>
+                                    <td>${item.comment || ''}</td>
+                                    <td>${item.dateOfExpiry || ''}</td>
+                                    <td>${item.createdDate || ''}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary edit-attachment" data-id="${item.attachmentDetailsId}">Edit</button>
+                                        <button class="btn btn-sm btn-danger delete-attachment" data-id="${item.attachmentDetailsId}">Delete</button>
+                                    </td>
+                                </tr>
+                            `;
+                            tbody.append(row);
+                        });
+                    } else {
+                        tbody.append('<tr><td colspan="6" class="text-center text-danger">No records found</td></tr>');
+                    }
+                },
+                error: function (err) {
+                    console.error("Load Attachments Error:", err);
+                    const tbody = $('#tableAttachment tbody');
+                    tbody.html('<tr><td colspan="6" class="text-center text-danger">Failed to load records</td></tr>');
+                }
+            });
+        }
+
+        // Reset form function
+        function resetAttachmentForm() {
+            $('#documentName').val('');
+            $('#documentFile').val('');
+            $('#attachmentComments').val('');
+            attachmentDetailsId = 0;
+        }
+
+    })();
+</script>
