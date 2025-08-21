@@ -10,5 +10,6 @@ namespace HRMS_Core.VM.Leave
     {
         public List<int> CompoffIds { get; set; }
         public string Status { get; set; }
+        public int? EmployeeId { get; set; }
     }
 }

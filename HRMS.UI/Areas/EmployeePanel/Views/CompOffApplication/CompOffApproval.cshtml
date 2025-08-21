@@ -136,9 +136,22 @@
         <div class="container mt-3">
             <div class="d-flex justify-content-end mb-2" id="actionButtons" style="display: none;">
 
-
-            <button type="button" id="approveid" class="search-panel-container  search-heading btn-sm me-2">Approve</button>
-            <button type="button" id="rejectid" class="search-panel-container  search-heading btn-sm">Reject</button>
+            <button type="button" id="approveid" class="search-panel-container  search-heading btn-sm form-label me-2" value="Approved">
+                <i class="fas fa-sign-in-alt me-2"></i>Approved
+            </button>
+            <button type="button" class="btn-punching search-panel-container  search-heading btn-sm form-label me-2" disabled id="btnAproving" style="display:none;">
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Approving...
+            </button>
+            <button type="button" id="rejectid" class="search-panel-container  search-heading btn-sm form-label me-2" value="Rejected">
+                <i class="fas fa-sign-in-alt me-2"></i>Rejected
+            </button>
+            <button type="button" class="btn-punching search-panel-container  search-heading btn-sm form-label me-2" disabled id="btnRejecting" style="display:none;">
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Rejecting...
+            </button>
+            @* <button type="button" id="approveid" class="search-panel-container  search-heading btn-sm me-2">Approve</button>
+            <button type="button" id="rejectid" class="search-panel-container  search-heading btn-sm">Reject</button> *@
             </div>
 
             <div id="attendanceGrid">Loading...</div>
@@ -153,6 +166,7 @@
 <script>
     const apiBase = '@apiBase';
     const Empid = parseInt(localStorage.getItem("EmployeeId"));
+     var token=localStorage.getItem("authToken");
         const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany || '{}');
     const Compid = parseInt(companyDetails.CompanyId);
@@ -207,7 +221,7 @@
         const payload = {
            SearchType :$('#searchtypeid').val(),
             SearchFor: searchfor,
-            
+
              CompId:Compid,
               Emplooyeid: Empid
         };
@@ -266,22 +280,33 @@
         return date.toLocaleDateString('en-GB');
     }
 
-    function handleApprovalOrRejection(status) {
-        debugger;
+      function handleApprovalOrRejection(status) {
          if (!selectedKeys || selectedKeys.length === 0) {
             Swal.fire('Warning', 'Please select at least one application.', 'warning');
             return;
         }
-
+                if(status=="Approved")
+                {
+                  $('#approveid').hide();
+                 $('#btnAproving').show();
+                }
+                else{
+                  $('#rejectid').hide();
+                 $('#btnRejecting').show();
+                }
         const payload = {
             CompoffIds: selectedKeys,
-            status: status
+            status: status,
+            EmployeeId:Empid
         };
 
         $.ajax({
             url: apiBase + '/CompOffAPI/CompOffDetailsApproveorReject',
             method: 'POST',
             contentType: 'application/json',
+            headers: {
+                    'Authorization': 'Bearer ' + token,
+                },
             data: JSON.stringify(payload),
             success: function (res) {
                 if (res.isSuccess) {
@@ -291,8 +316,28 @@
                 } else {
                     Swal.fire("❌ Failed", res.responseMessage, "error");
                 }
+                    if(status=="Approved")
+                    {
+                     $('#approveid').show();
+                      $('#btnAproving').hide();
+                    }
+                    else
+                    {
+                     $('#rejectid').show();
+                     $('#btnRejecting').hide();
+                    }
             },
             error: function (xhr) {
+                    if(status=="Approved")
+                    {
+                     $('#approveid').show();
+                      $('#btnAproving').hide();
+                    }
+                    else
+                    {
+                     $('#rejectid').show();
+                     $('#btnRejecting').hide();
+                    }
                 Swal.fire("❌ Server error", xhr.responseText, "error");
             }
         });
