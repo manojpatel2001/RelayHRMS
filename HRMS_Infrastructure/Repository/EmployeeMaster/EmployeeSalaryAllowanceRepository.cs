@@ -27,9 +27,9 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             {
                 var result = await _db.Set<vmGetLiveEmployeeSalaryAllowance>().FromSqlInterpolated($@"
                 EXEC USP_CalculateSalaryStructure
-                    @Action = {"GET"},
-                   
+                    @Action = {"GET"},                   
                     @GrossSalary = {salaryPara.GrossSalary},
+                    @BasicSalary = {salaryPara.BasicSalary},
                     @IsPFApplicable = {salaryPara.IsPFApplicable}
                     
             ").AsNoTracking().ToListAsync();

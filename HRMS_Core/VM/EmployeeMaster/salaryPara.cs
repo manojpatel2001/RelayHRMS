@@ -3,6 +3,7 @@
     public class salaryPara
     {
         public decimal? GrossSalary { get; set; }
+        public decimal? BasicSalary { get; set; }
         public bool? IsPFApplicable { get; set; } = true;
     }
 }
