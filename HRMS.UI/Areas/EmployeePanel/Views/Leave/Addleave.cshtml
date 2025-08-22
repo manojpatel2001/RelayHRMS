@@ -425,6 +425,7 @@
     const companyDetails = JSON.parse(savedCompany || '{}');
     const Compid = parseInt(companyDetails.CompanyId);
     let leaveBalanceData = [];
+    let gridCallInProgress = false;
     const today = new Date();
 
     $(document).ready(function () {
@@ -444,146 +445,32 @@
         loadResponsibleDropdown();
 
         $('#Leavetypeid').on('change', function () {
-            const leaveTypeId = $(this).val();
-            const leaveTypeName = $(this).find('option:selected').text();
-
-            $('.error-message').hide();
-            $('.form-control, .form-select').removeClass('is-invalid');
-            $('#halfDayValidationMessage').remove();
-            $('#lwpInfoMessage').remove();
-            $('#formdateid').val('');
-            $('#todateid').val('');
-            $('#nodaysid').val('').prop('readonly', true);
-            $('#halfDayTypeRow').hide();
-            $('#halfDayCheckboxRow').hide();
-            $('#halfDayCheckbox').prop('checked', false);
-            $('#halfDayInfo').hide();
-
-            $('.form-section:has(#LeaveDetailsid)').hide();
-
-            if (leaveTypeId === "0") {
-                $('#formdateid').prop('readonly', true);
-                $('#todateid').prop('readonly', true);
-            } else if (leaveTypeName === 'Half Leave') {
-                $('#formdateid').prop('readonly', false);
-                $('#todateid').prop('readonly', true);
-                $('#halfDayTypeRow').show();
-                updateHalfDayOptions([], "Select a date to see available half-day options");
-            } else if (leaveTypeName === 'LWP') {
-                $('#formdateid').prop('readonly', false);
-                $('#todateid').prop('readonly', false);
-                $('#halfDayCheckboxRow').show();
-                $('#nodaysid').after('<div id="lwpInfoMessage" style="color: #17a2b8; font-size: 12px; margin-top: 5px;">LWP: Maximum 30 days allowed</div>');
-            } else {
-                $('#formdateid').prop('readonly', false);
-                $('#todateid').prop('readonly', false);
-                $('#halfDayCheckboxRow').show();
-            }
+            handleLeaveTypeChange();
         });
 
         $('#formdateid').on('change', function () {
-            const leaveTypeId = $('#Leavetypeid').val();
-            const leaveTypeName = $('#Leavetypeid').find('option:selected').text();
-            const fromDate = $(this).val();
-            const isHalfDayChecked = $('#halfDayCheckbox').is(':checked');
-
-            $('.error-message').hide();
-            $('#formdateid').removeClass('is-invalid');
-            $('#halfDayValidationMessage').remove();
-
-            if (leaveTypeId === "0") {
-                $(this).val('');
-                return;
-            }
-
-    if (leaveTypeName === 'Half Leave' && fromDate) {
-        $('#todateid').val(fromDate); // Set to date same as from date
-        validateHalfLeaveDate(fromDate);
-        $('#nodaysid').val('0.5');
-
-        setTimeout(() => {
-            loadLeaveDetailsIfReady();
-        }, 100);
-        return;
-    }
-
-
-            if (isHalfDayChecked && fromDate) {
-                $('#todateid').val(fromDate).prop('readonly', true);
-                validateHalfDayCheckbox(fromDate);
-            } else if (isHalfDayChecked) {
-                $('#todateid').prop('readonly', true);
-            } else {
-                $('#todateid').prop('readonly', false);
-            }
-
-            calculateDaysFromDates();
-            loadLeaveDetailsIfReady();
+            handleFromDateChange();
         });
 
         $('#todateid').on('change', function () {
-            const leaveTypeId = $('#Leavetypeid').val();
-            if (leaveTypeId === "0") {
-                $(this).val('');
-                return;
-            }
-            calculateDaysFromDates();
-            loadLeaveDetailsIfReady();
+            handleToDateChange();
         });
 
-      $('#halfDayCheckbox').on('change', function () {
-        const isChecked = $(this).is(':checked');
-        const fromDate = $('#formdateid').val();
+        $('#halfDayCheckbox').on('change', function () {
+            handleHalfDayCheckboxChange();
+        });
 
-        if (isChecked) {
-            $('#halfDayTypeRow').show();
-            if (fromDate) {
-                $('#todateid').val(fromDate).prop('readonly', true);
-                validateHalfDayCheckbox(fromDate);
-
-                setTimeout(() => {
-                    loadLeaveDetailsIfReady();
-                }, 100);
-            } else {
-                $('#todateid').prop('readonly', true);
-            }
-            $('#halfDayInfo').show();
-            calculateDaysFromDates();
-        } else {
-            $('#halfDayTypeRow').hide();
-            $('#todateid').prop('readonly', false);
-            $('#halfDayInfo').hide();
-            $('#halfDayType').val('');
-            $('#halfDayValidationMessage').remove();
-            calculateDaysFromDates();
-
-            setTimeout(() => {
-                loadLeaveDetailsIfReady();
-            }, 100);
-        }
-    });
-
-    $('#halfDayType').on('change', function () {
-        $('#halfDayTypeError').hide();
-        $(this).removeClass('is-invalid');
-
-        setTimeout(() => {
-            loadLeaveDetailsIfReady();
-        }, 100);
-    });
+        $('#halfDayType').on('change', function () {
+            handleHalfDayTypeChange();
+        });
 
         $('#submitid').on('click', async function () {
-
             $(this).prop('disabled', true);
-            const originalBg = $(this).css('background-color');
-
             try {
                 await handleSubmit();
             } finally {
-
                 setTimeout(() => {
                     $(this).prop('disabled', false);
-                    $(this).css('background-color', originalBg);
                 }, 500);
             }
         });
@@ -593,324 +480,427 @@
         });
     });
 
-    function validateHalfDayCheckbox(selectedDate) {
-        const currentDate = new Date();
-        const inputDate = new Date(selectedDate);
+    function handleLeaveTypeChange() {
+        const leaveTypeId = $('#Leavetypeid').val();
         const leaveTypeName = $('#Leavetypeid').find('option:selected').text();
 
+        // Clear all errors and reset form
         $('.error-message').hide();
-        $('#formdateid').removeClass('is-invalid');
-        $('#halfDayValidationMessage').remove();
+        $('.form-control, .form-select').removeClass('is-invalid');
+        $('#halfDayValidationMessage, #lwpInfoMessage, #compOffInfoMessage').remove();
 
-        if (leaveTypeName === 'LWP') {
-            updateHalfDayOptions(['first', 'second'], "LWP: You can select either first half or second half for any date.");
-            return true;
+        // Reset form fields
+        $('#formdateid').val('');
+        $('#todateid').val('');
+        $('#nodaysid').val('').prop('readonly', true);
+        $('#halfDayTypeRow').hide();
+        $('#halfDayCheckboxRow').hide();
+        $('#halfDayCheckbox').prop('checked', false);
+        $('#halfDayType').val('');
+        $('.form-section:has(#LeaveDetailsid)').hide();
+
+        if (leaveTypeId === "0") {
+            $('#formdateid').prop('readonly', true);
+            $('#todateid').prop('readonly', true);
+            return;
         }
 
+        // Configure fields based on leave type
+        switch (leaveTypeName) {
+            case 'Half Leave':
+                $('#formdateid').prop('readonly', false);
+                $('#todateid').prop('readonly', true);
+                $('#halfDayTypeRow').show();
+                updateHalfDayOptions([], "Select a date to see available half-day options");
+                break;
 
-        if (inputDate > currentDate) {
-            updateHalfDayOptions(['first', 'second'], "Future date: You can select either first half or second half.");
-            return true;
+            case 'Comp Off Leave':
+                $('#formdateid').prop('readonly', false);
+                $('#todateid').prop('readonly', false);
+                $('#halfDayCheckboxRow').show();
+                $('#nodaysid').after('<div id="compOffInfoMessage" style="color: #17a2b8; font-size: 12px; margin-top: 5px;">Comp Off: Based on overtime work in last 30 days</div>');
+                break;
+
+            case 'LWP':
+                $('#formdateid').prop('readonly', false);
+                $('#todateid').prop('readonly', false);
+                $('#halfDayCheckboxRow').show();
+                $('#nodaysid').after('<div id="lwpInfoMessage" style="color: #17a2b8; font-size: 12px; margin-top: 5px;">LWP: Maximum 30 days allowed</div>');
+                break;
+
+            case 'Privilege Leave':
+                $('#formdateid').prop('readonly', false);
+                $('#todateid').prop('readonly', false);
+                $('#halfDayCheckboxRow').show();
+                break;
         }
-
-        if (inputDate.toDateString() === currentDate.toDateString()) {
-            validateCurrentDateHalfDay();
-            return true;
-        }
-
-        checkAttendanceForHalfDay(selectedDate);
-        return true;
     }
 
-    function loadLeaveDetailsIfReady() {
+    function handleFromDateChange() {
         const leaveTypeId = $('#Leavetypeid').val();
         const leaveTypeName = $('#Leavetypeid').find('option:selected').text();
         const fromDate = $('#formdateid').val();
-        const toDate = $('#todateid').val();
-        const isHalfDayChecked = $('#halfDayCheckbox').is(':checked');
 
-        console.log('loadLeaveDetailsIfReady called:', {
-            leaveTypeId,
-            leaveTypeName,
-            fromDate,
-            toDate,
-            isHalfDayChecked
-        });
-
-        const shouldShowGrid = leaveTypeId !== "0" &&
-                              fromDate &&
-                              toDate &&
-                              (
-                                  (leaveTypeName === 'Half Leave' && fromDate === toDate) ||
-                                  (leaveTypeName !== 'Half Leave' && fromDate && toDate)
-                              );
-
-        if (shouldShowGrid) {
-            console.log('Showing grid and loading details');
-            $('.form-section:has(#LeaveDetailsid)').show();
-            loadLeaveDetails();
-        } else {
-            console.log('Hiding grid - conditions not met');
-            $('.form-section:has(#LeaveDetailsid)').hide();
+        if (leaveTypeId === "0") {
+            $('#formdateid').val('');
+            return;
         }
-    }
-    function validateHalfLeaveDate(selectedDate) {
-        const currentDate = new Date();
-        const inputDate = new Date(selectedDate);
 
+        // Clear previous errors
         $('.error-message').hide();
         $('#formdateid').removeClass('is-invalid');
-        $('#halfDayValidationMessage').remove();
+        $('#halfDayValidationMessage, #compOffInfoMessage').remove();
 
+        if (!fromDate) return;
 
-        if (inputDate > currentDate) {
-            $('#formdateid').addClass('is-invalid');
-            $('#halfDayCurrentDateError').text('Half day leave can only be applied for current or past dates').show();
-            updateHalfDayOptions([], 'Invalid date selected');
-            return false;
+        // Handle Half Leave
+        if (leaveTypeName === 'Half Leave') {
+            $('#todateid').val(fromDate);
+            $('#nodaysid').val('0.5');
+            validateHalfLeave(fromDate);
+            loadLeaveDetailsGrid();
+            return;
         }
 
-
-        if (inputDate.toDateString() === currentDate.toDateString()) {
-            validateCurrentDateHalfDay();
-            return true;
+        // Handle Comp Off Leave
+        if (leaveTypeName === 'Comp Off Leave') {
+            validateCompOffLeave(fromDate);
         }
 
+        // Handle other leave types
+        const isHalfDayChecked = $('#halfDayCheckbox').is(':checked');
+        if (isHalfDayChecked) {
+            $('#todateid').val(fromDate).prop('readonly', true);
+            validateHalfDayForDate(fromDate, leaveTypeName);
+        } else {
+            $('#todateid').prop('readonly', false);
+            validateFullDayLeave(fromDate, leaveTypeName);
+        }
 
-        checkAttendanceForHalfDay(selectedDate);
-        return true;
+        calculateDaysFromDates();
+        loadLeaveDetailsGrid();
     }
 
-    function validateCurrentDateHalfDay() {
-        const currentDate = new Date();
-        const currentHour = currentDate.getHours();
+    function handleToDateChange() {
+        const leaveTypeId = $('#Leavetypeid').val();
+        if (leaveTypeId === "0") {
+            $('#todateid').val('');
+            return;
+        }
 
-        const today = currentDate.toISOString().split('T')[0];
+        calculateDaysFromDates();
+        loadLeaveDetailsGrid();
+    }
 
-        const payload = {
-            BranchId: null,
-            EmpId: Empid,
-            StartDate: today,
-            EndDate: today,
-            RecordType: null
-        };
+    function handleHalfDayCheckboxChange() {
+        const isChecked = $('#halfDayCheckbox').is(':checked');
+        const fromDate = $('#formdateid').val();
+        const leaveTypeName = $('#Leavetypeid').find('option:selected').text();
 
-        $.ajax({
-            url: apiBase + '/AttendanceRegularizationAPI/GetAttendanceDetails',
-            type: 'POST',
-            data: JSON.stringify(payload),
-            contentType: "application/json; charset=utf-8",
-            success: function (response) {
-                let allowedHalves = [];
-                let validationMessage = "";
-
-                if (response?.isSuccess && response.data && response.data.length > 0) {
-                    const attendanceData = response.data[0];
-                    const shiftStartTime = attendanceData.startTime;
-                    const shiftEndTime = attendanceData.endTime;
-
-                    const [shiftStartHour] = shiftStartTime.split(':').map(Number);
-                    const [shiftEndHour] = shiftEndTime.split(':').map(Number);
-                    const shiftMidHour = shiftStartHour + Math.floor((shiftEndHour - shiftStartHour) / 2);
-
-                    const inTime = attendanceData.inTime ? new Date(attendanceData.inTime) : null;
-                    const workingHours = attendanceData.workingHours || 0;
-
-                    if (inTime) {
-                        const inHour = inTime.getHours();
-
-                        if (workingHours >= 4.5) {
-                            if (inHour < shiftMidHour && currentHour >= shiftMidHour) {
-                                allowedHalves = ['second'];
-                                validationMessage = `You've worked ${workingHours} hours starting from first half. You can apply for second half leave.`;
-                            } else {
-                                allowedHalves = [];
-                                validationMessage = `You've already worked ${workingHours} hours. Half day leave may not be applicable.`;
-                            }
-                        } else {
-                            if (currentHour < shiftMidHour) {
-                                allowedHalves = ['first', 'second'];
-                                validationMessage = "You can apply for either first half or second half leave.";
-                            } else {
-                                if (inHour < shiftMidHour) {
-                                    allowedHalves = ['second'];
-                                    validationMessage = "You were present in first half. You can apply for second half leave.";
-                                } else {
-                                    allowedHalves = ['first'];
-                                    validationMessage = "You came in second half. You can apply for first half leave.";
-                                }
-                            }
-                        }
-                    } else {
-                        if (currentHour < shiftMidHour) {
-                            allowedHalves = ['first', 'second'];
-                            validationMessage = "You haven't punched in yet. You can apply for either half.";
-                        } else {
-                            allowedHalves = ['first'];
-                            validationMessage = "It's past mid-shift time. You can apply for first half leave.";
-                        }
-                    }
-                } else {
-                    const defaultShiftMidHour = 13;
-                    if (currentHour < defaultShiftMidHour) {
-                        allowedHalves = ['first', 'second'];
-                        validationMessage = "You can apply for either first half or second half leave.";
-                    } else {
-                        allowedHalves = ['first'];
-                        validationMessage = "It's past 1 PM. You can only apply for first half leave.";
-                    }
-                }
-
-                updateHalfDayOptions(allowedHalves, validationMessage);
-            },
-            error: function (xhr, status, error) {
-                console.error('Error checking today\'s attendance:', error);
-                const defaultShiftMidHour = 13;
-                if (currentDate.getHours() < defaultShiftMidHour) {
-                    updateHalfDayOptions(['first', 'second'], "You can apply for either first half or second half leave.");
-                } else {
-                    updateHalfDayOptions(['first'], "It's past 1 PM. You can only apply for first half leave.");
-                }
+        if (isChecked) {
+            $('#halfDayTypeRow').show();
+            if (fromDate) {
+                $('#todateid').val(fromDate).prop('readonly', true);
+                validateHalfDayForDate(fromDate, leaveTypeName);
+            } else {
+                $('#todateid').prop('readonly', true);
             }
-        });
+        } else {
+            $('#halfDayTypeRow').hide();
+            $('#todateid').prop('readonly', false);
+            $('#halfDayType').val('');
+            $('#halfDayValidationMessage').remove();
+            if (fromDate) {
+                validateFullDayLeave(fromDate, leaveTypeName);
+            }
+        }
+
+        calculateDaysFromDates();
+        loadLeaveDetailsGrid();
     }
 
-    function checkAttendanceForHalfDay(selectedDate) {
-        $('#halfDayValidationMessage').remove();
+    function handleHalfDayTypeChange() {
+        $('#halfDayTypeError').hide();
+        $('#halfDayType').removeClass('is-invalid');
+        loadLeaveDetailsGrid();
+    }
 
+    function validateHalfLeave(selectedDate) {
         const payload = {
-            BranchId: null,
+            BranchId: 0,
             EmpId: Empid,
             StartDate: selectedDate,
             EndDate: selectedDate,
-            RecordType: null
+            RecordType: "All"
         };
 
+        const formData = new FormData();
+        formData.append("BranchId", "0");
+        formData.append("EmpId", Empid);
+        formData.append("StartDate", selectedDate);
+        formData.append("EndDate", selectedDate);
+        formData.append("RecordType", "All");
+
         $.ajax({
-            url: apiBase + '/AttendanceRegularizationAPI/GetAttendanceDetails',
+            url: apiBase + '/EmployeeInOut/GetEmployeeInOutReport',
             type: 'POST',
-            data: JSON.stringify(payload),
-            contentType: "application/json; charset=utf-8",
+            data: formData,
+            contentType: false,
+            processData: false,
             success: function (response) {
                 if (response?.isSuccess && response.data && response.data.length > 0) {
                     const attendanceData = response.data[0];
-                    validateHalfDayByAttendance(attendanceData, selectedDate);
+                    validateHalfDayByAttendanceData(attendanceData, selectedDate, 'Half Leave');
                 } else {
-                    updateHalfDayOptions([], "No attendance record found for this date. Half day leave cannot be applied.");
+                    updateHalfDayOptions(['first', 'second'], "No attendance record found. You can apply for either half.");
                 }
             },
             error: function (xhr, status, error) {
                 console.error('Error checking attendance:', error);
-                updateHalfDayOptions([], "Error checking attendance. Please try again.");
+                updateHalfDayOptions(['first', 'second'], "Error checking attendance. You can apply for either half.");
             }
         });
     }
 
-    function validateHalfDayByAttendance(attendanceData, selectedDate) {
-        const inTime = attendanceData.inTime ? new Date(attendanceData.inTime) : null;
-        const outTime = attendanceData.outTime ? new Date(attendanceData.outTime) : null;
+    function validateCompOffLeave(selectedDate) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+        const endDate = new Date().toISOString().split('T')[0];
+
+        const formData = new FormData();
+        formData.append("BranchId", "0");
+        formData.append("EmpId", Empid);
+        formData.append("StartDate", startDate);
+        formData.append("EndDate", endDate);
+        formData.append("RecordType", "All");
+
+        $.ajax({
+            url: apiBase + '/EmployeeInOut/GetEmployeeInOutReport',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (response) {
+                if (response?.isSuccess && response.data && response.data.length > 0) {
+                    checkCompOffEligibility(response.data, selectedDate);
+                } else {
+                    showCompOffError("No attendance records found for last 30 days. Comp Off not applicable.");
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error checking comp off eligibility:', error);
+                showCompOffError("Error checking comp off eligibility.");
+            }
+        });
+    }
+
+    function checkCompOffEligibility(attendanceData, selectedDate) {
+        // Find days where employee worked on weekoffs or holidays
+        const eligibleDays = attendanceData.filter(record => {
+            const statusReason = record.statusReason || '';
+            const hasWorked = record.workingHours > 0;
+            const isWeekoffOrHoliday = statusReason.includes('Sunday') ||
+                                     statusReason.includes('Saturday') ||
+                                     statusReason.includes('Holiday') ||
+                                     record.attendanceStatus === 'W';
+            return hasWorked && isWeekoffOrHoliday;
+        });
+
+        if (eligibleDays.length === 0) {
+            showCompOffError("No overtime work found on weekoffs/holidays in last 30 days. Comp Off not applicable.");
+            return;
+        }
+
+        // Calculate available comp off days
+        let availableCompOffDays = 0;
+        eligibleDays.forEach(day => {
+            if (day.workingHours >= 9) {
+                availableCompOffDays += 1; // Full day
+            } else if (day.workingHours >= 4.5) {
+                availableCompOffDays += 0.5; // Half day
+            }
+        });
+
+        if (availableCompOffDays === 0) {
+            showCompOffError("No eligible comp off days available. Minimum 4.5 hours work required.");
+            return;
+        }
+
+        // Show success message
+        $('#compOffInfoMessage').remove();
+        $('#nodaysid').after(`<div id="compOffInfoMessage" style="color: #28a745; font-size: 12px; margin-top: 5px;">Comp Off Available: ${availableCompOffDays} days based on overtime work</div>`);
+
+        // Now validate the selected date
+        validateFullDayLeave(selectedDate, 'Comp Off Leave');
+    }
+
+    function showCompOffError(message) {
+        $('#formdateid').addClass('is-invalid');
+        $('#compOffInfoMessage').remove();
+        $('#formdateid').after(`<div id="compOffInfoMessage" class="error-message" style="display: block; color: #dc3545; font-size: 12px; margin-top: 5px;">${message}</div>`);
+    }
+
+    function validateHalfDayForDate(selectedDate, leaveTypeName) {
+        const formData = new FormData();
+        formData.append("BranchId", "0");
+        formData.append("EmpId", Empid);
+        formData.append("StartDate", selectedDate);
+        formData.append("EndDate", selectedDate);
+        formData.append("RecordType", "All");
+
+        $.ajax({
+            url: apiBase + '/EmployeeInOut/GetEmployeeInOutReport',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (response) {
+                if (response?.isSuccess && response.data && response.data.length > 0) {
+                    const attendanceData = response.data[0];
+                    validateHalfDayByAttendanceData(attendanceData, selectedDate, leaveTypeName);
+                } else {
+                    if (leaveTypeName === 'LWP') {
+                        updateHalfDayOptions(['first', 'second'], "No attendance record. LWP can be applied for either half.");
+                    } else {
+                        updateHalfDayOptions(['first', 'second'], "No attendance record found. You can apply for either half.");
+                    }
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error checking attendance:', error);
+                updateHalfDayOptions(['first', 'second'], "Error checking attendance. You can apply for either half.");
+            }
+        });
+    }
+
+    function validateFullDayLeave(selectedDate, leaveTypeName) {
+        const formData = new FormData();
+        formData.append("BranchId", "0");
+        formData.append("EmpId", Empid);
+        formData.append("StartDate", selectedDate);
+        formData.append("EndDate", selectedDate);
+        formData.append("RecordType", "All");
+
+        $.ajax({
+            url: apiBase + '/EmployeeInOut/GetEmployeeInOutReport',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (response) {
+                if (response?.isSuccess && response.data && response.data.length > 0) {
+                    const attendanceData = response.data[0];
+                    const workingHours = attendanceData.workingHours || 0;
+                    const attendanceStatus = attendanceData.attendanceStatus?.trim();
+
+                    // Remove previous validation messages
+                    $('#attendanceError, #halfDayCurrentDateError, #pastDateError').hide();
+                    $('#formdateid').removeClass('is-invalid');
+
+                    if (leaveTypeName === 'LWP') {
+                        // LWP can be applied regardless of attendance
+                        return;
+                    }
+
+                    if (attendanceStatus === 'P' || workingHours > 0) {
+                        if (workingHours >= 9) {
+                            $('#formdateid').addClass('is-invalid');
+                            $('#attendanceError').text(`You worked ${workingHours} hours on ${new Date(selectedDate).toLocaleDateString()}. Cannot apply full day leave.`).show();
+                        } else if (workingHours >= 4.5) {
+                            $('#formdateid').addClass('is-invalid');
+                            $('#attendanceError').text(`You worked ${workingHours} hours on ${new Date(selectedDate).toLocaleDateString()}. You can apply for half day leave only.`).show();
+                        }
+                    }
+                } else {
+                    // No attendance record found - leave can be applied
+                    if (leaveTypeName !== 'LWP') {
+                        // For non-LWP leaves, this is acceptable
+                    }
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error checking attendance:', error);
+            }
+        });
+    }
+
+    function validateHalfDayByAttendanceData(attendanceData, selectedDate, leaveTypeName) {
         const workingHours = attendanceData.workingHours || 0;
-
-        const shiftStartTime = attendanceData.startTime;
-        const shiftEndTime = attendanceData.endTime;
-
-        const [shiftStartHour, shiftStartMinute] = shiftStartTime.split(':').map(Number);
-        const [shiftEndHour, shiftEndMinute] = shiftEndTime.split(':').map(Number);
-
-        const shiftDurationHours = shiftEndHour - shiftStartHour;
-        const shiftMidHour = shiftStartHour + Math.floor(shiftDurationHours / 2);
-        const shiftMidMinute = shiftStartMinute;
+        const attendanceStatus = attendanceData.attendanceStatus?.trim();
+        const inTime = attendanceData.inTime && attendanceData.inTime !== '-' ? new Date(attendanceData.inTime) : null;
+        const outTime = attendanceData.outTime && attendanceData.outTime !== '-' ? new Date(attendanceData.outTime) : null;
 
         let allowedHalves = [];
         let validationMessage = "";
 
-        if (!inTime && !outTime) {
-            allowedHalves = [];
-            validationMessage = "No attendance record found for this date. Half leave cannot be applied.";
+        // For LWP, always allow both halves regardless of attendance
+        if (leaveTypeName === 'LWP') {
+            allowedHalves = ['first', 'second'];
+            validationMessage = "LWP: You can select either first half or second half.";
             updateHalfDayOptions(allowedHalves, validationMessage);
             return;
         }
 
-        if (workingHours < 4.5) {
+        // If completely absent, allow both halves
+        if (attendanceStatus === 'A' && workingHours === 0) {
+            allowedHalves = ['first', 'second'];
+            validationMessage = "You were absent. You can apply for either half day leave.";
+            updateHalfDayOptions(allowedHalves, validationMessage);
+            return;
+        }
+
+        // If worked full day (9+ hours), no half day leave allowed
+        if (workingHours >= 9) {
+            allowedHalves = [];
+            validationMessage = `You worked ${workingHours} hours (full day). Half day leave cannot be applied.`;
+            updateHalfDayOptions(allowedHalves, validationMessage);
+            return;
+        }
+
+        // If worked between 4.5 to 9 hours, determine which half was worked
+        if (workingHours >= 4.5 && workingHours < 9) {
             if (inTime && outTime) {
+                const shiftMidHour = 13; // Assuming 1 PM as mid-shift
                 const inHour = inTime.getHours();
-                const inMinute = inTime.getMinutes();
                 const outHour = outTime.getHours();
-                const outMinute = outTime.getMinutes();
 
-                const wasInFirstHalf = (inHour < shiftMidHour) || (inHour === shiftMidHour && inMinute <= shiftMidMinute);
-                const wasInSecondHalf = (outHour > shiftMidHour) || (outHour === shiftMidHour && outMinute >= shiftMidMinute);
-
-                if (wasInFirstHalf && !wasInSecondHalf) {
+                if (inHour < shiftMidHour && outHour <= shiftMidHour) {
+                    // Worked in first half
                     allowedHalves = ['second'];
                     validationMessage = `You worked ${workingHours} hours in first half. You can apply for second half leave.`;
-                } else if (!wasInFirstHalf && wasInSecondHalf) {
+                } else if (inHour >= shiftMidHour && outHour > shiftMidHour) {
+                    // Worked in second half
                     allowedHalves = ['first'];
                     validationMessage = `You worked ${workingHours} hours in second half. You can apply for first half leave.`;
-                } else if (wasInFirstHalf && wasInSecondHalf) {
-                    const firstHalfHours = Math.min(workingHours, shiftMidHour - inHour);
-                    const secondHalfHours = workingHours - firstHalfHours;
-
-                    if (firstHalfHours > secondHalfHours) {
-                        allowedHalves = ['second'];
-                        validationMessage = `You were primarily present in first half (${firstHalfHours.toFixed(1)} hrs). You can apply for second half leave.`;
-                    } else {
-                        allowedHalves = ['first'];
-                        validationMessage = `You were primarily present in second half (${secondHalfHours.toFixed(1)} hrs). You can apply for first half leave.`;
-                    }
-                }
-            } else if (inTime && !outTime) {
-                const inHour = inTime.getHours();
-                if (inHour < shiftMidHour) {
-                    allowedHalves = ['second'];
-                    validationMessage = `You punched in during first half (${workingHours} hrs worked). You can apply for second half leave.`;
                 } else {
-                    allowedHalves = ['first'];
-                    validationMessage = `You punched in during second half (${workingHours} hrs worked). You can apply for first half leave.`;
-                }
-            } else if (!inTime && outTime) {
-                const outHour = outTime.getHours();
-                if (outHour <= shiftMidHour) {
-                    allowedHalves = ['second'];
-                    validationMessage = `You punched out during first half (${workingHours} hrs worked). You can apply for second half leave.`;
-                } else {
-                    allowedHalves = ['first'];
-                    validationMessage = `You punched out during second half (${workingHours} hrs worked). You can apply for first half leave.`;
-                }
-            }
-        } else if (workingHours >= 4.5 && workingHours < 8) {
-            if (inTime && outTime) {
-                const inHour = inTime.getHours();
-                const inMinute = inTime.getMinutes();
-                const outHour = outTime.getHours();
-                const outMinute = outTime.getMinutes();
-
-                const wasInDuringShiftStart = (inHour <= shiftStartHour) || (inHour === shiftStartHour && inMinute <= shiftStartMinute);
-                const wasOutAfterShiftMid = (outHour > shiftMidHour) || (outHour === shiftMidHour && outMinute >= shiftMidMinute);
-                const wasOutAfterShiftEnd = (outHour >= shiftEndHour) || (outHour === shiftEndHour && outMinute >= shiftEndMinute);
-
-                if (wasInDuringShiftStart && wasOutAfterShiftEnd) {
+                    // Worked across both halves
                     allowedHalves = [];
-                    validationMessage = `You worked ${workingHours} hours covering most of the shift. Half day leave cannot be applied.`;
-                } else if (wasInDuringShiftStart && wasOutAfterShiftMid && !wasOutAfterShiftEnd) {
-                    allowedHalves = ['second'];
-                    validationMessage = `You worked ${workingHours} hours in first half and left early. You can apply for second half leave.`;
-                } else if (!wasInDuringShiftStart && wasOutAfterShiftEnd) {
-                    allowedHalves = ['first'];
-                    validationMessage = `You came late but worked ${workingHours} hours till shift end. You can apply for first half leave.`;
-                } else {
-                    if (inHour < shiftMidHour) {
-                        allowedHalves = ['second'];
-                        validationMessage = `Based on your timing (${workingHours} hrs), you can apply for second half leave.`;
-                    } else {
-                        allowedHalves = ['first'];
-                        validationMessage = `Based on your timing (${workingHours} hrs), you can apply for first half leave.`;
-                    }
+                    validationMessage = `You worked ${workingHours} hours across both halves. Half day leave cannot be applied.`;
                 }
+            } else {
+                allowedHalves = [];
+                validationMessage = `You worked ${workingHours} hours. Half day leave cannot be applied.`;
+            }
+        } else if (workingHours > 0 && workingHours < 4.5) {
+            // Less than 4.5 hours worked, determine which half
+            if (inTime) {
+                const inHour = inTime.getHours();
+                if (inHour < 13) {
+                    allowedHalves = ['second'];
+                    validationMessage = `You worked ${workingHours} hours in first half. You can apply for second half leave.`;
+                } else {
+                    allowedHalves = ['first'];
+                    validationMessage = `You worked ${workingHours} hours in second half. You can apply for first half leave.`;
+                }
+            } else {
+                allowedHalves = ['first', 'second'];
+                validationMessage = `You worked ${workingHours} hours. You can apply for either half day leave.`;
             }
         } else {
-            allowedHalves = [];
-            validationMessage = `You worked ${workingHours} hours (full day). Half day leave cannot be applied for this date.`;
+            // No working hours recorded
+            allowedHalves = ['first', 'second'];
+            validationMessage = "No working hours recorded. You can apply for either half day leave.";
         }
 
         updateHalfDayOptions(allowedHalves, validationMessage);
@@ -922,55 +912,64 @@
         halfDayDropdown.empty().append('<option value="">-- Select Half Day --</option>');
         halfDayDropdown.removeClass('is-invalid');
         $('#halfDayTypeError').hide();
-
         $('#halfDayValidationMessage').remove();
 
         if (allowedHalves.length === 0) {
             halfDayDropdown.prop('disabled', true);
-
             if (validationMessage) {
                 halfDayDropdown.after(`<div id="halfDayValidationMessage" class="error-message" style="display: block; color: #dc3545; font-size: 12px; margin-top: 5px;">${validationMessage}</div>`);
             }
         } else {
             halfDayDropdown.prop('disabled', false);
-
             if (allowedHalves.includes('first')) {
                 halfDayDropdown.append('<option value="first">First Half</option>');
             }
             if (allowedHalves.includes('second')) {
                 halfDayDropdown.append('<option value="second">Second Half</option>');
             }
-
             if (validationMessage) {
                 halfDayDropdown.after(`<div id="halfDayValidationMessage" style="color: #28a745; font-size: 12px; margin-top: 5px;">${validationMessage}</div>`);
             }
         }
-            setTimeout(() => {
-        loadLeaveDetailsIfReady();
-    }, 100);
+
+        loadLeaveDetailsGrid();
     }
 
-     function loadLeaveDetails() {
+       function loadLeaveDetailsGrid() {
+        const leaveTypeId = $('#Leavetypeid').val();
         const fromDate = $('#formdateid').val();
         const toDate = $('#todateid').val();
+        const shouldShowGrid = leaveTypeId !== "0" && fromDate && toDate;
 
-        const payload = {
-            BranchId: null,
-            EmpId: Empid,
-            StartDate: fromDate,
-            EndDate: toDate,
-            RecordType: null
-        };
+        if (!shouldShowGrid) {
+            $('.form-section:has(#LeaveDetailsid)').hide();
+            return;
+        }
+
+        // Always show the container
+        $('.form-section:has(#LeaveDetailsid)').show();
+
+        const formData = new FormData();
+        formData.append("BranchId", "0");
+        formData.append("EmpId", Empid);
+        formData.append("StartDate", fromDate);
+        formData.append("EndDate", toDate);
+        formData.append("RecordType", "All");
+
+        const gridInstance = $("#LeaveDetailsid").dxDataGrid("instance");
+        if (gridInstance) {
+            gridInstance.dispose();
+        }
 
         $.ajax({
-            url: apiBase + '/AttendanceRegularizationAPI/GetAttendanceDetails',
+            url: apiBase + '/EmployeeInOut/GetEmployeeInOutReport',
             type: 'POST',
-            data: JSON.stringify(payload),
-            contentType: "application/json; charset=utf-8",
+            data: formData,
+            contentType: false,
+            processData: false,
             success: function (response) {
                 if (response?.isSuccess && response.data && response.data.length > 0) {
                     const data = response.data;
-                    console.log("data", data);
                     $("#LeaveDetailsid").dxDataGrid({
                         dataSource: data,
                         showBorders: true,
@@ -995,15 +994,21 @@
                                 }
                             },
                             {
-                                dataField: "dayName",
+                                dataField: "monthDay",
                                 caption: "Day",
                                 cssClass: "text-center-cell"
                             },
                             {
                                 caption: "Status",
-
-                                calculateCellValue: function () {
-                                    return $("#Leavetypeid option:selected").text();
+                                cssClass: "text-center-cell",
+                                calculateCellValue: function (data) {
+                                    const leaveType = $("#Leavetypeid option:selected").text();
+                                    const isHalfDay = $('#halfDayCheckbox').is(':checked') || leaveType === 'Half Leave';
+                                    const halfDayType = $('#halfDayType').val();
+                                    if (isHalfDay && halfDayType) {
+                                        return `${leaveType} (${halfDayType === 'first' ? 'First Half' : 'Second Half'})`;
+                                    }
+                                    return leaveType;
                                 }
                             },
                             {
@@ -1011,7 +1016,7 @@
                                 caption: "In",
                                 cssClass: "text-center-cell",
                                 customizeText: function (cellInfo) {
-                                    if (!cellInfo.value) return "";
+                                    if (!cellInfo.value || cellInfo.value === '-') return "-";
                                     return new Date(cellInfo.value).toLocaleTimeString("en-IN", {
                                         hour: "2-digit",
                                         minute: "2-digit",
@@ -1024,7 +1029,7 @@
                                 caption: "Out",
                                 cssClass: "text-center-cell",
                                 customizeText: function (cellInfo) {
-                                    if (!cellInfo.value) return "";
+                                    if (!cellInfo.value || cellInfo.value === '-') return "-";
                                     return new Date(cellInfo.value).toLocaleTimeString("en-IN", {
                                         hour: "2-digit",
                                         minute: "2-digit",
@@ -1035,7 +1040,6 @@
                             {
                                 dataField: "workingHours",
                                 caption: "WH",
-
                                 cssClass: "text-center-cell"
                             }
                         ],
@@ -1044,16 +1048,6 @@
                             pageSize: 7
                         }
                     });
-
-
-                    setTimeout(() => {
-                        const gridInstance = $("#LeaveDetailsid").dxDataGrid("instance");
-                        if (gridInstance) {
-                            gridInstance.repaint();
-                            gridInstance.refresh();
-                        }
-                    }, 200);
-
                 } else {
                     $("#LeaveDetailsid").html('<div class="text-muted text-center">No attendance records found for selected date range</div>');
                 }
@@ -1064,6 +1058,7 @@
             }
         });
     }
+
 
     function calculateDaysFromDates() {
         const fromDate = $('#formdateid').val();
@@ -1085,24 +1080,11 @@
                 if (leaveTypeName === 'Half Leave') {
                     $('#nodaysid').val('0.5');
                 } else if (isHalfDayChecked) {
-
-                    if (leaveTypeName === 'LWP') {
-
-                        const halfDays = daysDiff * 0.5;
-                        $('#nodaysid').val(halfDays);
-                    } else {
-
-                        const halfDays = daysDiff * 0.5;
-                        $('#nodaysid').val(halfDays);
-                    }
+                    const halfDays = daysDiff * 0.5;
+                    $('#nodaysid').val(halfDays);
                 } else {
                     $('#nodaysid').val(daysDiff);
                 }
-
-                setTimeout(() => {
-                    loadLeaveDetailsIfReady();
-                }, 50);
-
             } else {
                 $('#todateid').addClass('is-invalid');
                 $('#dateRangeError').show();
@@ -1111,28 +1093,7 @@
         }
     }
 
-    function isPastDate(dateString) {
-        const inputDate = new Date(dateString);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        inputDate.setHours(0, 0, 0, 0);
-        return inputDate < today;
-    }
-
-    function isPastMonth(dateString) {
-        const inputDate = new Date(dateString);
-        const today = new Date();
-        return inputDate.getMonth() < today.getMonth() || inputDate.getFullYear() < today.getFullYear();
-    }
-
-    function isWithin30Days(dateString) {
-        const inputDate = new Date(dateString);
-        const currentDate = new Date();
-        const timeDifference = currentDate.getTime() - inputDate.getTime();
-        const daysDifference = Math.ceil(timeDifference / (1000 * 3600 * 24));
-        return daysDifference <= 30;
-    }
-
+    // Validation functions
     const leaveTypeMapping = {
         1: "Comp Off Leave",
         2: "Half Leave",
@@ -1142,9 +1103,7 @@
 
     function getLeaveBalance(leaveTypeId) {
         const leaveTypeName = leaveTypeMapping[leaveTypeId];
-        if (!leaveTypeName) {
-            return 0;
-        }
+        if (!leaveTypeName) return 0;
 
         const balance = leaveBalanceData.find(item => item.leaveType === leaveTypeName);
         return balance ? parseFloat(balance.leaveValue || 0) : 0;
@@ -1154,15 +1113,18 @@
         const leaveTypeName = leaveTypeMapping[leaveTypeId];
 
         if (leaveTypeName === "LWP") {
-            const fullDayEquivalent = requestedDays;
-            const maxAllowed = 30;
-
-            if (fullDayEquivalent > maxAllowed) {
+            if (requestedDays > 30) {
                 return {
                     isValid: false,
-                    message: `LWP cannot exceed 30 days equivalent! Requested: ${fullDayEquivalent} days`
+                    message: `LWP cannot exceed 30 days! Requested: ${requestedDays} days`
                 };
             }
+            return { isValid: true, message: "" };
+        }
+
+        if (leaveTypeName === "Comp Off Leave") {
+            // For comp off, we don't check balance from leave balance table
+            // as it's based on overtime work
             return { isValid: true, message: "" };
         }
 
@@ -1186,6 +1148,7 @@
                 Emplooyeid: Empid,
                 CompId: Compid
             };
+
             $.ajax({
                 url: apiBase + '/LeaveApplication/GetLeaveApplications',
                 method: 'POST',
@@ -1204,17 +1167,10 @@
                             return isOverlapping && isActiveStatus;
                         });
 
-                        if (duplicateLeaves.length > 0) {
-                            resolve({
-                                hasDuplicate: true,
-                                duplicateLeaves: duplicateLeaves
-                            });
-                        } else {
-                            resolve({
-                                hasDuplicate: false,
-                                duplicateLeaves: []
-                            });
-                        }
+                        resolve({
+                            hasDuplicate: duplicateLeaves.length > 0,
+                            duplicateLeaves: duplicateLeaves
+                        });
                     } else {
                         resolve({
                             hasDuplicate: false,
@@ -1229,44 +1185,7 @@
         });
     }
 
-    function checkAttendanceForPastMonth(fromDate, toDate, empId) {
-        return new Promise((resolve, reject) => {
-            const formData = new FormData();
-            formData.append("BranchId", "0");
-            formData.append("EmpId", empId);
-            formData.append("StartDate", fromDate);
-            formData.append("EndDate", toDate);
-            formData.append("RecordType", "All");
-
-            $.ajax({
-                url: apiBase + '/EmployeeInOut/GetEmployeeInOutReport',
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function (response) {
-                    if (response?.isSuccess && response.data && response.data.length > 0) {
-                        const presentDates = response.data.filter(record =>
-                            record.status === 'Present' || record.status === 'P' ||
-                            record.inTime != null || record.outTime != null
-                        );
-                        if (presentDates.length > 0) {
-                            resolve({ isPresent: true, presentDates: presentDates });
-                        } else {
-                            resolve({ isPresent: false, presentDates: [] });
-                        }
-                    } else {
-                        resolve({ isPresent: false, presentDates: [] });
-                    }
-                },
-                error: function (xhr, status, error) {
-                    reject(error);
-                }
-            });
-        });
-    }
-
-    function checkSalaryProcessed(fromDate, empCode) {
+    function checkSalaryProcessed(fromDate) {
         return new Promise((resolve, reject) => {
             const leaveDate = new Date(fromDate);
             const month = leaveDate.getMonth() + 1;
@@ -1284,11 +1203,11 @@
                 data: JSON.stringify(requestData),
                 contentType: "application/json",
                 success: function (response) {
-                    if (response.isSuccess && response.data && response.data.length > 0) {
-                        resolve({ isProcessed: true, salaryData: response.data, month: month, year: year });
-                    } else {
-                        resolve({ isProcessed: false, salaryData: [], month: month, year: year });
-                    }
+                    resolve({
+                        isProcessed: response.isSuccess && response.data && response.data.length > 0,
+                        month: month,
+                        year: year
+                    });
                 },
                 error: function (xhr, status, error) {
                     reject(error);
@@ -1307,6 +1226,9 @@
                     $('#repoid').val(response.data.fullName);
                     $('#reportingManagerId').val(response.data.id);
                 }
+            },
+            error: function() {
+                console.error('Error loading reporting person');
             }
         });
     }
@@ -1355,7 +1277,7 @@
                 }
             },
             error: function () {
-                Swal.fire("Error", "Could not load responsible list", "error");
+                console.error('Error loading responsible dropdown');
             }
         });
     }
@@ -1368,7 +1290,6 @@
 
         const leaveType = $('#Leavetypeid').val();
         const leaveTypeName = $('#Leavetypeid').find('option:selected').text();
-        const applicationType = 'Regular'; // Set default to Regular
         const noOfDays = parseFloat($('#nodaysid').val());
         const fromDate = $('#formdateid').val();
         const toDate = $('#todateid').val();
@@ -1376,6 +1297,7 @@
         const responsible = $('#responsibleid').val();
         const halfDayType = $('#halfDayType').val();
 
+        // Basic validations
         if (leaveType === "0") {
             $('#Leavetypeid').addClass('is-invalid');
             $('#leaveTypeError').show();
@@ -1423,39 +1345,22 @@
             hasError = true;
         }
 
-        // Half day validation
+        // Half day validations
         if (leaveTypeName === 'Half Leave' || $('#halfDayCheckbox').is(':checked')) {
-            if (leaveTypeName === 'LWP') {
-                if (!halfDayType) {
-                    $('#halfDayType').addClass('is-invalid');
-                    $('#halfDayTypeError').show();
-                    hasError = true;
-                }
-            } else if (leaveTypeName === 'Half Leave') {
-                if (noOfDays !== 0.5) {
-                    $('#nodaysid').addClass('is-invalid');
-                    $('#halfDayValidationError').show();
-                    hasError = true;
-                }
-                if (!halfDayType) {
-                    $('#halfDayType').addClass('is-invalid');
-                    $('#halfDayTypeError').show();
-                    hasError = true;
-                }
-            } else {
-                if (noOfDays !== 0.5) {
-                    $('#nodaysid').addClass('is-invalid');
-                    $('#halfDayValidationError').show();
-                    hasError = true;
-                }
-                if (!halfDayType) {
-                    $('#halfDayType').addClass('is-invalid');
-                    $('#halfDayTypeError').show();
-                    hasError = true;
-                }
+            if (!halfDayType) {
+                $('#halfDayType').addClass('is-invalid');
+                $('#halfDayTypeError').show();
+                hasError = true;
+            }
+
+            if (leaveTypeName === 'Half Leave' && noOfDays !== 0.5) {
+                $('#nodaysid').addClass('is-invalid');
+                $('#halfDayValidationError').show();
+                hasError = true;
             }
         }
 
+        // Leave balance validation
         if (leaveType !== "0" && !isNaN(noOfDays) && noOfDays > 0) {
             const balanceValidation = validateLeaveBalance(leaveType, noOfDays);
             if (!balanceValidation.isValid) {
@@ -1465,11 +1370,26 @@
             }
         }
 
+        // Date validations
+        const inputDate = new Date(fromDate);
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        inputDate.setHours(0, 0, 0, 0);
+
+        const daysDifference = Math.ceil((currentDate.getTime() - inputDate.getTime()) / (1000 * 3600 * 24));
+
+        if (daysDifference > 30) {
+            $('#formdateid').addClass('is-invalid');
+            $('#pastDateError').text('Cannot apply leave more than 30 days in the past').show();
+            hasError = true;
+        }
+
         if (hasError) {
             return;
         }
 
         try {
+            // Check for duplicate applications
             const duplicateResult = await checkDuplicateLeaveApplication(fromDate, toDate);
             if (duplicateResult.hasDuplicate) {
                 const duplicate = duplicateResult.duplicateLeaves[0];
@@ -1483,34 +1403,30 @@
                 return;
             }
 
-            if (isPastMonth(fromDate)) {
-                if (!isWithin30Days(fromDate)) {
-                    $('#formdateid').addClass('is-invalid');
-                    $('#pastDateError').show();
-                    return;
-                }
+            // Check salary processing for past months
+            if (inputDate < currentDate) {
+                const inputMonth = inputDate.getMonth();
+                const currentMonth = currentDate.getMonth();
+                const inputYear = inputDate.getFullYear();
+                const currentYear = currentDate.getFullYear();
 
-                const attendanceResult = await checkAttendanceForPastMonth(fromDate, toDate, Empid);
-                if (attendanceResult.isPresent) {
-                    $('#formdateid').addClass('is-invalid');
-                    $('#attendanceError').show();
-                    return;
-                }
-
-                const salaryResult = await checkSalaryProcessed(fromDate, Empid);
-                if (salaryResult.isProcessed) {
-                    $('#formdateid').addClass('is-invalid');
-                    $('#salaryError').text(`Cannot apply leave for ${salaryResult.month}/${salaryResult.year} as salary has already been processed`).show();
-                    return;
+                if (inputYear < currentYear || (inputYear === currentYear && inputMonth < currentMonth)) {
+                    const salaryResult = await checkSalaryProcessed(fromDate);
+                    if (salaryResult.isProcessed) {
+                        $('#formdateid').addClass('is-invalid');
+                        $('#salaryError').text(`Cannot apply leave for ${salaryResult.month}/${salaryResult.year} as salary has already been processed`).show();
+                        return;
+                    }
                 }
             }
 
+            // Prepare and submit data
             const payload = {
                 EmplooyeId: Empid,
                 CompId: Compid,
                 ReportingManagerId: parseInt($('#reportingManagerId').val()),
                 LeaveType: parseInt(leaveType),
-                ApplicationType: applicationType,
+                ApplicationType: 'Regular',
                 ApplicationDate: new Date(),
                 FromDate: fromDate,
                 Todate: toDate,
@@ -1557,6 +1473,7 @@
             });
 
         } catch (err) {
+            console.error('Submission error:', err);
             Swal.fire({
                 title: "Error",
                 text: "Unexpected error occurred while submitting",
@@ -1566,25 +1483,35 @@
         }
     }
 
-      function clearForm() {
+    function clearForm() {
+        // Reset all form fields
         $('#Leavetypeid').val('0');
-        $('input[name="leaveStatus"]').prop('checked', false);
         $('#formdateid').val('').prop('readonly', true);
         $('#todateid').val('').prop('readonly', true);
         $('#nodaysid').val('').prop('readonly', true);
         $('#resonid').val('');
         $('#responsibleid').val('');
         $('#halfDayType').val('');
+        $('#halfDayCheckbox').prop('checked', false);
+
+        // Hide conditional elements
         $('#halfDayTypeRow').hide();
+        $('#halfDayCheckboxRow').hide();
+        $('.form-section:has(#LeaveDetailsid)').hide();
+
+        // Remove validation messages and classes
         $('.form-control, .form-select').removeClass('is-invalid');
         $('.error-message').hide();
-        $('#halfDayCheckbox').prop('checked', false);
-        $('#halfDayCheckboxRow').hide();
-        $('#halfDayInfo').hide();
-        $('#halfDayValidationMessage').remove();
-    $('#lwpInfoMessage').remove()
+        $('#halfDayValidationMessage, #lwpInfoMessage, #compOffInfoMessage').remove();
 
-        $('.form-section:has(#LeaveDetailsid)').hide();
-         $('#Leavetypeid').trigger('change');
+        // Reset grid
+        const gridInstance = $("#LeaveDetailsid").dxDataGrid("instance");
+        if (gridInstance) {
+            gridInstance.dispose();
+        }
+        $("#LeaveDetailsid").html('Select date range to view leave details');
+
+        // Reset flags
+        gridCallInProgress = false;
     }
     </script>
