@@ -7,8 +7,7 @@ using System.Threading.Tasks;
 namespace HRMS_Core.VM.Employee
 {
     public class EmployeeInOutFilterVM
-    {
-        public int? BranchId { get; set; }
+    {   
         public int? EmpId { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
