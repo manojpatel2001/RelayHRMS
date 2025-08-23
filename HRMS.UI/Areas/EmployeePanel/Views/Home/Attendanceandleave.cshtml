@@ -1,5 +1,279 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@inject IConfiguration Configuration
 @{
+    ViewData["Title"] = "Attendance Register";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    .yellow-border {
+        border: 2px solid #ffc107;
+    }
+
+    .attendance-cell {
+        min-width: 40px;
+        padding: 5px;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .status-P {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    /* green */
+    .status-A {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .status-W {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-HO {
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .status-L {
+        background-color: #e2e3e5;
+        color: #383d41;
+    }
+
+    .bg-dark-blue {
+        background-color: #003366 !important;
+    }
+
+</style>
+ <div class="bg-light">
+
+    <div class="container-fluid mt-3">
+
+        <!-- Monthly Attendance Table -->
+        <div class="card mb-4 yellow-border">
+            <div class="card-header bg-dark-blue text-white">
+                <h5 class="mb-0">Monthly Attendance (Calendar View)</h5>
+            </div>
+            <div class="card-body">
+                <div id="monthlyAttendanceGrid" class="table-responsive"></div>
+                <div class="mt-3 d-flex justify-content-between flex-wrap">
+                 @*    <!-- Legend -->
+                    <div>
+                        <span class="badge bg-success me-2">P = Present</span>
+                        <span class="badge bg-danger me-2">A = Absent</span>
+                        <span class="badge bg-warning text-dark me-2">W = Week Off</span>
+                        <span class="badge bg-info text-dark me-2">HO = Holiday</span>
+                        <span class="badge bg-secondary me-2">L = Leave</span>
+                    </div> *@
+                    <!-- Summary -->
+                    <div id="attendanceSummary" class="fw-bold"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row">
+            <!-- Pie Chart 1 -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 yellow-border">
+                    <div class="card-header bg-dark-blue text-white">
+                        <h6 class="mb-0">Monthly Attendance (Pie)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="monthlyPie"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pie Chart 2 -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 yellow-border">
+                    <div class="card-header bg-dark-blue text-white">
+                        <h6 class="mb-0">View Graph (Hours)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="hoursPie"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Yearly Leave Balance -->
+            <div class="col-lg-4 col-md-12 mb-4">
+                <div class="card h-100 yellow-border">
+                    <div class="card-header bg-dark-blue text-white">
+                        <h6 class="mb-0">Yearly Leave Balance</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="leaveBalanceChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    </div>
+
+    <script>
+
+
+
+        $(document).ready(function () {
+
+
+                const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth(); // 0-11 (August is 7)
+    const startDate = new Date(currentYear, currentMonth, 1);
+    const formattedStartDate = startDate.toISOString().split('T')[0]; // "2025-08-01"
+    const endDate = new Date(currentYear, currentMonth + 1, 0);
+    const formattedEndDate = endDate.toISOString().split('T')[0];
+        const Empid = parseInt(localStorage.getItem("EmployeeId"));
+    const EmployeeIds = Empid ? [Empid] : [];
+
+        const request = {
+      StartDate: formattedStartDate,
+      EndDate: formattedEndDate,
+      EmployeeIds: EmployeeIds,
+    };
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/EmployeeReportAPI/Attendencereport")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(request),
+                success: function (res) {
+                    if (!res || !res.data || res.data.length === 0) {
+                        $('#attendanceSummary').html('<p class="text-danger">No attendance records found.</p>');
+                        return;
+                    }
+                    renderAttendanceTable(res.data);
+                    renderCharts(res.data);
+                },
+                error: function () {
+                    Swal.fire('Error', 'Something went wrong while fetching data.', 'error');
+                }
+            });
+
+            function renderAttendanceTable(data) {
+            const dayRow = data[0];
+            const dayKeys = Object.keys(dayRow.days).sort((a, b) => parseInt(a) - parseInt(b));
+
+            const formatDate = (dateStr) => {
+                const [yyyy, mm, dd] = dateStr.split("-");
+                return `${dd}-${mm}-${yyyy}`;
+            };
+            const today = formatDate(new Date().toISOString().split('T')[0]);
+
+            let html = `<div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th class="text-nowrap">Branch</th>
+                            <th class="text-nowrap">Emp Code</th>
+                            <th class="text-nowrap" style="min-width: 180px;">Employee</th>`;
+
+            dayKeys.forEach(day => {
+                const dayLabel = `${day} (${dayRow.days[day]})`;
+                html += `<th class="text-center" style="min-width: 45px;">${dayLabel}</th>`;
+            });
+
+            html += `
+                <th class="text-nowrap">Total P</th>
+                <th class="text-nowrap">Total A</th>
+                <th class="text-nowrap">Total W</th>
+                <th class="text-nowrap">Total L</th>
+                <th class="text-nowrap">Total H</th>
+            </tr>
+            </thead>
+            <tbody>`;
+
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                html += `<tr>
+                    <td>${row.branchName ?? ''}</td>
+                    <td>${row.employeeCode ?? ''}</td>
+                    <td>${row.fullName ?? ''}</td>`;
+
+                dayKeys.forEach(day => {
+                    const value = row.days?.[day] ?? '';
+                    const redClass = value === 'A' ? 'text-danger fw-bold' : '';
+                    html += `<td class="text-center ${redClass}">${value}</td>`;
+                });
+
+                html += `
+                    <td class="text-center">${row.p ?? 0}</td>
+                    <td class="text-center text-danger">${row.a ?? 0}</td>
+                    <td class="text-center">${row.w ?? 0}</td>
+                    <td class="text-center">${row.l ?? 0}</td>
+                    <td class="text-center">${row.h ?? 0}</td>
+                </tr>`;
+            }
+
+                html += `</tbody></table></div>`;
+                $('#monthlyAttendanceGrid').html(html);
+            }
+
+            function renderCharts(data) {
+                let totals = { present: 0, leave: 0, weekOff: 0, holiday: 0 };
+                data.forEach(row => {
+                    totals.present += row.p ?? 0;
+                    totals.leave += row.l ?? 0;
+                    totals.weekOff += row.w ?? 0;
+                    totals.holiday += row.h ?? 0;
+                });
+
+                // Pie Chart 1 - Monthly Attendance
+                $("#monthlyPie").dxPieChart({
+                    dataSource: [
+                        { category: "Present", value: totals.present },
+                        { category: "Leave", value: totals.leave },
+                        { category: "Week Off", value: totals.weekOff },
+                        { category: "Holiday", value: totals.holiday }
+                    ],
+                    series: [{ argumentField: "category", valueField: "value", label: { visible: true } }],
+                    legend: { visible: true }
+                });
+
+                // Pie Chart 2 - Hours (Dummy Example)
+                $("#hoursPie").dxPieChart({
+                    dataSource: [
+                        { category: "Reqd Hrs Till Today", value: 63 },
+                        { category: "Surplus Hrs", value: 3 },
+                        { category: "Short Hrs", value: 1.3 }
+                    ],
+                    series: [{ argumentField: "category", valueField: "value", label: { visible: true } }],
+                    legend: { visible: true }
+                });
+
+                // Yearly Leave Balance Chart (Dummy Example)
+                $("#leaveBalanceChart").dxChart({
+                    dataSource: [
+                        { month: "Jan", credit: 2, debit: 1 },
+                        { month: "Feb", credit: 2, debit: 1 },
+                        { month: "Mar", credit: 3, debit: 1 },
+                        { month: "Apr", credit: 2, debit: 2 },
+                        { month: "May", credit: 2, debit: 1 },
+                        { month: "Jun", credit: 3, debit: 2 },
+                        { month: "Jul", credit: 2, debit: 1 },
+                        { month: "Aug", credit: 2, debit: 1 },
+                        { month: "Sep", credit: 3, debit: 1 },
+                        { month: "Oct", credit: 10, debit: 8 },
+                        { month: "Nov", credit: 5, debit: 2 },
+                        { month: "Dec", credit: 3, debit: 1 }
+                    ],
+                    commonSeriesSettings: { argumentField: "month", type: "bar" },
+                    series: [
+                        { valueField: "credit", name: "Leave Credit" },
+                        { valueField: "debit", name: "Leave Debit" }
+                    ],
+                    legend: { visible: true }
+                });
+            }
+        });
+    </script>

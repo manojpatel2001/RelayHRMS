@@ -21,5 +21,6 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View();
         }
+      
     }
 }

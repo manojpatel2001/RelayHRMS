@@ -29,6 +29,6 @@ namespace HRMS_Core.VM.Employee
         public decimal? MonthlyBasic { get; set; }
 
         // Uncomment if Reporting Manager is required
-        // public string ReportingManagerName { get; set; }
+       //// public string ReportingManagerName { get; set; }
     }
 }

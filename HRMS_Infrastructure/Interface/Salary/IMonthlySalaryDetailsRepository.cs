@@ -17,6 +17,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<VMCommonResult> CreateSalaryDetails(MonthlySalaryRequestViewModel vm);
         Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm);
         Task<List<SalaryDetailViewModel>> GetSalaryDetails(SalaryDetailsParameterVm vm);
+        Task<List<SalaryDetailViewModel>>  GetSalarySlip(salaryslipParam vm);
         Task<SalaryDetailForGetById?> GetBySalaryDetailsId(List<int> Ids);
         Task<VMCommonResult> DeleteSalaryDetails(DeleteRecordVModel deleteRecordVM);
 

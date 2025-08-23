@@ -20,5 +20,9 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<AttendanceRegularizationVM>> GetAttendanceRegularization(AttendanceRegularizationSearchFilterVM attendance);
         Task<bool> Update(AttendanceRegularization Record ,int empInOutId);
         Task<List<EmpInOutVM>> GetEmployeeInOut( int? EmpId , DateTime? ForDate);
+        Task<VMCommonResult> Create(AttendanceRegularization model);
+        Task<VMCommonResult> Update(AttendanceRegularization model);
+        Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord);
+        Task<List<AttendanceDetails>>  GetAttendanceDetails(EmployeeInOutFilterVM outFilterVM);
     }
 }
