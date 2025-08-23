@@ -238,7 +238,7 @@ function closeNotificationDropdown() {
 
 async function redirectPage(pageUrl,notificationType)
 {
-    if (notificationType == "Leave Approval" || notificationType =="CompOff Approval")
+    if (notificationType == "Leave Approval" || notificationType == "CompOff Approval" || notificationType =="Attendance Approval")
     {
         await readNotification(notificationType);
     }
@@ -298,6 +298,13 @@ function updateNotificationList(notificationDetails) {
             case 'CompOff Approval':
                 href = '/EmployeePanel/CompOffApplication/Index';
                 break;
+            case 'Attendance Application':
+                href = '/EmployeePanel/Leave/Attendance';
+                break;
+            case 'Attendance Approval':
+                href = '/EmployeePanel/Leave/AddAttendance';
+                break;
+
             default:
                 href = '#'; // Default fallback
         }
