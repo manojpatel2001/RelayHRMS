@@ -16,5 +16,6 @@ namespace HRMS_Infrastructure.Interface.Notifications
         Task<NotificationRemainders?> GetNotificationRemainderById(int notificationRemainderId);
         Task<SP_Response> CreateNotificationRemainder(NotificationRemainders notificationRemainder);
         Task<SP_Response> ReadNotificationRemainder(vmReadNotificationRemainder vmReadNotificationRemainder);
+        Task<SP_Response> UpdateNotificationRemainder(NotificationRemainders notificationRemainder);
     }
 }

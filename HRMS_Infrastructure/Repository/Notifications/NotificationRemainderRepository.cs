@@ -93,5 +93,25 @@ namespace HRMS_Infrastructure.Repository.Notifications
                 return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
+
+        public async Task<SP_Response> UpdateNotificationRemainder(NotificationRemainders notificationRemainder)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>()
+                    .FromSqlInterpolated($@"
+                        EXEC ManageNotificationRemainder
+                            @Action = {"UPDATE"},
+                            @SenderId = {notificationRemainder.SenderId},
+                            @NotificationType = {notificationRemainder.NotificationType}
+                    ")
+                    .ToListAsync();
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
     }
 }
