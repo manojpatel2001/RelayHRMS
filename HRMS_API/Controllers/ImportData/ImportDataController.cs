@@ -642,24 +642,24 @@ public class ImportDataController : ControllerBase
                 return (false, false, true, CreateErrorRow(rowIndex, "Employee not found or inactive", empStr, "Enter Valid Employee Code", type));
             }
 
-            var Leave = await _unitOfWork.LeaveMasterRepository.GetAsync(x => x.Leave_Type.ToLower() == leaveStr.ToLower() && x.IsEnabled == true && x.IsDeleted != true);
+            //var Leave = await _unitOfWork.LeaveMasterRepository.GetAsync(x => x.Leave_Type.ToLower() == leaveStr.ToLower() && x.IsEnabled == true && x.IsDeleted != true);
 
-            if (Leave == null)
-            {
-                return (false, false, true, CreateErrorRow(rowIndex, "Invalid Leave Type", leaveStr, "Enter valid Leave", type));
+            //if (Leave == null)
+            //{
+            //    return (false, false, true, CreateErrorRow(rowIndex, "Invalid Leave Type", leaveStr, "Enter valid Leave", type));
 
-            }
-            var exists = await _unitOfWork.LeaveOpeningRepository.GetAsync(x => x.EMP_Id == emp.Id && x.comp_id == emp.CompanyId && x.LeaveId == Leave.Leave_TypeId && x.IsEnabled == true && x.IsDeleted != true);
-            if (exists != null)
-            {
-                return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Leave", empStr, "Enter unique Leave.", type));
+            ////}
+            //var exists = await _unitOfWork.LeaveOpeningRepository.GetAsync(x => x.EMP_Id == emp.Id && x.comp_id == emp.CompanyId && x.LeaveId == Leave.Leave_TypeId && x.IsEnabled == true && x.IsDeleted != true);
+            //if (exists != null)
+            //{
+            //    return (false, true, false, CreateErrorRow(rowIndex, "Duplicate Leave", empStr, "Enter unique Leave.", type));
 
-            }
+            //}
 
             await _unitOfWork.LeaveOpeningRepository.AddAsync(new LeaveOpening
             {
                 EMP_Id = emp.Id,
-                LeaveId = Leave.Leave_TypeId,
+                //LeaveId = Leave.Leave_TypeId,
                 Opening = decimal.TryParse(row[2]?.ToString(), out decimal pf) ? pf : (decimal?)null,
                 Grade = row[3]?.ToString(),
                 EffectiveDate = DateTime.TryParse(row[4]?.ToString(), out DateTime effDate) ? effDate : (DateTime?)null,          

@@ -16,11 +16,6 @@ namespace HRMS_Core.Leave
         public int? Leave_TypeId { get; set; }
         public int? Comp_Id { get; set; }
         public string? Leave_Name { get; set; }
-        public string? Leave_Type { get; set; }
-        public string? Leave_Paid_Unpaid { get; set; }
-
-        public string? TotalLeave { get; set; }
-        public string? Carry_forword_leave { get; set; }
 
     }
 }
