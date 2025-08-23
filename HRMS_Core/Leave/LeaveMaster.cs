@@ -15,6 +15,7 @@ namespace HRMS_Core.Leave
         [Key]
         public int? Leave_TypeId { get; set; }
         public int? Comp_Id { get; set; }
+        public string? LeaveType { get; set; }
         public string? Leave_Name { get; set; }
 
     }
