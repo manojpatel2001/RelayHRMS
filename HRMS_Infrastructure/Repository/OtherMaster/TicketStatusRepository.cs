@@ -3,38 +3,43 @@ using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace HRMS_Infrastructure.Repository.TicketManagement
+namespace HRMS_Infrastructure.Repository.OtherMaster
 {
-    public class TicketPriorityRepository : ITicketPriorityRepository
+    public class TicketStatusRepository : ITicketStatusRepository
     {
         private readonly HRMSDbContext _db;
 
-        public TicketPriorityRepository(HRMSDbContext db)
+        public TicketStatusRepository(HRMSDbContext db)
         {
             _db = db;
         }
 
-        public async Task<List<TicketPriority>> GetAllTicketPriority(int companyId)
+        public async Task<List<TicketStatus>> GetAllTicketStatus()
         {
             try
             {
-                return await _db.Set<TicketPriority>()
-                    .FromSqlInterpolated($"EXEC GetAllTicketPriority @CompanyId = {companyId}")
+                return await _db.Set<TicketStatus>()
+                    .FromSqlInterpolated($"EXEC GetAllTicketStatus")
                     .ToListAsync();
             }
             catch
             {
-                return new List<TicketPriority>();
+                return new List<TicketStatus>();
             }
         }
 
-        public async Task<TicketPriority?> GetTicketPriorityById(int ticketPriorityId)
+        public async Task<TicketStatus?> GetTicketStatusById(int ticketStatusId)
         {
             try
             {
-                var result = await _db.Set<TicketPriority>()
-                    .FromSqlInterpolated($"EXEC GetTicketPriorityById @TicketPriorityId = {ticketPriorityId}")
+                var result = await _db.Set<TicketStatus>()
+                    .FromSqlInterpolated($"EXEC GetTicketStatusById @TicketStatusId = {ticketStatusId}")
                     .ToListAsync();
                 return result.FirstOrDefault();
             }
@@ -44,17 +49,16 @@ namespace HRMS_Infrastructure.Repository.TicketManagement
             }
         }
 
-        public async Task<SP_Response> CreateTicketPriority(TicketPriority ticketPriority)
+        public async Task<SP_Response> CreateTicketStatus(TicketStatus ticketStatus)
         {
             try
             {
                 var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
-                    EXEC ManageTicketPriority
+                    EXEC ManageTicketStatus
                         @Action = {"CREATE"},
-                        @TicketPriorityName = {ticketPriority.TicketPriorityName},
-                        @EscalationHours = {ticketPriority.EscalationHours},
-                        @CompanyId = {ticketPriority.CompanyId},
-                        @CreatedBy = {ticketPriority.CreatedBy}
+                        @TicketStatusName = {ticketStatus.TicketStatusName},
+                        @IsEnabled = {ticketStatus.IsEnabled},
+                        @IsDeleted = {ticketStatus.IsDeleted}
                 ").ToListAsync();
                 return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
             }
@@ -64,18 +68,16 @@ namespace HRMS_Infrastructure.Repository.TicketManagement
             }
         }
 
-        public async Task<SP_Response> UpdateTicketPriority(TicketPriority ticketPriority)
+        public async Task<SP_Response> UpdateTicketStatus(TicketStatus ticketStatus)
         {
             try
             {
                 var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
-                    EXEC ManageTicketPriority
+                    EXEC ManageTicketStatus
                         @Action = {"UPDATE"},
-                        @TicketPriorityId = {ticketPriority.TicketPriorityId},
-                        @TicketPriorityName = {ticketPriority.TicketPriorityName},
-                        @EscalationHours = {ticketPriority.EscalationHours},
-                        @CompanyId = {ticketPriority.CompanyId},
-                        @UpdatedBy = {ticketPriority.UpdatedBy}
+                        @TicketStatusId = {ticketStatus.TicketStatusId},
+                        @TicketStatusName = {ticketStatus.TicketStatusName},
+                        @IsEnabled = {ticketStatus.IsEnabled}
                 ").ToListAsync();
                 return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
             }
@@ -85,15 +87,14 @@ namespace HRMS_Infrastructure.Repository.TicketManagement
             }
         }
 
-        public async Task<SP_Response> DeleteTicketPriority(DeleteRecordVM deleteRecord)
+        public async Task<SP_Response> DeleteTicketStatus(DeleteRecordVM deleteRecord)
         {
             try
             {
                 var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
-                    EXEC ManageTicketPriority
+                    EXEC ManageTicketStatus
                         @Action = {"DELETE"},
-                        @TicketPriorityId = {deleteRecord.Id},
-                        @UpdatedBy = {deleteRecord.DeletedBy}
+                        @TicketStatusId = {deleteRecord.Id}
                 ").ToListAsync();
                 return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
             }
@@ -102,5 +103,7 @@ namespace HRMS_Infrastructure.Repository.TicketManagement
                 return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
+
+       
     }
 }

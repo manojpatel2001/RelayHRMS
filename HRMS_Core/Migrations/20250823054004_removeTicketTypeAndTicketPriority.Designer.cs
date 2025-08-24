@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250823054004_removeTicketTypeAndTicketPriority")]
+    partial class removeTicketTypeAndTicketPriority
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2127,6 +2130,9 @@ namespace HRMS_Core.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int?>("Leave_TypeId"));
 
+                    b.Property<string>("Carry_forword_leave")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("Comp_Id")
                         .HasColumnType("int");
 
@@ -2151,10 +2157,16 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("IsEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<string>("LeaveType")
+                    b.Property<string>("Leave_Name")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Leave_Name")
+                    b.Property<string>("Leave_Paid_Unpaid")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Leave_Type")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TotalLeave")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UpdatedBy")
