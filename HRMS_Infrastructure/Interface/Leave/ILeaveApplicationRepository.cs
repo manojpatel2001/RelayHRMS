@@ -21,6 +21,7 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<SP_Response> Updateapproval(LeaveaprovalVM LVM);
         Task<bool> softdelete(LeaveApplication Leave);
         Task<LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId);
+        Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(int EmpId, int Month, int Year);
 
 
     }

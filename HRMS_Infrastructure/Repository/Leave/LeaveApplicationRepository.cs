@@ -275,5 +275,20 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
+        public async Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(int EmpId, int Month, int Year)
+        {
+            try
+            {
+                var result = await _db.Set<YearlyLeaveReportViewModel>()
+                    .FromSqlInterpolated($"EXEC GetYearlyLeaveReport @EmpId = {EmpId}, @Year = {Year}, @Month = {Month}")
+                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetYearlyLeaveReport Error: " + ex.Message);
+                return new List<YearlyLeaveReportViewModel>();
+            }
+        }
     }
 }
