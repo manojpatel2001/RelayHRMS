@@ -10,21 +10,21 @@ namespace HRMS_API.Controllers.TicketManagement
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class TicketPriorityAPIController : ControllerBase
+    public class TicketStatusAPIController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
 
-        public TicketPriorityAPIController(IUnitOfWork unitOfWork)
+        public TicketStatusAPIController(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }
 
-        [HttpGet("GetAllTicketPriority/{companyId}")]
-        public async Task<APIResponse> GetAllTicketPriority(int companyId)
+        [HttpGet("GetAllTicketStatus")]
+        public async Task<APIResponse> GetAllTicketStatus()
         {
             try
             {
-                var data = await _unitOfWork.TicketPriorityRepository.GetAllTicketPriority(companyId);
+                var data = await _unitOfWork.TicketStatusRepository.GetAllTicketStatus();
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
                 return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
@@ -35,12 +35,12 @@ namespace HRMS_API.Controllers.TicketManagement
             }
         }
 
-        [HttpGet("GetTicketPriorityById/{ticketPriorityId}")]
-        public async Task<APIResponse> GetTicketPriorityById(int ticketPriorityId)
+        [HttpGet("GetTicketStatusById/{ticketStatusId}")]
+        public async Task<APIResponse> GetTicketStatusById(int ticketStatusId)
         {
             try
             {
-                var data = await _unitOfWork.TicketPriorityRepository.GetTicketPriorityById(ticketPriorityId);
+                var data = await _unitOfWork.TicketStatusRepository.GetTicketStatusById(ticketStatusId);
                 if (data == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Record not found." };
                 return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully." };
@@ -51,15 +51,15 @@ namespace HRMS_API.Controllers.TicketManagement
             }
         }
 
-        [HttpPost("CreateTicketPriority")]
-        public async Task<APIResponse> CreateTicketPriority([FromBody] TicketPriority model)
+        [HttpPost("CreateTicketStatus")]
+        public async Task<APIResponse> CreateTicketStatus([FromBody] TicketStatus model)
         {
             try
             {
                 if (model == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Ticket priority details cannot be null." };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Ticket status details cannot be null." };
 
-                var result = await _unitOfWork.TicketPriorityRepository.CreateTicketPriority(model);
+                var result = await _unitOfWork.TicketStatusRepository.CreateTicketStatus(model);
                 if (result.Success > 0)
                 {
                     return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
@@ -72,15 +72,15 @@ namespace HRMS_API.Controllers.TicketManagement
             }
         }
 
-        [HttpPut("UpdateTicketPriority")]
-        public async Task<APIResponse> UpdateTicketPriority([FromBody] TicketPriority ticketPriority)
+        [HttpPut("UpdateTicketStatus")]
+        public async Task<APIResponse> UpdateTicketStatus([FromBody] TicketStatus ticketStatus)
         {
             try
             {
-                if (ticketPriority == null || ticketPriority.TicketPriorityId == 0)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Ticket priority details cannot be null." };
+                if (ticketStatus == null || ticketStatus.TicketStatusId == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Ticket status details cannot be null." };
 
-                var result = await _unitOfWork.TicketPriorityRepository.UpdateTicketPriority(ticketPriority);
+                var result = await _unitOfWork.TicketStatusRepository.UpdateTicketStatus(ticketStatus);
                 if (result.Success > 0)
                 {
                     return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
@@ -93,15 +93,15 @@ namespace HRMS_API.Controllers.TicketManagement
             }
         }
 
-        [HttpDelete("DeleteTicketPriority")]
-        public async Task<APIResponse> DeleteTicketPriority([FromBody] DeleteRecordVM model)
+        [HttpDelete("DeleteTicketStatus")]
+        public async Task<APIResponse> DeleteTicketStatus([FromBody] DeleteRecordVM model)
         {
             try
             {
                 if (model == null || model.Id == 0)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
 
-                var result = await _unitOfWork.TicketPriorityRepository.DeleteTicketPriority(model);
+                var result = await _unitOfWork.TicketStatusRepository.DeleteTicketStatus(model);
                 if (result.Success > 0)
                 {
                     return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };

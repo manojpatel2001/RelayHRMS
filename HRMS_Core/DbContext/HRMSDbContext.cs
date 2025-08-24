@@ -57,8 +57,7 @@ namespace HRMS_Core.DbContext
         public DbSet<ShiftBreak> ShiftBreaks { get; set; }
 
         public DbSet<OrganizationPolicy> OrganizationPolicy { get; set; }
-        public DbSet<TicketType> TicketType { get; set; }
-        public DbSet<TicketPriority> TicketPriority { get; set; }
+        
         public DbSet<BankMaster> BankMaster { get; set; }
         public DbSet<WeekOffDetails> WeekOffDetails { get; set; }
         public DbSet<HolidayMaster> HolidayMaster { get; set; }
@@ -218,6 +217,9 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<LeaveBalanceViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<ActiveLeaveDetailsvm>().HasNoKey().ToView(null);
             modelBuilder.Entity<AttendanceDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<TicketType>().HasNoKey().ToView(null);
+            modelBuilder.Entity<TicketPriority>().HasNoKey().ToView(null);
+            modelBuilder.Entity<TicketStatus>().HasNoKey().ToView(null);
 
 
 

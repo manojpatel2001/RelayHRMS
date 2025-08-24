@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HRMS_Core.Ticket
+namespace HRMS_Core.Master.OtherMaster
 {
     public class TicketStatus
     {
@@ -13,37 +13,10 @@ namespace HRMS_Core.Ticket
         public bool? IsEnabled { get; set; } = true;
         public bool? IsDeleted { get; set; } = false;
     }
-    public class TicketType
-    {
-        public int TicketTypeId {  get; set; }
-        public string? TicketTypeName {  get; set; }
-        public int? DepartmentId {  get; set; }
-        public int? CompanyId {  get; set; }
-        public bool? IsEnabled { get; set; } = true;
-        public bool? IsDeleted { get; set; } = false;
-        public string? CreatedBy { get; set; }
-        public DateTime? CreatedDate { get; set; }
-        public string? DeletedBy { get; set; }
-        public DateTime? DeletedDate { get; set; }
-        public string? UpdatedBy { get; set; }
-        public DateTime? UpdatedDate { get; set; }
-    }
+      
+    
 
-    public class TicketPriority
-    {
-        public int TicketPriorityId { get; set; }
-        public string? TicketPriorityName { get; set; }
-        public string? EscalationHours { get; set; }
-        public int? CompanyId { get; set; }
-        public bool? IsEnabled { get; set; } = true;
-        public bool? IsDeleted { get; set; } = false;
-        public string? CreatedBy { get; set; }
-        public DateTime? CreatedDate { get; set; }
-        public string? DeletedBy { get; set; }
-        public DateTime? DeletedDate { get; set; }
-        public string? UpdatedBy { get; set; }
-        public DateTime? UpdatedDate { get; set; }
-    }
+    
     public class TicketApplication
     {
         public int TicketApplicationId { get; set; }
