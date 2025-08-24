@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.Leave;
+using HRMS_Core.VM.Leave;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,6 @@ namespace HRMS_Infrastructure.Interface.Leave
 {
     public interface ILeaveMasterRepository:IRepository<LeaveMaster>
     {
-
+        Task<List<LeaveMaster>> GetLeaveMaster(int CompId);
     }
 }
