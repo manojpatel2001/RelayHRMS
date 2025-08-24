@@ -132,7 +132,7 @@ namespace HRMS_Infrastructure.Repository.Leave
 
         }
 
-        public async Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveApp_Param vm)
+        public async Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveBalance_Param vm)
         {
             try
             {
@@ -275,23 +275,5 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<List<ActiveLeaveDetailsvm>> GetActiveLeaveDetails()
-        {
-            try
-            {
-              
-                var result = await _db.Set<ActiveLeaveDetailsvm>()
-                    .FromSqlRaw("EXEC GetActiveLeaveDetails" )
-                    .ToListAsync();
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("GetActiveLeaveDetails Error: " + ex.Message);
-                return new List<ActiveLeaveDetailsvm>();
-            }
-
-        }
     }
 }
