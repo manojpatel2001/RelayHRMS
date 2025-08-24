@@ -97,6 +97,7 @@ namespace HRMS_Infrastructure.Interface
         ILeftEmployeeRepository leftEmployeeRepository { get; }
         IUserPermissionRepository UserPermissionRepository { get; }
         INotificationRemainderRepository NotificationRemainderRepository { get; }
+        ITicketStatusRepository TicketStatusRepository { get; }
         void Commit();
         Task CommitAsync();
     }

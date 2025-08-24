@@ -221,6 +221,7 @@
             $("#drpCompanyInformationMenu").show();
             $("#AddCompanyDetails").show();
             $("#companyInfo").show();
+            $(".liTicketStatus").show();
         }
 
         if (roleSlug == "ess" || roleSlug == "admin")
