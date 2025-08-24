@@ -121,6 +121,11 @@ namespace HRMS_Infrastructure.Repository
             NotificationRemainderRepository = new NotificationRemainderRepository(_dbContext);
             TicketStatusRepository = new TicketStatusRepository(_dbContext);
 
+            employeeProfileSkillRepository = new EmployeeProfileSkillRepository(_dbContext);
+            employeeProfileEducationRepository = new EmployeeProfileEducationRepository(_dbContext);
+            employeeProfileExperienceRepository = new EmployeeProfileExperienceRepository(_dbContext);
+            employeeProfileLanguageRepository = new EmployeeProfileLanguageRepository(_dbContext);
+
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -213,6 +218,12 @@ namespace HRMS_Infrastructure.Repository
         public IUserPermissionRepository UserPermissionRepository { get; set; }
         public INotificationRemainderRepository NotificationRemainderRepository { get; set; }
         public ITicketStatusRepository TicketStatusRepository { get; set; }
+
+
+        public IEmployeeProfileSkillRepository employeeProfileSkillRepository { get; set; }
+        public IEmployeeProfileEducationRepository employeeProfileEducationRepository { get; set; }
+        public IEmployeeProfileExperienceRepository employeeProfileExperienceRepository { get; set; }
+        public IEmployeeProfileLanguageRepository employeeProfileLanguageRepository { get; set; }
 
         public void Commit()
         {
