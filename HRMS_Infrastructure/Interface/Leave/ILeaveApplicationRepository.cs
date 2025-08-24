@@ -16,12 +16,12 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<List<VmLeaveApplicationforApprove>> GetLeaveApplicationsforApprove(SearchVmCompOff filter);
         Task<List<VmLeaveApplicationforApprove>> GetLeaveApplicationsforApproveAdmin(SearchVmCompOff filter);
         Task<List<LeaveTypevm>> GetLeaveDetails(LeaveDetailsvm vm);
-        Task<List<ActiveLeaveDetailsvm>> GetActiveLeaveDetails();
         Task<List<LeaveApprovalReportVM>> GetLeaveApproval(LeaveApp_Param vm);
-        Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveApp_Param vm);
-        Task<bool> Updateapproval(List<int> applicationid, string status,DateTime Date);
+        Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveBalance_Param vm);
+        Task<SP_Response> Updateapproval(LeaveaprovalVM LVM);
         Task<bool> softdelete(LeaveApplication Leave);
         Task<LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId);
+        Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(int EmpId, int Month, int Year);
 
 
     }

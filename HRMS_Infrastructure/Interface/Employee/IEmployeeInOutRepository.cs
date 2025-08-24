@@ -21,7 +21,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<AttendanceInOutReportVM>> AttendanceMultipleInOutReport(int empid, string Month, string Year);
         Task<List<AttendanceInOutReportVM>> AttendancefirstInOutReport(int empid, string Month, string Year);
         Task<List<EmployeeInOutReportVM>> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM);
-        Task<List<EmployeeInOutReportVM>> GetEmployeeInOutReportForAdmin(EmployeeInOutFilterVM outFilterVM);
         Task<bool> UpdateEmployeeOutTimeAsync(int empId, DateTime forDate, DateTime outTime, string updatedBy);
         Task<VMCommonResult> UpdateAttendanceDetails(AttendanceDetailsViewModel model);
         Task<List<vmGetMonthlyAttendanceDetails>> GetMonthlyAttendanceDetails(vmInOutParameter vmInOutParameter);

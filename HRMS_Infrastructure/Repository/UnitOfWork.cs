@@ -26,6 +26,7 @@ using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
 using HRMS_Infrastructure.Repository.Salary;
 using HRMS_Infrastructure.Repository.SuperAdmin;
+using HRMS_Infrastructure.Repository.TicketManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -118,6 +119,7 @@ namespace HRMS_Infrastructure.Repository
             leftEmployeeRepository = new LeftEmployeeRepository(_dbContext);
             UserPermissionRepository = new UserPermissionRepository(_dbContext);
             NotificationRemainderRepository = new NotificationRemainderRepository(_dbContext);
+            TicketStatusRepository = new TicketStatusRepository(_dbContext);
 
             employeeProfileSkillRepository = new EmployeeProfileSkillRepository(_dbContext);
             employeeProfileEducationRepository = new EmployeeProfileEducationRepository(_dbContext);
@@ -215,6 +217,7 @@ namespace HRMS_Infrastructure.Repository
         public ILeftEmployeeRepository leftEmployeeRepository { get; set; }
         public IUserPermissionRepository UserPermissionRepository { get; set; }
         public INotificationRemainderRepository NotificationRemainderRepository { get; set; }
+        public ITicketStatusRepository TicketStatusRepository { get; set; }
 
 
         public IEmployeeProfileSkillRepository employeeProfileSkillRepository { get; set; }

@@ -19,6 +19,10 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View();
         }
+        public IActionResult TicketStatus()
+        {
+            return View();
+        }
         public IActionResult PunchInLocation()
         {
             return View();

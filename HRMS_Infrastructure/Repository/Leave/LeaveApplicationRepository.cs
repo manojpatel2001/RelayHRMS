@@ -132,7 +132,7 @@ namespace HRMS_Infrastructure.Repository.Leave
 
         }
 
-        public async Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveApp_Param vm)
+        public async Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveBalance_Param vm)
         {
             try
             {
@@ -234,36 +234,31 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<bool> Updateapproval(List<int> applicationid, string status, DateTime Date)
+        public async Task<SP_Response> Updateapproval(LeaveaprovalVM LVM)
         {
-           
             try
             {
-                foreach (var id in applicationid)
-                {
-                    var parameters = new[]
-                    {
-                        new SqlParameter("@ApplicationId", id),
-                        new SqlParameter("@LeaveStatus", status),
-                        new SqlParameter("@ApproveDate", Date)
-                    };
+                string idsString = string.Join(",", LVM.Ids);
+                
+                    var result = await _db.Set<SP_Response>()
+                        .FromSqlInterpolated($@"
+                       EXEC SP_LeaveApproveReject
+                        @ApplicationIds = {idsString},
+                        @LeaveStatus = {LVM.Status},
+                        @ApproveDate = {LVM.Date},
+                         @EmployeeId={LVM.EmployeeId.ToString()}
+                       ")
+                        .ToListAsync();
 
-                    await _db.Database.ExecuteSqlRawAsync(
-                        "EXEC SP_LeaveApproveReject @ApplicationId, @LeaveStatus,@ApproveDate",
-                        parameters
-                    );
-                }
 
-                return true;
+                return result.FirstOrDefault()??new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong" };
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error during SP call: " + ex.Message);
-                return false;
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
-        
-
         }
+
 
         public async Task<LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId)
         {
@@ -280,23 +275,20 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<List<ActiveLeaveDetailsvm>> GetActiveLeaveDetails()
+        public async Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(int EmpId, int Month, int Year)
         {
             try
             {
-              
-                var result = await _db.Set<ActiveLeaveDetailsvm>()
-                    .FromSqlRaw("EXEC GetActiveLeaveDetails" )
+                var result = await _db.Set<YearlyLeaveReportViewModel>()
+                    .FromSqlInterpolated($"EXEC GetYearlyLeaveReport @EmpId = {EmpId}, @Year = {Year}, @Month = {Month}")
                     .ToListAsync();
-
                 return result;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("GetActiveLeaveDetails Error: " + ex.Message);
-                return new List<ActiveLeaveDetailsvm>();
+                Console.WriteLine("GetYearlyLeaveReport Error: " + ex.Message);
+                return new List<YearlyLeaveReportViewModel>();
             }
-
         }
     }
 }

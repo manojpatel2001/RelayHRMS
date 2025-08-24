@@ -67,14 +67,14 @@ namespace HRMS_API.Controllers.Leave
                 if (savedNotification.Success > 0)
                 {
                     notification.NotificationRemainderId = savedNotification.Success;
-                    var reprtingConnection = NotificationRemainderConnectionManager.GetConnection(COA.Rep_Person_Id.ToString());
-                    if (!string.IsNullOrEmpty(reprtingConnection))
+                    var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(COA.Rep_Person_Id.ToString());
+                    if (reprtingConnection.Any())
                     {
-                        await _hubContext.Clients.Client(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                        await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
                     }
                 }
 
-                return new APIResponse { isSuccess = true, ResponseMessage = "Records Added successfully." };
+                return new APIResponse { isSuccess = true, ResponseMessage = isSaved.ResponseMessage };
             }
             catch (Exception ex)
             {
@@ -95,11 +95,10 @@ namespace HRMS_API.Controllers.Leave
                     return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input." };
                 }
 
-                var isSaved = await _unitOfWork.CompOffDetailsRepository.Updateapproval(ARVM.CompoffIds, ARVM.Status);
+                var isSaved = await _unitOfWork.CompOffDetailsRepository.UpdateCompOffApproval(ARVM);
 
-                if (!isSaved)
-                    return new APIResponse 
-                    { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
+                if (isSaved.Success<1)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
 
 
                 if(ARVM.Status== "Approved")
@@ -107,10 +106,41 @@ namespace HRMS_API.Controllers.Leave
                     var leavemanage = await _unitOfWork.CompOffDetailsRepository.UpdateLeaveManger(ARVM.CompoffIds, ARVM.Status);
                     if (!leavemanage)
                         return new APIResponse
-                        { isSuccess = false, ResponseMessage = "Failed to update leave details." };
+                        { isSuccess = false, ResponseMessage = isSaved.ResponseMessage };
                 }
-               
-                return new APIResponse { isSuccess = true, ResponseMessage = "Records updated successfully." };
+
+
+                //Notification send to employee person
+                foreach (var applicationId in ARVM.CompoffIds)
+                {
+                    var applicationDetails = await _unitOfWork.CompOffDetailsRepository.GetCompOffApplicationById(applicationId);
+                    if (applicationDetails != null)
+                    {
+                        var reportingDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)ARVM.EmployeeId);
+
+                        var notification = new NotificationRemainders()
+                        {
+                            NotificationMessage = $"{reportingDetails?.FullName} has {ARVM.Status} your compoff leave for {applicationDetails.ApplicationDate:dd-MM-yyyy}",
+                            NotificationTime = DateTime.UtcNow,
+                            SenderId = reportingDetails?.Id.ToString(),
+                            ReceiverIds = applicationDetails.Emp_Id.ToString(),
+                            NotificationType = NotificationType.CompOffApproval,
+                            NotificationAffectedId = applicationId
+                        };
+                        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                        if (savedNotification.Success > 0)
+                        {
+                            notification.NotificationRemainderId = savedNotification.Success;
+                            var employeeConnection = NotificationRemainderConnectionManager.GetConnections(applicationDetails.Emp_Id.ToString());
+                            if (employeeConnection.Any())
+                            {
+                                await _hubContext.Clients.Clients(employeeConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                            }
+                        }
+                    }
+                }
+
+                return new APIResponse { isSuccess = true, ResponseMessage = isSaved.ResponseMessage };
             }
             catch (Exception ex)
             {

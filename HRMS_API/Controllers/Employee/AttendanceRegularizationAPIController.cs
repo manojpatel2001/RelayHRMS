@@ -1,4 +1,7 @@
-﻿using HRMS_Core.Employee;
+﻿using HRMS_API.NotificationService.HubService;
+using HRMS_API.NotificationService.ManageService;
+using HRMS_Core.Employee;
+using HRMS_Core.Notifications;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
@@ -6,7 +9,10 @@ using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using System.Linq;
 
 namespace HRMS_API.Controllers.Employee
 {
@@ -15,11 +21,13 @@ namespace HRMS_API.Controllers.Employee
     public class AttendanceRegularizationAPIController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
-
-        public AttendanceRegularizationAPIController(IUnitOfWork unitOfWork)
+        private readonly IHubContext<NotificationRemainderHub> _hubContext;
+        public AttendanceRegularizationAPIController(IUnitOfWork unitOfWork, IHubContext<NotificationRemainderHub> hubContext)
         {
             _unitOfWork = unitOfWork;
+            _hubContext = hubContext;
         }
+
 
         [HttpGet("GetAll")]
         public async Task<APIResponse> GetAll()
@@ -88,6 +96,9 @@ namespace HRMS_API.Controllers.Employee
                     };
                 }
 
+                string CreatedBy = "0";
+                var attdenceDateList = new List<DateTime>();
+
                 foreach (var attendance in attendances)
                 {
                     if (attendance == null || !attendance.ForDate.HasValue || string.IsNullOrWhiteSpace(attendance.ShiftTime))
@@ -108,10 +119,37 @@ namespace HRMS_API.Controllers.Employee
                         };
                     }                   
                     await _unitOfWork.AttendanceRegularizationRepository.Create(attendance);
+
+                    attdenceDateList.Add((DateTime)attendance.ForDate);
+                    CreatedBy = attendance.CreatedBy;
+
                 }
 
-                await _unitOfWork.CommitAsync();
-
+                //Notification send to reporting persion
+                var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(Convert.ToInt32(CreatedBy));
+                if (employeeDetails != null && employeeDetails?.Id != Convert.ToInt32(CreatedBy))
+                {
+                    var attdenceDate = string.Join(", ", attdenceDateList.Select(date => date.ToString("dd-MM-yyyy")));
+                    var notification = new NotificationRemainders()
+                    {
+                        NotificationMessage = $"{employeeDetails?.FullName} has requested approval for attendance on Date: {attdenceDate}",
+                        NotificationTime = DateTime.UtcNow,
+                        SenderId = employeeDetails?.Id.ToString(),
+                        ReceiverIds = employeeDetails?.ReportingManagerId.ToString(),
+                        NotificationType = NotificationType.AttendanceApplication,
+                        NotificationAffectedId = Convert.ToInt32(CreatedBy)
+                    };
+                    var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                    if (savedNotification.Success > 0)
+                    {
+                        notification.NotificationRemainderId = savedNotification.Success;
+                        var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(employeeDetails?.ReportingManagerId.ToString());
+                        if (reprtingConnection.Any())
+                        {
+                            await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                        }
+                    }
+                }
                 return new APIResponse
                 {
                     isSuccess = true,
@@ -186,6 +224,7 @@ namespace HRMS_API.Controllers.Employee
                     };
                 }
 
+               
                 foreach (var attendance in attendances)
                 {
                     var record = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x => x.AttendanceRegularizationId == attendance.AttendanceRegularizationId && x.IsEnabled == true && x.IsDeleted == false);
@@ -239,12 +278,40 @@ namespace HRMS_API.Controllers.Employee
                                 CreatedOn = DateTime.Now
                             };
                             await _unitOfWork.EmployeeInOutRepository.CreateAttendanceDetails(newInOut);
+                            var updateNotification = await _unitOfWork.NotificationRemainderRepository.UpdateNotificationRemainder(new NotificationRemainders { NotificationType= NotificationType.AttendanceApplication,NotificationAffectedId=attendance.EmpId});
+
+                        }
+
+                    }
+
+                   
+                    //Notification send to reporting persion
+                    var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(Convert.ToInt32(attendance.CreatedBy));
+                    if (employeeDetails != null && employeeDetails?.Id != Convert.ToInt32(attendance.CreatedBy))
+                    {
+                        var notification = new NotificationRemainders()
+                        {
+                            NotificationMessage = $" Your attendance for Date: {attendance.ForDate:dd-MM-yyyy} has been {attendance.Status?.ToLower()} by {employeeDetails?.FullName}.",
+                            NotificationTime = DateTime.UtcNow,
+                            SenderId = employeeDetails?.Id.ToString(),
+                            ReceiverIds = attendance?.EmpId.ToString(),
+                            NotificationType = NotificationType.AttendanceApproval,
+                            NotificationAffectedId = Convert.ToInt32(attendance?.EmpId)
+                        };
+                        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                        if (savedNotification.Success > 0)
+                        {
+                            notification.NotificationRemainderId = savedNotification.Success;
+                            var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(attendance?.EmpId.ToString());
+                            if (reprtingConnection.Any())
+                            {
+                                await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                            }
                         }
                     }
                 }
 
-                await _unitOfWork.CommitAsync();
-
+                
                 return new APIResponse
                 {
                     isSuccess = true,

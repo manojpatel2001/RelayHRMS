@@ -1,10 +1,9 @@
 ﻿
-
 const userIdNotification = localStorage.getItem("EmployeeId");
-const token = localStorage.getItem("authToken");
+const tokenNotification = localStorage.getItem("authToken");
 const notificationConnection = new signalR.HubConnectionBuilder()
     .withUrl(`${BaseDomainUrl}/notificationRemainderHub?userId=${userIdNotification}`, {
-        accessTokenFactory: () => token
+        accessTokenFactory: () => tokenNotification
     })
   //  .configureLogging(signalR.LogLevel.Information) // Detailed logging
     .withAutomaticReconnect()
@@ -182,7 +181,7 @@ async function loadAllUnreadNotification() {
         const response = await fetch(BaseUrlLayout + '/NotificationRemainderAPI/GetAllNotificationByUserId/' + parseInt(userIdNotification), {
             method: 'GET',
             headers: {
-                'Authorization': 'Bearer ' + token,
+                'Authorization': 'Bearer ' + tokenNotification,
                 'Content-Type': 'application/json' // Important for JSON payloads
             }
         });
@@ -237,9 +236,37 @@ function closeNotificationDropdown() {
 
 
 
-function redirectPage(pageUrl)
+async function redirectPage(pageUrl,notificationType)
 {
+    if (notificationType == "Leave Approval" || notificationType == "CompOff Approval" || notificationType =="Attendance Approval")
+    {
+        await readNotification(notificationType);
+    }
     window.location.href = pageUrl;
+}
+
+async function readNotification(notificationType)
+{
+    try {
+        const response = await fetch(BaseUrlLayout + '/NotificationRemainderAPI/ReadNotificationRemainder', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + tokenNotification,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                UserId: userIdNotification,
+                notificationType: notificationType
+            })
+        });
+
+
+        const notificationData = await response.json();
+       
+       
+    } catch (error) {
+        console.log('Fetch error:', error);
+    }
 }
 function updateNotificationList(notificationDetails) {
     var notificationsList = notificationDetails.notifications;
@@ -257,21 +284,33 @@ function updateNotificationList(notificationDetails) {
     }
     $("#notificationCount").text(notificationDetails.notificationCount);
     const notificationsHtml = notificationsList.map(notification => {
-
         let href = '#';
         switch (notification.notificationType) {
-            case 'Leave Approval':
+            case 'Leave Application':
                 href = '/EmployeePanel/Leave/LeaveApproval';
+                break;
+            case 'Leave Approval':
+                href = '/EmployeePanel/Leave/LeaveApplication';
                 break;
             case 'CompOff Application':
                 href = '/EmployeePanel/CompOffApplication/CompOffApproval';
                 break;
+            case 'CompOff Approval':
+                href = '/EmployeePanel/CompOffApplication/Index';
+                break;
+            case 'Attendance Application':
+                href = '/EmployeePanel/Leave/Attendance';
+                break;
+            case 'Attendance Approval':
+                href = '/EmployeePanel/Leave/AddAttendance';
+                break;
+
             default:
                 href = '#'; // Default fallback
         }
 
         return `
-                    <div class="notification-item" onclick=redirectPage("${uiBaseUrlLayout}${href}")>
+                    <div class="notification-item" onclick='redirectPage("${uiBaseUrlLayout}${href}", "${notification.notificationType}")'>
                     <span class="notification-item-count">${notification.notificationTypeCount}</span>
                         <div class="notification-content">
                             <div class="notification-title">${notification.notificationType}</div>

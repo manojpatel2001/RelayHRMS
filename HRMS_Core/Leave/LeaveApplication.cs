@@ -31,5 +31,6 @@ namespace HRMS_Core.Leave
         public string? LeaveStatus { get; set; }
         public DateTime? ApprovalDate { get; set; }
         public string? Day { get; set; }
+        public string? ApprovedBy { get; set; }
     }
 }

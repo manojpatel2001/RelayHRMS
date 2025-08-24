@@ -4,129 +4,109 @@ using HRMS_Core.VM;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace HRMS_Infrastructure.Repository.OtherMaster
 {
-    public class TicketTypeRepository:Repository<TicketType>,ITicketTypeRepository
-    {
-        private HRMSDbContext _db;
-
-        public TicketTypeRepository(HRMSDbContext db) : base(db)
+   
+        public class TicketTypeRepository : ITicketTypeRepository
         {
-            _db = db;
+            private readonly HRMSDbContext _db;
+
+            public TicketTypeRepository(HRMSDbContext db)
+            {
+                _db = db;
+            }
+
+            public async Task<List<TicketType>> GetAllTicketTypes(int companyId)
+            {
+                try
+                {
+                    return await _db.Set<TicketType>()
+                        .FromSqlInterpolated($"EXEC GetAllTicketTypes @CompanyId = {companyId}")
+                        .ToListAsync();
+                }
+                catch
+                {
+                    return new List<TicketType>();
+                }
+            }
+
+            public async Task<TicketType?> GetTicketTypeById(int ticketTypeId)
+            {
+                try
+                {
+                    var result = await _db.Set<TicketType>()
+                        .FromSqlInterpolated($"EXEC GetTicketTypeById @TicketTypeId = {ticketTypeId}")
+                        .ToListAsync();
+                    return result.FirstOrDefault();
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
+            public async Task<SP_Response> CreateTicketType(TicketType ticketType)
+            {
+                try
+                {
+                    var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+                    EXEC ManageTicketType
+                        @Action = {"CREATE"},
+                        @TicketTypeName = {ticketType.TicketTypeName},
+                        @DepartmentId = {ticketType.DepartmentId},
+                        @CompanyId = {ticketType.CompanyId},
+                        @CreatedBy = {ticketType.CreatedBy}
+                ").ToListAsync();
+                    return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+                }
+                catch
+                {
+                    return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+                }
+            }
+
+            public async Task<SP_Response> UpdateTicketType(TicketType ticketType)
+            {
+                try
+                {
+                    var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+                    EXEC ManageTicketType
+                        @Action = {"UPDATE"},
+                        @TicketTypeId = {ticketType.TicketTypeId},
+                        @TicketTypeName = {ticketType.TicketTypeName},
+                        @DepartmentId = {ticketType.DepartmentId},
+                        @CompanyId = {ticketType.CompanyId},
+                        @UpdatedBy = {ticketType.UpdatedBy}
+                ").ToListAsync();
+                    return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+                }
+                catch
+                {
+                    return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+                }
+            }
+
+            public async Task<SP_Response> DeleteTicketType(DeleteRecordVM deleteRecord)
+            {
+                try
+                {
+                    var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+                    EXEC ManageTicketType
+                        @Action = {"DELETE"},
+                        @TicketTypeId = {deleteRecord.Id},
+                        @UpdatedBy = {deleteRecord.DeletedBy}
+                ").ToListAsync();
+                    return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+                }
+                catch
+                {
+                    return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+                }
+            }
+
+       
         }
-
-        public async Task<VMCommonResult> CreateTicketType(TicketType ticketType)
-        {
-            try
-            {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC CreateTicketType 
-                    @TicketTypeName = {ticketType.TicketTypeName},
-                    @DepartmentId = {ticketType.DepartmentId},
-                    @IsDeleted = {ticketType.IsDeleted},
-                    @IsEnabled = {ticketType.IsEnabled},
-                    @IsBlocked = {ticketType.IsBlocked},
-                    @CreatedDate = {ticketType.CreatedDate},
-                    @CreatedBy = {ticketType.CreatedBy},
-                    @DeletedDate = {ticketType.DeletedDate},
-                    @DeletedBy = {ticketType.DeletedBy},
-                    @UpdatedDate = {ticketType.UpdatedDate},
-                    @UpdatedBy = {ticketType.UpdatedBy}
-            ").ToListAsync();
-
-                return result?.FirstOrDefault() ?? new VMCommonResult
-                {
-                    Id = 0,
-                };
-            }
-            catch (Exception ex)
-            {
-
-                return new VMCommonResult
-                {
-                    Id = 0,
-                };
-            }
-        }
-
-        public async  Task<VMCommonResult> DeleteTicketType(DeleteRecordVM deleteRecordVM)
-        {
-            try
-            {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC DeleteTicketType 
-                    @TicketTypeId = {deleteRecordVM.Id},
-                    @DeletedDate = {deleteRecordVM.DeletedDate},
-                    @DeletedBy = {deleteRecordVM.DeletedBy}
-                    
-            ").ToListAsync();
-
-                return result?.FirstOrDefault() ?? new VMCommonResult
-                {
-                    Id = 0,
-                };
-            }
-            catch (Exception ex)
-            {
-
-                return new VMCommonResult
-                {
-                    Id = 0,
-                };
-            }
-        }
-
-        public async Task<List<vmGetAllTicketTypes>> GetAllTicketTypes()
-        {
-            try
-            {
-                var result = await _db.Set<vmGetAllTicketTypes>()
-                                      .FromSqlInterpolated($@"EXEC GetAllTicketTypes")
-                                      .ToListAsync();
-
-                return result ?? new List<vmGetAllTicketTypes>();
-            }
-            catch (Exception ex)
-            {
-                // Log exception if needed
-                return new List<vmGetAllTicketTypes>(); // return empty list on error
-            }
-        }
-
-
-        public async Task<VMCommonResult> UpdateTicketType(TicketType ticketType)
-        {
-            try
-            {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC UpdateTicketType 
-                    @TicketTypeId = {ticketType.TicketTypeId},
-                    @TicketTypeName = {ticketType.TicketTypeName},
-                    @DepartmentId = {ticketType.DepartmentId},
-                    @UpdatedDate = {ticketType.UpdatedDate},
-                    @UpdatedBy = {ticketType.UpdatedBy}
-            ").ToListAsync();
-
-                return result?.FirstOrDefault() ?? new VMCommonResult
-                {
-                    Id = 0,
-                };
-            }
-            catch (Exception ex)
-            {
-
-                return new VMCommonResult
-                {
-                    Id = 0,
-                };
-            }
-        }
-    }
+    
 }
