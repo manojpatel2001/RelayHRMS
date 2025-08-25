@@ -15,5 +15,6 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
         Task<SP_Response> CreateTicketStatus(TicketStatus ticketStatus);
         Task<SP_Response> UpdateTicketStatus(TicketStatus ticketStatus);
         Task<SP_Response> DeleteTicketStatus(DeleteRecordVM deleteRecord);
+        Task<TicketStatus?> GetTicketStatusByName(string ticketStatusName);
     }
 }

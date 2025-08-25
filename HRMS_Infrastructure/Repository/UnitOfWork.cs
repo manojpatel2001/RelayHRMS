@@ -120,6 +120,7 @@ namespace HRMS_Infrastructure.Repository
             UserPermissionRepository = new UserPermissionRepository(_dbContext);
             NotificationRemainderRepository = new NotificationRemainderRepository(_dbContext);
             TicketStatusRepository = new TicketStatusRepository(_dbContext);
+            TicketApplicationRepository = new TicketApplicationRepository(_dbContext);
 
             employeeProfileSkillRepository = new EmployeeProfileSkillRepository(_dbContext);
             employeeProfileEducationRepository = new EmployeeProfileEducationRepository(_dbContext);
@@ -218,6 +219,7 @@ namespace HRMS_Infrastructure.Repository
         public IUserPermissionRepository UserPermissionRepository { get; set; }
         public INotificationRemainderRepository NotificationRemainderRepository { get; set; }
         public ITicketStatusRepository TicketStatusRepository { get; set; }
+        public ITicketApplicationRepository TicketApplicationRepository { get; set; }
 
 
         public IEmployeeProfileSkillRepository employeeProfileSkillRepository { get; set; }

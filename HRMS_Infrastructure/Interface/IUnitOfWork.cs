@@ -106,6 +106,8 @@ namespace HRMS_Infrastructure.Interface
 
         ITicketStatusRepository TicketStatusRepository { get; }
 
+        ITicketApplicationRepository TicketApplicationRepository { get; }
+
         void Commit();
         Task CommitAsync();
     }

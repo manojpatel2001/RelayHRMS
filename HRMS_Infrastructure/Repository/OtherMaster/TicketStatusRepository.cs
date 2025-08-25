@@ -104,6 +104,19 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
             }
         }
 
-       
+        public async Task<TicketStatus?> GetTicketStatusByName(string ticketStatusName)
+        {
+            try
+            {
+                var result = await _db.Set<TicketStatus>()
+                    .FromSqlInterpolated($"EXEC GetTicketStatusByName @TicketStatusName = {ticketStatusName}")
+                    .ToListAsync();
+                return result.FirstOrDefault();
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }
