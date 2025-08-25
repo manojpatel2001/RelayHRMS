@@ -205,7 +205,9 @@ namespace HRMS_Infrastructure.Repository.Leave
                     @LeaveStatus = {model.LeaveStatus},
                     @Day = {model.Day},
                     @CreatedDate = {model.CreatedDate},
-                    @CreatedBy = {model.CreatedBy}
+                    @CreatedBy = {model.CreatedBy},
+                    @FromHour = {model.FromHour},
+                    @ToHour = {model.ToHour}
             ").ToListAsync();
 
                 return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };

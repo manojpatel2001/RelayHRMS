@@ -362,7 +362,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label required">To Hour:</label>
-                            <input type="time" class="form-control time-picker" id="toHour">
+                            <input type="time" class="form-control time-picker" id="toHour" desabled>
                             <span class="error-message" id="toHourError">Please select to hour</span>
                             <span class="error-message" id="timeRangeError">To hour cannot be earlier than from hour</span>
                         </div>
@@ -525,7 +525,7 @@
         $('#fromHour').on('input', function () {
             if ($(this).val()) {
                 setTimeout(() => {
-                    calculateHoursFromTime();
+                    // calculateHoursFromTime();
                 }, 100);
             }
         });
@@ -533,7 +533,7 @@
         $('#toHour').on('input', function () {
             if ($(this).val()) {
                 setTimeout(() => {
-                    calculateHoursFromTime();
+                    // calculateHoursFromTime();
                 }, 100);
             }
         });
@@ -614,19 +614,24 @@
         $('#todateid').prop('readonly', true);
         $('#halfDayTypeRow').show();
         $('#daysHoursLabel').text('No. of Days:');
+        $('#nodaysid').removeAttr('oninput');
+       
+        $('#nodaysid').removeAttr('title');
         updateHalfDayOptions([], "Select a date to see available half-day options");
     }
 
-    function setupShortLeave() {
+       function setupShortLeave() {
+           debugger;
         $('#formdateid').prop('readonly', false);
         $('#todateid').prop('readonly', true);
         $('#shortLeaveSection').show();
-
-        // Change label to Hours for short leave
         $('#daysHoursLabel').text('No. of Hours:');
-        $('#shortLeaveInfo').show();
+        $('#nodaysid').attr('title', 'Only 1 and 2 are allowed');
 
-        // Remove any existing info messages and add short leave specific message
+       $('#nodaysid').attr('oninput', "this.value = this.value.replace(/[^1-9]/g, '').slice(0, 1)");
+
+        $('#nodaysid').prop('readonly', false); // Make readonly for short leave
+        $('#shortLeaveInfo').show();
         $('#shortLeaveMessage, #compOffInfoMessage, #lwpInfoMessage').remove();
         $('#nodaysid').after('<div id="shortLeaveMessage" style="color: #17a2b8; font-size: 12px; margin-top: 5px;">Short Leave: Can only be applied for past or current date</div>');
     }
@@ -652,13 +657,13 @@
         $('#todateid').prop('readonly', false);
         $('#halfDayCheckboxRow').show();
         $('#daysHoursLabel').text('No. of Days:');
-    } 
+    }
 
 
-    function resetFormFields() {
+        function resetFormFields() {
         $('#formdateid').val('');
         $('#todateid').val('');
-        $('#nodaysid').val('').prop('readonly', false); // Changed to false
+        $('#nodaysid').val('').prop('readonly', false); // Reset to editable by default
         $('#fromHour').val('');
         $('#toHour').val('');
         $('#halfDayTypeRow').hide();
@@ -739,10 +744,10 @@
         $('#nodaysid').val('0.5').prop('readonly', false); // Make editable
         validateHalfLeave(fromDate);
         refreshLeaveDetailsGrid();
-    } 
-
+    }
     function handleShortLeaveFromDate(fromDate) {
         $('#todateid').val(fromDate);
+        $('#nodaysid').prop('readonly', false); // Make readonly for short leave
         validateShortLeaveDate(fromDate);
         refreshLeaveDetailsGrid();
     }
@@ -788,7 +793,7 @@
         $('#fromHourError').hide();
 
         if (fromHour) {  
-            calculateHoursFromTime();
+            // calculateHoursFromTime();
             validateShortLeaveHours();
         } else {
      
@@ -796,55 +801,69 @@
         }
     }
 
-    function handleToHourChange() {
-        const toHour = $('#toHour').val();
+    // function handleToHourChange() {
+    //     const toHour = $('#toHour').val();
 
      
-        $('#toHour').removeClass('is-invalid');
-        $('#toHourError').hide();
+    //     // $('#toHour').removeClass('is-invalid');
+    //     $('#toHourError').hide();
 
-        if (toHour) {
-            calculateHoursFromTime();
-            validateShortLeaveHours();
-        } else {
+    //     if (toHour) {
+    //         calculateHoursFromTime();
+    //         validateShortLeaveHours();
+    //     } else {
 
-            clearShortLeaveCalculations();
-        }
-    }
+    //         clearShortLeaveCalculations();
+    //     }
+    // }
 
-    function calculateHoursFromTime() {
-        const fromHour = $('#fromHour').val();
-        const toHour = $('#toHour').val();
+       function calculateHoursFromTime() {
+           debugger;
+         const fromHour = $('#fromHour').val(); 
+             const noOfHours = $('#nodaysid').val();
 
-        if (!fromHour || !toHour) {
-            $('#nodaysid').val('');
-            return;
-        }
+             if (!fromHour || !noOfHours) {
+     
+                 return;
+             }
+  
 
         try {
-            const startTime = new Date(`1970-01-01T${fromHour}:00`);
-            const endTime = new Date(`1970-01-01T${toHour}:00`);
+            
+            const [hourStrt, minuteStr] = fromHour.split(':');
+            let hours = parseInt(hourStrt);
+            let minutes = parseInt(minuteStr);
 
-            if (endTime <= startTime) {
-                $('#nodaysid').val('');
-                return;
+            // Add the hours
+            hours +=  parseInt(noOfHours);
+
+            // Wrap around if hours exceed 23
+            if (hours >= 24) {
+              hours = hours % 24;
             }
 
-            const timeDiff = endTime.getTime() - startTime.getTime();
-            const hours = timeDiff / (1000 * 3600);
+            // Format back to HH:mm
+            const formattedHour = hours.toString().padStart(2, '0');
+            const formattedMinute = minutes.toString().padStart(2, '0');
+            const toHour = `${formattedHour}:${formattedMinute}`;
 
-            $('#nodaysid').val(hours.toFixed(2));
+            // Set the result in the time input
+            $('#toHour').val(toHour);
+            // Clear any previous errors
+            $('#timeRangeError').hide();
 
         } catch (error) {
             console.error('Error calculating hours:', error);
-            $('#nodaysid').val('');
+            $('#nodaysid').val('').prop('readonly', true);
         }
     }
 
-
+    $('#nodaysid').blur(()=>{
+        calculateHoursFromTime();
+    });
 
     function clearShortLeaveCalculations() {
-        $('#nodaysid').val('');
+        $('#nodaysid').val('').prop('readonly', true); // Keep readonly when clearing
     }
 
     function validateShortLeaveDate(selectedDate) {
@@ -898,26 +917,30 @@
         $('#fromHour, #toHour').prop('disabled', false);
     }
 
-    function validateShortLeaveHours() {
+        function validateShortLeaveHours() {
         const fromDate = $('#formdateid').val();
         const fromHour = $('#fromHour').val();
         const toHour = $('#toHour').val();
 
         if (!fromDate || !fromHour || !toHour) return;
 
- 
         clearShortLeaveErrors();
 
-        const startTime = new Date(`1970-01-01T${fromHour}:00`);
-        const endTime = new Date(`1970-01-01T${toHour}:00`);
+        // Use selected date for validation
+        const startTime = new Date(`${fromDate}T${fromHour}:00`);
+        const endTime = new Date(`${fromDate}T${toHour}:00`);
 
         if (endTime <= startTime) {
             $('#toHour').addClass('is-invalid');
             $('#timeRangeError').show();
+            $('#nodaysid').val('').prop('readonly', true);
             return;
         }
 
         const leaveHours = (endTime - startTime) / (1000 * 3600);
+
+        // Update the hours in the input field
+        $('#nodaysid').val(leaveHours.toFixed(2)).prop('readonly', true);
 
         if (leaveHours > 8) {
             showShortLeaveTimeError("Short leave cannot exceed 8 hours");
@@ -929,12 +952,12 @@
             return;
         }
 
+        // Get attendance data for validation
         getAttendanceData(fromDate, fromDate).then(attendanceData => {
             if (attendanceData && attendanceData.length > 0) {
                 const dayAttendance = attendanceData[0];
                 validateShortLeaveAgainstAttendance(dayAttendance, fromHour, toHour, leaveHours);
             } else {
-                // No attendance record found - allow short leave
                 showShortLeaveSuccess(`You can apply for ${leaveHours.toFixed(2)} hours short leave.`);
             }
         }).catch(error => {
@@ -943,7 +966,9 @@
         });
     }
 
-    function validateShortLeaveAgainstAttendance(attendanceRecord, fromHour, toHour, requestedHours) {
+
+
+        function validateShortLeaveAgainstAttendance(attendanceRecord, fromHour, toHour, requestedHours) {
         const workingHours = attendanceRecord.workingHours || 0;
         const attendanceStatus = attendanceRecord.attendanceStatus?.trim();
         const inTime = attendanceRecord.inTime && attendanceRecord.inTime !== '-' ? new Date(attendanceRecord.inTime) : null;
@@ -970,7 +995,7 @@
             return;
         }
 
-        // If employee has worked, check for time conflicts
+        // If employee has worked, check for time conflicts using selected date
         if (inTime && outTime && workingHours > 0) {
             const conflictResult = checkTimeConflict(inTime, outTime, fromHour, toHour);
             if (conflictResult.hasConflict) {
@@ -979,23 +1004,26 @@
             }
         }
 
- 
         const remainingHours = Math.max(0, 9 - workingHours);
         showShortLeaveSuccess(`Short leave approved. You can take up to ${remainingHours.toFixed(1)} more hours today.`);
     }
 
 
-    function checkTimeConflict(inTime, outTime, fromHour, toHour) {
+     function checkTimeConflict(inTime, outTime, fromHour, toHour) {
         try {
-          
+            // Get working hours in minutes
             const workStartMinutes = inTime.getHours() * 60 + inTime.getMinutes();
             const workEndMinutes = outTime.getHours() * 60 + outTime.getMinutes();
 
-            const leaveStart = fromHour.split(':');
-            const leaveEnd = toHour.split(':');
-            const leaveStartMinutes = parseInt(leaveStart[0]) * 60 + parseInt(leaveStart[1]);
-            const leaveEndMinutes = parseInt(leaveEnd[0]) * 60 + parseInt(leaveEnd[1]);
+            // Use the selected date for leave time calculation
+            const selectedDate = $('#formdateid').val();
+            const leaveStartTime = new Date(`${selectedDate}T${fromHour}:00`);
+            const leaveEndTime = new Date(`${selectedDate}T${toHour}:00`);
 
+            const leaveStartMinutes = leaveStartTime.getHours() * 60 + leaveStartTime.getMinutes();
+            const leaveEndMinutes = leaveEndTime.getHours() * 60 + leaveEndTime.getMinutes();
+
+            // Check for overlap
             const hasOverlap = (leaveStartMinutes < workEndMinutes && leaveEndMinutes > workStartMinutes);
 
             if (hasOverlap) {
@@ -1019,6 +1047,8 @@
         }
     }
 
+
+
     function showShortLeaveTimeError(message) {
         $('#workingHourError').text(message).show();
         $('#fromHour, #toHour').addClass('is-invalid');
@@ -1030,59 +1060,59 @@
     }
 
 
-    function validateShortLeaveFields() {
-        let isValid = true;
-        const fromHour = $('#fromHour').val();
-        const toHour = $('#toHour').val();
+    // function validateShortLeaveFields() {
+    //     let isValid = true;
+    //     const fromHour = $('#fromHour').val();
+    //     const toHour = $('#toHour').val();
 
-        $('#fromHourError, #toHourError, #timeRangeError, #hoursError, #workingHourError').hide();
-        $('#fromHour, #toHour, #nodaysid').removeClass('is-invalid');
+    //     $('#fromHourError, #toHourError, #timeRangeError, #hoursError, #workingHourError').hide();
+    //     $('#fromHour, #toHour, #nodaysid').removeClass('is-invalid');
 
-        if (!fromHour) {
-            $('#fromHour').addClass('is-invalid');
-            $('#fromHourError').show();
-            isValid = false;
-        }
+    //     if (!fromHour) {
+    //         $('#fromHour').addClass('is-invalid');
+    //         $('#fromHourError').show();
+    //         isValid = false;
+    //     }
 
-        if (!toHour) {
-            $('#toHour').addClass('is-invalid');
-            $('#toHourError').show();
-            isValid = false;
-        }
+    //     if (!toHour) {
+    //         $('#toHour').addClass('is-invalid');
+    //         $('#toHourError').show();
+    //         isValid = false;
+    //     }
 
-        if (fromHour && toHour) {
-            const startTime = new Date(`1970-01-01T${fromHour}:00`);
-            const endTime = new Date(`1970-01-01T${toHour}:00`);
+    //     if (fromHour && toHour) {
+    //         const startTime = new Date(`1970-01-01T${fromHour}:00`);
+    //         const endTime = new Date(`1970-01-01T${toHour}:00`);
 
-            if (endTime <= startTime) {
-                $('#toHour').addClass('is-invalid');
-                $('#timeRangeError').show();
-                isValid = false;
-            } else {
-                const timeDiff = endTime.getTime() - startTime.getTime();
-                const hours = timeDiff / (1000 * 3600);
+    //         if (endTime <= startTime) {
+    //             $('#toHour').addClass('is-invalid');
+    //             $('#timeRangeError').show();
+    //             isValid = false;
+    //         } else {
+    //             const timeDiff = endTime.getTime() - startTime.getTime();
+    //             const hours = timeDiff / (1000 * 3600);
 
-                if (hours < 0.5) {
-                    $('#toHour').addClass('is-invalid');
-                    $('#hoursError').text('Minimum 0.5 hours required').show();
-                    isValid = false;
-                } else if (hours > 8) {
-                    $('#toHour').addClass('is-invalid');
-                    $('#hoursError').text('Maximum 8 hours allowed').show();
-                    isValid = false;
-                }
-            }
-        }
+    //             if (hours < 0.5) {
+    //                 $('#toHour').addClass('is-invalid');
+    //                 $('#hoursError').text('Minimum 0.5 hours required').show();
+    //                 isValid = false;
+    //             } else if (hours > 8) {
+    //                 $('#toHour').addClass('is-invalid');
+    //                 $('#hoursError').text('Maximum 8 hours allowed').show();
+    //                 isValid = false;
+    //             }
+    //         }
+    //     }
 
-        const calculatedDays = $('#nodaysid').val();
-        if (!calculatedDays || parseFloat(calculatedDays) <= 0) {
-            $('#nodaysid').addClass('is-invalid');
-            $('#hoursError').text('Please select valid time range').show();
-            isValid = false;
-        }
+    //     const calculatedDays = $('#nodaysid').val();
+    //     if (!calculatedDays || parseFloat(calculatedDays) <= 0) {
+    //         $('#nodaysid').addClass('is-invalid');
+    //         $('#hoursError').text('Please select valid time range').show();
+    //         isValid = false;
+    //     }
 
-        return isValid;
-    }
+    //     return isValid;
+    // }
 
     function clearShortLeaveFields() {
         $('#fromHour').val('');
@@ -2006,6 +2036,7 @@
         return { isValid: true, message: "" };
     }
 
+
     async function handleSubmit() {
         $('.error-message').hide();
         $('.form-control, .form-select').removeClass('is-invalid');
@@ -2020,7 +2051,6 @@
         const responsible = $('#responsibleid').val();
         const halfDayType = $('#halfDayType').val();
 
-
         const daysHoursValue = $('#nodaysid').val();
         let noOfDaysOrHours = parseFloat(daysHoursValue);
 
@@ -2028,12 +2058,10 @@
         if (leaveTypeName === 'Short Leave') {
             fromHour = $('#fromHour').val();
             toHour = $('#toHour').val();
-            if (!isNaN(noOfDaysOrHours)) {
-                noOfDaysOrHours = noOfDaysOrHours / 8;
-            }
+            // Keep the actual hours for validation, don't convert to days yet
         }
 
- 
+        // Basic field validations
         if (leaveType === "0") {
             $('#Leavetypeid').addClass('is-invalid');
             $('#leaveTypeError').show();
@@ -2063,24 +2091,24 @@
             }
         }
 
-        // Short Leave specific validations
-        if (leaveTypeName === 'Short Leave') {
-            if (!validateShortLeaveFields()) {
-                hasError = true;
-            }
+        // // Short Leave specific validations
+        // if (leaveTypeName === 'Short Leave') {
+        //     if (!validateShortLeaveFields()) {
+        //         hasError = true;
+        //     }
 
-            if (!fromHour) {
-                $('#fromHour').addClass('is-invalid');
-                $('#fromHourError').show();
-                hasError = true;
-            }
+        //     if (!fromHour) {
+        //         $('#fromHour').addClass('is-invalid');
+        //         $('#fromHourError').show();
+        //         hasError = true;
+        //     }
 
-            if (!toHour) {
-                $('#toHour').addClass('is-invalid');
-                $('#toHourError').show();
-                hasError = true;
-            }
-        }
+        //     if (!toHour) {
+        //         $('#toHour').addClass('is-invalid');
+        //         $('#toHourError').show();
+        //         hasError = true;
+        //     }
+        // }
 
         // Days/Hours validation - Fixed Logic
         if (!daysHoursValue || daysHoursValue.trim() === '' || isNaN(noOfDaysOrHours) || noOfDaysOrHours <= 0) {
@@ -2120,6 +2148,7 @@
             }
         }
 
+        // Leave balance validation
         if (leaveType !== "0" && !isNaN(noOfDaysOrHours) && noOfDaysOrHours > 0) {
             const balanceValidation = validateLeaveBalance(leaveType, noOfDaysOrHours);
             if (!balanceValidation.isValid) {
@@ -2203,6 +2232,7 @@
                     }
                 }
             }
+            debugger;
 
             // Prepare and submit data
             const payload = {
@@ -2221,14 +2251,17 @@
                 Cancel_Weekoff: false,
                 Send_Intimate: "false",
                 LeaveStatus: "Pending"
-            };
+     
+    };
 
-            // Add short leave specific fields if applicable
-            if (leaveTypeName === 'Short Leave') {
-                payload.FromHour = fromHour;
-                payload.ToHour = toHour;
-            }
+    if (leaveTypeName === 'Short Leave') {
+        const hoursValue = parseFloat($('#nodaysid').val());
+        payload.No_Of_Date = hoursValue / 8; // Store as days equivalent
 
+        // Add time fields only for short leave
+        payload.FromHour = fromHour ? fromHour + ":00" : null;
+        payload.ToHour = toHour ? toHour + ":00" : null;
+    }
             $.ajax({
                 url: apiBase + '/LeaveApplication/AddLeaveapplication',
                 method: 'POST',
@@ -2243,7 +2276,7 @@
                             customClass: { popup: 'swal2-small' }
                         });
                         clearForm();
-                        loadLeaveBalance(); // Refresh leave balance after successful submission
+                        loadLeaveBalance(); 
                     } else {
                         Swal.fire({
                             title: "Error",
@@ -2287,6 +2320,7 @@
             });
         }
     }
+
 
 
     function clearForm() {
