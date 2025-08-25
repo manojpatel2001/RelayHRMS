@@ -220,6 +220,9 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<TicketType>().HasNoKey().ToView(null);
             modelBuilder.Entity<TicketPriority>().HasNoKey().ToView(null);
             modelBuilder.Entity<TicketStatus>().HasNoKey().ToView(null);
+            modelBuilder.Entity<TicketApplication>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmEmployeeListDto>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmTicketTypeDto>().HasNoKey().ToView(null);
 
 
 

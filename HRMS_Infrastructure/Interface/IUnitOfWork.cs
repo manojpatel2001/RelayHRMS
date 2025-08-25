@@ -98,6 +98,7 @@ namespace HRMS_Infrastructure.Interface
         IUserPermissionRepository UserPermissionRepository { get; }
         INotificationRemainderRepository NotificationRemainderRepository { get; }
         ITicketStatusRepository TicketStatusRepository { get; }
+        ITicketApplicationRepository TicketApplicationRepository { get; }
         void Commit();
         Task CommitAsync();
     }
