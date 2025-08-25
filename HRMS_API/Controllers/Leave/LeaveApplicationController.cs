@@ -346,7 +346,7 @@ namespace HRMS_API.Controllers.Leave
         }
 
         [HttpPost("GetLeaveBalance")]
-        public async Task<APIResponse> GetLeaveBalance([FromBody] LeaveApp_Param vm)
+        public async Task<APIResponse> GetLeaveBalance([FromBody] LeaveBalance_Param vm)
         {
             try
             {
@@ -413,39 +413,6 @@ namespace HRMS_API.Controllers.Leave
             }
         }
 
-        [HttpGet("GetActiveLeaveDetails")]
-        public async Task<APIResponse> GetActiveLeaveDetails()
-        {
-            try
-            {
-                var data = await _unitOfWork.LeaveApplicationRepository.GetActiveLeaveDetails();
-
-                if (data == null || data.Count == 0)
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = "No leave records found."
-                    };
-                }
-
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Leave records fetched successfully."
-                };
-            }
-            catch (Exception err)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to retrieve leave records. Please try again later!"
-                };
-            }
-        }
 
         [HttpGet("GetLeaveApplicationById/{leaveApplicationId}")]
         public async Task<APIResponse> GetLeaveApplicationById(int leaveApplicationId)

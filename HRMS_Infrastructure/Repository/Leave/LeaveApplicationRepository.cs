@@ -132,7 +132,7 @@ namespace HRMS_Infrastructure.Repository.Leave
 
         }
 
-        public async Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveApp_Param vm)
+        public async Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveBalance_Param vm)
         {
             try
             {
@@ -205,7 +205,9 @@ namespace HRMS_Infrastructure.Repository.Leave
                     @LeaveStatus = {model.LeaveStatus},
                     @Day = {model.Day},
                     @CreatedDate = {model.CreatedDate},
-                    @CreatedBy = {model.CreatedBy}
+                    @CreatedBy = {model.CreatedBy},
+                    @FromHour = {model.FromHour},
+                    @ToHour = {model.ToHour}
             ").ToListAsync();
 
                 return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
@@ -275,23 +277,20 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<List<ActiveLeaveDetailsvm>> GetActiveLeaveDetails()
+        public async Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(int EmpId, int Month, int Year)
         {
             try
             {
-              
-                var result = await _db.Set<ActiveLeaveDetailsvm>()
-                    .FromSqlRaw("EXEC GetActiveLeaveDetails" )
+                var result = await _db.Set<YearlyLeaveReportViewModel>()
+                    .FromSqlInterpolated($"EXEC GetYearlyLeaveReport @EmpId = {EmpId}, @Year = {Year}, @Month = {Month}")
                     .ToListAsync();
-
                 return result;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("GetActiveLeaveDetails Error: " + ex.Message);
-                return new List<ActiveLeaveDetailsvm>();
+                Console.WriteLine("GetYearlyLeaveReport Error: " + ex.Message);
+                return new List<YearlyLeaveReportViewModel>();
             }
-
         }
     }
 }
