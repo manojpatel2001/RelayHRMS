@@ -16,7 +16,6 @@ namespace HRMS_Core.Leave
         public int? LeaveApplicationid { get; set; }
         public int? EmplooyeId { get; set; }
         public int? CompId { get; set; }
-
         public int? ReportingManagerId { get; set; }
         public int? LeaveType { get; set; }
         public string? ApplicationType { get; set; }
@@ -32,5 +31,7 @@ namespace HRMS_Core.Leave
         public DateTime? ApprovalDate { get; set; }
         public string? Day { get; set; }
         public string? ApprovedBy { get; set; }
+        public TimeSpan? FromHour { get; set; }
+        public TimeSpan? ToHour { get; set; }
     }
 }
