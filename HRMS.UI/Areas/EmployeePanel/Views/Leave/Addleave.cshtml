@@ -517,27 +517,9 @@
             handleFromHourChange();
         });
 
-        $('#toHour').on('change blur', function () {
-            handleToHourChange();
-        });
+       
 
-        // Real-time calculation for time inputs
-        $('#fromHour').on('input', function () {
-            if ($(this).val()) {
-                setTimeout(() => {
-                    // calculateHoursFromTime();
-                }, 100);
-            }
-        });
-
-        $('#toHour').on('input', function () {
-            if ($(this).val()) {
-                setTimeout(() => {
-                    // calculateHoursFromTime();
-                }, 100);
-            }
-        });
-
+        
         $('#submitid').on('click', async function () {
             $(this).prop('disabled', true);
             try {
@@ -621,14 +603,14 @@
     }
 
        function setupShortLeave() {
-           debugger;
+        $('#toHour').prop('readonly', true);
         $('#formdateid').prop('readonly', false);
         $('#todateid').prop('readonly', true);
         $('#shortLeaveSection').show();
         $('#daysHoursLabel').text('No. of Hours:');
         $('#nodaysid').attr('title', 'Only 1 and 2 are allowed');
 
-       $('#nodaysid').attr('oninput', "this.value = this.value.replace(/[^1-9]/g, '').slice(0, 1)");
+       $('#nodaysid').attr('oninput', "this.value = this.value.replace(/[^12]/g, '').slice(0, 1)");
 
         $('#nodaysid').prop('readonly', false); // Make readonly for short leave
         $('#shortLeaveInfo').show();
@@ -794,39 +776,26 @@
 
         if (fromHour) {  
             // calculateHoursFromTime();
-            validateShortLeaveHours();
+             clearValidateShortLeaveHours();
+            
         } else {
      
             clearShortLeaveCalculations();
         }
     }
 
-    // function handleToHourChange() {
-    //     const toHour = $('#toHour').val();
-
-     
-    //     // $('#toHour').removeClass('is-invalid');
-    //     $('#toHourError').hide();
-
-    //     if (toHour) {
-    //         calculateHoursFromTime();
-    //         validateShortLeaveHours();
-    //     } else {
-
-    //         clearShortLeaveCalculations();
-    //     }
-    // }
+    function clearValidateShortLeaveHours()
+    {
+        $('#toHour').val('')
+        $('#nodaysid').prop('disabled',false);
+        $('#nodaysid').val('');
+    }
+    
 
        function calculateHoursFromTime() {
-           debugger;
-         const fromHour = $('#fromHour').val(); 
-             const noOfHours = $('#nodaysid').val();
-
-             if (!fromHour || !noOfHours) {
-     
-                 return;
-             }
-  
+         const fromHour = $('#fromHour').val()===""?"00:00":$('#fromHour').val();
+             const noOfHours = $('#nodaysid').val()===""?"0":$('#nodaysid').val();
+             
 
         try {
             
@@ -846,9 +815,12 @@
             const formattedHour = hours.toString().padStart(2, '0');
             const formattedMinute = minutes.toString().padStart(2, '0');
             const toHour = `${formattedHour}:${formattedMinute}`;
-
-            // Set the result in the time input
-            $('#toHour').val(toHour);
+            if(noOfHours!="0")
+            {
+                 // Set the result in the time input
+                $('#toHour').val(toHour); 
+            }
+            
             // Clear any previous errors
             $('#timeRangeError').hide();
 
@@ -858,8 +830,11 @@
         }
     }
 
-    $('#nodaysid').blur(()=>{
+     $('#nodaysid').blur(function() {
         calculateHoursFromTime();
+        if ($(this).val()) {
+            validateShortLeaveHours();
+        }
     });
 
     function clearShortLeaveCalculations() {
@@ -917,7 +892,7 @@
         $('#fromHour, #toHour').prop('disabled', false);
     }
 
-        function validateShortLeaveHours() {
+     function validateShortLeaveHours() {
         const fromDate = $('#formdateid').val();
         const fromHour = $('#fromHour').val();
         const toHour = $('#toHour').val();
@@ -926,31 +901,31 @@
 
         clearShortLeaveErrors();
 
+         const [startHour, startMinute] = fromHour.split(':').map(Number);
+        const startTotalMinutes = startHour * 60 + startMinute;
+
+        // Parse end time
+        const [endHour, endMinute] = toHour.split(':').map(Number);
+        const endTotalMinutes = endHour * 60 + endMinute;
+
+
+            // Check the condition
+        if (endTotalMinutes <= startTotalMinutes) {
+            $('#toHour').addClass('is-invalid');
+            $('#timeRangeError').show();
+            // $('#nodaysid').val('').prop('readonly', true);
+            return;
+        }
+
+
         // Use selected date for validation
         const startTime = new Date(`${fromDate}T${fromHour}:00`);
         const endTime = new Date(`${fromDate}T${toHour}:00`);
 
-        if (endTime <= startTime) {
-            $('#toHour').addClass('is-invalid');
-            $('#timeRangeError').show();
-            $('#nodaysid').val('').prop('readonly', true);
-            return;
-        }
+        
 
-        const leaveHours = (endTime - startTime) / (1000 * 3600);
-
-        // Update the hours in the input field
-        $('#nodaysid').val(leaveHours.toFixed(2)).prop('readonly', true);
-
-        if (leaveHours > 8) {
-            showShortLeaveTimeError("Short leave cannot exceed 8 hours");
-            return;
-        }
-
-        if (leaveHours < 0.5) {
-            showShortLeaveTimeError("Short leave must be at least 30 minutes");
-            return;
-        }
+        const leaveHours =  parseInt($('#nodaysid').val());
+       
 
         // Get attendance data for validation
         getAttendanceData(fromDate, fromDate).then(attendanceData => {
@@ -2232,7 +2207,6 @@
                     }
                 }
             }
-            debugger;
 
             // Prepare and submit data
             const payload = {
@@ -2256,12 +2230,14 @@
 
     if (leaveTypeName === 'Short Leave') {
         const hoursValue = parseFloat($('#nodaysid').val());
-        payload.No_Of_Date = hoursValue / 8; // Store as days equivalent
+        payload.No_Of_Date = hoursValue; // Store as days equivalent
 
         // Add time fields only for short leave
         payload.FromHour = fromHour ? fromHour + ":00" : null;
         payload.ToHour = toHour ? toHour + ":00" : null;
     }
+
+    
             $.ajax({
                 url: apiBase + '/LeaveApplication/AddLeaveapplication',
                 method: 'POST',
