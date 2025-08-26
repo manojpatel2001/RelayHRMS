@@ -339,5 +339,20 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
            
           
         }
+
+        public async Task<vmUserLogin?> UserLogin(vmLogin login)
+        {
+            try
+            {
+                var result= await _db.Set<vmUserLogin>()
+                                .FromSqlInterpolated($"EXEC SP_UserLogin @Email={login.Email},@Password={login.Password}")
+                                .ToListAsync();
+                return result.FirstOrDefault()??null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
     }
 }

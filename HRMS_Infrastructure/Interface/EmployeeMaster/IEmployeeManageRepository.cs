@@ -24,6 +24,7 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<VMGetExistEmployeeCode?> GetExistEmployeeCode(vmCommonParameters vmCommonParameters);
         Task<VMCommonResult> UpdateLastLogin(int empid, int compId);
         Task<List<EmployeePersonalInformationVM>> EmployeePersonalInformation(int empid, int compId);
+        Task<vmUserLogin?> UserLogin(vmLogin login);
 
     }
 }

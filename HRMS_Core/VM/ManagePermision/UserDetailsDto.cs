@@ -17,7 +17,6 @@ namespace HRMS_Core.VM.ManagePermision
 
         // ⚠️ Be careful exposing Password or PasswordHash in DTOs.
         public string? Password { get; set; }
-        public string? PasswordHash { get; set; }
         public string? RoleSlug { get; set; }
 
         public string? RoleName { get; set; }
