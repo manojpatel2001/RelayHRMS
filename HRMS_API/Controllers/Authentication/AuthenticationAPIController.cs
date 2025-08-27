@@ -80,40 +80,41 @@ namespace HRMS_API.Controllers.Authentication
 
             }
             else
-            {   
-                // Find the user by email
-                var user = await _userManager.FindByEmailAsync(model.Email);
+            {
+                //// Find the user by email
+                //var user = await _userManager.FindByEmailAsync(model.Email);
+                //if (user == null)
+                //{
+                //    return new APIResponse { isSuccess = false, ResponseMessage = "Invalid email or password." };
+                //}
+
+                // Check if the password is correct
+                //var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+
+                var user = await _unitOfWork.EmployeeManageRepository.UserLogin(model);
                 if (user == null)
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Invalid email or password." };
                 }
-
-                // Check if the password is correct
-                var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
-                if (!result.Succeeded)
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Invalid email or password." };
-                }
-                var emp_company = await _unitOfWork.UserCompanyPermissionsRepository.GetCompanyPermissionsListByEmployeeId(user.Id);
-                var DesignationDetails = await _unitOfWork.DesignationRepository.GetAsync(x=>x.DesignationId== user.DesignationId) ;
+                var emp_company = await _unitOfWork.UserCompanyPermissionsRepository.GetCompanyPermissionsListByEmployeeId((int)user.Id);
+                //var DesignationDetails = await _unitOfWork.DesignationRepository.GetAsync(x=>x.DesignationId== user.DesignationId) ;
                
-                var employeeDetails= await _unitOfWork.EmployeeManageRepository.GetEmployeeById(user.Id);
+                ////var employeeDetails= await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)user.Id);
 
                 var userDetails = new UserDetailsDto
                 {
-                    Id = user.Id,
+                    Id = (int)user.Id,
                     Email = user.Email,
                     FullName=user?.FullName,
-                    Designation= DesignationDetails?.DesignationName,
+                    Designation= user?.DesignationName,
                     BranchId = user?.BranchId,
                     ProfileUrl =user?.EmployeeProfileUrl,
                     Password = user?.Password,
-                    PasswordHash = user?.PasswordHash,
-                    RoleName = employeeDetails?.RoleName,
-                    RoleSlug = employeeDetails?.RoleSlug,
+                    RoleName = user?.RoleName,
+                    RoleSlug = user?.RoleSlug,
                     //Permissions = permssions,
                     Company = JsonSerializer.Serialize(emp_company),
-                    IsPasswordChange=user.IsPasswordChange
+                    IsPasswordChange= user?.IsPasswordChange
                 };
 
                 // Generate JWT token

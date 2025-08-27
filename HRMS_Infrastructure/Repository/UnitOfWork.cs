@@ -126,6 +126,7 @@ namespace HRMS_Infrastructure.Repository
             employeeProfileEducationRepository = new EmployeeProfileEducationRepository(_dbContext);
             employeeProfileExperienceRepository = new EmployeeProfileExperienceRepository(_dbContext);
             employeeProfileLanguageRepository = new EmployeeProfileLanguageRepository(_dbContext);
+            TicketFollowUpRepository = new TicketFollowUpRepository(_dbContext);
 
         }
 
@@ -226,6 +227,7 @@ namespace HRMS_Infrastructure.Repository
         public IEmployeeProfileEducationRepository employeeProfileEducationRepository { get; set; }
         public IEmployeeProfileExperienceRepository employeeProfileExperienceRepository { get; set; }
         public IEmployeeProfileLanguageRepository employeeProfileLanguageRepository { get; set; }
+        public ITicketFollowUpRepository TicketFollowUpRepository { get; set; }
 
         public void Commit()
         {
