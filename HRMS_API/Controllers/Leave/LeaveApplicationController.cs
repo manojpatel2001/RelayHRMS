@@ -433,11 +433,11 @@ namespace HRMS_API.Controllers.Leave
 
 
         [HttpPost("GetYearlyLeaveReport")]
-        public async Task<APIResponse> GetYearlyLeaveReport(int EmpId ,int Month , int Year)
+        public async Task<APIResponse> GetYearlyLeaveReport([FromBody] GetYearlyLeaveReportRequest request)
         {
             try
             {
-                var data = await _unitOfWork.LeaveApplicationRepository.GetYearlyLeaveReport(EmpId , Month, Year);
+                var data = await _unitOfWork.LeaveApplicationRepository.GetYearlyLeaveReport(request);
 
                 if (data == null || data.Count == 0)
                 {
@@ -465,5 +465,40 @@ namespace HRMS_API.Controllers.Leave
                 };
             }
         }
+
+        [HttpPost("GetLeaveApplicationsReport")]
+        public async Task<APIResponse> GetLeaveApplicationsReport([FromBody] GetYearlyLeaveReportRequest request)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveApplicationRepository.GetLeaveApplicationsReport(request);
+
+                if (data == null || data.Count == 0)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No leave records found."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Leave records fetched successfully."
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve leave records. Please try again later!"
+                };
+            }
+        }
+
     }
 }
