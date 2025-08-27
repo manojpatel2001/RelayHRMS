@@ -1,4 +1,5 @@
-﻿using HRMS_Core.DbContext;
+﻿using Azure.Core;
+using HRMS_Core.DbContext;
 using HRMS_Core.Leave;
 using HRMS_Core.Notifications;
 using HRMS_Core.VM;
@@ -277,12 +278,12 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(int EmpId, int Month, int Year)
+        public async Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(GetYearlyLeaveReportRequest request)
         {
             try
             {
                 var result = await _db.Set<YearlyLeaveReportViewModel>()
-                    .FromSqlInterpolated($"EXEC GetYearlyLeaveReport @EmpId = {EmpId}, @Year = {Year}, @Month = {Month}")
+                    .FromSqlInterpolated($"EXEC GetYearlyLeaveReport  @EmpId = {request.EmpId}, @StartDate = {request.StartDate}, @EndDate = {request.EndDate}")
                     .ToListAsync();
                 return result;
             }
@@ -290,6 +291,22 @@ namespace HRMS_Infrastructure.Repository.Leave
             {
                 Console.WriteLine("GetYearlyLeaveReport Error: " + ex.Message);
                 return new List<YearlyLeaveReportViewModel>();
+            }
+        }
+
+        public async Task<List<LeaveApplicationReportModel>> GetLeaveApplicationsReport(GetYearlyLeaveReportRequest request)
+        {
+            try
+            {
+                var result = await _db.Set<LeaveApplicationReportModel>()
+                    .FromSqlInterpolated($"EXEC GetLeaveApplicationsReport  @EmpId = {request.EmpId}, @StartDate = {request.StartDate}, @EndDate = {request.EndDate}")
+                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetLeaveApplicationsReport Error: " + ex.Message);
+                return new List<LeaveApplicationReportModel>();
             }
         }
     }

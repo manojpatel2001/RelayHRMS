@@ -224,8 +224,13 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<TicketApplication>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmEmployeeListDto>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmTicketTypeDto>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<GetYearlyLeaveReportRequest>().HasNoKey().ToView(null);
+            modelBuilder.Entity<YearlyLeaveReportViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<LeaveApplicationReportModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<TicketFollowUp>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmUserLogin>().HasNoKey().ToView(null);
+
 
 
 

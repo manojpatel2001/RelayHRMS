@@ -1,4 +1,5 @@
-﻿using HRMS_Core.Leave;
+﻿using Azure.Core;
+using HRMS_Core.Leave;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Leave;
 using System;
@@ -21,7 +22,8 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<SP_Response> Updateapproval(LeaveaprovalVM LVM);
         Task<bool> softdelete(LeaveApplication Leave);
         Task<LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId);
-        Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(int EmpId, int Month, int Year);
+        Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(GetYearlyLeaveReportRequest request);
+        Task<List<LeaveApplicationReportModel>> GetLeaveApplicationsReport(GetYearlyLeaveReportRequest request);
 
 
     }
