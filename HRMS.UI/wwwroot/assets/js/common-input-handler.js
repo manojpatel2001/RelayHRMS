@@ -1,5 +1,5 @@
 ﻿function initTrimInputHandler() {
-    const selector = '[data-trim-input], [data-integer-only], [data-integer-with-space], [data-decimal], [data-letters-only]';
+    const selector = '[data-trim-input], [data-integer-only], [data-integer-with-space], [data-decimal], [data-letters-only], [data-uppercase-only]';
 
     // Trim spaces on blur
     $(document).on('blur', selector, function () {
@@ -30,6 +30,10 @@
         }
         else if ($el.is('[data-letters-only]')) {
             val = val.replace(/[^a-zA-Z\s]/g, '');
+        }
+        else if ($el.is('[data-uppercase-only]')) {
+            // Allow only uppercase letters and spaces, convert to uppercase
+            val = val.replace(/[^A-Za-z\s]/g, '').toUpperCase();
         }
 
         // Set value or text accordingly

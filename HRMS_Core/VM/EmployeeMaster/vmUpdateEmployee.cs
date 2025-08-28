@@ -44,7 +44,6 @@ namespace HRMS_Core.VM.EmployeeMaster
         public int? ReportingManagerId { get; set; }
         public string? SubBranch { get; set; }
         public string? EnrollNo { get; set; }
-
         public int? CompanyId { get; set; }
 
         public bool? Overtime { get; set; } = false;
@@ -57,7 +56,8 @@ namespace HRMS_Core.VM.EmployeeMaster
         public bool? Trainee { get; set; } = false;
         public int? WeekOffDetailsId { get; set; }
         public bool? IsPermissionPunchInOut { get; set; } = false;
-        public string? CreatedByName { get; set; } 
+        public string? CreatedByName { get; set; }
+        public bool? IsPFApplicable { get; set; } = true;
 
 
 

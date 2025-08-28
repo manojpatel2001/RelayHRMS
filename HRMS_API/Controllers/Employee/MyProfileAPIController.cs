@@ -2,6 +2,7 @@
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.Design;
 
 namespace HRMS_API.Controllers.Employee
 {
@@ -23,7 +24,7 @@ namespace HRMS_API.Controllers.Employee
         {
             try
             {
-                if (employeeId == null || companyId == null )
+                if (employeeId == null || companyId == null)
                 {
                     return new APIResponse
                     {
@@ -32,8 +33,6 @@ namespace HRMS_API.Controllers.Employee
                     };
                 }
                 var data = await _unitOfWork.myProfileRepository.GetEmployeeProfile(employeeId, companyId);
-
-
                 if (data == null)
                 {
                     return new APIResponse
@@ -57,6 +56,24 @@ namespace HRMS_API.Controllers.Employee
                     isSuccess = false,
                     ResponseMessage = "An error occurred while updating out time."
                 };
+            }
+        }
+
+        [HttpGet("GetMyProfileWithEmp")]
+        public async Task<APIResponse> GetMyProfileWithEmp(int companyId ,int employeeId)
+        {
+            try
+            {
+                //var data = await _unitOfWork.myProfileRepository.GetEmployeeProfiles(companyId, employeeId  );
+                var data = _unitOfWork?.myProfileRepository != null ? await _unitOfWork.myProfileRepository.GetEmployeeProfiles(companyId, employeeId) : null;
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
     }

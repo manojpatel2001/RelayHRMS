@@ -22,8 +22,7 @@ namespace HRMS_Core.EmployeeMaster
         public string? CreatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public string? UpdatedBy { get; set; }
-        public DateTime? DeletedDate { get; set; }
-        public string? DeletedBy { get; set; }
+        
     }
     
 }

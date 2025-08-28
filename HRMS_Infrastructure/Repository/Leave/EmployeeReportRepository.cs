@@ -1,4 +1,7 @@
-﻿using HRMS_Core.DbContext;
+using Dapper;
+using HRMS_Core.DbContext;
+using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface.Leave;
 using Microsoft.Data.SqlClient;
@@ -16,11 +19,13 @@ namespace HRMS_Infrastructure.Repository.Leave
     public class EmployeeReportRepository : IEmployeeReport
     {
 
-        private HRMSDbContext _db;
+        private readonly HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public EmployeeReportRepository(HRMSDbContext db)
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
 
         public async Task<List<EmployeeAttendanceReportVm>> GetAttendanceReport(AttendanceReportVm vm)
@@ -34,12 +39,10 @@ namespace HRMS_Infrastructure.Repository.Leave
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@StartDate", vm.StartDate);
                     cmd.Parameters.AddWithValue("@EndDate", vm.EndDate);
-                    cmd.Parameters.AddWithValue("@EmployeeCodes",
-                    (vm.EmployeeCodes != null && vm.EmployeeCodes.Any())
-                     ? string.Join(",", vm.EmployeeCodes)
-                     : (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@BranchId", vm.BranchId ?? (object)DBNull.Value);
-
+                    string employeeIdsString = vm.EmployeeIds != null && vm.EmployeeIds.Any()
+                    ? string.Join(",", vm.EmployeeIds)
+                           : null;
+                    cmd.Parameters.AddWithValue("@EmployeeIds", (object)employeeIdsString ?? DBNull.Value);
                     await conn.OpenAsync();
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -134,7 +137,46 @@ namespace HRMS_Infrastructure.Repository.Leave
             return result;
         }
 
+        public async Task<(List<vmAttedanceCalanderDays> AttedanceCalanderDays, List<vmAttedanceCalanderDaysSummary> AttedanceCalanderDaysSummary)> GetAttendanceCalender(CommonParameter commonParameter)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var queryParameters = new DynamicParameters();
+                    queryParameters.Add("@EmployeeId", commonParameter.EmployeeId);
+                    queryParameters.Add("@Year", commonParameter.Year);
+                    queryParameters.Add("@Month", commonParameter.Month);
+
+                    using (var multi = await connection.QueryMultipleAsync(
+                        "sp_EmployeeMonthlyAttendanceCalendar",
+                        queryParameters,
+                        commandType: CommandType.StoredProcedure))
+                    {
+                        try
+                        {
+                            var AttedanceCalanderDays = (await multi.ReadAsync<vmAttedanceCalanderDays>()).AsList();
+                            var AttedanceCalanderDaysSummary = (await multi.ReadAsync<vmAttedanceCalanderDaysSummary>()).AsList();
+
+                            return (AttedanceCalanderDays, AttedanceCalanderDaysSummary);
+                        }
+                        catch (Exception ex)
+                        {
+                            return (new List<vmAttedanceCalanderDays>(), new List<vmAttedanceCalanderDaysSummary>());
+                        }
+                    }
 
 
+                }
+            }
+            catch (Exception ex)
+            {
+                return (new List<vmAttedanceCalanderDays>(), new List<vmAttedanceCalanderDaysSummary>());
+            }
+        }
+
+     
     }
 }

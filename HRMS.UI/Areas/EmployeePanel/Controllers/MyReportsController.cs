@@ -133,5 +133,17 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
             return View();
         }
+        public IActionResult SalarySlipReport()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+        public IActionResult ShiftReport()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
     }
 }

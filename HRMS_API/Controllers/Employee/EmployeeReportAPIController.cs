@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.Employee;
 using HRMS_Core.Master.JobMaster;
+using HRMS_Core.VM;
 using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
@@ -78,5 +79,57 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+
+        [HttpPost("GetAttendanceCalender")]
+        public async Task<APIResponse> GetAttendanceCalender(CommonParameter commonParameter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeReport.GetAttendanceCalender(commonParameter);
+                var newData = new
+                {
+                    AttedanceCalanderDays = data.AttedanceCalanderDays,
+                    AttedanceCalanderDaysSummary = data.AttedanceCalanderDaysSummary.FirstOrDefault()
+                };
+                return new APIResponse { isSuccess = true, Data = newData, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+
+
+
+
+        [HttpPost("ShiftReport")]
+
+        public async Task<APIResponse> ShiftReport([FromBody] AttendanceReportVm model)
+        {
+            try
+            {
+
+                var data = await _unitOfWork.EmployeeReport.GetShiftReport(model);
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Records have been added successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to add records. Please try again later."
+                };
+            }
+        }
+
     }
 }

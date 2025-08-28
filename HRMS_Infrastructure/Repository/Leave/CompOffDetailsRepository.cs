@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Leave;
+using HRMS_Core.VM;
 using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface.Leave;
 using Microsoft.Data.SqlClient;
@@ -47,64 +48,58 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<bool> InsertCompOffAsync(Comp_Off_Details model)
+        public async Task<SP_Response> InsertCompOffAsync(Comp_Off_Details model)
         {
             try
             {
-                var parameters = new[]
-                {
-                new SqlParameter("@Cmp_Id", model.Cmp_Id),
-                new SqlParameter("@Emp_Id", model.Emp_Id),
-                new SqlParameter("@Rep_Person_Id", model.Rep_Person_Id),
-                new SqlParameter("@ApplicationDate", model.ApplicationDate),
-                new SqlParameter("@Extra_Work_Day", model.Extra_Work_Day),
-                new SqlParameter("@Extra_Work_Hours", model.Extra_Work_Hours ?? (object)DBNull.Value),
-                new SqlParameter("@Application_Status", model.Application_Status ?? (object)DBNull.Value),
-                new SqlParameter("@Comp_Off_Type", model.Comp_Off_Type ?? (object)DBNull.Value),
-                new SqlParameter("@CreatedBy", model.CreatedBy ?? (object)DBNull.Value),
-                new SqlParameter("@ComoffReason", model.ComoffReason ?? (object)DBNull.Value),
-                new SqlParameter("@Emp_Code", model.Emp_Code ?? (object)DBNull.Value)
-            };
+                var result = await _db.Set<SP_Response>()
+                    .FromSqlInterpolated($@"
+                EXEC usp_InsertCompOffDetails
+                    @Cmp_Id = {model.Cmp_Id},
+                    @Emp_Id = {model.Emp_Id},
+                    @Emp_Code = {model.Emp_Code},
+                    @Rep_Person_Id = {model.Rep_Person_Id},
+                    @ApplicationDate = {model.ApplicationDate},
+                    @Extra_Work_Day = {model.Extra_Work_Day},
+                    @Extra_Work_Hours = {model.Extra_Work_Hours},
+                    @Application_Status = {model.Application_Status},
+                    @Comp_Off_Type = {model.Comp_Off_Type},
+                    @CreatedBy = {model.CreatedBy},
+                    @ComoffReason = {model.ComoffReason}
+            ").ToListAsync();
 
-                await _db.Database.ExecuteSqlRawAsync(
-                    "EXEC usp_InsertCompOffDetails @Cmp_Id, @Emp_Id,@Emp_Code, @Rep_Person_Id, @ApplicationDate, @Extra_Work_Day, @Extra_Work_Hours, @Application_Status, @Comp_Off_Type,@CreatedBy,@ComoffReason",
-                    parameters
-                );
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<bool> Updateapproval(List<int> comoffid, string status)
-        {
-            try
-            {
-                foreach (var id in comoffid)
-                {
-                    var parameters = new[]
-                    {
-                new SqlParameter("@compOffDetailsId", id),
-                new SqlParameter("@status", status)
-            };
-
-                    await _db.Database.ExecuteSqlRawAsync(
-                        "EXEC UpdateCompOffApproval @compOffDetailsId, @status",
-                        parameters
-                    );
-                }
-
-                return true;
+                return result.FirstOrDefault()
+                       ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error during SP call: " + ex.Message);
-                return false;
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
+
+        public async Task<SP_Response> UpdateCompOffApproval(ApproveandrejectVM compOffVM)
+        {
+            try
+            {
+                string idsString = string.Join(",", compOffVM.CompoffIds);
+
+                var result = await _db.Set<SP_Response>()
+                    .FromSqlInterpolated($@"
+                EXEC UpdateCompOffApproval
+                @compOffDetailsIds = {idsString},
+                @status = {compOffVM.Status},
+                @ApprovedBy = {compOffVM.EmployeeId.ToString()}
+            ")
+                    .ToListAsync();
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong" };
+            }
+            catch (Exception ex)
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
+
 
         //public Task<bool> UpdateLeaveMange(List<int> ids, string status)
         //{
@@ -205,6 +200,21 @@ namespace HRMS_Infrastructure.Repository.Leave
             {
                 Console.WriteLine("GetCompOffApplicationsAsync Error: " + ex.Message);
                 return new List<VMCompOffDetails>();
+            }
+        }
+
+        public async Task<Comp_Off_Details?> GetCompOffApplicationById(int Comp_Off_DetailsId)
+        {
+            try
+            {
+                var result = await _db.Set<Comp_Off_Details>()
+                    .FromSqlInterpolated($"EXEC GetCompOffApplicationById @Comp_Off_DetailsId = {Comp_Off_DetailsId}")
+                    .ToListAsync();
+                return result.FirstOrDefault() ?? null;
+            }
+            catch
+            {
+                return null;
             }
         }
 

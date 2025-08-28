@@ -8,6 +8,7 @@ using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
+using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Salary;
@@ -20,10 +21,12 @@ using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.Leave;
 using HRMS_Infrastructure.Repository.ManagePermissions;
+using HRMS_Infrastructure.Repository.Notifications;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
 using HRMS_Infrastructure.Repository.Salary;
 using HRMS_Infrastructure.Repository.SuperAdmin;
+using HRMS_Infrastructure.Repository.TicketManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -111,6 +114,20 @@ namespace HRMS_Infrastructure.Repository
             MonthlySalaryDetailsRepository =new MonthlySalaryDetailsRepository(_dbContext);
 
             employeeDirectory = new EmployeeDirecotryRepository(_dbContext);
+            myProfileRepository = new MyProfileRepository(_dbContext);
+            employeeDirectory = new EmployeeDirecotryRepository(_dbContext); 
+            leftEmployeeRepository = new LeftEmployeeRepository(_dbContext);
+            UserPermissionRepository = new UserPermissionRepository(_dbContext);
+            NotificationRemainderRepository = new NotificationRemainderRepository(_dbContext);
+            TicketStatusRepository = new TicketStatusRepository(_dbContext);
+            TicketApplicationRepository = new TicketApplicationRepository(_dbContext);
+
+            employeeProfileSkillRepository = new EmployeeProfileSkillRepository(_dbContext);
+            employeeProfileEducationRepository = new EmployeeProfileEducationRepository(_dbContext);
+            employeeProfileExperienceRepository = new EmployeeProfileExperienceRepository(_dbContext);
+            employeeProfileLanguageRepository = new EmployeeProfileLanguageRepository(_dbContext);
+            TicketFollowUpRepository = new TicketFollowUpRepository(_dbContext);
+
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -198,6 +215,19 @@ namespace HRMS_Infrastructure.Repository
         public IMyProfileRepository myProfileRepository { get; set; }
 
         public IEmployeeDirectory employeeDirectory { get; set; }
+
+        public ILeftEmployeeRepository leftEmployeeRepository { get; set; }
+        public IUserPermissionRepository UserPermissionRepository { get; set; }
+        public INotificationRemainderRepository NotificationRemainderRepository { get; set; }
+        public ITicketStatusRepository TicketStatusRepository { get; set; }
+        public ITicketApplicationRepository TicketApplicationRepository { get; set; }
+
+
+        public IEmployeeProfileSkillRepository employeeProfileSkillRepository { get; set; }
+        public IEmployeeProfileEducationRepository employeeProfileEducationRepository { get; set; }
+        public IEmployeeProfileExperienceRepository employeeProfileExperienceRepository { get; set; }
+        public IEmployeeProfileLanguageRepository employeeProfileLanguageRepository { get; set; }
+        public ITicketFollowUpRepository TicketFollowUpRepository { get; set; }
 
         public void Commit()
         {
