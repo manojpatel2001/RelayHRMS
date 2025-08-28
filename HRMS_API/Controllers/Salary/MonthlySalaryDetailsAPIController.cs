@@ -101,6 +101,40 @@ namespace HRMS_API.Controllers.Salary
                     ResponseMessage = $"Error: {err.Message}"
                 };
             }
+        } 
+
+
+        [HttpPost("GetSalarySlipReport")]
+        public async Task<APIResponse> GetSalarySlipReport(salaryslipParamReport vm)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetSalarySlipReport(vm);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Record fetched successfully"
+                    };
+                }
+
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
         }
 
         [HttpPost("GetMonthlySalary")]
