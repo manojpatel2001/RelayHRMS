@@ -99,5 +99,37 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
+
+
+
+
+        [HttpPost("ShiftReport")]
+
+        public async Task<APIResponse> ShiftReport([FromBody] AttendanceReportVm model)
+        {
+            try
+            {
+
+                var data = await _unitOfWork.EmployeeReport.GetShiftReport(model);
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Records have been added successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to add records. Please try again later."
+                };
+            }
+        }
+
     }
 }

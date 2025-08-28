@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using HRMS_Core.DbContext;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;

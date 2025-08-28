@@ -162,5 +162,19 @@ namespace HRMS_Infrastructure.Repository.Salary
             }
 
         }
+
+        public async Task<List<SalarySlipReport>> GetSalarySlipReport(salaryslipParamReport vm)
+        {
+            try
+            {
+                string empIds = string.Join(",", vm.EmployeeId);
+                var result = await _db.Set<SalarySlipReport>().FromSqlInterpolated($"EXEC GetAllSalaryReport @EmpIds={empIds},@Month={vm.Month},@Year={vm.Year}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<SalarySlipReport>();
+            }
+        }
     }
 }
