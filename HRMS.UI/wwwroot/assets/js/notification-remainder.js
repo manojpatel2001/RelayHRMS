@@ -238,7 +238,8 @@ function closeNotificationDropdown() {
 
 async function redirectPage(pageUrl,notificationType)
 {
-    if (notificationType == "Leave Approval" || notificationType == "CompOff Approval" || notificationType =="Attendance Approval")
+    if (notificationType == "Leave Approval" || notificationType == "CompOff Approval" || notificationType == "Attendance Approval" ||
+        notificationType == "Ticket FollowUp" || notificationType == "Ticket Application" || notificationType == "Ticket Response")
     {
         await readNotification(notificationType);
     }
@@ -303,6 +304,15 @@ function updateNotificationList(notificationDetails) {
                 break;
             case 'Attendance Approval':
                 href = '/EmployeePanel/Leave/AddAttendance';
+                break;
+            case 'Ticket Application':
+                href = '/EmployeePanel/TicketRequest/TicketApplication';
+                break;
+            case 'Ticket FollowUp':
+                href = '/EmployeePanel/TicketRequest/TicketApplication';
+                break;
+            case 'Ticket Response':
+                href = '/EmployeePanel/TicketRequest/TicketRequest';
                 break;
 
             default:

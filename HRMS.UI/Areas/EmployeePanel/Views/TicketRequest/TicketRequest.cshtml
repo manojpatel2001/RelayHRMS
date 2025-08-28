@@ -642,7 +642,7 @@
 							columnFixing: { enabled: false },
 
 							onContentReady(e) {
-								   $('#rowCount1').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
+								   $('#rowCount2').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
 							}
 						}).dxDataGrid('instance');
 					} else {
@@ -878,8 +878,8 @@
 
 		   $(document).ready(function () {
 			   // Optional: Clear form on modal close
-			  $('#addTicketStatusModel').on('hidden.bs.modal', function () {
-				 clearTicketStatusForm();
+			  $('#followUpModal').on('hidden.bs.modal', function () {
+				TicketApplicationDataTable();
 			  });
 		   });
 
@@ -889,13 +889,13 @@
 		   async function followUpTicketApplication(data)
 		   {
 			   folloUpTicketApplication=data.ticketApplicationId
-			   setTicketDate();
-			   await bindTicketStatus();
+			   await bindTicketStatus(data);
 			   await TicketFollowupDataTable();
+			   clearTicketFollowUpForm();
 			   $('#followUpModal').modal('show');
 		   }
 
-		 async function bindTicketStatus() {
+		 async function bindTicketStatus(applicationDetails) {
 			  return new Promise((resolve, reject) => {
 				$.ajax({
 				  url: '@baseUrl/TicketStatusAPI/GetAllTicketStatus',
@@ -908,12 +908,18 @@
 					  const dropdown = $('#drpTicketStatus');
 					  dropdown.empty();
 					  dropdown.append('<option disabled selected value="">Select</option>');
+					  debugger
 					  $.each(data.data, function (index, status) {
-						dropdown.append($('<option>', {
-						  value: status.ticketStatusId,
-						  text: status.ticketStatusName
-						}));
+
+						if ( status.ticketStatusName === "Open") {
+							  return;
+						  }
+							  dropdown.append($('<option>', {
+									value: status.ticketStatusId,
+									text: status.ticketStatusName
+								}));
 					  });
+					   $('#drpTicketStatus').val(applicationDetails.ticketStatusId);
 					  resolve(data); 
 					} else {
 					  reject(new Error('API returned unsuccessful response'));
@@ -1008,8 +1014,7 @@
 			'@baseUrl/TicketFollowUpAPI/CreateTicketFollowUp' :
 			'@baseUrl/TicketFollowUpAPI/UpdateTicketFollowUp';
 		const FollowMethod = TicketFollowUpId == 0 ? "POST" : "PUT";
-		debugger;
-		// AJAX call
+		
 		$.ajax({
 			url: FollowUpUrl,
 			type: FollowMethod,
@@ -1022,11 +1027,12 @@
 			success: function (response) {
 				if (response.isSuccess) {
 					round_success_noti(response.responseMessage);
+					clearTicketFollowUpForm();
 				} else {
 					round_error_noti(response.responseMessage);
 				}
-				$('#followUpModal').modal('hide');
-				//TicketApplicationDataTable(); // optional: reload list
+				//$('#followUpModal').modal('hide');
+				TicketFollowupDataTable(); // optional: reload list
 			},
 			error: function (xhr, status, error) {
 
@@ -1040,13 +1046,13 @@
 
 	function showFolloUpNoRecord()
 	{
-		$("#followUpCount").show();
+		$("#divFolloupNoRecord").show();
 		$("#gridFollowTag").hide();
 	}
 
 	function hideFolloUpNoRecord()
 	{
-		$("#followUpCount").hide();
+		$("#divFolloupNoRecord").hide();
 		$("#gridFollowTag").show();
 	}
 
@@ -1064,102 +1070,53 @@
 				 success: function (data) {
 					// Check if the API call was successful
 					if (data.isSuccess) {
-						console.log("data",data);
 						   hideFolloUpNoRecord();
 						$("#followupGridContainer").dxDataGrid({
 							dataSource: data.data,  // Use the 'data' field from the API response
 
 							columns: [
-								{ dataField: 'employeeName', caption: 'Employee Name' ,
-								   cellTemplate: function(container, options) {
-									const data = options.data;
-									if (data) {
-										// Combine code and name into a single string
-										const formattedText = `${data.employeeCode} - ${data.employeeName}`;
-										container.text(formattedText);
-									}
-								   }
-								},
-									{ caption: 'Follow-Up Date', key: 'ticketFollowDate', dataType: 'date', format: 'dd-MM-yyyy' },
-									{ caption: 'Next Follow-Up Date', key: 'nextTicketFollowDate', dataType: 'date', format: 'dd-MM-yyyy' },
-									{ caption: 'Ticket Status', key: 'ticketStatusName' },
-									 { caption: 'Ticket Follow Remark', key: 'ticketFollowRemark' },
-
-								{
-									caption: 'Attachment',
-									dataField: 'followUpDocumentUrl',
-									alignment: 'center',
-									cellTemplate: function(container, options) {
-										const value = options.value;
-										if (value) {
-											const link = document.createElement('a');
-											link.href = value;
-											link.target = '_blank'; // Open in a new tab
-											link.innerHTML = '<i class="bx bx-file"></i>'; // Icon for the attachment
-											link.title = 'Open Document'; // Optional tooltip
-											 // Inline styles to adjust appearance
-											link.style.cssText = `
-												color: inherit;
-												text-decoration: none;
-												font-size: 20px;
-											`;
-											container.append(link);
-										} else {
-											container.text('No Document');
-										}
-									}
-								},
-									   {
-									   dataField: '',
-									   caption: '',
-									   alignment: 'center',
-									   dataType: 'string',
-									   format: '',
-									   type: 'buttons',
-									   width: '50px',
-									   cellTemplate: function (container, options) {
-
-													   var buttonElement = $('<div class="d-flex order-actions">' +
-															  '<a href="javascript:;" class="edit-action" title="Update Ticket Request">' +
-														   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
-														   '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
-														   '</svg>' +
-														   '</a>' +
-														   '</div>')
-														   .on('dxclick', function () {
-																  updateTicketApplication(options.data);
-														   }).appendTo(container);
-
-													   // Optional: update title attribute on SVG as well (for tooltip consistency)
-														  buttonElement.find('svg').attr('title', 'Update Ticket Rquest');
-									   }
-								   },
-
-
 								   {
-									   dataField: '',
-									   caption: '',
-									   alignment: 'center',
-									   dataType: 'string',
-									   format: '',
-									   type: 'buttons',
-									   width: '50px',
-									   cellTemplate: function (container, options) {
-										   var buttonElement = $('<div class="d-flex order-actions">' +
-											   '<a href="javascript:;" class="delete-action" title="Delete Ticket Request">' +
-											   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
-											   '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
-											   '</svg>' +
-											   '</a>' +
-											   '</div>')
-											   .on('dxclick', function () {
-												   deleteTicketApplication(options.data);
-											   }).appendTo(container);
+										dataField: '', // Not needed if custom template is used
+										caption: 'Employee Name',
+										alignment: 'left',
+										cellTemplate: function(container, options) {
+											const data = options.data;
+											if (data) {
+												const formattedText = `${data.employeeCode} - ${data.employeeName}`;
+												container.text(formattedText);
+											}
+										}
+									},
+									{ dataField: 'ticketFollowDate', caption: 'Follow-Up Date', alignment: 'left', dataType: 'date', format: 'dd-MM-yyyy' },
+									{ dataField: 'nextTicketFollowDate', caption: 'Next Follow-Up Date', alignment: 'left', dataType: 'date', format: 'dd-MM-yyyy' },
+									{ dataField: 'ticketStatusName', caption: 'Ticket Status Name', alignment: 'left' },
+									{ dataField: 'ticketFollowRemark', caption: 'Ticket Follow Remark', alignment: 'left' },
+									{
+										caption: 'Attachment',
+										dataField: 'followUpDocumentUrl',
+										alignment: 'center',
+										cellTemplate: function(container, options) {
+											const value = options.value;
+											if (value) {
+												const link = document.createElement('a');
+												link.href = value;
+												link.target = '_blank'; // Open in a new tab
+												link.innerHTML = '<i class="bx bx-file"></i>'; // Icon for the attachment
+												link.title = 'Open Document'; // Optional tooltip
+												 // Inline styles to adjust appearance
+												link.style.cssText = `
+													color: inherit;
+													text-decoration: none;
+													font-size: 20px;
+												`;
+												container.append(link);
+											} else {
+												container.text('No Document');
+											}
+										}
+								}
 
-										   var svgElement = buttonElement.find('svg');  // Accessing the svg element directly
-										   svgElement.attr('title', 'Delete Ticket Request');
-									   }
-								   }
+									   
 
 							],
 							columnsAutoWidth: true,
@@ -1178,7 +1135,7 @@
 							columnFixing: { enabled: false },
 
 							onContentReady(e) {
-								   $('#rowCount1').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
+								   $('#followUpCount').html('Total Records: ' + $("#followupGridContainer").dxDataGrid('instance').totalCount());
 							}
 						}).dxDataGrid('instance');
 					} else {
@@ -1186,6 +1143,7 @@
 						// Handle failure case
 
 					}
+					
 						  $('#grid-followUp-loader').removeClass('d-flex').hide();
 
 				},
@@ -1205,5 +1163,40 @@
 			   hideStatusNoRecord();
 		  }
 	}
+
+
+	$('#attatchFollowUpFile').on('change', function () {
+	  const fileFolloup = this.files[0];
+	  if (fileFolloup) {
+		const fileFolloupURL = URL.createObjectURL(fileFolloup);
+		$(this).siblings('a').show();
+		$(this).siblings('a').attr('href', fileFolloupURL).attr('target', '_blank');
+
+	  }
+	  else{
+		  $(this).siblings('a').hide();
+	  }
+	});
+
+
+	function clearTicketFollowUpForm()
+		{
+			setTicketDate();// Set date in YYYY-MM-DD format
+				$('#txtFolloUpRemark').val('');
+				$('#nextFolloUpDate').val('');
+				$('#spnFolloUpRemark').val('');
+				$('#attatchFollowUpFile').val('');
+			$("#btnAddFollowUp").prop("disabled", false);
+			$('.formType').text('Add');
+			$('#btnAddFollowUp').text('Add');
+			   $('#spnNextFolloUpDate').hide();
+			   $('#spnFolloUpDate').hide();
+			   $('#spnFolloUpRemark').hide();
+			   $('#spnTicketStatus').hide();
+			  
+			   $('#followUpFileLink').hide();
+				$('#followUpFileLink').attr('href', '#');
+
+		}
 
 </script>

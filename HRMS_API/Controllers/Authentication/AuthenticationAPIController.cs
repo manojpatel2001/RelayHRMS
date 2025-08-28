@@ -139,13 +139,13 @@ namespace HRMS_API.Controllers.Authentication
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim("Id", user.Id.ToString()),
                 new Claim("Password", user.Password.ToString()),
-                new Claim("RoleSlug", user.RoleSlug.ToString()),
-                new Claim(ClaimTypes.Role, user.RoleName ?? ""),
-                new Claim("Company", user.Company ?? ""),
-                new Claim("FullName", user.FullName ?? ""),
-                new Claim("Designation", user.Designation ?? ""),
-                new Claim("ProfileUrl", user.ProfileUrl ?? ""),
-                new Claim("IsPasswordChange", user.IsPasswordChange.ToString() ?? ""),
+                new Claim("RoleSlug", user?.RoleSlug.ToString()),
+                new Claim(ClaimTypes.Role, user?.RoleName ?? ""),
+                new Claim("Company", user?.Company ?? ""),
+                new Claim("FullName", user?.FullName ?? ""),
+                new Claim("Designation", user?.Designation ?? ""),
+                new Claim("ProfileUrl", user?.ProfileUrl ?? ""),
+                new Claim("IsPasswordChange", user?.IsPasswordChange.ToString() ?? ""),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 

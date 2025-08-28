@@ -46,6 +46,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                         @NextTicketFollowDate = {ticketFollowUp.NextTicketFollowDate},
                         @FollowUpDocumentUrl = {ticketFollowUp.FollowUpDocumentUrl},
                         @TaggedUsers = {ticketFollowUp.TaggedUsers},
+                        @EmployeeId = {ticketFollowUp.EmployeeId},
                         @TicketApplicationId = {ticketFollowUp.TicketApplicationId},
                         @TicketStatusId = {ticketFollowUp.TicketStatusId},
                         @CreatedBy = {ticketFollowUp.CreatedBy}

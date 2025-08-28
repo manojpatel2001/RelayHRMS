@@ -8,6 +8,9 @@
         public static readonly string CompOffApproval = "CompOff Approval";
         public static readonly string AttendanceApplication = "Attendance Application";
         public static readonly string AttendanceApproval = "Attendance Approval";
+        public static readonly string TicketApplication = "Ticket Application";
+        public static readonly string TicketFollowUp = "Ticket FollowUp";
+        public static readonly string TicketResponse = "Ticket Response";
     }
 
 }
