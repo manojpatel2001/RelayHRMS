@@ -1,10 +1,15 @@
-﻿using HRMS_API.Services;
+﻿using HRMS_API.NotificationService.HubService;
+using HRMS_API.NotificationService.ManageService;
+using HRMS_API.Services;
 using HRMS_Core.Employee;
+using HRMS_Core.Notifications;
 using HRMS_Core.VM;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace HRMS_API.Controllers.Employee
 {
@@ -14,11 +19,13 @@ namespace HRMS_API.Controllers.Employee
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly FileUploadService _fileUploadService;
+        private readonly IHubContext<NotificationRemainderHub> _hubContext;
 
-        public TicketFollowUpAPIController(IUnitOfWork unitOfWork, FileUploadService fileUploadService)
+        public TicketFollowUpAPIController(IUnitOfWork unitOfWork, FileUploadService fileUploadService, IHubContext<NotificationRemainderHub> hubContext)
         {
             _unitOfWork = unitOfWork;
             _fileUploadService = fileUploadService;
+            _hubContext = hubContext;
         }
 
         [HttpGet("GetAllTicketFollowUpByApplicationId/{ticketApplicationId}")]
@@ -59,11 +66,47 @@ namespace HRMS_API.Controllers.Employee
                 }
 
                 var result = await _unitOfWork.TicketFollowUpRepository.CreateTicketFollowUp(model);
-                if (result.Success > 0)
+                if (result.Success <= 0)
                 {
-                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                    return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+
                 }
-                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+
+
+                //Notification send to reporting persion
+                var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)model.EmployeeId);
+                if (employeeDetails != null)
+                {
+                    var ticketApplication = await _unitOfWork.TicketApplicationRepository.GetTicketApplicationById((int)model.TicketApplicationId);
+                    if (ticketApplication != null)
+                    {
+                        var notificationType = ticketApplication.TicketAssignId == model?.EmployeeId ? NotificationType.TicketResponse : NotificationType.TicketFollowUp;
+                        var ReceiverIds = ticketApplication.TicketAssignId == model?.EmployeeId ? ticketApplication.EmployeeId.ToString() : ticketApplication.TicketAssignId.ToString();
+                        var notification = new NotificationRemainders()
+                        {
+                            NotificationMessage = $"{employeeDetails?.FullName} has added new follow on ticket. Please check and give response.",
+                            NotificationTime = DateTime.UtcNow,
+                            SenderId = model?.EmployeeId.ToString(),
+                            ReceiverIds = ReceiverIds,
+                            NotificationType = notificationType,
+                            NotificationAffectedId = result.Success
+                        };
+                        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                        if (savedNotification.Success > 0)
+                        {
+                            notification.NotificationRemainderId = savedNotification.Success;
+                            var recieveConnection = NotificationRemainderConnectionManager.GetConnections(ReceiverIds.ToString());
+                            if (recieveConnection.Any())
+                            {
+                                await _hubContext.Clients.Clients(recieveConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                            }
+                        }
+                    }
+                }
+
+                return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+
+
             }
             catch (Exception ex)
             {
@@ -106,11 +149,12 @@ namespace HRMS_API.Controllers.Employee
                 }
 
                 var result = await _unitOfWork.TicketFollowUpRepository.UpdateTicketFollowUp(model);
-                if (result.Success > 0)
+                if (result.Success <= 0)
                 {
-                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                    return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
                 }
-                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                
             }
             catch (Exception ex)
             {
@@ -127,11 +171,12 @@ namespace HRMS_API.Controllers.Employee
                     return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
 
                 var result = await _unitOfWork.TicketFollowUpRepository.DeleteTicketFollowUp(model);
-                if (result.Success > 0)
+                if (result.Success <= 0)
                 {
-                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                    return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
                 }
-                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                
             }
             catch (Exception ex)
             {

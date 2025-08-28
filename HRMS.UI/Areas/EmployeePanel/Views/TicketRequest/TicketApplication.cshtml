@@ -207,8 +207,7 @@
 						<div class="form-group position-relative">
 							<input type="date"
 								   class="form-control floating-input"
-								   id="nextFolloUpDate"
-								   readonly />
+								   id="nextFolloUpDate" />
 							<label class="floating-label" for="nextFolloUpDate">Next Follou Up Date<span class="text-danger">*</span></label>
 						</div>
 						<span id="spnNextFolloUpDate" style="color:red; display:none; ">Please select Next FollowUp Date</span>
@@ -247,19 +246,36 @@
 					<div class="col-sm-12 mt-3">
 						<div class="form-group position-relative">
 							<textarea class="form-control floating-input"
-									  id="txtFolloUpDescription"
+									  id="txtFolloUpRemark"
 									  data-trim-input
 									  style="height:30px;"
 									  placeholder=" "></textarea>
-							<label class="floating-label" for="txtFolloUpDescription"> Description<span class="text-danger">*</span></label>
+							<label class="floating-label" for="txtFolloUpRemark"> Folllow Up Remark<span class="text-danger">*</span></label>
 						</div>
-						<span id="spnFolloUpDescription" style="color:red; display:none;">Please Enter Description</span>
+						<span id="spnFolloUpRemark" style="color:red; display:none;">Please Enter Folllow Up Remark</span>
 
 					</div>
 
 
 				</div>
 
+				<div class="row mt-3">
+					<div class="col-md-12">
+
+						<div class="grid-wrapper " style="position: relative; " id="gridFollowTag">
+							<div id="grid-followUp-loader" class="grid-loader justify-content-center align-items-center flex-column "
+								 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+								<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+								<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+							</div>
+							<div id="followUpCount"></div>
+							<div id="followupGridContainer"></div>
+						</div>
+						<div id="divFolloupNoRecord" class="text-center text-muted" style="display:none;">No Record Found!</div>
+
+					</div>
+				</div>
 			</div>
 			<div class="modal-footer btn-heading-title">
 
@@ -269,7 +285,6 @@
 		</div>
 	</div>
 </div>
-
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
@@ -309,8 +324,7 @@
 			localStorage.removeItem('ticketApplicationLocalstorage');
 
 			TicketApplicationDataTable();
-			bindDepartment();
-			bindTicketPriority();
+			
 		});
 
 		function setTicketDate(){
@@ -437,7 +451,7 @@
 							columnFixing: { enabled: false },
 
 							onContentReady(e) {
-								   $('#rowCount1').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
+								   $('#rowCount2').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
 							}
 						}).dxDataGrid('instance');
 					} else {
@@ -605,17 +619,27 @@
 		});
 	});
 
+	$(document).ready(function () {
+			   // Optional: Clear form on modal close
+				$('#followUpModal').on('hidden.bs.modal', function () {
+				TicketApplicationDataTable();
+			  });
+  });
 
 
-
-		   async function followUpTicketApplication()
+			   let TicketFollowUpId=0;
+		   let folloUpTicketApplication=0;
+		   async function followUpTicketApplication(data)
 		   {
-			   setTicketDate();
-			   await bindTicketStatus();
+			   folloUpTicketApplication=data.ticketApplicationId
+			   await bindTicketStatus(data);
+			   await TicketFollowupDataTable();
+			   clearTicketFollowUpForm();
+			   
 			   $('#followUpModal').modal('show');
 		   }
 
-		 async function bindTicketStatus() {
+		 async function bindTicketStatus(applicationDetails) {
 			  return new Promise((resolve, reject) => {
 				$.ajax({
 				  url: '@baseUrl/TicketStatusAPI/GetAllTicketStatus',
@@ -629,11 +653,16 @@
 					  dropdown.empty();
 					  dropdown.append('<option disabled selected value="">Select</option>');
 					  $.each(data.data, function (index, status) {
-						dropdown.append($('<option>', {
-						  value: status.ticketStatusId,
-						  text: status.ticketStatusName
-						}));
+						  if (status.ticketStatusName === "Close" || status.ticketStatusName === "Open") {
+							  return;
+						  }
+							  dropdown.append($('<option>', {
+									value: status.ticketStatusId,
+									text: status.ticketStatusName
+								}));
+
 					  });
+					  $('#drpTicketStatus').val(applicationDetails.ticketStatusId);
 					  resolve(data);
 					} else {
 					  reject(new Error('API returned unsuccessful response'));
@@ -645,6 +674,272 @@
 				  }
 				});
 			  });
+	   }
+
+
+
+	 $('#btnAddFollowUp').click(function () {
+		$("#btnAddFollowUp").prop("disabled", true);
+		var isValid = true;
+
+		// Get form values
+		const followUpDate = $('#folloUpDate').val();
+		const nextFolloUpDate = $('#nextFolloUpDate').val();
+		const ticketStatus = $('#drpTicketStatus').val();
+
+		const followupDescription = $('#txtFolloUpRemark').val();
+		const attachFollowFile = $('#attatchFollowUpFile')[0].files[0];
+
+		// Validation
+		if (followUpDate === '') {
+			$('#spnFolloUpDate').show();
+			isValid = false;
+		} else {
+			$('#spnFolloUpDate').hide();
+		}
+
+		if (nextFolloUpDate === '') {
+			$('#spnNextFolloUpDate').show();
+			isValid = false;
+		} else {
+			$('#spnNextFolloUpDate').hide();
+		}
+
+
+
+		if (ticketStatus === '' || ticketStatus === null) {
+			$('#spnTicketStatus').show();
+			isValid = false;
+		} else {
+			$('#spnTicketStatus').hide();
+		}
+
+
+		if (followupDescription === '') {
+			$('#spnFolloUpRemark').show();
+			isValid = false;
+		} else {
+			$('#spnFolloUpRemark').hide();
+		}
+
+		if (!isValid||folloUpTicketApplication==0) {
+			$("#btnAddFollowUp").prop("disabled", false);
+			return;
+		}
+
+		// Create FormData object
+		const followUpFormData = new FormData();
+
+		// Append all form data
+		followUpFormData.append('TicketFollowUpId', TicketFollowUpId || 0);
+		followUpFormData.append('TicketFollowDate', followUpDate);
+		followUpFormData.append('NextTicketFollowDate', nextFolloUpDate);
+		followUpFormData.append('TicketStatusId', ticketStatus);
+		followUpFormData.append('TicketApplicationId', folloUpTicketApplication);
+		followUpFormData.append('TicketFollowRemark', followupDescription);
+		followUpFormData.append('EmployeeId', EmployeeId);
+
+		if(TicketFollowUpId==0)
+		{
+		  followUpFormData.append('CreatedBy',EmployeeId);
+		}
+		else
+		{
+			followUpFormData.append('UpdatedBy',EmployeeId);
+		}
+		// Append file if exists
+		if (attachFollowFile) {
+			followUpFormData.append('FollowUpDocumentFile', attachFollowFile);
+		}
+			// After populating formData
+
+		const FollowUpUrl = TicketFollowUpId == 0 ?
+			'@baseUrl/TicketFollowUpAPI/CreateTicketFollowUp' :
+			'@baseUrl/TicketFollowUpAPI/UpdateTicketFollowUp';
+		const FollowMethod = TicketFollowUpId == 0 ? "POST" : "PUT";
+
+		$.ajax({
+			url: FollowUpUrl,
+			type: FollowMethod,
+			contentType: false,  // Required for FormData
+			processData: false,  // Required for FormData
+			headers: {
+				'Authorization': 'Bearer ' + Token
+			},
+			data: followUpFormData,
+			success: function (response) {
+				if (response.isSuccess) {
+					round_success_noti(response.responseMessage);
+					clearTicketFollowUpForm();
+				} else {
+					round_error_noti(response.responseMessage);
+				}
+				//$('#followUpModal').modal('hide');
+				TicketFollowupDataTable(); // optional: reload list
+			},
+			error: function (xhr, status, error) {
+
+				round_error_noti("Error while adding ticket follow up");
+				$("#btnAddFollowUp").prop("disabled", false);
+			}
+
+		});
+	});
+
+
+	function showFolloUpNoRecord()
+	{
+		$("#divFolloupNoRecord").show();
+		$("#gridFollowTag").hide();
 	}
+
+	function hideFolloUpNoRecord()
+	{
+		$("#divFolloupNoRecord").hide();
+		$("#gridFollowTag").show();
+	}
+
+	async function TicketFollowupDataTable() {
+		try {
+			$('#grid-followUp-loader').addClass('d-flex').show();
+			 $.ajax({
+				type: "GET",
+				 url: '@baseUrl/TicketFollowUpAPI/GetAllTicketFollowUpByApplicationId/'+ folloUpTicketApplication,  // Update the URL based on the API you're using
+				contentType: 'application/json',
+				 headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+
+				 success: function (data) {
+					// Check if the API call was successful
+					if (data.isSuccess) {
+						   hideFolloUpNoRecord();
+						$("#followupGridContainer").dxDataGrid({
+							dataSource: data.data,  // Use the 'data' field from the API response
+
+							columns: [
+								   {
+										dataField: '', // Not needed if custom template is used
+										caption: 'Employee Name',
+										alignment: 'left',
+										cellTemplate: function(container, options) {
+											const data = options.data;
+											if (data) {
+												const formattedText = `${data.employeeCode} - ${data.employeeName}`;
+												container.text(formattedText);
+											}
+										}
+									},
+									{ dataField: 'ticketFollowDate', caption: 'Follow-Up Date', alignment: 'left', dataType: 'date', format: 'dd-MM-yyyy' },
+									{ dataField: 'nextTicketFollowDate', caption: 'Next Follow-Up Date', alignment: 'left', dataType: 'date', format: 'dd-MM-yyyy' },
+									{ dataField: 'ticketStatusName', caption: 'Ticket Status Name', alignment: 'left' },
+									{ dataField: 'ticketFollowRemark', caption: 'Ticket Follow Remark', alignment: 'left' },
+									{
+										caption: 'Attachment',
+										dataField: 'followUpDocumentUrl',
+										alignment: 'center',
+										cellTemplate: function(container, options) {
+											const value = options.value;
+											if (value) {
+												const link = document.createElement('a');
+												link.href = value;
+												link.target = '_blank'; // Open in a new tab
+												link.innerHTML = '<i class="bx bx-file"></i>'; // Icon for the attachment
+												link.title = 'Open Document'; // Optional tooltip
+												 // Inline styles to adjust appearance
+												link.style.cssText = `
+													color: inherit;
+													text-decoration: none;
+													font-size: 20px;
+												`;
+												container.append(link);
+											} else {
+												container.text('No Document');
+											}
+										}
+								}
+
+
+
+							],
+							columnsAutoWidth: true,
+							wordWrapEnabled: false,
+							rowAlternationEnabled: false,
+							showBorders: true,
+							grouping: { autoExpandAll: false },
+							paging: { pageSize: 10 },
+							pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+							headerFilter: { visible: false },
+							filterRow: { visible: false, applyFilter: "auto" },
+							allowColumnResizing: true,
+							groupPanel: { visible: true },
+							searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+							allowColumnReordering: true,
+							columnFixing: { enabled: false },
+
+							onContentReady(e) {
+								   $('#followUpCount').html('Total Records: ' + $("#followupGridContainer").dxDataGrid('instance').totalCount());
+							}
+						}).dxDataGrid('instance');
+					} else {
+						   showFolloUpNoRecord();
+						// Handle failure case
+
+					}
+
+						  $('#grid-followUp-loader').removeClass('d-flex').hide();
+
+				},
+				error: function (xhr, status, error) {
+					  $('#grid-followUp-loader').removeClass('d-flex').hide();
+
+					// Handle any errors that occurred during the AJAX request
+					console.error("AJAX Error: " + status + " - " + error);
+
+				}
+			});
+
+		  } catch (e)
+		  {
+			   console.error("Error in fetching ticket application:", e);
+			   $('#grid-loader').removeClass('d-flex').hide();
+			   hideStatusNoRecord();
+		  }
+	}
+
+
+	$('#attatchFollowUpFile').on('change', function () {
+	  const fileFolloup = this.files[0];
+	  if (fileFolloup) {
+		const fileFolloupURL = URL.createObjectURL(fileFolloup);
+		$(this).siblings('a').show();
+		$(this).siblings('a').attr('href', fileFolloupURL).attr('target', '_blank');
+
+	  }
+	  else{
+		  $(this).siblings('a').hide();
+	  }
+	});
+
+
+	function clearTicketFollowUpForm()
+		{
+			setTicketDate();// Set date in YYYY-MM-DD format
+				$('#txtFolloUpRemark').val('');
+				$('#nextFolloUpDate').val('');
+				$('#spnFolloUpRemark').val('');
+				$('#attatchFollowUpFile').val('');
+			$("#btnAddFollowUp").prop("disabled", false);
+			$('.formType').text('Add');
+			$('#btnAddFollowUp').text('Add');
+			   $('#spnNextFolloUpDate').hide();
+			   $('#spnFolloUpDate').hide();
+			   $('#spnFolloUpRemark').hide();
+			   $('#spnTicketStatus').hide();
+
+			   $('#followUpFileLink').hide();
+				$('#followUpFileLink').attr('href', '#');
+
+		}
 
 </script>
