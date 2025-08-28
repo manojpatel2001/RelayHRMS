@@ -1,0 +1,488 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+<title>Shift Report Panel</title>
+
+<!-- jQuery + Bootstrap + SweetAlert -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    body, html {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .search-panel-wrapper {
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .btn-add {
+        background-color: orange;
+        color: white;
+        font-size: 14px;
+        padding: 6px 15px;
+        border: none;
+        border-radius: 4px;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+
+    /* Fixed container styles for full width */
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 500px;
+        padding: 10px;
+        box-sizing: border-box;
+        margin: 0;
+    }
+
+    /* Grid container specific styles */
+    .grid-container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: auto;
+    }
+
+    .dx-datagrid-rowsview .dx-row {
+        height: 40px !important;
+        min-height: 40px !important;
+    }
+
+    /* Increase cell padding for better readability */
+    .dx-datagrid-rowsview .dx-data-row > td {
+        padding: 8px 6px !important;
+        vertical-align: middle !important;
+        font-size: 12px !important;
+        white-space: nowrap;
+    }
+
+    /* Header styling */
+    .dx-datagrid-headers .dx-header-row > td {
+        padding: 8px 6px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        background-color: #f8f9fa !important;
+    }
+
+    /* Fixed columns styling */
+    .fixed-column {
+        background-color: #fff !important;
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 10 !important;
+        border-right: 2px solid #dee2e6 !important;
+    }
+
+    /* Day columns styling */
+    .day-column {
+        min-width: 40px !important;
+        max-width: 40px !important;
+        text-align: center !important;
+    }
+
+    /* Status color coding */
+    .shift-status-1 {
+        background-color: #e3f2fd !important;
+    }
+    /* Light blue for shift 1 */
+    .shift-status-2 {
+        background-color: #f3e5f5 !important;
+    }
+    /* Light purple for shift 2 */
+    .shift-status-3 {
+        background-color: #e8f5e8 !important;
+    }
+    /* Light green for shift 3 */
+    .shift-status-4 {
+        background-color: #fff3e0 !important;
+    }
+    /* Light orange for shift 4 */
+    .shift-status-5 {
+        background-color: #fce4ec !important;
+    }
+    /* Light pink for shift 5 */
+    .shift-status-W {
+        background-color: #f5f5f5 !important;
+        color: #666 !important;
+    }
+    /* Gray for week off */
+    .shift-status-H {
+        background-color: #ffebee !important;
+        color: #d32f2f !important;
+    }
+    /* Light red for holiday */
+</style>
+
+<!-- Search Panel Header -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search Panel</div>
+        </div>
+    </div>
+</div>
+
+<div class="form-section">
+    <div class="d-flex flex-column align-items-center gap-3">
+        <!-- From Date and To Date -->
+        <div class="d-flex justify-content-center gap-3">
+            <div class="d-flex align-items-center">
+                <label for="fromDate" class="form-label mb-0 me-2">From Date<span class="text-danger">*</span>:</label>
+                <input type="date" class="form-control form-control-sm" id="fromDate" style="width: 160px;">
+                <span id="spnFromDate" style="color:red; display:none;">Please Select From Date</span>
+            </div>
+            <div class="d-flex align-items-center">
+                <label for="toDate" class="form-label mb-0 me-2">To Date<span class="text-danger">*</span>:</label>
+                <input type="date" class="form-control form-control-sm" id="toDate" style="width: 160px;">
+                <span id="spnToDate" style="color:red; display:none;">Please Select To Date</span>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex justify-content-center gap-2">
+            <button class="btn btn-custom" id="btnGo">Go</button>
+            <button class="btn btn-custom" id="btnClear">Clear</button>
+            <button class="btn btn-custom" onclick="window.location.href='@Url.Action("Index", "MyReports")'">
+                Back
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Shift Report</div>
+        </div>
+    </div>
+</div>
+
+<!-- Grid Container -->
+<div class="container mt-3">
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+
+        <img src="@baseDomainUrl/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+
+        <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+    </div>
+
+    <!-- Grid Container with full width -->
+    <div class="grid-container">
+        <div id="shiftGrid"></div>
+    </div>
+</div>
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const Compid = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    // Set default dates on page load
+    $(document).ready(function() {
+        setDefaultDates();
+    });
+
+    function setDefaultDates() {
+        const currentDate = new Date();
+        const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+        $('#fromDate').val(firstDayOfMonth.toISOString().split('T')[0]);
+        $('#toDate').val(lastDayOfMonth.toISOString().split('T')[0]);
+    }
+
+    async function showLoder() {
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    async function hideLoder() {
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    function renderShiftTable(data) {
+        if (!data || data.length === 0) {
+            $("#shiftGrid").dxDataGrid({
+                dataSource: [],
+                showBorders: true,
+                noDataText: "No data available"
+            });
+            return;
+        }
+
+        // Get dynamic day columns from data
+        let dayColumns = [];
+        if (data.length > 0 && data[0].Days) {
+            const dayKeys = Object.keys(data[0].Days).filter(key => /^\d{2}$/.test(key)).sort();
+            dayColumns = dayKeys.map(day => ({
+                dataField: `Days.${day}`,
+                caption: day,
+                width: 50,
+                alignment: 'center',
+                cssClass: 'day-column',
+                cellTemplate: function(container, options) {
+                    const value = options.value || '';
+                    let className = '';
+                    let displayValue = value;
+
+                    // Apply color coding based on value
+                    if (value === 'W') {
+                        className = 'shift-status-W';
+                        displayValue = 'W';
+                    } else if (value === 'H') {
+                        className = 'shift-status-H';
+                        displayValue = 'H';
+                    } else if (!isNaN(value) && value !== '') {
+                        className = `shift-status-${value}`;
+                        displayValue = value;
+                    }
+
+                    container.addClass(className);
+                    container.text(displayValue);
+                }
+            }));
+        }
+
+        // Create columns array
+        const columns = [
+            {
+                dataField: "EmployeeCode",
+                caption: "Emp Code",
+                width: 100,
+                fixed: true,
+                cssClass: 'fixed-column'
+            },
+            {
+                dataField: "FullName",
+                caption: "Employee Name",
+                width: 200,
+                fixed: true,
+                cssClass: 'fixed-column'
+            },
+            ...dayColumns
+        ];
+
+        // Filter out the header row (where EmployeeCode is null)
+        const filteredData = data.filter(item => item.EmployeeCode !== null);
+
+        $("#shiftGrid").dxDataGrid({
+            dataSource: filteredData,
+            showBorders: true,
+            columnAutoWidth: false,
+            scrolling: {
+                mode: "standard",
+                useNative: true
+            },
+            columnFixing: {
+                enabled: true
+            },
+            sorting: {
+                mode: "multiple"
+            },
+            allowColumnResizing: true,
+            allowColumnReordering: false,
+            showColumnLines: true,
+            showRowLines: true,
+            rowAlternationEnabled: true,
+            hoverStateEnabled: true,
+            columns: columns,
+            onContentReady: function(e) {
+                // Add legend after grid is rendered
+                addShiftLegend();
+            }
+        });
+    }
+
+    function addShiftLegend() {
+        // Remove existing legend
+        $('.shift-legend').remove();
+
+        // Add legend below grid
+        const legendHtml = `
+            <div class="shift-legend mt-3 p-3 border rounded">
+                <h6>Legend:</h6>
+                <div class="d-flex flex-wrap gap-3">
+                    <span class="badge" style="background-color: #e3f2fd; color: #000;">1 - Shift 1</span>
+                    <span class="badge" style="background-color: #f3e5f5; color: #000;">2 - Shift 2</span>
+                    <span class="badge" style="background-color: #e8f5e8; color: #000;">3 - Shift 3</span>
+                    <span class="badge" style="background-color: #fff3e0; color: #000;">4 - Shift 4</span>
+                    <span class="badge" style="background-color: #fce4ec; color: #000;">5 - Shift 5</span>
+                    <span class="badge" style="background-color: #f5f5f5; color: #666;">W - Week Off</span>
+                    <span class="badge" style="background-color: #ffebee; color: #d32f2f;">H - Holiday</span>
+                </div>
+            </div>
+        `;
+        $('.grid-container').after(legendHtml);
+    }
+
+    $('#btnGo').off('click').on('click', function () {
+        var fromDate = $("#fromDate").val();
+        var toDate = $("#toDate").val();
+
+        var isValid = true;
+
+        // Validate From Date
+        if (fromDate === "") {
+            $("#spnFromDate").show();
+            isValid = false;
+        } else {
+            $("#spnFromDate").hide();
+        }
+
+        // Validate To Date
+        if (toDate === "") {
+            $("#spnToDate").show();
+            isValid = false;
+        } else {
+            $("#spnToDate").hide();
+        }
+
+        // Check if from date is not greater than to date
+        if (fromDate && toDate && new Date(fromDate) > new Date(toDate)) {
+            alert('From Date cannot be greater than To Date');
+            return;
+        }
+
+        // If validation fails, stop here
+        if (!isValid) {
+            return;
+        }
+
+        showLoder();
+
+        let model = {
+            StartDate: fromDate,
+            EndDate: toDate,
+            EmployeeIds: [parseInt(EmployeeId)]
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/EmployeeReportAPI/ShiftReport")',
+            type: 'POST',
+            data: JSON.stringify(model),
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (res) {
+                console.log("data", res);
+                if (res.isSuccess) {
+                    renderShiftTable(res.data);
+                } else {
+                    if (typeof round_error_noti === 'function') {
+                        round_error_noti(res.responseMessage || 'No Data');
+                    } else {
+                        alert(res.responseMessage || 'No Data');
+                    }
+                    renderShiftTable([]);
+                }
+            },
+            error: function (xhr) {
+                console.error("Error:", xhr);
+                if (typeof round_error_noti === 'function') {
+                    round_error_noti(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.');
+                } else {
+                    alert('An error occurred. Please try again.');
+                }
+                renderShiftTable([]);
+            },
+            complete: function () {
+                hideLoder();
+            }
+        });
+    });
+
+    $("#btnClear").off('click').on('click', function () {
+        // Clear form fields
+        $('#fromDate').val('');
+        $('#toDate').val('');
+
+        // Clear and dispose grid
+        try {
+            $("#shiftGrid").dxDataGrid("dispose");
+        } catch (e) {
+            // Ignore if grid doesn't exist
+        }
+
+        renderShiftTable([]);
+
+        // Hide error messages
+        $("#spnFromDate").hide();
+        $("#spnToDate").hide();
+
+        // Remove legend
+        $('.shift-legend').remove();
+    });
+</script>

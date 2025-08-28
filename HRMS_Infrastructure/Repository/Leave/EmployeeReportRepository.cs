@@ -5,7 +5,9 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
+using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -132,7 +134,73 @@ namespace HRMS_Infrastructure.Repository.Leave
             return result;
         }
 
+        public async Task<List<ShiftReportVm>> GetShiftReport(AttendanceReportVm vm)
+        {
+            var result = new List<ShiftReportVm>();
+            try
+            {
+                using (var conn = new SqlConnection(_db.Database.GetConnectionString()))
+                {
+                    using (var cmd = new SqlCommand("GetShiftReport", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@StartDate", vm.StartDate);
+                        cmd.Parameters.AddWithValue("@EndDate", vm.EndDate);
+                        string employeeIdsString = vm.EmployeeIds != null && vm.EmployeeIds.Any()
+                            ? string.Join(",", vm.EmployeeIds)
+                            : null;
+                        cmd.Parameters.AddWithValue("@EmployeeIds", (object)employeeIdsString ?? DBNull.Value);
 
+                        await conn.OpenAsync();
+
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            var schemaTable = reader.GetSchemaTable();
+                            var columnNames = schemaTable.Rows.Cast<DataRow>()
+                                .Select(row => row["ColumnName"].ToString())
+                                .ToList();
+
+                            while (await reader.ReadAsync())
+                            {
+                                var row = new ShiftReportVm
+                                {
+                                    EmployeeCode = reader["EmployeeCode"]?.ToString(),
+                                    FullName = reader["FullName"]?.ToString(),
+                                    SortOrder = reader["SortOrder"] != DBNull.Value ? Convert.ToInt32(reader["SortOrder"]) : null,
+                                    Days = new ExpandoObject()
+                                };
+
+                                // Dynamic day columns fill
+                                foreach (var col in columnNames)
+                                {
+                                    if (Regex.IsMatch(col, @"^\d{2}$")) // 01 se 31 tak din
+                                    {
+                                        ((IDictionary<string, object>)row.Days)[col] = reader[col]?.ToString();
+                                    }
+                                }
+
+                                result.Add(row);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (SqlException sqlEx)
+            {
+                throw new Exception($"Database error occurred while retrieving shift report: {sqlEx.Message}", sqlEx);
+            }
+            catch (InvalidCastException castEx)
+            {
+                throw new Exception($"Data conversion error occurred while processing shift report: {castEx.Message}", castEx);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An unexpected error occurred while retrieving shift report: {ex.Message}", ex);
+            }
+
+            return result;
+        }
 
     }
 }
+
