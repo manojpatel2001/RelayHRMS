@@ -230,6 +230,8 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<LeaveApplicationReportModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<TicketFollowUp>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmUserLogin>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmAttedanceCalanderDaysSummary>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmAttedanceCalanderDays>().HasNoKey().ToView(null);
 
 
 

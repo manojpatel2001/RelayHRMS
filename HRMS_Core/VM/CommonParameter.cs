@@ -11,5 +11,7 @@ namespace HRMS_Core.VM
         public int? CompanyId { get; set; }
         public int? DepartmentId { get; set; }
         public int? EmployeeId { get; set; }
+        public int? Month { get; set; }
+        public int? Year { get; set; }
     }
 }
