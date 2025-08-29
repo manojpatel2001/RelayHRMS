@@ -194,7 +194,24 @@ namespace HRMS_API.Controllers.Salary
         }
 
 
+        [HttpGet("GetEmployeeInTime/{EmployeeId}")]
+        public async Task<APIResponse> GetEmployeeInTime(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmpAttendanceRepository.GetEmployeeInTime(EmployeeId);
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found." };
 
-      
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve record. Please try again later." };
+            }
+        }
+
+
+
     }
 }

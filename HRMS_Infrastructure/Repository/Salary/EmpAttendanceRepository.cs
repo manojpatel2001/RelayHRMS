@@ -1,7 +1,10 @@
-﻿using HRMS_Core.DbContext;
+﻿using Azure.Core;
+using HRMS_Core.DbContext;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.importData;
+using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Salary;
 using Microsoft.Data.SqlClient;
@@ -44,6 +47,22 @@ namespace HRMS_Infrastructure.Repository.Salary
             {
 
                 return new List<EmpAttendanceVM>();
+            }
+        }
+
+        public async Task<List<GetEmployeeInTime>> GetEmployeeInTime(int EmployeeId)
+        {
+            try
+            {
+                var result = await _db.Set<GetEmployeeInTime>()
+                    .FromSqlInterpolated($"EXEC GetEmployeeInTime  @EmployeeId = {EmployeeId}")
+                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetLeaveApplicationsReport Error: " + ex.Message);
+                return new List<GetEmployeeInTime>();
             }
         }
 

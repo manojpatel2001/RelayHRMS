@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.Migrations;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.Salary;
 using System;
@@ -16,6 +17,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<bool> UpdateEmpAttendance(EmpAttendanceImport empAttendanceImport);
         Task<EmpAttendanceImport> SoftDelete(DeleteRecordVM DeleteRecord);
         Task<List<EmpAttendanceVM>> GetEmpAttendanceDataAsync(SearchFilterModel filter);
+        Task<List<GetEmployeeInTime>> GetEmployeeInTime(int EmployeeId);
 
     }
 }

@@ -237,6 +237,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<SalarySlipReport>().HasNoKey().ToView(null);
             modelBuilder.Entity<salaryslipParamReport>().HasNoKey().ToView(null);
             modelBuilder.Entity<ShiftReportVm>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetEmployeeInTime>().HasNoKey().ToView(null);
 
 
 
