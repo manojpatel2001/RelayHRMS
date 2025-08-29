@@ -46,7 +46,6 @@ namespace HRMS_API.Controllers.Authentication
             }
 
             var SuperAdmin = await _unitOfWork.SuperAdminDetailsRepository.GetSuperAdminByCredentials(model);
-            var login = await _unitOfWork.EmployeeManageRepository.GetAsync(asp => asp.Email == model.Email && asp.IsEnabled == true);
 
             if (SuperAdmin != null)
             {
@@ -81,26 +80,14 @@ namespace HRMS_API.Controllers.Authentication
             }
             else
             {
-                //// Find the user by email
-                //var user = await _userManager.FindByEmailAsync(model.Email);
-                //if (user == null)
-                //{
-                //    return new APIResponse { isSuccess = false, ResponseMessage = "Invalid email or password." };
-                //}
-
-                // Check if the password is correct
-                //var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
-
+               
                 var user = await _unitOfWork.EmployeeManageRepository.UserLogin(model);
                 if (user == null)
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Invalid email or password." };
                 }
                 var emp_company = await _unitOfWork.UserCompanyPermissionsRepository.GetCompanyPermissionsListByEmployeeId((int)user.Id);
-                //var DesignationDetails = await _unitOfWork.DesignationRepository.GetAsync(x=>x.DesignationId== user.DesignationId) ;
-               
-                ////var employeeDetails= await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)user.Id);
-
+                
                 var userDetails = new UserDetailsDto
                 {
                     Id = (int)user.Id,
@@ -120,7 +107,7 @@ namespace HRMS_API.Controllers.Authentication
                 // Generate JWT token
                 var token = GenerateJwtToken(userDetails);
 
-                var lastlogin = await _unitOfWork.EmployeeManageRepository.UpdateLastLogin(login.Id, login.CompanyId.Value);
+                var lastlogin = await _unitOfWork.EmployeeManageRepository.UpdateLastLogin((int)user.Id, user.CompanyId.Value);
 
                 // Return the token
                 return new APIResponse { isSuccess = true, Data = new { Token = token }, ResponseMessage = "Login Successfully!" };
