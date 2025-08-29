@@ -784,7 +784,22 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
+        [HttpGet("GetAllReportingPersons")]
+        public async Task<APIResponse> GetAllReportingPersons()
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeePersonalInfoRepository.GetAllReportingPersons();
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
 
     }
 }
