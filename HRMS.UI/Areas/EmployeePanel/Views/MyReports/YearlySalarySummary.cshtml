@@ -1,0 +1,372 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+<title>Search Panel</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+
+    body, html {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .search-panel-wrapper {
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .btn-add {
+        background-color: orange;
+        color: white;
+        font-size: 14px;
+        padding: 6px 15px;
+        border: none;
+        border-radius: 4px;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+
+    /* Fixed container styles for full width */
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 500px;
+        padding: 10px;
+        box-sizing: border-box;
+        margin: 0;
+    }
+
+    /* Grid container specific styles */
+    .grid-container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .dx-datagrid-rowsview .dx-row {
+        height: 50px !important;
+        min-height: 50px !important;
+    }
+
+    /* Increase cell padding for better readability */
+    .dx-datagrid-rowsview .dx-data-row > td {
+        padding: 10px 8px !important;
+        vertical-align: middle !important;
+        font-size: 14px !important;
+    }
+
+    /* Custom styles for salary head column */
+    .salary-head-cell {
+        font-weight: 600 !important;
+        background-color: #f8f9fa !important;
+    } 
+    .dx-datagrid-rowsview .dx-row {
+        height: 30px !important; /* Yahan height apni marzi se kam ya zyada kar sakte ho */
+    }
+
+    .dx-datagrid-content .dx-datagrid-table .dx-row > td {
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+    }
+
+</style>
+
+<!-- Search Panel Header -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search Panel</div>
+        </div>
+    </div>
+</div>
+
+<div class="form-section">
+    <div class="d-flex justify-content-center align-items-center gap-3">
+        <div class="d-flex align-items-center">
+            <label for="year" class="form-label mb-0 me-2">Year<span class="text-danger">*</span>:</label>
+            <select class="form-select form-select-sm" id="year" style="width: 160px;">
+                <option value="">Select Year</option>
+            </select>
+            <span id="spnyear" style="color:red; display:none; margin-left: 10px;">Please Select Year</span>
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex gap-2">
+            <button class="btn btn-custom" id="btnGo">Go</button>
+            <button class="btn btn-custom" id="btnClear">Clear</button>
+            <button class="btn btn-custom" onclick="window.location.href='@Url.Action("Index", "MyReports")'">
+                Back
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Yearly Salary Report</div>
+        </div>
+    </div>
+</div>
+
+<!-- Grid Container -->
+<div class="container mt-3">
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+
+        <img src="@baseDomainUrl/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+
+        <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+    </div>
+
+    <!-- Grid Container with full width -->
+    <div class="grid-container">
+        <div id="salaryGrid"></div>
+    </div>
+</div>
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = savedCompany ? JSON.parse(savedCompany) : null;
+    const Compid = companyDetails ? companyDetails.CompanyId : null;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    // Debug: Check localStorage values
+    console.log("Debug - localStorage values:");
+    console.log("savedCompany:", savedCompany);
+    console.log("companyDetails:", companyDetails);
+    console.log("Compid:", Compid);
+    console.log("EmployeeId:", EmployeeId);
+    console.log("Token:", Token ? "Token exists" : "No Token");
+
+    // Load years on page load
+    $(document).ready(function() {
+        loadYears();
+        setCurrentYear(); // Set current year as default
+    });
+
+     function loadYears() {
+        const currentYear = new Date().getFullYear();
+        const yearSelect = $('#year');
+
+        // Clear existing options
+        yearSelect.empty();
+        yearSelect.append(`<option value="">Select Year</option>`);
+
+        // Add current year
+        yearSelect.append(`<option value="${currentYear}">${currentYear}</option>`);
+
+        // Add one past year (previous year)
+        const pastYear = currentYear - 1;
+        yearSelect.append(`<option value="${pastYear}">${pastYear}</option>`);
+    }
+
+    function setCurrentYear() {
+        const currentYear = new Date().getFullYear();
+        $('#year').val(currentYear);
+    }
+
+    async function showLoder() {
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    async function hideLoder() {
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    function renderTable(data) {
+        $("#salaryGrid").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            columnAutoWidth: true,
+            allowColumnReordering: true,
+            allowColumnResizing: true,
+            columnResizingMode: "widget",
+            scrolling: {
+                mode: "standard"
+            },
+            columns: [
+             
+                    {
+                    dataField: "salaryHead",
+                    caption: "Salary Head",
+                    cssClass: "text-center-cell",
+                    format: { type: "fixedPoint", precision: 2 },
+                    cellTemplate: function(container, options) {
+                        container.css("font-weight", "700");
+                            container.css("background-color", "#f8f9fa");
+                        container.text(options.value);
+                      
+                    }
+                },
+         
+                { dataField: "jan", caption: "Jan", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "feb", caption: "Feb", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "mar", caption: "Mar", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "apr", caption: "Apr", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "may", caption: "May", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "jun", caption: "Jun", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "jul", caption: "Jul", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "aug", caption: "Aug", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "sep", caption: "Sep", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "oct", caption: "Oct", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "nov", caption: "Nov", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "dec", caption: "Dec", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                {
+                    dataField: "total",
+                    caption: "Total",
+                    cssClass: "text-center-cell",
+                    format: { type: "fixedPoint", precision: 2 },
+                    cellTemplate: function(container, options) {
+                        container.css("font-weight", "700");
+                        container.css("background-color", "#e3f2fd");
+                        container.text(options.value ? parseFloat(options.value).toFixed(2) : '0.00');
+                    }
+                }
+            ]
+        });
+    }
+
+    $('#btnGo').off('click').on('click', function () {
+        var selectedYear = $("#year").val();
+        var isValid = true;
+
+        if (selectedYear === "" || selectedYear === null) {
+            $("#spnyear").show();
+            isValid = false;
+        } else {
+            $("#spnyear").hide();
+        }
+
+        if (!isValid) {
+            return;
+        }
+
+        showLoder();
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetYearlySalaryReport")',
+            type: 'GET', // GET method use kar rahe hain
+            data: {
+                year: parseInt(selectedYear),
+                EmployeeId: EmployeeId
+            }, // Query parameters ke through data bheja ja raha hai
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (res) {
+                console.log("res" ,res);
+                if (res.isSuccess) {
+                    renderTable(res.data);
+                } else {
+                    if (typeof round_error_noti === 'function') {
+                        round_error_noti(res.responseMessage || 'No Data Found');
+                    } else {
+                        alert(res.responseMessage || 'No Data Found');
+                    }
+                    renderTable([]);
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr);
+                if (typeof round_error_noti === 'function') {
+                    round_error_noti(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.');
+                } else {
+                    alert('An error occurred. Please try again.');
+                }
+                renderTable([]);
+            },
+            complete: function () {
+                hideLoder();
+            }
+        });
+    });
+
+
+    $("#btnClear").off('click').on('click', function () {
+        // Clear form fields
+        $('#year').val('');
+
+        // Clear and dispose grid
+        try {
+            $("#salaryGrid").dxDataGrid("dispose");
+        } catch (e) {
+            // Ignore if grid doesn't exist
+        }
+
+        renderTable([]);
+
+        // Hide error messages
+        $("#spnyear").hide();
+    });
+</script>
