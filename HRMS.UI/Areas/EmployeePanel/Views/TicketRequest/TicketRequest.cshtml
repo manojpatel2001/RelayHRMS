@@ -210,7 +210,7 @@
 						<span id="spnFolloUpDate" style="color:red; display:none; ">Please select Ticket FollowUp Date</span>
 					</div>
 
-					<div class="col-sm-4 mt-3">
+					@* <div class="col-sm-4 mt-3" id="tagNextFollowUpDate">
 						<div class="form-group position-relative">
 							<input type="date"
 								   class="form-control floating-input"
@@ -220,7 +220,7 @@
 						</div>
 						<span id="spnNextFolloUpDate" style="color:red; display:none; ">Please select Next FollowUp Date</span>
 
-					</div>
+					</div> *@
 
 
 					<div class="col-sm-4 mt-3">
@@ -266,7 +266,11 @@
 
 
 				</div>
+				<div class="modal-footer btn-heading-title">
 
+					<button type="button" class="btn btn-primary" id="btnAddFollowUp" style="background-color:#2395c6; color:white;">Add</button>
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+				</div>
 				<div class="row mt-3">
 					<div class="col-md-12">
 
@@ -285,11 +289,7 @@
 					</div>
 				</div>
 			</div>
-			<div class="modal-footer btn-heading-title">
-
-				<button type="button" class="btn btn-primary" id="btnAddFollowUp" style="background-color:#2395c6; color:white;">Add</button>
-				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-			</div>
+			
 		</div>
 	</div>
 </div>
@@ -408,7 +408,6 @@
 				data: JSON.stringify({ CompanyId: companyId, DepartmentId: department }),
 				success: function(data) {
 					if (data.isSuccess) {
-						console.log("data", data);
 						var dropdown = $('#drpAssign');
 						dropdown.empty();
 						dropdown.append('<option disabled selected value="">Select</option>');
@@ -506,10 +505,10 @@
 									}
 								   }
 								},
-								{ dataField: 'departmentName', caption: 'Department Name'  },
-								{ dataField: 'ticketTypeName', caption: 'Ticket Type Name' },
+								{ dataField: 'departmentName', caption: 'Department'  },
+								{ dataField: 'ticketTypeName', caption: 'Ticket Type' },
 								{ dataField: 'ticketDescription', caption: 'Ticket Description',  },
-								{ dataField: 'ticketPriorityName', caption: 'Ticket Priority Name'  },
+								{ dataField: 'ticketPriorityName', caption: 'Ticket Priority'  },
 								{ dataField: 'escalationHours', caption: 'Escalation Hours'},
 								{ dataField: 'assignTo', caption: 'AssignTo',
 								  cellTemplate: function(container, options) {
@@ -548,29 +547,34 @@
 									}
 								},
 								{ dataField: 'ticketStatusName', caption: 'Ticket Status'  },
-								
-									  {
-											dataField: '',
-											caption: '',
-											alignment: 'center',
-											dataType: 'string',
-											format: '',
-											type: 'buttons',
-											width: '50px',
-											cellTemplate: function (container, options) {
-											const buttonElement = $(`
-												<div class="d-flex order-actions">
-												<a href="javascript:;" class="edit-action" title="Follow Up Ticket Request">
-													<i class="bx bx-plus text-primary" style="font-size: 18px;"></i>
-												</a>
-												</div>
-											`)
-											.on('dxclick', function () {
-												followUpTicketApplication(options.data);
-											})
-											.appendTo(container);
-											}
-										},
+
+							{
+								  dataField: '',
+								  caption: '',
+								  alignment: 'center',
+								  dataType: 'string',
+								  format: '',
+								  type: 'buttons',
+								  width: '50px',
+								  cellTemplate: function (container, options) {
+									// Check if the ticket status is not "Close"
+									if (options.data.ticketStatusName !== "Close") {
+									  const buttonElement = $(`
+										<div class="d-flex order-actions">
+										  <a href="javascript:;" class="edit-action" title="Follow Up Ticket Request">
+											<i class="bx bx-plus text-primary" style="font-size: 18px;"></i>
+										  </a>
+										</div>
+									  `)
+									  .on('dxclick', function () {
+										followUpTicketApplication(options.data);
+									  })
+									  .appendTo(container);
+									}
+								  }
+						    },
+
+
 
 									   {
 									   dataField: '',
@@ -891,6 +895,7 @@
 			   await bindTicketStatus(data);
 			   await TicketFollowupDataTable();
 			   clearTicketFollowUpForm();
+			 
 			   $('#followUpModal').modal('show');
 		   }
 
@@ -907,7 +912,6 @@
 					  const dropdown = $('#drpTicketStatus');
 					  dropdown.empty();
 					  dropdown.append('<option disabled selected value="">Select</option>');
-					  debugger
 					  $.each(data.data, function (index, status) {
 
 						if ( status.ticketStatusName === "Open") {
@@ -918,7 +922,9 @@
 									text: status.ticketStatusName
 								}));
 					  });
-					   $('#drpTicketStatus').val(applicationDetails.ticketStatusId);
+					  
+					  var statusId=applicationDetails.ticketStatusName=="Open"?"":applicationDetails.ticketStatusId;
+					  $('#drpTicketStatus').val(statusId);
 					  resolve(data); 
 					} else {
 					  reject(new Error('API returned unsuccessful response'));
@@ -932,7 +938,7 @@
 			  });
 	   }
 
-
+	 
 
 	 $('#btnAddFollowUp').click(function () {
 		$("#btnAddFollowUp").prop("disabled", true);
@@ -940,7 +946,7 @@
 
 		// Get form values
 		const followUpDate = $('#folloUpDate').val();
-		const nextFolloUpDate = $('#nextFolloUpDate').val();
+		// const nextFolloUpDate = $('#nextFolloUpDate').val();
 		const ticketStatus = $('#drpTicketStatus').val();
 
 		const followupDescription = $('#txtFolloUpRemark').val();
@@ -954,12 +960,12 @@
 			$('#spnFolloUpDate').hide();
 		}
 
-		if (nextFolloUpDate === '') {
-			$('#spnNextFolloUpDate').show();
-			isValid = false;
-		} else {
-			$('#spnNextFolloUpDate').hide();
-		}
+		// if (nextFolloUpDate === '') {
+		// 	$('#spnNextFolloUpDate').show();
+		// 	isValid = false;
+		// } else {
+		// 	$('#spnNextFolloUpDate').hide();
+		// }
 
 		
 
@@ -989,7 +995,7 @@
 		// Append all form data
 		followUpFormData.append('TicketFollowUpId', TicketFollowUpId || 0);
 		followUpFormData.append('TicketFollowDate', followUpDate);
-		followUpFormData.append('NextTicketFollowDate', nextFolloUpDate);
+		// followUpFormData.append('NextTicketFollowDate', nextFolloUpDate);
 		followUpFormData.append('TicketStatusId', ticketStatus);
 		followUpFormData.append('TicketApplicationId', folloUpTicketApplication);
 		followUpFormData.append('TicketFollowRemark', followupDescription);
@@ -1088,7 +1094,7 @@
 									},
 									{ dataField: 'ticketFollowDate', caption: 'Follow-Up Date', alignment: 'left', dataType: 'date', format: 'dd-MM-yyyy' },
 									{ dataField: 'nextTicketFollowDate', caption: 'Next Follow-Up Date', alignment: 'left', dataType: 'date', format: 'dd-MM-yyyy' },
-									{ dataField: 'ticketStatusName', caption: 'Ticket Status Name', alignment: 'left' },
+									
 									{ dataField: 'ticketFollowRemark', caption: 'Ticket Follow Remark', alignment: 'left' },
 									{
 										caption: 'Attachment',
@@ -1113,7 +1119,8 @@
 												container.text('No Document');
 											}
 										}
-								}
+								},
+								{ dataField: 'ticketStatusName', caption: 'Ticket Status', alignment: 'left' }
 
 									   
 
