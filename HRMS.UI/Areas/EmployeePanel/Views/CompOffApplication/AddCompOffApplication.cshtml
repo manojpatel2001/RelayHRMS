@@ -156,28 +156,37 @@
     const Empid = parseInt(localStorage.getItem("EmployeeId"));
     const EmployeeName = localStorage.getItem("EmployeeName");
 
-    $(document).ready(function () {
+      $(document).ready(function () {
+        // Initialize form fields
         $('#employeeid').val(EmployeeName);
         loadReportingPerson();
 
+        // Handle form submission
         $('#compoffForm').on('submit', function (e) {
             e.preventDefault();
+
+            // Validate form fields
             let isValid = true;
             $('.error-msg').hide();
 
             if ($('#repoid').val() == "0") {
-                $('#repoid-error').show(); isValid = false;
+                $('#repoid-error').show();
+                isValid = false;
             }
             if (!$('#extraworkdateid').val()) {
-                $('#extraworkdateid-error').show(); isValid = false;
+                $('#extraworkdateid-error').show();
+                isValid = false;
             }
             if (!$('#extraworkhrid').val()) {
-                $('#extraworkhrid-error').show(); isValid = false;
+                $('#extraworkhrid-error').show();
+                isValid = false;
             }
             if (!$('#reasonid').val()) {
-                $('#reasonid-error').show(); isValid = false;
+                $('#reasonid-error').show();
+                isValid = false;
             }
 
+            // If validation fails, scroll to the first error and return
             if (!isValid) {
                 $('html, body').animate({
                     scrollTop: $(".error-msg:visible:first").offset().top - 100
@@ -185,6 +194,7 @@
                 return;
             }
 
+            // Prepare payload for API
             const payload = {
                 CreatedBy: Empid.toString(),
                 Emp_Id: Empid,
@@ -195,36 +205,69 @@
                 ComoffReason: $('#reasonid').val()
             };
 
+            // AJAX call to submit the form
             $.ajax({
                 url: apiBase + '/CompOffAPI/CompOffDetailsApplication',
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(payload),
                 success: function (res) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: res.responseMessage || '✅ Application submitted successfully.',
-                        confirmButtonText: 'OK',
-                        timer: 2000
-                    });
-                    $('#compoffForm')[0].reset();
-                    loadReportingPerson();
-                    $('#employeeid').val(EmployeeName);
+                    // Check if the API returned a success status
+                    if (res.isSuccess && res.Success > 0) {
+                        // Show success message
+                        Swal.fire({
+                            icon: 'success',
+                            title: res.responseMessage || '✅ Application submitted successfully.',
+                            confirmButtonText: 'OK',
+                            timer: 2000
+                        });
+                        // Reset form and reload data
+                        $('#compoffForm')[0].reset();
+                        loadReportingPerson();
+                        $('#employeeid').val(EmployeeName);
+                    }
+                    // If API returned an error
+                    else {
+                        // Show error message
+                        Swal.fire({
+                            icon: 'error',
+                            title: res.responseMessage || '❌ Application failed. Please try again.',
+                            confirmButtonText: 'OK'
+                        });
+                    }
                 },
-                error: function () {
+                error: function (xhr, status, error) {
+                    // Handle AJAX errors (e.g., network issues, server errors)
+                    let errorMessage = '❌ Error submitting application.';
+                    if (xhr.responseJSON && xhr.responseJSON.responseMessage) {
+                        errorMessage = xhr.responseJSON.responseMessage;
+                    } else if (error) {
+                        errorMessage = error;
+                    }
                     Swal.fire({
                         icon: 'error',
-                        title: '❌ Error submitting application.',
+                        title: errorMessage,
                         confirmButtonText: 'OK'
                     });
                 }
             });
         });
 
+        // Clear error messages when the user types
         $('#compoffForm input, #compoffForm textarea, #compoffForm select').on('input change', function () {
             $(this).siblings('.error-msg').hide();
         });
     });
+
+
+        $('#resetid').on('click', function (e) {
+         e.preventDefault();
+         // Clear only Extra Work Date, Extra Work Hours, and Reason
+         $('#extraworkdateid').val('');
+         $('#extraworkhrid').val('');
+         $('#reasonid').val('');
+     });
+
 
    async function loadReportingPerson() {
         $.ajax({
