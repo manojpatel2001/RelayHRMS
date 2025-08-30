@@ -580,30 +580,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 {
                     model.EmployeeSignatureUrl = null;
                 }
-                    //if ((string.IsNullOrEmpty(model.EmployeeSignatureUrl)|| model.EmployeeSignatureUrl==null)&& model.EmployeeSignatureFile==null)
-                    //{
-                    //    model.EmployeeSignatureUrl = null;
-                    //}
-                    //if ((string.IsNullOrEmpty(model.EmployeeProfileUrl)|| model.EmployeeProfileUrl=="null")&& model.EmployeeSignatureFile == null)
-                    //{
-                    //    model.EmployeeProfileUrl = null;
-                    //}
-
-                    //if ((!string.IsNullOrEmpty(model.EmployeeSignatureUrl) || model.EmployeeSignatureUrl != "null") && model.EmployeeSignatureFile == null)
-                    //{
-                    //    var folder = $"uploads/employeesignature";
-                    //    bool isDeleted =  UploadDocument.DeleteUploadedFile(Request,  folder, model.EmployeeSignatureUrl);
-
-                    //    model.EmployeeSignatureUrl = null;
-                    //}
-                    //if ((!string.IsNullOrEmpty(model.EmployeeProfileUrl) || model.EmployeeProfileUrl != "null") && model.EmployeeSignatureFile == null)
-                    //{
-                    //    var folder = $"uploads/employeeprofile";
-                    //    bool isDeleted = UploadDocument.DeleteUploadedFile(Request, folder, model.EmployeeSignatureUrl);
-
-                    //    model.EmployeeProfileUrl = null;
-                    //}
-
+                
 
                     var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployeeProfileAndSignature(model);
 
