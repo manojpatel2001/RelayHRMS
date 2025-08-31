@@ -71,11 +71,11 @@ namespace HRMS_API.Controllers.Salary
             }
         }
         [HttpPost("GetSalarySlip")]
-        public async Task<APIResponse> GetSalarySlip(salaryslipParam vm)
+        public async Task<APIResponse> GetSalarySlip(salaryslipParamReport vm)
         {
             try
             {
-                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetSalarySlip(vm);
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetSalarySlipReport(vm);
                 if (data == null || !data.Any())
                 {
                     return new APIResponse()

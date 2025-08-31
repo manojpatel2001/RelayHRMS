@@ -239,6 +239,9 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<ShiftReportVm>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetEmployeeInTime>().HasNoKey().ToView(null);
             modelBuilder.Entity<YearlySalarySummaryVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeDetailsViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<CompOffBalanceReportViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<CompOffBalanceReportParamViewModel>().HasNoKey().ToView(null);
 
 
 

@@ -98,6 +98,7 @@
         padding: 10px;
         box-sizing: border-box;
         margin: 0;
+        overflow-x: auto; /* Add horizontal scrolling */
     }
 
     /* Grid container specific styles */
@@ -105,6 +106,7 @@
         width: 100%;
         margin: 0;
         padding: 0;
+        min-width: 800px; /* Ensure minimum width for proper table display */
     }
 
     .dx-datagrid-rowsview .dx-row {
@@ -123,7 +125,8 @@
     .salary-head-cell {
         font-weight: 600 !important;
         background-color: #f8f9fa !important;
-    } 
+    }
+
     .dx-datagrid-rowsview .dx-row {
         height: 30px !important; /* Yahan height apni marzi se kam ya zyada kar sakte ho */
     }
@@ -133,6 +136,53 @@
         padding-bottom: 2px !important;
     }
 
+    /* Employee Details Section Styles */
+    .employee-details-wrapper {
+        margin-bottom: 15px;
+    }
+
+    .employee-details-container {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px 15px;
+    }
+
+    .employee-info-row {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
+
+    .employee-info-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .employee-info-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .employee-info-value {
+        font-size: 13px;
+        font-weight: 500;
+        color: #212529;
+    }
+
+
+        .employee-info-row
+
+    {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+   
 </style>
 
 <!-- Search Panel Header -->
@@ -169,6 +219,15 @@
     <div class="search-panel-container">
         <div class="search-panel-row">
             <div class="search-heading">Yearly Salary Report</div>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Details Section -->
+<div class="employee-details-wrapper" id="employeeDetailsSection" style="display: none;">
+    <div class="employee-details-container">
+        <div id="employeeDetailsContent">
+            <!-- Employee details will be populated here -->
         </div>
     </div>
 </div>
@@ -211,10 +270,11 @@
     // Load years on page load
     $(document).ready(function() {
         loadYears();
-        setCurrentYear(); // Set current year as default
+        setCurrentYear();
+        // Remove loadEmployeeDetails() call from here
     });
 
-     function loadYears() {
+    function loadYears() {
         const currentYear = new Date().getFullYear();
         const yearSelect = $('#year');
 
@@ -243,6 +303,64 @@
         $('#grid-loader').removeClass('d-flex').hide();
     }
 
+    // Function to load employee details when Go button is clicked
+    function loadEmployeeDetailsOnGo() {
+        if (!EmployeeId) {
+            console.log("No EmployeeId found");
+            return;
+        }
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/EmployeeDashboardAPI/GetEmployeeDetails")',
+            type: 'GET',
+            data: {
+                EmployeeId: EmployeeId
+            },
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (res) {      
+             if (res.isSuccess && res.data && res.data.length > 0) {
+                    // Since data is an array, take the first element
+                    displayEmployeeDetails(res.data[0]);
+                } else {
+                    console.log("Unable to load employee details");
+                }
+            },
+            error: function (xhr) {
+                console.error("Employee Details AJAX Error:", xhr);
+            }
+        });
+    }
+
+    // Function to display employee details
+    function displayEmployeeDetails(data) {
+        const employeeDetailsHtml = `
+            <div class="employee-info-row">
+                <div class="employee-info-item">
+                    <span class="employee-info-label">Name:</span>
+                    <span class="employee-info-value">${data.fullName || 'N/A'}</span>
+                </div>
+                <div class="employee-info-item">
+                    <span class="employee-info-label">Emp Code:</span>
+                    <span class="employee-info-value">${data.employeeCode || 'N/A'}</span>
+                </div>
+                <div class="employee-info-item">
+                    <span class="employee-info-label">Branch:</span>
+                    <span class="employee-info-value">${data.branchName || 'N/A'}</span>
+                </div>
+                <div class="employee-info-item">
+                    <span class="employee-info-label">Company:</span>
+                    <span class="employee-info-value">${data.companyName || 'N/A'}</span>
+                </div>
+            </div>
+        `;
+
+        $('#employeeDetailsContent').html(employeeDetailsHtml);
+        $('#employeeDetailsSection').show();
+    }
+
     function renderTable(data) {
         $("#salaryGrid").dxDataGrid({
             dataSource: data,
@@ -252,23 +370,25 @@
             allowColumnResizing: true,
             columnResizingMode: "widget",
             scrolling: {
-                mode: "standard"
+                mode: "standard",
+                useNative: true
+            },
+            columnFixing: {
+                enabled: true
             },
             columns: [
-             
-                    {
+          
+                      {
                     dataField: "salaryHead",
                     caption: "Salary Head",
                     cssClass: "text-center-cell",
                     format: { type: "fixedPoint", precision: 2 },
                     cellTemplate: function(container, options) {
                         container.css("font-weight", "700");
-                            container.css("background-color", "#f8f9fa");
+                          container.css("background-color", "#f8f9fa");
                         container.text(options.value);
-                      
                     }
                 },
-         
                 { dataField: "jan", caption: "Jan", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
                 { dataField: "feb", caption: "Feb", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
                 { dataField: "mar", caption: "Mar", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
@@ -315,11 +435,11 @@
 
         $.ajax({
             url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetYearlySalaryReport")',
-            type: 'GET', // GET method use kar rahe hain
+            type: 'GET',
             data: {
                 year: parseInt(selectedYear),
                 EmployeeId: EmployeeId
-            }, // Query parameters ke through data bheja ja raha hai
+            },
             contentType: 'application/json',
             headers: {
                 'Authorization': 'Bearer ' + Token
@@ -327,6 +447,8 @@
             success: function (res) {
                 console.log("res" ,res);
                 if (res.isSuccess) {
+                    // Load employee details first, then show grid
+                    loadEmployeeDetailsOnGo();
                     renderTable(res.data);
                 } else {
                     if (typeof round_error_noti === 'function') {
@@ -352,7 +474,6 @@
         });
     });
 
-
     $("#btnClear").off('click').on('click', function () {
         // Clear form fields
         $('#year').val('');
@@ -368,5 +489,8 @@
 
         // Hide error messages
         $("#spnyear").hide();
+
+        // Hide employee details section
+        $('#employeeDetailsSection').hide();
     });
 </script>
