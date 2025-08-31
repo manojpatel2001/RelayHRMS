@@ -73,6 +73,28 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
+        public async Task<List<EmployeeDetailsViewModel>> GetEmployeeDetails(int EmpId)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@EmpId", EmpId) ,
+
+                    };
+
+                var result = await _db.Set<EmployeeDetailsViewModel>()
+                    .FromSqlRaw("EXEC GetEmployeeDetails @EmpId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EmployeeDetailsViewModel>();
+            }
+        }
+
         public async Task<List<MyTeamleavesVM>> GetMyteamleave(int EmpId, int Compid, int Repoid)
         {
             try

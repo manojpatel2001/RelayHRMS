@@ -18,6 +18,7 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<bool> UpdateLeavedetails(List<int> ids, string status);
         Task<List<VMCompOffDetails>> GetCompOffApplicationsAsync(SearchVmCompOff filter);
         Task<List<VMCompOffDetails>> GetCompOffApplicationsAdmin(SearchVmCompOff filter);
+        Task<List<CompOffBalanceReportViewModel>> GetCompOffAvailableBalanceReport(CompOffBalanceReportParamViewModel filter);
         Task<Comp_Off_Details?> GetCompOffApplicationById(int Comp_Off_DetailsId);
     }
 }
