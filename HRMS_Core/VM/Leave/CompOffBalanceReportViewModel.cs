@@ -10,19 +10,16 @@ namespace HRMS_Core.VM.Leave
     {
         public string? CompanyName { get; set; }
         public string? CompanyAddress { get; set; }
-        public string? AsOnDate { get; set; }
-
-        // Employee Information
+        public string? AsOnDate { get; set; } 
         public string? EmployeeCode { get; set; }
-        public string? EmployeeName { get; set; }
-
-        // Leave Balance Information
+        public string? EmployeeName { get; set; } 
         public decimal? AvailBalance { get; set; }
         public decimal? Used { get; set; }
         public decimal? TotalBalance { get; set; }
         public decimal? AvailDays { get; set; }
         public int? Limit { get; set; }
         public string? CompOffType { get; set; }
-        public string? ForDate { get; set; }
+        public decimal? RemainingDays { get; set; }
+        public string? ForDate { get; set; } 
     }
 }

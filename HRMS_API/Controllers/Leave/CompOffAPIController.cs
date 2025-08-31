@@ -237,7 +237,32 @@ namespace HRMS_API.Controllers.Leave
 
 
 
-        [HttpPost("GetCompOffAvailableBalanceReport ")]
+        [HttpPost("GetCompOffReportDetailed")]
+        public async Task<APIResponse> GetCompOffReportDetailed([FromBody] CompOffBalanceReportParamViewModel search)
+        {
+            try
+            {
+                var data = await _unitOfWork.CompOffDetailsRepository.GetCompOffReportDetailed(search);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+        [HttpPost("GetCompOffAvailableBalanceReport")]
         public async Task<APIResponse> GetCompOffAvailableBalanceReport([FromBody] CompOffBalanceReportParamViewModel search)
         {
             try
