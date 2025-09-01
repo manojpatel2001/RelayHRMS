@@ -5,6 +5,7 @@ using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface.Leave;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -218,5 +219,49 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
+                public async Task<List<CompOffBalanceReportViewModel>> GetCompOffAvailableBalanceReport(CompOffBalanceReportParamViewModel filter)
+                {
+                    try
+                    {
+                        var parameters = new[]
+                        {
+                            new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
+                            new SqlParameter("@EmpId",  (object?)filter.EmpId ?? DBNull.Value),
+                            new SqlParameter("@StartDate", filter.StartDate.HasValue ? (object)filter.StartDate.Value.ToString("yyyy-MM-dd") : DBNull.Value),
+                            new SqlParameter("@EndDate", filter.EndDate.HasValue ? (object)filter.EndDate.Value.ToString("yyyy-MM-dd") : DBNull.Value),
+                            new SqlParameter("@AsOnDate", filter.AsOnDate.HasValue ? (object)filter.AsOnDate.Value.ToString("yyyy-MM-dd") : DBNull.Value),
+                        };
+                        return await _db.Set<CompOffBalanceReportViewModel>()
+                            .FromSqlRaw("EXEC  sp_CompOffAvailableBalanceReport  @CompId, @EmpId, @StartDate, @EndDate, @AsOnDate", parameters)
+                            .ToListAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("GetCompOffApplicationsAsync Error: " + ex.Message);
+                        return new List<CompOffBalanceReportViewModel>();
+                    }
+                }
+
+        public async Task<List<CompOffReportDetailedModel>> GetCompOffReportDetailed(CompOffBalanceReportParamViewModel filter)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                            new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
+                            new SqlParameter("@EmpId",  (object?)filter.EmpId ?? DBNull.Value),
+                            new SqlParameter("@StartDate", filter.StartDate.HasValue ? (object)filter.StartDate.Value.ToString("yyyy-MM-dd") : DBNull.Value),
+                            new SqlParameter("@EndDate", filter.EndDate.HasValue ? (object)filter.EndDate.Value.ToString("yyyy-MM-dd") : DBNull.Value)
+                        };
+                return await _db.Set<CompOffReportDetailedModel>()
+                    .FromSqlRaw("EXEC  SP_CompOffReport_Detailed  @CompId, @EmpId, @StartDate, @EndDate", parameters)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetCompOffApplicationsAsync Error: " + ex.Message);
+                return new List<CompOffReportDetailedModel>();
+            }
+        }
     }
 }

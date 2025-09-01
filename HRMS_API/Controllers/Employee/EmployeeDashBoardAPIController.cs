@@ -153,6 +153,25 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
+        [HttpGet("GetEmployeeDetails")]
+        public async Task<APIResponse> GetEmployeeDetails(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeDashboardRepository.GetEmployeeDetails(EmployeeId);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
 
 
         [HttpGet("GetMyteamleave")]

@@ -176,5 +176,20 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return new List<SalarySlipReport>();
             }
         }
+
+        public async Task<List<YearlySalarySummaryVM>> GetYearlySalarySummaryReport(int Year, int EmployeeId)
+        {
+            try
+            {
+
+                var result = await _db.Set<YearlySalarySummaryVM>().FromSqlInterpolated($"EXEC SP_YearlySalarySummary @Year={Year},@EmployeeId={EmployeeId}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<YearlySalarySummaryVM>();
+            }
+            
+        }
     }
 }

@@ -239,10 +239,18 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<salaryslipParamReport>().HasNoKey().ToView(null);
             modelBuilder.Entity<ShiftReportVm>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetEmployeeInTime>().HasNoKey().ToView(null);
+
             modelBuilder.Entity<vmPersonalInfo>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmSalaryDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmContactDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetEmployeeSalaryAllowance>().HasNoKey().ToView(null);
+
+            modelBuilder.Entity<YearlySalarySummaryVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeDetailsViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<CompOffBalanceReportViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<CompOffBalanceReportParamViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<CompOffReportDetailedModel>().HasNoKey().ToView(null);
+
 
 
 
