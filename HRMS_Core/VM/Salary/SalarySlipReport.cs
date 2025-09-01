@@ -50,6 +50,8 @@ namespace HRMS_Core.VM.Salary
         public string? PrimaryAccountNumber { get; set; }
         public string? PrimaryBankName { get; set; }
         public string? PANNo { get; set; }
+        public string? PFNo { get; set; }
+        public string? ESICNo { get; set; }
         public string? UANNumber { get; set; }
         public string? BranchName { get; set; }
         public string? DesignationName { get; set; }
