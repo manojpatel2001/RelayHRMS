@@ -20,7 +20,7 @@
 <div id="editSection">
     <div class="card-body px-4">
         <form id="employeeContactForm">
-            <div class="row">
+            <div class="row px-5">
                 <div class="col-md-12 mb-2"><h6><b>Present / Working Address Details:</b></h6></div>
             </div>
 
@@ -99,7 +99,7 @@
 
             <hr />
 
-            <div class="row">
+            <div class="row px-5">
                 <div class="col-md-12 mb-2">
                     <h6>
                         <b>Permanent Address Details</b>
@@ -180,7 +180,7 @@
 
 
             <hr />
-            <div class="row">
+            <div class="row px-5">
                 <div class="col-md-12 mb-2"><h6><b>Contact Information:</b></h6></div>
             </div>
 
@@ -188,16 +188,13 @@
                 <!-- Country -->
                 <div class="col-md-4">
                     <div class="form-group mt-3 position-relative">
-                        <div class="input-group">
+                        
                             <select class="form-select floating-input" id="ddlCountry">
                                 <option selected disabled value="">Select</option>
                                 <!-- Add more options as needed -->
                             </select>
                             <label class="floating-label" for="ddlCountry">Country</label>
-                            <button type="button" id="btnCountryModal" class="input-group-text p-0 px-2" style="cursor:pointer;">
-                                +
-                            </button>
-                        </div>
+                        
                     </div>
                 </div>
 
@@ -261,13 +258,12 @@
                 </div>
             </div>
 
-            <div class="row mt-4 mb-0">
-                <div class="col-md-3"></div>
-                <div class="col-md-6 text-center text-danger" style="font-size: 10px;">
-                    Note:-Please Click On Update Button To Save Personal Details
-                </div>
-                <div class="col-md-3"></div>
+            <div style="display: flex; justify-content: center;">
+                <button type="button" class="btn btn-sm btn-primary px-5" id="btnUpdateContact" style="background-color:#2395c6; color:white;">
+                    Update
+                </button>
             </div>
+
             <hr class="mt-0" />
 
         </form>
@@ -287,8 +283,8 @@
 
             <div class="modal-body modal-body-font">
                 <div class="mb-3 position-relative">
-                    <input type="text" class="form-control floating-input" id="newThanaInput" placeholder="Enter Thana Name">
-                    <label class="floating-label" for="newThanaInput">Thana Name *</label>
+                    <input type="text" class="form-control floating-input" id="newThanaInput" placeholder="Thana Name">
+                    <label class="floating-label" for="newThanaInput">Thana Name<span class="text-danger">*</span></label>
                     <span id="spnNewThana" style="color:red; display:none;">Please Enter Thana</span>
                 </div>
             </div>
@@ -324,13 +320,14 @@
 </div>
 
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
 <script>
 
-         $(document).ready(function() {
-                bindCountry();
-                   bindThana();
-                      bindState();
+         $(document).ready( async function() {
+                await bindCountry();
+                   await bindThana();
+                    await  bindState();
+                      await loadContactDetails();
            $('#btnCountryModal').on('click', function() {
                  $('#spnNewCountry').hide();
                $('#btnSaveCountry').prop("disabled",false);
@@ -340,6 +337,7 @@
 
           // For Country Modal
              $('#btnThanaModal').on('click', function() {
+                 debugger;
                   $('#spnNewThana').hide();
                $('#newThanaInput').val('')
                    $('#btnSaveThana').prop("disabled",false);
@@ -348,49 +346,7 @@
           });
 
 
-           $('#btnSaveCountry').on('click', function() {
-               $('#btnSaveCountry').prop("disabled",true);
-               var countryName = $('#txtNewCountry').val().trim();
-
-
-               if (!countryName) {
-                 $('#spnNewCountry').show();
-                 $('#btnSaveCountry').prop("disabled",false);
-                   return;
-               } else {
-                   $('#spnNewCountry').hide();
-               }
-               var countryData = {
-                   CountryId:0,
-                   CountryName: countryName,
-
-                   CreatedBy: null
-               };
-                       debugger
-
-               $.ajax({
-                   url: '@baseUrl/CountryAPI/CreateCountry',
-                   type: 'POST',
-                   contentType: 'application/json',
-                   data: JSON.stringify(countryData),
-                   success: function(data) {
-                       if (data.isSuccess) {
-                           round_success_noti(data.responseMessage);
-                              bindCountry();
-                           $('#addCountryModal').modal('hide'); // Hide the modal on success
-                           // Optionally, refresh the country list or perform other actions
-                       } else {
-                           round_error_noti(data.responseMessage);
-                       }
-                   },
-                   error: function(xhr, status, error) {
-                       console.error('Error:', error);
-                       round_error_noti('An error occurred while adding the country.');
-                   }
-               });
-                  $('#btnSaveCountry').prop("disabled",true);
-           });
-
+          
            //Add thana
        $('#btnSaveThana').on('click', function() {
               $('#btnSaveThana').prop("disabled",true);
@@ -435,82 +391,92 @@
        });
     });
 
-        function bindThana(){
 
+     async function bindThana() {
+        try {
+            const data = await new Promise((resolve, reject) => {
                 $.ajax({
-                        url: '@baseUrl/ThanaAPI/GetAllThanas',
-                     method: 'GET',
-                     success: function(data) {
-                         if(data.isSuccess){
-                            var dropdown = $('#ddlPermanentThana,#ddlPresentThana');
-                             dropdown.empty();
-                             dropdown.append('<option disabled selected value="">Select Thana</option>');
-                             $.each(data.data, function(index, company) {
-                                 dropdown.append($('<option>', {
-                                     value: company.thanaId,
-                                     text: company.thanaName
-                                 }));
-                             });
+                    type: "GET",
+                    url: "@baseUrl/ThanaAPI/GetAllThanas",
+                    success: resolve,
+                    error: reject
+                });
+            });
+
+            if (data.isSuccess) {
+                const dropdown = $('#ddlPermanentThana,#ddlPresentThana');
+                dropdown.empty();
+                dropdown.append('<option disabled selected value="">Select Thana</option>');
+
+                data.data.forEach(thana => {
+                    dropdown.append($('<option>', {
+                        value: thana.thanaId,
+                        text: thana.thanaName
+                    }));
+                });
+            }
+        } catch (error) {
+            console.error("AJAX Error:", error.status, "-", error.statusText || error.message);
+        }
+    }
 
 
-                         }
-                     },
-                     error: function(error) {
-                         console.error('Error fetching company data:', error);
-                     }
-                 });
-         };
-           function bindCountry(){
+     async function bindCountry() {
+        try {
+            const data = await new Promise((resolve, reject) => {
+                $.ajax({
+                    type: "GET",
+                    url: "@baseUrl/CountryAPI/GetAllCountries",
+                    success: resolve,
+                    error: reject
+                });
+            });
 
-                   $.ajax({
-                         url: '@baseUrl/CountryAPI/GetAllCountries',
-                        method: 'GET',
-                        success: function(data) {
-                            if(data.isSuccess){
-                                  var dropdown = $('#ddlCountry');
-                                dropdown.empty();
-                                dropdown.append('<option disabled selected value="">Select Country</option>');
-                                $.each(data.data, function(index, company) {
-                                    dropdown.append($('<option>', {
-                                        value: company.countryId,
-                                        text: company.countryName
-                                    }));
-                                });
+            if (data.isSuccess) {
+                const dropdown = $('#ddlCountry');
+                dropdown.empty();
+                dropdown.append('<option disabled selected value="">Select Country</option>');
 
+                data.data.forEach(country => {
+                    dropdown.append($('<option>', {
+                        value: country.countryId,
+                        text: country.countryName
+                    }));
+                });
+            }
+        } catch (error) {
+            console.error("AJAX Error:", error.status, "-", error.statusText || error.message);
+        }
+    }
 
-                            }
-                        },
-                        error: function(error) {
-                            console.error('Error fetching company data:', error);
-                        }
-                    });
-            };
+     async function bindState() {
+        try {
+            const data = await new Promise((resolve, reject) => {
+                $.ajax({
+                    type: "GET",
+                    url: "@baseUrl/StateAPI/GetAllState",
+                    success: resolve,
+                    error: reject
+                });
+            });
 
-               function bindState(){
+            if (data.isSuccess) {
+                const dropdown = $('#ddlPresentState,#ddlPermanentState');
+                dropdown.empty();
+                dropdown.append('<option disabled selected value="">Select State</option>');
 
-                      $.ajax({
-                            url: '@baseUrl/StateAPI/GetAllState',
-                           method: 'GET',
-                           success: function(data) {
-                               if(data.isSuccess){
-                                           var dropdown = $('#ddlPresentState,#ddlPermanentState');
-                                   dropdown.empty();
-                                   dropdown.append('<option disabled selected value="">Select State</option>');
-                                   $.each(data.data, function(index, company) {
-                                       dropdown.append($('<option>', {
-                                           value: company.stateId,
-                                           text: company.stateName
-                                       }));
-                                   });
+                data.data.forEach(state => {
+                    dropdown.append($('<option>', {
+                        value: state.stateId,
+                        text: state.stateName
+                    }));
+                });
+            }
+        } catch (error) {
+            console.error("AJAX Error:", error.status, "-", error.statusText || error.message);
+        }
+    }
 
-
-                               }
-                           },
-                           error: function(error) {
-                               console.error('Error fetching company data:', error);
-                           }
-                       });
-               };
 
                   $(document).ready(function() {
               // Function to copy present address to permanent address
@@ -545,5 +511,113 @@
                   }
               });
           });
+
+
+    async function loadContactDetails() {
+        try {
+            const response = await fetch('@baseUrl/ProfileManageAPI/GetContactDetails/'+employeeId, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem("authToken"),
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await response.json();
+            if (data.isSuccess) {
+
+               setContactDetails(data.data)
+            }
+
+        } catch (error) {
+            console.error('Fetch error:', error);
+        }
+    }
+
+
+    function setContactDetails(employee)
+    {
+           $('#txtPresentAddress').val(employee.presentAddress || '');
+            $('#txtPresentTehsil').val(employee.presentTehsil || '');
+            $('#txtPresentDistrict').val(employee.presentDistrict || '');
+            $('#txtPresentCity').val(employee.presentCity || '');
+            $('#ddlPresentState').val(employee.presentStateId || '');
+            $('#txtPresentPincode').val(employee.presentPincode || '');
+            $('#ddlPresentThana').val(employee.presentThanaId || '');
+            $('#txtPermanentAddress').val(employee.permanentAddress || '');
+            $('#txtPermanentTehsil').val(employee.permanentTehsil || '');
+            $('#txtPermanentDistrict').val(employee.permanentDistrict || '');
+            $('#txtPermanentCity').val(employee.permanentCity || '');
+            $('#ddlPermanentState').val(employee.permanentStateId || '');
+            $('#txtPermanentPincode').val(employee.permanentPincode || '');
+            $('#ddlPermanentThana').val(employee.permanentThanaId || '');
+            $('#ddlCountry').val(employee.countryId || '');
+            $('#txtWorkPhone').val(employee.workPhone || '');
+            $('#txtPersonalPhone').val(employee.personalPhone || '');
+            $('#txtOfficialEmail').val(employee.officialEmail || '');
+            $('#txtNationality').val(employee.nationality || '');
+            $('#txtExtensionNo').val(employee.extensionNo || '');
+            $('#txtMobileNo').val(employee.mobileNo || '');
+    }
+
+
+     $("#btnUpdateContact").click(function(){
+        $('#btnUpdateContact').prop("disabled", true);
+
+        const setNullIfEmpty = (value) => {
+                    return value === "" ? null : value;
+                };
+
+                var contact={
+                         EmployeeId: employeeId,
+                         PresentAddress: setNullIfEmpty($('#txtPresentAddress').val().trim()),
+                            PresentTehsil: setNullIfEmpty($('#txtPresentTehsil').val().trim()),
+                            PresentDistrict: setNullIfEmpty($('#txtPresentDistrict').val().trim()),
+                            PresentCity: setNullIfEmpty($('#txtPresentCity').val().trim()),
+                            PresentStateId: setNullIfEmpty($('#ddlPresentState').val()),
+                            PresentPincode: setNullIfEmpty($('#txtPresentPincode').val().trim()),
+                            PresentThanaId: setNullIfEmpty($('#ddlPresentThana').val()),
+
+                            PermanentAddress: setNullIfEmpty($('#txtPermanentAddress').val().trim()),
+                            PermanentTehsil: setNullIfEmpty($('#txtPermanentTehsil').val().trim()),
+                            PermanentDistrict: setNullIfEmpty($('#txtPermanentDistrict').val().trim()),
+                            PermanentCity: setNullIfEmpty($('#txtPermanentCity').val().trim()),
+                            PermanentStateId: setNullIfEmpty($('#ddlPermanentState').val()),
+                            PermanentPincode: setNullIfEmpty($('#txtPermanentPincode').val().trim()),
+                            PermanentThanaId: setNullIfEmpty($('#ddlPermanentThana').val()),
+
+                            CountryId: setNullIfEmpty($('#ddlCountry').val()),
+                            WorkPhone: setNullIfEmpty($('#txtWorkPhone').val().trim()),
+                            PersonalPhone: setNullIfEmpty($('#txtPersonalPhone').val().trim()),
+                            OfficialEmail: setNullIfEmpty($('#txtOfficialEmail').val().trim()),
+                            Nationality: setNullIfEmpty($('#txtNationality').val().trim()),
+                            ExtensionNo: setNullIfEmpty($('#txtExtensionNo').val().trim()),
+                            MobileNo: setNullIfEmpty($('#txtMobileNo').val().trim()),
+                            SameAsPresentAddress: $('#chkSameAs').is(':checked'),
+
+                }
+
+            $.ajax({
+                url: '@baseUrl/ProfileManageAPI/UpdateContactDetails',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(contact),
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem("authToken"),
+                },
+                success: function (response) {
+                    if (response.isSuccess) {
+                        round_success_noti(response.responseMessage);
+                    } else {
+                        round_error_noti(response.responseMessage);
+                    }
+                    $('#btnUpdateContact').prop("disabled", false);
+                },
+                error: function (error) {
+                    console.error('Error saving personalInfo:', error);
+                    $('#btnUpdateContact').prop("disabled", false);
+                }
+            });
+
+    })
 
 </script>

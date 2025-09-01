@@ -187,7 +187,8 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     };
                       var resultUserRole=await _unitOfWork.HRMSUserRoleRepository.CreateUserRole(userRole);
 
-                    var salary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId= employee.Id,CompanyId= employee.CompanyId, GrossSalary=employee.GrossSalary});
+                    var salary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId= employee.Id,CompanyId= employee.CompanyId, GrossSalary=employee.GrossSalary, BasicSalary = employeeData.BasicSalary, IsPFApplicable = employeeData.IsPFApplicable });
+
                     var getRole = await _unitOfWork.RoleRepository.GetAsync(x => x.Id == (int)employeeData.RoleId && x.IsDeleted == false && x.IsEnabled == true);
                     var companyPermission = new VMUserCompanyPermission
                     {
@@ -205,18 +206,8 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     };
                     var CreateHistory = await _unitOfWork.PasswordHistory.CreateHistoryPassword(history);
 
-                    //var leavedetails = new LeaveDetails
-                    //{
-                    //    Emp_Id = employee.Id,
-                    //    Comp_Id = employee.CompanyId,
-                    //    CreatedBy = employeeData.CreatedBy,
-                    //    CreatedDate = DateTime.Now,
-
-
-                    //};
-                    //var isleavemange = await _unitOfWork.LeaveDetailsRepository.InsertLeaveManageAsync(leavedetails);
-
-
+                    var reporting = await _unitOfWork.ReportingManagerDetailsRepository.CreateReportingManagerDetail(new ReportingManagerDetails { EffectedDate=DateTime.UtcNow,EmployeeId= employee .Id,ReportingManagerId=(int) employee.ReportingManagerId,MethodName= "In Person" });
+                 
                     return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
 
                 }
@@ -315,51 +306,19 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     var checkExistSalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.GetEmployeeSalaryAllowanceByEmployeeId((int)employeeData.Id);
                     if (checkExistSalary == null)
                     {
-                        var newsalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary });
+                        var newsalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary, BasicSalary=employeeData.BasicSalary, IsPFApplicable= employeeData.IsPFApplicable });
 
                     }
                     else
                     {
-                        var updateSalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.UpdateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary });
+                        var updateSalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.UpdateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary, BasicSalary = employeeData.BasicSalary, IsPFApplicable = employeeData.IsPFApplicable });
+
                     }
-                    //// Additional information
-                    //if (updateEmployee.EmployeePersonalInfo != null)
-                    //{
-                    //    var modelEmployeePersonalInfo = updateEmployee.EmployeePersonalInfo;
-                    //    // Add or update employee personal info
-                    //    if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0|| modelEmployeePersonalInfo.EmployeePersonalInfoId==null)
-                    //    {
-                    //        var resultEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.CreateEmployeePersonalInfo(modelEmployeePersonalInfo);
-                    //    }
-                    //    else
-                    //    {
-                    //        var check = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoById(modelEmployeePersonalInfo.EmployeePersonalInfoId);
-                    //        if (check != null)
-                    //        {
-                    //            var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.UpdateEmployeePersonalInfo(modelEmployeePersonalInfo);
-                    //        }
-                    //    }
-                    //}
-                    ////Add employee contact
-                    //if (updateEmployee.EmployeeContact != null)
-                    //{
-                    //    var modelEmployeeContact = updateEmployee.EmployeeContact;
-                    //    if (modelEmployeeContact.EmployeeContactId == 0 || modelEmployeeContact.EmployeeContactId == null)
-                    //    {
-                    //        var resultEmployeeContact = await _unitOfWork.EmployeeContactRepository.CreateEmployeeContact(modelEmployeeContact);
-                    //    }
-                    //    else
-                    //    {
-                    //        var check = await _unitOfWork.EmployeeContactRepository.GetEmployeeContactById(modelEmployeeContact.EmployeeContactId);
-                    //        if (check != null)
-                    //        {
-                    //            var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeeContactRepository.UpdateEmployeeContact(modelEmployeeContact);
-                    //        }
-                    //    }
-                    //}
+
 
 
                     var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)result.Id);
+
                     return new APIResponse { isSuccess = true, Data = updatedEmployee, ResponseMessage = "Employee has been updated successfully" };
                 }
 

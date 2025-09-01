@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace HRMS_Core.VM.EmployeeMaster
+﻿namespace HRMS_Core.ProfileManage
 {
-    public class vmGetLiveEmployeeSalaryAllowance
+    public class vmGetEmployeeSalaryAllowance
     {
+        public int? EmployeeId { get; set; }
         public decimal? BasicSalary { get; set; }
         public decimal? ChildEducationAllowance { get; set; }
         public decimal? ConveyanceAllowance { get; set; }
@@ -18,7 +13,7 @@ namespace HRMS_Core.VM.EmployeeMaster
 
         public decimal? EmployeePF { get; set; }
         public decimal? EmployeeESI { get; set; }
-       
+
         public decimal? ProfessionalTax { get; set; }
         public decimal? GroupMedical { get; set; }
         public decimal? TermInsurance { get; set; }
@@ -30,5 +25,4 @@ namespace HRMS_Core.VM.EmployeeMaster
         public decimal? CTC { get; set; }
 
     }
-    
 }

@@ -117,6 +117,9 @@ namespace HRMS_Core.DbContext
         public DateTime? OfferDate { get; set; }
         public int? TraineeCompletionPeriod { get; set; }
         public string? TraineePeriodType { get; set; }
+        public string? PFNo { get; set; }
+        public string? ESICNo { get; set; }
+        public string? NoOfChildren { get; set; }
 
 
 

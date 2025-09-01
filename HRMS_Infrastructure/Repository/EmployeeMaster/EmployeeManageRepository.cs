@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.ControlPanel.CompanyInformation;
 using HRMS_Core.DbContext;
+using HRMS_Core.ProfileManage;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.Employee;
@@ -101,7 +102,9 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @OfferDate = {employee.OfferDate},
                         @TraineeCompletionPeriod = {employee.TraineeCompletionPeriod},
                         @TraineePeriodType = {employee.TraineePeriodType},
-
+                         @PFNo = {employee.PFNo},
+                            @ESICNo = {employee.ESICNo},
+                            @NoOfChildren = {employee.NoOfChildren},
                         -- Contact Details
                         @PresentAddress = {employee.PresentAddress},
                         @PresentTehsil = {employee.PresentTehsil},

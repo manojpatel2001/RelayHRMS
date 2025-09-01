@@ -8,6 +8,7 @@ using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.Notifications;
 using HRMS_Core.PrivilegeSetting;
+using HRMS_Core.ProfileManage;
 using HRMS_Core.Salary;
 using HRMS_Core.SuperAdmin;
 using HRMS_Core.VM;
@@ -238,6 +239,10 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<salaryslipParamReport>().HasNoKey().ToView(null);
             modelBuilder.Entity<ShiftReportVm>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetEmployeeInTime>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmPersonalInfo>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmSalaryDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmContactDetails>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmGetEmployeeSalaryAllowance>().HasNoKey().ToView(null);
 
 
 
