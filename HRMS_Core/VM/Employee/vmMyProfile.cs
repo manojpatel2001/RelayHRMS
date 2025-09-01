@@ -30,5 +30,7 @@ namespace HRMS_Core.VM.Employee
 
         // Uncomment if Reporting Manager is required
        public string? ReportingManagerName { get; set; }
+        public bool? IsPFApplicable { get; set; }
+        public bool? Pt { get; set; }
     }
 }

@@ -58,7 +58,9 @@ namespace HRMS_Core.VM.EmployeeMaster
         public bool? IsPermissionPunchInOut { get; set; } = false;
         public string? CreatedByName { get; set; }
         public bool? IsPFApplicable { get; set; } = true;
-
+        public string? PFNo { get; set; }
+        public string? ESICNo { get; set; }
+        public string? NoOfChildren { get; set; }
 
 
         //base model

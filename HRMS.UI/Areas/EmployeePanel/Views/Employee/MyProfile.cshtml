@@ -353,7 +353,9 @@
                     <input type="text" id="manager" class="form-control form-control-sm inp-width" readonly>
                 </div>
             </div>
+
         </div>
+
         
         <div class="col-md-4">
 
@@ -379,7 +381,7 @@
                 </div> *@
             </div>
 
-            <!-- SIGNATURE Upload -->
+            @* <!-- SIGNATURE Upload -->
             <div class="mb-4 text-center">
                 <label>Signature</label><br>
 
@@ -389,7 +391,7 @@
                      class="img-thumbnail" />
 
                 <input type="file" id="empSignatureInput" class="d-none" accept=".jpg,.jpeg" />
-
+ *@
                 @* <!-- Show signature filename BELOW image -->
                 <div id="signFileInfo" class="mt-2" style="display: none;">
                     <p>
@@ -398,19 +400,35 @@
                             <i class="fas fa-trash text-danger ms-2 cursor-pointer" aria-hidden="true"></i>
                         </span>
                     </p>
-                </div> *@
-            </div>
+                </div> 
+            </div>*@
 
-           @*  <!-- Upload button -->
+            <!-- Upload button -->
             <div class="text-center mt-4">
                 <div id="uploadBtnTag" class="mt-2" style="display: none;">
                     <button type="button" class="btn btn-primary" id="btnUpload" style="background-color:#2395c6; color:white;">
                         Upload
                     </button>
                 </div>
-            </div> *@
+            </div>
 
         </div>
+      
+            <div class="col-md-2">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="pt" disabled>
+                    <label class="form-check-label" for="pt">PT</label>
+                </div>
+            </div>
+
+          
+
+            <div class="col-md-2">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" checked type="checkbox" id="isPFApplicable" disabled>
+                    <label class="form-check-label" for="isPFApplicable">Is PF Applicable</label>
+                </div>
+            </div>
 
     </div>
     <hr />
@@ -504,6 +522,24 @@
 
 </div>
 
+<!-- Modal HTML -->
+<div class="modal" id="cropModal" tabindex="-1" aria-labelledby="cropModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cropModalLabel">Crop Profile Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <img id="cropImagePreview" src="" alt="Image preview" class="img-fluid">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="cropConfirmBtn">Confirm Crop</button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- CropperJS CSS & JS -->
 <script src="~/assets/js/jquery.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
@@ -512,6 +548,13 @@
 
 
 <script>
+
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const companyId = companyDetails.CompanyId;
+    const employeeId = localStorage.getItem('EmployeeId');
+    const token = localStorage.getItem("authToken");
+
     $(document).ready(function () {
             loadEmployeeProfile();
         $('#btnShowMore').click(function () {
@@ -533,15 +576,10 @@
     });
 
 
-            function loadEmployeeProfile()
-            {
+        function loadEmployeeProfile()
+        {
 
-            const savedCompany = localStorage.getItem('selectedCompany');
-            var companyDetails = JSON.parse(savedCompany);
-            const companyId = companyDetails.CompanyId;
-            const employeeId = localStorage.getItem('EmployeeId');
-            const token = localStorage.getItem("authToken");
-
+           
             if (!companyId) {
                 round_error_noti("Please select company");
                 return;
@@ -564,7 +602,7 @@
                         $('#Alpempcodeid').val(emp.employeeCode);
                         $('#branchid').val(emp.branchName);
                         $('#gradeid').val(emp.gradeName);
-                        $('#dateofjoinid').val(emp.dateOfJoining);
+                        $('#dateofjoinid').val(formatToDDMMYYYY(emp.dateOfJoining));
                         $('#shiftnameid').val(emp.shiftName);
                         $('#desgid').val(emp.designationName);
                         $('#monthCTCid').val(emp.monthlyCTC);
@@ -576,25 +614,17 @@
                         $('#employmentType').val(emp.employeeTypeName);
                         $('#category').val(emp.categoryName);
                         $('#manager').val(emp.reportingManagerName);
+                        $('#pt').prop('checked', emp.pt || false);
+                         $('#isPFApplicable').prop('checked', emp.isPFApplicable || false);
 
                           $('#empCode').text(emp.employeeCode);   // span ke liye
                           $('#empName').text(emp.fullName);       // span ke liye
                           // Profile and Signature Images
                         if (emp.employeeProfileUrl) {
                             $('#profileImage').attr('src', emp.employeeProfileUrl);
-                            $('#fileInfo').show();
-                            $("#uploadBtnTag").show();
-                        } else {
-                            $('#fileInfo').hide();
-                        }
-
-                        if (emp.employeeSignatureUrl) {
-                            $('#empSignPreview').attr('src', emp.employeeSignatureUrl);
-                            $('#signFileInfo').show();
-                            $("#uploadBtnTag").show();
-                        } else {
-                            $('#signFileInfo').hide();
-                        }
+                            
+                        } 
+                       
 
                     } else {
                         round_error_noti(data.responseMessage);
@@ -607,7 +637,13 @@
         } // end of function
 
 
-
+     function formatToDDMMYYYY(dateInput) {
+        const date = new Date(dateInput);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
 
     $(document).ready(function () {
         openForm('personal-form');
@@ -625,7 +661,7 @@
             case 'Immigration-form': viewName = 'Immigration'; break;
             case 'Asset-License-form': viewName = 'AssetAndLicense'; break;
 
-    case 'reporting-contract-form': viewName = 'Reporting'; break;
+             case 'reporting-contract-form': viewName = 'Reporting'; break;
                     case 'Experience-Language-form': viewName = 'Experience'; break;
             case 'Qualification-form': viewName = 'Qualification'; break;
             case 'Skill-form': viewName = 'Skills'; break;
@@ -636,19 +672,20 @@
                 console.error("❌ No matching viewName found for", formId);
                 return;
         }
-
-        let url = `/EmployeePanel/PartialView/${viewName}`;
         
-        $.get(url, function (data) {
-           
-            // sab sections ko hide karo
-            $(".partial-section").addClass("d-none");
+          $.ajax({
+            url: `/EmployeePanel/PartialView/${viewName}`,
+            method: 'GET',
+            success: function (data) {
+               // sab sections ko hide karo
+                $(".partial-section").addClass("d-none");
+                // jis formId pe click hua usme HTML inject karo
+                $("#" + formId).html(data).removeClass("d-none");
 
-            // jis formId pe click hua usme HTML inject karo
-            $("#" + formId).html(data).removeClass("d-none");
-
-        }).fail(function (xhr) {
-            console.error("❌ Error loading partial:", xhr.responseText);
+            },
+            error: function (xhr) {
+                console.error('AJAX failed:', xhr.status, xhr.statusText);
+            }
         });
     }
 
@@ -657,241 +694,120 @@
 
 <script>
         let cropper;
-        let selectedFile;
-        let currentCropTarget = '';
-        let profileFile=null;
-        let signatureFile=null;
+    let selectedFile;
+    let profileFile = null;
+    let currentCropTarget = 'profile'; // default target
 
-       
-
-        // Trigger file input
-        $('#profileImage').click(() => $('#profileInput').click());
-
-        // File selected
-        $('#profileInput').change(function () {
-            const file = this.files[0];
-            // if (!file || !file.name.toLowerCase().endsWith(".jpg")) {
-            // 	alert("Only JPG files are allowed.");
-            // 	resetAll();
-            // 	return;
-            // }
-
-            selectedFile = file;
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                $('#cropImagePreview').attr('src', e.target.result);
-                $('#cropImagePreview').on('load', function () {
-                    // Initialize Cropper only after the image is fully loaded
-                    initCropper();
-                });
-
-                // Show the modal directly when the file is loaded
-                const modal = new bootstrap.Modal(document.getElementById('cropModal'));
-                modal.show();
-            };
-            reader.readAsDataURL(file);
-        });
-
-        // Function to initialize the cropper
-        function initCropper() {
-            const image = document.getElementById('cropImagePreview');
-
-            // Destroy any previous cropper instance before creating a new one
-            if (cropper) {
-                cropper.destroy();
-            }
-
-            // Initialize cropper
-            cropper = new Cropper(image, {
-                aspectRatio: 1,
-                viewMode: 1,
-                autoCropArea: 1,
-                ready() {
-                    // Optionally, you can set focus or trigger other UI updates after cropper is ready
-                }
-            });
-        }
-
-        // On Modal hidden - destroy cropper
-        $('#cropModal').on('hidden.bs.modal', function () {
-            if (cropper) {
-                cropper.destroy();
-                cropper = null;
-            }
-        });
-
-        // // Confirm crop
-        // $('#cropConfirmBtn').click(function () {
-        // 	if (!cropper) {
-        // 		alert("Cropper not initialized.");
-        // 		return;
-        // 	}
-
-        // 	const canvas = cropper.getCroppedCanvas({ width: 150, height: 150 });
-        // 	const dataURL = canvas.toDataURL("image/jpeg");
-
-        // 	$('#profileImage').attr('src', dataURL); // Update the profile image
-        // 	$('#fileNameText').text(selectedFile.name);
-        // 	$('#fileInfo').show(); // Show the file info
-
-        // 	// Hide modal
-        // 	bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
-        // });
-
-        // // Delete all
-        $('#deleteBtn').click(() => resetProfile());
-
-        // function resetProfile() {
-        //     $('#profileInput').val('');
-        //     $('#profileImage').attr('src', '/uploads/defaultuserprofile/user-profile-png-image.png');
-        //     $('#fileInfo').hide();
-        //     selectedFile = null;
-        //     profileFile=null;
-        //     if (cropper) {
-        //         cropper.destroy();
-        //         cropper = null;
-        //     }
-        // }
-
-
-        $('#cropConfirmBtn').click(function () {
-            if (!cropper) {
-                alert("Cropper not initialized.");
-                return;
-            }
-            const canvas = currentCropTarget === 'signature'
-                ? cropper.getCroppedCanvas({ width: 150, height: 80 })
-                : cropper.getCroppedCanvas({ width: 150, height: 150 });
-
-            const dataURL = canvas.toDataURL("image/jpeg");
-
-            if (currentCropTarget === 'signature') {
-                $('#empSignPreview').attr('src', dataURL);
-                $('#signFileNameText').text(selectedFile.name);
-                signatureFile=selectedFile;
-                $('#signFileInfo').show();
-            } else {
-                $('#profileImage').attr('src', dataURL);
-                $('#fileNameText').text(selectedFile.name);
-                profileFile=selectedFile;
-                $('#fileInfo').show();
-            }
-            $("#uploadBtnTag").show();
-        $('#cropConfirmBtn').blur(); // <-- remove focus from button
-        bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
+    // Trigger file input
+    $('#profileImage').click(() => {
+        currentCropTarget = 'profile';
+        $('#profileInput').click();
     });
 
-
-
-        //signature
-
-        $('#empSignPreview').click(() => $('#empSignatureInput').click());
-
-        // Signature file selected
-        $('#empSignatureInput').change(function () {
-            const file = this.files[0];
-
-            if (!file || !file.name.toLowerCase().endsWith(".jpg")) {
-                alert("Only JPG files are allowed for signature.");
-                resetSignature();
-                return;
-            }
-
-            selectedFile = file;
-            currentCropTarget = 'signature';
-
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                $('#cropImagePreview').attr('src', e.target.result);
-                $('#cropImagePreview').on('load', function () {
-                    initCropperSignature(); // for signature aspect
-                });
-
-                const modal = new bootstrap.Modal(document.getElementById('cropModal'));
-                modal.show();
-            };
-            reader.readAsDataURL(file);
-        });
-
-        // Delete Signature
-        $('#deleteSignBtn').click(() => resetSignature());
-
-        function initCropperSignature() {
-            const image = document.getElementById('cropImagePreview');
-            if (cropper) cropper.destroy();
-
-            cropper = new Cropper(image, {
-                aspectRatio: 150 / 80,
-                viewMode: 1,
-                autoCropArea: 1
-            });
+    // File selected
+    $('#profileInput').change(function () {
+        const file = this.files[0];
+        if (!file || !file.name.toLowerCase().endsWith(".jpg")) {
+            alert("Only JPG files are allowed.");
+            return;
         }
 
-        // function resetSignature() {
-        //     $('#empSignatureInput').val('');
-        //     $('#empSignPreview').attr('src', '/uploads/defaultuserprofile/default-signature.jpg');
-        //     $('#signFileInfo').hide();
-        //     selectedFile = null;
-        //     signatureFile=null;
-        //     if (cropper) {
-        //         cropper.destroy();
-        //         cropper = null;
-        //     }
-        // }
-
-
-
-      $("#btnUpload").click(() => {
-            $("#btnUpload").prop("disabled", true);
-            var profileFile = $('#profileInput')[0].files[0];
-            var signatureFile = $('#empSignatureInput')[0].files[0];
-
-            var profileFormdata = new FormData();
-             profileFormdata.append("EmployeeId", CurrentEmployeeId);
-            profileFormdata.append("EmployeeProfileFile", profileFile);
-            profileFormdata.append("EmployeeSignatureFile", signatureFile);
-            
-            // Example of sending the FormData to the server using AJAX
-            $.ajax({
-                url: '@baseUrl/EmployeeMasterAPI/UpdateEmployeeProfileAndSignature', // Replace with your actual endpoint
-                type: 'POST',
-                data: profileFormdata,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                  if (response.isSuccess)
-                  {
-                      var employee=response.data;
-                      console.log(employee);
-                             // resetAllEmployeeData(employee);
-                        // if(employee.employeeProfileUrl!=null )
-                        // {
-                        // 	$('#profileImage').attr('src',employee.employeeProfileUrl );
-                        // 	EmployeeProfileUrl=employee.employeeProfileUrl;
-                        // }
-                        // else{
-                        // 	$('#profileImage').attr('src', '/uploads/defaultuserprofile/user-profile-png-image.png');
-                        // }
-                        // if(employee.employeeSignatureUrl!=null){
-                        // 	EmployeeSignatureUrl=employee.employeeSignatureUrl;
-                        // 	$('#empSignPreview').attr('src', employee.employeeSignatureUrl);
-                        // }
-                        // else{
-                        // 	$('#empSignPreview').attr('src', '@@baseDomainUrl/uploads/defaultuserprofile/default-signature.jpg');
-                        // }
-                    round_success_noti(response.responseMessage);
-                  }
-                    else {
-                        round_error_noti(response.responseMessage);
-                    }
-                        $("#btnUpload").prop("disabled", false);
-                },
-                error: function(xhr, status, error) {
-                    $("#btnUpload").prop("disabled", false);
-                    console.error('Upload failed', error);
-                }
+        selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            $('#cropImagePreview').attr('src', e.target.result);
+            $('#cropImagePreview').on('load', function () {
+                initCropper();
             });
+
+            const modal = new bootstrap.Modal(document.getElementById('cropModal'));
+            modal.show();
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Initialize Cropper
+    function initCropper() {
+        const image = document.getElementById('cropImagePreview');
+        if (cropper) cropper.destroy();
+
+        cropper = new Cropper(image, {
+            aspectRatio: 1,
+            viewMode: 1,
+            autoCropArea: 1
         });
+    }
+
+    // Destroy cropper on modal close
+    $('#cropModal').on('hidden.bs.modal', function () {
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        
+    });
+
+    // Confirm Crop
+    $('#cropConfirmBtn').click(function () {
+        if (!cropper) {
+            alert("Cropper not initialized.");
+            return;
+        }
+
+        const canvas = cropper.getCroppedCanvas({ width: 150, height: 150 });
+
+        canvas.toBlob(function (blob) {
+            const croppedFile = new File([blob], selectedFile.name, {
+                type: "image/jpeg",
+                lastModified: Date.now()
+            });
+
+            const previewURL = URL.createObjectURL(croppedFile);
+            $('#profileImage').attr('src', previewURL);
+            profileFile = croppedFile;
+            $("#uploadBtnTag").show();
+            bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
+        }, "image/jpeg");
+    });
+
+    // Upload Cropped Image
+    $("#btnUpload").click(() => {
+        $("#btnUpload").prop("disabled", true);
+
+        if (!profileFile) {
+            round_error_noti("Please select and crop an image first!");
+            $("#btnUpload").prop("disabled", false);
+            return;
+        }
+
+        const profileFormdata = new FormData();
+        profileFormdata.append("EmployeeId", employeeId); // Make sure employeeId is defined
+        profileFormdata.append("EmployeeProfileFile", profileFile);
+
+        $.ajax({
+            url: '@baseUrl/ProfileManageAPI/UpdateProfilePic', // Replace with your actual endpoint
+            type: 'POST',
+            data: profileFormdata,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                if (response.isSuccess) {
+                    const employee = response.data;
+                    const imageUrl = employee.employeeProfileUrl || '/uploads/defaultuserprofile/user-profile-png-image.png';
+                    $('#profileImage').attr('src', imageUrl);
+                    $("#uploadBtnTag").hide();
+                    round_success_noti(response.responseMessage);
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+                $("#btnUpload").prop("disabled", false);
+            },
+            error: function (xhr, status, error) {
+                $("#btnUpload").prop("disabled", false);
+            }
+        });
+    });
+
 
 </script>
 

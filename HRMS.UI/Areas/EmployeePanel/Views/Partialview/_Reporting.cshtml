@@ -1,0 +1,185 @@
+﻿@inject IConfiguration Configuration
+@{
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+<div class="row">
+    <div class="col-sm-6">
+        <div class=" border border-dark border-1 rounded">
+            <div class="card-header bg-primary text-white">
+                <h6>REPORTING MANAGER</h6>
+            </div>
+
+            <div class="card-body">
+             
+                <div class="row">
+                    <div class="col-md-12 ">
+                        <div class="table-responsive table-responsive-fixed">
+                            <table class="table table-bordered" id="tableReportingManger">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th >Manager Name</th>
+                                        <th >Method</th>
+                                        <th>Effected Date</th>
+                                        
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div> <!-- End outer card -->
+    </div>
+
+    <div class="col-sm-6">
+        <div class="border border-dark border-1 rounded">
+            <div class="card-header bg-primary text-white">
+                <h6>CONTRACT</h6>
+            </div>
+            <div class="card-body">
+                
+                <div class="row">
+                    <div class="col-md-12 ">
+                        <div class="table-responsive table-responsive-fixed">
+                            <table class="table table-bordered" id="tableContract">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Project Name</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
+                                        <th>Comments</th>
+                                        <th>Renew</th>
+                                        <th>Reminder</th>
+                                        
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<script>
+
+     $(document).ready(function () {
+        loadContractDetails();
+        loadReportingDetails();
+
+    });
+
+    function formatDate(isoDateStr) {
+            if (!isoDateStr) return '';
+      return isoDateStr.split('T')[0];
+    }
+
+   
+      async function loadReportingDetails() {
+        try {
+
+            const response = await fetch('@baseUrl/ReportingManagerDetailsAPI/GetAllReportingManagerDetails/' + employeeId, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+                if (!response.ok) {
+                        console.log('HTTP error! Status: ' + response.status);
+                 }
+            const data = await response.json();
+
+            let tbody = $('#tableReportingManger tbody');
+            tbody.empty();
+
+            if (data.isSuccess && data.data.length > 0) {
+                reportingDetails=data.data;
+                data.data.forEach(row => {
+                    const createdDate = formatToDDMMYYYY(row.createdDate);
+                    const effectedDate = formatToDDMMYYYY(row.effectedDate);
+                    const fileLink = row.documentUrl ? `<a href="${row.documentUrl}" target="_blank">View</a>` : 'N/A';
+
+                    tbody.append(`
+                        <tr>
+                            <td>${row.employeeCode ?? ''} ${row.reportingManagerName ?? ''}</td>
+                        <td>${row.methodName ?? ''}</td>
+                        <td>${effectedDate}</td>
+                        
+                        </tr>
+                    `);
+                });
+            } else {
+                tbody.append('<tr><td colspan="6" class="text-center">No data found.</td></tr>');
+            }
+
+        } catch (error) {
+            console.error('Fetch error:', error);
+        }
+    }
+
+   
+ 
+   
+
+     async function loadContractDetails() {
+        try {
+            const response = await fetch('@baseUrl/ContractDetailsAPI/GetAllContractDetails/' + employeeId, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('HTTP error! Status: ' + response.status);
+                return;
+            }
+
+            const data = await response.json();
+            const tbody = $('#tableContract tbody');
+            tbody.empty();
+
+            if (data.isSuccess && data.data.length > 0) {
+                ContractDetails=data.data;
+                data.data.forEach(row => {
+                        const startDate = formatToDDMMYYYY(row.startDate);
+                           const endDate = formatToDDMMYYYY(row.endDate);
+
+
+                    tbody.append(`
+                        <tr>
+                            <td>${row.projectName ?? '-'}</td>
+                            <td>${startDate}</td>
+                            <td>${endDate}</td>
+                            <td>${row.comment ?? '-'}</td>
+                            <td>${row.isRenew ? 'Yes' : 'No'}</td>
+                            <td>${row.isContractRenew ? 'Yes' : 'No'}</td>
+                            
+                        </tr>
+                    `);
+                });
+            } else {
+                tbody.append('<tr><td colspan="8" class="text-center">No data found.</td></tr>');
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+        }
+    }
+
+     function formatToDDMMYYYY(dateInput) {
+        const date = new Date(dateInput);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+</script>

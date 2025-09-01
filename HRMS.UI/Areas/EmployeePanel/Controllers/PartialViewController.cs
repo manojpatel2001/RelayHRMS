@@ -33,7 +33,7 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
         }
         public IActionResult Reporting()
         {
-            return PartialView("_Reporting");
+           return PartialView("_Reporting");
         }
         public IActionResult Experience()
         {

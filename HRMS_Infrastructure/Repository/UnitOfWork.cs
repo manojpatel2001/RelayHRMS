@@ -8,6 +8,7 @@ using HRMS_Infrastructure.Interface.EmployeeMaster;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
+using HRMS_Infrastructure.Interface.ManageProfile;
 using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
@@ -21,6 +22,7 @@ using HRMS_Infrastructure.Repository.EmployeeMaster;
 using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.Leave;
 using HRMS_Infrastructure.Repository.ManagePermissions;
+using HRMS_Infrastructure.Repository.ManageProfile;
 using HRMS_Infrastructure.Repository.Notifications;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
@@ -127,6 +129,7 @@ namespace HRMS_Infrastructure.Repository
             employeeProfileExperienceRepository = new EmployeeProfileExperienceRepository(_dbContext);
             employeeProfileLanguageRepository = new EmployeeProfileLanguageRepository(_dbContext);
             TicketFollowUpRepository = new TicketFollowUpRepository(_dbContext);
+            ManageProfileRepository = new ManageProfileRepository(_dbContext);
 
         }
 
@@ -228,6 +231,7 @@ namespace HRMS_Infrastructure.Repository
         public IEmployeeProfileExperienceRepository employeeProfileExperienceRepository { get; set; }
         public IEmployeeProfileLanguageRepository employeeProfileLanguageRepository { get; set; }
         public ITicketFollowUpRepository TicketFollowUpRepository { get; set; }
+        public IManageProfileRepository ManageProfileRepository { get; set; }
 
         public void Commit()
         {
