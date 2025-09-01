@@ -511,105 +511,127 @@ let payslipManager;
                const Token=localStorage.getItem("authToken");
 
 
-        function handleGoButtonClick(e) {
-            e.preventDefault(); // Prevent form submission
+    function handleGoButtonClick(e) {
+        e.preventDefault(); // Prevent form submission
 
-            var month = $('#month').val();
-            var year = $('#year').val();
+        var month = $('#month').val();
+        var year = $('#year').val();
 
-            if (!month || !year) {
-                Swal.fire("Validation", "Please select both Month and Year.", "warning");
-                return;
+        if (!month || !year) {
+            Swal.fire("Validation", "Please select both Month and Year.", "warning");
+            return;
+        }
+
+        // Show loading indicator
+        if (payslipManager) {
+            payslipManager.showLoading();
+        }
+
+        const requestData = {
+            Month: parseInt(month),
+            Year: parseInt(year),
+            EmployeeId: [parseInt(EmployeeId)] // Changed to array format as per your requirement
+        };
+
+        // Updated helper function to round values to whole numbers
+        function roundValue(value) {
+            if (value === null || value === undefined || isNaN(value)) {
+                return 0;
             }
+            return Math.round(parseFloat(value));
+        }
 
-            // Show loading indicator
-            if (payslipManager) {
-                payslipManager.showLoading();
-            }
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetSalarySlip")',
+            type: "POST",
+            data: JSON.stringify(requestData),
+            contentType: "application/json",
+            success: function (response) {          
+                if (response && response.isSuccess && Array.isArray(response.data)) {
+                    // Map the API response to the expected format with rounded values
+                    samplePayslipData = response.data.map(item => ({
+                        id: item.id,
+                        employeeId: item.employeeId,
+                        month: `${item.monthName} - ${item.year}`,
+                        employeeCode: item.employeeCode || 'N/A',
+                        employeeName: item.employeeName || item.fullName || 'N/A',
+                        branch: item.branchName || 'HO',
+                        department: item.departmentName || 'N/A',
+                        designation: item.designationName || 'N/A',
+                        grade: item.gradeName || 'N/A',
+                        dateOfBirth: item.dateOfBirth ? new Date(item.dateOfBirth).toLocaleDateString() : 'N/A',
+                        dateOfJoining: item.dateOfJoining ? new Date(item.dateOfJoining).toLocaleDateString() : 'N/A',
+                        pfNo: item.pfNo || '',
+                        uanNo: item.uanNumber || '',
+                        esicNo: item.esicNo || '',
+                        panNo: item.panNo || '',
+                        bankName: item.primaryBankName || 'N/A',
+                        bankAccountNo: item.primaryAccountNumber || 'N/A',
 
-            const requestData = {
-                Month: parseInt(month),
-                Year: parseInt(year),
-                EmployeeId: [parseInt(EmployeeId)] // Changed to array format as per your requirement
-            };
+                        // Rounded salary values to 2 decimal places
+                        netAmount: roundValue(item.netSalary),
+                        presentDays: item.presentDays,
+                        salaryDays: item.salaryDays,
+                        holidays: item.holiday,
+                        weekOff: item.weekOff,
+                        monthDays: item.monthDays || 30,
+                        absentDays: item.absentDays,
+                        leave: item.leave,
+                        payableDays: item.payableDays,
+                        monthNumber: item.monthNumber,
+                        year: item.year,
+                   
 
-            $.ajax({
-                url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetSalarySlip")',
-                type: "POST",
-                data: JSON.stringify(requestData),
-                contentType: "application/json",
-                success: function (response) {
-                    if (response && response.isSuccess && Array.isArray(response.data)) {
-                        // Map the API response to the expected format
-                                              samplePayslipData = response.data.map(item => ({
-                                    id: item.id || item.Id,
-                                    month: `${item.monthName || item.MonthName} - ${year}`,
-                                    employeeCode: item.employeeCode || item.EmployeeCode || 'N/A',
-                                    employeeName: item.employeeName || item.EmployeeName || item.FullName || 'N/A',
-                                    branch: item.branch || item.BranchName || 'HO',
-                                    department: item.departmentName || item.DepartmentName || 'N/A',
-                                    designation: item.designationName || item.DesignationName || 'N/A',
-                                    grade: item.gradeName || item.GradeName || 'N/A',
-                                    dateOfBirth: item.dateOfBirth || (item.DateOfBirth ? new Date(item.DateOfBirth).toLocaleDateString() : 'N/A'),
-                                    dateOfJoining: item.dateOfJoining || (item.DateOfJoining ? new Date(item.DateOfJoining).toLocaleDateString() : 'N/A'),
-                                    pfNo: item.pfNo || item.PFNumber || '',
-                                    uanNo: item.uanNo || item.UANNumber || '',
-                                    esicNo: item.esic || item.ESICNumber || '',
-                                    panNo: item.panNo || item.PANNo || '',
-                                    bankName: item.primaryBankName || item.PrimaryBankName || 'N/A',
-                                    bankAccountNo: item.primaryAccountNumber || item.PrimaryAccountNumber || 'N/A',
-                                    netAmount: item.netSalary || item.NetSalary,
-                                    presentDays: item.presentDays || item.PresentDays,
-                                    salaryDays: item.salaryDays || item.SalaryDays,
-                                    holidays: item.holidays || item.Holiday,
-                                    weekOff: item.weekOff || item.WeekOff,
-                                    monthDays: item.monthDays || item.MonthDays || 30,
-                                    absentDays: item.absentDays || item.AbsentDays,
-                                    leave: item.leave || item.Leave,
-                                    // Agar `outDuty` aur `gatePass` C# me nahi hain, toh inhe remove kar den
-                                    earnings: [
-                                        { name: "Basic Salary", amount: item.basicSalary || item.BasicSalary || 0 },
-                                        { name: "House Rent Allowance (AMT)", amount: item.hra || item.HRA || 0 },
-                                        { name: "Conveyance Allowances (AMT)", amount: item.conveyanceAllowance || item.ConveyanceAllowance || 0 },
-                                        { name: "Medical Allowances (AMT)", amount: item.medicalAllowance || item.MedicalAllowance || 0 },
-                                        { name: "CEA (AMT)", amount: item.childEducationAllowance || item.ChildEducationAllowance || 0 },
-                                        { name: "Deputation Allowance (AMT)", amount: item.deputationAllowance || item.DeputationAllowance || 0 }
-                                    ].filter(earning => earning.amount > 0),
-                                    deductions: [
-                                        { name: "PF", amount: item.pf || item.PF || 0 },
-                                        { name: "ESIC", amount: item.esic || item.ESIC || 0 },
-                                        { name: "Professional tax", amount: item.professionalTax || item.ProfessionalTax || 0 },
-                                        { name: "Group Medical", amount: item.groupMedical || item.GroupMedical || 0 },
-                                        { name: "Term Insurance", amount: item.termInsurance || item.TermInsurance || 0 },
-                                        { name: "LWF", amount: item.lwf || item.LWF || 0 },
-                                        { name: "TDS", amount: item.tds || item.TDS || 0 },
-                                        { name: "Other Deduction (AMT)", amount: item.loan || item.Loan || 0 }
-                                    ].filter(deduction => deduction.amount > 0),
-                                    grossSalary: item.totalGrossSalary || item.TotalGrossSalary,
-                                    totalDeductions: item.totalDeductions || item.TotalDeductions
-                                }));
-               
-                        if (payslipManager) {
-                            payslipManager.updatePayslips(samplePayslipData);
-                        }
+                        // Earnings with rounded values to 2 decimal places
+                        earnings: [
+                            { name: "Basic Salary", amount: roundValue(item.basicSalary || 0) },
+                            { name: "House Rent Allowance (HRA)", amount: roundValue(item.hra || 0) },
+                            { name: "Conveyance Allowances", amount: roundValue(item.conveyanceAllowance || 0) },
+                            { name: "Medical Allowances", amount: roundValue(item.medicalAllowance || 0) },
+                            { name: "Child Education Allowance (CEA)", amount: roundValue(item.childEducationAllowance || 0) },
+                            { name: "Deputation Allowance", amount: roundValue(item.deputationAllowance || 0) }
+                        ].filter(earning => earning.amount > 0),
 
-                    } else {
-                        // Hide loading and show message
-                        if (payslipManager) {
-                            payslipManager.hideLoading();
-                        }
-                        Swal.fire("No Data", "No salary records found for the selected month/year.", "info");
+                        // Deductions with rounded values to 2 decimal places
+                        deductions: [
+                            { name: "PF", amount: roundValue(item.pf || 0) },
+                            { name: "ESIC", amount: roundValue(item.esic || 0) },
+                            { name: "Professional Tax", amount: roundValue(item.professionalTax || 0) },
+                            { name: "Group Medical", amount: roundValue(item.groupMedical || 0) },
+                            { name: "Term Insurance", amount: roundValue(item.termInsurance || 0) },
+                            { name: "LWF", amount: roundValue(item.lwf || 0) },
+                            { name: "TDS", amount: roundValue(item.tds || 0) },
+                            { name: "Loan", amount: roundValue(item.loan || 0) }
+                        ].filter(deduction => deduction.amount > 0),
+
+                        // Total amounts with rounding to 2 decimal places
+                        grossSalary: roundValue(item.grossSalary),
+                        totalGrossSalary: roundValue(item.totalGrossSalary),
+                        totalDeductions: roundValue(item.totalDeductions),
+                        createdDate: item.createdDate
+                    }));
+
+                    if (payslipManager) {
+                        payslipManager.updatePayslips(samplePayslipData);
                     }
-                },
-                error: function (xhr, status, error) {
-                    console.error("Error:", error);
+
+                } else {
+                    // Hide loading and show message
                     if (payslipManager) {
                         payslipManager.hideLoading();
                     }
-                    Swal.fire("Error", "An error occurred while fetching salary records.", "error");
+                    Swal.fire("No Data", "No salary records found for the selected month/year.", "info");
                 }
-            });
-        }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error:", error);
+                if (payslipManager) {
+                    payslipManager.hideLoading();
+                }
+                Swal.fire("Error", "An error occurred while fetching salary records.", "error");
+            }
+        });
+    }
 
 class PayslipManager {
     constructor() {
