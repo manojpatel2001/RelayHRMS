@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
+using HRMS_Core.ProfileManage;
 using HRMS_Core.Salary;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.PasswordHistory;
@@ -117,6 +118,26 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+        [HttpPost("ResetPassword")]
+        public async Task<APIResponse> ResetPassword(VMResetPassword vmResetPassword)
+        {
+            try
+            {
+                if (vmResetPassword == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Password details cannot be null." };
+                var result = await _unitOfWork.PasswordHistory.ResetPassword(vmResetPassword);
+                if (result.Success > 0)
+                {
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                }
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to reset password. Please try again later." };
+            }
+        }
+
 
     }
 }
