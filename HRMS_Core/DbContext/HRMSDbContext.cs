@@ -250,6 +250,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<CompOffBalanceReportViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<CompOffBalanceReportParamViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<CompOffReportDetailedModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<YearlySalaryComponent>().HasNoKey().ToView(null);
 
 
 

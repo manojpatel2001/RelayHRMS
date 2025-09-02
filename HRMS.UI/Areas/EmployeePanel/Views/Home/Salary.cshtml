@@ -1,10 +1,12 @@
-﻿@{
+﻿@inject IConfiguration Configuration
+@{
     ViewData["Title"] = "Employee Panel";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
-    string apiBase = ViewBag.BaseUrlAPI;
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
 }
-
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <title>Salary Dashboard</title>
@@ -427,42 +429,24 @@
         <div class="card yearly-card">
             <div class="card-header">
                 <h2>Yearly Salary</h2>
-                <select id="yearSelector" class="year-selector" onchange="handleYearChange()">
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
+                <select id="yearSelector" class="year-selector" >
+                    <!-- Years will be populated dynamically here -->
                 </select>
             </div>
             <div class="card-content">
-                <div class="overflow-x-auto">
-                    <table class="salary-table">
-                        <thead>
-                            <tr>
-                                <th>Salary Heads</th>
-                                <th class="text-center">Jan</th>
-                                <th class="text-center">Feb</th>
-                                <th class="text-center">Mar</th>
-                                <th class="text-center">Apr</th>
-                                <th class="text-center">May</th>
-                                <th class="text-center">Jun</th>
-                                <th class="text-center">Jul</th>
-                                <th class="text-center">Aug</th>
-                                <th class="text-center">Sep</th>
-                                <th class="text-center">Oct</th>
-                                <th class="text-center">Nov</th>
-                                <th class="text-center">Dec</th>
-                            </tr>
-                        </thead>
-                        <tbody id="salaryTableBody">
-                            <!-- Table rows will be populated here -->
-                        </tbody>
-                    </table>
-                </div>
+                <div id="gridContainer"></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+
+        const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = savedCompany ? JSON.parse(savedCompany) : null;
+    const Compid = companyDetails ? companyDetails.CompanyId : null;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
     // Global variables
     let salaryChart;
     let dashboardData = {};
@@ -484,32 +468,87 @@
             { month: 'Apr-2025', netSalary: 60610, grossSalary: 76176 },
             { month: 'May-2025', netSalary: 87037, grossSalary: 87603 },
             { month: 'Jun-2025', netSalary: 52037, grossSalary: 87603 }
-        ],
-        yearlyBreakdown: {
-            2025: {
-                Jan: { gross: 0, deduction: 0, net: 0 },
-                Feb: { gross: 76176, deduction: 366, net: 75610 },
-                Mar: { gross: 0, deduction: 0, net: 0 },
-                Apr: { gross: 76176, deduction: 366, net: 60610 },
-                May: { gross: 87603, deduction: 0, net: 87037 },
-                Jun: { gross: 87603, deduction: 15000, net: 52037 },
-                Jul: { gross: 0, deduction: 0, net: 0 },
-                Aug: { gross: 0, deduction: 0, net: 0 },
-                Sep: { gross: 0, deduction: 0, net: 0 },
-                Oct: { gross: 0, deduction: 0, net: 0 },
-                Nov: { gross: 0, deduction: 0, net: 0 },
-                Dec: { gross: 0, deduction: 0, net: 0 }
-            }
-        }
+        ]
+  
     };
 
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', function() {
         setupResponsiveLayout();
-        loadDashboardData();
-    });
+        loadDashboardData(); 
+        fetchYearlySalaryReport(EmployeeId);
+        populateYearDropdown();
 
-    // Setup responsive layout without media queries
+
+
+    });  
+
+
+         $('#yearSelector').change(function() {
+            const selectedYear = $(this).val();
+            if (selectedYear) {
+                fetchYearlySalaryReport(EmployeeId);
+            }
+        });
+
+     function renderTable(data) {
+        $("#gridContainer").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            columnAutoWidth: true,
+            allowColumnReordering: true,
+            allowColumnResizing: true,
+            columnResizingMode: "widget",
+            scrolling: {
+                mode: "standard",
+                useNative: true
+            },
+            columnFixing: {
+                enabled: true
+            },
+            columns: [
+
+                      {
+                    dataField: "salaryHead",
+                    caption: "Salary Head",
+                    cssClass: "text-center-cell",
+                    format: { type: "fixedPoint", precision: 2 },
+                    cellTemplate: function(container, options) {
+                        container.css("font-weight", "700");
+                          container.css("background-color", "#f8f9fa");
+                        container.text(options.value);
+                    }
+                },
+                { dataField: "jan", caption: "Jan", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "feb", caption: "Feb", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "mar", caption: "Mar", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "apr", caption: "Apr", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "may", caption: "May", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "jun", caption: "Jun", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "jul", caption: "Jul", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "aug", caption: "Aug", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "sep", caption: "Sep", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "oct", caption: "Oct", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "nov", caption: "Nov", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "dec", caption: "Dec", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } }
+       
+            ]
+        });
+    }
+
+
+        function populateYearDropdown() {
+          const startYear = 2024;
+          const currentYear = new Date().getFullYear();
+          const yearDropdown = $("#yearSelector");
+          yearDropdown.empty();
+          yearDropdown.append('<option value="">--Select--</option>');
+          for (let year = currentYear; year >= startYear; year--) {
+              yearDropdown.append(`<option value="${year}">${year}</option>`);
+          }
+      }
+
+
     function setupResponsiveLayout() {
         function checkScreenSize() {
             const dashboardGrid = document.getElementById('dashboardGrid');
@@ -562,11 +601,7 @@
 
             // Simulate API call delay
             await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // In real implementation, replace with:
-            // const response = await fetch('/api/salary-dashboard');
-            // dashboardData = await response.json();
-
+   
             dashboardData = mockApiData;
 
             // Hide loading and show dashboard
@@ -574,9 +609,8 @@
             document.getElementById('dashboard').classList.remove('hidden');
 
             // Render all components
-            renderCalculatedDays();
-            renderSalaryChart();
-            renderYearlyTable('2025');
+            renderCalculatedDays();     
+     
 
         } catch (error) {
             console.error('Error loading dashboard data:', error);
@@ -619,114 +653,8 @@
         }).join('');
     }
 
-    // Render salary chart
-    function renderSalaryChart() {
-        const ctx = document.getElementById('salaryChart').getContext('2d');
+    
 
-        if (salaryChart) {
-            salaryChart.destroy();
-        }
-
-        salaryChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: dashboardData.salaryChart.map(item => item.month),
-                datasets: [{
-                    label: 'Net Salary',
-                    data: dashboardData.salaryChart.map(item => item.netSalary),
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 3,
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    tension: 0.1
-                }, {
-                    label: 'Gross Salary',
-                    data: dashboardData.salaryChart.map(item => item.grossSalary),
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 3,
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ₹' + formatCurrency(context.raw);
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        grid: {
-                            color: '#f0f0f0'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return '₹' + (value / 1000) + 'K';
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: '#f0f0f0'
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Render yearly salary table
-    function renderYearlyTable(year) {
-        const tbody = document.getElementById('salaryTableBody');
-        const yearData = dashboardData.yearlyBreakdown[year];
-
-        if (!yearData) return;
-
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-        tbody.innerHTML = `
-            <tr>
-                <td><strong>Gross Salary</strong></td>
-                ${months.map(month => `<td class="text-center">${formatCurrency(yearData[month].gross)}</td>`).join('')}
-            </tr>
-            <tr>
-                <td><strong>Deduction Amount</strong></td>
-                ${months.map(month => `<td class="text-center">${formatCurrency(yearData[month].deduction)}</td>`).join('')}
-            </tr>
-            <tr class="net-amount-row">
-                <td><strong>Net Amount</strong></td>
-                ${months.map(month => `<td class="text-center">${formatCurrency(yearData[month].net)}</td>`).join('')}
-            </tr>
-        `;
-    }
-
-    // Format currency
-    function formatCurrency(amount) {
-        if (amount === 0) return '0.00';
-        return new Intl.NumberFormat('en-IN', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(amount);
-    }
-
-    // Handle year change
-    function handleYearChange() {
-        const selectedYear = document.getElementById('yearSelector').value;
-        renderYearlyTable(selectedYear);
-    }
 
     // Handle quick access clicks
     function handleQuickAccess(type) {
@@ -770,20 +698,55 @@
         }
     }
 
-    // Function to get yearly data
-    async function fetchYearlyData(year) {
-        try {
-            const response = await fetch(`/api/Salary/GetYearlyData?year=${year}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+    function fetchYearlySalaryReport(EmployeeId) {
+        debugger;
+          var selectedYear = document.getElementById('yearSelector').value || '2025';
 
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching yearly data:', error);
-            throw error;
+        var isValid = true;
+        // Validate the selected year
+        if (selectedYear === "" || selectedYear === null) {
+            $("#spnyear").show();
+            isValid = false;
+        } else {
+            $("#spnyear").hide();
         }
+        if (!isValid) {
+            return;
+        }
+
+        $.ajax({
+           url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetYearlySalaryCard")',
+            type: 'GET',
+            data: {
+                year: parseInt(selectedYear),
+                EmployeeId: EmployeeId
+            },
+            contentType: 'application/json',
+            success: function (res) {
+                console.log("res", res);
+                if (res.isSuccess) {            
+                    renderTable(res.data);
+                } else {
+                    if (typeof round_error_noti === 'function') {
+                        round_error_noti(res.responseMessage || 'No Data Found');
+                    } else {
+                        alert(res.responseMessage || 'No Data Found');
+                    }
+                    renderTable([]);
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr);
+                if (typeof round_error_noti === 'function') {
+                    round_error_noti(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.');
+                } else {
+                    alert('An error occurred. Please try again.');
+                }
+                renderTable([]);
+            }
+        });
     }
+
+
+ 
 </script>

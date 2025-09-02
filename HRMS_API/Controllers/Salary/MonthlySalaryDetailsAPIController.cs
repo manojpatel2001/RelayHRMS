@@ -171,6 +171,37 @@ namespace HRMS_API.Controllers.Salary
         }
 
 
+        [HttpGet("GetYearlySalaryCard")]
+        public async Task<APIResponse> GetYearlySalaryCard(int year, int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetYearlySalaryCard(year, EmployeeId);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No data found"
+                    };
+                }
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
         [HttpGet("GetYearlySalaryReport")]
         public async Task<APIResponse> GetYearlySalaryReport(int year, int EmployeeId)
         {

@@ -191,5 +191,19 @@ namespace HRMS_Infrastructure.Repository.Salary
             }
             
         }
+
+        public async Task<List<YearlySalaryComponent>> GetYearlySalaryCard(int Year, int EmpId)
+        {
+            try
+            {
+
+                var result = await _db.Set<YearlySalaryComponent>().FromSqlInterpolated($"EXEC SP_YearlySalaryCrad @Year={Year},@EmployeeId={EmpId}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<YearlySalaryComponent>();
+            }
+        }
     }
 }
