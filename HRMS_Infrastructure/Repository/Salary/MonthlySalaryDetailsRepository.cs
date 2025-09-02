@@ -205,5 +205,19 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return new List<YearlySalaryComponent>();
             }
         }
+
+        public async Task<List<EmployeeSalaryDaysViewModel>> GetEmployeeSalaryDays(int EmpId)
+        {
+            try
+            {
+
+                var result = await _db.Set<EmployeeSalaryDaysViewModel>().FromSqlInterpolated($"EXEC GetEmployeeSalaryDays @EmployeeId={EmpId}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EmployeeSalaryDaysViewModel>();
+            }
+        }
     }
 }
