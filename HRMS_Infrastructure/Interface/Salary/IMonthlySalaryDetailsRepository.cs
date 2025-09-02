@@ -21,6 +21,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<List<SalarySlipReport>>  GetSalarySlipReport(salaryslipParamReport vm);
         Task<List<YearlySalarySummaryVM>>  GetYearlySalarySummaryReport(int Year ,int EmpId);
         Task<List<YearlySalaryComponent>>  GetYearlySalaryCard(int Year ,int EmpId);
+        Task<List<EmployeeSalaryDaysViewModel>> GetEmployeeSalaryDays(int EmpId);
         Task<SalaryDetailForGetById?> GetBySalaryDetailsId(List<int> Ids);
         Task<VMCommonResult> DeleteSalaryDetails(DeleteRecordVModel deleteRecordVM);
 

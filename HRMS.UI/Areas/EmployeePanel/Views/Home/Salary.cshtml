@@ -7,6 +7,7 @@
     string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
     string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
 }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <title>Salary Dashboard</title>
@@ -182,12 +183,42 @@
     }
 
     .bar-holiday {
-        background: #10b981;
+        background: #ff9500; /* Orange color */
     }
 
-    .bar-leave {
-        background: #ef4444;
+    .bar-weekoff {
+        background: #06b6d4;
     }
+
+    /* Tooltip styles */
+    .tooltip {
+        position: absolute;
+        background: #1f2937;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.2s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+        .tooltip.show {
+            opacity: 1;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border: 5px solid transparent;
+            border-top-color: #1f2937;
+        }
 
     /* Chart */
     .chart-container {
@@ -300,7 +331,18 @@
         animation: spin 1s linear infinite;
     }
 
+    @@keyframes spin {
+        0%
 
+    {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+
+    }
 
     .hidden {
         display: none;
@@ -340,9 +382,7 @@
     <div class="header">
         <div class="header-content">
             <h1>Salary Dashboard</h1>
-            <div class="breadcrumb">
-                🏠 Home > Salary
-            </div>
+         
         </div>
     </div>
 
@@ -363,12 +403,20 @@
                 <div class="card-content">
                     <div class="present-days-info">
                         <div class="present-indicator"></div>
-                        <span>Present Days: <span id="currentPresentDays">23.5</span></span>
+                        <span>Present Days: <span id="currentPresentDays">0</span></span>
                     </div>
 
                     <div class="days-legend responsive-legends">
                         <div class="legend-item">
-                            <div class="legend-color" style="background: #fbbf24;"></div>
+                            <div class="legend-color" style="background: #3b82f6;"></div>
+                            <span>Present Days</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #06b6d4;"></div>
+                            <span>Weekoff Days</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff9500;"></div>
                             <span>Holiday Days</span>
                         </div>
                         <div class="legend-item">
@@ -429,7 +477,7 @@
         <div class="card yearly-card">
             <div class="card-header">
                 <h2>Yearly Salary</h2>
-                <select id="yearSelector" class="year-selector" >
+                <select id="yearSelector" class="year-selector">
                     <!-- Years will be populated dynamically here -->
                 </select>
             </div>
@@ -441,57 +489,33 @@
 </div>
 
 <script>
-
-        const savedCompany = localStorage.getItem('selectedCompany');
+    const savedCompany = localStorage.getItem('selectedCompany');
     var companyDetails = savedCompany ? JSON.parse(savedCompany) : null;
     const Compid = companyDetails ? companyDetails.CompanyId : null;
     const EmployeeId = localStorage.getItem('EmployeeId');
     const Token = localStorage.getItem("authToken");
+
     // Global variables
     let salaryChart;
     let dashboardData = {};
 
-    // Mock API data - Replace with your .NET API calls
-    const mockApiData = {
-        calculatedDays: [
-            { month: 'Nov-2024', presentDays: 23.5, holidayDays: 4, leaveDays: 2.5 },
-            { month: 'Dec-2024', presentDays: 24, holidayDays: 5, leaveDays: 2 },
-            { month: 'Feb-2025', presentDays: 21, holidayDays: 4, leaveDays: 3 },
-            { month: 'Apr-2025', presentDays: 26, holidayDays: 4, leaveDays: 0 },
-            { month: 'May-2025', presentDays: 23.5, holidayDays: 4, leaveDays: 3.5 },
-            { month: 'Jun-2025', presentDays: 23, holidayDays: 5, leaveDays: 2 }
-        ],
-        salaryChart: [
-            { month: 'Nov-2024', netSalary: 75610, grossSalary: 76176 },
-            { month: 'Dec-2024', netSalary: 60610, grossSalary: 76176 },
-            { month: 'Feb-2025', netSalary: 75610, grossSalary: 76176 },
-            { month: 'Apr-2025', netSalary: 60610, grossSalary: 76176 },
-            { month: 'May-2025', netSalary: 87037, grossSalary: 87603 },
-            { month: 'Jun-2025', netSalary: 52037, grossSalary: 87603 }
-        ]
-  
-    };
-
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', function() {
         setupResponsiveLayout();
-        loadDashboardData(); 
+        loadDashboardData();
         fetchYearlySalaryReport(EmployeeId);
         populateYearDropdown();
+        fetchSalaryData(EmployeeId);
+    });
 
+    $('#yearSelector').change(function() {
+        const selectedYear = $(this).val();
+        if (selectedYear) {
+            fetchYearlySalaryReport(EmployeeId);
+        }
+    });
 
-
-    });  
-
-
-         $('#yearSelector').change(function() {
-            const selectedYear = $(this).val();
-            if (selectedYear) {
-                fetchYearlySalaryReport(EmployeeId);
-            }
-        });
-
-     function renderTable(data) {
+    function renderTable(data) {
         $("#gridContainer").dxDataGrid({
             dataSource: data,
             showBorders: true,
@@ -507,15 +531,14 @@
                 enabled: true
             },
             columns: [
-
-                      {
+                {
                     dataField: "salaryHead",
                     caption: "Salary Head",
                     cssClass: "text-center-cell",
                     format: { type: "fixedPoint", precision: 2 },
                     cellTemplate: function(container, options) {
                         container.css("font-weight", "700");
-                          container.css("background-color", "#f8f9fa");
+                        container.css("background-color", "#f8f9fa");
                         container.text(options.value);
                     }
                 },
@@ -531,23 +554,23 @@
                 { dataField: "oct", caption: "Oct", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
                 { dataField: "nov", caption: "Nov", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
                 { dataField: "dec", caption: "Dec", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } }
-       
             ]
         });
     }
 
+    function populateYearDropdown() {
+        const startYear = 2024;
+        const currentYear = new Date().getFullYear();
+        const yearDropdown = $("#yearSelector");
+        yearDropdown.empty();
+        yearDropdown.append('<option value="">--Select--</option>');
+        for (let year = currentYear; year >= startYear; year--) {
+            yearDropdown.append(`<option value="${year}">${year}</option>`);
+        }
 
-        function populateYearDropdown() {
-          const startYear = 2024;
-          const currentYear = new Date().getFullYear();
-          const yearDropdown = $("#yearSelector");
-          yearDropdown.empty();
-          yearDropdown.append('<option value="">--Select--</option>');
-          for (let year = currentYear; year >= startYear; year--) {
-              yearDropdown.append(`<option value="${year}">${year}</option>`);
-          }
-      }
-
+        // Set default year to 2025
+        yearDropdown.val('2025');
+    }
 
     function setupResponsiveLayout() {
         function checkScreenSize() {
@@ -592,25 +615,19 @@
         window.addEventListener('resize', checkScreenSize);
     }
 
-    // Load data function - Replace with your API call
+    // Load data function
     async function loadDashboardData() {
         try {
             // Show loading
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('dashboard').classList.add('hidden');
 
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-   
-            dashboardData = mockApiData;
+            // Wait for API data to be fetched
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             // Hide loading and show dashboard
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('dashboard').classList.remove('hidden');
-
-            // Render all components
-            renderCalculatedDays();     
-     
 
         } catch (error) {
             console.error('Error loading dashboard data:', error);
@@ -618,16 +635,32 @@
         }
     }
 
-    // Render calculated days bars
-    function renderCalculatedDays() {
+    // Process API response and render calculated days
+    function processAndRenderCalculatedDays(apiData) {
+        if (!apiData || !Array.isArray(apiData) || apiData.length === 0) {
+            document.getElementById('currentPresentDays').textContent = '0';
+            document.getElementById('daysContainer').innerHTML = '<p class="text-center">No data available</p>';
+            return;
+        }
+
+        // Sort data by year and month number to ensure proper order
+        const sortedData = apiData.sort((a, b) => {
+            if (a.year !== b.year) {
+                return a.year - b.year;
+            }
+            return a.monthNumber - b.monthNumber;
+        });
+
+        // Get the latest month data for current present days
+        const latestMonth = sortedData[sortedData.length - 1];
+        document.getElementById('currentPresentDays').textContent = latestMonth.presentDays || 0;
+
+        // Render days bars
         const container = document.getElementById('daysContainer');
-        const currentDays = dashboardData.calculatedDays[dashboardData.calculatedDays.length - 1];
-
-        document.getElementById('currentPresentDays').textContent = currentDays.presentDays;
-
-        container.innerHTML = dashboardData.calculatedDays.map(item => {
-            const total = 30; // Assuming 30 days max
+        container.innerHTML = sortedData.map(item => {
+            const total = item.totalDays || 30;
             const presentWidth = (item.presentDays / total) * 100;
+            const weekoffWidth = (item.weekOffDays / total) * 100;
             const holidayWidth = (item.holidayDays / total) * 100;
             const leaveWidth = (item.leaveDays / total) * 100;
 
@@ -635,72 +668,205 @@
                 <div class="days-bar">
                     <div class="days-bar-header">
                         <span>${item.month}</span>
-                        <span>${item.presentDays}</span>
+                        <span>${item.presentDays || 0}</span>
                     </div>
                     <div class="bar-container">
-                        <div class="bar-segment bar-present" style="width: ${presentWidth}%">
+                        ${item.presentDays > 0 ? `<div class="bar-segment bar-present"
+                             style="width: ${presentWidth}%"
+                             onmouseover="showTooltip(event, 'Present Days: ${item.presentDays}')"
+                             onmouseout="hideTooltip()">
                             ${item.presentDays}
-                        </div>
-                        <div class="bar-segment bar-holiday" style="width: ${holidayWidth}%">
+                        </div>` : ''}
+                        ${item.weekOffDays > 0 ? `<div class="bar-segment bar-weekoff"
+                             style="width: ${weekoffWidth}%"
+                             onmouseover="showTooltip(event, 'Weekoff Days: ${item.weekOffDays}')"
+                             onmouseout="hideTooltip()">
+                            ${item.weekOffDays}
+                        </div>` : ''}
+                        ${item.holidayDays > 0 ? `<div class="bar-segment bar-holiday"
+                             style="width: ${holidayWidth}%"
+                             onmouseover="showTooltip(event, 'Holiday Days: ${item.holidayDays}')"
+                             onmouseout="hideTooltip()">
                             ${item.holidayDays}
-                        </div>
-                        <div class="bar-segment bar-leave" style="width: ${leaveWidth}%">
-                            ${item.leaveDays > 0 ? item.leaveDays : ''}
-                        </div>
+                        </div>` : ''}
+                        ${item.leaveDays > 0 ? `<div class="bar-segment bar-leave"
+                             style="width: ${leaveWidth}%"
+                             onmouseover="showTooltip(event, 'Leave Days: ${item.leaveDays}')"
+                             onmouseout="hideTooltip()">
+                            ${item.leaveDays}
+                        </div>` : ''}
                     </div>
                 </div>
             `;
         }).join('');
     }
 
-    
+    // Tooltip functions
+    function showTooltip(event, text) {
+        let tooltip = document.getElementById('customTooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'customTooltip';
+            tooltip.className = 'tooltip';
+            document.body.appendChild(tooltip);
+        }
 
+        tooltip.textContent = text;
+        tooltip.style.left = event.pageX + 10 + 'px';
+        tooltip.style.top = event.pageY - 40 + 'px';
+        tooltip.classList.add('show');
+    }
 
-    // Handle quick access clicks
-    function handleQuickAccess(type) {
-        // Replace with your .NET controller action URLs
-        const urls = {
-            'ctc': '/Salary/CTCLetter',
-            'form11': '/Salary/Form11',
-            'form16': '/Salary/Form16',
-            'tax-declaration': '/Salary/TaxDeclaration',
-            'pf-statement': '/Salary/PFStatement',
-            'salary-slip': '/Salary/SalarySlip',
-            'tax-prep': '/Salary/TaxPreparation',
-            'yearly-salary': '/Salary/YearlySalary'
-        };
-
-        if (urls[type]) {
-            window.location.href = urls[type];
+    function hideTooltip() {
+        const tooltip = document.getElementById('customTooltip');
+        if (tooltip) {
+            tooltip.classList.remove('show');
         }
     }
 
-    // Example API integration functions for your .NET backend
-
-    // Function to call your .NET API
-    async function fetchSalaryData() {
-        try {
-            const response = await fetch('/api/Salary/GetDashboardData', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching salary data:', error);
-            throw error;
+    // Process API response and render salary chart
+    function processAndRenderSalaryChart(apiData) {
+        if (!apiData || !Array.isArray(apiData) || apiData.length === 0) {
+            return;
         }
+
+        // Sort data by year and month number to ensure proper order
+        const sortedData = apiData.sort((a, b) => {
+            if (a.year !== b.year) {
+                return a.year - b.year;
+            }
+            return a.monthNumber - b.monthNumber;
+        });
+
+        // Take last 6 months for the chart
+        const last6Months = sortedData.slice(-6);
+
+        const ctx = document.getElementById('salaryChart');
+        if (!ctx) return;
+
+        // Destroy existing chart if it exists
+        if (salaryChart) {
+            salaryChart.destroy();
+        }
+
+        const months = last6Months.map(item => item.month);
+        const netSalaries = last6Months.map(item => item.netSalary || 0);
+        const grossSalaries = last6Months.map(item => item.grossSalary || 0);
+
+        salaryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Net Salary',
+                        data: netSalaries,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Gross Salary',
+                        data: grossSalaries,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: false // We're using custom legend
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString('en-IN');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        display: true,
+                        grid: {
+                            color: '#f1f5f9'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value.toLocaleString('en-IN');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Updated fetchSalaryData function
+    function fetchSalaryData(EmployeeId) {
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeeSalaryDays")',
+            type: 'GET',
+            data: {
+                EmployeeId: EmployeeId
+            },
+            contentType: 'application/json',
+            success: function (res) {
+                console.log("res", res);
+                if (res.isSuccess && res.data) {
+                    // Process and render the calculated days card
+                    processAndRenderCalculatedDays(res.data);
+
+                    // Process and render the salary chart
+                    processAndRenderSalaryChart(res.data);
+
+                    // Store data globally if needed
+                    dashboardData.apiData = res.data;
+
+                } else {
+                    if (typeof round_error_noti === 'function') {
+                        round_error_noti(res.responseMessage || 'No Data Found');
+                    } else {
+                        alert(res.responseMessage || 'No Data Found');
+                    }
+                    // Render empty states
+                    processAndRenderCalculatedDays([]);
+                    processAndRenderSalaryChart([]);
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr);
+                if (typeof round_error_noti === 'function') {
+                    round_error_noti(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.');
+                } else {
+                    alert('An error occurred. Please try again.');
+                }
+                // Render empty states
+                processAndRenderCalculatedDays([]);
+                processAndRenderSalaryChart([]);
+            }
+        });
     }
 
     function fetchYearlySalaryReport(EmployeeId) {
-        debugger;
-          var selectedYear = document.getElementById('yearSelector').value || '2025';
+        var selectedYear = document.getElementById('yearSelector').value || '2025';
 
         var isValid = true;
         // Validate the selected year
@@ -715,7 +881,7 @@
         }
 
         $.ajax({
-           url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetYearlySalaryCard")',
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetYearlySalaryCard")',
             type: 'GET',
             data: {
                 year: parseInt(selectedYear),
@@ -724,7 +890,7 @@
             contentType: 'application/json',
             success: function (res) {
                 console.log("res", res);
-                if (res.isSuccess) {            
+                if (res.isSuccess) {
                     renderTable(res.data);
                 } else {
                     if (typeof round_error_noti === 'function') {
@@ -747,6 +913,22 @@
         });
     }
 
+    // Handle quick access clicks
+    function handleQuickAccess(type) {
+        // Replace with your .NET controller action URLs
+        const urls = {
+            'ctc': '/Salary/CTCLetter',
+            'form11': '/Salary/Form11',
+            'form16': '/Salary/Form16',
+            'tax-declaration': '/Salary/TaxDeclaration',
+            'pf-statement': '/Salary/PFStatement',
+            'salary-slip': '/Salary/SalarySlip',
+            'tax-prep': '/Salary/TaxPreparation',
+            'yearly-salary': '/Salary/YearlySalary'
+        };
 
- 
+        if (urls[type]) {
+            window.location.href = urls[type];
+        }
+    }
 </script>
