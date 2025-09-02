@@ -457,7 +457,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync(x => x.BranchId == BranchId && x.IsDeleted == false && x.IsEnabled == true && x.IsBlocked == false );
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync(x => x.BranchId == BranchId && x.IsDeleted == false && x.IsEnabled == true);
 
                 if (data == null)
                 {
