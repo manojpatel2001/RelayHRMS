@@ -150,6 +150,7 @@
     const companyDetails = JSON.parse(savedCompany || '{}');
     const Compid = parseInt(companyDetails.CompanyId);
     let selectedKeys = [];
+    let gridInstance; // Store grid instance
 
     $(document).ready(function () {
         loadLeaveApplications(); // On page load
@@ -165,8 +166,8 @@
 
         $('#clearButtonId').click(function () {
             $('#Leavetypeid').val('0');
-          $('#input1').val('');                     
-           $('#input1').prop('disabled', true);
+            $('#input1').val('');
+            $('#input1').prop('disabled', true);
             loadLeaveApplications();
         });
 
@@ -179,9 +180,9 @@
     function loadLeaveApplications() {
         if ($("#attendanceGrid").data("dxDataGrid")) {
             $("#attendanceGrid").dxDataGrid("dispose");
-            $("#attendanceGrid").empty(); // Optional: clear DOM
+            $("#attendanceGrid").empty();
         }
-        
+
         const searchTypeValue = $('#Leavetypeid').val();
         const searchFor = $('#input1').val().trim();
         let searchTypeText = '';
@@ -202,19 +203,16 @@
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(payload),
-               success: function (data) {
+            success: function (data) {
                 if (data.isSuccess && data.data && data.data.length > 0) {
-                    renderTable(data.data); // render grid
-
-                    // ✅ Do NOT show buttons here — the grid's `onSelectionChanged` will handle it
-                    $('#actionButtons').hide(); // hide initially (until user selects)
+                    renderTable(data.data);
+                    $('#actionButtons').hide();
                 } else {
                     $('#attendanceGrid').html('<div class="text-center text-muted">No records found.</div>');
                     $('#recordSummary').text('');
-                    $('#actionButtons').hide(); // ✅ correct
+                    $('#actionButtons').hide();
                 }
             },
-
             error: function () {
                 $('#attendanceGrid').html('<div class="text-center text-danger">Error fetching data.</div>');
                 $('#recordSummary').text('');
@@ -224,22 +222,19 @@
     }
 
     function renderTable(data) {
-        $("#attendanceGrid").dxDataGrid({
+        gridInstance = $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             keyExpr: "leaveApplicationId",
             showBorders: true,
             columnAutoWidth: false,
-           
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
-                   onSelectionChanged: function (e) {
+            onSelectionChanged: function (e) {
                 selectedKeys = e.selectedRowKeys;
-                // ✅ This line controls visibility of buttons
                 $("#actionButtons").toggle(selectedKeys.length > 0);
             },
-
             columns: [
                 { dataField: "leaveApplicationId", caption: "ApplicationId", width: 80, cssClass: "text-center-cell" },
                 { dataField: "leaveTypeName", caption: "Leave Type", cssClass: "text-center-cell" },
@@ -253,68 +248,146 @@
                 { dataField: "reportingPersonName", caption: "Reporting Person", cssClass: "text-center-cell" },
                 { dataField: "leaveStatus", caption: "Leave Status", cssClass: "text-center-cell" }
             ]
+        }).dxDataGrid("instance");
+    }
+
+    function getSelectedRowData() {
+        if (!gridInstance || !selectedKeys || selectedKeys.length === 0) {
+            return [];
+        }
+
+        // Get selected row data using the grid instance
+        const selectedRowsData = [];
+        selectedKeys.forEach(key => {
+            const rowData = gridInstance.getDataSource().items().find(item =>
+                item.leaveApplicationId === key
+            );
+            if (rowData) {
+                selectedRowsData.push(rowData);
+            }
+        });
+
+        return selectedRowsData;
+    }
+
+    function checkSalaryProcessed(fromDate) {
+        return new Promise((resolve, reject) => {
+            const leaveDate = new Date(fromDate);
+            const month = leaveDate.getMonth() + 1;
+            const year = leaveDate.getFullYear();
+            const empCode = "";
+            const branch = "";
+
+            const requestData = {
+                Month: parseInt(month),
+                Year: parseInt(year),
+                EmployeeCodes: empCode || "",
+                BranchId: branch === "" ? 0 : parseInt(branch)
+            };
+
+            $.ajax({
+                url: `${apiBase}/MonthlySalaryDetailsAPI/GetAll`,
+                type: "POST",
+                data: JSON.stringify(requestData),
+                contentType: "application/json",
+                success: function (response) {
+                    resolve({
+                        isProcessed: response.isSuccess && response.data && response.data.length > 0,
+                        month: month,
+                        year: year
+                    });
+                },
+                error: function (xhr, status, error) {
+                    console.log("Error Status: ", status);
+                    console.log("Error Message: ", error);
+                    console.log("Response Text: ", xhr.responseText);
+                    reject(error);
+                }
+            });
         });
     }
 
     function updateLeaveStatus(status) {
-
         if (!selectedKeys || selectedKeys.length === 0) {
             Swal.fire('Warning', 'Please select at least one application.', 'warning');
             return;
         }
-        if(status=="Approved")
-        {
-          $('#Approveid').hide();
-         $('#btnAproving').show();
+
+        // Get selected rows data
+        const selectedRowsData = getSelectedRowData();
+
+        if (!selectedRowsData || selectedRowsData.length === 0) {
+            Swal.fire('Error', 'Unable to retrieve selected row data.', 'error');
+            return;
         }
-        else{
-          $('#rejectedid').hide();
-         $('#btnRejecting').show();
+
+        // Get the first selected row's details
+        const firstSelectedRow = selectedRowsData[0];
+        const fromDate = firstSelectedRow.fromDate;
+
+        if (status === "Approved") {
+            checkSalaryProcessed(fromDate).then(result => {
+                if (result.isProcessed) {
+                    Swal.fire('Warning', 'Leave applications not allowed for periods where the previous month’s salary has already been processed. Please contact HR for assistance if needed.', 'warning');
+                    return;
+                } else {
+                    proceedWithStatusUpdate(status);
+                }
+            }).catch(error => {
+                console.error("Error checking salary processed status: ", error);
+                Swal.fire('Error', 'Failed to check salary status.', 'error');
+            });
+        } else {
+            proceedWithStatusUpdate(status);
         }
+    }
+
+    function proceedWithStatusUpdate(status) {
+        if (status === "Approved") {
+            $('#Approveid').hide();
+            $('#btnAproving').show();
+        } else {
+            $('#rejectedid').hide();
+            $('#btnRejecting').show();
+        }
+
         const payload = {
             Ids: selectedKeys,
             Status: status,
-            EmployeeId:Empid
+            EmployeeId: Empid
         };
 
         $.ajax({
             url: apiBase + '/LeaveApplication/LeaveapplicationApproveorReject',
             type: 'POST',
             contentType: 'application/json',
-             headers: {
+            headers: {
                 'Authorization': 'Bearer ' + token,
             },
             data: JSON.stringify(payload),
             success: function (res) {
                 if (res.isSuccess) {
                     Swal.fire('Success', res.message, 'success');
-                    loadLeaveApplications(); // Reload after action
+                    loadLeaveApplications();
                 } else {
                     Swal.fire('Error', res.message || 'Something went wrong.', 'error');
                 }
-              if(status=="Approved")
-              {
-               $('#Approveid').show();
-                $('#btnAproving').hide();
-              }
-              else
-              {
-               $('#rejectedid').show();
-               $('#btnRejecting').hide();
-              }
+                resetButtons(status);
             },
             error: function () {
-              if(status=="Approved")
-              {
-                  $('#Approveid').show();
-                  $('#btnAproving').hide();
-              }
-              else{
-                  $('#rejectedid').show();
-                  $('#btnRejecting').hide();
-              }
+                resetButtons(status);
                 Swal.fire('Error', 'Failed to update status.', 'error');
             }
         });
+    }
+
+    function resetButtons(status) {
+        if (status === "Approved") {
+            $('#Approveid').show();
+            $('#btnAproving').hide();
+        } else {
+            $('#rejectedid').show();
+            $('#btnRejecting').hide();
+        }
     }
 </script>
