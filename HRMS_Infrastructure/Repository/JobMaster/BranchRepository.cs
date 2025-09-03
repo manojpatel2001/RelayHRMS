@@ -150,11 +150,11 @@ namespace HRMS_Infrastructure.Repository.JobMaster
             }
         }
 
-        public async Task<List<BranchUserStatsModel>> GetBranchWiseEmpCount()
+        public async Task<List<BranchUserStatsModel>> GetBranchWiseEmpCount( int CompanyId)
         {
             try
             {
-                return await _db.Set<BranchUserStatsModel>().FromSqlInterpolated($"EXEC GetBranchUserStats").ToListAsync();
+                return await _db.Set<BranchUserStatsModel>().FromSqlInterpolated($"EXEC GetBranchUserStats @CompanyId={CompanyId}").ToListAsync();
             }
             catch
             {
