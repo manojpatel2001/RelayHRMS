@@ -22,7 +22,7 @@ namespace HRMS_Infrastructure.Interface.JobMaster
         Task<List<vmGetAllCityByStateId>> GetAllCityByStateId(vmCommonGetById filter);
         Task<vmCheckExistBranchCode?> CheckExistBranchCode(vmCommonGetById filter);
 
-        Task<List<BranchUserStatsModel>> GetBranchWiseEmpCount();
+        Task<List<BranchUserStatsModel>> GetBranchWiseEmpCount(int CompanyId);
         Task<List<vmGetAllBranchesListByCompanyId>> GetAllBranchesListByCompanyId(vmCommonGetById filter);
 
         Task<List<BranchViewModel>> GetBranchesByEmployee(int EmpId , int CompId);

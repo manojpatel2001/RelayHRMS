@@ -199,12 +199,21 @@ namespace HRMS_API.Controllers.JobMaster
 
 
 
-        [HttpGet("GetBranchWiseEmpCount")]
-        public async Task<APIResponse> GetBranchWiseEmpCount()
+        [HttpGet("GetBranchWiseEmpCount/{CompanyId}")]
+        public async Task<APIResponse> GetBranchWiseEmpCount(int CompanyId)
         {
             try
             {
-                var data = await _unitOfWork.BranchRepository.GetBranchWiseEmpCount();
+                var data = await _unitOfWork.BranchRepository.GetBranchWiseEmpCount(CompanyId);
+                if(data==null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                       
+                        ResponseMessage = "No record found!"
+                    };
+                }
 
                 return new APIResponse()
                 {
