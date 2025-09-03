@@ -40,7 +40,7 @@ namespace HRMS_Core.VM.Salary
         public decimal? AbsentDays { get; set; }  // decimal (not int)
         public decimal? PresentDays { get; set; }  // decimal (not int)
         public int? WeekOff { get; set; }
-        public int? Leave { get; set; }
+        public decimal? Leave { get; set; }
         public int? SalaryDays { get; set; }
 
         // Employee details from joins

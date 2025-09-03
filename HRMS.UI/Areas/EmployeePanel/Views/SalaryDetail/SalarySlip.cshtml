@@ -837,218 +837,230 @@ class PayslipManager {
         return card;
     }
 
-         async   downloadPDF(payslipId) {
+        async downloadPDF(payslipId) {
+        debugger;
+        const payslip = this.payslips.find(p => p.id === payslipId);
+        if (!payslip) return;
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+        const INR = n => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const FIX2 = n => (Number(n)).toFixed(2);
+        const pageW = 297, margin = 15, contentW = pageW - margin * 2;
+        let y = 15; // Start a bit lower to accommodate the header
+
+        // Load the logo image and place it alongside company header
+        const logoUrl = '/assets/images/relaylogo.jpeg'; // Adjust the path to your logo image
+
+        try {
+            const imageData = await getImageData(logoUrl);
             debugger;
-            const payslip = this.payslips.find(p => p.id === payslipId);
-            if (!payslip) return;
 
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+            // Logo dimensions
+            const imgWidth = 40; // Reduced width to fit beside text
+            const imgHeight = 25; // Reduced height
 
-            const INR = n => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            const FIX2 = n => (Number(n)).toFixed(2);
-            const pageW = 297, margin = 15, contentW = pageW - margin * 2;
-            let y = 8;
+            // Place logo on the left side
+            doc.addImage(imageData, 'JPEG', margin, y, imgWidth, imgHeight);
 
-            // Load the logo image
-            const logoUrl = '/assets/images/relaylogo.jpeg'; // Adjust the path to your logo image
+            // Company header centered in full page width (not just remaining space)
+            doc.setFont("helvetica", "bold").setFontSize(12);
+            doc.text("RELAY EXPRESS PVT LTD", pageW / 2, y + 8, { align: "center" });
 
-            try {
-                const imageData = await getImageData(logoUrl);
-                debugger;
-                // Add the logo image to the PDF
-                    const imgWidth = 50; // Desired width in mm
-               const imgHeight = 30; // Manually set height or calculate to maintain aspect ratio
-               doc.addImage(imageData, 'JPEG', margin, y, imgWidth, imgHeight);
-                y += imgHeight + 10; // Adjust y to position content below the logo with some padding
-            } catch (error) {
-                console.error('Error loading image:', error);
-            }
+            doc.setFont("helvetica", "normal").setFontSize(9);
+            doc.text("406, KATARIA ARCADE, MAKARBA,, AHMEDABAD, GUJARAT 380051", pageW / 2, y + 15, { align: "center" });
 
-            // Company header with adjusted position
+            // Move y position to below the logo/header section
+            y += Math.max(imgHeight, 20) + 5;
+
+        } catch (error) {
+            console.error('Error loading image:', error);
+            // Fallback: Company header without logo
             doc.setFont("helvetica", "bold").setFontSize(12);
             doc.text("RELAY EXPRESS PVT LTD", pageW / 2, y + 5, { align: "center" });
             doc.setFont("helvetica", "normal").setFontSize(9);
             doc.text("406, KATARIA ARCADE, MAKARBA,, AHMEDABAD, GUJARAT 380051", pageW / 2, y + 12, { align: "center" });
             y += 25;
-
-            doc.setFont("helvetica", "bold").setFontSize(11);
-            doc.text(`Pay slip for the month of ${payslip.month}`, pageW / 2, y, { align: "center" });
-            y += 8;
-
-            // EMPLOYEE DETAILS GRID (3 columns × 5 rows)
-            const gridX = margin, gridW = contentW, gridRowH = 8, gridRows = 5;
-            const colW = gridW / 3;
-            // Draw complete grid with all borders
-            doc.setDrawColor(0).setLineWidth(0.35);
-            const gridTop = y;
-            // Main outer rectangle
-            doc.rect(gridX, gridTop, gridW, gridRowH * gridRows);
-            // Vertical column separators
-            for (let c = 1; c < 3; c++) {
-                doc.line(gridX + c * colW, gridTop, gridX + c * colW, gridTop + gridRowH * gridRows);
-            }
-            // Horizontal row lines
-            for (let r = 1; r < gridRows; r++) {
-                doc.line(gridX, gridTop + r * gridRowH, gridX + gridW, gridTop + r * gridRowH);
-            }
-            // Helper to print "Label : Value" inside a column with proper spacing
-            function pair(colIndex, rowIndex, label, value) {
-                const cellX = gridX + colIndex * colW + 3;
-                const baseY = gridTop + rowIndex * gridRowH + 5;
-                doc.setFontSize(9);
-                doc.setFont("helvetica", "bold");
-                doc.text(label, cellX, baseY);
-                const labelW = doc.getTextWidth(label);
-                doc.setFont("helvetica", "normal");
-                doc.text(" : ", cellX + labelW, baseY);
-                doc.text(String(value ?? ""), cellX + labelW + 8, baseY, { maxWidth: colW - (labelW + 12) });
-            }
-            // Employee details rows
-            pair(0, 0, "Employee Code", payslip.employeeCode);
-            pair(1, 0, "Employee Name", payslip.employeeName);
-            pair(2, 0, "Branch", payslip.branch);
-            pair(0, 1, "Department", payslip.department);
-            pair(1, 1, "Designation", payslip.designation);
-            pair(2, 1, "Grade", payslip.grade);
-            pair(0, 2, "Date of Birth", payslip.dateOfBirth);
-            pair(1, 2, "Date of Joining", payslip.dateOfJoining);
-            pair(2, 2, "PF No", payslip.pfNo);
-            pair(0, 3, "Bank A/c No", payslip.bankAccountNo);
-            pair(1, 3, "Bank Name", payslip.bankName);
-            pair(2, 3, "PAN No", payslip.panNo);
-            pair(0, 4, "UAN No", payslip.uanNo);
-            pair(1, 4, "ESIC No", payslip.esicNo);
-            // ATTENDANCE ROW - Single line with reduced spacing
-            const attY = gridTop + gridRowH * gridRows;
-            doc.rect(gridX, attY, gridW, gridRowH);
-            doc.setFont("helvetica", "normal").setFontSize(9);
-            let ax = gridX + 3, ay = attY + 5;
-            function att(label, val) {
-                doc.setFont("helvetica", "bold");
-                doc.text(label, ax, ay);
-                const lw = doc.getTextWidth(label);
-                doc.setFont("helvetica", "normal");
-                doc.text(" : ", ax + lw, ay);
-                const vStart = ax + lw + 6;
-                doc.text(String(val), vStart, ay);
-                ax = vStart + doc.getTextWidth(String(val)) + 8; // Reduced spacing
-            }
-            att("Present Day", payslip.presentDays);
-            att("Paid Leave", payslip.leave);
-            att("Holiday", payslip.holidays);
-            att("Week off", payslip.weekOff);
-            att("Total Sal Day", payslip.salaryDays);
-            att("Absent", payslip.absentDays);
-            y = attY + gridRowH + 5;
-            // FIXED 5-COLUMN TABLE: Particulars | Rate | Earnings | Particulars | Deduction
-            const tX = margin, tW = contentW, tRowH = 8;
-            // Adjusted column widths with better spacing
-            const L_PART = 85, L_RATE = 38, L_EARN = 45;
-            const R_PART = 65, R_DED = tW - (L_PART + L_RATE + L_EARN + R_PART);
-            const tCols = [L_PART, L_RATE, L_EARN, R_PART, R_DED];
-            const tTop = y;
-            const rowsData = Math.max(payslip.earnings.length, payslip.deductions.length);
-            const tRows = rowsData + 1; // + totals row
-            // Draw complete table structure
-            doc.setDrawColor(0).setLineWidth(0.35);
-            // Outer border
-            doc.rect(tX, tTop, tW, tRowH * (tRows + 1));
-            // Header row background
-            doc.setFillColor(230, 230, 230);
-            doc.rect(tX, tTop, tW, tRowH, "F");
-            // All vertical lines (including left border)
-            let cx = tX;
-            // Left border
-            doc.line(tX, tTop, tX, tTop + tRowH * (tRows + 1));
-            for (let i = 0; i < tCols.length; i++) {
-                cx += tCols[i];
-                if (cx < tX + tW) { // Don't draw line beyond right border
-                    doc.line(cx, tTop, cx, tTop + tRowH * (tRows + 1));
-                }
-            }
-            // Right border
-            doc.line(tX + tW, tTop, tX + tW, tTop + tRowH * (tRows + 1));
-            // All horizontal lines
-            for (let r = 0; r <= tRows + 1; r++) {
-                doc.line(tX, tTop + r * tRowH, tX + tW, tTop + r * tRowH);
-            }
-            // Header text with proper alignment
-            doc.setFont("helvetica", "bold").setFontSize(9);
-            let hx = tX;
-            const hy = tTop + 5;
-            // Particulars (left aligned with margin)
-            doc.text("Particulars", hx + 3, hy);
-            hx += L_PART;
-            // Rate (center aligned)
-            doc.text("Rate", hx + L_RATE/2, hy, { align: "center" });
-            hx += L_RATE;
-            // Earnings (center aligned)
-            doc.text("Earnings", hx + L_EARN/2, hy, { align: "center" });
-            hx += L_EARN;
-            // Particulars (left aligned with margin)
-            doc.text("Particulars", hx + 3, hy);
-            hx += R_PART;
-            // Deduction (center aligned)
-            doc.text("Deduction", hx + R_DED/2, hy, { align: "center" });
-            // Body rows with proper spacing
-            doc.setFont("helvetica", "normal").setFontSize(8);
-            for (let i = 0; i < rowsData; i++) {
-                const yb = tTop + tRowH * (i + 1) + 5;
-                // Left side - earnings (3 columns)
-                if (payslip.earnings[i]) {
-                    const e = payslip.earnings[i];
-                    let x = tX;
-                    // Particulars column (left aligned with 3mm margin)
-                    doc.text(e.name, x + 3, yb, { maxWidth: L_PART - 6 });
-                    x += L_PART;
-                    // Rate column (right aligned with 3mm right margin)
-                    doc.text(FIX2(e.amount), x + L_RATE - 3, yb, { align: "right" });
-                    x += L_RATE;
-                    // Earnings column (right aligned with 3mm right margin)
-                    doc.text(INR(e.amount), x + L_EARN - 3, yb, { align: "right" });
-                }
-                // Right side - deductions (2 columns)
-                if (payslip.deductions[i]) {
-                    const d = payslip.deductions[i];
-                    let x = tX + L_PART + L_RATE + L_EARN;
-                    // Particulars column (left aligned with 3mm margin)
-                    doc.text(d.name, x + 3, yb, { maxWidth: R_PART - 6 });
-                    x += R_PART;
-                    // Deduction column (right aligned with 3mm right margin)
-                    doc.text(INR(d.amount), x + R_DED - 3, yb, { align: "right" });
-                }
-            }
-            // Totals row with enhanced styling
-            const ty = tTop + tRowH * (rowsData + 1) + 5;
-            doc.setFont("helvetica", "bold").setFontSize(9);
-            // Total Earnings (left side)
-            doc.text("Total Earnings", tX + 3, ty);
-            doc.text(INR(payslip.grossSalary), tX + L_PART + L_RATE + L_EARN - 3, ty, { align: "right" });
-            // Total Deduction (right side)
-            doc.text("Total Deduction", tX + L_PART + L_RATE + L_EARN + 3, ty);
-            doc.text(INR(payslip.totalDeductions), tX + L_PART + L_RATE + L_EARN + R_PART + R_DED - 3, ty, { align: "right" });
-            y = tTop + tRowH * (tRows + 1) + 5;
-            // EMPLOYEE NET PAY BAR with better styling
-            const barH = 12;
-            doc.setDrawColor(0).setLineWidth(0.5);
-            doc.rect(margin, y, contentW, barH);
-            // Optional: Add light background to net pay bar
-            doc.setFillColor(255, 255, 200); // Light yellow background
-            doc.rect(margin, y, contentW, barH, "F");
-            doc.rect(margin, y, contentW, barH); // Re-draw border
-            doc.setFont("helvetica", "bold").setFontSize(10);
-            doc.text("Employee Net Pay", margin + 5, y + 8);
-            doc.text(":", margin + 60, y + 8);
-            doc.text(`${INR(payslip.netAmount)} ( ${this.numberToWords(payslip.netAmount)} Only )`, margin + 65, y + 8);
-            y += barH + 8;
-            // Footer
-            doc.setFont("helvetica", "italic").setFontSize(8);
-            doc.text("This is a computer generated salary slip. Signature not required", pageW/2, y, { align: "center" });
-            // Download
-            const fileName = `Pay_Slip_${payslip.employeeCode}_${payslip.month.replace(' - ', '-').replace(/[^a-zA-Z0-9-]/g, '')}.pdf`;
-            doc.save(fileName);
         }
+
+        doc.setFont("helvetica", "bold").setFontSize(11);
+        doc.text(`Pay slip for the month of ${payslip.month}`, pageW / 2, y, { align: "center" });
+        y += 8;
+
+        // EMPLOYEE DETAILS GRID (3 columns × 5 rows)
+        const gridX = margin, gridW = contentW, gridRowH = 8, gridRows = 5;
+        const colW = gridW / 3;
+        // Draw complete grid with all borders
+        doc.setDrawColor(0).setLineWidth(0.35);
+        const gridTop = y;
+        // Main outer rectangle
+        doc.rect(gridX, gridTop, gridW, gridRowH * gridRows);
+        // Vertical column separators
+        for (let c = 1; c < 3; c++) {
+            doc.line(gridX + c * colW, gridTop, gridX + c * colW, gridTop + gridRowH * gridRows);
+        }
+        // Horizontal row lines
+        for (let r = 1; r < gridRows; r++) {
+            doc.line(gridX, gridTop + r * gridRowH, gridX + gridW, gridTop + r * gridRowH);
+        }
+        // Helper to print "Label : Value" inside a column with proper spacing
+        function pair(colIndex, rowIndex, label, value) {
+            const cellX = gridX + colIndex * colW + 3;
+            const baseY = gridTop + rowIndex * gridRowH + 5;
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "bold");
+            doc.text(label, cellX, baseY);
+            const labelW = doc.getTextWidth(label);
+            doc.setFont("helvetica", "normal");
+            doc.text(" : ", cellX + labelW, baseY);
+            doc.text(String(value ?? ""), cellX + labelW + 8, baseY, { maxWidth: colW - (labelW + 12) });
+        }
+        // Employee details rows
+        pair(0, 0, "Employee Code", payslip.employeeCode);
+        pair(1, 0, "Employee Name", payslip.employeeName);
+        pair(2, 0, "Branch", payslip.branch);
+        pair(0, 1, "Department", payslip.department);
+        pair(1, 1, "Designation", payslip.designation);
+        pair(2, 1, "Grade", payslip.grade);
+        pair(0, 2, "Date of Birth", payslip.dateOfBirth);
+        pair(1, 2, "Date of Joining", payslip.dateOfJoining);
+        pair(2, 2, "PF No", payslip.pfNo);
+        pair(0, 3, "Bank A/c No", payslip.bankAccountNo);
+        pair(1, 3, "Bank Name", payslip.bankName);
+        pair(2, 3, "PAN No", payslip.panNo);
+        pair(0, 4, "UAN No", payslip.uanNo);
+        pair(1, 4, "ESIC No", payslip.esicNo);
+        // ATTENDANCE ROW - Single line with reduced spacing
+        const attY = gridTop + gridRowH * gridRows;
+        doc.rect(gridX, attY, gridW, gridRowH);
+        doc.setFont("helvetica", "normal").setFontSize(9);
+        let ax = gridX + 3, ay = attY + 5;
+        function att(label, val) {
+            doc.setFont("helvetica", "bold");
+            doc.text(label, ax, ay);
+            const lw = doc.getTextWidth(label);
+            doc.setFont("helvetica", "normal");
+            doc.text(" : ", ax + lw, ay);
+            const vStart = ax + lw + 6;
+            doc.text(String(val), vStart, ay);
+            ax = vStart + doc.getTextWidth(String(val)) + 8; // Reduced spacing
+        }
+        att("Present Day", payslip.presentDays);
+        att("Paid Leave", payslip.leave);
+        att("Holiday", payslip.holidays);
+        att("Week off", payslip.weekOff);
+        att("Total Sal Day", payslip.salaryDays);
+        att("Absent", payslip.absentDays);
+        y = attY + gridRowH + 5;
+        // FIXED 5-COLUMN TABLE: Particulars | Rate | Earnings | Particulars | Deduction
+        const tX = margin, tW = contentW, tRowH = 8;
+        // Adjusted column widths with better spacing
+        const L_PART = 85, L_RATE = 38, L_EARN = 45;
+        const R_PART = 65, R_DED = tW - (L_PART + L_RATE + L_EARN + R_PART);
+        const tCols = [L_PART, L_RATE, L_EARN, R_PART, R_DED];
+        const tTop = y;
+        const rowsData = Math.max(payslip.earnings.length, payslip.deductions.length);
+        const tRows = rowsData + 1; // + totals row
+        // Draw complete table structure
+        doc.setDrawColor(0).setLineWidth(0.35);
+        // Outer border
+        doc.rect(tX, tTop, tW, tRowH * (tRows + 1));
+        // Header row background
+        doc.setFillColor(230, 230, 230);
+        doc.rect(tX, tTop, tW, tRowH, "F");
+        // All vertical lines (including left border)
+        let cx = tX;
+        // Left border
+        doc.line(tX, tTop, tX, tTop + tRowH * (tRows + 1));
+        for (let i = 0; i < tCols.length; i++) {
+            cx += tCols[i];
+            if (cx < tX + tW) { // Don't draw line beyond right border
+                doc.line(cx, tTop, cx, tTop + tRowH * (tRows + 1));
+            }
+        }
+        // Right border
+        doc.line(tX + tW, tTop, tX + tW, tTop + tRowH * (tRows + 1));
+        // All horizontal lines
+        for (let r = 0; r <= tRows + 1; r++) {
+            doc.line(tX, tTop + r * tRowH, tX + tW, tTop + r * tRowH);
+        }
+        // Header text with proper alignment
+        doc.setFont("helvetica", "bold").setFontSize(9);
+        let hx = tX;
+        const hy = tTop + 5;
+        // Particulars (left aligned with margin)
+        doc.text("Particulars", hx + 3, hy);
+        hx += L_PART;
+        // Rate (center aligned)
+        doc.text("Rate", hx + L_RATE/2, hy, { align: "center" });
+        hx += L_RATE;
+        // Earnings (center aligned)
+        doc.text("Earnings", hx + L_EARN/2, hy, { align: "center" });
+        hx += L_EARN;
+        // Particulars (left aligned with margin)
+        doc.text("Particulars", hx + 3, hy);
+        hx += R_PART;
+        // Deduction (center aligned)
+        doc.text("Deduction", hx + R_DED/2, hy, { align: "center" });
+        // Body rows with proper spacing
+        doc.setFont("helvetica", "normal").setFontSize(8);
+        for (let i = 0; i < rowsData; i++) {
+            const yb = tTop + tRowH * (i + 1) + 5;
+            // Left side - earnings (3 columns)
+            if (payslip.earnings[i]) {
+                const e = payslip.earnings[i];
+                let x = tX;
+                // Particulars column (left aligned with 3mm margin)
+                doc.text(e.name, x + 3, yb, { maxWidth: L_PART - 6 });
+                x += L_PART;
+                // Rate column (right aligned with 3mm right margin)
+                doc.text(FIX2(e.amount), x + L_RATE - 3, yb, { align: "right" });
+                x += L_RATE;
+                // Earnings column (right aligned with 3mm right margin)
+                doc.text(INR(e.amount), x + L_EARN - 3, yb, { align: "right" });
+            }
+            // Right side - deductions (2 columns)
+            if (payslip.deductions[i]) {
+                const d = payslip.deductions[i];
+                let x = tX + L_PART + L_RATE + L_EARN;
+                // Particulars column (left aligned with 3mm margin)
+                doc.text(d.name, x + 3, yb, { maxWidth: R_PART - 6 });
+                x += R_PART;
+                // Deduction column (right aligned with 3mm right margin)
+                doc.text(INR(d.amount), x + R_DED - 3, yb, { align: "right" });
+            }
+        }
+        // Totals row with enhanced styling
+        const ty = tTop + tRowH * (rowsData + 1) + 5;
+        doc.setFont("helvetica", "bold").setFontSize(9);
+        // Total Earnings (left side)
+        doc.text("Total Earnings", tX + 3, ty);
+        doc.text(INR(payslip.grossSalary), tX + L_PART + L_RATE + L_EARN - 3, ty, { align: "right" });
+        // Total Deduction (right side)
+        doc.text("Total Deduction", tX + L_PART + L_RATE + L_EARN + 3, ty);
+        doc.text(INR(payslip.totalDeductions), tX + L_PART + L_RATE + L_EARN + R_PART + R_DED - 3, ty, { align: "right" });
+        y = tTop + tRowH * (tRows + 1) + 5;
+        // EMPLOYEE NET PAY BAR with better styling
+        const barH = 12;
+        doc.setDrawColor(0).setLineWidth(0.5);
+        doc.rect(margin, y, contentW, barH);
+        // Optional: Add light background to net pay bar
+        doc.setFillColor(255, 255, 200); // Light yellow background
+        doc.rect(margin, y, contentW, barH, "F");
+        doc.rect(margin, y, contentW, barH); // Re-draw border
+        doc.setFont("helvetica", "bold").setFontSize(10);
+        doc.text("Employee Net Pay", margin + 5, y + 8);
+        doc.text(":", margin + 60, y + 8);
+        doc.text(`${INR(payslip.netAmount)} ( ${this.numberToWords(payslip.netAmount)} Only )`, margin + 65, y + 8);
+        y += barH + 8;
+        // Footer
+        doc.setFont("helvetica", "italic").setFontSize(8);
+        doc.text("This is a computer generated salary slip. Signature not required", pageW/2, y, { align: "center" });
+        // Download
+        const fileName = `Pay_Slip_${payslip.employeeCode}_${payslip.month.replace(' - ', '-').replace(/[^a-zA-Z0-9-]/g, '')}.pdf`;
+        doc.save(fileName);
+    }
 
     
     // downloadPDF(payslipId) { 
