@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.ManagePermission;
+using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.ManagePermision;
@@ -22,7 +23,7 @@ namespace HRMS_Infrastructure.Repository.Employee
             _db = db;
         }
 
-        public async Task<SP_Response> CreateEmpskill(VmSkill model)
+        public async Task<SP_Response> CreateEmployeeProfileSkill(EmployeeProfile_Skill model)
         {
             try
             {
@@ -30,7 +31,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                     EXEC ManageEmployeeProfileSkill
                         @Action = {"CREATE"},
                         @EmployeeId = {model.EmployeeId},
-                        @SkillName = {model.SkillName},
+                        @SkillMasterId = {model.SkillMasterId},
                         @YearsOfExperience = {model.YearsOfExperience},
                         @Comments = {model.Comments},
                         @CreatedBy = {model.CreatedBy}
@@ -44,16 +45,16 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<SP_Response> UpdateEmpProfileSkill(VmSkill model)
+        public async Task<SP_Response> UpdateEmployeeProfileSkill(EmployeeProfile_Skill model)
         {
             try
             {
                 var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                             EXEC ManageEmployeeProfileSkill
                                 @Action = {"UPDATE"},
-                                @SkillId = {model.SkillId}, 
+                                @EmployeeProfile_SkillId = {model.EmployeeProfile_SkillId}, 
                                 @EmployeeId = {model.EmployeeId},
-                                @SkillName = {model.SkillName},
+                                @SkillMasterId = {model.SkillMasterId},
                                 @YearsOfExperience = {model.YearsOfExperience},
                                 @Comments = {model.Comments},
                                 @UpdatedBy = {model.UpdatedBy}
@@ -66,22 +67,20 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
             catch (Exception ex)
             {
-                return new SP_Response
-                {
-                    Success = -1,
-                    ResponseMessage = "Exception: " + ex.Message
-                };
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
+
             }
         }
 
-        public async Task<SP_Response> DeleteEmpProfileSkill(VmSkill model)
+        public async Task<SP_Response> DeleteEmployeeProfileSkill(DeleteRecordVM model)
         {
             try
             {
                 var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                              EXEC ManageEmployeeProfileSkill
                                  @Action = {"DELETE"},
-                                 @SkillId = {model.SkillId}
+                                 @EmployeeProfile_SkillId = {model.Id},
+                                 @DeletedBy = {model.DeletedBy}
                                  ").ToListAsync();
 
                 return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
@@ -92,21 +91,17 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<List<VmSkillMaster>> GetAllSkill()
+        public async Task<List<EmployeeProfile_Skill>> GetAllEmployeeProfile_Skills(int EmployeeId)
         {
             try
             {
-                    var result = await _db.Database
-                    .SqlQueryRaw<VmSkillMaster>
-                    ($@"
-                     EXEC ManageEmployeeProfileSkill @Action = 'GET'
-                     ")
-                    .ToListAsync();
-                return result;
+                return await _db.Set<EmployeeProfile_Skill>()
+                   .FromSqlInterpolated($" EXEC GetAllEmployeeProfile_Skills @EmployeeId = {EmployeeId}")
+                   .ToListAsync();
             }
             catch (Exception ex)
             {
-                return new List<VmSkillMaster>();
+                return new List<EmployeeProfile_Skill>();
             }
         }
     }

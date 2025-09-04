@@ -222,6 +222,7 @@
             $("#AddCompanyDetails").show();
             $("#companyInfo").show();
             $(".liTicketStatus").show();
+            $(".drpSkillMaster").show();
         }
 
         if (roleSlug == "ess" || roleSlug == "admin")

@@ -1,34 +1,31 @@
-﻿using HRMS_API.Services;
-using HRMS_Core.ManagePermission;
+﻿using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
-using HRMS_Core.VM.Employee;
-using HRMS_Core.VM.EmployeeMaster;
-using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-
-namespace HRMS_API.Controllers.Employee
+namespace HRMS_API.Controllers.OtherMaster
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class EmployeeProfileSkillAPIController : ControllerBase
+    [Authorize]
+    public class SkillMasterAPIController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
-        public EmployeeProfileSkillAPIController(IUnitOfWork unitOfWork)
+
+        public SkillMasterAPIController(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
-          
         }
 
-        [HttpGet("GetAllEmployeeProfileSkills/{employeeId}")]
-        public async Task<APIResponse> GetAllEmployeeProfileSkills(int employeeId)
+        [HttpGet("GetAllSkillMasters")]
+        public async Task<APIResponse> GetAllSkillMasters()
         {
             try
             {
-                var data = await _unitOfWork.employeeProfileSkillRepository.GetAllEmployeeProfile_Skills(employeeId);
+                var data = await _unitOfWork.SkillMasterRepository.GetAllSkillMasters();
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
                 return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
@@ -39,14 +36,14 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
-        [HttpPost("CreateEmployeeProfileSkill")]
-        public async Task<APIResponse> CreateEmployeeProfileSkill(EmployeeProfile_Skill model)
+        [HttpPost("CreateSkillMaster")]
+        public async Task<APIResponse> CreateSkillMaster(SkillMaster model)
         {
             try
             {
                 if (model == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Employee skill details cannot be null." };
-                var result = await _unitOfWork.employeeProfileSkillRepository.CreateEmployeeProfileSkill(model);
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Skill details cannot be null." };
+                var result = await _unitOfWork.SkillMasterRepository.CreateSkillMaster(model);
                 if (result.Success > 0)
                 {
                     return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
@@ -59,14 +56,14 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
-        [HttpPut("UpdateEmployeeProfileSkill")]
-        public async Task<APIResponse> UpdateEmployeeProfileSkill(EmployeeProfile_Skill model)
+        [HttpPut("UpdateSkillMaster")]
+        public async Task<APIResponse> UpdateSkillMaster(SkillMaster model)
         {
             try
             {
-                if (model == null || model.EmployeeProfile_SkillId == 0)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Employee skill details cannot be null." };
-                var result = await _unitOfWork.employeeProfileSkillRepository.UpdateEmployeeProfileSkill(model);
+                if (model == null || model.SkillMasterId == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Skill details cannot be null." };
+                var result = await _unitOfWork.SkillMasterRepository.UpdateSkillMaster(model);
                 if (result.Success > 0)
                 {
                     return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
@@ -79,14 +76,14 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
-        [HttpDelete("DeleteEmployeeProfileSkill")]
-        public async Task<APIResponse> DeleteEmployeeProfileSkill(DeleteRecordVM model)
+        [HttpDelete("DeleteSkillMaster")]
+        public async Task<APIResponse> DeleteSkillMaster(DeleteRecordVM model)
         {
             try
             {
                 if (model == null || model.Id == 0)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
-                var result = await _unitOfWork.employeeProfileSkillRepository.DeleteEmployeeProfileSkill(model);
+                var result = await _unitOfWork.SkillMasterRepository.DeleteSkillMaster(model);
                 if (result.Success > 0)
                 {
                     return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
@@ -98,6 +95,5 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete record. Please try again later." };
             }
         }
-
     }
 }

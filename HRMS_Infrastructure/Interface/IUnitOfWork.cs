@@ -110,6 +110,7 @@ namespace HRMS_Infrastructure.Interface
         ITicketApplicationRepository TicketApplicationRepository { get; }
         ITicketFollowUpRepository TicketFollowUpRepository { get; }
         IManageProfileRepository ManageProfileRepository { get; }
+        ISkillMasterRepository SkillMasterRepository { get; }
 
         void Commit();
         Task CommitAsync();
