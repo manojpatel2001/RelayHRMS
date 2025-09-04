@@ -15,7 +15,6 @@ namespace HRMS_Infrastructure.Interface.Leave
 
         Task<List<EmployeeAttendanceReportVm>> GetAttendanceReport(AttendanceReportVm VM);
         Task<List<ShiftReportVm>> GetShiftReport(AttendanceReportVm VM);
-        Task<List<EmployeeAttendanceReportVm>> GetAttendanceReportForAdmin(AttendanceReportforAdminVm VM);
         Task<(List<vmAttedanceCalanderDays> AttedanceCalanderDays, List<vmAttedanceCalanderDaysSummary> AttedanceCalanderDaysSummary)> GetAttendanceCalender(CommonParameter commonParameter);
 
     }

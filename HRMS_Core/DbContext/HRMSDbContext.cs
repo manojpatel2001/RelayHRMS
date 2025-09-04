@@ -252,6 +252,8 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<CompOffReportDetailedModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<YearlySalaryComponent>().HasNoKey().ToView(null);
             modelBuilder.Entity<EmployeeSalaryDaysViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeProfile_Skill>().HasNoKey().ToView(null);
+            modelBuilder.Entity<SkillMaster>().HasNoKey().ToView(null);
 
 
 

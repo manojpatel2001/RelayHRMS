@@ -9,10 +9,10 @@ namespace HRMS_Infrastructure.Interface.Employee
 {
     public interface IEmployeeProfileSkillRepository
     {
-        Task<SP_Response> CreateEmpskill(VmSkill model);
-        Task<SP_Response> UpdateEmpProfileSkill(VmSkill model);
-        Task<SP_Response> DeleteEmpProfileSkill(VmSkill model);
+        Task<SP_Response> CreateEmployeeProfileSkill(EmployeeProfile_Skill model);
+        Task<SP_Response> UpdateEmployeeProfileSkill(EmployeeProfile_Skill model);
+        Task<SP_Response> DeleteEmployeeProfileSkill(DeleteRecordVM  model);
 
-        Task<List<VmSkillMaster>> GetAllSkill();
+        Task<List<EmployeeProfile_Skill>> GetAllEmployeeProfile_Skills(int EmployeeId);
     }
 }

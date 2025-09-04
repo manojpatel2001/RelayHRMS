@@ -6,17 +6,18 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.VM.Employee
 {
-    public class VmSkill
+    public class EmployeeProfile_Skill
     {
-        public int? SkillId { get; set; }
+        public int? EmployeeProfile_SkillId { get; set; }
 
         public string? SkillName { get; set; }
-
+        public int? SkillMasterId { get; set; }
         public int? YearsOfExperience { get; set; }
 
         public string? Comments { get; set; }
 
         public int? EmployeeId { get; set; }
+      
 
         public bool? IsDeleted { get; set; }
 
@@ -36,12 +37,6 @@ namespace HRMS_Core.VM.Employee
     }
 
 
-    public class VmSkillMaster
-    {
-        public int SkillId { get; set; }
-        public string? SkillName { get; set; }
-        public bool? IsDeleted { get; set; }
-        public bool? IsEnabled { get; set; }
-    }
+    
 }
 
