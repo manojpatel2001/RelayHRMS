@@ -26,7 +26,8 @@ namespace HRMS_Core.Salary
         public decimal? TermInsurance { get; set; }
         public decimal? GroupMedical { get; set; }
         public decimal? Loan { get; set; }
-        public int? Month { get; set; }  
+        public int? Month { get; set; }
         public int? Year { get; set; }
+        public decimal? OtherDeduction { get; set; }
     }
 }
