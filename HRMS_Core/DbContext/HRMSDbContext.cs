@@ -254,6 +254,7 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<EmployeeSalaryDaysViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<EmployeeProfile_Skill>().HasNoKey().ToView(null);
             modelBuilder.Entity<SkillMaster>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeesByBranchId>().HasNoKey().ToView(null);
 
 
 
