@@ -32,6 +32,8 @@ namespace HRMS_Core.VM.Salary
         public decimal? LWF { get; set; }
         public decimal? TDS { get; set; }
         public decimal? Loan { get; set; }
+        public decimal? Arrears { get; set; }
+        public decimal? OtherDeduction { get; set; }
         public decimal? TotalDeductions { get; set; }
         public decimal? NetSalary { get; set; }
         public DateTime? CreatedDate { get; set; }

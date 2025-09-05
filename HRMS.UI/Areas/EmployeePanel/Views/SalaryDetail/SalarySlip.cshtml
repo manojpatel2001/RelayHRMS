@@ -589,7 +589,8 @@ let payslipManager;
                             { name: "Conveyance Allowances", amount: roundValue(item.conveyanceAllowance || 0) },
                             { name: "Medical Allowances", amount: roundValue(item.medicalAllowance || 0) },
                             { name: "Child Education Allowance (CEA)", amount: roundValue(item.childEducationAllowance || 0) },
-                            { name: "Deputation Allowance", amount: roundValue(item.deputationAllowance || 0) }
+                            { name: "Deputation Allowance", amount: roundValue(item.deputationAllowance || 0) },
+                             { name: "Arrears", amount: roundValue(item.arrears || 0) }
                         ].filter(earning => earning.amount > 0),
 
                         // Deductions with rounded values to 2 decimal places
@@ -601,7 +602,8 @@ let payslipManager;
                             { name: "Term Insurance", amount: roundValue(item.termInsurance || 0) },
                             { name: "LWF", amount: roundValue(item.lwf || 0) },
                             { name: "TDS", amount: roundValue(item.tds || 0) },
-                            { name: "Loan", amount: roundValue(item.loan || 0) }
+                            { name: "Loan", amount: roundValue(item.loan || 0) },
+                            { name: "OtherDeduction", amount: roundValue(item.otherDeduction || 0) }
                         ].filter(deduction => deduction.amount > 0),
 
                         // Total amounts with rounding to 2 decimal places
@@ -837,8 +839,7 @@ class PayslipManager {
         return card;
     }
 
-        async downloadPDF(payslipId) {
-        debugger;
+       async downloadPDF(payslipId) {
         const payslip = this.payslips.find(p => p.id === payslipId);
         if (!payslip) return;
 
@@ -850,6 +851,11 @@ class PayslipManager {
         const pageW = 297, margin = 15, contentW = pageW - margin * 2;
         let y = 15; // Start a bit lower to accommodate the header
 
+        // Calculate totals before using them
+        const totalEarnings = payslip.earnings.reduce((sum, earning) => sum + (earning.amount || 0), 0);
+        const totalDeductions = payslip.deductions.reduce((sum, deduction) => sum + (deduction.amount || 0), 0);
+        const netPay = totalEarnings - totalDeductions;
+
         // Load the logo image and place it alongside company header
         const logoUrl = '/assets/images/relaylogo.jpeg'; // Adjust the path to your logo image
 
@@ -858,8 +864,8 @@ class PayslipManager {
             debugger;
 
             // Logo dimensions
-                const imgWidth = 60; // Reduced width to fit beside text
-                const imgHeight = 12; // Reduced height
+            const imgWidth = 60; // Reduced width to fit beside text
+            const imgHeight = 12; // Reduced height
 
             // Place logo on the left side
             doc.addImage(imageData, 'JPEG', margin, y, imgWidth, imgHeight);
@@ -1036,10 +1042,10 @@ class PayslipManager {
         doc.setFont("helvetica", "bold").setFontSize(9);
         // Total Earnings (left side)
         doc.text("Total Earnings", tX + 3, ty);
-        doc.text(INR(payslip.grossSalary), tX + L_PART + L_RATE + L_EARN - 3, ty, { align: "right" });
+        doc.text(INR(totalEarnings), tX + L_PART + L_RATE + L_EARN - 3, ty, { align: "right" });
         // Total Deduction (right side)
         doc.text("Total Deduction", tX + L_PART + L_RATE + L_EARN + 3, ty);
-        doc.text(INR(payslip.totalDeductions), tX + L_PART + L_RATE + L_EARN + R_PART + R_DED - 3, ty, { align: "right" });
+        doc.text(INR(totalDeductions), tX + L_PART + L_RATE + L_EARN + R_PART + R_DED - 3, ty, { align: "right" });
         y = tTop + tRowH * (tRows + 1) + 5;
         // EMPLOYEE NET PAY BAR with better styling
         const barH = 12;
@@ -1052,7 +1058,7 @@ class PayslipManager {
         doc.setFont("helvetica", "bold").setFontSize(10);
         doc.text("Employee Net Pay", margin + 5, y + 8);
         doc.text(":", margin + 60, y + 8);
-        doc.text(`${INR(payslip.netAmount)} ( ${this.numberToWords(payslip.netAmount)} Only )`, margin + 65, y + 8);
+        doc.text(`${INR(netPay)} ( ${this.numberToWords(netPay)} Only )`, margin + 65, y + 8);
         y += barH + 8;
         // Footer
         doc.setFont("helvetica", "italic").setFontSize(8);
@@ -1061,7 +1067,6 @@ class PayslipManager {
         const fileName = `Pay_Slip_${payslip.employeeCode}_${payslip.month.replace(' - ', '-').replace(/[^a-zA-Z0-9-]/g, '')}.pdf`;
         doc.save(fileName);
     }
-
     
     // downloadPDF(payslipId) { 
     //             const payslip = this.payslips.find(p => p.id === payslipId);
