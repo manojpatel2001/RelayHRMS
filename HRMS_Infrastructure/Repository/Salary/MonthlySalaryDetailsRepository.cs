@@ -219,5 +219,19 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return new List<EmployeeSalaryDaysViewModel>();
             }
         }
+
+        public async Task<List<EmployeesByBranchId>> GetEmployeesByBranchId(string? BranchIds)
+        {
+            try
+            {
+
+                var result = await _db.Set<EmployeesByBranchId>().FromSqlInterpolated($"EXEC GetEmployeesByBranchId @BranchIds={BranchIds}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EmployeesByBranchId>();
+            }
+        }
     }
 }
