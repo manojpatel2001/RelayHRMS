@@ -83,26 +83,22 @@ namespace HRMS_Infrastructure.Repository.Leave
             {
                 var parameters = new[]
                 {
-                    new SqlParameter("@SearchType", (object?)filter.SearchType ?? DBNull.Value),
-                    new SqlParameter("@SearchFor", (object?)filter.SearchFor ?? DBNull.Value),
-                    new SqlParameter("@BranchId", (object?)filter.BranchId ?? DBNull.Value),
-                    new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
-
-                   
-                };
+            new SqlParameter("@SearchType", (object?)filter.SearchType ?? DBNull.Value),
+            new SqlParameter("@SearchFor", (object?)filter.SearchFor ?? DBNull.Value),
+            new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
+            new SqlParameter("@BranchId", (object?)filter.BranchId ?? DBNull.Value)
+        };
 
                 var result = await _db.Set<VmLeaveApplicationforApprove>()
-                    .FromSqlRaw("EXEC SP_GetLeaveApplicationsForApprovalAdmin @SearchType, @SearchFor,@BranchId,@CompId", parameters)
+                    .FromSqlRaw("EXEC SP_GetLeaveApplicationsForApprovalAdmin @SearchType = @SearchType, @SearchFor = @SearchFor, @CompId = @CompId, @BranchId = @BranchId", parameters)
                     .ToListAsync();
-
                 return result;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("GetLeaveApplicationsforApproveAdmin Error: " + ex.Message);
+                Console.WriteLine("SP_GetLeaveApplicationsForApprovalAdmin Error: " + ex.Message);
                 return new List<VmLeaveApplicationforApprove>();
             }
-
         }
 
         public async Task<List<LeaveApprovalReportVM>> GetLeaveApproval(LeaveApp_Param vm)
