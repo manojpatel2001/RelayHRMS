@@ -1,8 +1,11 @@
-﻿using HRMS_API.Services;
+﻿using HRMS_API.NotificationService.HubService;
+using HRMS_API.NotificationService.ManageService;
+using HRMS_API.Services;
 using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
 using HRMS_Core.EmployeeMaster;
 using HRMS_Core.Leave;
+using HRMS_Core.Notifications;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.EmployeeMaster;
@@ -13,6 +16,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Configuration;
@@ -30,14 +34,16 @@ namespace HRMS_API.Controllers.EmployeeMaster
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly FileUploadService _fileUploadService;
+        private readonly IHubContext<NotificationRemainderHub> _hubContext;
 
 
-        public EmployeeMasterAPIController(IUnitOfWork unitOfWork, UserManager<HRMSUserIdentity> userManager, IConfiguration configuration, FileUploadService fileUploadService)
+        public EmployeeMasterAPIController(IUnitOfWork unitOfWork, UserManager<HRMSUserIdentity> userManager, IConfiguration configuration, FileUploadService fileUploadService, IHubContext<NotificationRemainderHub> hubContext)
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
             _configuration = configuration;
             _fileUploadService = fileUploadService;
+            _hubContext = hubContext;
         }
 
 
@@ -169,7 +175,8 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     WeekOffDetailsId=(int)employeeData.WeekOffDetailsId,
                     IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut,
                     IsLeft=employeeData.IsLeft,
-                    IsPFApplicable=employeeData.IsPFApplicable
+                    IsPFApplicable=employeeData.IsPFApplicable,
+                    Probation = employeeData.Probation
                 };
 
                 // Create the user
@@ -315,13 +322,42 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
                     }
 
+                    if ((existingUser.ProbationCompletionPeriod == 0 || existingUser.ProbationCompletionPeriod == null) && employeeData.ProbationCompletionPeriod != 0)
+                    {
+                        //Notification send to reporting persion
+                        if (employeeData.ManagerProbationId != null)
+                        {
+                            var notification = new NotificationRemainders()
+                            {
+                                NotificationMessage = $"Employee {employeeData.FullName} is in probation from Now.",
+                                NotificationTime = DateTime.UtcNow,
+                                SenderId = employeeData.Id.ToString(),
+                                ReceiverIds = employeeData.ManagerProbationId.ToString(),
+                                NotificationType = NotificationType.ProbationOver,
+                                NotificationAffectedId = employeeData.Id
+                            };
+                            var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                            if (savedNotification.Success > 0)
+                            {
+                                notification.NotificationRemainderId = savedNotification.Success;
+                                var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(employeeData.ManagerProbationId.ToString());
+                                if (reprtingConnection.Any())
+                                {
+                                    await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                                }
+                            }
+                        }
+
+                    }
 
 
                     var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)result.Id);
 
+
                     return new APIResponse { isSuccess = true, Data = updatedEmployee, ResponseMessage = "Employee has been updated successfully" };
                 }
 
+               
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update employee, Please try again later!" };
             }
             catch (Exception ex)

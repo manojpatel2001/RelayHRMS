@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250904172251_ProbationEndDate")]
+    partial class ProbationEndDate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -686,8 +689,8 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("Probation")
                         .HasColumnType("bit");
 
-                    b.Property<decimal?>("ProbationCompletionPeriod")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int?>("ProbationCompletionPeriod")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("ProbationEndDate")
                         .HasColumnType("datetime2");
@@ -728,8 +731,8 @@ namespace HRMS_Core.Migrations
                     b.Property<bool?>("Trainee")
                         .HasColumnType("bit");
 
-                    b.Property<decimal?>("TraineeCompletionPeriod")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int?>("TraineeCompletionPeriod")
+                        .HasColumnType("int");
 
                     b.Property<string>("TraineePeriodType")
                         .HasColumnType("nvarchar(max)");

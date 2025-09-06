@@ -99,14 +99,14 @@ namespace HRMS_Core.VM.EmployeeMaster
         public DateTime? DrivingLicenseExpiry { get; set; }
         public string? RationCardType { get; set; }
         public string? RationCardNo { get; set; }
-        public int? ProbationCompletionPeriod { get; set; }
+        public decimal? ProbationCompletionPeriod { get; set; }
         public string? ProbationPeriodType { get; set; }
         //foreignKey
         public int? ManagerProbationId { get; set; }
         public DateTime? ConfirmDate { get; set; }
         public DateTime? RetirementDate { get; set; }
         public DateTime? OfferDate { get; set; }
-        public int? TraineeCompletionPeriod { get; set; }
+        public decimal? TraineeCompletionPeriod { get; set; }
         public string? TraineePeriodType { get; set; }
 
 
