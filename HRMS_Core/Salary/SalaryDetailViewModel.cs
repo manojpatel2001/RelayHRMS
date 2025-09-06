@@ -42,6 +42,8 @@ namespace HRMS_Core.Salary
         public int? WeekOff { get; set; }
         public decimal? Leave { get; set; }
         public int? SalaryDays { get; set; }
+        public decimal? Arrears { get; set; }
+        public decimal? OtherDeduction { get; set; }
         public string? BranchName { get; set; }
     }
 

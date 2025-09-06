@@ -206,11 +206,11 @@ public class ImportDataController : ControllerBase
                 break;
 
             case "MonthlyEar":
-                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year", "Basic", "HRA", "Conveyance", "Medical", "Deputation", "ChildEducationAllowance" };
+                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year", "Basic", "HRA", "Conveyance", "Medical", "Deputation", "ChildEducationAllowance" , "Arrears" };
                 break;
 
             case "MonthlyDed":
-                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year","PF", "ESIC", "PT", "LWF","TDS" , "TermInsurance" , "GroupMedical" , "Loan" };
+                expectedHeaders = new List<string> { "Alpha_Emp_code", "Month", "Year","PF", "ESIC", "PT", "LWF","TDS" , "TermInsurance" , "GroupMedical" , "Loan" , "OtherDeduction" };
                 break;
 
             case "Attendance":
@@ -463,6 +463,7 @@ public class ImportDataController : ControllerBase
                 Medical = decimal.TryParse(row[6]?.ToString(), out decimal medical) ? medical : (decimal?)null,
                 Deputation = decimal.TryParse(row[7]?.ToString(), out decimal deputation) ? deputation : (decimal?)null,
                 ChildEducationAllowance = decimal.TryParse(row[8]?.ToString(), out decimal ChildEducationAllowance) ? ChildEducationAllowance : (decimal?)null,
+                Arrears = decimal.TryParse(row[9]?.ToString(), out decimal Arrears) ? Arrears : (decimal?)null,
                 Year = year,
                 IsEnabled = true,
                 IsDeleted = false
@@ -515,7 +516,8 @@ public class ImportDataController : ControllerBase
                 TDS = decimal.TryParse(row[7]?.ToString(), out decimal tds) ? tds : (decimal?)null,
                 TermInsurance = decimal.TryParse(row[8]?.ToString(), out decimal TermInsurance) ? TermInsurance : (decimal?)null,
                 GroupMedical = decimal.TryParse(row[9]?.ToString(), out decimal GroupMedical) ? GroupMedical : (decimal?)null,
-                Loan = decimal.TryParse(row[10]?.ToString(), out decimal Loan) ? Loan : (decimal?)null,                             
+                Loan = decimal.TryParse(row[10]?.ToString(), out decimal Loan) ? Loan : (decimal?)null,
+                OtherDeduction = decimal.TryParse(row[11]?.ToString(), out decimal OtherDeduction) ? OtherDeduction : (decimal?)null,                             
                 IsEnabled = true,
                 IsDeleted = false
             });
