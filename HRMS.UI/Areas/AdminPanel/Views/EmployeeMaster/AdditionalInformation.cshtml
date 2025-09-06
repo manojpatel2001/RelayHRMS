@@ -410,7 +410,12 @@
 									<label class="form-check-label" for="isPFApplicable">Is PF Applicable</label>
 								</div>
 							</div>
-
+							<div class="col-md-2">
+								<div class="form-check mt-4">
+									<input class="form-check-input"  type="checkbox" id="probation">
+									<label class="form-check-label" for="probation">Probation</label>
+								</div>
+							</div>
 						</div>
 
 						
@@ -616,16 +621,14 @@
 @section Scripts {
 <script>
 	
-	 //    $("#AdminDashboardlink").click(()=>{
-		// 	debugger
-		//  $("#AdminDashboardlink")[0].click();
-		// })
+	 
 		let employeeList = [];
 		let currentIndex =0;
 		let UserId=localStorage.getItem('EmployeeId');
 		let CurrentEmployeeId=localStorage.getItem('CurrentEmployeeId');
 		const savedCompany = localStorage.getItem('selectedCompany');
 		var companyDetails = JSON.parse(savedCompany);
+		
 		const CurrentCompanyId=companyDetails.CompanyId;
 		const Token=localStorage.getItem("authToken");
 
@@ -645,6 +648,18 @@
 			$('#btnUpdateEmployee').show();
 				$('#btnUpdatingEmployee').hide();
 		}
+
+			  $('#ddlEmpType').change(function() {
+				  var selectedText = $(this).find('option:selected').text().toLowerCase();
+				  console.log("Selected Text: " + selectedText);
+
+				  if(selectedText === "probation") {
+					  $("#probation").prop('checked', true);
+				  } else {
+					  $("#probation").prop('checked', false);
+				  }
+			});
+
 
 	function formatDate(isoDateStr) {
 			if (!isoDateStr) return '';
@@ -812,7 +827,8 @@
 		$('#pt').prop('checked', employee.pt || false);
 		$('#checkInOut').prop('checked', employee.isPermissionPunchInOut || false);
 		$('#chkSameAs').prop('checked', employee.sameAsPresentAddress || false);
-			 $('#isPFApplicable').prop('checked', employee.isPFApplicable || false);
+		 $('#isPFApplicable').prop('checked', employee.isPFApplicable || false);
+		 $('#probation').prop('checked', employee.probation || false);
 
 		// Other fields
 		$('#ddlWeekOfAssign').val(employee.weekOffDetailsId || '');
@@ -845,6 +861,7 @@
 		}
 
 		$('#ddlGender').val(employee.gender || 'Male');
+		$('#ddlGender').val(employee.gender || 'Male');
 		$('#inpPersonalEmailId').val(employee.personalEmailId || '');
 		$('#inpFatherName').val(employee.fatherName || '');
 		$('#inpMotherName').val(employee.motherName || '');
@@ -867,7 +884,15 @@
 		$('#ddlRationCardType').val(employee.rationCardType || '');
 		$('#inpRationCardNo').val(employee.rationCardNo || '');
 		$('#inpProbationCompletionPeriod').val(employee.probationCompletionPeriod || '');
-		$('input[name="probationPeriod"]').val(employee.probationPeriodType || '');
+		debugger;
+			  if(employee.probationPeriodType=="Days")
+			  {
+				 $('#probationDay').val(employee.probationPeriodType).prop('checked',true)
+			  }
+			  else{
+					 $('#probationMonth').val(employee.probationPeriodType).prop('checked',true)
+
+			  }
 		$('#ddlManagerProbation').val(employee.managerProbationId || '');
 		$('#inpConfirmDate').val(formatDate(employee.confirmDate) || '');
 			$('#inpRetirementDate').val(formatDate(employee.retirementDate )|| '');
@@ -1269,8 +1294,12 @@
 		
 	});
 
-
-	$('#btnUpdateEmployee').click(async function() {
+	    function convertToDecimal(value) {
+			let decimalValue = parseFloat(value);
+			return isNaN(decimalValue) ? 0 : decimalValue;
+		}
+   $(document).ready(function() {
+	  $('#btnUpdateEmployee').click(async function() {
 			// $("#btnUpdateEmployee").prop("disabled", true);
 		  showBtnLoder();
 			// Capture form values in variables
@@ -1302,9 +1331,10 @@
 			 var patternPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@@$!%*?&])[A-Za-z\d@@$!%*?&]{8,}$/;
 			var reportingManager=$('#drpReporting').val();
 		  var isPFApplicable = $('#isPFApplicable').is(':checked');
-			var Company = CurrentCompanyId;
-
-
+				 var probation = $('#probation').is(':checked');
+			var Company = CurrentCompanyId;;
+				  var probationCompletionPeriod=$('#inpProbationCompletionPeriod').val();
+						  var probationTypePeriod= $('input[name="day"]:checked').val();
 			
 				// Validate required fields
 			   var isValid = true;
@@ -1453,6 +1483,33 @@
 						$('#spnReporting').hide();
 				}
 
+				 if (probation)
+				 {
+					if(!probationCompletionPeriod)
+					{
+							$('#spnProbationCompletionPeriod').show();
+						isValid = false;
+					}
+					else
+					{
+								$('#spnProbationCompletionPeriod').hide();
+					}
+
+					if(!$('#ddlManagerProbation').val())
+					{
+							 $('#spnddlManagerProbation').show();
+						  isValid = false;
+					}
+					else
+					{
+							$('#spnddlManagerProbation').hide();
+					}
+					
+				}else{
+						$('#spnddlManagerProbation').hide();
+							$('#spnProbationCompletionPeriod').hide();
+				}
+
 				if (!isValid) {
 				  hideBtnLoder();
 					return;
@@ -1461,6 +1518,7 @@
 					return value === "" ? null : value;
 				};
 
+				
 			// Create employeeData object
 					var employeeData = {
 						Id:CurrentEmployeeId,
@@ -1500,6 +1558,7 @@
 						EmployeeSignatureUrl: null,
 						WeekOffDetailsId:weekOfAssignId==""?null:weekOfAssignId,
 						IsPermissionPunchInOut:checkInOut,
+						Probation:probation,
 
 						//PersionalInfo
 						  Gender: setNullIfEmpty($('#ddlGender').val()),
@@ -1525,13 +1584,13 @@
 							RationCardType: setNullIfEmpty($('#ddlRationCardType').val()),
 							RationCardNo: setNullIfEmpty($('#inpRationCardNo').val()),
 
-							ProbationCompletionPeriod: setNullIfEmpty($('#inpProbationCompletionPeriod').val()),
-							ProbationPeriodType: setNullIfEmpty($('input[name="probationPeriod"]:checked').val()),
+								  ProbationCompletionPeriod:convertToDecimal(probationCompletionPeriod),
+							ProbationPeriodType: probationTypePeriod,
 							ManagerProbationId: setNullIfEmpty($('#ddlManagerProbation').val()),
 							ConfirmDate: setNullIfEmpty($('#inpConfirmDate').val()),
 							RetirementDate: setNullIfEmpty($('#inpRetirementDate').val()),
 							OfferDate: setNullIfEmpty($('#inpOfferDate').val()),
-							TraineeCompletionPeriod: setNullIfEmpty($('#inpTraineeCompletionPeriod').val()),
+							  TraineeCompletionPeriod: convertToDecimal($('#inpTraineeCompletionPeriod').val()),
 							TraineePeriodType: setNullIfEmpty($('input[name="trainingPeriod"]:checked').val()),
 									NoOfChildren: setNullIfEmpty($('#inpNoOfChildren').val()),
 									ESICNo: setNullIfEmpty($('#inpESICNo').val()),
@@ -1618,6 +1677,7 @@
 				});
 
 		});
+   });
 
 		function resetAllEmployeeData(data)
 		{
@@ -2075,7 +2135,7 @@
 		}
 
 	function bindSalaryAllowance(salaryData) {
-		// Earnings
+		
 		$('#monthlyGross').text(formatCurrency(salaryData.totalGrossSalary));
 		$('#AnualGross').text(formatCurrency(salaryData.totalGrossSalary * 12));
 			$('#txtBasicSalary').val(salaryData.basicSalary);

@@ -314,11 +314,14 @@ function updateNotificationList(notificationDetails) {
             case 'Ticket Response':
                 href = '/EmployeePanel/TicketRequest/TicketRequest';
                 break;
+            case 'Probation Over':
+                href = '/EmployeePanel/ManageProbation/Probation';
+                break;
 
             default:
                 href = '#'; // Default fallback
         }
-
+        
         return `
                     <div class="notification-item" onclick='redirectPage("${uiBaseUrlLayout}${href}", "${notification.notificationType}")'>
                     <span class="notification-item-count">${notification.notificationTypeCount}</span>

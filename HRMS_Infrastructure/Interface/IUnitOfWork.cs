@@ -10,6 +10,7 @@ using HRMS_Infrastructure.Interface.ManageProfile;
 using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
+using HRMS_Infrastructure.Interface.Probations;
 using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.ManagePermissions;
@@ -111,6 +112,7 @@ namespace HRMS_Infrastructure.Interface
         ITicketFollowUpRepository TicketFollowUpRepository { get; }
         IManageProfileRepository ManageProfileRepository { get; }
         ISkillMasterRepository SkillMasterRepository { get; }
+        IProbationPerformanceRepository ProbationPerformanceRepository { get; }
 
         void Commit();
         Task CommitAsync();

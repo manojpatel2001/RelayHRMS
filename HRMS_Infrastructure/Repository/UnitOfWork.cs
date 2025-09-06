@@ -12,6 +12,7 @@ using HRMS_Infrastructure.Interface.ManageProfile;
 using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
+using HRMS_Infrastructure.Interface.Probations;
 using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.CompanyInformation;
@@ -26,6 +27,7 @@ using HRMS_Infrastructure.Repository.ManageProfile;
 using HRMS_Infrastructure.Repository.Notifications;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
+using HRMS_Infrastructure.Repository.Probations;
 using HRMS_Infrastructure.Repository.Salary;
 using HRMS_Infrastructure.Repository.SuperAdmin;
 using HRMS_Infrastructure.Repository.TicketManagement;
@@ -131,6 +133,7 @@ namespace HRMS_Infrastructure.Repository
             TicketFollowUpRepository = new TicketFollowUpRepository(_dbContext);
             ManageProfileRepository = new ManageProfileRepository(_dbContext);
             SkillMasterRepository = new SkillMasterRepository(_dbContext);
+            ProbationPerformanceRepository = new ProbationPerformanceRepository(_dbContext);
 
         }
 
@@ -234,6 +237,7 @@ namespace HRMS_Infrastructure.Repository
         public ITicketFollowUpRepository TicketFollowUpRepository { get; set; }
         public IManageProfileRepository ManageProfileRepository { get; set; }
         public ISkillMasterRepository SkillMasterRepository { get; set; }
+        public IProbationPerformanceRepository ProbationPerformanceRepository { get; set; }
 
         public void Commit()
         {

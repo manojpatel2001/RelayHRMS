@@ -24,6 +24,7 @@ using HRMS_Core.VM.ManagePermision;
 using HRMS_Core.VM.Notifications;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Core.VM.PrivilegeSetting;
+using HRMS_Core.VM.Probations;
 using HRMS_Core.VM.Salary;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -254,12 +255,8 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<EmployeeSalaryDaysViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<EmployeeProfile_Skill>().HasNoKey().ToView(null);
             modelBuilder.Entity<SkillMaster>().HasNoKey().ToView(null);
-
-
-
-
-
-
+            modelBuilder.Entity<ProbationEmployeeVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<EmployeeProbationDetailVM>().HasNoKey().ToView(null);
 
 
         }
