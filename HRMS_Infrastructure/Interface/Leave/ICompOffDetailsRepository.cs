@@ -20,6 +20,7 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<List<VMCompOffDetails>> GetCompOffApplicationsAdmin(SearchVmCompOff filter);
         Task<List<CompOffBalanceReportViewModel>> GetCompOffAvailableBalanceReport(CompOffBalanceReportParamViewModel filter);
         Task<List<CompOffReportDetailedModel>> GetCompOffReportDetailed(CompOffBalanceReportParamViewModel filter);
+        Task<List<CompOffDetailsReportViewModelAdmin>> GetCompOffDetailsReportForAdmin(SearchVmForCompoffAdmin filter);
         Task<Comp_Off_Details?> GetCompOffApplicationById(int Comp_Off_DetailsId);
     }
 }
