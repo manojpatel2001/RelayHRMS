@@ -329,7 +329,7 @@
 
         <!-- Full width grid container -->
         <div class="grid-container">
-            <div id="attendanceGrid">Loading...</div>
+            <div id="attendanceGrid">Click GO button to load data...</div>
         </div>
 
         <div id="recordSummary" class="text-center mt-2 text-muted"></div>
@@ -346,8 +346,9 @@
 
     $(document).ready(function () {
         GetBranch();
-        // Load pending applications by default
-        loadAllApplications();
+                  $('#actionButtons').hide();
+        // Default grid message - no automatic loading
+        $('#attendanceGrid').html('<div class="text-center text-muted">Click GO button to load data...</div>');
 
         // Enable/disable search input based on search type selection
         $('#searchtypeid').on('change', function () {
@@ -364,10 +365,9 @@
             // Hide action buttons when status filter changes
             $('#actionButtons').hide();
             selectedKeys = [];
-            loadAllApplications();
         });
 
-        // GO button click
+        // GO button click - ONLY load data when GO is clicked
         $('#goButtonId').on('click', function () {
             // Hide action buttons when GO is clicked
             $('#actionButtons').hide();
@@ -375,15 +375,18 @@
             loadAllApplications();
         });
 
-        // Clear button click
+        // Clear button click - Clear all fields and grid
         $('#clearButtonId').on('click', function () {
             $('#searchtypeid').val('');
             $('#searchforid').val('').prop('disabled', true);
             $('#branchid').val('');
             $('input[name="statusFilter"][value="Pending"]').prop('checked', true);
-            loadAllApplications();
             $('#actionButtons').hide();
             selectedKeys = [];
+
+            // Clear the grid and record summary
+            $('#attendanceGrid').html('<div class="text-center text-muted">Click GO button to load data...</div>');
+            $('#recordSummary').text('');
         });
 
         // Approve button click
@@ -437,6 +440,9 @@
             ApplicationStatus: applicationStatus || null
         };
 
+        // Show loading message
+        $('#attendanceGrid').html('<div class="text-center text-muted">Loading...</div>');
+
         $.ajax({
             url: '@(baseDomainUrl)/api/CompOffAPI/GetCompOffDetailsReportForAdmin',
             method: 'POST',
@@ -448,11 +454,12 @@
             success: function (data) {
                 if (data.isSuccess && data.data && data.data.length > 0) {
                     renderTable(data.data);
+                      $('#actionButtons').show();
                     $('#recordSummary').text(`${data.data.length} records found.`);
                 } else {
                     $('#attendanceGrid').html('<div class="text-center text-muted">No records found.</div>');
                     $('#recordSummary').text('');
-                     $('#actionButtons').hide();
+                    $('#actionButtons').hide();
                 }
             },
             error: function (xhr) {
@@ -475,17 +482,10 @@
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
-            onSelectionChanged: function (e) {
-               selectedKeys = e.selectedRowKeys;
-    const currentStatus = $('input[name="statusFilter"]:checked').val();
-
-    // Sirf Pending status aur selected rows hone par hi buttons show karo
-    if (currentStatus === "Pending" && selectedKeys.length > 0) {
-        $("#actionButtons").show();
-    } else {
-        $("#actionButtons").hide();
-    }
+                 onSelectionChanged: function (e) {
+               selectedKeys = e.selectedRowKeys;          
             },
+        
             columns: [
                 { dataField: "comp_Off_Detailsid", caption: "Application ID", width: 120, cssClass: "text-center-cell" },
                 { dataField: "employeeCode", caption: "Employee Code", cssClass: "text-center-cell" },
@@ -504,6 +504,30 @@
         debugger;
         if (!selectedKeys || selectedKeys.length === 0) {
             Swal.fire('Warning', 'Please select at least one application.', 'warning');
+            return;
+        }
+
+        // Get the grid data to validate selected records
+        const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+        const gridData = gridInstance.option("dataSource");
+
+        // Find selected records and validate their status
+        const selectedRecords = gridData.filter(record => selectedKeys.includes(record.comp_Off_Detailsid));
+
+        // Check if any selected record is not in Pending status
+        const nonPendingRecords = selectedRecords.filter(record => record.applicationStatus !== "Pending");
+
+        if (nonPendingRecords.length > 0) {
+            const statusList = nonPendingRecords.map(record =>
+                `${record.employeeCode} - ${record.fullName} (${record.applicationStatus})`
+            ).join('<br>');
+
+            Swal.fire({
+                title: 'Invalid Selection',
+                html: `The following applications cannot be ${status.toLowerCase()} because they are not in Pending status:<br><br><strong>${statusList}</strong><br><br>Only Pending applications can be approved or rejected.`,
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
             return;
         }
 
@@ -533,10 +557,8 @@
             success: function (res) {
                 if (res.isSuccess) {
                     Swal.fire("✅ Success", res.responseMessage, "success");
-                    // Reload data
                     loadAllApplications();
                     selectedKeys = [];
-                    $('#actionButtons').hide();
                 } else {
                     Swal.fire("❌ Failed", res.responseMessage, "error");
                 }
