@@ -63,12 +63,7 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Incorrect old password."
                     };
                 }
-                var oldUser = await _userManager.FindByIdAsync(password.EMPID.ToString());
-                if (oldUser == null)
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
-                }
-
+      
                 var history = new PasswordHistory
                 {
                     EMPID=password.EMPID,
@@ -89,16 +84,7 @@ namespace HRMS_API.Controllers.Employee
 
                     }
                 }
-                if (!string.IsNullOrEmpty(password.NewPassword))
-                {
-
-                    var token = await _userManager.GeneratePasswordResetTokenAsync(oldUser);
-                    var resetPasswordResult = await _userManager.ResetPasswordAsync(oldUser, token, password.NewPassword);
-                    if (!resetPasswordResult.Succeeded)
-                    {
-                        return new APIResponse { isSuccess = false, ResponseMessage = "Failed to change password." };
-                    }
-                }
+         
                 var updatedPassword = await _unitOfWork.PasswordHistory.ChangePassword(history);
                 
                 return new APIResponse()
