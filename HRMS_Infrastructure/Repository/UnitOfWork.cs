@@ -134,6 +134,7 @@ namespace HRMS_Infrastructure.Repository
             ManageProfileRepository = new ManageProfileRepository(_dbContext);
             SkillMasterRepository = new SkillMasterRepository(_dbContext);
             ProbationPerformanceRepository = new ProbationPerformanceRepository(_dbContext);
+            GeoLocationRepository = new GeoLocationRepository(_dbContext);
 
         }
 
@@ -238,6 +239,7 @@ namespace HRMS_Infrastructure.Repository
         public IManageProfileRepository ManageProfileRepository { get; set; }
         public ISkillMasterRepository SkillMasterRepository { get; set; }
         public IProbationPerformanceRepository ProbationPerformanceRepository { get; set; }
+        public IGeoLocationRepository GeoLocationRepository { get; set; }
 
         public void Commit()
         {

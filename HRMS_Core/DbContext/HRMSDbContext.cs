@@ -259,6 +259,8 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<ProbationEmployeeVM>().HasNoKey().ToView(null);
             modelBuilder.Entity<EmployeeProbationDetailVM>().HasNoKey().ToView(null);
              modelBuilder.Entity<EmployeesByBranchId>().HasNoKey().ToView(null);
+             modelBuilder.Entity<GeoLocation>().HasNoKey().ToView(null);
+             modelBuilder.Entity<GetAllAssignGeoLocation>().HasNoKey().ToView(null);
 
 
 
