@@ -263,5 +263,29 @@ namespace HRMS_Infrastructure.Repository.Leave
                 return new List<CompOffReportDetailedModel>();
             }
         }
+
+        public async Task<List<CompOffDetailsReportViewModelAdmin>> GetCompOffDetailsReportForAdmin(SearchVmForCompoffAdmin filter)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+            new SqlParameter("@SearchType", (object)filter.SearchType ?? DBNull.Value),
+            new SqlParameter("@SearchFor", (object)filter.SearchFor ?? DBNull.Value),
+            new SqlParameter("@CompId", (object)filter.CompId),
+            new SqlParameter("@BranchId", (object)filter.BranchId ?? DBNull.Value),
+            new SqlParameter("@ApplicationStatus", (object)filter.ApplicationStatus ?? DBNull.Value)
+        };
+
+                return await _db.Set<CompOffDetailsReportViewModelAdmin>()
+                    .FromSqlRaw("EXEC SP_GetCompOffDetailsReportForAdmin @SearchType, @SearchFor, @CompId, @BranchId, @ApplicationStatus", parameters)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetCompOffDetailsReportForAdmin Error: " + ex.Message);
+                return new List<CompOffDetailsReportViewModelAdmin>();
+            }
+        }
     }
 }
