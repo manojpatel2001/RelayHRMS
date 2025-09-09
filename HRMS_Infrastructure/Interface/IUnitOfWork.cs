@@ -113,6 +113,7 @@ namespace HRMS_Infrastructure.Interface
         IManageProfileRepository ManageProfileRepository { get; }
         ISkillMasterRepository SkillMasterRepository { get; }
         IProbationPerformanceRepository ProbationPerformanceRepository { get; }
+        IGeoLocationRepository GeoLocationRepository { get; }
 
         void Commit();
         Task CommitAsync();
