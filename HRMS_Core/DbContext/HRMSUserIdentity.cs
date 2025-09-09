@@ -66,6 +66,10 @@ namespace HRMS_Core.DbContext
         public bool? IsLeft { get; set; } = false;
         public bool? IsPFApplicable { get; set; } = true;
         public DateTime? ProbationEndDate { get; set; }
+        public string? DeviceId { get; set; }
+        public bool? IsMobileAccess { get; set; } = false;
+        public string? FCMToken { get; set; }
+
 
         //base model
         public bool? IsDeleted { get; set; } = false;
