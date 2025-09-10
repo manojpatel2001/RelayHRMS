@@ -212,6 +212,39 @@ namespace HRMS_API.Controllers.Salary
         }
 
 
+        [HttpGet("GetTodaysAttendanceAdmin")]
+        public async Task<APIResponse> GetTodaysAttendanceAdmin(int BranchId, int ShiftMatserId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmpAttendanceRepository.GetTodaysAttendanceAdmin(BranchId, ShiftMatserId);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No data found"
+                    };
+                }
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+
+
 
     }
 }
