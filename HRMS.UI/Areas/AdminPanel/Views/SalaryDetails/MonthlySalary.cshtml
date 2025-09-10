@@ -14,7 +14,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-
 <style>
     body {
         background-color: white !important;
@@ -54,7 +53,6 @@
         width: 180px;
     }
 
-
     .btn-go {
         background-color: #3e4b6d;
         color: white;
@@ -67,15 +65,14 @@
         box-shadow: none;
     }
 
-        .btn-go :hover,
-        .btn-go :focus,
-        .btn-go :active {
+        .btn-go:hover,
+        .btn-go:focus,
+        .btn-go:active {
             background-color: #3e4b6d;
             color: white;
             outline: none;
             box-shadow: none;
         }
-
 
     .dx-tagbox,
     .dx-tagbox .dx-texteditor {
@@ -96,10 +93,11 @@
 
     .dx-texteditor-input {
         width: 100% !important;
-    } 
+    }
+
     .small-dropdown {
         width: 180px !important;
-    } 
+    }
 
     .dx-list-select-all {
         background-color: transparent !important;
@@ -118,13 +116,75 @@
     }
 
     #salaryGridContainer {
-        max-height: 200px;
+        margin-bottom: 20px !important;
     }
+
+    #salaryActions {
+        margin-top: 20px !important;
+        margin-bottom: 20px !important;
+        clear: both;
+        padding: 10px 0;
+    }
+
+        #salaryActions button {
+            background-color: #3e4b6d;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: none;
+            box-shadow: none;
+            margin: 0 5px;
+        }
+
+            #salaryActions button:hover,
+            #salaryActions button:focus,
+            #salaryActions button:active {
+                background-color: #3e4b6d;
+                color: white;
+                outline: none;
+                box-shadow: none;
+            }
 
     .dx-button .fa-file-excel {
-        color: #217346; /* Excel green */
+        color: #217346;
     }
 
+    /* DevExtreme Grid Header Fixes */
+    .dx-datagrid-headers .dx-header-row > td,
+    .dx-datagrid-headers .dx-header-row > th,
+    .dx-datagrid .dx-datagrid-headers .dx-datagrid-content-fixed .dx-header-row > td,
+    .dx-datagrid .dx-datagrid-headers .dx-datagrid-content-fixed .dx-header-row > th {
+        background-color: #3e4b6d !important;
+        color: white !important;
+        font-weight: bold !important;
+        border-color: #2a3447 !important;
+    }
+
+    .dx-datagrid .dx-header-row .dx-datagrid-action,
+    .dx-datagrid-headers .dx-datagrid-action {
+        background-color: #3e4b6d !important;
+    }
+
+    .dx-datagrid .dx-datagrid-headers {
+        background-color: #3e4b6d !important;
+    }
+
+        .dx-datagrid .dx-datagrid-headers .dx-datagrid-table .dx-row > td {
+            background-color: #3e4b6d !important;
+            color: white !important;
+            border-color: #2a3447 !important;
+        }
+
+    .dx-datagrid-header-panel .dx-toolbar .dx-toolbar-items-container {
+        background-color: transparent;
+    }
+
+    .dx-datagrid-wrapper {
+        margin-bottom: 20px !important;
+    }
 </style>
 
 
@@ -182,6 +242,18 @@
         <button onclick="goBack()" class="btn-go">Back</button>
     </div>
 </div>
+
+
+<div id="grid-loader"
+     class="grid-loader justify-content-center align-items-center flex-column"
+     style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+    <img src="@baseDomainUrl/loders/loder.png"
+         class="grid-logo-spinner"
+         style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+    <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+</div>
+
 
 
 <div id="salaryGridContainer" style="display:none" class="mt-4"></div>   
@@ -256,6 +328,16 @@
         });
     }
 
+           async function showLoder() {
+              $('#grid-loader').addClass('d-flex').show();
+          }
+
+          async function hideLoder() {
+              $('#grid-loader').removeClass('d-flex').hide();
+          }
+
+
+
     function BindEmployeeDropdownByBranch(selectedBranchIds) {
         debugger;
         const branchParam = (selectedBranchIds?.length > 0) ? selectedBranchIds.join(",") : "0";
@@ -327,230 +409,248 @@ const empCodes = employeeIds && employeeIds.length > 0
         BranchId: branchIds.length > 0 ? branchIds[0] : null, // assuming one branch
         Action: "GetData"
     };
-
+        showLoder();
     $.ajax({
         type: "POST",
             url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetMonthlySalary")',
         data: JSON.stringify(requestData),
         contentType: "application/json",
         success: function (response) {
-       
-        if (response && response.data && response.data.length > 0) {
+            hideLoder();
+            if (response && response.data && response.data.length > 0) {
                 RenderSalaryGrid(response.data);
             } else {
                 Swal.fire("No data found for the selected criteria.", "", "info");
             }
         },
         error: function (xhr) {
-            Swal.fire("Error", "Failed to fetch salary data.", "error");
+                 hideLoder();
+                Swal.fire("Error", "Failed to fetch salary data.", "error");
             console.log(xhr);
         }
     });
 });
 
 
-    function RenderSalaryGrid(data) {
-             $("#salaryGridContainer").show();
-               let exportButtonInstance = null;
+     function RenderSalaryGrid(data) {
+        $("#salaryGridContainer").show();
+        let exportButtonInstance = null;
 
-    $("#salaryGridContainer").dxDataGrid({
-        dataSource: data,
-        keyExpr: "employeeId",
-        showBorders: true,
-        columnAutoWidth: true,
-        selection: {
-            mode: "multiple",
-            showCheckBoxesMode: "always"
-        },
-        export: {
-            enabled: true,
-            fileName: "MonthlySalary",
-            allowExportSelectedData: true,
-            formats: ['xlsx'],
-            customizeExcelCell: (options) => {
-                if (options.gridCell.rowType === "header") {
-                    options.font.bold = true;
-                    options.fill = {
-                        type: "pattern",
-                        pattern: "solid",
-                        fgColor: { argb: "FF3E4B6D" }
-                    };
-                    options.font.color = { argb: "FFFFFFFF" };
-                }
-            }
-        },
-        onExporting: function(e) {
-            const selectedRowsData = e.component.getSelectedRowsData();
-
-            if (e.exportMode === 'selected' && selectedRowsData.length === 0) {
-                e.cancel = true;
-                DevExpress.ui.notify({
-                    message: "Please select at least one row to export",
-                    type: "warning",
-                    displayTime: 3000,
-                    closeOnClick: true
-                });
-                return;
-            }
-
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('MonthlySalary');
-
-            const headerRow = worksheet.addRow(
-                e.component.getVisibleColumns()
-                    .filter(column => column.visible !== false)
-                    .map(column => column.caption)
-            );
-
-            headerRow.eachCell((cell) => {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FF3E4B6D' }
-                };
-                cell.font = {
-                    color: { argb: 'FFFFFFFF' },
-                    bold: true
-                };
-            });
-
-            const dataToExport = e.exportMode === 'selected' ?
-                selectedRowsData :
-                e.component.getDataSource().items();
-
-            dataToExport.forEach((row) => {
-                const dataRow = [];
-                e.component.getVisibleColumns()
-                    .filter(column => column.visible !== false)
-                    .forEach(column => {
-                        dataRow.push(row[column.dataField]);
-                    });
-                worksheet.addRow(dataRow);
-            });
-
-            worksheet.columns.forEach(column => {
-                let maxLength = 0;
-                column.eachCell({ includeEmpty: true }, cell => {
-                    const columnLength = cell.value ? cell.value.toString().length : 0;
-                    if (columnLength > maxLength) {
-                        maxLength = columnLength;
+        $("#salaryGridContainer").dxDataGrid({
+            dataSource: data,
+            keyExpr: "employeeId",
+            showBorders: true,
+            columnAutoWidth: true,
+            height: 500, // Fixed height to show buttons below
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
+            },
+            paging: {
+                enabled: true,
+                pageSize: 15 // Show 15 records per page
+            },
+            columnFixing: {
+                enabled: true // Enable column fixing
+            },
+            export: {
+                enabled: true,
+                fileName: "MonthlySalary",
+                allowExportSelectedData: true,
+                formats: ['xlsx'],
+                customizeExcelCell: (options) => {
+                    if (options.gridCell.rowType === "header") {
+                        options.font.bold = true;
+                        options.fill = {
+                            type: "pattern",
+                            pattern: "solid",
+                            fgColor: { argb: "FF3E4B6D" }
+                        };
+                        options.font.color = { argb: "FFFFFFFF" };
                     }
-                });
-                column.width = maxLength < 10 ? 10 : maxLength + 2;
-            });
-
-            workbook.xlsx.writeBuffer().then((buffer) => {
-                saveAs(
-                    new Blob([buffer], { type: 'application/octet-stream' }),
-                    'MonthlySalary_' + new Date().toISOString().slice(0, 10) + '.xlsx'
-                );
-            });
-
-            e.cancel = true;
-        },
-        onSelectionChanged: function(e) {
-            if (exportButtonInstance) {
-                exportButtonInstance.option("disabled", e.selectedRowsData.length === 0);
-            }
-        },
-           toolbar: {
-        items: [
-            "searchPanel",
-            {
-                location: "after",
-                widget: "dxButton",
-                options: {
-                    icon: "fa fa-file-excel", // Font Awesome Excel icon
-                    hint: "Export to Excel",
-                    disabled: true,
-                    onClick: function () {
-                        const grid = $("#salaryGridContainer").dxDataGrid("instance");
-                        const selectedRows = grid.getSelectedRowsData();
-
-                        if (selectedRows.length === 0) {
-                            DevExpress.ui.notify({
-                                message: "Please select at least one row to export",
-                                type: "warning",
-                                displayTime: 3000,
-                                closeOnClick: true
-                            });
-                            return;
-                        }
-
-                        grid.exportToExcel({
-                            selectedRowsOnly: true
-                        });
-                    }
-                },
-                onInitialized: function (e) {
-                    exportButtonInstance = e.component;
                 }
             },
-            {
-                location: "after",
-                widget: "dxButton",
-                options: {
-                    icon: "clear",
-                    hint: "Clear Selection",
-                    onClick: function () {
-                        const grid = $("#salaryGridContainer").dxDataGrid("instance");
-                        grid.clearSelection();
-                        grid.refresh(); // Ensures header checkbox resets
-                    }
+            onExporting: function(e) {
+                const selectedRowsData = e.component.getSelectedRowsData();
+
+                if (e.exportMode === 'selected' && selectedRowsData.length === 0) {
+                    e.cancel = true;
+                    DevExpress.ui.notify({
+                        message: "Please select at least one row to export",
+                        type: "warning",
+                        displayTime: 3000,
+                        closeOnClick: true
+                    });
+                    return;
                 }
+
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('MonthlySalary');
+
+                const headerRow = worksheet.addRow(
+                    e.component.getVisibleColumns()
+                        .filter(column => column.visible !== false)
+                        .map(column => column.caption)
+                );
+
+                headerRow.eachCell((cell) => {
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FF3E4B6D' }
+                    };
+                    cell.font = {
+                        color: { argb: 'FFFFFFFF' },
+                        bold: true
+                    };
+                });
+
+                const dataToExport = e.exportMode === 'selected' ?
+                    selectedRowsData :
+                    e.component.getDataSource().items();
+
+                dataToExport.forEach((row) => {
+                    const dataRow = [];
+                    e.component.getVisibleColumns()
+                        .filter(column => column.visible !== false)
+                        .forEach(column => {
+                            dataRow.push(row[column.dataField]);
+                        });
+                    worksheet.addRow(dataRow);
+                });
+
+                worksheet.columns.forEach(column => {
+                    let maxLength = 0;
+                    column.eachCell({ includeEmpty: true }, cell => {
+                        const columnLength = cell.value ? cell.value.toString().length : 0;
+                        if (columnLength > maxLength) {
+                            maxLength = columnLength;
+                        }
+                    });
+                    column.width = maxLength < 10 ? 10 : maxLength + 2;
+                });
+
+                workbook.xlsx.writeBuffer().then((buffer) => {
+                    saveAs(
+                        new Blob([buffer], { type: 'application/octet-stream' }),
+                        'MonthlySalary_' + new Date().toISOString().slice(0, 10) + '.xlsx'
+                    );
+                });
+
+                e.cancel = true;
+            },
+            onSelectionChanged: function(e) {
+                if (exportButtonInstance) {
+                    exportButtonInstance.option("disabled", e.selectedRowsData.length === 0);
+                }
+            },
+            toolbar: {
+                items: [
+                    "searchPanel",
+                    {
+                        location: "after",
+                        widget: "dxButton",
+                        options: {
+                            icon: "fa fa-file-excel",
+                            hint: "Export to Excel",
+                            disabled: true,
+                            onClick: function () {
+                                const grid = $("#salaryGridContainer").dxDataGrid("instance");
+                                const selectedRows = grid.getSelectedRowsData();
+
+                                if (selectedRows.length === 0) {
+                                    DevExpress.ui.notify({
+                                        message: "Please select at least one row to export",
+                                        type: "warning",
+                                        displayTime: 3000,
+                                        closeOnClick: true
+                                    });
+                                    return;
+                                }
+
+                                grid.exportToExcel({
+                                    selectedRowsOnly: true
+                                });
+                            }
+                        },
+                        onInitialized: function (e) {
+                            exportButtonInstance = e.component;
+                        }
+                    },
+                    {
+                        location: "after",
+                        widget: "dxButton",
+                        options: {
+                            icon: "clear",
+                            hint: "Clear Selection",
+                            onClick: function () {
+                                const grid = $("#salaryGridContainer").dxDataGrid("instance");
+                                grid.clearSelection();
+                                grid.refresh();
+                            }
+                        }
+                    }
+                ]
+            },
+            searchPanel: {
+                visible: true,
+                width: 240,
+                placeholder: "Search..."
+            },
+            scrolling: {
+                mode: "standard", // Changed back to standard for better column fixing
+                useNative: false,
+                scrollByContent: true,
+                scrollByThumb: true
+            },
+            columns: [
+                { dataField: "employeeId", caption: "Employee ID", visible: false },
+                {
+                    dataField: "employeeCode",
+                    caption: "Code",
+                    fixed: true, // Fixed column - will not scroll horizontally
+                    fixedPosition: "left",
+                    width: 100
+                },
+                {
+                    dataField: "employeeName",
+                    caption: "Name",
+                    fixed: true, // Fixed column - will not scroll horizontally
+                    fixedPosition: "left",
+                    width: 200
+                },
+                { dataField: "grossSalary", caption: "Gross Salary", width: 120 },
+                { dataField: "payableDays", caption: "Payable Days", width: 100 },
+                { dataField: "absentDays", caption: "Absent Days", width: 100 },
+                { dataField: "presentDays", caption: "Present Days", width: 100 },
+                { dataField: "weekOff", caption: "Week Off", width: 100 },
+                { dataField: "leave", caption: "Leave", width: 80 },
+                { dataField: "salaryDays", caption: "Salary Days", width: 100 },
+                { dataField: "basicSalary", caption: "Basic Salary", dataType: "number", format: "#,##0", width: 120 },
+                { dataField: "hra", caption: "HRA", dataType: "number", format: "#,##0", width: 100 },
+                { dataField: "conveyanceAllowance", caption: "Conveyance", dataType: "number", format: "#,##0", width: 120 },
+                { dataField: "childEducationAllowance", caption: "Child Edu. Allowance", dataType: "number", format: "#,##0", width: 150 },
+                { dataField: "medicalAllowance", caption: "Medical Allowance", dataType: "number", format: "#,##0", width: 130 },
+                { dataField: "deputationAllowance", caption: "Deputation Allowance", dataType: "number", format: "#,##0", width: 150 },
+                { dataField: "totalGrossSalary", caption: "Total Gross Salary", dataType: "number", format: "#,##0", width: 140 },
+                { dataField: "pf", caption: "PF", dataType: "number", format: "#,##0", width: 100 },
+                { dataField: "esic", caption: "ESIC", dataType: "number", format: "#,##0", width: 100 },
+                { dataField: "professionalTax", caption: "Professional Tax", dataType: "number", format: "#,##0", width: 130 },
+                { dataField: "lwf", caption: "LWF", dataType: "number", format: "#,##0", width: 80 },
+                { dataField: "tds", caption: "TDS", dataType: "number", format: "#,##0", width: 100 },
+                { dataField: "loan", caption: "Loan", dataType: "number", format: "#,##0", width: 100 },
+                { dataField: "arrears", caption: "Arrears", dataType: "number", format: "#,##0", width: 100 },
+                { dataField: "otherDeduction", caption: "Other Deduction", dataType: "number", format: "#,##0", width: 130 },
+                { dataField: "totalDeductions", caption: "Total Deductions", dataType: "number", format: "#,##0", width: 140 },
+                { dataField: "netSalary", caption: "Net Salary", dataType: "number", format: "#,##0", width: 120 }
+            ],
+            onContentReady: function (e) {
+                // Optional: any logic after grid is fully rendered
             }
-        ]
-    },
-
-        searchPanel: {
-            visible: true,
-            width: 240,
-            placeholder: "Search..."
-        },
-        scrolling: {
-            mode: "standard",
-            useNative: false,
-            scrollByContent: true,
-            scrollByThumb: true
-        },
-        columns: [
-            { dataField: "employeeId", caption: "Employee ID", visible: false },
-            { dataField: "employeeCode", caption: "Code" },
-            { dataField: "employeeName", caption: "Name" },
-            { dataField: "grossSalary", caption: "Gross Salary" },
-            { dataField: "payableDays", caption: "Payable Days" },
-            { dataField: "absentDays", caption: "Absent Days" },
-            { dataField: "presentDays", caption: "Present Days" },
-            { dataField: "weekOff", caption: "Week Off" },
-            { dataField: "leave", caption: "Leave" },
-            { dataField: "salaryDays", caption: "Salary Days" },
-            { dataField: "basicSalary", caption: "Basic Salary", dataType: "number", format: "#,##0" },
-            { dataField: "hra", caption: "HRA", dataType: "number", format: "#,##0" },
-            { dataField: "conveyanceAllowance", caption: "Conveyance", dataType: "number", format: "#,##0" },
-            { dataField: "childEducationAllowance", caption: "Child Edu. Allowance", dataType: "number", format: "#,##0" },
-            { dataField: "medicalAllowance", caption: "Medical Allowance", dataType: "number", format: "#,##0" },
-            { dataField: "deputationAllowance", caption: "Deputation Allowance", dataType: "number", format: "#,##0" },
-            { dataField: "totalGrossSalary", caption: "Total Gross Salary", dataType: "number", format: "#,##0" },
-            { dataField: "pf", caption: "PF", dataType: "number", format: "#,##0" },
-            { dataField: "esic", caption: "ESIC", dataType: "number", format: "#,##0" },
-            { dataField: "professionalTax", caption: "Professional Tax", dataType: "number", format: "#,##0" },
-            { dataField: "lwf", caption: "LWF", dataType: "number", format: "#,##0" },
-            { dataField: "tds", caption: "TDS", dataType: "number", format: "#,##0" },
-            { dataField: "loan", caption: "Loan", dataType: "number", format: "#,##0" },
-             { dataField: "arrears", caption: "Arrears", dataType: "number", format: "#,##0" },
-             { dataField: "otherDeduction", caption: "OtherDeduction", dataType: "number", format: "#,##0" },
-            { dataField: "totalDeductions", caption: "Total Deductions", dataType: "number", format: "#,##0" },
-            { dataField: "netSalary", caption: "Net Salary", dataType: "number", format: "#,##0" }
-        ],
-        onContentReady: function (e) {
-            // Optional: any logic after grid is fully rendered
-        }
-    });
-
+        });
 
         $("#salaryActions").show();
     }
-
 
 
     $('#btnProcessSalary').on('click', function () { 
@@ -592,43 +692,76 @@ const empCodes = employeeIds && employeeIds.length > 0
 
 
 
-        function processSalaryInsert(payload) {
+          function processSalaryInsert(payload) {
+        console.log("Processing salary insert with payload:", payload);
+        showLoder();
+
         $.ajax({
             type: "POST",
             url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/CreateMonthlySalary")',
             data: JSON.stringify(payload),
             contentType: "application/json",
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
             success: function (response) {
-                if (response.isSuccess) {
+                hideLoder();
+                console.log("Full API Response:", response); // ✅ Debug के लिए
+
+                // ✅ Response check करें - case-sensitive property names
+                if (response && response.isSuccess === true) {
                     Swal.fire({
                         title: 'Success',
-                        text: response.responseMessage || "Monthly Salary inserted successfully.",
+                        text: response.ResponseMessage || "Monthly Salary created successfully.",
                         icon: 'success',
                         confirmButtonText: 'Go to Salary Details'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                                const monthName  = $('#month').val();
-                                const month = new Date(Date.parse(monthName + " 1, 2000")).getMonth() + 1;
+                            const monthName = $('#month').val();
+                            const month = new Date(Date.parse(monthName + " 1, 2000")).getMonth() + 1;
                             const year = $('#year').val();
                             const selectedRows = $("#salaryGridContainer").dxDataGrid("instance").getSelectedRowsData();
-                            const empCodes = selectedRows.map(emp => emp.employeeCode).join(",")||"";
-                            const branchId = $("#branchDropdown").dxTagBox("instance").option("value")[0]||0;
+                            const empCodes = selectedRows.map(emp => emp.employeeCode).join(",") || "";
+                            const branchId = $("#branchDropdown").dxTagBox("instance").option("value")[0] || 0;
 
-                            // ✅ Store filter values in localStorage
                             localStorage.setItem("SalaryMonth", month);
                             localStorage.setItem("SalaryYear", year);
                             localStorage.setItem("SalaryEmpCodes", empCodes);
                             localStorage.setItem("SalaryBranchId", branchId);
 
-                            // ✅ Redirect to home/index
-                                window.location.href = '@UIBaseUrl/AdminPanel/SalaryDetails/index';
+                            window.location.href = '@UIBaseUrl/AdminPanel/SalaryDetails/index';
                         }
+                    });
+                } else {
+                    // ✅ अगर success false है
+                    Swal.fire({
+                        title: 'Error',
+                        text: response.ResponseMessage || "Failed to create monthly salary.",
+                        icon: 'error'
                     });
                 }
             },
-            error: function (xhr) {
-                Swal.fire("Error", "Failed to insert salary data.", "error");
-                console.log(xhr);
+            error: function (xhr, status, error) {
+                hideLoder();
+                console.error("AJAX Error Details:", {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText
+                });
+
+                let errorMessage = "Failed to insert salary data.";
+
+                // ✅ Try to parse error response
+                try {
+                    if (xhr.responseText) {
+                        const errorResponse = JSON.parse(xhr.responseText);
+                        errorMessage = errorResponse.ResponseMessage || errorResponse.message || errorMessage;
+                    }
+                } catch (e) {
+                    console.error("Could not parse error response");
+                }
+
+                Swal.fire("Error", errorMessage, "error");
             }
         });
     }
