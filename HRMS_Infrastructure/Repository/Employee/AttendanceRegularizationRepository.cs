@@ -32,10 +32,11 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var fromdateParam = new SqlParameter("@FromDate", (object?)attendance.FromDate ?? DBNull.Value);
                 var todateParam = new SqlParameter("@ToDate", (object?)attendance.ToDate ?? DBNull.Value);
                 var statustypeParam = new SqlParameter("@Status", (object?)attendance.Status ?? DBNull.Value);
+                var userlogin = new SqlParameter("@LoggedInUserId", (object?)attendance.LoggedInUserId ?? DBNull.Value);
 
                 return await _db.Set<AttendanceRegularizationVM>()
-              .FromSqlRaw("EXEC [dbo].[GetAttendanceRegularizationSearch] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status",
-                  searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam)
+              .FromSqlRaw("EXEC [dbo].[GetAttendanceRegularizationSearch] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status,@LoggedInUserId",
+                  searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam, userlogin)
               .ToListAsync();
             }
             catch (Exception ex)
