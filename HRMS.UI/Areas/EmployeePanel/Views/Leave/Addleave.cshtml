@@ -1655,7 +1655,8 @@
         return { isValid: true, message: "" };
     }
 
-    function checkDuplicateLeaveApplication(fromDate, toDate) {
+      function checkDuplicateLeaveApplication(fromDate, toDate) {
+        debugger;
         return new Promise((resolve, reject) => {
             let filter = {
                 LeaveType: 0,
@@ -1671,35 +1672,127 @@
                 contentType: 'application/json',
                 data: JSON.stringify(filter),
                 success: function (data) {
+                    debugger;
+                    console.log('data', data);
+
                     if (data.isSuccess && data.data && data.data.length > 0) {
                         const selectedFromDate = new Date(fromDate);
                         const selectedToDate = new Date(toDate);
 
+                        // Set time to start/end of day for proper comparison
+                        selectedFromDate.setHours(0, 0, 0, 0);
+                        selectedToDate.setHours(23, 59, 59, 999);
+
                         const duplicateLeaves = data.data.filter(leave => {
+                            // Fixed: Use correct field name 'leaveStatus' instead of 'status'
+                            const isActiveStatus = leave.leaveStatus === 'Pending' || leave.leaveStatus === 'Approved';
+
+                            if (!isActiveStatus) {
+                                return false;
+                            }
+
                             const leaveFromDate = new Date(leave.fromDate);
                             const leaveToDate = new Date(leave.todate);
+
+                            // Set time to start/end of day for existing leaves
+                            leaveFromDate.setHours(0, 0, 0, 0);
+                            leaveToDate.setHours(23, 59, 59, 999);
+
+                            // Check for any date overlap
+                            // Case 1: New leave starts before existing leave ends AND new leave ends after existing leave starts
                             const isOverlapping = (selectedFromDate <= leaveToDate && selectedToDate >= leaveFromDate);
-                            const isActiveStatus = leave.status === 'Pending' || leave.status === 'Approved';
-                            return isOverlapping && isActiveStatus;
+
+                            if (isOverlapping) {
+                                console.log('Overlapping leave found:', {
+                                    leaveId: leave.leaveApplicationId,
+                                    existingLeave: `${leaveFromDate.toDateString()} to ${leaveToDate.toDateString()}`,
+                                    newLeave: `${selectedFromDate.toDateString()} to ${selectedToDate.toDateString()}`,
+                                    leaveType: leave.leaveTypeName,
+                                    status: leave.leaveStatus
+                                });
+                            }
+
+                            return isOverlapping;
                         });
 
-                        resolve({
-                            hasDuplicate: duplicateLeaves.length > 0,
-                            duplicateLeaves: duplicateLeaves
-                        });
+                        if (duplicateLeaves.length > 0) {
+                            console.log('Duplicate/Overlapping leaves found:', duplicateLeaves);
+
+                            // Create detailed error message
+                            let errorMessage = "आप पहले से ही निम्नलिखित तारीखों में छुट्टी के लिए आवेदन कर चुके हैं:\n";
+                            duplicateLeaves.forEach(leave => {
+                                const fromDate = new Date(leave.fromDate).toLocaleDateString('en-IN');
+                                const toDate = new Date(leave.todate).toLocaleDateString('en-IN');
+                                errorMessage += `• ${leave.leaveTypeName}: ${fromDate} से ${toDate} तक (Status: ${leave.leaveStatus})\n`;
+                            });
+                            errorMessage += "\nकृपया अलग तारीख चुनें।";
+
+                            resolve({
+                                hasDuplicate: true,
+                                duplicateLeaves: duplicateLeaves,
+                                errorMessage: errorMessage
+                            });
+                        } else {
+                            resolve({
+                                hasDuplicate: false,
+                                duplicateLeaves: [],
+                                errorMessage: ""
+                            });
+                        }
                     } else {
                         resolve({
                             hasDuplicate: false,
-                            duplicateLeaves: []
+                            duplicateLeaves: [],
+                            errorMessage: ""
                         });
                     }
                 },
                 error: function (xhr, status, error) {
+                    console.error('Error fetching leave applications:', error);
                     reject(error);
                 }
             });
         });
     }
+
+    // Usage example:
+    function validateLeaveApplication(fromDate, toDate) {
+        checkDuplicateLeaveApplication(fromDate, toDate)
+            .then(result => {
+                if (result.hasDuplicate) {
+                    alert(result.errorMessage);
+                  
+                    return false;
+                } else {
+            
+                    console.log("No duplicate leaves found. Proceeding with leave application.");
+                    return true;
+                }
+            })
+            .catch(error => {
+                console.error('Error checking duplicate leaves:', error);
+                alert('Error occurred while checking leave applications. Please try again.');
+            });
+    }
+
+    // Alternative function for more detailed date range checking
+    function checkDateRangeOverlap(newFromDate, newToDate, existingFromDate, existingToDate) {
+        const newStart = new Date(newFromDate);
+        const newEnd = new Date(newToDate);
+        const existingStart = new Date(existingFromDate);
+        const existingEnd = new Date(existingToDate);
+
+        // Set all dates to start/end of day
+        newStart.setHours(0, 0, 0, 0);
+        newEnd.setHours(23, 59, 59, 999);
+        existingStart.setHours(0, 0, 0, 0);
+        existingEnd.setHours(23, 59, 59, 999);
+
+
+        return (newStart <= existingEnd && newEnd >= existingStart);
+    }
+
+
 
     function checkSalaryProcessed(fromDate) {
         return new Promise((resolve, reject) => {
