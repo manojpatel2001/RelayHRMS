@@ -19,10 +19,10 @@ $.ajax({
 
 function setEmployeeLoginDetails(data) {
 	if (data.employeeProfileUrl != null) {
-		$('.user-img').attr('src', data.employeeProfileUrl);
+		$('.profileImage').attr('src', data.employeeProfileUrl);
 	}
 	else {
-		$('.user-img').attr('src', BaseDomainUrl+'/default-image/avatar-2.png');
+		$('.profileImage').attr('src', BaseDomainUrl+'/default-image/avatar-2.png');
 	}
 	$(".user-name").text(data.fullName);
 	//$(".designattion").text(data.userPrivilege);
