@@ -33,32 +33,26 @@ namespace HRMS_Infrastructure.Repository.Salary
             throw new NotImplementedException();
         }
 
-        public async Task<VMCommonResult> CreateSalaryDetails(MonthlySalaryRequestViewModel vm)
+        public async Task<SP_Response> CreateSalaryDetails(MonthlySalaryRequestViewModel vm)
         {
             try
             {
-                var parameters = new[]
-                {
-    new SqlParameter("@StartDate", vm.StartDate.ToString("yyyy-MM-dd")),
-    new SqlParameter("@EndDate", vm.EndDate.ToString("yyyy-MM-dd")),
-    new SqlParameter("@EmployeeCodes", vm.EmployeeCodes ?? (object)DBNull.Value),
-    new SqlParameter("@BranchId", vm.BranchId.HasValue ? (object)vm.BranchId.Value : DBNull.Value),
-    new SqlParameter("@Action", vm.Action ?? "Insert")
-};
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+            EXEC [USP_CalculateMonthlySalary1] 
+            @StartDate = {vm.StartDate:yyyy-MM-dd}, 
+            @EndDate = {vm.EndDate:yyyy-MM-dd}, 
+            @EmployeeCodes = {vm.EmployeeCodes}, 
+            @BranchId = {vm.BranchId}, 
+            @Action = {vm.Action ?? "Insert"}
+        ").ToListAsync();
 
-                var result = await _db.Set<VMCommonResult>()
-                    .FromSqlRaw("EXEC [USP_CalculateMonthlySalary1] @StartDate, @EndDate, @EmployeeCodes, @BranchId, @Action", parameters)
-                    .ToListAsync();
-
-
-                return result.FirstOrDefault() ?? new VMCommonResult { Id = null };
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
             }
-            catch (Exception ex)
+            catch
             {
-                return new VMCommonResult { Id = null };
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
-
 
         public async Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm)
         {

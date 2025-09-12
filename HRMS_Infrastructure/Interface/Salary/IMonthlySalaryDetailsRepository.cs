@@ -14,7 +14,7 @@ namespace HRMS_Infrastructure.Interface.Salary
 {
     public interface IMonthlySalaryDetailsRepository:IRepository<SalaryDetailViewModel>
     {
-        Task<VMCommonResult> CreateSalaryDetails(MonthlySalaryRequestViewModel vm);
+        Task<SP_Response> CreateSalaryDetails(MonthlySalaryRequestViewModel vm);
         Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm);
         Task<List<SalaryDetailViewModel>> GetSalaryDetails(SalaryDetailsParameterVm vm);
         Task<List<SalaryDetailViewModel>>  GetSalarySlip(salaryslipParam vm);
