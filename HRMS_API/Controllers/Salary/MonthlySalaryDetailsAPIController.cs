@@ -274,34 +274,38 @@ namespace HRMS_API.Controllers.Salary
         {
             try
             {
-                var data = await _unitOfWork.MonthlySalaryDetailsRepository.CreateSalaryDetails(vm);
-                if (data.Id == null)
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.CreateSalaryDetails(vm);
+
+                // Check result
+                if (result.Success > 0)
                 {
-                    return new APIResponse()
+                    return new APIResponse
                     {
-                        isSuccess = false,
-                        ResponseMessage = "Record fetched successfully"
+                        isSuccess = true,
+                        Data = result,
+                        ResponseMessage = "Salary record created successfully."
                     };
                 }
-
-                return new APIResponse()
+                else
                 {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Record fetched successfully"
-                };
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
             }
-            catch (Exception err)
+            catch (Exception ex)
             {
+                // Log the exception (e.g., using ILogger)
                 return new APIResponse
                 {
                     isSuccess = false,
                     Data = null,
-                    ResponseMessage = $"Error: {err.Message}"
+                    ResponseMessage = $"Unable to create salary record. Error: {ex.Message}"
                 };
             }
         }
-
 
         [HttpDelete("DeleteSalaryDetails")]
         public async Task<APIResponse> DeleteSalaryDetails(DeleteRecordVModel model)
