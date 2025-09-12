@@ -35,16 +35,21 @@ namespace HRMS_Infrastructure.Repository.Salary
 
         public async Task<VMCommonResult> CreateSalaryDetails(MonthlySalaryRequestViewModel vm)
         {
-
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC [USP_CalculateMonthlySalary1]
-                    @StartDate = {vm.StartDate},
-                    @EndDate = {vm.EndDate},
-                    @EmployeeCodes = {vm.EmployeeCodes},
-                    @BranchId = {vm.BranchId},
-                    @Action = {vm.Action}").ToListAsync();
+                var parameters = new[]
+                {
+    new SqlParameter("@StartDate", vm.StartDate.ToString("yyyy-MM-dd")),
+    new SqlParameter("@EndDate", vm.EndDate.ToString("yyyy-MM-dd")),
+    new SqlParameter("@EmployeeCodes", vm.EmployeeCodes ?? (object)DBNull.Value),
+    new SqlParameter("@BranchId", vm.BranchId.HasValue ? (object)vm.BranchId.Value : DBNull.Value),
+    new SqlParameter("@Action", vm.Action ?? "Insert")
+};
+
+                var result = await _db.Set<VMCommonResult>()
+                    .FromSqlRaw("EXEC [USP_CalculateMonthlySalary1] @StartDate, @EndDate, @EmployeeCodes, @BranchId, @Action", parameters)
+                    .ToListAsync();
+
 
                 return result.FirstOrDefault() ?? new VMCommonResult { Id = null };
             }

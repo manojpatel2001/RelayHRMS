@@ -131,6 +131,7 @@
                                 <div>Loading...</div>
                             </div>
                             <div id="attendanceGrid" class="mt-2"></div>
+                            <div id="attendancePopup"></div>
                         </div>
 
                         <a href="#" class="tab-item" data-tab="birthdayAnniversary">Birthday & Anniversary Reminder</a>
@@ -352,6 +353,7 @@
 
     // Load Today's Attendance Data
     function loadTodaysAttendanceData() {
+        debugger;
         $('#tab-loader').show();
 
         $.ajax({
@@ -364,23 +366,33 @@
                 $('#tab-loader').hide();
 
                 if (data.isSuccess && data.data.length > 0) {
-                    $("#attendanceGrid").dxDataGrid({
-                        dataSource: data.data,
-                        columns: [
-                            { dataField: 'branchName' },
-                        ],
-                        showBorders: true,
-                        columnAutoWidth: true,
-                        height: 200,
-                        scrolling: {
-                            mode: "virtual",
-                            useNative: false
-                        },
-                        filterRow: { visible: false },
-                        headerFilter: { visible: false },
-                        groupPanel: { visible: false },
-                        paging: { enabled: false }
-                    });
+                                   $("#attendanceGrid").dxDataGrid({
+                                dataSource: data.data,
+                                columns: [
+                                    {
+                                        dataField: "branchName",
+                                        cellTemplate: function(container, options) {
+                                            $("<a>")
+                                                .text(options.value)
+                                                .css("cursor", "pointer")
+                                                .on("click", function() {
+                                                    showAttendancePopup(options.data.branchId, options.data.branchName);
+                                                })
+                                                .appendTo(container);
+                                        }
+                                    }
+                                ],
+                                showBorders: true,
+                                columnAutoWidth: true,
+                                height: 200,
+                                scrolling: { mode: "virtual" },
+                                filterRow: { visible: false },
+                                headerFilter: { visible: false },
+                                groupPanel: { visible: false },
+                                paging: { enabled: false }
+                            });
+
+
                 } else {
                     $('#attendanceGrid').html('<div class="text-center p-3">No attendance data found</div>');
                 }
@@ -392,6 +404,134 @@
             }
         });
     }
+
+        async function fetchTodaysAttendance(BranchId, ShiftMasterId) {
+        try {
+            debugger;
+            const response = await $.ajax({
+                type: "GET",
+                url: `@baseDomainUrl/api/EmpAttendanceAPI/GetTodaysAttendanceAdmin?BranchId=${BranchId}&ShiftMatserId=${ShiftMasterId}`,
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+            return response;
+        } catch (error) {
+            console.error("Error fetching attendance data:", error);
+            return { isSuccess: false, ResponseMessage: "Error fetching data" };
+        }
+    }
+
+
+        async function showAttendancePopup(BranchId, BranchName) {
+            debugger;
+        const response = await fetchTodaysAttendance(BranchId, 0); // ShiftMasterId=0 for all shifts
+
+        if (response.isSuccess && response.Data) {
+            const popup = $("#attendancePopup").dxPopup({
+                title: `Today's Present/Absent List (${BranchName})`,
+                width: 900,
+                height: 600,
+                showTitle: true,
+                contentTemplate: function() {
+                    return $("<div>").dxDataGrid({
+                        dataSource: response.Data,
+                        columns: [
+                            { dataField: "empCode", caption: "Emp Code" },
+                            { dataField: "empName", caption: "Emp Name" },
+                            { dataField: "empStatus", caption: "Emp Status" },
+                            {
+                                dataField: "status",
+                                caption: "Status",
+                                cellTemplate: function(container, options) {
+                                    const status = options.value;
+                                    let color, text;
+                                    if (status === "P") {
+                                        color = "blue";
+                                        text = "Present";
+                                    } else if (status === "A") {
+                                        color = "red";
+                                        text = "Absent";
+                                    } else if (status === "L") {
+                                        color = "orange";
+                                        text = "Leave";
+                                    } else if (status === "OD") {
+                                        color = "green";
+                                        text = "On Duty";
+                                    } else if (status === "WO") {
+                                        color = "purple";
+                                        text = "Week Off";
+                                    }
+                                    $("<div>")
+                                        .text(text)
+                                        .css("color", color)
+                                        .appendTo(container);
+                                }
+                            }
+                        ],
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        height: 450,
+                        scrolling: { mode: "virtual" },
+                        summary: {
+                            totalItems: [
+                                { column: "status", summaryType: "custom" },
+                            ],
+                            calculateCustomSummary: function(options) {
+                                if (options.name === "status") {
+                                    const data = options.component.option("dataSource");
+                                    const present = data.filter(d => d.status === "P").length;
+                                    const absent = data.filter(d => d.status === "A").length;
+                                    const onDuty = data.filter(d => d.status === "OD").length;
+                                    const leave = data.filter(d => d.status === "L").length;
+                                    const weekOff = data.filter(d => d.status === "WO").length;
+                                    options.totalValue = `
+                                        <div style="padding: 10px; background: #f5f5f5; margin-top: 10px;">
+                                            <b>Present: ${present}</b> |
+                                            <b>On Duty: ${onDuty}</b> |
+                                            <b>Leave: ${leave}</b> |
+                                            <b>Week Off: ${weekOff}</b> |
+                                            <b>Absent: ${absent}</b> |
+                                            <b>Total: ${data.length}</b>
+                                        </div>
+                                    `;
+                                }
+                            }
+                        }
+                    });
+                },
+                toolbarItems: [
+                    {
+                        toolbar: "bottom",
+                        location: "after",
+                        widget: "dxButton",
+                        options: {
+                            text: "Close",
+                            onClick: function() {
+                                popup.hide();
+                            }
+                        }
+                    },
+                    {
+                        toolbar: "bottom",
+                        location: "before",
+                        widget: "dxButton",
+                        options: {
+                            text: "Print",
+                            onClick: function() {
+                                const grid = $("#attendancePopup").find(".dx-datagrid").dxDataGrid("instance");
+                                grid.print();
+                            }
+                        }
+                    }
+                ]
+            }).dxPopup("instance");
+            popup.show();
+        } else {
+            alert("No attendance data found for this branch.");
+        }
+    }
+
 
     // Placeholder functions for other tabs
     function loadBirthdayAnniversaryData() {

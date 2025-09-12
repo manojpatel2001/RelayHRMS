@@ -678,24 +678,23 @@ const empCodes = employeeIds && employeeIds.length > 0
             Swal.fire("Validation", "Please select at least one employee from the grid.", "warning");
             return;
         }
-
-        const requestData = {
-            StartDate: startDate,
-            EndDate: endDate,
-            EmployeeCodes: empCodes,
-            BranchId: branchIds[0], // Assuming single branch
-            Action: "Insert"
-        };
-
+    const requestData = {
+        StartDate: startDate,
+        EndDate: endDate,
+        EmployeeCodes: empCodes,
+        BranchId: branchIds.length > 0 ? parseInt(branchIds[0]) : 0,
+        Action: "Insert"
+    };
+    console.log("Request Data for Insert:", requestData);
            processSalaryInsert(requestData);
     });
 
 
 
-          function processSalaryInsert(payload) {
+      function processSalaryInsert(payload) {
+        debugger;
         console.log("Processing salary insert with payload:", payload);
         showLoder();
-
         $.ajax({
             type: "POST",
             url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/CreateMonthlySalary")',
@@ -705,39 +704,27 @@ const empCodes = employeeIds && employeeIds.length > 0
                 'Authorization': 'Bearer ' + Token
             },
             success: function (response) {
+					debugger;
                 hideLoder();
-                console.log("Full API Response:", response); // ✅ Debug के लिए
+                console.log("Full API Response:", response);
 
-                // ✅ Response check करें - case-sensitive property names
                 if (response && response.isSuccess === true) {
                     Swal.fire({
                         title: 'Success',
-                        text: response.ResponseMessage || "Monthly Salary created successfully.",
+                        text: response.ResponseMessage,
                         icon: 'success',
-                        confirmButtonText: 'Go to Salary Details'
+                        confirmButtonText: 'OK'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            const monthName = $('#month').val();
-                            const month = new Date(Date.parse(monthName + " 1, 2000")).getMonth() + 1;
-                            const year = $('#year').val();
-                            const selectedRows = $("#salaryGridContainer").dxDataGrid("instance").getSelectedRowsData();
-                            const empCodes = selectedRows.map(emp => emp.employeeCode).join(",") || "";
-                            const branchId = $("#branchDropdown").dxTagBox("instance").option("value")[0] || 0;
-
-                            localStorage.setItem("SalaryMonth", month);
-                            localStorage.setItem("SalaryYear", year);
-                            localStorage.setItem("SalaryEmpCodes", empCodes);
-                            localStorage.setItem("SalaryBranchId", branchId);
-
-                            window.location.href = '@UIBaseUrl/AdminPanel/SalaryDetails/index';
+                            location.reload();
                         }
                     });
                 } else {
-                    // ✅ अगर success false है
                     Swal.fire({
-                        title: 'Error',
-                        text: response.ResponseMessage || "Failed to create monthly salary.",
-                        icon: 'error'
+                        title: 'Info',
+                        text: response.ResponseMessage,
+                        icon: 'info',
+                        confirmButtonText: 'OK'
                     });
                 }
             },
@@ -749,9 +736,7 @@ const empCodes = employeeIds && employeeIds.length > 0
                     responseText: xhr.responseText
                 });
 
-                let errorMessage = "Failed to insert salary data.";
-
-                // ✅ Try to parse error response
+                let errorMessage = "Failed to process salary data.";
                 try {
                     if (xhr.responseText) {
                         const errorResponse = JSON.parse(xhr.responseText);
