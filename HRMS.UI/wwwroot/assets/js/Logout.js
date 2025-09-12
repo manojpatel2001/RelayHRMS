@@ -79,13 +79,7 @@ $(document).ready(async function () {
             logoutPassword = decodedLogout.Password;
 
             $('.companyNameLayout').text(company.CompanyName);
-
-            if (ProfileUrl != "") {
-                $('.user-img').attr('src', ProfileUrl);
-            }
-            else {
-                $('.user-img').attr('src', BaseDomainUrl + '/default-image/avatar-2.png');
-            }
+           
             $(".user-name").text(FullName);
             $(".designation").text(Designation);
 

@@ -8,29 +8,7 @@
 	string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 <style>
-	#profileImage {
-		width: 150px;
-		height: 150px;
-		border-radius: 50%;
-		object-fit: cover;
-		cursor: pointer;
-	}
-
-	/* #fileInfo {
-		margin-top: 5px;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-		#fileInfo small {
-			color: green;
-		}
-
-		#fileInfo i {
-			cursor: pointer;
-			color: red;
-		} */
+	
 
 
 
@@ -443,8 +421,7 @@
 
 			</div>
 
-			<!-- Right Side: Upload Image/Signature -->
-			<!-- Right Side: Upload Image/Signature -->
+		
 			<div class="col-md-4">
 
 				<!-- PHOTO Upload -->
@@ -454,43 +431,14 @@
 					<img id="profileImage"
 						 src="@baseDomainUrl/uploads/defaultuserprofile/user-profile-png-image.png"
 						 alt="Profile Image"
-						 style="width: 150px; height: 150px; cursor: pointer;" />
+						 style="width: 200px; height: 150px; cursor: pointer;border:1px solid grey;" />
 
 					<input type="file" id="profileInput" accept="image/jpeg" class="d-none" />
 
-					<!-- Show filename BELOW image -->
-					<div id="fileInfo" class="mt-2" style="display: none; margin-left:20px;">
-						<p>
-							<span id="fileNameText" class="text-success"></span>
-							<span id="deleteBtn">
-								<i class="fas fa-trash text-danger ms-2 cursor-pointer" aria-hidden="true"></i>
-							</span>
-						</p>
-					</div>
+				
 				</div>
 
-				<!-- SIGNATURE Upload -->
-				<div class="mb-4 text-center">
-					<label>Upload Signature</label><br>
-
-					<img id="empSignPreview"
-						 src="@baseDomainUrl/uploads/defaultuserprofile/default-signature.jpg"
-						 style="width: 150px; height: 80px; cursor: pointer;"
-						 class="img-thumbnail" />
-
-					<input type="file" id="empSignatureInput" class="d-none" accept=".jpg,.jpeg" />
-
-					<!-- Show signature filename BELOW image -->
-					<div id="signFileInfo" class="mt-2" style="display: none;">
-						<p>
-							<span id="signFileNameText" class="text-success"></span>
-							<span id="deleteSignBtn">
-								<i class="fas fa-trash text-danger ms-2 cursor-pointer" aria-hidden="true"></i>
-							</span>
-						</p>
-					</div>
-				</div>
-
+				
 				<!-- Upload button -->
 				<div class="text-center mt-4">
 					<div id="uploadBtnTag" class="mt-2" style="display: none;">
@@ -502,15 +450,14 @@
 
 			</div>
 
-
 		</div>
 
 		<div class="row">
 			<div class="col-md-12  py-2">
 				<div class="d-flex justify-content-between">
-					<span><strong>Profile Last Updated By:</strong><span id="createdBy"></span>
+					@* <span><strong>Profile Last Updated By:</strong><span id="createdBy"></span>
 						<span id="lastUpdatedBy"></span>
-				     </span>
+				     </span> *@
 					@* <span class="text-danger cursor-pointer " id="viewEmployeeHistroy">
 						<i class="fas fa-history"></i> View Employee History
 					</span> *@
@@ -637,6 +584,9 @@
 		var EmployeeProfileUrl="";
 		var EmployeeSignatureUrl="";
 
+			$("#backArrow,#btnBackEmployee").click(function(){
+							  window.location.href = '@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster';
+			  });
 
 		function showBtnLoder()
 		{
@@ -945,23 +895,14 @@
 		// Profile and Signature Images
 		if (employee.employeeProfileUrl) {
 			$('#profileImage').attr('src', employee.employeeProfileUrl);
+			$('.profileImage').attr('src', employee.employeeProfileUrl);
 			EmployeeProfileUrl = employee.employeeProfileUrl;
-			$('#fileInfo').show();
-			$("#uploadBtnTag").show();
+			
 		} else {
 			$('#profileImage').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/user-profile-png-image.png');
-			$('#fileInfo').hide();
 		}
 
-		if (employee.employeeSignatureUrl) {
-			EmployeeSignatureUrl = employee.employeeSignatureUrl;
-			$('#empSignPreview').attr('src', employee.employeeSignatureUrl);
-			$('#signFileInfo').show();
-			$("#uploadBtnTag").show();
-		} else {
-			$('#empSignPreview').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/default-signature.jpg');
-			$('#signFileInfo').hide();
-		}
+		
 
 		//$(".loaderTag").show();
 					hideLoder();
@@ -1731,248 +1672,128 @@
 	
 </script>
 
-<script>
-	let cropper;
-	let selectedFile;
-	let currentCropTarget = '';
-	let profileFile=null;
-	let signatureFile=null;
+	<script>
+			let cropper;
+		let selectedFile;
+		let profileFile = null;
+		let currentCropTarget = 'profile'; // default target
 
-	 $("#backArrow,#btnBackEmployee").click(() => {
-			window.location.href = '@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster';
-	 });
-	 
+		// Trigger file input
+		$('#profileImage').click(() => {
+			currentCropTarget = 'profile';
+			$('#profileInput').click();
+		});
 
-	// Trigger file input
-	$('#profileImage').click(() => $('#profileInput').click());
-
-	// File selected
-	$('#profileInput').change(function () {
-		const file = this.files[0];
-		// if (!file || !file.name.toLowerCase().endsWith(".jpg")) {
-		// 	alert("Only JPG files are allowed.");
-		// 	resetAll();
-		// 	return;
-		// }
-
-		selectedFile = file;
-		const reader = new FileReader();
-		reader.onload = function (e) {
-			$('#cropImagePreview').attr('src', e.target.result);
-			$('#cropImagePreview').on('load', function () {
-				// Initialize Cropper only after the image is fully loaded
-				initCropper();
-			});
-
-			// Show the modal directly when the file is loaded
-			const modal = new bootstrap.Modal(document.getElementById('cropModal'));
-			modal.show();
-		};
-		reader.readAsDataURL(file);
-	});
-
-	// Function to initialize the cropper
-	function initCropper() {
-		const image = document.getElementById('cropImagePreview');
-
-		// Destroy any previous cropper instance before creating a new one
-		if (cropper) {
-			cropper.destroy();
-		}
-
-		// Initialize cropper
-		cropper = new Cropper(image, {
-			aspectRatio: 1,
-			viewMode: 1,
-			autoCropArea: 1,
-			ready() {
-				// Optionally, you can set focus or trigger other UI updates after cropper is ready
+		// File selected
+		$('#profileInput').change(function () {
+			const file = this.files[0];
+			if (!file || !file.name.toLowerCase().endsWith(".jpg")) {
+				alert("Only JPG files are allowed.");
+				return;
 			}
+
+			selectedFile = file;
+			const reader = new FileReader();
+			reader.onload = function (e) {
+				$('#cropImagePreview').attr('src', e.target.result);
+				$('#cropImagePreview').on('load', function () {
+					initCropper();
+				});
+
+				const modal = new bootstrap.Modal(document.getElementById('cropModal'));
+				modal.show();
+			};
+			reader.readAsDataURL(file);
 		});
-	}
 
-	// On Modal hidden - destroy cropper
-	$('#cropModal').on('hidden.bs.modal', function () {
-		if (cropper) {
-			cropper.destroy();
-			cropper = null;
-		}
-	});
+		// Initialize Cropper
+		function initCropper() {
+			const image = document.getElementById('cropImagePreview');
+			if (cropper) cropper.destroy();
 
-	// // Confirm crop
-	// $('#cropConfirmBtn').click(function () {
-	// 	if (!cropper) {
-	// 		alert("Cropper not initialized.");
-	// 		return;
-	// 	}
-
-	// 	const canvas = cropper.getCroppedCanvas({ width: 150, height: 150 });
-	// 	const dataURL = canvas.toDataURL("image/jpeg");
-
-	// 	$('#profileImage').attr('src', dataURL); // Update the profile image
-	// 	$('#fileNameText').text(selectedFile.name);
-	// 	$('#fileInfo').show(); // Show the file info
-
-	// 	// Hide modal
-	// 	bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
-	// });
-
-	// // Delete all
-	$('#deleteBtn').click(() => resetProfile());
-
-	function resetProfile() {
-		$('#profileInput').val('');
-		$('#profileImage').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/user-profile-png-image.png');
-		$('#fileInfo').hide();
-		selectedFile = null;
-		profileFile=null;
-		if (cropper) {
-			cropper.destroy();
-			cropper = null;
-		}
-	}
-
-
-	$('#cropConfirmBtn').click(function () {
-		if (!cropper) {
-			alert("Cropper not initialized.");
-			return;
-		}
-		const canvas = currentCropTarget === 'signature'
-			? cropper.getCroppedCanvas({ width: 150, height: 80 })
-			: cropper.getCroppedCanvas({ width: 150, height: 150 });
-
-		const dataURL = canvas.toDataURL("image/jpeg");
-
-		if (currentCropTarget === 'signature') {
-			$('#empSignPreview').attr('src', dataURL);
-			$('#signFileNameText').text(selectedFile.name);
-			signatureFile=selectedFile;
-			$('#signFileInfo').show();
-		} else {
-			$('#profileImage').attr('src', dataURL);
-			$('#fileNameText').text(selectedFile.name);
-			profileFile=selectedFile;
-			$('#fileInfo').show();
-		}
-		$("#uploadBtnTag").show();
-	$('#cropConfirmBtn').blur(); // <-- remove focus from button
-	bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
-});
-
-
-
-	//signature
-
-	$('#empSignPreview').click(() => $('#empSignatureInput').click());
-
-	// Signature file selected
-	$('#empSignatureInput').change(function () {
-		const file = this.files[0];
-
-		if (!file || !file.name.toLowerCase().endsWith(".jpg")) {
-			alert("Only JPG files are allowed for signature.");
-			resetSignature();
-			return;
-		}
-
-		selectedFile = file;
-		currentCropTarget = 'signature';
-
-		const reader = new FileReader();
-		reader.onload = function (e) {
-			$('#cropImagePreview').attr('src', e.target.result);
-			$('#cropImagePreview').on('load', function () {
-				initCropperSignature(); // for signature aspect
+			cropper = new Cropper(image, {
+				aspectRatio: 1,
+				viewMode: 1,
+				autoCropArea: 1
 			});
-
-			const modal = new bootstrap.Modal(document.getElementById('cropModal'));
-			modal.show();
-		};
-		reader.readAsDataURL(file);
-	});
-
-	// Delete Signature
-	$('#deleteSignBtn').click(() => resetSignature());
-
-	function initCropperSignature() {
-		const image = document.getElementById('cropImagePreview');
-		if (cropper) cropper.destroy();
-
-		cropper = new Cropper(image, {
-			aspectRatio: 150 / 80,
-			viewMode: 1,
-			autoCropArea: 1
-		});
-	}
-
-	function resetSignature() {
-		$('#empSignatureInput').val('');
-		$('#empSignPreview').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/default-signature.jpg');
-		$('#signFileInfo').hide();
-		selectedFile = null;
-		signatureFile=null;
-		if (cropper) {
-			cropper.destroy();
-			cropper = null;
 		}
-	}
 
-	
+		// Destroy cropper on modal close
+		$('#cropModal').on('hidden.bs.modal', function () {
+			if (cropper) {
+				cropper.destroy();
+				cropper = null;
+			}
 
-  $("#btnUpload").click(() => {
-		$("#btnUpload").prop("disabled", true);
-			var profileFile = $('#profileInput')[0].files[0];
-			var signatureFile = $('#empSignatureInput')[0].files[0];
-			
-			var profileFormdata = new FormData();
-			profileFormdata.append("EmployeeId", CurrentEmployeeId);
-		profileFormdata.append("EmployeeProfileFile", profileFile);
-		profileFormdata.append("EmployeeSignatureFile", signatureFile);
-		profileFormdata.append("EmployeeSignatureUrl", EmployeeSignatureUrl);
-		profileFormdata.append("EmployeeProfileUrl", EmployeeProfileUrl);
-		// Example of sending the FormData to the server using AJAX
-		$.ajax({
-			url: '@baseUrl/EmployeeMasterAPI/UpdateEmployeeProfileAndSignature', // Replace with your actual endpoint
-			type: 'POST',
-			data: profileFormdata,
-			processData: false,
-			contentType: false,
-			success: function(response) {
-			  if (response.isSuccess) 
-			  {
-				  var employee=response.data;
-						 // resetAllEmployeeData(employee);
-					// if(employee.employeeProfileUrl!=null )
-					// {
-					// 	$('#profileImage').attr('src',employee.employeeProfileUrl );
-					// 	EmployeeProfileUrl=employee.employeeProfileUrl;
-					// }
-					// else{
-					// 	$('#profileImage').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/user-profile-png-image.png');
-					// }
-					// if(employee.employeeSignatureUrl!=null){
-					// 	EmployeeSignatureUrl=employee.employeeSignatureUrl;
-					// 	$('#empSignPreview').attr('src', employee.employeeSignatureUrl);
-					// }
-					// else{
-					// 	$('#empSignPreview').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/default-signature.jpg');
-					// }
-				round_success_noti(response.responseMessage);
-			  } 
-				else {
-					round_error_noti(response.responseMessage);
-				}
-					$("#btnUpload").prop("disabled", false);
-			},
-			error: function(xhr, status, error) {
+		});
+
+		// Confirm Crop
+		$('#cropConfirmBtn').click(function () {
+			if (!cropper) {
+				alert("Cropper not initialized.");
+				return;
+			}
+
+			const canvas = cropper.getCroppedCanvas({ width: 150, height: 150 });
+
+			canvas.toBlob(function (blob) {
+				const croppedFile = new File([blob], selectedFile.name, {
+					type: "image/jpeg",
+					lastModified: Date.now()
+				});
+
+				const previewURL = URL.createObjectURL(croppedFile);
+				$('#profileImage').attr('src', previewURL);
+				profileFile = croppedFile;
+				$("#uploadBtnTag").show();
+				bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
+			}, "image/jpeg");
+		});
+
+		// Upload Cropped Image
+		$("#btnUpload").click(() => {
+			$("#btnUpload").prop("disabled", true);
+
+			if (!profileFile) {
+				round_error_noti("Please select and crop an image first!");
 				$("#btnUpload").prop("disabled", false);
-				console.error('Upload failed', error);
+				return;
 			}
-		});
-	});
 
-</script>
+			const profileFormdata = new FormData();
+			profileFormdata.append("EmployeeId", CurrentEmployeeId); // Make sure employeeId is defined
+			profileFormdata.append("EmployeeProfileFile", profileFile);
+
+			$.ajax({
+				url: '@baseUrl/ProfileManageAPI/UpdateProfilePic', // Replace with your actual endpoint
+				type: 'POST',
+				data: profileFormdata,
+				processData: false,
+				contentType: false,
+				success: function (response) {
+					if (response.isSuccess) {
+						const employee = response.data;
+						const imageUrl = employee.employeeProfileUrl ;
+						if(imageUrl){
+							$('#profileImage').attr('src', imageUrl);
+							$("#uploadBtnTag").hide();
+
+						   round_success_noti(response.responseMessage);
+						  $('.profileImage').attr('src', imageUrl);
+						}
+					} else {
+						round_error_noti(response.responseMessage);
+					}
+					$("#btnUpload").prop("disabled", false);
+				},
+				error: function (xhr, status, error) {
+					$("#btnUpload").prop("disabled", false);
+				}
+			});
+		});
+
+
+	</script>
 
 
 
