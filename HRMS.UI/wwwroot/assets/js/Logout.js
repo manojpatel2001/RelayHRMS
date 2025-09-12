@@ -77,7 +77,7 @@ $(document).ready(async function () {
             var ProfileUrl = decodedLogout.ProfileUrl;
             logoutEmail = decodedLogout.email;
             logoutPassword = decodedLogout.Password;
-           
+
             $('.companyNameLayout').text(company.CompanyName);
 
             if (ProfileUrl != "") {
