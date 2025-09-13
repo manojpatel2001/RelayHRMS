@@ -42,7 +42,6 @@ namespace HRMS_Infrastructure.Repository.Salary
             @StartDate = {vm.StartDate:yyyy-MM-dd}, 
             @EndDate = {vm.EndDate:yyyy-MM-dd}, 
             @EmployeeCodes = {vm.EmployeeCodes}, 
-            @BranchId = {vm.BranchId}, 
             @Action = {vm.Action ?? "Insert"}
         ").ToListAsync();
 
@@ -54,26 +53,45 @@ namespace HRMS_Infrastructure.Repository.Salary
             }
         }
 
+        //public async Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm)
+        //{
+
+        //    try
+        //    {
+        //        var stratdate = new SqlParameter("@StartDate", (object?)vm.StartDate ?? DBNull.Value);
+        //        var enddate = new SqlParameter("@EndDate", (object?)vm.EndDate ?? DBNull.Value);
+        //        var employeecodes = new SqlParameter("@EmployeeCodes", (object?)vm.EmployeeCodes ?? DBNull.Value);
+        //        var branchidParam = new SqlParameter("@BranchId", (object?)vm.BranchId ?? DBNull.Value);
+        //        var action = new SqlParameter("@Action", (object?)vm.Action ?? DBNull.Value);
+
+
+        //        return await _db.Set<SalaryReportDTO>()
+        //      .FromSqlRaw("EXEC [dbo].[USP_CalculateMonthlySalary1] @StartDate, @EndDate, @EmployeeCodes,@BranchId,@Action",
+        //          stratdate, enddate, employeecodes, branchidParam, action)
+        //      .ToListAsync();
+        //    }
+        //    catch (Exception ex)
+        //    {
+
+        //        return new List<SalaryReportDTO>();
+        //    }
+        //}
+
         public async Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm)
         {
-
             try
             {
-                var stratdate = new SqlParameter("@StartDate", (object?)vm.StartDate ?? DBNull.Value);
-                var enddate = new SqlParameter("@EndDate", (object?)vm.EndDate ?? DBNull.Value);
-                var employeecodes = new SqlParameter("@EmployeeCodes", (object?)vm.EmployeeCodes ?? DBNull.Value);
-                var branchidParam = new SqlParameter("@BranchId", (object?)vm.BranchId ?? DBNull.Value);
-                var action = new SqlParameter("@Action", (object?)vm.Action ?? DBNull.Value);
-
-
                 return await _db.Set<SalaryReportDTO>()
-              .FromSqlRaw("EXEC [dbo].[USP_CalculateMonthlySalary1] @StartDate, @EndDate, @EmployeeCodes,@BranchId,@Action",
-                  stratdate, enddate, employeecodes, branchidParam, action)
-              .ToListAsync();
+                    .FromSqlInterpolated($@"EXEC [dbo].[USP_CalculateMonthlySalary1]
+                @StartDate={vm.StartDate},
+                @EndDate={vm.EndDate},
+                @EmployeeCodes={vm.EmployeeCodes},
+                @BranchId={vm.BranchId},
+                @Action={vm.Action}")
+                    .ToListAsync();
             }
-            catch (Exception ex)
+            catch
             {
-
                 return new List<SalaryReportDTO>();
             }
         }
@@ -219,12 +237,12 @@ namespace HRMS_Infrastructure.Repository.Salary
             }
         }
 
-        public async Task<List<EmployeesByBranchId>> GetEmployeesByBranchId(string? BranchIds)
+        public async Task<List<EmployeesByBranchId>> GetEmployeesByBranchId(string? BranchIds, int CompanyId)
         {
             try
             {
 
-                var result = await _db.Set<EmployeesByBranchId>().FromSqlInterpolated($"EXEC GetEmployeesByBranchId @BranchIds={BranchIds}").ToListAsync();
+                var result = await _db.Set<EmployeesByBranchId>().FromSqlInterpolated($"EXEC GetEmployeesByBranchId @BranchIds={BranchIds},@CompanyId={CompanyId}").ToListAsync();
                 return result;
             }
             catch

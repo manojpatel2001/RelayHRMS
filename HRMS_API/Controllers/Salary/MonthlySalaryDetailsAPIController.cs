@@ -283,7 +283,7 @@ namespace HRMS_API.Controllers.Salary
                     {
                         isSuccess = true,
                         Data = result,
-                        ResponseMessage = "Salary record created successfully."
+                        ResponseMessage = result.ResponseMessage
                     };
                 }
                 else

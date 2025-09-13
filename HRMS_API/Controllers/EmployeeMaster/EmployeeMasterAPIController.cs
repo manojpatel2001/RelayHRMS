@@ -682,11 +682,11 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
 
         [HttpGet("GetAllEmployeeByBranchId")]
-        public async Task<APIResponse> GetAllEmployeeByBranchId([FromQuery] string? BranchIds)
+        public async Task<APIResponse> GetAllEmployeeByBranchId([FromQuery] string? BranchIds,int CompanyId)
         {
             try
             {
-                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeesByBranchId(BranchIds);
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeesByBranchId(BranchIds,CompanyId);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)

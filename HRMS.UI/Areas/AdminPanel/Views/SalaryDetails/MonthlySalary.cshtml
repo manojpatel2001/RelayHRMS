@@ -25,7 +25,7 @@
     .salary-box {
         background-color: white !important;
         border: 1px solid #ccc;
-        padding: 20px;
+        padding: 12px;
         border-radius: 5px;
     }
 
@@ -118,6 +118,10 @@
     #salaryGridContainer {
         margin-bottom: 20px !important;
     }
+    
+
+
+
 
     #salaryActions {
         margin-top: 20px !important;
@@ -185,6 +189,32 @@
     .dx-datagrid-wrapper {
         margin-bottom: 20px !important;
     }
+
+
+
+    /* Custom class for SweetAlert2 */
+    .small-swal {
+        width: 150px !important; /* Adjust width as needed */
+    }
+
+        .small-swal .swal2-title {
+            font-size: 10px !important; /* Adjust title font size */
+        }
+
+        .small-swal .swal2-content {
+            font-size: 10px!important; /* Adjust text font size */
+        }
+
+        .small-swal .swal2-icon {
+            width: 1em !important; /* Adjust icon size */
+            height: 1em !important;
+        }
+
+        .small-swal .swal2-styled {
+            font-size: 10px !important; /* Adjust button font size */
+            padding: 5px 15px !important; /* Adjust button padding */
+        }
+
 </style>
 
 
@@ -215,7 +245,7 @@
                     </div>
 
                     <div class="form-group-row d-flex align-items-center">
-                        <label class="form-label">Branch :</label>
+                        <label class="form-label">Branch<span class="text-danger">*</span> :</label>
                         <div id="branchDropdown" class="small-dropdown"></div>
                     </div>
                 </div>
@@ -283,7 +313,7 @@
     }
 
     function populateYearDropdown() {
-        const startYear = 2024;
+        const startYear = 2025;
         const currentYear = new Date().getFullYear();
         const yearDropdown = $("#year");
         yearDropdown.empty();
@@ -344,7 +374,7 @@
 
         $.ajax({
             type: "GET",
-            url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")?BranchIds=' + branchParam,
+                url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")?BranchIds=' + branchParam+'&CompanyId='+CompanyId,
             success: function (response) {
                 const $empDropdown = $("#employeeDropdown");
                 
@@ -397,8 +427,11 @@
 
     const branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
     const employeeIds = $("#employeeDropdown").dxTagBox("instance").option("value");
-
-const empCodes = employeeIds && employeeIds.length > 0
+        if (branchIds.length<=0){
+                Swal.fire("Please select Branch");
+            return;
+        }
+   const empCodes = employeeIds && employeeIds.length > 0
     ? employeeIds.join(",")
     : null;
 
@@ -419,6 +452,10 @@ const empCodes = employeeIds && employeeIds.length > 0
             hideLoder();
             if (response && response.data && response.data.length > 0) {
                 RenderSalaryGrid(response.data);
+                    $("#employeeDropdown").pro('disabled',true);
+                         $('#year').pro('disabled',true);
+                         $('#month').pro('disabled',true);
+                         $('#year').pro('disabled',true);
             } else {
                 Swal.fire("No data found for the selected criteria.", "", "info");
             }
@@ -437,22 +474,28 @@ const empCodes = employeeIds && employeeIds.length > 0
         let exportButtonInstance = null;
 
         $("#salaryGridContainer").dxDataGrid({
-            dataSource: data,
-            keyExpr: "employeeId",
-            showBorders: true,
-            columnAutoWidth: true,
-            height: 500, // Fixed height to show buttons below
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "always"
-            },
-            paging: {
-                enabled: true,
-                pageSize: 15 // Show 15 records per page
-            },
-            columnFixing: {
-                enabled: true // Enable column fixing
-            },
+                dataSource: data,
+                keyExpr: "employeeId",
+                showBorders: true,
+                columnAutoWidth: true,
+                height: 250, // Fixed height for scrollable content
+                selection: {
+                    mode: "multiple",
+                    showCheckBoxesMode: "always"
+                },
+                columnFixing: {
+                    enabled: true
+                },
+                // Remove or disable paging
+                paging: {
+                    enabled: false // Explicitly disable paging
+                },
+                scrolling: {
+                    mode: "standard", // or "virtual" for large datasets
+                    useNative: false,
+                    scrollByContent: true,
+                    scrollByThumb: true
+                },
             export: {
                 enabled: true,
                 fileName: "MonthlySalary",
@@ -654,7 +697,6 @@ const empCodes = employeeIds && employeeIds.length > 0
 
 
     $('#btnProcessSalary').on('click', function () { 
-        debugger;
         const selectedMonth = $('#month').val();
         const selectedYear = $('#year').val();
                if (!selectedMonth) {
@@ -686,7 +728,6 @@ const empCodes = employeeIds && employeeIds.length > 0
         BranchId: branchIds.length > 0 ? parseInt(branchIds[0]) : 0,
         Action: "Insert"
     };
-    console.log("Request Data for Insert:", requestData);
            processSalaryInsert(requestData);
     });
 
@@ -705,14 +746,14 @@ const empCodes = employeeIds && employeeIds.length > 0
                 if (response.isSuccess) {
                     Swal.fire({
                         title: 'Success',
-                        text: 'Salary processed successfully.',
+                                text:response.responseMessage,
                         icon: 'success',
                         confirmButtonText: 'OK'
                     });
                 } else {
                     Swal.fire({
                         title: 'Wrong',
-                        text: 'Salary already processed successfully.',
+                            text:response.responseMessage,
                         icon: 'error',             
                         confirmButtonText: 'OK'
                     });
