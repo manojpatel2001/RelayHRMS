@@ -22,7 +22,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<List<YearlySalarySummaryVM>>  GetYearlySalarySummaryReport(int Year ,int EmpId);
         Task<List<YearlySalaryComponent>>  GetYearlySalaryCard(int Year ,int EmpId);
         Task<List<EmployeeSalaryDaysViewModel>> GetEmployeeSalaryDays(int EmpId);
-        Task<List<EmployeesByBranchId>> GetEmployeesByBranchId(string BranchIds);
+        Task<List<EmployeesByBranchId>> GetEmployeesByBranchId(string BranchIds, int CompanyId);
         Task<SalaryDetailForGetById?> GetBySalaryDetailsId(List<int> Ids);
         Task<VMCommonResult> DeleteSalaryDetails(DeleteRecordVModel deleteRecordVM);
 
