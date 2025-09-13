@@ -192,6 +192,21 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
+
+        public async Task<List<vmGetAllEmployee_DropDown>> GetAllEmployee_DropDown (int companyId)
+        {
+            try
+            {
+                return await _db.Set<vmGetAllEmployee_DropDown>()
+                                .FromSqlInterpolated($"EXEC USP_GetAllEmployee_DropDown @companyId={companyId}")
+                                .ToListAsync();
+            }
+            catch (Exception)
+            {
+                return new List<vmGetAllEmployee_DropDown>();
+            }
+        }
+
         public async Task<List<vmGetAllEmployee>> GetAllEmployee(int companyId)
         {
             try

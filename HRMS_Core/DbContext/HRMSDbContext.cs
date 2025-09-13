@@ -266,6 +266,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<CompOffDetailsReportViewModelAdmin>().HasNoKey().ToView(null);
              modelBuilder.Entity<SearchVmForCompoffAdmin>().HasNoKey().ToView(null);
              modelBuilder.Entity<TodaysAttendanceAdminViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<vmGetAllEmployee_DropDown>().HasNoKey().ToView(null);
 
 
 
