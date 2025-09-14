@@ -7,6 +7,8 @@
     string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <div style="min-height: 600px;">
     <div class="container-fluid">
         <div class="row">
@@ -423,116 +425,412 @@
     }
 
 
-        async function showAttendancePopup(BranchId, BranchName) {
-            
-        const response = await fetchTodaysAttendance(BranchId, 0); // ShiftMasterId=0 for all shifts
+       async function fetchShiftData(branchId) {
+        try {
+            const response = await $.ajax({
+                type: "GET",
+                url: `@baseDomainUrl/api/ShiftAPI/GetAllShifts/${branchId}`, // Adjust API endpoint as per your backend
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+            return response;
+        } catch (error) {
+            console.error("Error fetching shift data:", error);
+            return { isSuccess: false, data: [] };
+        }
+    }
 
-        if (response.isSuccess && response.Data) {
-            const popup = $("#attendancePopup").dxPopup({
-                title: `Today's Present/Absent List (${BranchName})`,
-                width: 900,
-                height: 600,
-                showTitle: true,
-                contentTemplate: function() {
-                    return $("<div>").dxDataGrid({
-                        dataSource: response.Data,
+async function showAttendancePopup(BranchId, BranchName) {
+    const shiftsResponse = await fetchShiftData(BranchId);
+    const response = await fetchTodaysAttendance(BranchId, 0);
+
+    if (response.isSuccess && response.data) {
+        let currentData = response.data;
+
+        const popup = $("#attendancePopup").dxPopup({
+            title: "TODAY'S PRESENT/ABSENT LIST",
+            width: 1000,
+            height: 750,
+            showTitle: true,
+            contentTemplate: function(container) {
+                // Create main container
+                const mainContainer = $("<div>").css({
+                    "padding": "15px",
+                    "height": "100%",
+                    "overflow": "hidden",
+                    "background": "white"
+                });
+
+                // Filter section
+                const filterContainer = $("<div>").css({
+                    "padding": "10px 0",
+                    "margin-bottom": "15px",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                    "gap": "10px"
+                });
+
+                $("<label>").text("Shift Name :").css({
+                    "font-weight": "bold",
+                    "margin-right": "10px"
+                }).appendTo(filterContainer);
+                
+                const shiftDropdown = $("<div>").attr("id", "shiftFilterDropdown").appendTo(filterContainer);
+                const goButton = $("<div>").attr("id", "filterGoButton").appendTo(filterContainer);
+                filterContainer.appendTo(mainContainer);
+
+                // Grid container
+                const gridContainer = $("<div>")
+                    .attr("id", "attendanceDataGrid")
+                    .css({
+                        "margin": "0 auto 20px auto",
+                        "max-width": "100%",
+                        "height": "280px"
+                    })
+                    .appendTo(mainContainer);
+
+                // Chart section
+                const chartContainer = $("<div>").css({
+                    "text-align": "center",
+                    "margin": "20px auto 0 auto"
+                });
+
+                const chartTitle = $("<h4>").text("TODAY'S PRESENT/ABSENT LIST GRAPH").css({
+                    "text-align": "center",
+                    "margin-bottom": "15px",
+                    "color": "#333",
+                    "font-size": "16px",
+                    "font-weight": "bold"
+                }).appendTo(chartContainer);
+
+                // Summary row
+                const summaryContainer = $("<div>")
+                    .attr("id", "attendanceSummary")
+                    .css({
+                        "display": "flex",
+                        "justify-content": "center",
+                        "gap": "20px",
+                        "margin-bottom": "15px",
+                        "font-weight": "bold",
+                        "font-size": "14px"
+                    })
+                    .appendTo(chartContainer);
+
+                // Legend
+                const legendContainer = $("<div>").css({
+                    "display": "flex",
+                    "justify-content": "center",
+                    "gap": "15px",
+                    "margin-bottom": "15px",
+                    "flex-wrap": "wrap"
+                }).appendTo(chartContainer);
+
+                // Chart
+                const chartDiv = $("<div>")
+                    .attr("id", "attendanceChart")
+                    .css({
+                        "height": "200px",
+                        "width": "300px",
+                        "margin": "0 auto"
+                    })
+                    .appendTo(chartContainer);
+
+                chartContainer.appendTo(mainContainer);
+
+                // Initialize dropdown
+                let shiftOptions = [{ shiftId: 0, shiftName: "--Select--" }];
+                if (shiftsResponse.isSuccess && shiftsResponse.data) {
+                    shiftOptions = shiftOptions.concat(shiftsResponse.data.map(shift => ({
+                        shiftId: shift.shiftId,
+                        shiftName: shift.shiftName
+                    })));
+                }
+
+                shiftDropdown.dxSelectBox({
+                    dataSource: shiftOptions,
+                    displayExpr: "shiftName",
+                    valueExpr: "shiftId",
+                    value: 0,
+                    width: 200
+                });
+
+                goButton.dxButton({
+                    text: "Go",
+                    type: "default",
+                    width: 60,
+                    onClick: async function() {
+                        const selectedShiftId = shiftDropdown.dxSelectBox("option", "value");
+                        const newResponse = await fetchTodaysAttendance(BranchId, selectedShiftId);
+
+                        if (newResponse.isSuccess && newResponse.data) {
+                            currentData = newResponse.data;
+                            updateGridAndChart(currentData);
+                        } else {
+                            alert("No data found for selected shift.");
+                        }
+                    }
+                });
+
+                // Grid and chart update function
+                function updateGridAndChart(data) {
+                    // Update grid
+                    gridContainer.dxDataGrid({
+                        dataSource: data,
                         columns: [
-                            { dataField: "empCode", caption: "Emp Code" },
-                            { dataField: "empName", caption: "Emp Name" },
-                            { dataField: "empStatus", caption: "Emp Status" },
+                            { dataField: "employeeCode", caption: "Emp Code", width: 120, alignment: "left" },
+                            { dataField: "fullName", caption: "Emp Name", width: 250, alignment: "left" },
+                            { dataField: "employeeTypeName", caption: "Emp Status", width: 150, alignment: "center" },
                             {
-                                dataField: "status",
+                                dataField: "attendanceStatus",
                                 caption: "Status",
+                                width: 100,
+                                alignment: "center",
                                 cellTemplate: function(container, options) {
                                     const status = options.value;
                                     let color, text;
-                                    if (status === "P") {
-                                        color = "blue";
-                                        text = "Present";
-                                    } else if (status === "A") {
-                                        color = "red";
-                                        text = "Absent";
-                                    } else if (status === "L") {
-                                        color = "orange";
-                                        text = "Leave";
-                                    } else if (status === "OD") {
-                                        color = "green";
-                                        text = "On Duty";
-                                    } else if (status === "WO") {
-                                        color = "purple";
-                                        text = "Week Off";
+                                    switch(status) {
+                                        case "P": color = "blue"; text = "P"; break;
+                                        case "A": color = "red"; text = "A"; break;
+                                        case "L": color = "orange"; text = "L"; break;
+                                        case "OD": color = "teal"; text = "OD"; break;
+                                        case "H": color = "green"; text = "H"; break;
+                                        case "W": color = "purple"; text = "W"; break;
+                                        case "LWP": color = "orange"; text = "LWP"; break;
+                                        default: color = "black"; text = status; break;
                                     }
                                     $("<div>")
                                         .text(text)
-                                        .css("color", color)
+                                        .css({
+                                            "color": color,
+                                            "font-weight": "bold"
+                                        })
                                         .appendTo(container);
                                 }
                             }
                         ],
                         showBorders: true,
-                        columnAutoWidth: true,
-                        height: 450,
-                        scrolling: { mode: "virtual" },
-                        summary: {
-                            totalItems: [
-                                { column: "status", summaryType: "custom" },
-                            ],
-                            calculateCustomSummary: function(options) {
-                                if (options.name === "status") {
-                                    const data = options.component.option("dataSource");
-                                    const present = data.filter(d => d.status === "P").length;
-                                    const absent = data.filter(d => d.status === "A").length;
-                                    const onDuty = data.filter(d => d.status === "OD").length;
-                                    const leave = data.filter(d => d.status === "L").length;
-                                    const weekOff = data.filter(d => d.status === "WO").length;
-                                    options.totalValue = `
-                                        <div style="padding: 10px; background: #f5f5f5; margin-top: 10px;">
-                                            <b>Present: ${present}</b> |
-                                            <b>On Duty: ${onDuty}</b> |
-                                            <b>Leave: ${leave}</b> |
-                                            <b>Week Off: ${weekOff}</b> |
-                                            <b>Absent: ${absent}</b> |
-                                            <b>Total: ${data.length}</b>
-                                        </div>
-                                    `;
-                                }
+                        columnAutoWidth: false,
+                        width: "100%",
+                        height: 280,
+                        scrolling: {
+                            mode: "virtual"
+                        },
+                        paging: { enabled: false },
+                        export: {
+                            enabled: true,
+                            formats: ['xlsx'],
+                            fileName: `Attendance_${BranchName}_${new Date().toISOString().split('T')[0]}`
+                        }
+                    });
+
+                    // Calculate summary data
+                    const summary = calculateSummary(data);
+                    
+                    // Update summary
+                    summaryContainer.empty();
+                    $("<span>").text(`Present : ${summary.present}`).css("color", "#1f77b4").appendTo(summaryContainer);
+                    $("<span>").text(`On Duty : ${summary.onDuty}`).css("color", "#2ca02c").appendTo(summaryContainer);
+                    $("<span>").text(`Leave : ${summary.leave}`).css("color", "#ff7f0e").appendTo(summaryContainer);
+                    $("<span>").text(`Week Off : ${summary.weekOff}`).css("color", "#9467bd").appendTo(summaryContainer);
+                    $("<span>").text(`Absent : ${summary.absent}`).css("color", "#d62728").appendTo(summaryContainer);
+                    $("<span>").text(`Total : ${data.length}`).css("color", "#333").appendTo(summaryContainer);
+
+                    // Update legend
+                    legendContainer.empty();
+                    const legendItems = [
+                        { text: "PRESENT", color: "#1f77b4" },
+                        { text: "ABSENT", color: "#d62728" },
+                        { text: "LEAVE", color: "#ff7f0e" },
+                        { text: "OD", color: "#2ca02c" },
+                        { text: "WO", color: "#9467bd" }
+                    ];
+                    
+                    legendItems.forEach(item => {
+                        const legendItem = $("<div>").css({
+                            "display": "flex",
+                            "align-items": "center",
+                            "gap": "5px"
+                        });
+                        
+                        $("<div>").css({
+                            "width": "15px",
+                            "height": "15px",
+                            "background-color": item.color,
+                            "display": "inline-block"
+                        }).appendTo(legendItem);
+                        
+                        $("<span>").text(item.text).css({
+                            "font-size": "12px",
+                            "font-weight": "bold"
+                        }).appendTo(legendItem);
+                        
+                        legendItem.appendTo(legendContainer);
+                    });
+
+                    // Update doughnut chart
+                    const chartData = getChartDataForDoughnut(data);
+                    chartDiv.dxPieChart({
+                        dataSource: chartData,
+                        series: [{
+                            argumentField: "status",
+                            valueField: "count",
+                            colorField: "color"
+                        }],
+                        innerRadius: 0.6, // Makes it a doughnut chart
+                        legend: { visible: false },
+                        tooltip: {
+                            enabled: true,
+                            customizeTooltip: function(arg) {
+                                return {
+                                    text: `${arg.argumentText}: ${arg.valueText}`
+                                };
                             }
                         }
                     });
-                },
-                toolbarItems: [
-                    {
-                        toolbar: "bottom",
-                        location: "after",
-                        widget: "dxButton",
-                        options: {
-                            text: "Close",
-                            onClick: function() {
-                                popup.hide();
-                            }
+                }
+
+                // Calculate summary function
+                function calculateSummary(data) {
+                    const summary = {
+                        present: 0,
+                        absent: 0,
+                        leave: 0,
+                        onDuty: 0,
+                        weekOff: 0,
+                        holiday: 0,
+                        lwp: 0
+                    };
+
+                    data.forEach(item => {
+                        switch(item.attendanceStatus) {
+                            case "P": summary.present++; break;
+                            case "A": summary.absent++; break;
+                            case "L": summary.leave++; break;
+                            case "OD": summary.onDuty++; break;
+                            case "W": summary.weekOff++; break;
+                            case "H": summary.holiday++; break;
+                            case "LWP": summary.lwp++; break;
                         }
-                    },
-                    {
-                        toolbar: "bottom",
-                        location: "before",
-                        widget: "dxButton",
-                        options: {
-                            text: "Print",
-                            onClick: function() {
-                                const grid = $("#attendancePopup").find(".dx-datagrid").dxDataGrid("instance");
-                                grid.print();
-                            }
+                    });
+
+                    return summary;
+                }
+
+                // Chart data for doughnut
+                function getChartDataForDoughnut(data) {
+                    const summary = calculateSummary(data);
+                    const chartData = [];
+
+                    if (summary.present > 0) {
+                        chartData.push({ status: "Present", count: summary.present, color: "#1f77b4" });
+                    }
+                    if (summary.absent > 0) {
+                        chartData.push({ status: "Absent", count: summary.absent, color: "#d62728" });
+                    }
+                    if (summary.leave > 0) {
+                        chartData.push({ status: "Leave", count: summary.leave, color: "#ff7f0e" });
+                    }
+                    if (summary.onDuty > 0) {
+                        chartData.push({ status: "On Duty", count: summary.onDuty, color: "#2ca02c" });
+                    }
+                    if (summary.weekOff > 0) {
+                        chartData.push({ status: "Week Off", count: summary.weekOff, color: "#9467bd" });
+                    }
+
+                    return chartData;
+                }
+
+                updateGridAndChart(currentData);
+                return mainContainer;
+            },
+            toolbarItems: [
+                {
+                    toolbar: "top",
+                    location: "after",
+                    widget: "dxButton",
+                    options: {
+                        text: "Print",
+                        onClick: function() {
+                            window.print();
                         }
                     }
-                ]
-            }).dxPopup("instance");
-            popup.show();
-        } else {
-            alert("No attendance data found for this branch.");
+                },
+                {
+                    toolbar: "top",
+                    location: "after",
+                    widget: "dxButton",
+                    options: {
+                        text: "Close",
+                        type: "danger",
+                        onClick: function() {
+                            popup.hide();
+                        }
+                    }
+                }
+            ]
+        }).dxPopup("instance");
+
+        popup.show();
+    } else {
+        alert("No attendance data found for this branch.");
+    }
+}  
+// Enhanced manual export function
+    function exportToExcel(data, branchName) {
+        try {
+            // Create workbook and worksheet
+            const workbook = XLSX.utils.book_new();
+
+            // Prepare data for Excel
+            const excelData = data.map(item => ({
+                'Emp Code': item.employeeCode,
+                'Emp Name': item.fullName,
+                'Emp Status': item.employeeTypeName,
+                'Status': getStatusText(item.attendanceStatus)
+            }));
+
+            // Create worksheet
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+            // Set column widths
+            const columnWidths = [
+                { wch: 15 }, // Emp Code
+                { wch: 30 }, // Emp Name
+                { wch: 15 }, // Emp Status
+                { wch: 15 }  // Status
+            ];
+            worksheet['!cols'] = columnWidths;
+
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
+
+            // Generate filename with current date
+            const currentDate = new Date().toISOString().split('T')[0];
+            const filename = `Attendance_${branchName}_${currentDate}.xlsx`;
+
+            // Save file
+            XLSX.writeFile(workbook, filename);
+        } catch (error) {
+            console.error("Error exporting to Excel:", error);
+            alert("Error exporting to Excel. Please try again.");
         }
     }
 
-
+    // Helper function to get status text
+    function getStatusText(status) {
+        const statusMap = {
+            'P': 'Present',
+            'A': 'Absent',
+            'L': 'Leave',
+            'OD': 'On Duty',
+            'W': 'Week Off',
+            'H': 'Holiday',
+            'LWP': 'LWP'
+        };
+        return statusMap[status] || status;
+    }
     // Placeholder functions for other tabs
     function loadBirthdayAnniversaryData() {
         console.log('Loading Birthday & Anniversary data...');
