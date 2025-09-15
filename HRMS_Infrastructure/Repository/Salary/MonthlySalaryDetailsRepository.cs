@@ -86,7 +86,7 @@ namespace HRMS_Infrastructure.Repository.Salary
                 @StartDate={vm.StartDate},
                 @EndDate={vm.EndDate},
                 @EmployeeCodes={vm.EmployeeCodes},
-                @BranchId={vm.BranchId},
+                @BranchIdS={vm.BranchId},
                 @Action={vm.Action}")
                     .ToListAsync();
             }
@@ -118,7 +118,7 @@ namespace HRMS_Infrastructure.Repository.Salary
 
             try
             {
-                var result= await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId={vm.BranchId}").ToListAsync();
+                var result= await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId ={vm.BranchId}").ToListAsync();
                 return result;
             }
             catch

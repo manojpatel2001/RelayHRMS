@@ -413,7 +413,7 @@
                 }
             }
         });
-    }   
+    }
 
 
     $('#btnFetchSalary').on('click', function () {
@@ -425,48 +425,52 @@
         const lastDay = new Date(year, monthIndex + 1, 0).getDate(); // Increment month index by 1
         const endDate = `${year}-${monthStr}-${lastDay}`;
 
-    const branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
-    const employeeIds = $("#employeeDropdown").dxTagBox("instance").option("value");
-        if (branchIds.length<=0){
-                Swal.fire("Please select Branch");
+        const branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
+        const employeeIds = $("#employeeDropdown").dxTagBox("instance").option("value");
+
+        if (branchIds.length <= 0) {
+            Swal.fire("Please select Branch");
             return;
         }
-   const empCodes = employeeIds && employeeIds.length > 0
-    ? employeeIds.join(",")
-    : null;
 
-    const requestData = {
-        StartDate: startDate,
-        EndDate: endDate,
-        EmployeeCodes: empCodes,
-        BranchId: branchIds.length > 0 ? branchIds[0] : null, // assuming one branch
-        Action: "GetData"
-    };
+        const empCodes = employeeIds && employeeIds.length > 0
+            ? employeeIds.join(",")
+            : null;
+
+        // Modified to send multiple branch IDs
+        const requestData = {
+            StartDate: startDate,
+            EndDate: endDate,
+            EmployeeCodes: empCodes,
+            BranchIds: branchIds, // Changed from BranchId to BranchIds and sending the full array
+            Action: "GetData"
+        };
+
         showLoder();
-    $.ajax({
-        type: "POST",
+        $.ajax({
+            type: "POST",
             url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetMonthlySalary")',
-        data: JSON.stringify(requestData),
-        contentType: "application/json",
-        success: function (response) {
-            hideLoder();
-            if (response && response.data && response.data.length > 0) {
-                RenderSalaryGrid(response.data);
-                    $("#employeeDropdown").pro('disabled',true);
-                         $('#year').pro('disabled',true);
-                         $('#month').pro('disabled',true);
-                         $('#year').pro('disabled',true);
-            } else {
-                Swal.fire("No data found for the selected criteria.", "", "info");
-            }
-        },
-        error: function (xhr) {
-                 hideLoder();
+            data: JSON.stringify(requestData),
+            contentType: "application/json",
+            success: function (response) {
+                hideLoder();
+                if (response && response.data && response.data.length > 0) {
+                    RenderSalaryGrid(response.data);
+                    $('#year').prop('disabled', true);
+                    $('#month').prop('disabled', true);
+                 $("#branchDropdown").dxTagBox("instance").option("disabled", true);
+    $("#employeeDropdown").dxTagBox("instance").option("disabled", true);
+                } else {
+                    Swal.fire("No data found for the selected criteria.", "", "info");
+                }
+            },
+            error: function (xhr) {
+                hideLoder();
                 Swal.fire("Error", "Failed to fetch salary data.", "error");
-            console.log(xhr);
-        }
+                console.log(xhr);
+            }
+        });
     });
-});
 
 
      function RenderSalaryGrid(data) {
@@ -696,10 +700,11 @@
     }
 
 
-    $('#btnProcessSalary').on('click', function () { 
+     $('#btnProcessSalary').on('click', function () {
         const selectedMonth = $('#month').val();
         const selectedYear = $('#year').val();
-               if (!selectedMonth) {
+
+        if (!selectedMonth) {
             Swal.fire("Validation", "Please select a month.", "warning");
             return;
         }
@@ -708,27 +713,30 @@
             Swal.fire("Validation", "Please select a year.", "warning");
             return;
         }
+
         const monthNumber = new Date(Date.parse(selectedMonth + " 1, 2000")).getMonth() + 1;
         const startDate = `${selectedYear}-${monthNumber.toString().padStart(2, '0')}-01`;
         const endDate = new Date(selectedYear, monthNumber, 0).toISOString().slice(0, 10);
 
         const branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
-
-    const selectedGridRows = $("#salaryGridContainer").dxDataGrid("instance").getSelectedRowsData();
-            const empCodes = selectedGridRows.map(emp => emp.employeeCode).join(",");
+        const selectedGridRows = $("#salaryGridContainer").dxDataGrid("instance").getSelectedRowsData();
+        const empCodes = selectedGridRows.map(emp => emp.employeeCode).join(",");
 
         if (!empCodes) {
             Swal.fire("Validation", "Please select at least one employee from the grid.", "warning");
             return;
         }
-    const requestData = {
-        StartDate: startDate,
-        EndDate: endDate,
-        EmployeeCodes: empCodes,
-        BranchId: branchIds.length > 0 ? parseInt(branchIds[0]) : 0,
-        Action: "Insert"
-    };
-           processSalaryInsert(requestData);
+
+        // Modified to send multiple branch IDs
+        const requestData = {
+            StartDate: startDate,
+            EndDate: endDate,
+            EmployeeCodes: empCodes,
+            BranchIds: branchIds, // Changed from BranchId to BranchIds and sending the full array
+            Action: "Insert"
+        };
+
+        processSalaryInsert(requestData);
     });
 
     function processSalaryInsert(payload) {
