@@ -138,13 +138,12 @@ namespace HRMS_Infrastructure.Repository.Leave
                              
                     new SqlParameter("@CompId", (object?)vm.CompId ?? DBNull.Value),
                     new SqlParameter("@EmpId", (object?)vm.EmpId ?? DBNull.Value),
-                     new SqlParameter("@StartDate", (object?)vm.StartDate ?? DBNull.Value),
-                    new SqlParameter("@EndDate", (object?)vm.EndDate ?? DBNull.Value),
+                     new SqlParameter("@AsOfDate", (object?)vm.AsOfDate ?? DBNull.Value),
                       new SqlParameter("@LeaveType", (object?)vm.Status ?? DBNull.Value)
                 };
 
                 var result = await _db.Set<LeaveBalanceViewModel>()
-                    .FromSqlRaw("EXEC GetLeaveBalance @CompId, @EmpId,@StartDate,@EndDate,@LeaveType", parameters)
+                    .FromSqlRaw("EXEC GetLeaveBalance @CompId, @EmpId,@AsOfDate,@LeaveType", parameters)
                     .ToListAsync();
 
                 return result;
