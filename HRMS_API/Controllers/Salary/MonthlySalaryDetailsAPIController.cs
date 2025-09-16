@@ -267,7 +267,37 @@ namespace HRMS_API.Controllers.Salary
             }
         }
 
-
+        [HttpGet("GetEmployeeSalaryRegister")]
+        public async Task<APIResponse> GetEmployeeSalaryRegister(int Month ,int year,int CompanyId ,int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeeSalaryRegister(Month,year, CompanyId, EmployeeId);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No data found"
+                    };
+                }
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
 
         [HttpPost("CreateMonthlySalary")]
         public async Task<APIResponse> CreateMonthlySalary(MonthlySalaryRequestViewModel vm)
