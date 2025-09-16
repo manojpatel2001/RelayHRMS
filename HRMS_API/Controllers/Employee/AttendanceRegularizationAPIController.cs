@@ -399,6 +399,56 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+
+
+        [HttpPost("GetAttendanceRegularizationForAdmin")]
+        public async Task<APIResponse> GetAttendanceRegularizationForAdmin([FromBody] AttendanceRegularizationSearchFilterForAdminVM attendance)
+        {
+            try
+            {
+                if (attendance == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "attendance details are required."
+                    };
+                }
+
+
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetAttendanceRegularizationForAdmin(attendance);
+
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
+                };
+            }
+        }
+
+
+
+
+
         [HttpPost("GetAttendanceDetails")]
         public async Task<APIResponse> GetAttendanceDetails([FromBody] EmployeeInOutFilterVM attendance)
         {
