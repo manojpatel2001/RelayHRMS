@@ -3,6 +3,7 @@ using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
+using HRMS_Infrastructure.Interface.ExportData;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
@@ -114,6 +115,8 @@ namespace HRMS_Infrastructure.Interface
         ISkillMasterRepository SkillMasterRepository { get; }
         IProbationPerformanceRepository ProbationPerformanceRepository { get; }
         IGeoLocationRepository GeoLocationRepository { get; }
+        IEmployeeIncrementRespository EmployeeIncrementRespository { get; }
+        IExportDataRepository ExportDataRepository { get; }
 
         void Commit();
         Task CommitAsync();
