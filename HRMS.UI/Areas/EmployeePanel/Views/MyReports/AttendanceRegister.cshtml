@@ -1,11 +1,15 @@
-﻿@{
+﻿@inject IConfiguration Configuration
+@{
     ViewData["Title"] = "Attendance Register";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
     string apiBase = ViewBag.BaseUrlAPI;
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
 }
 
 <!-- CSS -->
-
 <!-- JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -29,11 +33,46 @@
 
     #attendanceModalBody table thead th {
         font-weight: bold;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: #f8f9fa !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .custom-modal-width {
         max-width: 98% !important;
     }
+
+    .attendance-table-container {
+        max-height: 60vh;
+        overflow: auto;
+        position: relative;
+    }
+
+        /* Ensure sticky header works properly */
+        .attendance-table-container table {
+            position: relative;
+        }
+
+        /* Fix for scrollbar appearing under header */
+        .attendance-table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .attendance-table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .attendance-table-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+            .attendance-table-container::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
 </style>
 
 <!-- Modal -->
@@ -75,13 +114,15 @@
                         <label for="year" class="fixed-label">Year<span class="text-danger">*</span>:</label>
                         <input type="number" class="form-control form-control-sm" id="year" min="2000" max="2100" value="@DateTime.Now.Year" />
                     </div>
-              @*       <div class="col-md-4 d-flex align-items-center">
+                    @*       <div class="col-md-4 d-flex align-items-center">
                         <label for="branchid" class="fixed-label">Branch:</label>
                         <select class="form-select form-select-sm" id="branchid">
                             <option value="0">-- Select --</option>
                         </select>
                     </div> *@
                 </div>
+
+
 
                 <div class="row justify-content-center mt-3">
                     <div class="col-md-6 d-flex justify-content-center gap-2">
@@ -94,6 +135,18 @@
     </div>
 </div>
 
+
+<div id="grid-loader"
+     class="grid-loader justify-content-center align-items-center flex-column"
+     style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+    <img src="@baseDomainUrl/loders/loder.png"
+         class="grid-logo-spinner"
+         style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+    <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+</div>
+
+
 <script>
     const apiBase = '@apiBase';
     const Role = localStorage.getItem("RoleSlug");
@@ -102,55 +155,122 @@
     const CompanyId=companyDetails.CompanyId;
     const Compname = companyDetails.CompanyName;
     const Token=localStorage.getItem("authToken");
-
+        const EmployeeId = localStorage.getItem('EmployeeId');
     $(document).ready(function () {
         GetBranch();
+        loadEmployeeGridAsync();
 
-        $('#btnView').on('click', function () {
-     var selectedYear = $('#year').val();   
-    var selectedMonth = $('#month').val();   
+    });
 
-    const month = parseInt(selectedMonth);         // e.g. 7
-    const year = parseInt(selectedYear);           // e.g. 2025
-       if (!month || !year) {
-                Swal.fire('Required', 'Please select month and year.', 'warning');
-                return;
+
+
+        function loadEmployeeGridAsync() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                type: "GET",
+                url: apiBase + '/EmployeeDashBoardAPI/GetDirectIndirectEmployee',
+                data: {
+                    Compid: CompanyId,
+                    EmployeeId: EmployeeId,
+                    Action: 'direct'
+                },
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    console.log('Async response', response);
+
+                    // Extract employee IDs from response
+                    if (response && response.data && response.data.length > 0) {
+                        const ids = response.data.map(employee => employee.id);
+                        console.log('Employee IDs extracted:', ids);
+                        resolve(ids); // Return the IDs
+                    } else {
+                        console.log('No employees found in response');
+                        resolve([]); // Return empty array if no data
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Async AJAX Error:", xhr);
+                    reject(xhr); // Reject promise on error
+                }
+            });
+        });
+    }
+
+    $('#btnView').on('click', async function () {
+        var selectedYear = $('#year').val();
+        var selectedMonth = $('#month').val();
+        const month = parseInt(selectedMonth);
+        const year = parseInt(selectedYear);
+
+        if (!month || !year) {
+            Swal.fire('Required', 'Please select month and year.', 'warning');
+            return;
+        }
+
+        const paddedMonth = String(month).padStart(2, '0');
+        const startDate = `${year}-${paddedMonth}-01`;
+        const lastDay = new Date(year, month, 0).getDate();
+        const endDate = `${year}-${paddedMonth}-${lastDay}`;
+
+        try {
+            // Get fresh employee IDs
+            const freshEmployeeIds = await loadEmployeeGridAsync();
+
+            let EmployeeIds = [];
+            if (freshEmployeeIds.length > 0) {
+                EmployeeIds = freshEmployeeIds;
+            } else {
+                const Empid = parseInt(localStorage.getItem("EmployeeId"));
+                EmployeeIds = Empid ? [Empid] : [];
             }
 
-    const paddedMonth = String(month).padStart(2, '0');
-    const startDate = `${year}-${paddedMonth}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${paddedMonth}-${lastDay}`;
-    const Empid = parseInt(localStorage.getItem("EmployeeId"));
-    const EmployeeIds = Empid ? [Empid] : [];
-              const  request = {
-                    startDate: startDate,
-                    endDate: endDate,
-                    EmployeeIds: EmployeeIds
-                };
-          
+            console.log('Employee IDs being sent to attendance API:', EmployeeIds);
 
+            const request = {
+                startDate: startDate,
+                endDate: endDate,
+                EmployeeIds: EmployeeIds
+            };
+            showLoder();
             $.ajax({
                 url: apiBase + '/EmployeeReportAPI/Attendencereport',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(request),
-                success: function (res) {  
+                success: function (res) {
+                    hideLoder();
                     if (!res || !res.data || res.data.length === 0) {
                         $('#attendanceModalBody').html('<p class="text-danger">No attendance records found.</p>');
                         const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
                         modal.show();
                         return;
                     }
-
                     renderAttendanceTable(res.data, startDate, endDate);
                 },
                 error: function () {
+                    hideLoder();
                     Swal.fire('Error', 'Something went wrong while fetching data.', 'error');
                 }
             });
-        });
+
+        } catch (error) {
+            hideLoder();
+            console.error('Error loading employee IDs:', error);
+            Swal.fire('Error', 'Failed to load employee data.', 'error');
+        }
     });
+
+
+
+         async function showLoder() {
+              $('#grid-loader').addClass('d-flex').show();
+          }
+
+          async function hideLoder() {
+              $('#grid-loader').removeClass('d-flex').hide();
+          }
 
      function GetBranch(){
 
@@ -184,7 +304,6 @@
     function renderAttendanceTable(data, startDate, endDate) {
         const dayRow = data[0];
         const dayKeys = Object.keys(dayRow.days).sort((a, b) => parseInt(a) - parseInt(b));
-
         const formatDate = (dateStr) => {
             const [yyyy, mm, dd] = dateStr.split("-");
             return `${dd}-${mm}-${yyyy}`;
@@ -202,7 +321,7 @@
             <button class="btn btn-success btn-sm" id="btnExportExcel">Export to Excel</button>
         </div>`;
 
-        let html = `<div class="table-responsive">
+        let html = `<div class="attendance-table-container">
             <table class="table table-bordered table-sm align-middle">
                 <thead class="table-light text-center">
                     <tr>
@@ -216,14 +335,14 @@
         });
 
         html += `
-            <th class="text-nowrap">Total P</th>
-            <th class="text-nowrap">Total A</th>
-            <th class="text-nowrap">Total W</th>
-            <th class="text-nowrap">Total L</th>
-            <th class="text-nowrap">Total H</th>
-        </tr>
-        </thead>
-        <tbody>`;
+                    <th class="text-nowrap">Total P</th>
+                    <th class="text-nowrap">Total A</th>
+                    <th class="text-nowrap">Total W</th>
+                    <th class="text-nowrap">Total L</th>
+                    <th class="text-nowrap">Total H</th>
+                </tr>
+                </thead>
+                <tbody>`;
 
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
@@ -231,13 +350,11 @@
                 <td>${row.branchName ?? ''}</td>
                 <td>${row.employeeCode ?? ''}</td>
                 <td>${row.fullName ?? ''}</td>`;
-
             dayKeys.forEach(day => {
                 const value = row.days?.[day] ?? '';
                 const redClass = value === 'A' ? 'text-danger fw-bold' : '';
                 html += `<td class="text-center ${redClass}">${value}</td>`;
             });
-
             html += `
                 <td class="text-center">${row.p ?? 0}</td>
                 <td class="text-center text-danger">${row.a ?? 0}</td>
@@ -246,9 +363,7 @@
                 <td class="text-center">${row.h ?? 0}</td>
             </tr>`;
         }
-
         html += `</tbody></table></div>`;
-
         $('#attendanceModalBody').html(header + html);
         const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
         modal.show();
