@@ -5,12 +5,14 @@ using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.JobMaster;
+using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Salary;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -86,7 +88,7 @@ namespace HRMS_Infrastructure.Repository.Salary
                 @StartDate={vm.StartDate},
                 @EndDate={vm.EndDate},
                 @EmployeeCodes={vm.EmployeeCodes},
-                @BranchId={vm.BranchId},
+                @BranchIdS={vm.BranchId},
                 @Action={vm.Action}")
                     .ToListAsync();
             }
@@ -118,7 +120,7 @@ namespace HRMS_Infrastructure.Repository.Salary
 
             try
             {
-                var result= await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId={vm.BranchId}").ToListAsync();
+                var result= await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId ={vm.BranchId}").ToListAsync();
                 return result;
             }
             catch
@@ -248,6 +250,20 @@ namespace HRMS_Infrastructure.Repository.Salary
             catch
             {
                 return new List<EmployeesByBranchId>();
+            }
+        }
+
+        public async Task<List<EmployeeSalaryRegisterViewModel>> GetEmployeeSalaryRegister(int Month, int Year, int CompanyId ,int EmpId)
+        {
+            try
+            {
+
+                var result = await _db.Set<EmployeeSalaryRegisterViewModel>().FromSqlInterpolated($"EXEC GetEmployeeSalaryRegister @MonthNumber={Month},@Year={Year} ,@CompId={CompanyId},@EmployeeId={EmpId} ").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EmployeeSalaryRegisterViewModel>();
             }
         }
     }

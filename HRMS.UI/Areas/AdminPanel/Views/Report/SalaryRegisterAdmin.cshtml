@@ -1,0 +1,847 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Monthly Salary";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+
+}
+<title>Search Panel</title>
+
+    <title>Search Panel</title>
+    <!-- jQuery + Bootstrap + SweetAlert + SheetJS for Excel -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .form-section {
+            padding: 15px;
+            border: 1px solid #ccc;
+        }
+
+        .btn-custom {
+            background-color: #3e4b6d;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: none;
+            box-shadow: none;
+        }
+
+            .btn-custom:hover,
+            .btn-custom:focus,
+            .btn-custom:active {
+                background-color: #3e4b6d;
+                color: white;
+                outline: none;
+                box-shadow: none;
+            }
+
+        .search-panel-wrapper {
+            max-width: 100%;
+            margin: auto;
+        }
+
+        .search-panel-container {
+            background-color: #3e4b6d;
+            padding: 6px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .search-panel-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-heading {
+            font-size: 15px;
+            color: white;
+            margin: 0;
+        }
+
+        .btn-add {
+            background-color: orange;
+            color: white;
+            font-size: 14px;
+            padding: 6px 15px;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .form-control-sm, .form-select-sm {
+            height: calc(1.5em + .5rem + 2px);
+            font-size: 0.875rem;
+            padding: .25rem .5rem;
+        }
+
+        .container {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 500px;
+            padding: 10px;
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        .grid-container {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .month-year-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .month-year-field {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+            .month-year-field select {
+                width: 120px;
+            }
+
+        .date-range-container {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .from-to-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .month-year-inputs {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* Loader styles */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+        }
+
+        @@keyframes spin {
+            0%
+
+        {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+
+        }
+    </style>
+
+    <!-- Loader -->
+    <div class="loader-overlay" id="loader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Search Panel Header -->
+    <div class="search-panel-wrapper">
+        <div class="search-panel-container">
+            <div class="search-panel-row">
+                <div class="search-heading">Salary Register</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <div class="d-flex flex-column align-items-center gap-3">
+            <!-- Single Month/Year Selection -->
+            <div class="date-range-container">
+                <div class="from-to-group">
+                    <label class="form-label mb-0">Month<span class="text-danger">*</span>:</label>
+                    <select class="form-select form-select-sm" id="selectedMonth" style="width: 110px; margin-left: 10px;">
+                        <option value="">Month</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+
+                    <label class="form-label mb-0" style="margin-left: 20px;">Year<span class="text-danger">*</span>:</label>
+                    <select class="form-select form-select-sm" id="selectedYear" style="width: 80px; margin-left: 10px;">
+                        <option value="">Year</option>
+                    </select>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <span id="spnMonthYear" style="color:red; display:none; font-size: 12px;">Please select month and year</span>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-flex justify-content-center gap-2" style="margin-top: 15px;">
+                <button class="btn btn-custom" id="btnView">View</button>
+                <button class="btn btn-custom" id="btnClear">Clear</button>
+                <button class="btn btn-custom" onclick="goBack()">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+         const baseUrl = '@baseUrl';
+        const savedCompany = localStorage.getItem('selectedCompany');
+       var companyDetails = JSON.parse(savedCompany);
+    const companyId=companyDetails.CompanyId;
+       const employeeId=0;
+       const Token=localStorage.getItem("authToken");
+
+        function populateYears() {
+            const currentYear = new Date().getFullYear();
+            const startYear = 2024;
+            const endYear = currentYear + 2;
+
+            const yearSelect = document.getElementById('selectedYear');
+            yearSelect.innerHTML = '<option value="">Year</option>';
+
+            for (let year = startYear; year <= endYear; year++) {
+                const option = new Option(year, year);
+                if (year === currentYear) {
+                    option.selected = true;
+                }
+                yearSelect.add(option);
+            }
+        }
+
+    
+        function setCurrentMonth() {
+            const currentMonth = new Date().getMonth() + 1;
+            document.getElementById('selectedMonth').value = currentMonth;
+        }
+
+        // Show loader
+        function showLoader() {
+            document.getElementById('loader').style.display = 'flex';
+        }
+
+        // Hide loader
+        function hideLoader() {
+            document.getElementById('loader').style.display = 'none';
+        }
+
+        // Get month name from number
+        function getMonthName(monthNumber) {
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            return months[monthNumber - 1] || '';
+        }
+
+
+      async function getSalaryRegisterData(month, year, companyId, employeeId) {
+        showLoader();
+        try {
+            const response = await fetch(
+                `${baseUrl}/MonthlySalaryDetailsAPI/GetEmployeeSalaryRegister?Month=${month}&year=${year}&CompanyId=${companyId}&EmployeeId=${employeeId}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${Token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const result = await response.json();
+            console.log("API Response:", result); // Debugging
+            return result;
+        } catch (error) {
+            console.error('API Error:', error);
+            hideLoader();
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to fetch data. Check console for details.',
+                icon: 'error'
+            });
+            throw error;
+        } finally {
+            hideLoader();
+        }
+    }
+
+
+    // Updated downloadExcel function with complete format including company header and date range
+    function downloadExcel(data, month, year) {
+        try {
+            debugger;
+            const workbook = XLSX.utils.book_new();
+
+            // Get company details
+            const savedCompany = localStorage.getItem('selectedCompany');
+            const companyDetails = JSON.parse(savedCompany);
+            const companyName = companyDetails.CompanyName || companyDetails.companyName || 'Company Name';
+
+            // Calculate date range for the month
+            const monthName = getMonthName(parseInt(month));
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const fromDate = `01/${month.toString().padStart(2, '0')}/${year}`;
+            const toDate = `${daysInMonth}/${month.toString().padStart(2, '0')}/${year}`;
+
+            // Create worksheet data array
+            const wsData = [];
+
+            // Add company name row
+            wsData.push([`Company Name : ${companyName}`]);
+
+            // Add empty row
+            wsData.push([]);
+
+            // Add date range row
+            wsData.push([`From Date : ${fromDate} To Date : ${toDate}`]);
+
+            // Add empty row
+            wsData.push([]);
+
+            // Add headers row
+            const headers = [
+                'Sr No',
+                'Emp Code',
+                'Name of Employee',
+                'Branch',
+                'Department',
+                'Designation',
+                'Joining Date',
+                'Gross Salary',
+                'Payable Days',
+                'Basic Salary',
+                'HRA',
+                'Conveyance Allow',
+                'Child Education Allow',
+                'Medical Allow',
+                'Deputation Allow',
+                'Total Gross Salary',
+                'PF',
+                'ESIC',
+                'Professional Tax',
+                'Group Medical',
+                'Term Insurance',
+                'LWF',
+                'TDS',
+                'Loan',
+                'Arrears',
+                'Other Deduction',
+                'Total Deductions',
+                'Net Salary',
+                'Month Days',
+                'Holiday',
+                'Absent Days',
+                'Present Days',
+                'Week Off',
+                'Leave',
+                'Salary Days',
+                'Primary Account Number',
+                'Primary IFSC Code'
+            ];
+            wsData.push(headers);
+
+            // Add data rows
+            data.forEach((item, index) => {
+                const row = [
+                    index + 1, // Sr No
+                    item.employeeCode || '',
+                    item.employeeName || '',
+                    item.branchName || '',
+                    item.departmentName || '',
+                    item.designationName || '',
+                    item.dateOfJoining ? new Date(item.dateOfJoining).toLocaleDateString('en-GB') : '',
+                    item.grossSalary || 0,
+                    item.payableDays || 0,
+                    item.basicSalary || 0,
+                    item.hra || 0,
+                    item.conveyanceAllowance || 0,
+                    item.childEducationAllowance || 0,
+                    item.medicalAllowance || 0,
+                    item.deputationAllowance || 0,
+                    item.totalGrossSalary || 0,
+                    item.pf || 0,
+                    item.esic || 0,
+                    item.professionalTax || 0,
+                    item.groupMedical || 0,
+                    item.termInsurance || 0,
+                    item.lwf || 0,
+                    item.tds || 0,
+                    item.loan || 0,
+                    item.arrears || 0,
+                    item.otherDeduction || 0,
+                    item.totalDeductions || 0,
+                    item.netSalary || 0,
+                    item.monthDays || 0,
+                    item.holiday || 0,
+                    item.absentDays || 0,
+                    item.presentDays || 0,
+                    item.weekOff || 0,
+                    item.leave || 0,
+                    item.salaryDays || 0,
+                    item.primaryAccountNumber || '',
+                    item.primaryIFSCCode || ''
+                ];
+                wsData.push(row);
+            });
+
+            // Create worksheet
+            const worksheet = XLSX.utils.aoa_to_sheet(wsData);
+
+            // Set column widths
+            const colWidths = [
+                { wch: 6 },   // Sr No
+                { wch: 10 },  // Emp Code
+                { wch: 25 },  // Name
+                { wch: 15 },  // Branch
+                { wch: 15 },  // Department
+                { wch: 20 },  // Designation
+                { wch: 12 },  // Joining Date
+                { wch: 12 },  // Gross Salary
+                { wch: 12 },  // Payable Days
+                { wch: 12 },  // Basic Salary
+                { wch: 10 },  // HRA
+                { wch: 15 },  // Conveyance
+                { wch: 18 },  // Child Education
+                { wch: 12 },  // Medical
+                { wch: 15 },  // Deputation
+                { wch: 15 },  // Total Gross
+                { wch: 8 },   // PF
+                { wch: 8 },   // ESIC
+                { wch: 15 },  // Professional Tax
+                { wch: 15 },  // Group Medical
+                { wch: 15 },  // Term Insurance
+                { wch: 8 },   // LWF
+                { wch: 8 },   // TDS
+                { wch: 10 },  // Loan
+                { wch: 10 },  // Arrears
+                { wch: 15 },  // Other Deduction
+                { wch: 15 },  // Total Deductions
+                { wch: 12 },  // Net Salary
+                { wch: 12 },  // Month Days
+                { wch: 10 },  // Holiday
+                { wch: 12 },  // Absent Days
+                { wch: 12 },  // Present Days
+                { wch: 10 },  // Week Off
+                { wch: 8 },   // Leave
+                { wch: 12 },  // Salary Days
+                { wch: 20 },  // Account Number
+                { wch: 15 }   // IFSC Code
+            ];
+            worksheet['!cols'] = colWidths;
+
+            // Merge cells for company name and date range
+            if (!worksheet['!merges']) worksheet['!merges'] = [];
+            worksheet['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }); // Company name merge
+            worksheet['!merges'].push({ s: { r: 2, c: 0 }, e: { r: 2, c: 10 } }); // Date range merge
+
+            // Style the header rows
+            const headerRowIndex = 4; // 0-indexed (5th row)
+            for (let col = 0; col < headers.length; col++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
+                if (!worksheet[cellAddress]) continue;
+
+                worksheet[cellAddress].s = {
+                    fill: { fgColor: { rgb: "FFFF00" } }, // Yellow background
+                    font: { bold: true },
+                    alignment: { horizontal: "center" }
+                };
+            }
+
+            // Add worksheet to workbook
+            const sheetName = `Salary_${monthName}_${year}`;
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+            // Generate filename
+            const filename = `Salary_Register_${monthName}_${year}.xlsx`;
+
+            // Download file
+            XLSX.writeFile(workbook, filename);
+
+            Swal.fire({
+                title: 'Success!',
+                text: 'Excel file downloaded successfully with complete salary details!',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } catch (error) {
+            console.error('Excel download error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to download Excel file: ' + error.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    }
+
+     // Updated downloadExcel function with complete data mapping and dark header text
+    function downloadExcel(data, month, year) {
+        try {
+            console.log("Raw API Data:", data); // Debug: Check what data is coming from API
+
+            const workbook = XLSX.utils.book_new();
+
+            // Get company details
+            const savedCompany = localStorage.getItem('selectedCompany');
+            const companyDetails = JSON.parse(savedCompany);
+            const companyName = companyDetails.CompanyName || companyDetails.companyName || 'Company Name';
+
+            // Calculate date range for the month
+            const monthName = getMonthName(parseInt(month));
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const fromDate = `01/${month.toString().padStart(2, '0')}/${year}`;
+            const toDate = `${daysInMonth}/${month.toString().padStart(2, '0')}/${year}`;
+
+            // Create worksheet data array
+            const wsData = [];
+
+            // Add company name row
+            wsData.push([`Company Name : ${companyName}`]);
+            wsData.push([]); // Empty row
+            wsData.push([`From Date : ${fromDate} To Date : ${toDate}`]);
+            wsData.push([]); // Empty row
+
+            // Define comprehensive headers - ensure all API fields are covered
+            const headers = [
+                'Sr No',
+                'Emp Code',
+                'Name of Employee',
+                'Branch',
+                'Department',
+                'Designation',
+                'Joining Date',
+                'Gross Salary',
+                'Payable Days',
+                'Basic Salary',
+                'HRA',
+                'Conveyance Allow',
+                'Child Education Allow',
+                'Medical Allow',
+                'Deputation Allow',
+                'Total Gross Salary',
+                'PF',
+                'ESIC',
+                'Professional Tax',
+                'Group Medical',
+                'Term Insurance',
+                'LWF',
+                'TDS',
+                'Loan',
+                'Arrears',
+                'Other Deduction',
+                'Total Deductions',
+                'Net Salary',
+                'Month Days',
+                'Holiday',
+                'Absent Days',
+                'Present Days',
+                'Week Off',
+                'Leave',
+                'Salary Days',
+                'Primary Employee Bank Name',
+                'Primary Account Number',
+                'Primary IFSC Code'
+            ];
+            wsData.push(headers);
+
+            // Add data rows with comprehensive field mapping
+            data.forEach((item, index) => {
+                console.log(`Processing row ${index + 1}:`, item); // Debug each row
+
+                const row = [
+                    index + 1, // Sr No
+                    item.employeeCode || item.employee_code || '',
+                    item.employeeName || item.employee_name || item.name || '',
+                    item.branchName || item.branch_name || item.branch || '',
+                    item.departmentName || item.department_name || item.department || '',
+                    item.designationName || item.designation_name || item.designation || '',
+                    item.dateOfJoining || item.date_of_joining ?
+                        new Date(item.dateOfJoining || item.date_of_joining).toLocaleDateString('en-GB') : '',
+                    parseFloat(item.grossSalary || item.gross_salary || 0).toFixed(2),
+                    parseFloat(item.payableDays || item.payable_days || 0).toFixed(2),
+                    parseFloat(item.basicSalary || item.basic_salary || 0).toFixed(2),
+                    parseFloat(item.hra || item.HRA || 0).toFixed(2),
+                    parseFloat(item.conveyanceAllowance || item.conveyance_allowance || item.conveyance || 0).toFixed(2),
+                    parseFloat(item.childEducationAllowance || item.child_education_allowance || item.childEducation || 0).toFixed(2),
+                    parseFloat(item.medicalAllowance || item.medical_allowance || item.medicalAllowance || 0).toFixed(2),
+                    parseFloat(item.deputationAllowance || item.deputation_allowance || item.deputationAllowance || 0).toFixed(2),
+                    parseFloat(item.totalGrossSalary || item.total_gross_salary || item.totalGrossPf || 0).toFixed(2),
+                    parseFloat(item.pf || item.PF || item.pfDeduction || 0).toFixed(2),
+                    parseFloat(item.esic || item.ESIC || item.esicDeduction || 0).toFixed(2),
+                    parseFloat(item.professionalTax || item.professional_tax || item.pt || 0).toFixed(2),
+                    parseFloat(item.groupMedical || item.group_medical || 0).toFixed(2),
+                    parseFloat(item.termInsurance || item.term_insurance || 0).toFixed(2),
+                    parseFloat(item.lwf || item.LWF || 0).toFixed(2),
+                    parseFloat(item.tds || item.TDS || 0).toFixed(2),
+                    parseFloat(item.loan || item.loanDeduction || 0).toFixed(2),
+                    parseFloat(item.arrears || 0).toFixed(2),
+                    parseFloat(item.otherDeduction || item.other_deduction || item.otherDeductions || 0).toFixed(2),
+                    parseFloat(item.totalDeductions || item.total_deductions || 0).toFixed(2),
+                    parseFloat(item.netSalary || item.net_salary || item.netPay || 0).toFixed(2),
+                    parseInt(item.monthDays || item.month_days || item.totalDays || 0),
+                    parseInt(item.holiday || item.holidays || 0),
+                    parseFloat(item.absentDays || item.absent_days || item.absent || 0).toFixed(2),
+                    parseFloat(item.presentDays || item.present_days || item.present || 0).toFixed(2),
+                    parseInt(item.weekOff || item.week_off || item.weekoff || 0),
+                    parseFloat(item.leave || item.leaves || item.leaveDeduction || 0).toFixed(2),
+                    parseFloat(item.salaryDays || item.salary_days || item.workingDays || 0).toFixed(2),
+                    item.employeeNamePrmaryBank || item.employeeNamePrmaryBank || item.employeeNamePrmaryBank || '',
+                    item.primaryAccountNumber || item.primary_account_number || item.accountNumber || '',
+                    item.primaryIFSCCode || item.primary_ifsc_code || item.ifscCode || ''
+                ];
+                wsData.push(row);
+            });
+
+            // Create worksheet
+            const worksheet = XLSX.utils.aoa_to_sheet(wsData);
+
+            // Set column widths for better readability
+            const colWidths = [
+                { wch: 6 },   // Sr No
+                { wch: 12 },  // Emp Code
+                { wch: 25 },  // Name
+                { wch: 15 },  // Branch
+                { wch: 15 },  // Department
+                { wch: 20 },  // Designation
+                { wch: 12 },  // Joining Date
+                { wch: 12 },  // Gross Salary
+                { wch: 12 },  // Payable Days
+                { wch: 12 },  // Basic Salary
+                { wch: 10 },  // HRA
+                { wch: 15 },  // Conveyance
+                { wch: 18 },  // Child Education
+                { wch: 12 },  // Medical
+                { wch: 15 },  // Deputation
+                { wch: 15 },  // Total Gross
+                { wch: 10 },  // PF
+                { wch: 10 },  // ESIC
+                { wch: 15 },  // Professional Tax
+                { wch: 15 },  // Group Medical
+                { wch: 15 },  // Term Insurance
+                { wch: 8 },   // LWF
+                { wch: 8 },   // TDS
+                { wch: 10 },  // Loan
+                { wch: 10 },  // Arrears
+                { wch: 15 },  // Other Deduction
+                { wch: 15 },  // Total Deductions
+                { wch: 12 },  // Net Salary
+                { wch: 12 },  // Month Days
+                { wch: 10 },  // Holiday
+                { wch: 12 },  // Absent Days
+                { wch: 12 },  // Present Days
+                { wch: 10 },  // Week Off
+                { wch: 10 },  // Leave
+                { wch: 12 },  // Salary Days
+                { wch: 12 },  // Bank Name
+                { wch: 20 },  // Account Number
+                { wch: 15 }   // IFSC Code
+            ];
+            worksheet['!cols'] = colWidths;
+
+            // Initialize merges and styles
+            if (!worksheet['!merges']) worksheet['!merges'] = [];
+
+            // Merge cells for company name and date range
+            worksheet['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 15 } }); // Company name merge
+            worksheet['!merges'].push({ s: { r: 2, c: 0 }, e: { r: 2, c: 15 } }); // Date range merge
+
+            // Style the header row with DARK text and yellow background
+            const headerRowIndex = 4; // 0-indexed (5th row where headers are)
+
+            for (let col = 0; col < headers.length; col++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
+                if (!worksheet[cellAddress]) continue;
+
+                // Apply dark text styling to headers
+                worksheet[cellAddress].s = {
+                    fill: {
+                        fgColor: { rgb: "FFFF00" } // Yellow background
+                    },
+                    font: {
+                        bold: true,
+                        color: { rgb: "000000" }, // BLACK text color
+                        name: "Arial",
+                        sz: 11
+                    },
+                    alignment: {
+                        horizontal: "center",
+                        vertical: "center"
+                    },
+                    border: {
+                        top: { style: "thin", color: { rgb: "000000" } },
+                        bottom: { style: "thin", color: { rgb: "000000" } },
+                        left: { style: "thin", color: { rgb: "000000" } },
+                        right: { style: "thin", color: { rgb: "000000" } }
+                    }
+                };
+            }
+
+            // Style company name and date rows
+            const companyNameCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
+            const dateRangeCell = XLSX.utils.encode_cell({ r: 2, c: 0 });
+
+            if (worksheet[companyNameCell]) {
+                worksheet[companyNameCell].s = {
+                    font: { bold: true, sz: 14, color: { rgb: "000000" } },
+                    alignment: { horizontal: "center" }
+                };
+            }
+
+            if (worksheet[dateRangeCell]) {
+                worksheet[dateRangeCell].s = {
+                    font: { bold: true, sz: 12, color: { rgb: "000000" } },
+                    alignment: { horizontal: "center" }
+                };
+            }
+
+            // Add worksheet to workbook
+            const sheetName = `Salary_${monthName}_${year}`;
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+            // Generate filename
+            const filename = `Salary_Register_${monthName}_${year}.xlsx`;
+
+            // Download file
+            XLSX.writeFile(workbook, filename);
+
+            // Show success message
+            Swal.fire({
+                title: 'Success!',
+                text: `Excel file downloaded successfully with ${data.length} employee records!`,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+
+            console.log(`Excel generated with ${data.length} records`); // Debug final count
+
+        } catch (error) {
+            console.error('Excel download error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to download Excel file: ' + error.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    }
+
+        // Initialize on page load
+        $(document).ready(function() {
+            populateYears();
+            setCurrentMonth();
+        });
+
+        // Clear button functionality
+        $("#btnClear").off('click').on('click', function () {
+            $('#selectedMonth').val('');
+            $('#selectedYear').val('');
+            $("#spnMonthYear").hide();
+        });
+
+     $("#btnView").off('click').on('click', async function () {
+        const selectedMonth = $('#selectedMonth').val();
+        const selectedYear = $('#selectedYear').val();
+
+        // Validate month/year selection
+        if (!selectedMonth || !selectedYear) {
+            $("#spnMonthYear").show();
+            return;
+        }
+
+        try {
+            showLoader();
+            const response = await getSalaryRegisterData(selectedMonth, selectedYear, companyId, employeeId);
+            console.log("API Response:", response);  // Debugging
+
+            if (response.isSuccess) {
+                // Check 'response.data' (lowercase)
+                if (!response.data || response.data.length === 0) {
+                    Swal.fire({
+                        title: 'No Data',
+                        text: 'No salary records found for the selected period.',
+                        icon: 'info'
+                    });
+                } else {
+                    // Pass 'response.data' to downloadExcel
+                    downloadExcel(response.data, selectedMonth, selectedYear);
+                }
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: response.responseMessage || 'Failed to load data.',
+                    icon: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'An unexpected error occurred. Check console.',
+                icon: 'error'
+            });
+        } finally {
+            hideLoader();
+        }
+    });
+
+
+        // Back button functionality
+        function goBack() {
+            // Replace with your actual back navigation logic
+            window.history.back();
+        }
+    </script>

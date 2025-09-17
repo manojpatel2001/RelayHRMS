@@ -26,6 +26,7 @@ using HRMS_Core.VM.Notifications;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Core.VM.PrivilegeSetting;
 using HRMS_Core.VM.Probations;
+using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -268,8 +269,13 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<SearchVmForCompoffAdmin>().HasNoKey().ToView(null);
              modelBuilder.Entity<TodaysAttendanceAdminViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<vmGetAllEmployee_DropDown>().HasNoKey().ToView(null);
+
              modelBuilder.Entity<IncrementReason>().HasNoKey().ToView(null);
              modelBuilder.Entity<vmGetAllEmployeeExportData>().HasNoKey().ToView(null);
+
+             modelBuilder.Entity<EmployeeSalaryRegisterViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<AttendanceRegularizationSearchFilterForAdminVM>().HasNoKey().ToView(null);
+
 
 
 

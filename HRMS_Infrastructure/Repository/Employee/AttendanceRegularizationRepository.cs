@@ -242,6 +242,28 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return new List<AttendanceDetails>();
             }
         }
+
+        public async Task<List<AttendanceRegularizationVM>> GetAttendanceRegularizationForAdmin(AttendanceRegularizationSearchFilterForAdminVM attendance)
+        {
+            try
+            {
+                var searchbyParam = new SqlParameter("@SearchBy", (object?)attendance.SearchBy ?? DBNull.Value);
+                var searchforParam = new SqlParameter("@SearchValue", (object?)attendance.SearchValue ?? DBNull.Value);
+                var fromdateParam = new SqlParameter("@FromDate", (object?)attendance.FromDate ?? DBNull.Value);
+                var todateParam = new SqlParameter("@ToDate", (object?)attendance.ToDate ?? DBNull.Value);
+                var statustypeParam = new SqlParameter("@Status", (object?)attendance.Status ?? DBNull.Value);
+
+                return await _db.Set<AttendanceRegularizationVM>()
+              .FromSqlRaw("EXEC [dbo].[GetAttendanceRegularizationSearchForAdmin] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status",
+                  searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam)
+              .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+
+                return new List<AttendanceRegularizationVM>();
+            }
+        }
     }
 }
 
