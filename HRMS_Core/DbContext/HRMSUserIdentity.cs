@@ -88,6 +88,7 @@ namespace HRMS_Core.DbContext
         public bool? IsPasswordChange { get; set; } = false;
         public int? WeekOffDetailsId { get; set; }
         public bool? IsPermissionPunchInOut { get; set; } = false;
+        public int? IsSelfiRequired { get; set; }
 
 
         //PersionalInfo

@@ -17,6 +17,7 @@ using HRMS_Core.VM.CompanyStructure;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.Ess.InOut;
+using HRMS_Core.VM.ExportData;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.Leave;
@@ -268,8 +269,13 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<SearchVmForCompoffAdmin>().HasNoKey().ToView(null);
              modelBuilder.Entity<TodaysAttendanceAdminViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<vmGetAllEmployee_DropDown>().HasNoKey().ToView(null);
+
+             modelBuilder.Entity<IncrementReason>().HasNoKey().ToView(null);
+             modelBuilder.Entity<vmGetAllEmployeeExportData>().HasNoKey().ToView(null);
+
              modelBuilder.Entity<EmployeeSalaryRegisterViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<AttendanceRegularizationSearchFilterForAdminVM>().HasNoKey().ToView(null);
+
 
 
 

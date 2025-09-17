@@ -5,6 +5,7 @@ using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
+using HRMS_Infrastructure.Interface.ExportData;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
@@ -20,6 +21,7 @@ using HRMS_Infrastructure.Repository.CompanyStructure;
 using HRMS_Infrastructure.Repository.EmergencyContacts;
 using HRMS_Infrastructure.Repository.Employee;
 using HRMS_Infrastructure.Repository.EmployeeMaster;
+using HRMS_Infrastructure.Repository.ExportData;
 using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.Leave;
 using HRMS_Infrastructure.Repository.ManagePermissions;
@@ -135,6 +137,8 @@ namespace HRMS_Infrastructure.Repository
             SkillMasterRepository = new SkillMasterRepository(_dbContext);
             ProbationPerformanceRepository = new ProbationPerformanceRepository(_dbContext);
             GeoLocationRepository = new GeoLocationRepository(_dbContext);
+            EmployeeIncrementRespository = new EmployeeIncrementRespository(_dbContext);
+            ExportDataRepository = new ExportDataRepository(_dbContext);
 
         }
 
@@ -240,6 +244,8 @@ namespace HRMS_Infrastructure.Repository
         public ISkillMasterRepository SkillMasterRepository { get; set; }
         public IProbationPerformanceRepository ProbationPerformanceRepository { get; set; }
         public IGeoLocationRepository GeoLocationRepository { get; set; }
+        public IEmployeeIncrementRespository EmployeeIncrementRespository { get; set; }
+        public IExportDataRepository ExportDataRepository { get; set; }
 
         public void Commit()
         {
