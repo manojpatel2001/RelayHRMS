@@ -25,6 +25,16 @@ function initializeModal() {
     updateSelectedColumns();
 }
 
+function showBtnExportLoder() {
+   
+    $('#btnExport').removeClass('d-flex').hide();
+    $('#btnExporting').addClass('d-flex').show();
+}
+function hideBtnExportLoder() {
+    $('#btnExporting').removeClass('d-flex').hide();
+    $('#btnExport').addClass('d-flex').show();
+}
+
 async function loadEmployeeMasterData() {
     try {
         const response = await fetch(BaseUrlLayout + '/ExportDataAPI/GetAllEmployeeExportData/' + CompanyId, {
@@ -46,11 +56,12 @@ async function loadEmployeeMasterData() {
 }
 
 async function openExportModal(report) {
-    $("#loader").css("display", "flex");
+
+    showBtnExportLoder();
     if (report == "Employee Master") {
         await loadEmployeeMasterData();
     }
-    $("#loader").css("display", "none");
+    hideBtnExportLoder();
     initializeModal();
     document.getElementById('exportModal').classList.add('active');
     document.body.style.overflow = 'hidden';
