@@ -139,7 +139,7 @@
                         <a href="#" class="tab-item" data-tab="birthdayAnniversary">Birthday & Anniversary Reminder</a>
 
                         <!-- Tab Content for Birthday & Anniversary -->
-                        <div id="birthdayAnniversaryContent" class="tab-content" style="display: none;">
+                        <div id="birthdayAnniversaryContent" class="tab-content" style="display: none; max-height: 350px; overflow-y: auto;">
                             <div class="tab-content-header">Birthday & Anniversary</div>
                             <div class="tab-placeholder">
                                 <p>Birthday and Anniversary details will be displayed here</p>
@@ -241,6 +241,8 @@
         min-height: 380px; /* Increased tab content height - was not set before */
         max-height: 420px; /* Set maximum height for better control */
         overflow-y: auto; /* Add scroll if content exceeds height */
+        overflow-y: hidden; /* Change from 'auto' to 'hidden' */
+        overflow-x: hidden; /* Add this line */
     }
 
     .tab-content-header {
@@ -287,6 +289,23 @@
 
     #attendanceGrid::-webkit-scrollbar {
         display: none;
+    }
+
+    #profilePopup {
+        position: fixed !important;
+        pointer-events: none !important;
+    }
+
+    #birthdayAnniversaryContent {
+        overflow-y: auto; /* Only this panel will scroll if needed */
+        max-height: 420px;
+    }
+
+    .tab-content-header {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 1;
     }
 </style>
 
@@ -853,10 +872,9 @@ async function showAttendancePopup(BranchId, BranchName) {
 
     // Function to load all dashboard counts
     function LoadDashboardCounts() {
-        LoadLeaveApplicationCount();
-        LoadAttendanceRegularizationCount();
+        LoadLeaveApplicationCount();     
         LoadCompApplicationCount();
-        LoadMobileUsersCount();
+     
     }
 
     function LoadLeaveApplicationCount() {
@@ -930,83 +948,406 @@ async function showAttendancePopup(BranchId, BranchName) {
         });
     }
 
-    function LoadAttendanceRegularizationCount() {
-        $.ajax({
-            url: '@baseDomainUrl/api/AttendanceRegularization/GetPendingCount/' + CompanyId,
-            type: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
-            success: function (data) {
-                if (data.isSuccess) {
-                    const count = data.data || 0;
-                    $('#attendanceRegCount').text(`(${count})`);
-
-                    if (count > 0) {
-                        $('#attendanceRegCount').addClass('red-count');
-                    }
-                }
-            },
-            error: function () {
-                console.error("Error loading attendance regularization count");
-                $('#attendanceRegCount').text('(0)');
-            }
-        });
-    }
-
-    function LoadActiveUsersCount() {
-        $.ajax({
-            url: '@baseDomainUrl/api/Users/GetActiveInactiveCount/' + CompanyId,
-            type: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
-            success: function (data) {
-                if (data.isSuccess) {
-                    const inactiveCount = data.data.inactiveCount || 0;
-                    $('#activeUsersCount').text(`(${inactiveCount})`);
-
-                    if (inactiveCount > 0) {
-                        $('#activeUsersCount').addClass('red-count');
-                    }
-                }
-            },
-            error: function () {
-                console.error("Error loading active users count");
-                $('#activeUsersCount').text('(0)');
-            }
-        });
-    }
-
-    function LoadMobileUsersCount() {
-        $.ajax({
-            url: '@baseDomainUrl/api/Users/GetMobileUsersCount/' + CompanyId,
-            type: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
-            success: function (data) {
-                if (data.isSuccess) {
-                    const count = data.data || 0;
-                    $('#mobileUsersCount').text(`(${count})`);
-
-                    if (count > 0) {
-                        $('#mobileUsersCount').addClass('red-count');
-                    }
-                }
-            },
-            error: function () {
-                console.error("Error loading mobile users count");
-                $('#mobileUsersCount').text('(0)');
-            }
-        });
-    }
-
+ 
     // Auto-refresh counts every 5 minutes
     setInterval(function() {
         LoadDashboardCounts();
     }, 300000); // 5 minutes = 300,000 milliseconds
 
+
+
+
+        function loadBirthdayAnniversaryData() {
+        $('#birthdayAnniversaryContent').html(`
+            <div id="birthday-loader" class="text-center" style="display: block;">
+                <img src="@baseDomainUrl/loders/loder.png" style="width: 20px; height: 20px; animation: spin 1s linear infinite;" />
+                <div>Loading...</div>
+            </div>
+            <div id="birthday-content" style="display: none;">
+                <!-- Today's Birthday Section -->
+                <div class="birthday-section">
+                    <h6 style="color: #8B4513; font-weight: bold; margin-bottom: 8px; font-size: 12px;">TODAY'S BIRTHDAY</h6>
+                    <div style="font-style: italic; color: #666; margin-bottom: 10px; font-size: 11px;">Relay Express Pvt Ltd ${getCurrentDate()}</div>
+                    <div id="todayBirthdays"></div>
+                </div>
+
+                <!-- Today's Anniversary Section -->
+                <div class="anniversary-section" style="margin-top: 20px;">
+                    <h6 style="color: #8B4513; font-weight: bold; margin-bottom: 8px; font-size: 12px;">TODAY'S MARRIAGE ANNIVERSARY</h6>
+                    <div id="todayAnniversaries"></div>
+                </div>
+
+                <!-- Upcoming Birthday Section -->
+                <div class="upcoming-section" style="margin-top: 20px;">
+                    <h6 style="color: #8B4513; font-weight: bold; margin-bottom: 8px; font-size: 12px;">UPCOMING BIRTHDAY</h6>
+                    <div style="font-style: italic; color: #666; margin-bottom: 10px; font-size: 11px;">Relay Express Pvt Ltd</div>
+                    <div id="upcomingBirthdays"></div>
+                </div>
+
+                <!-- Upcoming Anniversary Section -->
+                <div class="upcoming-anniversary-section" style="margin-top: 20px;">
+                    <h6 style="color: #8B4513; font-weight: bold; margin-bottom: 8px; font-size: 12px;">UPCOMING MARRIAGE ANNIVERSARY</h6>
+                    <div id="upcomingAnniversaries"></div>
+                </div>
+            </div>
+        `);
+
+        // Load birthday data
+        $.ajax({
+            url: '@baseDomainUrl/api/EmployeeDashBoardAPI/GetTodayBirthdaysByCompany?Compid=' + CompanyId,
+            type: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                            console.log('response' ,response);
+                    displayBirthdayData(response.data);
+                } else {
+                    $('#todayBirthdays').html('<div style="color: #999; font-style: italic; font-size: 11px;">No birthdays today</div>');
+                    $('#upcomingBirthdays').html('<div style="color: #999; font-style: italic; font-size: 11px;">No upcoming birthdays</div>');
+                }
+                loadAnniversaryData();
+            },
+            error: function (xhr, status, error) {
+                console.error("Error loading birthday data:", error);
+                $('#todayBirthdays').html('<div style="color: #999; font-style: italic; font-size: 11px;">No birthdays today</div>');
+                $('#upcomingBirthdays').html('<div style="color: #999; font-style: italic; font-size: 11px;">No upcoming birthdays</div>');
+                loadAnniversaryData();
+            }
+        });
+    }
+
+    function loadAnniversaryData() {
+        // Load anniversary data using the provided API
+        $.ajax({
+            url: '@baseDomainUrl/api/EmployeeDashBoardAPI/GetTodayWorkAnniversary?Compid=' + CompanyId,
+            type: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                $('#birthday-loader').hide();
+                $('#birthday-content').show();
+
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                           console.log('response' ,response);
+                    displayAnniversaryData(response.data);
+                } else {
+                    $('#todayAnniversaries').html('<div style="color: #999; font-style: italic; font-size: 11px;">No anniversaries today</div>');
+                    $('#upcomingAnniversaries').html('<div style="color: #999; font-style: italic; font-size: 11px;">No upcoming anniversaries</div>');
+                }
+            },
+            error: function (xhr, status, error) {
+                $('#birthday-loader').hide();
+                $('#birthday-content').show();
+                console.error("Error loading anniversary data:", error);
+                $('#todayAnniversaries').html('<div style="color: #999; font-style: italic; font-size: 11px;">No anniversaries today</div>');
+                $('#upcomingAnniversaries').html('<div style="color: #999; font-style: italic; font-size: 11px;">No upcoming anniversaries</div>');
+            }
+        });
+    }
+
+    function displayBirthdayData(data) {
+        const today = new Date();
+        const todayBirthdays = [];
+        const upcomingBirthdays = [];
+
+        data.forEach(person => {
+            const birthDate = new Date(person.date);
+            const birthMonth = birthDate.getMonth();
+            const birthDay = birthDate.getDate();
+            const todayMonth = today.getMonth();
+            const todayDay = today.getDate();
+
+            if (birthMonth === todayMonth && birthDay === todayDay) {
+                todayBirthdays.push(person);
+            } else {
+                // Only show upcoming birthdays within next 30 days
+                const thisYear = today.getFullYear();
+                const nextBirthday = new Date(thisYear, birthMonth, birthDay);
+                if (nextBirthday < today) {
+                    nextBirthday.setFullYear(thisYear + 1);
+                }
+                const daysDiff = Math.ceil((nextBirthday - today) / (1000 * 60 * 60 * 24));
+                if (daysDiff <= 30) {
+                    person.daysDiff = daysDiff;
+                    person.nextBirthdayDate = nextBirthday;
+                    upcomingBirthdays.push(person);
+                }
+            }
+        });
+
+        // Display today's birthdays
+        displayTodaysBirthdays(todayBirthdays);
+
+        // Display upcoming birthdays grouped by date
+        displayUpcomingBirthdays(upcomingBirthdays);
+    }
+
+    function displayAnniversaryData(data) {
+        const today = new Date();
+        const todayAnniversaries = [];
+        const upcomingAnniversaries = [];
+
+        data.forEach(person => {
+            const anniversaryDate = new Date(person.date);
+            const anniversaryMonth = anniversaryDate.getMonth();
+            const anniversaryDay = anniversaryDate.getDate();
+            const todayMonth = today.getMonth();
+            const todayDay = today.getDate();
+
+            if (anniversaryMonth === todayMonth && anniversaryDay === todayDay) {
+                todayAnniversaries.push(person);
+            } else {
+                // Only show upcoming anniversaries within next 30 days
+                const thisYear = today.getFullYear();
+                const nextAnniversary = new Date(thisYear, anniversaryMonth, anniversaryDay);
+                if (nextAnniversary < today) {
+                    nextAnniversary.setFullYear(thisYear + 1);
+                }
+                const daysDiff = Math.ceil((nextAnniversary - today) / (1000 * 60 * 60 * 24));
+                if (daysDiff <= 30) {
+                    person.daysDiff = daysDiff;
+                    person.nextAnniversaryDate = nextAnniversary;
+                    upcomingAnniversaries.push(person);
+                }
+            }
+        });
+
+        // Display today's anniversaries
+        displayTodaysAnniversaries(todayAnniversaries);
+
+        // Display upcoming anniversaries grouped by date
+        displayUpcomingAnniversaries(upcomingAnniversaries);
+    }
+
+    function displayTodaysBirthdays(todayBirthdays) {
+        if (todayBirthdays.length > 0) {
+            let todayHtml = '';
+            todayBirthdays.forEach(person => {
+                todayHtml += createPersonCard(person, 'birthday', false);
+            });
+            $('#todayBirthdays').html(todayHtml);
+        } else {
+            $('#todayBirthdays').html('<div style="color: #999; font-style: italic; font-size: 11px;">No birthdays today</div>');
+        }
+    }
+
+    function displayUpcomingBirthdays(upcomingBirthdays) {
+        if (upcomingBirthdays.length > 0) {
+            // Sort by date
+            upcomingBirthdays.sort((a, b) => new Date(a.nextBirthdayDate) - new Date(b.nextBirthdayDate));
+
+            // Group by date
+            const groupedByDate = {};
+            upcomingBirthdays.forEach(person => {
+                const dateKey = person.nextBirthdayDate.toDateString();
+                if (!groupedByDate[dateKey]) {
+                    groupedByDate[dateKey] = [];
+                }
+                groupedByDate[dateKey].push(person);
+            });
+
+            let upcomingHtml = '';
+            Object.keys(groupedByDate).forEach(dateKey => {
+                const persons = groupedByDate[dateKey];
+                const date = persons[0].nextBirthdayDate;
+                const dateStr = `Date : ${date.getDate()}-${getMonthName(date.getMonth()).toUpperCase()}`;
+
+                upcomingHtml += `<div style="font-weight: bold; margin: 12px 0 5px 0; font-size: 11px; color: #333;">${dateStr}</div>`;
+
+                
+                persons.forEach(person => {
+                 upcomingHtml += createPersonCard(person, 'birthday', false, person.employeeProfileUrl);
+                });
+            });
+            $('#upcomingBirthdays').html(upcomingHtml);
+        } else {
+            $('#upcomingBirthdays').html('<div style="color: #999; font-style: italic; font-size: 11px;">No upcoming birthdays</div>');
+        }
+    }
+
+    function displayTodaysAnniversaries(todayAnniversaries) {
+        if (todayAnniversaries.length > 0) {
+            let todayHtml = '';
+            todayAnniversaries.forEach(person => {
+                todayHtml += createPersonCard(person, 'anniversary', false);
+            });
+            $('#todayAnniversaries').html(todayHtml);
+        } else {
+            $('#todayAnniversaries').html('<div style="color: #999; font-style: italic; font-size: 11px;">No anniversaries today</div>');
+        }
+    }
+
+    function displayUpcomingAnniversaries(upcomingAnniversaries) {
+        if (upcomingAnniversaries.length > 0) {
+            // Sort by date
+            upcomingAnniversaries.sort((a, b) => new Date(a.nextAnniversaryDate) - new Date(b.nextAnniversaryDate));
+
+            // Group by date
+            const groupedByDate = {};
+            upcomingAnniversaries.forEach(person => {
+                const dateKey = person.nextAnniversaryDate.toDateString();
+                if (!groupedByDate[dateKey]) {
+                    groupedByDate[dateKey] = [];
+                }
+                groupedByDate[dateKey].push(person);
+            });
+
+            let upcomingHtml = '';
+            Object.keys(groupedByDate).forEach(dateKey => {
+                const persons = groupedByDate[dateKey];
+                const date = persons[0].nextAnniversaryDate;
+                const dateStr = `Date : ${date.getDate()}-${getMonthName(date.getMonth()).toUpperCase()}`;
+
+                upcomingHtml += `<div style="font-weight: bold; margin: 12px 0 5px 0; font-size: 11px; color: #333;">${dateStr}</div>`;
+
+                persons.forEach(person => {
+                     upcomingHtml += createPersonCard(person, 'birthday', false, person.employeeProfileUrl);
+                });
+            });
+            $('#upcomingAnniversaries').html(upcomingHtml);
+        } else {
+            $('#upcomingAnniversaries').html('<div style="color: #999; font-style: italic; font-size: 11px;">No upcoming anniversaries</div>');
+        }
+    }
+
+     function createPersonCard(person, type, showAge) {
+        const age = type === 'birthday' ? (person.ageInYears || calculateAge(person.date)) : calculateWorkYears(person.date);
+
+        return `
+            <div class="person-card"
+                 style="display: flex; justify-content: space-between; align-items: center; margin: 6px 0; padding: 6px 8px; background: #f8f9fa; border-radius: 4px; position: relative; font-size: 11px;"
+                 onmouseenter="showProfilePopup(event, '${person.id}', '${person.fullName}', '${person.designationName || ''}', '${person.departmentName || ''}', '${person.employeeProfileUrl || ''}')"
+                 onmouseleave="hideProfilePopup()">
+                <div style="flex: 1;">
+                    <div style="color: #333; font-weight: 500; font-size: 11px;">${person.fullName}</div>
+                    <div style="color: #666; font-size: 10px;">${person.branchName}</div>
+                </div>
+            </div>
+        `;
+    }
+
+
+
+    function calculateWorkYears(joiningDate) {
+        const joining = new Date(joiningDate);
+        const today = new Date();
+        let years = today.getFullYear() - joining.getFullYear();
+        const monthDiff = today.getMonth() - joining.getMonth();
+
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < joining.getDate())) {
+            years--;
+        }
+
+        return years;
+    }
+
+    function getCurrentDate() {
+        const today = new Date();
+        const day = today.getDate();
+        const month = getMonthName(today.getMonth()).toUpperCase();
+        return `${day}-${month}`;
+    }
+
+    function calculateAge(dateOfBirth) {
+        const birth = new Date(dateOfBirth);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+
+        return age;
+    }
+
+    function getMonthName(monthIndex) {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+        return months[monthIndex];
+    }
+
+    // Profile popup functions remain the same
+    let profilePopupTimeout;
+
+    function showProfilePopup(event, employeeId, fullName, designation, department, profileImageUrl) {
+        clearTimeout(profilePopupTimeout);
+        let popup = document.getElementById('profilePopup');
+
+        if (!popup) {
+            popup = document.createElement('div');
+            popup.id = 'profilePopup';
+            popup.style.cssText = `
+                position: fixed;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                padding: 10px;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+                z-index: 1000;
+                display: none;
+                min-width: 180px;
+                font-size: 11px;
+                pointer-events: none;
+            `;
+            document.body.appendChild(popup);
+        }
+
+        // Use the profile image if available, otherwise use a default
+        let imageSrc = profileImageUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNjY2MiIHN0cm9rZS13aWR0aD0iMSI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iMCIgZmlsbD0iI2QyZDFkMSIvPjxwYXRoIGQ9Ik0xMiAxMkw4IDZMMTIgMTBMMCAxMEwxMiAxMHpNMTIgMTZMOCAxMkwxMiAxNkwwIDE2TDEyIDE2eiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg==';
+
+        popup.innerHTML = `
+            <div style="text-align: center;">
+                <img src="${imageSrc}"
+                     style="width: 60px; height: 60px; border-radius: 50%; margin-bottom: 8px; object-fit: cover;"
+                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNjY2MiIHN0cm9rZS13aWR0aD0iMSI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iMCIgZmlsbD0iI2QyZDFkMSIvPjxwYXRoIGQ9Ik0xMiAxMkw4IDZMMTIgMTBMMCAxMEwxMiAxMHpNMTIgMTZMOCAxMkwxMiAxNkwwIDE2TDEyIDE2eiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg=='"
+                     alt="Profile">
+                <div style="font-weight: bold; color: #333; margin-bottom: 4px;">${fullName}</div>
+                <div style="color: #666; font-size: 10px; margin-bottom: 2px;"><strong>Designation:</strong> ${designation}</div>
+                <div style="color: #666; font-size: 10px;"><strong>Department:</strong> ${department}</div>
+                <div style="color: #666; font-size: 10px; margin-top: 4px;"><strong>ID:</strong> ${employeeId}</div>
+            </div>
+        `;
+
+        // Position the popup near the cursor
+        popup.style.left = `${event.clientX + 10}px`;
+        popup.style.top = `${event.clientY + 10}px`;
+        popup.style.display = 'block';
+    }
+
+
+
+    function hideProfilePopup() {
+        profilePopupTimeout = setTimeout(() => {
+            const popup = document.getElementById('profilePopup');
+            if (popup) {
+                popup.style.display = 'none';
+            }
+        }, 200);
+    }
+
+    function createProfilePopup() {
+        const popup = document.createElement('div');
+        popup.id = 'profilePopup';
+        popup.style.cssText = `
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none;
+            min-width: 180px;
+            max-width: 220px;
+            font-size: 11px;
+        `;
+        document.body.appendChild(popup);
+        return popup;
+    }
     function BranchData() {
         $('#grid-loader').addClass('d-flex').show();
         $.ajax({
