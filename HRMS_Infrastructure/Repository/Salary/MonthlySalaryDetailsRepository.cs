@@ -44,6 +44,7 @@ namespace HRMS_Infrastructure.Repository.Salary
             @StartDate = {vm.StartDate:yyyy-MM-dd}, 
             @EndDate = {vm.EndDate:yyyy-MM-dd}, 
             @EmployeeCodes = {vm.EmployeeCodes}, 
+            @CompanyId ={vm.CompanyId},
             @Action = {vm.Action ?? "Insert"}
         ").ToListAsync();
 
@@ -85,10 +86,11 @@ namespace HRMS_Infrastructure.Repository.Salary
             {
                 return await _db.Set<SalaryReportDTO>()
                     .FromSqlInterpolated($@"EXEC [dbo].[USP_CalculateMonthlySalary1]
-                @StartDate={vm.StartDate},
-                @EndDate={vm.EndDate},
-                @EmployeeCodes={vm.EmployeeCodes},
-                @BranchIdS={vm.BranchId},
+                @StartDate ={vm.StartDate},
+                @EndDate ={vm.EndDate},
+                @EmployeeCodes ={vm.EmployeeCodes},
+                @BranchIdS ={vm.BranchId},
+                @CompanyId ={vm.CompanyId},
                 @Action={vm.Action}")
                     .ToListAsync();
             }

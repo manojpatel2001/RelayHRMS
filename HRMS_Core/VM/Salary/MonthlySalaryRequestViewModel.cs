@@ -13,6 +13,7 @@ namespace HRMS_Core.VM.Salary
         public DateTime EndDate { get; set; }
         public string? EmployeeCodes { get; set; }
         public string? BranchId { get; set; }
+        public int? CompanyId { get; set; }
         public string? Action { get; set; }
 
     }
