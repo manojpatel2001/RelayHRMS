@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
+using HRMS_Core.VM.Report;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,5 +20,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<EmployeeDirectIndirectReport>> GetDirectIndirectEmp(int Compid, int EmployeeId, string Action);
         Task<List<MyTeamleavesVM>> GetMyteamleave(int EmpId, int Compid, int Repoid);
         Task<List<EmployeeDetailsViewModel>> GetEmployeeDetails(int EmpId);
+        Task<List<RecentJoinedEmplForAdmin>> GetRecentJoinedEmployeesForAdmin();
     }
 }

@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.Employee;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -139,6 +141,23 @@ namespace HRMS_Infrastructure.Repository.Employee
             catch (Exception)
             {
                 return new List<RecentEmployeeVM>();
+            }
+        }
+
+        public async Task<List<RecentJoinedEmplForAdmin>> GetRecentJoinedEmployeesForAdmin()
+        {
+            try
+            {
+         
+                var result = await _db.Set<RecentJoinedEmplForAdmin>()
+                    .FromSqlRaw("EXEC sp_GetRecentJoinedEmployeesForAdmin ")
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<RecentJoinedEmplForAdmin>();
             }
         }
 

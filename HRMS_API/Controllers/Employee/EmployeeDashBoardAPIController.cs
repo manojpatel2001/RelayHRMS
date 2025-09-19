@@ -95,6 +95,27 @@ namespace HRMS_API.Controllers.Employee
         }
 
 
+
+        [HttpGet("GetRecentJoinedEmployeesForAdmin")]
+        public async Task<APIResponse> GetRecentJoinedEmployeesForAdmin()
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeDashboardRepository.GetRecentJoinedEmployeesForAdmin();
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
         [HttpGet("GetDirectIndirectEmployee")]
         public async Task<APIResponse> GetDirectIndirectEmployee(int Compid, int EmployeeId, string Action)
         {
