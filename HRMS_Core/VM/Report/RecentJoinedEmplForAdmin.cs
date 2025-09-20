@@ -13,5 +13,6 @@ namespace HRMS_Core.VM.Report
         public string? EmployeeProfileUrl { get; set; }
         public DateTime DateOfJoining { get; set; }
         public string? DesignationName { get; set; }
+        public string? CompanyName { get; set; }
     }
 }
