@@ -66,12 +66,12 @@ namespace HRMS_Infrastructure.Repository.Salary
             }
         }
 
-        public async Task<List<TodaysAttendanceAdminViewModel>> GetTodaysAttendanceAdmin(int BranchId, int ShiftMatserId)
+        public async Task<List<TodaysAttendanceAdminViewModel>> GetTodaysAttendanceAdmin(int BranchId, int ShiftMatserId ,int CompId)
         {
             try
             {
                 var result = await _db.Set<TodaysAttendanceAdminViewModel>()
-                    .FromSqlInterpolated($"EXEC GetTodaysAttendanceAdmin  @BranchId = {BranchId} ,@ShiftMasterId={ShiftMatserId}")
+                    .FromSqlInterpolated($"EXEC GetTodaysAttendanceAdmin  @BranchId = {BranchId} ,@ShiftMasterId={ShiftMatserId} ,@CompanyId={CompId}")
                     .ToListAsync();
                 return result;
             }

@@ -213,11 +213,11 @@ namespace HRMS_API.Controllers.Salary
 
 
         [HttpGet("GetTodaysAttendanceAdmin")]
-        public async Task<APIResponse> GetTodaysAttendanceAdmin(int BranchId, int ShiftMatserId)
+        public async Task<APIResponse> GetTodaysAttendanceAdmin(int BranchId, int ShiftMatserId ,int CompanyId)
         {
             try
             {
-                var data = await _unitOfWork.EmpAttendanceRepository.GetTodaysAttendanceAdmin(BranchId, ShiftMatserId);
+                var data = await _unitOfWork.EmpAttendanceRepository.GetTodaysAttendanceAdmin(BranchId, ShiftMatserId, CompanyId);
                 if (data == null || !data.Any())
                 {
                     return new APIResponse()
