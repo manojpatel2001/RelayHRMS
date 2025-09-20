@@ -19,7 +19,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<EmpAttendanceImport> SoftDelete(DeleteRecordVM DeleteRecord);
         Task<List<EmpAttendanceVM>> GetEmpAttendanceDataAsync(SearchFilterModel filter);
         Task<List<GetEmployeeInTime>> GetEmployeeInTime(int EmployeeId);
-        Task<List<TodaysAttendanceAdminViewModel>> GetTodaysAttendanceAdmin(int BranchId ,int ShiftMatserId);
+        Task<List<TodaysAttendanceAdminViewModel>> GetTodaysAttendanceAdmin(int BranchId ,int ShiftMatserId , int CompId);
 
     }
 }
