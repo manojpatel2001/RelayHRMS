@@ -300,6 +300,11 @@
         overflow-y: auto; /* Only this panel will scroll if needed */
         max-height: 420px;
     }
+    #newJoiningContent {
+    overflow-y: auto !important; /* Enable scrolling for new joining tab */
+    max-height: 420px; /* Same height as birthday tab */
+    overflow-x: hidden; /* Hide horizontal scroll */
+}
 
     .tab-content-header {
         position: sticky;
@@ -1447,6 +1452,134 @@
             document.body.appendChild(popup);
             return popup;
         }
+     
+        function loadNewJoiningData() {
+            $('#newJoiningContent').html(`
+                <div id="newJoining-loader" class="text-center" style="display: block;">
+                    <img src="@baseDomainUrl/loders/loder.png" style="width: 20px; height: 20px; animation: spin 1s linear infinite;" />
+                    <div>Loading...</div>
+                </div>
+                <div id="newJoining-content" style="display: none;">
+                    <div id="newJoiningGrid" class="mt-2"></div>
+                </div>
+            `);
+
+            // Load new joining data
+            $.ajax({
+                url: '@baseDomainUrl/api/EmployeeDashBoardAPI/GetRecentJoinedEmployeesForAdmin',
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    $('#newJoining-loader').hide();
+                    $('#newJoining-content').show();
+
+                    if (response.isSuccess && response.data && response.data.length > 0) {
+                        displayNewJoiningData(response.data);
+                    } else {
+                        $('#newJoiningGrid').html('<div style="color: #999; font-style: italic; font-size: 11px; text-align: center; padding: 20px;">No recent joinings found</div>');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    $('#newJoining-loader').hide();
+                    $('#newJoining-content').show();
+                    console.error("Error loading new joining data:", error);
+                    $('#newJoiningGrid').html('<div style="color: #999; font-style: italic; font-size: 11px; text-align: center; padding: 20px;">Error loading new joining data</div>');
+                }
+            });
+        }
+
+        function displayNewJoiningData(data) {
+            // Group employees by company
+            const groupedByCompany = {};
+            data.forEach(emp => {
+                if (!groupedByCompany[emp.companyName]) {
+                    groupedByCompany[emp.companyName] = [];
+                }
+                groupedByCompany[emp.companyName].push(emp);
+            });
+
+            let gridHtml = '';
+
+            Object.keys(groupedByCompany).forEach(companyName => {
+                const employees = groupedByCompany[companyName];
+
+                // Company header
+                gridHtml += `<div style="font-weight: bold; margin: 15px 0 8px 0; font-size: 12px; color: #333; background: #f8f9fa; padding: 6px 8px; border-radius: 4px;">${companyName}</div>`;
+
+                // Employee list for this company
+                employees.forEach(emp => {
+                    const joiningDate = new Date(emp.dateOfJoining);
+                    const formattedDate = `${joiningDate.getDate().toString().padStart(2, '0')}-${(joiningDate.getMonth() + 1).toString().padStart(2, '0')}-${joiningDate.getFullYear()}`;
+
+                    gridHtml += `
+                        <div class="new-joining-card"
+                             style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0; padding: 6px 8px; background: white; border: 1px solid #e9ecef; border-radius: 4px; font-size: 11px;"
+                             onmouseenter="showNewJoiningProfilePopup(event, '${emp.employeeCode}', '${emp.fullName}', '${emp.designationName || ''}', '${formattedDate}', '${emp.employeeProfileUrl || ''}')"
+                             onmouseleave="hideProfilePopup()">
+                            <div style="flex: 1;">
+                                <div style="color: #333; font-weight: 500; font-size: 11px;">${emp.fullName}</div>
+                                <div style="color: #666; font-size: 10px;">${emp.designationName || 'N/A'}</div>
+                            </div>
+                            <div style="color: #666; font-size: 10px; text-align: right;">
+                                <div>Joined: ${formattedDate}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+
+            $('#newJoiningGrid').html(gridHtml);
+        }
+
+        // Profile popup function for new joining employees
+        function showNewJoiningProfilePopup(event, employeeCode, fullName, designation, joiningDate, profileImageUrl) {
+            clearTimeout(profilePopupTimeout);
+            let popup = document.getElementById('profilePopup');
+
+            if (!popup) {
+                popup = document.createElement('div');
+                popup.id = 'profilePopup';
+                popup.style.cssText = `
+                    position: fixed;
+                    background: white;
+                    border: 1px solid #ddd;
+                    border-radius: 6px;
+                    padding: 10px;
+                    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+                    z-index: 1000;
+                    display: none;
+                    min-width: 180px;
+                    font-size: 11px;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(popup);
+            }
+
+            // Use the profile image if available, otherwise use a default
+            let imageSrc = profileImageUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNjY2MiIHN0cm9rZS13aWR0aD0iMSI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iMCIgZmlsbD0iI2QyZDFkMSIvPjxwYXRoIGQ9Ik0xMiAxMkw4IDZMMTIgMTBMMCAxMEwxMiAxMHpNMTIgMTZMOCAxMkwxMiAxNkwwIDE2TDEyIDE2eiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg==';
+
+            popup.innerHTML = `
+                <div style="text-align: center;">
+                    <img src="${imageSrc}"
+                         style="width: 60px; height: 60px; border-radius: 50%; margin-bottom: 8px; object-fit: cover;"
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNjY2MiIHN0cm9rZS13aWR0aD0iMSI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iMCIgZmlsbD0iI2QyZDFkMSIvPjxwYXRoIGQ9Ik0xMiAxMkw4IDZMMTIgMTBMMCAxMEwxMiAxMHpNMTIgMTZMOCAxMkwxMiAxNkwwIDE2TDEyIDE2eiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg=='"
+                         alt="Profile">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 4px;">${fullName}</div>
+                    <div style="color: #666; font-size: 10px; margin-bottom: 2px;"><strong>Designation:</strong> ${designation}</div>
+                    <div style="color: #666; font-size: 10px; margin-bottom: 2px;"><strong>Emp Code:</strong> ${employeeCode}</div>
+                    <div style="color: #666; font-size: 10px; margin-top: 4px;"><strong>Joining Date:</strong> ${joiningDate}</div>
+                </div>
+            `;
+
+            // Position the popup near the cursor
+            popup.style.left = `${event.clientX + 10}px`;
+            popup.style.top = `${event.clientY + 10}px`;
+            popup.style.display = 'block';
+        }
+        
+        
         function BranchData() {
             $('#grid-loader').addClass('d-flex').show();
             $.ajax({
