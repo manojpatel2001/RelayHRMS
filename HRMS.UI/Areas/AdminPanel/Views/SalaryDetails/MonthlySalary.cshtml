@@ -381,7 +381,6 @@
 
 
     function BindEmployeeDropdownByBranch(selectedBranchIds) {
-        debugger;
         const branchParam = (selectedBranchIds?.length > 0) ? selectedBranchIds.join(",") : "0";
 
         $.ajax({
@@ -432,10 +431,22 @@
         const month = $('#month').val();
         const year = $('#year').val();
         const monthIndex = $('#month').prop('selectedIndex'); // Get the zero-based index of the selected month
-        const monthStr = (monthIndex + 1).toString().padStart(2, '0'); // Convert to one-based index and pad with zero
-        const startDate = `${year}-${monthStr}-01`;
-        const lastDay = new Date(year, monthIndex + 1, 0).getDate(); // Increment month index by 1
-        const endDate = `${year}-${monthStr}-${lastDay}`;
+
+        // Get month number (1-12) from selected month name
+        const monthNumber = monthIndex + 1;
+
+        // Create start date (first day of month)
+        const startDate = `${year}-${monthNumber.toString().padStart(2, '0')}-01`;
+
+        // Get the actual last day of the month
+        const lastDayOfMonth = new Date(year, monthNumber, 0).getDate();
+
+        // Create end date (last day of month)
+        const endDate = `${year}-${monthNumber.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`;
+
+        console.log(`Selected Month: ${month}, Year: ${year}`);
+        console.log(`Start Date: ${startDate}, End Date: ${endDate}`);
+        console.log(`Days in ${month}: ${lastDayOfMonth}`);
 
         const branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
         const employeeIds = $("#employeeDropdown").dxTagBox("instance").option("value");
@@ -446,9 +457,10 @@
         }
 
         if (!employeeIds || employeeIds.length <= 0) {
-        Swal.fire("Please select at least one Employee");
-        return;
-    }
+            Swal.fire("Please select at least one Employee");
+            return;
+        }
+
         const empCodes = employeeIds.join(",");
 
         // Modified to send multiple branch IDs
@@ -467,16 +479,16 @@
             url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetMonthlySalary")',
             data: JSON.stringify(requestData),
             contentType: "application/json",
-            success: function (response) {              
+            success: function (response) {
                 if (response && response.data && response.data.length > 0) {
-                      hideLoder();
+                    hideLoder();
                     RenderSalaryGrid(response.data);
                     $('#year').prop('disabled', true);
                     $('#month').prop('disabled', true);
-                 $("#branchDropdown").dxTagBox("instance").option("disabled", true);
-                $("#employeeDropdown").dxTagBox("instance").option("disabled", true);
+                    $("#branchDropdown").dxTagBox("instance").option("disabled", true);
+                    $("#employeeDropdown").dxTagBox("instance").option("disabled", true);
                 } else {
-                      hideLoder();
+                    hideLoder();
                     Swal.fire("No data found for the selected criteria.", "", "info");
                 }
             },
@@ -715,7 +727,7 @@
     }
 
 
-     $('#btnProcessSalary').on('click', function () {
+    $('#btnProcessSalary').on('click', function () {
         const selectedMonth = $('#month').val();
         const selectedYear = $('#year').val();
 
@@ -729,9 +741,21 @@
             return;
         }
 
+        // Get month number (1-12)
         const monthNumber = new Date(Date.parse(selectedMonth + " 1, 2000")).getMonth() + 1;
+
+        // Create start date (first day of month)
         const startDate = `${selectedYear}-${monthNumber.toString().padStart(2, '0')}-01`;
-        const endDate = new Date(selectedYear, monthNumber, 0).toISOString().slice(0, 10);
+
+        // Get the actual last day of the month
+        const lastDayOfMonth = new Date(selectedYear, monthNumber, 0).getDate();
+
+        // Create end date (last day of month)
+        const endDate = `${selectedYear}-${monthNumber.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`;
+
+        console.log(`Month: ${selectedMonth}, Year: ${selectedYear}`);
+        console.log(`Start Date: ${startDate}, End Date: ${endDate}`);
+        console.log(`Days in month: ${lastDayOfMonth}`);
 
         const branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
         const selectedGridRows = $("#salaryGridContainer").dxDataGrid("instance").getSelectedRowsData();
@@ -742,12 +766,12 @@
             return;
         }
 
-        // Modified to send multiple branch IDs
+        // Request data object
         const requestData = {
             StartDate: startDate,
             EndDate: endDate,
             EmployeeCodes: empCodes,
-            BranchIds: branchIds,    // Changed from BranchId to BranchIds and sending the full array
+            BranchIds: branchIds,
             CompanyId: CompanyId,
             Action: "Insert"
         };
