@@ -14,6 +14,7 @@ using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Probations;
+using HRMS_Infrastructure.Interface.Report;
 using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.CompanyInformation;
@@ -30,6 +31,7 @@ using HRMS_Infrastructure.Repository.Notifications;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
 using HRMS_Infrastructure.Repository.Probations;
+using HRMS_Infrastructure.Repository.Report;
 using HRMS_Infrastructure.Repository.Salary;
 using HRMS_Infrastructure.Repository.SuperAdmin;
 using HRMS_Infrastructure.Repository.TicketManagement;
@@ -139,6 +141,8 @@ namespace HRMS_Infrastructure.Repository
             GeoLocationRepository = new GeoLocationRepository(_dbContext);
             EmployeeIncrementRespository = new EmployeeIncrementRespository(_dbContext);
             ExportDataRepository = new ExportDataRepository(_dbContext);
+            AddeventRepository = new AddEventRepository(_dbContext);
+
 
         }
 
@@ -246,6 +250,7 @@ namespace HRMS_Infrastructure.Repository
         public IGeoLocationRepository GeoLocationRepository { get; set; }
         public IEmployeeIncrementRespository EmployeeIncrementRespository { get; set; }
         public IExportDataRepository ExportDataRepository { get; set; }
+        public IAddeventRepository AddeventRepository { get; set; }
 
         public void Commit()
         {
