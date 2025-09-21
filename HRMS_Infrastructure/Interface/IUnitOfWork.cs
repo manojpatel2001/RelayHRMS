@@ -12,6 +12,7 @@ using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Probations;
+using HRMS_Infrastructure.Interface.Report;
 using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.ManagePermissions;
@@ -117,6 +118,7 @@ namespace HRMS_Infrastructure.Interface
         IGeoLocationRepository GeoLocationRepository { get; }
         IEmployeeIncrementRespository EmployeeIncrementRespository { get; }
         IExportDataRepository ExportDataRepository { get; }
+        IAddeventRepository AddeventRepository { get; }
 
         void Commit();
         Task CommitAsync();
