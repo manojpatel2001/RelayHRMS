@@ -278,6 +278,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<EmployeeSalaryRegisterViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<AttendanceRegularizationSearchFilterForAdminVM>().HasNoKey().ToView(null);
              modelBuilder.Entity<RecentJoinedEmplForAdmin>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EmpInOutReportforAdmin>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EmpInOutReportFilter>().HasNoKey().ToView(null);
 
 
 

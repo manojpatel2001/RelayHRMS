@@ -5,6 +5,8 @@ using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.Ess.InOut;
 using HRMS_Core.VM.importData;
+using HRMS_Core.VM.Report;
+using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Employee;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -291,5 +293,27 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return new VMCommonResult { Id = null };
             }
         }
+
+        public async Task<List<EmpInOutReportforAdmin>> GetEmpInOutReportForAdmin(EmpInOutReportFilter filter)
+        {
+            try
+            {
+
+               
+                    return await _db.Set<EmpInOutReportforAdmin>()
+                        .FromSqlInterpolated($@"EXEC [dbo].[GetEmpInOutReportForAdmin]
+                @StartDate ={filter.StartDate},
+                @EndDate ={filter.EndDate},
+                @BranchId ={filter.BranchId},
+                @EmployeeId ={filter.EmployeeCodes},
+                @CompanyId ={filter.CompanyId}")
+                    .ToListAsync();
+                }
+                catch
+                {
+                    return new List<EmpInOutReportforAdmin>();
+                }
+            }
+        }
     }
-}
+
