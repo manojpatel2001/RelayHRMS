@@ -9,5 +9,9 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View();
         }
+        public IActionResult EmpInOutReportForAdmin()
+        {
+            return View();
+        }
     }
 }

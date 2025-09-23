@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.Employee;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Ess.InOut;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -25,7 +26,7 @@ namespace HRMS_API.Controllers.Employee
         {
             try
             {
-               
+
                 var data = await _unitOfWork.EmployeeInOutRepository.CreateEmpInOut(model);
                 if (data == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Unable to punch for now. Please try again later." };
@@ -353,7 +354,7 @@ namespace HRMS_API.Controllers.Employee
                         isSuccess = false,
                         ResponseMessage = "No matching IN record found or update failed."
                     };
-                }           
+                }
                 return new APIResponse
                 {
                     isSuccess = true,
@@ -371,5 +372,24 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
+
+
+
+        [HttpPost("GetEmpInOutReportForAdmin")]
+        public async Task<APIResponse> GetEmpInOutReportForAdmin(EmpInOutReportFilter fiter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetEmpInOutReportForAdmin(fiter);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
     }
 }
