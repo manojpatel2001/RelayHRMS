@@ -193,12 +193,12 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
         }
 
 
-        public async Task<List<vmGetAllEmployee_DropDown>> GetAllEmployee_DropDown (int companyId)
+        public async Task<List<vmGetAllEmployee_DropDown>> GetAllEmployee_DropDown (int companyId ,string BranchId)
         {
             try
             {
                 return await _db.Set<vmGetAllEmployee_DropDown>()
-                                .FromSqlInterpolated($"EXEC USP_GetAllEmployee_DropDown @companyId={companyId}")
+                                .FromSqlInterpolated($"EXEC USP_GetAllEmployee_DropDown @companyId={companyId} , @BranchIds={BranchId}")
                                 .ToListAsync();
             }
             catch (Exception)
