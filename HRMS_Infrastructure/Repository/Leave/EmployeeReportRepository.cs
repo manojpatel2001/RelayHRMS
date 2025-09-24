@@ -83,8 +83,70 @@ namespace HRMS_Infrastructure.Repository.Leave
             return result;
         }
 
+        public async Task<List<EmployeeAttendanceReportVm>> GetAttendanceReportForAdmin(AttendanceReportforAdminVm vm)
+        {
+            List<EmployeeAttendanceReportVm> result = new List<EmployeeAttendanceReportVm>();
 
-       
+            using (SqlConnection conn = new SqlConnection(_db.Database.GetConnectionString()))
+            {
+                using (SqlCommand cmd = new SqlCommand("sp_GetMonthlyAttendanceSummary", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@StartDate", vm.StartDate);
+                    cmd.Parameters.AddWithValue("@EndDate", vm.EndDate);
+
+                    // Handle EmployeeIds parameter
+                    string employeeIdsString = vm.EmployeeIds != null && vm.EmployeeIds.Any()
+                        ? string.Join(",", vm.EmployeeIds)
+                        : null;
+                    cmd.Parameters.AddWithValue("@EmployeeIds", (object)employeeIdsString ?? DBNull.Value);
+
+                    // Handle BranchIds parameter (new addition)
+                    string branchIdsString = vm.BranchIds != null && vm.BranchIds.Any()
+                        ? string.Join(",", vm.BranchIds)
+                        : null;
+                    cmd.Parameters.AddWithValue("@BranchIds", (object)branchIdsString ?? DBNull.Value);
+
+                    await conn.OpenAsync();
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        var schemaTable = reader.GetSchemaTable();
+                        var columnNames = schemaTable.Rows.Cast<DataRow>()
+                                            .Select(row => row["ColumnName"].ToString())
+                                            .ToList();
+
+                        while (await reader.ReadAsync())
+                        {
+                            var row = new EmployeeAttendanceReportVm
+                            {
+                                BranchName = reader["BranchName"]?.ToString(),
+                                EmployeeCode = reader["EmployeeCode"]?.ToString(),
+                                FullName = reader["FullName"]?.ToString(),
+                                P = reader["P"]?.ToString(),
+                                A = reader["A"]?.ToString(),
+                                W = reader["W"]?.ToString(),
+                                L = reader["L"]?.ToString(),
+                                H = reader["H"]?.ToString()
+                            };
+                  
+                            foreach (var col in columnNames)
+                            {
+                                if (Regex.IsMatch(col, @"^\d{2}$")) // D01 to D31
+                                {
+                                    row.Days[col] = reader[col]?.ToString();
+                                }
+                            }
+
+                            result.Add(row);
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+
         public async Task<List<ShiftReportVm>> GetShiftReport(AttendanceReportVm vm)
         {
             var result = new List<ShiftReportVm>();

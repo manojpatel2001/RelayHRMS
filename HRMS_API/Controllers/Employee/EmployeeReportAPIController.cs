@@ -24,6 +24,35 @@ namespace HRMS_API.Controllers.Employee
 
 
 
+        [HttpPost("AttendencereportforAdmin")]
+   
+        public async Task<APIResponse> AttendencereportforAdmin([FromBody] AttendanceReportforAdminVm model)
+        {
+            try
+            {
+              
+                var data = await _unitOfWork.EmployeeReport.GetAttendanceReportForAdmin(model);
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Records have been added successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to add records. Please try again later."
+                };
+            }
+        }
+
+        
         [HttpPost("Attendencereport")]
    
         public async Task<APIResponse> Attendencereport([FromBody] AttendanceReportVm model)

@@ -11,6 +11,7 @@ using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Repository;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -64,11 +65,16 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
         [HttpGet("GetAllEmployee_DropDown/{companyId}")]
-        public async Task<APIResponse> GetAllEmployee_DropDown(int companyId)
+        public async Task<APIResponse> GetAllEmployee_DropDown(int companyId, [FromQuery] string BranchId)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployee_DropDown(companyId);
+                // Split comma-separated BranchIds if multiple branches are sent
+                var branchIds = string.IsNullOrEmpty(BranchId) ? new List<string>()
+                               : BranchId.Split(',').ToList();
+
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployee_DropDown(companyId, BranchId);
+
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -79,7 +85,6 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
-
 
         //[HttpGet("GetAllEmployees")]
         //public async Task<APIResponse> GetAllEmployees()
