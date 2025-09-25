@@ -11,6 +11,14 @@
 <!-- CSS -->
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- IMPORTANT: Load JSZip BEFORE DevExtreme scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- DevExtreme Excel Export Dependencies -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
 <style>
     :root {
         --primary-color: #3e4b6d;
@@ -139,8 +147,6 @@
         max-height: 400px;
     }
 
-   
-   
     @@keyframes spin {
         0%
 
@@ -173,20 +179,41 @@
         margin-top: 20px;
     }
 
-   
+    /* Grid Header without Excel Export button */
+    .grid-header {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px 0;
+        border-bottom: 1px solid #e0e6ed;
+    }
 
-   
+    /* Custom Excel Export Icon in Grid Toolbar */
+    .dx-toolbar-item .dx-button.excel-export-btn {
+        background-color: #28a745 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important;
+        padding: 6px 12px !important;
+        margin-right: 10px !important;
+    }
+
+        .dx-toolbar-item .dx-button.excel-export-btn:hover {
+            background-color: #218838 !important;
+        }
+
+        .dx-toolbar-item .dx-button.excel-export-btn .dx-icon {
+            color: white !important;
+            font-size: 16px !important;
+        }
 </style>
 
 <style>
-    #attendanceGridFirst, #attendanceGridMultiple{
-        max-height:350px;
+    #attendanceGridFirst, #attendanceGridMultiple {
+        max-height: 350px;
     }
-   
 </style>
-
-
-
 
 <div class="container-fluid py-4">
     <!-- Search Panel Header -->
@@ -289,7 +316,6 @@
         </div>
     </div>
 
-    
     <!-- Tab Content -->
     <div class="row">
         <div class="col-12">
@@ -297,19 +323,20 @@
                 <!-- First In Last Out Tab -->
                 <div class="tab-pane fade show active" id="firstLast" role="tabpanel">
                     <div class="grid-container">
+                        <!-- Grid Header without Excel Export button -->
+                        <div class="grid-header">
+                            <div id="attendanceGridFirstCount"></div>
+                        </div>
                         <div class="grid-wrapper " style="position: relative; ">
                             <div id="grid-first-loader" class="grid-loader justify-content-center align-items-center flex-column "
                                  style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
                                 <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
                                 <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
-
                             </div>
                             <div id="GridTagFirst">
-                                <div id="attendanceGridFirstCount"></div>
                                 <div id="attendanceGridFirst"></div>
                             </div>
                             <div id="spnNoRecordFirst" class="text-center py-5 text-muted" style="display:none;">No Record Found!</div>
-
                         </div>
                     </div>
                 </div>
@@ -317,22 +344,21 @@
                 <!-- Multiple Punches Tab -->
                 <div class="tab-pane fade" id="multiplePunches" role="tabpanel">
                     <div class="grid-container">
+                        <!-- Grid Header without Excel Export button -->
+                        <div class="grid-header">
+                            <div id="attendanceGridMultipleCount"></div>
+                        </div>
                         <div class="grid-wrapper " style="position: relative; ">
                             <div id="grid-multi-loader" class="grid-loader justify-content-center align-items-center flex-column "
                                  style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
                                 <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
                                 <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
-
                             </div>
                             <div id="GridTagMulti">
-                                <div id="attendanceGridMultipleCount"></div>
                                 <div id="attendanceGridMultiple"></div>
-                           </div>
-
+                            </div>
                             <div id="spnNoRecordMulti" class="text-center py-5 text-muted" style="display:none;">No Record Found!</div>
-
-                         </div>
-
+                        </div>
                     </div>
                 </div>
             </div>
@@ -344,10 +370,150 @@
 <script>
     const apiBase = '@baseUrl';
     const empid = parseInt(localStorage.getItem("EmployeeId"));
-     const savedCompany = localStorage.getItem('selectedCompany');
+    const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany || '{}');
     const Compid = parseInt(companyDetails.CompanyId);
-    const Token=localStorage.getItem("authToken");
+    const Token = localStorage.getItem("authToken");
+
+    // Grid instances to store references
+    let firstGridInstance = null;
+    let multipleGridInstance = null;
+
+    // Enhanced Manual Excel Export Function
+    function exportDataToExcel(data, fileName, columns) {
+        try {
+            // Check if JSZip is available
+            if (typeof JSZip === 'undefined') {
+                console.warn('JSZip not available, using alternative export method');
+                exportToCSV(data, fileName, columns);
+                return;
+            }
+
+            // Create workbook and worksheet
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Sheet1');
+
+            // Add headers
+            const headers = columns.map(col => col.caption || col.dataField);
+            worksheet.addRow(headers);
+
+            // Style headers
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true };
+            headerRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF3E4B6D' }
+            };
+            headerRow.font.color = { argb: 'FFFFFFFF' };
+
+            // Add data rows
+            data.forEach(item => {
+                const row = columns.map(col => {
+                    let value = item[col.dataField];
+
+                    // Format dates
+                    if (col.dataType === 'date' && value) {
+                        const date = new Date(value);
+                        return date.toLocaleDateString('en-GB'); // dd/mm/yyyy format
+                    }
+
+                    // Format numbers
+                    if (col.dataType === 'number' && value !== null && value !== undefined) {
+                        return parseFloat(value);
+                    }
+
+                    return value || '';
+                });
+                worksheet.addRow(row);
+            });
+
+            // Auto-fit columns
+            worksheet.columns.forEach(column => {
+                let maxLength = 0;
+                column.eachCell({ includeEmpty: true }, (cell) => {
+                    const cellLength = cell.value ? cell.value.toString().length : 10;
+                    if (cellLength > maxLength) {
+                        maxLength = cellLength;
+                    }
+                });
+                column.width = Math.min(maxLength + 2, 50);
+            });
+
+            // Generate Excel file
+            workbook.xlsx.writeBuffer().then(buffer => {
+                const blob = new Blob([buffer], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                });
+                saveAs(blob, `${fileName}.xlsx`);
+                round_success_noti("Excel file downloaded successfully!");
+            }).catch(error => {
+                console.error('Excel export error:', error);
+                round_error_noti("Failed to export Excel file. Trying CSV export...");
+                exportToCSV(data, fileName, columns);
+            });
+
+        } catch (error) {
+            console.error('Excel export error:', error);
+            round_error_noti("Failed to export Excel file. Trying CSV export...");
+            exportToCSV(data, fileName, columns);
+        }
+    }
+
+    // Fallback CSV Export Function
+    function exportToCSV(data, fileName, columns) {
+        try {
+            // Create CSV content
+            const headers = columns.map(col => col.caption || col.dataField);
+            let csvContent = headers.join(',') + '\n';
+
+            data.forEach(item => {
+                const row = columns.map(col => {
+                    let value = item[col.dataField];
+
+                    // Format dates
+                    if (col.dataType === 'date' && value) {
+                        const date = new Date(value);
+                        value = date.toLocaleDateString('en-GB');
+                    }
+
+                    // Format numbers
+                    if (col.dataType === 'number' && value !== null && value !== undefined) {
+                        value = parseFloat(value);
+                    }
+
+                    // Handle null/undefined values
+                    if (value === null || value === undefined) {
+                        value = '';
+                    }
+
+                    // Escape commas and quotes in CSV
+                    const stringValue = String(value);
+                    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                        return '"' + stringValue.replace(/"/g, '""') + '"';
+                    }
+
+                    return stringValue;
+                });
+                csvContent += row.join(',') + '\n';
+            });
+
+            // Download CSV file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${fileName}.csv`;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            round_success_noti("CSV file downloaded successfully!");
+        } catch (error) {
+            console.error('CSV export error:', error);
+            round_error_noti("Failed to export data.");
+        }
+    }
 
     function convertUTCtoIST(utcInput) {
         const utcDate = new Date(utcInput);
@@ -356,13 +522,18 @@
         return istDate;
     }
 
+    $(document).ready(async function () {
+        // Check if JSZip is loaded
+        if (typeof JSZip === 'undefined') {
+            console.warn('JSZip is not loaded. Excel export may not work properly.');
+        } else {
+            console.log('JSZip is loaded successfully.');
+        }
 
-    $(document).ready( async function ()
-    {
         await checkPermissionInOut();
-           reloadGrids();
+        reloadGrids();
 
-         $('#btnInOut').click(function () {
+        $('#btnInOut').click(function () {
             $('#btnInOut').hide();
             $('#btnPunching').show();
 
@@ -408,18 +579,15 @@
             }
         });
 
-        $('#dropdownyear,#dropdownmonth').focus(function(){
-            $('#btnGo').prop("disabled",false);
+        $('#dropdownyear,#dropdownmonth').focus(function () {
+            $('#btnGo').prop("disabled", false);
         });
 
-
-
-
-         $('#btnGo').click(function () {
-             $('#btnGo').prop("disabled",true);
+        $('#btnGo').click(function () {
+            $('#btnGo').prop("disabled", true);
             const month = $('#dropdownmonth').val();
             const year = $('#dropdownyear').val();
-            if (!month || !year) return  round_error_noti("Please select Month and Year");
+            if (!month || !year) return round_error_noti("Please select Month and Year");
 
             const activeTab = $('#attendanceTabs .nav-link.active');
             const tab = activeTab.attr("data-bs-target");
@@ -429,32 +597,31 @@
             } else if (tab === "#multiplePunches") {
                 loadMultiple(empid, Compid, month, year);
             } else {
-                 round_error_noti("Unknown tab selected");
+                round_error_noti("Unknown tab selected");
             }
         });
 
+        $('button[data-bs-toggle="tab"]').on('shown.bs.tab', async function (e) {
+            const target = $(e.target).attr("data-bs-target");
+            const month = $('#dropdownmonth').val();
+            const year = $('#dropdownyear').val();
 
-             $('button[data-bs-toggle="tab"]').on('shown.bs.tab', async function (e) {
-                const target = $(e.target).attr("data-bs-target");
-                const month = $('#dropdownmonth').val();
-                const year = $('#dropdownyear').val();
+            if (!month || !year) return;
 
-                if (!month || !year) return;
-
-                if (target === "#firstLast") {
-                    await loadFirstLast(empid, Compid, month, year);
-                }
-                else if (target === "#multiplePunches") {
-                    await loadMultiple(empid, Compid, month, year);
-                }
-            });
+            if (target === "#firstLast") {
+                await loadFirstLast(empid, Compid, month, year);
+            }
+            else if (target === "#multiplePunches") {
+                await loadMultiple(empid, Compid, month, year);
+            }
+        });
     });
 
     function reloadGrids() {
         const month = $('#dropdownmonth').val() || (new Date().getMonth() + 1);
         const year = $('#dropdownyear').val() || new Date().getFullYear();
-        loadFirstLast(empid,Compid, month, year);
-        loadMultiple(empid,Compid, month, year);
+        loadFirstLast(empid, Compid, month, year);
+        loadMultiple(empid, Compid, month, year);
     }
 
     async function checkPermissionInOut() {
@@ -473,25 +640,22 @@
             }
 
             const data = await response.json();
-            
-            if (data.isSuccess ) {
-               if(data.data.isPermissionPunchInOut)
-               {
-                   $('#punchTag').show();
-               }
+
+            if (data.isSuccess) {
+                if (data.data.isPermissionPunchInOut) {
+                    $('#punchTag').show();
+                }
             } else {
-                
+
             }
-            
+
         } catch (error) {
-            
             console.error('Failed to load check permission', error);
-          
         }
     }
 
-     async function loadFirstLast(empid, Compid, month, year) {
-         $('#grid-first-loader').addClass('d-flex').show();
+    async function loadFirstLast(empid, Compid, month, year) {
+        $('#grid-first-loader').addClass('d-flex').show();
         try {
             const response = await fetch(`${apiBase}/EmployeeInOut/GetMonthlyAttendanceDetails`, {
                 method: 'POST',
@@ -517,56 +681,55 @@
             if (data.isSuccess && Array.isArray(data.data)) {
                 $('#GridTagFirst').show();
                 $('#spnNoRecordFirst').hide();
-                $('#attendanceGridFirst').dxDataGrid({
+
+                firstGridInstance = $('#attendanceGridFirst').dxDataGrid({
                     dataSource: data.data,
                     rowHeight: 40,
                     width: '100%',
-                       columns: [
-                            { dataField: 'employeeCode', caption: 'Employee Code' },
-                            { dataField: 'fullName', caption: 'Full Name' },
-                            { dataField: 'branchName', caption: 'Branch' },
-                            { dataField: 'companyName', caption: 'Company Name' },
-                            {
-                                dataField: 'shiftDate',
-                                caption: 'Shift Date',
-                                dataType: 'date',
-                                format: 'dd-MM-yyyy'
-                            },
-                            {
-                                dataField: 'inTime',
-                                caption: 'In Time'
-                                
-                            },
-                            {
-                                dataField: 'outTime',
-                                caption: 'Out Time'
-                                
-                            },
-                            {
-                                dataField: 'workingHours',
-                                caption: 'Working Hours',
-                                dataType: 'number',
-                                format: '#0.00',
-                                alignment: 'left'
-                            },
-                            { dataField: 'attendanceStatus', caption: 'Attendance Status' },
-                            {
-                                dataField: 'salaryDay',
-                                caption: 'Salary Day',
-                                dataType: 'number',
-                                format: '#0.0',
-                                alignment: 'left'
-
-                            }
-                           
-                        ],
+                    export: {
+                        enabled: true,
+                        allowExportSelectedData: false
+                    },
+                    columns: [
+                        { dataField: 'employeeCode', caption: 'Employee Code' },
+                        { dataField: 'fullName', caption: 'Full Name' },
+                        { dataField: 'branchName', caption: 'Branch' },
+                        { dataField: 'companyName', caption: 'Company Name' },
+                        {
+                            dataField: 'shiftDate',
+                            caption: 'Shift Date',
+                            dataType: 'date',
+                            format: 'dd-MM-yyyy'
+                        },
+                        {
+                            dataField: 'inTime',
+                            caption: 'In Time'
+                        },
+                        {
+                            dataField: 'outTime',
+                            caption: 'Out Time'
+                        },
+                        {
+                            dataField: 'workingHours',
+                            caption: 'Working Hours',
+                            dataType: 'number',
+                            format: '#0.00',
+                            alignment: 'left'
+                        },
+                        { dataField: 'attendanceStatus', caption: 'Attendance Status' },
+                        {
+                            dataField: 'salaryDay',
+                            caption: 'Salary Day',
+                            dataType: 'number',
+                            format: '#0.0',
+                            alignment: 'left'
+                        }
+                    ],
                     columnsAutoWidth: false,
                     wordWrapEnabled: false,
                     showBorders: true,
                     rowAlternationEnabled: false,
                     grouping: { autoExpandAll: false },
-                    // paging: { pageSize: 10 },
-                    // pager: { showPageSizeSelector: false, allowedPageSizes: [10, 25, 50, 100] },
                     headerFilter: { visible: false },
                     filterRow: { visible: false, applyFilter: "auto" },
                     allowColumnResizing: true,
@@ -579,17 +742,52 @@
                         scrollByContent: true,
                         scrollByThumb: true
                     },
+                    toolbar: {
+                        items: [
+                            {
+                                name: 'exportButton',
+                                location: 'after',
+                                widget: 'dxButton',
+                                options: {
+                                    text: '',
+                                    icon: 'exportxlsx',
+                                    hint: 'Export to Excel',
+                                    elementAttr: {
+                                        class: 'excel-export-btn'
+                                    },
+                                    onClick: function () {
+                                        const fileName = `empInOutReport`;
+
+                                        try {
+                                            // Try DevExtreme's built-in export first
+                                            firstGridInstance.exportToExcel({
+                                                fileName: fileName,
+                                                excelFilterEnabled: false
+                                            });
+                                        } catch (error) {
+                                            console.log('DevExtreme export failed, using fallback method:', error);
+                                            // Fallback to manual export
+                                            const gridData = firstGridInstance.option('dataSource');
+                                            const columns = firstGridInstance.option('columns');
+                                            exportDataToExcel(gridData, fileName, columns);
+                                        }
+                                    }
+                                }
+                            },
+                            'searchPanel'
+                        ]
+                    },
                     onContentReady(e) {
-                            $('#attendanceGridFirstCount').html('Total Records: ' + e.component.totalCount());
+                        $('#attendanceGridFirstCount').html('Total Records: ' + e.component.totalCount());
                     }
-                });
+                }).dxDataGrid("instance");
             } else {
-                 $('#GridTagFirst').hide();
+                $('#GridTagFirst').hide();
                 $('#spnNoRecordFirst').show();
+                firstGridInstance = null;
             }
             $('#grid-first-loader').removeClass('d-flex').hide();
         } catch (error) {
-           
             $('#grid-first-loader').removeClass('d-flex').hide();
             console.error('Failed to load First In/Out records:', error);
             round_error_noti("Failed to load First In/Out records.");
@@ -597,7 +795,7 @@
     }
 
     async function loadMultiple(empid, Compid, month, year) {
-         $('#grid-multi-loader').addClass('d-flex').show();
+        $('#grid-multi-loader').addClass('d-flex').show();
         try {
             const response = await fetch(`${apiBase}/EmployeeInOut/GetMonthlyAttendanceLog`, {
                 method: 'POST',
@@ -616,53 +814,56 @@
 
             if (!response.ok) {
                 round_error_noti('Something went wrong!');
+                $('#grid-multi-loader').removeClass('d-flex').hide();
+                return;
             }
 
             const data = await response.json();
 
             if (data.isSuccess && Array.isArray(data.data)) {
-                 $('#GridTagMulti').show();
+                $('#GridTagMulti').show();
                 $('#spnNoRecordMulti').hide();
-                $('#attendanceGridMultiple').dxDataGrid({
+
+                multipleGridInstance = $('#attendanceGridMultiple').dxDataGrid({
                     dataSource: data.data,
                     rowHeight: 40,
                     width: '100%',
-                       columns: [
-                               { dataField: 'employeeCode', caption: 'Employee Code' },
-                                { dataField: 'fullName', caption: 'Full Name' },
-                                { dataField: 'branchName', caption: 'Branch' },
-                                { dataField: 'companyName', caption: 'Company Name' },
-                                {
-                                    dataField: 'punchDateTime',
-                                    caption: 'Punch Date',
-                                    dataType: 'date',
-                                    format: 'dd-MM-yyyy',
-                                    alignment: 'left'
-                                },
-                                {
-                                    dataField: 'punchTime',
-                                    caption: 'Punch Time',
-
-                                },
-                                {
-                                    dataField: 'mode',
-                                    caption: 'Mode',
-                                    alignment: 'left'
-                                }
-
-                        ],
+                    export: {
+                        enabled: true,
+                        allowExportSelectedData: false
+                    },
+                    columns: [
+                        { dataField: 'employeeCode', caption: 'Employee Code' },
+                        { dataField: 'fullName', caption: 'Full Name' },
+                        { dataField: 'branchName', caption: 'Branch' },
+                        { dataField: 'companyName', caption: 'Company Name' },
+                        {
+                            dataField: 'punchDateTime',
+                            caption: 'Punch Date',
+                            dataType: 'date',
+                            format: 'dd-MM-yyyy',
+                            alignment: 'left'
+                        },
+                        {
+                            dataField: 'punchTime',
+                            caption: 'Punch Time',
+                        },
+                        {
+                            dataField: 'mode',
+                            caption: 'Mode',
+                            alignment: 'left'
+                        }
+                    ],
                     columnsAutoWidth: false,
                     wordWrapEnabled: false,
                     showBorders: true,
                     rowAlternationEnabled: false,
                     grouping: { autoExpandAll: false },
-                    // paging: { pageSize: 10 },
-                    // pager: { showPageSizeSelector: false, allowedPageSizes: [10, 25, 50, 100] },
                     headerFilter: { visible: false },
                     filterRow: { visible: false, applyFilter: "auto" },
                     allowColumnResizing: true,
                     groupPanel: { visible: false },
-                    searchPanel: { visible: true, width: 240,height:30, placeholder: "Search..." },
+                    searchPanel: { visible: true, width: 240, height: 30, placeholder: "Search..." },
                     columnFixing: { enabled: false },
                     scrolling: {
                         mode: "standard",
@@ -670,28 +871,55 @@
                         scrollByContent: true,
                         scrollByThumb: true
                     },
+                    toolbar: {
+                        items: [
+                            {
+                                name: 'exportButton',
+                                location: 'after',
+                                widget: 'dxButton',
+                                options: {
+                                    text: '',
+                                    icon: 'exportxlsx',
+                                    hint: 'Export to Excel',
+                                    elementAttr: {
+                                        class: 'excel-export-btn'
+                                    },
+                                    onClick: function () {
+                                        const fileName = `empInOutReport`;
+
+                                        try {
+                                            // Try DevExtreme's built-in export first
+                                            multipleGridInstance.exportToExcel({
+                                                fileName: fileName,
+                                                excelFilterEnabled: false
+                                            });
+                                        } catch (error) {
+                                            console.log('DevExtreme export failed, using fallback method:', error);
+                                            // Fallback to manual export
+                                            const gridData = multipleGridInstance.option('dataSource');
+                                            const columns = multipleGridInstance.option('columns');
+                                            exportDataToExcel(gridData, fileName, columns);
+                                        }
+                                    }
+                                }
+                            },
+                            'searchPanel'
+                        ]
+                    },
                     onContentReady(e) {
-                                    $('#attendanceGridMultipleCount').html('Total Records: ' + e.component.totalCount());
+                        $('#attendanceGridMultipleCount').html('Total Records: ' + e.component.totalCount());
                     }
-                });
+                }).dxDataGrid("instance");
             } else {
-                 $('#GridTagMulti').hide();
+                $('#GridTagMulti').hide();
                 $('#spnNoRecordMulti').show();
+                multipleGridInstance = null;
             }
             $('#grid-multi-loader').removeClass('d-flex').hide();
         } catch (error) {
             $('#grid-multi-loader').removeClass('d-flex').hide();
-            console.error('Failed to load First In/Out records:', error);
-            alert("Failed to load First In/Out records.");
+            console.error('Failed to load Multiple Punches records:', error);
+            round_error_noti("Failed to load Multiple Punches records.");
         }
     }
-
-
-
-
-
-
-    
 </script>
-
-
