@@ -14,11 +14,10 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
-   
-
     .form-section {
         padding: 15px;
         border: 1px solid #ccc;
+        margin-bottom: 20px;
     }
 
     .btn-custom {
@@ -81,11 +80,55 @@
         margin-bottom: 4px;
     }
 
-
     .form-control-sm, .form-select-sm {
         height: calc(1.5em + .5rem + 2px);
         font-size: 0.875rem;
         padding: .25rem .5rem;
+    }
+
+    /* Grid specific styles */
+    .grid-container {
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    /* Action buttons positioning */
+    .action-buttons-container {
+        width: 100%;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        text-align: right;
+    }
+
+    .action-buttons-container .btn-custom {
+        margin-left: 8px;
+        padding: 6px 16px;
+        font-size: 14px;
+    }
+
+    /* Ensure grid takes full width */
+    #attendanceGrid {
+        width: 100% !important;
+        min-height: 400px;
+    }
+
+    /* DevExtreme grid width fix */
+    .dx-datagrid {
+        width: 100% !important;
+    }
+
+    .dx-datagrid-content {
+        width: 100% !important;
+    }
+
+    /* Container adjustments */
+    .main-container {
+        padding: 0 15px;
+        max-width: 100%;
+        margin: 0 auto;
     }
 </style>
 
@@ -98,6 +141,7 @@
         </div>
     </div>
 </div>
+
 <!-- Form Starts -->
 <div class="form-section">
     <!-- Row 1: Search By & Search For -->
@@ -158,11 +202,9 @@
             </div>
         </div>
     </div>
-
 </div>
 
 <!-- EMPLOYEE REGULARIZATION Heading -->
-
 <div class="search-panel-wrapper">
     <div class="search-panel-container">
         <div class="search-panel-row">
@@ -171,50 +213,53 @@
     </div>
 </div>
 
-<!-- Delete Button + Grid Container -->
-<div class="container mt-3">
-    <!-- Action Buttons Row -->
-   <div id="actionButtons" class="custom-action-buttons text-end mb-2">
+<!-- Main Container for Grid and Buttons -->
+<div class="main-container">
+    <!-- Action Buttons Row - Properly positioned outside grid -->
+    <div id="actionButtons" class="action-buttons-container" style="display: none;">
         <button id="btnDelete" class="btn btn-custom">Delete</button>
         <button id="btnApprove" class="btn btn-custom">Approve</button>
         <button id="btnReject" class="btn btn-custom">Reject</button>
-</div>
-    <!--Loader-->
+    </div>
 
+    <!--Loader-->
     <div id="grid-loader"
          class="grid-loader justify-content-center align-items-center flex-column"
          style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
-
         <img src="@baseDomainUrl/loders/loder.png"
              class="grid-logo-spinner"
              style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
-
         <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
     </div>
-    <!-- Grid -->
-    <div id="attendanceGrid"></div>
+    
+    <!-- Grid Container -->
+    <div class="grid-container">
+        <div id="attendanceGrid"></div>
+    </div>
 </div>
 
 <script>
-     const EmployeeId = localStorage.getItem('EmployeeId');
-        $(document).ready(function () {
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    $(document).ready(function () {
         $('#r2').prop('checked', true); 
         $('#btnGo').click(); 
-            $("#btnApprove").click(function () {
-        updateAttendanceStatus("Approved");
-    });
+        
+        $("#btnApprove").click(function () {
+            updateAttendanceStatus("Approved");
+        });
 
-    $("#btnReject").click(function () {
-        updateAttendanceStatus("Rejected");
+        $("#btnReject").click(function () {
+            updateAttendanceStatus("Rejected");
+        });
     });
-    });
+    
     let selectedKeys = [];
 
-
-      function goBack() {
+    function goBack() {
         window.history.back(); 
     }
+    
     function getStatus() {
         if ($('#r2').is(':checked')) return 'Pending';
         if ($('#r3').is(':checked')) return 'Approved';
@@ -232,21 +277,25 @@
         }
     }
 
-
-          async function showLoder(){
-          $('#grid-loader').addClass('d-flex').show();
-        }
-        async function hideLoder(){
-                $('#grid-loader').removeClass('d-flex').hide();
-        } 
-
+    async function showLoder(){
+        $('#grid-loader').addClass('d-flex').show();
+    }
+    
+    async function hideLoder(){
+        $('#grid-loader').removeClass('d-flex').hide();
+    } 
 
     function loadGrid(data) {
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
-            keyExpr: "attendanceRegularizationId", // must be unique
+            keyExpr: "attendanceRegularizationId",
             showBorders: true,
-            height:"auto",
+            width: "100%", // Ensure full width
+            height: "auto",
+            scrolling: {
+                mode: "standard"
+            },
+            columnAutoWidth: true, // Auto adjust column widths
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
@@ -255,20 +304,18 @@
                 selectedKeys = e.selectedRowKeys;
             },
             columns: [
-                { dataField: "employeeCode", caption: "Code", width: 80 },
-               { dataField: "empId", visible: false },
-                { dataField: "fullName", caption: "Name" },
-         
-      { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy" },
-      { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy" },
-      { dataField: "inTime", caption: "In Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm" },
-      { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm" },
-
-
-               { dataField: "duration", caption: "Duration", dataType: "string" },   
-               { dataField: "day", caption: "Day", dataType: "string" },
-                    {
+                { dataField: "employeeCode", caption: "Code", width: 100, minWidth: 80 },
+                { dataField: "empId", visible: false },
+                { dataField: "fullName", caption: "Name", minWidth: 130 },
+                { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 130 },
+                { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy", width: 130 },
+                { dataField: "inTime", caption: "In Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 130 },
+                { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 130 },
+                { dataField: "duration", caption: "Duration", dataType: "string", width: 130 },   
+                { dataField: "day", caption: "Day", dataType: "string", width: 130 },
+                {
                     caption: "Status",
+                    width: 130,
                     calculateCellValue: function (row) {
                         if (row.isApproved) return "Approved";
                         if (row.isRejected) return "Rejected";
@@ -277,21 +324,18 @@
                     }
                 }
             ]
-
         });
         $("#actionButtons").show();
     }
 
-
     $('#btnGo').on('click', function () {
-               showLoder();
+        showLoder();
         let model = {
             SearchBy: getSearchByText($('#searchby').val()),
             SearchValue: $('#searchfor').val(),
             FromDate: $('#fromdate').val() || null,
             ToDate: $('#todate').val() || null,
             Status: getStatus()
-
         };
 
         $.ajax({
@@ -302,29 +346,28 @@
             success: function (res) {
                 if (res.isSuccess) {                    
                     loadGrid(res.data); 
-                        $("#actionButtons").show();
-                            $("#btnDelete").show();
-                         $("#btnApprove").show();
-                         $("#btnReject").show();
+                    $("#actionButtons").show();
+                    $("#btnDelete").show();
+                    $("#btnApprove").show();
+                    $("#btnReject").show();
                 } else {         
-                       $("#actionButtons").hide();
-                         $("#btnDelete").hide();
-                         $("#btnApprove").hide();
-                         $("#btnReject").hide();
-                       round_error_noti(res.responseMessage || 'No Data');
+                    $("#actionButtons").hide();
+                    $("#btnDelete").hide();
+                    $("#btnApprove").hide();
+                    $("#btnReject").hide();
+                    round_error_noti(res.responseMessage || 'No Data');
                 }
             },
             error: function () {               
-                   round_error_noti(res.responseMessage || 'No Data');
+                round_error_noti('Error occurred while fetching data');
             },
             complete: function () {
-
-            hideLoder();
-        }
+                hideLoder();
+            }
         });
     });
 
-       $('#btnDelete').on('click', function () {
+    $('#btnDelete').on('click', function () {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedIds = grid.getSelectedRowKeys(); 
 
@@ -333,7 +376,7 @@
             return;
         }
 
-               showLoder();
+        showLoder();
         const deletePayload = {
             Id: selectedIds,     
             DeletedBy: ""        
@@ -345,113 +388,111 @@
             contentType: 'application/json',
             data: JSON.stringify(deletePayload),
             success: function (res) {
-                            hideLoder();
+                hideLoder();
                 if (res.isSuccess) {
                     round_success_noti(res.responseMessage || "Deleted successfully.");
-                      selectedRowKeys.forEach(function (key) {
-                    grid.deleteRow(grid.getRowIndexByKey(key));
-                });
+                    selectedRowKeys.forEach(function (key) {
+                        grid.deleteRow(grid.getRowIndexByKey(key));
+                    });
                     $("#btnGo").click(); 
                 } else {
                     round_error_noti(res.responseMessage || "Deletion failed.");
                 }
             },
             error: function () {
-                           hideLoder();
+                hideLoder();
                 round_error_noti("Something went wrong during deletion.");
             }
         });
     });
 
-       function updateAttendanceStatus(status) {
+    function updateAttendanceStatus(status) {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
         if (selectedRows.length === 0) {
-           round_error_noti("Please select at least one record.");
+            round_error_noti("Please select at least one record.");
             return;
         }
-          if (status === "Rejected") {
-        const approvedRecords = selectedRows.filter(row => row.isApproved);
-        if (approvedRecords.length > 0) {
-           Swal.fire({
-        title: "Not Allowed",
-        text: "Approved records cannot be rejected.",
-        icon: "error",
-        customClass: {
-            popup: 'swal-small'
-        }
-    });
-            return;
-        }
-    }  
+        
+        if (status === "Rejected") {
+            const approvedRecords = selectedRows.filter(row => row.isApproved);
+            if (approvedRecords.length > 0) {
+                Swal.fire({
+                    title: "Not Allowed",
+                    text: "Approved records cannot be rejected.",
+                    icon: "error",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+                return;
+            }
+        }  
           
-         if (status === "Approved") {
-        const approvedRecords = selectedRows.filter(row => row.isApproved);
-        if (approvedRecords.length > 0) {
-           Swal.fire({
-        title: "Not Allowed",
-        text: "Already  Approved.",
-        icon: "error",
-        customClass: {
-            popup: 'swal-small'
-        }
-    });
-            return;
-        }
-    }    
+        if (status === "Approved") {
+            const approvedRecords = selectedRows.filter(row => row.isApproved);
+            if (approvedRecords.length > 0) {
+                Swal.fire({
+                    title: "Not Allowed",
+                    text: "Already Approved.",
+                    icon: "error",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+                return;
+            }
+        }    
 
-      if (status === "Rejected") {
-        const approvedRecords = selectedRows.filter(row => row.isRejected);
-        if (approvedRecords.length > 0) {
-           Swal.fire({
-        title: "Not Allowed",
-        text: "Already  Rejected.",
-        icon: "error",
-        customClass: {
-            popup: 'swal-small'
+        if (status === "Rejected") {
+            const rejectedRecords = selectedRows.filter(row => row.isRejected);
+            if (rejectedRecords.length > 0) {
+                Swal.fire({
+                    title: "Not Allowed",
+                    text: "Already Rejected.",
+                    icon: "error",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+                return;
+            }
         }
-    });
-            return;
-        }
-    }
 
         selectedRows.forEach(function (row) {
             row.status = status; 
-            row.createdBy=EmployeeId;
+            row.createdBy = EmployeeId;
         });
         
-            showLoder();
+        showLoder();
         $.ajax({
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/UpdateAttendanceRegularization")',
             type: "PUT",
             data: JSON.stringify(selectedRows), 
             contentType: "application/json",
             success: function (response) {
-                        hideLoder();
+                hideLoder();
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage || "Status updated successfully.");
-                        const selectedKeys = grid.getSelectedRowKeys(); 
-                let dataSource = grid.option("dataSource");
-                const updatedData = dataSource.filter(item => {
-                    return !selectedKeys.includes(item.attendanceRegularizationId);
-                });
-                grid.option("dataSource", updatedData);
-                grid.refresh();
+                    const selectedKeys = grid.getSelectedRowKeys(); 
+                    let dataSource = grid.option("dataSource");
+                    const updatedData = dataSource.filter(item => {
+                        return !selectedKeys.includes(item.attendanceRegularizationId);
+                    });
+                    grid.option("dataSource", updatedData);
+                    grid.refresh();
                 } else {
-                    round_error_noti(response.responseMessage || "Update failed.", "error");
-
+                    round_error_noti(response.responseMessage || "Update failed.");
                 }
             },
             error: function () {
-                        hideLoder();
-              round_error_noti(response.responseMessage || "Error", "Something went wrong during update.", "error");
+                hideLoder();
+                round_error_noti("Something went wrong during update.");
             }
-
         });
     }
 
-
-      $("#btnClear").click(function () {
+    $("#btnClear").click(function () {
         // Reset form
         $('#searchby').val("1");
         $('#searchfor').val('');
@@ -462,14 +503,12 @@
         $("#attendanceGrid").dxDataGrid("dispose");
         $("#attendanceGrid").dxDataGrid({
             dataSource: [],
-            showBorders: true
+            showBorders: true,
+            width: "100%"
         });
         $("#actionButtons").hide();
-            $("#btnDelete").hide();
-    $("#btnApprove").hide();
-    $("#btnReject").hide();
+        $("#btnDelete").hide();
+        $("#btnApprove").hide();
+        $("#btnReject").hide();
     });
-
-
-
 </script>
