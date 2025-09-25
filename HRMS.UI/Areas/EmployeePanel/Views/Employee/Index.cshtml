@@ -440,12 +440,17 @@
                 column.width = Math.min(maxLength + 2, 50);
             });
 
-            // Generate Excel file
+            // Ensure filename doesn't have special characters that might cause issues
+            const sanitizedFileName = fileName.replace(/[^a-z0-9_\-]/gi, '_');
+
+            // Generate Excel file with explicit filename
             workbook.xlsx.writeBuffer().then(buffer => {
                 const blob = new Blob([buffer], {
                     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 });
-                saveAs(blob, `${fileName}.xlsx`);
+
+                // Use FileSaver.js with explicit filename
+                saveAs(blob, `${sanitizedFileName}.xlsx`);
                 round_success_noti("Excel file downloaded successfully!");
             }).catch(error => {
                 console.error('Excel export error:', error);
@@ -461,7 +466,7 @@
     }
 
     // Fallback CSV Export Function
-    function exportToCSV(data, fileName, columns) {
+      function exportToCSV(data, fileName, columns) {
         try {
             // Create CSV content
             const headers = columns.map(col => col.caption || col.dataField);
@@ -498,11 +503,14 @@
                 csvContent += row.join(',') + '\n';
             });
 
+            // Ensure filename doesn't have special characters
+            const sanitizedFileName = fileName.replace(/[^a-z0-9_\-]/gi, '_');
+
             // Download CSV file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${fileName}.csv`;
+            link.download = `${sanitizedFileName}.csv`;
             link.style.display = 'none';
             document.body.appendChild(link);
             link.click();
@@ -514,6 +522,7 @@
             round_error_noti("Failed to export data.");
         }
     }
+
 
     function convertUTCtoIST(utcInput) {
         const utcDate = new Date(utcInput);
@@ -654,7 +663,7 @@
         }
     }
 
-    async function loadFirstLast(empid, Compid, month, year) {
+      async function loadFirstLast(empid, Compid, month, year) {
         $('#grid-first-loader').addClass('d-flex').show();
         try {
             const response = await fetch(`${apiBase}/EmployeeInOut/GetMonthlyAttendanceDetails`, {
@@ -662,7 +671,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'Authorization': `Bearer ${Token}` // optional, if needed
+                    'Authorization': `Bearer ${Token}`
                 },
                 body: JSON.stringify({
                     employeeId: empid,
@@ -756,21 +765,17 @@
                                         class: 'excel-export-btn'
                                     },
                                     onClick: function () {
-                                        const fileName = `empInOutReport`;
+                                        const month = $('#dropdownmonth').val();
+                                        const year = $('#dropdownyear').val();
+                                        const monthName = $('#dropdownmonth option:selected').text();
+                                        const fileName = `EmpInOutReport_${monthName}_${year}`;
 
-                                        try {
-                                            // Try DevExtreme's built-in export first
-                                            firstGridInstance.exportToExcel({
-                                                fileName: fileName,
-                                                excelFilterEnabled: false
-                                            });
-                                        } catch (error) {
-                                            console.log('DevExtreme export failed, using fallback method:', error);
-                                            // Fallback to manual export
-                                            const gridData = firstGridInstance.option('dataSource');
-                                            const columns = firstGridInstance.option('columns');
-                                            exportDataToExcel(gridData, fileName, columns);
-                                        }
+                                        // Get grid data and columns
+                                        const gridData = firstGridInstance.option('dataSource');
+                                        const columns = firstGridInstance.option('columns');
+
+                                        // Use custom export function
+                                        exportDataToExcel(gridData, fileName, columns);
                                     }
                                 }
                             },
@@ -794,6 +799,7 @@
         }
     }
 
+
     async function loadMultiple(empid, Compid, month, year) {
         $('#grid-multi-loader').addClass('d-flex').show();
         try {
@@ -802,7 +808,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'Authorization': `Bearer ${Token}` // optional, if needed
+                    'Authorization': `Bearer ${Token}`
                 },
                 body: JSON.stringify({
                     employeeId: empid,
@@ -885,21 +891,17 @@
                                         class: 'excel-export-btn'
                                     },
                                     onClick: function () {
-                                        const fileName = `empInOutReport`;
+                                        const month = $('#dropdownmonth').val();
+                                        const year = $('#dropdownyear').val();
+                                        const monthName = $('#dropdownmonth option:selected').text();
+                                        const fileName = `EmpInOutReport_MultiplePunches_${monthName}_${year}`;
 
-                                        try {
-                                            // Try DevExtreme's built-in export first
-                                            multipleGridInstance.exportToExcel({
-                                                fileName: fileName,
-                                                excelFilterEnabled: false
-                                            });
-                                        } catch (error) {
-                                            console.log('DevExtreme export failed, using fallback method:', error);
-                                            // Fallback to manual export
-                                            const gridData = multipleGridInstance.option('dataSource');
-                                            const columns = multipleGridInstance.option('columns');
-                                            exportDataToExcel(gridData, fileName, columns);
-                                        }
+                                        // Get grid data and columns
+                                        const gridData = multipleGridInstance.option('dataSource');
+                                        const columns = multipleGridInstance.option('columns');
+
+                                        // Use custom export function
+                                        exportDataToExcel(gridData, fileName, columns);
                                     }
                                 }
                             },
