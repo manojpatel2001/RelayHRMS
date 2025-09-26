@@ -300,7 +300,7 @@ namespace HRMS_Infrastructure.Repository.Employee
             {
 
                
-                    return await _db.Set<EmpInOutReportforAdmin>()
+                    var result = await _db.Set<EmpInOutReportforAdmin>()
                         .FromSqlInterpolated($@"EXEC [dbo].[GetEmpInOutReportForAdmin]
                 @StartDate ={filter.StartDate},
                 @EndDate ={filter.EndDate},
@@ -308,6 +308,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                 @EmployeeId ={filter.EmployeeCodes},
                 @CompanyId ={filter.CompanyId}")
                     .ToListAsync();
+                return  result;
                 }
                 catch
                 {
