@@ -304,9 +304,21 @@
         font-style: italic;
         font-size: 13px;
     }
+
+    .small-swal {
+        font-size: 14px !important;
+    }
+
+        .small-swal .swal2-title {
+            font-size: 18px !important;
+        }
+
+        .small-swal .swal2-content {
+            font-size: 13px !important;
+        }
 </style>
 
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 
@@ -425,7 +437,7 @@
                 <div class="panel-wrapper position-relative">
                     <div class="side-panel">
                         <!-- Tab Headers -->
-                        <a href="#" class="tab-item active" data-tab="todaysAttendance">Today's Attendance</a>
+                        <a href="#" class="tab-item " data-tab="todaysAttendance">Today's Attendance</a>
 
                         <!-- Tab Content for Today's Attendance -->
                         <div id="todaysAttendanceContent" class="tab-content">
@@ -457,7 +469,7 @@
 
                                 <div class="calendar-header">
                                     <button class="nav-btn" onclick="previousMonth()">❮</button>
-                                    <div class="month-year" id="monthYear">September 2025</div>
+                                    <div class="month-year" id="monthYear"></div>
                                     <button class="nav-btn" onclick="nextMonth()">❯</button>
                                 </div>
 
@@ -643,9 +655,6 @@
 </style>
 
 <!-- Scripts -->
-
-
-
 <!-- Event Modal -->
 <div class="modal" id="eventModal">
     <div class="modal-content">
@@ -705,8 +714,15 @@
             </div>
         </div>
 
-        <div class="posted-events">Posted Event</div>
-        <div class="no-record" id="postedEvents">No Record Found</div>
+        <div class="posted-events">Posted Events</div>
+        <div style="padding: 10px 20px; background-color: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
+            <button onclick="deleteSelectedEvents()" style="margin-left: auto;padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; background-color: #5a6b7d; color: white;">Delete</button>
+       
+        </div>
+        <div id="postedEventsGridContainer" style="height: 300px; margin: 10px 20px;">
+            <div id="postedEventsGrid"></div>
+        </div>
+
     </div>
 </div>
 
@@ -720,60 +736,62 @@
         const companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
         const CompanyId = companyDetails.CompanyId;
 
-        $(document).ready(function(){
-            BranchData();
-            LoadDashboardCounts();
-            initializeTabs(); // Initialize tab functionality
+     $(document).ready(function() {
+        BranchData();
+        LoadDashboardCounts();
+        initializeTabs();
 
-            $('#leaveCount').text('(.)');
-            $('#compoffCount').text('(.)');
-        });
+        // Open the Events tab by default
+        $('.tab-item[data-tab="addViewEvents"]').addClass('active'); // Mark tab as active
+        $('#addViewEventsContent').show(); // Show the content (no animation delay)
+        loadEventsData(); // Load the data
 
-        function initializeTabs() {
-            $('.tab-item').on('click', function(e) {
-                e.preventDefault();
+        $('#leaveCount').text('(.)');
+        $('#compoffCount').text('(.)');
+    });
 
-                const tabId = $(this).data('tab');
-                const isCurrentlyActive = $(this).hasClass('active');
+    function initializeTabs() {
+        $('.tab-item').on('click', function(e) {
+            e.preventDefault();
+            const tabId = $(this).data('tab');
+            const isCurrentlyActive = $(this).hasClass('active');
 
-                // Remove active class from all tabs
-                $('.tab-item').removeClass('active');
+            // Remove active class from all tabs
+            $('.tab-item').removeClass('active');
+            // Hide all tab contents
+            $('.tab-content').slideUp(300);
 
-                // Hide all tab contents
-                $('.tab-content').slideUp(300);
-
-                // If the clicked tab wasn't active, make it active and show content
-                if (!isCurrentlyActive) {
-                    $(this).addClass('active');
-                    $('#' + tabId + 'Content').slideDown(300);
-                    loadTabContent(tabId);
-                }
-            });
-        }
-
-        // Load content for specific tabs
-        function loadTabContent(tabId) {
-            switch(tabId) {
-                case 'todaysAttendance':
-                    loadTodaysAttendanceData();
-                    break;
-                case 'birthdayAnniversary':
-                    loadBirthdayAnniversaryData();
-                    break;
-                case 'addViewEvents':
-                    loadEventsData();
-                    break;
-                case 'messageBoard':
-                    loadMessageBoardData();
-                    break;
-                case 'newJoining':
-                    loadNewJoiningData();
-                    break;
-                case 'wallOfFame':
-                    loadWallOfFameData();
-                    break;
+            if (!isCurrentlyActive) {
+                $(this).addClass('active');
+                $('#' + tabId + 'Content').slideDown(300);
+                loadTabContent(tabId);
             }
+        });
+    }
+
+    // Load content for specific tabs
+    function loadTabContent(tabId) {
+        switch(tabId) {
+            case 'todaysAttendance':
+                loadTodaysAttendanceData();
+                break;
+            case 'birthdayAnniversary':
+                loadBirthdayAnniversaryData();
+                break;
+            case 'addViewEvents':
+                loadEventsData();
+                break;
+            case 'messageBoard':
+                loadMessageBoardData();
+                break;
+            case 'newJoining':
+                loadNewJoiningData();
+                break;
+            case 'wallOfFame':
+                loadWallOfFameData();
+                break;
         }
+    }
 
             // Load Today's Attendance Data
         function loadTodaysAttendanceData() {
@@ -2757,11 +2775,18 @@
 </script>
 
 <script>
+
     let currentDate = new Date();
-    let currentMonth = 8; // September (0-based)
-    let currentYear = 2025;
+    let currentMonth = currentDate.getMonth(); // Dynamic current month
+    let currentYear = currentDate.getFullYear(); // Dynamic current year
     let events = {}; // Store events by date key
     let showingEvents = false;
+
+
+       $(document).ready(function () {
+         
+           initializeEventsGrid();
+    });
 
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -2770,21 +2795,80 @@
 
     const dayHeaders = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
+
+    function getCurrentDate() {
+        const now = new Date();
+        return {
+            year: now.getFullYear(),
+            month: now.getMonth(),
+            date: now.getDate(),
+            day: now.getDay()
+        };
+    }
+
+
+    function getTodayKey() {
+        const today = getCurrentDate();
+        return `${today.year}-${(today.month + 1).toString().padStart(2, '0')}-${today.date.toString().padStart(2, '0')}`;
+    }
+
+    function formatDateForDisplay(year, month, day) {
+        return `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
+    }
+
+
+    function formatDateForStorage(day, month, year) {
+        return `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    }
+
+
+    function isToday(year, month, day) {
+        const today = getCurrentDate();
+        return year === today.year && month === today.month && day === today.date;
+    }
+
+    // Function to get future date
+    function getFutureDate(daysFromToday) {
+        const today = new Date();
+        const futureDate = new Date(today);
+        futureDate.setDate(today.getDate() + daysFromToday);
+
+        return {
+            year: futureDate.getFullYear(),
+            month: futureDate.getMonth(),
+            date: futureDate.getDate(),
+            key: `${futureDate.getFullYear()}-${(futureDate.getMonth() + 1).toString().padStart(2, '0')}-${futureDate.getDate().toString().padStart(2, '0')}`
+        };
+    }
+
     function initializeCalendar() {
+        const current = getCurrentDate();
+        currentMonth = current.month;
+        currentYear = current.year;
+
         generateCalendar();
-        updateEventsDisplay();
+
+        // Check if eventsList element exists before updating
+        const eventsList = document.getElementById('eventsList');
+        if (eventsList) {
+            updateEventsDisplay();
+        }
     }
 
     function generateCalendar() {
         const grid = document.getElementById('calendarGrid');
         const monthYear = document.getElementById('monthYear');
 
+        if (!grid || !monthYear) {
+            console.error('Calendar elements not found');
+            return;
+        }
+
         monthYear.textContent = `${months[currentMonth]} ${currentYear}`;
 
         // Clear existing content
         grid.innerHTML = '';
 
-        // Add day headers
         dayHeaders.forEach(day => {
             const header = document.createElement('div');
             header.className = 'day-header';
@@ -2792,16 +2876,14 @@
             grid.appendChild(header);
         });
 
-        // Get first day of month and number of days
+
         const firstDay = new Date(currentYear, currentMonth, 1);
         const lastDay = new Date(currentYear, currentMonth + 1, 0);
         const daysInMonth = lastDay.getDate();
 
-        // Adjust first day to match Monday start (0=Monday, 6=Sunday)
         let firstDayOfWeek = firstDay.getDay();
         firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
 
-        // Add empty cells for days before month starts
         for (let i = 0; i < firstDayOfWeek; i++) {
             const emptyCell = document.createElement('div');
             emptyCell.className = 'day-cell';
@@ -2814,16 +2896,13 @@
             dayCell.className = 'day-cell';
             dayCell.textContent = day;
 
-            // Check if this is today
-            const today = new Date();
-            if (currentYear === today.getFullYear() &&
-                currentMonth === today.getMonth() &&
-                day === today.getDate()) {
+            // Check if this is today using dynamic function
+            if (isToday(currentYear, currentMonth, day)) {
                 dayCell.classList.add('today');
             }
 
             // Check if this date has events
-            const dateKey = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+            const dateKey = formatDateForStorage(day, currentMonth, currentYear);
             if (events[dateKey] && events[dateKey].length > 0) {
                 dayCell.classList.add('has-event');
             }
@@ -2840,7 +2919,12 @@
             currentYear--;
         }
         generateCalendar();
-        updateEventsDisplay();
+
+        // Check if element exists before updating
+        const eventsList = document.getElementById('eventsList');
+        if (eventsList) {
+            updateEventsDisplay();
+        }
     }
 
     function nextMonth() {
@@ -2850,74 +2934,206 @@
             currentYear++;
         }
         generateCalendar();
-        updateEventsDisplay();
+
+        // Check if element exists before updating
+        const eventsList = document.getElementById('eventsList');
+        if (eventsList) {
+            updateEventsDisplay();
+        }
+    }
+
+    function getSelectedDateFromModal() {
+        const eventDate = document.getElementById('eventDate');
+        if (eventDate && eventDate.value) {
+            // Convert DD/MM/YYYY to YYYY-MM-DD format for API
+            const dateParts = eventDate.value.split('/');
+            return `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+        }
+        return null;
     }
 
     function openEventModal(day) {
         const modal = document.getElementById('eventModal');
         const dateInput = document.getElementById('eventDate');
 
-        const formattedDate = `${day.toString().padStart(2, '0')}/${(currentMonth + 1).toString().padStart(2, '0')}/${currentYear}`;
-        dateInput.value = formattedDate;
-
-        modal.style.display = 'block';
-        updatePostedEvents();
-    }
-
-    function closeModal() {
-        document.getElementById('eventModal').style.display = 'none';
-        clearForm();
-    }
-
-    function clearForm() {
-        document.getElementById('eventName').value = '';
-        document.getElementById('eventType').value = '';
-        document.getElementById('eventRepeat').value = 'no-repeat';
-        document.getElementById('myEvent').checked = true;
-    }
-
-    function saveEvent() {
-        const eventName = document.getElementById('eventName').value.trim();
-        const eventType = document.getElementById('eventType').value;
-        const eventRepeat = document.getElementById('eventRepeat').value;
-        const eventDate = document.getElementById('eventDate').value;
-
-        if (!eventName || !eventType) {
-            alert('Please fill in all required fields (Event Name and Event Type)');
+        if (!modal || !dateInput) {
+            console.error('Modal or date input element not found');
             return;
         }
 
-        // Convert date to key format
-        const dateParts = eventDate.split('/');
-        const dateKey = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+        // Use dynamic date formatting function
+        const formattedDate = formatDateForDisplay(currentYear, currentMonth, day);
+        dateInput.value = formattedDate;
 
-        if (!events[dateKey]) {
-            events[dateKey] = [];
+        modal.style.display = 'block';
+
+        // Only call updatePostedEvents if element exists
+        const postedEventsElement = document.getElementById('postedEvents');
+        if (postedEventsElement) {
+            updatePostedEvents();
+        } else {
+            console.warn('postedEvents element not found - skipping updatePostedEvents()');
         }
 
-        const newEvent = {
-            name: eventName,
-            type: eventType,
-            repeat: eventRepeat,
-            date: eventDate,
-            id: Date.now() // Simple ID generation
+        // Load events for the selected date
+        const selectedDateForAPI = formatDateForStorage(day, currentMonth, currentYear);
+        loadEventsForDate(selectedDateForAPI);
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('eventModal');
+        if (modal) {
+            modal.style.display = 'none';
+            clearForm();
+        }
+    }
+
+    function clearForm() {
+        const eventName = document.getElementById('eventName');
+        const eventType = document.getElementById('eventType');
+        const eventRepeat = document.getElementById('eventRepeat');
+        const myEvent = document.getElementById('myEvent');
+
+        if (eventName) eventName.value = '';
+        if (eventType) eventType.value = '';
+        if (eventRepeat) eventRepeat.value = 'no-repeat';
+        if (myEvent) myEvent.checked = true;
+    }
+
+    function saveEvent() {
+        const eventName = document.getElementById('eventName');
+        const eventType = document.getElementById('eventType');
+        const eventRepeat = document.getElementById('eventRepeat');
+        const eventDate = document.getElementById('eventDate');
+
+        if (!eventName || !eventType || !eventDate) {
+            console.error('Required form elements not found');
+            return;
+        }
+
+        if (!eventName.value.trim() || !eventType.value) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Fields',
+                text: 'Please fill in all required fields',
+                confirmButtonText: 'OK',
+                width: '350px',
+                customClass: {
+                    popup: 'small-swal'
+                }
+            });
+            return;
+        }
+
+        const dateParts = eventDate.value.split('/');
+        const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+
+        const eventData = {
+            EventName: eventName.value.trim(),
+            Date: formattedDate,
+            EventType: eventType.value,
+            Repeat: eventRepeat.value,
+            IsMyevent: true,
+            IsShowall: false,
+            CreatedBy: userId
         };
 
-        events[dateKey].push(newEvent);
+        // Show loading alert
+        Swal.fire({
+            title: 'Saving...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            width: '300px',
+            customClass: {
+                popup: 'small-swal'
+            },
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
-        // Refresh calendar and events display
-        generateCalendar();
-        updateEventsDisplay();
-        updatePostedEvents();
-        clearForm();
+        $.ajax({
+            url: '@baseDomainUrl/api/AddEventAPI/CreateEvent',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(eventData),
+            success: function(result) {
+                Swal.close(); // Close loading alert
+                console.log('result', result);
+                if (result.isSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Event saved successfully!',
+                        confirmButtonText: 'OK',
+                        width: '350px',
+                        customClass: {
+                            popup: 'small-swal'
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            closeModal();  // <-- ADD THIS LINE
+                            clearForm();
+                            generateCalendar();
 
-        alert('Event saved successfully!');
+                            // Check if elements exist before updating
+                            const eventsList = document.getElementById('eventsList');
+                            if (eventsList) {
+                                updateEventsDisplay();
+                            }
+
+                            const postedEvents = document.getElementById('postedEvents');
+                            if (postedEvents) {
+                                updatePostedEvents();
+                            }
+
+                            // Reload events for current selected date
+                            const selectedDate = getSelectedDateFromModal();
+                            if (selectedDate) {
+                                loadEventsForDate(selectedDate);
+                            }
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: result.responseMessage || 'Failed to save event',
+                        confirmButtonText: 'OK',
+                        width: '350px',
+                        customClass: {
+                            popup: 'small-swal'
+                        }
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.close(); // Close loading alert
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error!',
+                    text: 'Please try again.',
+                    confirmButtonText: 'OK',
+                    width: '350px',
+                    customClass: {
+                        popup: 'small-swal'
+                    }
+                });
+            }
+        });
     }
 
     function updateEventsDisplay() {
         const eventsList = document.getElementById('eventsList');
-        const today = new Date();
-        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+
+        if (!eventsList) {
+            console.warn('eventsList element not found in DOM');
+            return;
+        }
+
+        const todayKey = getTodayKey(); // Use dynamic function
 
         let hasEvents = false;
         let eventsHtml = '';
@@ -2927,30 +3143,27 @@
             hasEvents = true;
             events[todayKey].forEach(event => {
                 eventsHtml += `
-                    <div class="event-item">
-                        <div class="event-date">${event.date}</div>
-                        <div class="event-name">${event.name}</div>
-                        <div class="event-type">${event.type}</div>
-                    </div>
+    <div class="event-item">
+        <div class="event-date">${event.date}</div>
+        <div class="event-name">${event.name}</div>
+        <div class="event-type">${event.type}</div>
+    </div>
                 `;
             });
         }
 
-        // Show upcoming events (next 7 days)
         for (let i = 1; i <= 7; i++) {
-            const futureDate = new Date(today);
-            futureDate.setDate(today.getDate() + i);
-            const futureDateKey = `${futureDate.getFullYear()}-${(futureDate.getMonth() + 1).toString().padStart(2, '0')}-${futureDate.getDate().toString().padStart(2, '0')}`;
+            const futureDate = getFutureDate(i);
 
-            if (events[futureDateKey] && events[futureDateKey].length > 0) {
+            if (events[futureDate.key] && events[futureDate.key].length > 0) {
                 hasEvents = true;
-                events[futureDateKey].forEach(event => {
+                events[futureDate.key].forEach(event => {
                     eventsHtml += `
-                        <div class="event-item">
-                            <div class="event-date">${event.date}</div>
-                            <div class="event-name">${event.name}</div>
-                            <div class="event-type">${event.type}</div>
-                        </div>
+    <div class="event-item">
+        <div class="event-date">${event.date}</div>
+        <div class="event-name">${event.name}</div>
+        <div class="event-type">${event.type}</div>
+    </div>
                     `;
                 });
             }
@@ -2960,50 +3173,277 @@
             eventsList.innerHTML = eventsHtml;
         } else {
             eventsList.innerHTML = `
-                <div class="no-events">No Event Today</div>
-                <div class="no-events">No Upcoming Event</div>
+    <div class="no-events">No Event Today</div>
+    <div class="no-events">No Upcoming Event</div>
             `;
         }
     }
 
     function updatePostedEvents() {
         const postedEventsDiv = document.getElementById('postedEvents');
+
+        // Strong null check with early return
+        if (!postedEventsDiv) {
+            console.warn('postedEvents element not found in DOM - function terminated');
+            return false;
+        }
+
         let allEvents = [];
 
         // Collect all events
         Object.keys(events).forEach(dateKey => {
-            events[dateKey].forEach(event => {
-                allEvents.push(event);
-            });
+            if (events[dateKey] && Array.isArray(events[dateKey])) {
+                events[dateKey].forEach(event => {
+                    allEvents.push(event);
+                });
+            }
         });
 
-        if (allEvents.length === 0) {
-            postedEventsDiv.innerHTML = 'No Record Found';
-            postedEventsDiv.className = 'no-record';
-        } else {
-            let eventsHtml = '';
-            allEvents.forEach(event => {
-                eventsHtml += `
-                    <div class="event-item">
-                        <div class="event-date">${event.date}</div>
-                        <div class="event-name">${event.name}</div>
-                        <div class="event-type">${event.type}</div>
-                    </div>
-                `;
-            });
-            postedEventsDiv.innerHTML = eventsHtml;
-            postedEventsDiv.className = '';
+        try {
+            if (allEvents.length === 0) {
+                postedEventsDiv.innerHTML = 'No Record Found';
+                postedEventsDiv.className = 'no-record';
+            } else {
+                let eventsHtml = '';
+                allEvents.forEach(event => {
+                    eventsHtml += `
+    <div class="event-item">
+        <div class="event-date">${event.date || 'N/A'}</div>
+        <div class="event-name">${event.name || 'N/A'}</div>
+        <div class="event-type">${event.type || 'N/A'}</div>
+    </div>
+                    `;
+                });
+                postedEventsDiv.innerHTML = eventsHtml;
+                postedEventsDiv.className = '';
+            }
+            return true;
+        } catch (error) {
+            console.error('Error updating posted events:', error);
+            return false;
+        }
+    }
+
+    // Function to initialize the Events DataGrid
+    function initializeEventsGrid() {
+        $("#postedEventsGrid").dxDataGrid({
+            dataSource: [],
+            keyExpr: "eventId",
+            columnAutoWidth: true,
+            showBorders: true,
+            paging: {
+                pageSize: 10
+            },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [5, 10, 20],
+                showInfo: true
+            },
+            // Multi-selection settings
+            selection: {
+                mode: "multiple", // Enable multiple row selection
+                allowSelectAll: true, // Show "Select All" checkbox in header
+                showCheckBoxesMode: "always" // Always show checkboxes
+            },
+            columns: [
+                {
+                    dataField: "eventName",
+                    caption: "Event Name",
+                    width: 80
+                },
+                {
+                    dataField: "date",
+                    caption: "Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: 90
+                },
+                {
+                    dataField: "eventType",
+                    caption: "Type",
+                    width: 70
+                }
+            ],
+            onInitialized: function(e) {
+                loadEventsData();
+            }
+        });
+    }
+
+
+    function loadEventsForDate(dateString) {
+        $.ajax({
+            url: `@baseDomainUrl/api/AddEventAPI/GetAllEvent/${dateString}`,
+            type: 'GET',
+            contentType: 'application/json',
+            success: function(response) {
+                if (response.isSuccess && response.data) {
+                    const gridInstance = $("#postedEventsGrid").dxDataGrid("instance");
+
+                    // Format dates for display
+                    const formattedData = response.data.map(event => ({
+                        ...event,
+                        date: event.date ? new Date(event.date) : null
+                    }));
+
+                    gridInstance.option("dataSource", formattedData);
+
+                 
+                } else {
+                    const gridInstance = $("#postedEventsGrid").dxDataGrid("instance");
+                    gridInstance.option("dataSource", []);
+
+                
+                }
+            },
+            error: function(xhr, status, error) {
+                const gridInstance = $("#postedEventsGrid").dxDataGrid("instance");
+                gridInstance.option("dataSource", []);
+
+                DevExpress.ui.notify(
+                    { message: "Failed to load events. Please try again.", width: 300 },
+                    "error",
+                    3000
+                );
+                console.error("Error loading events:", error);
+            }
+        });
+    }
+
+    function onDateChange() {
+        const selectedDate = getSelectedDateFromModal();
+        if (selectedDate) {
+            loadEventsForDate(selectedDate);
         }
     }
 
     function toggleEventsView() {
         showingEvents = !showingEvents;
         if (showingEvents) {
+            const eventsList = document.getElementById('eventsList');
+            if (eventsList) {
+                updateEventsDisplay();
+            }
+        }
+    }
+
+    function goToToday() {
+        const current = getCurrentDate();
+        currentMonth = current.month;
+        currentYear = current.year;
+        generateCalendar();
+
+        const eventsList = document.getElementById('eventsList');
+        if (eventsList) {
             updateEventsDisplay();
         }
     }
 
-    // Close modal when clicking outside
+
+        function deleteSelectedEvents() {
+        const gridInstance = $("#postedEventsGrid").dxDataGrid("instance");
+        const selectedRowKeys = gridInstance.getSelectedRowKeys();
+
+        // Check if any rows are selected
+        if (selectedRowKeys.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Selection',
+                text: 'Please select at least one event to delete',
+                confirmButtonText: 'OK',
+                width: '350px',
+                customClass: {
+                    popup: 'small-swal'
+                }
+            });
+            return;
+        }
+
+        // Directly perform delete without confirmation
+        performDelete(selectedRowKeys);
+    }
+    function performDelete(selectedEventIds) {
+
+        const deleteData = {
+            Id: selectedEventIds, 
+            DeletedBy: userId
+        };
+
+   
+        $.ajax({
+            url: '@baseDomainUrl/api/AddEventAPI/Delete',
+            type: 'DELETE',
+            contentType: 'application/json',
+            data: JSON.stringify(deleteData),
+            success: function(response) {     
+                if (response.isSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: response.responseMessage || 'Events deleted successfully!',
+                        confirmButtonText: 'OK',
+                        width: '350px',
+                        customClass: {
+                            popup: 'small-swal'
+                        }
+                    }).then(() => {
+                       const selectedDate = getSelectedDateFromModal();  // Get the date from the modal
+                        if (selectedDate) {
+                            loadEventsForDate(selectedDate); 
+                        }
+                        generateCalendar();
+                        const eventsList = document.getElementById('eventsList');
+                        if (eventsList) { updateEventsDisplay(); }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: response.responseMessage || 'Failed to delete events',
+                        confirmButtonText: 'OK',
+                        width: '350px',
+                        customClass: {
+                            popup: 'small-swal'
+                        }
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+      
+                let errorMessage = 'Failed to delete events. Please try again.';
+
+                // Try to parse error response
+                if (xhr.responseJSON && xhr.responseJSON.responseMessage) {
+                    errorMessage = xhr.responseJSON.responseMessage;
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error!',
+                    text: errorMessage,
+                    confirmButtonText: 'OK',
+                    width: '350px',
+                    customClass: {
+                        popup: 'small-swal'
+                    }
+                });
+
+                console.error('Delete error:', error);
+            }
+        });
+    }
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('eventDate');
+        if (dateInput) {
+            dateInput.addEventListener('change', onDateChange);
+        }
+
+        // Initialize calendar when DOM is ready
+        initializeCalendar();
+    });
+
     window.onclick = function(event) {
         const modal = document.getElementById('eventModal');
         if (event.target === modal) {
@@ -3011,8 +3451,11 @@
         }
     }
 
-    // Initialize the calendar when page loads
     window.onload = function() {
-        initializeCalendar();
+        // Backup initialization if DOMContentLoaded doesn't fire
+        if (document.getElementById('calendarGrid')) {
+            initializeCalendar();
+        }
     }
+
 </script>
