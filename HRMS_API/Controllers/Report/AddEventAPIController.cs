@@ -1,6 +1,8 @@
 ﻿using HRMS_Core.Report;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Report;
+using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -72,33 +74,47 @@ namespace HRMS_API.Controllers.Report
         }
 
         [HttpDelete("Delete")]
-        public async Task<APIResponse> Delete(DeleteRecordVM DeleteRecord)
+        public async Task<APIResponse> Delete(DeleteRecordVModel model)
         {
             try
             {
-                if (DeleteRecord == null)
+                if (model == null)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
                 }
 
-                var result = await _unitOfWork.AddeventRepository.DeleteEvent(DeleteRecord);
-                if (result.Success > 0)
-                {
-                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
-                }
 
-                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+                model.DeletedDate = DateTime.UtcNow;
+                var result = await _unitOfWork.AddeventRepository.DeleteEvent(model);
+
+                return new APIResponse { isSuccess = true, Data = result, ResponseMessage = "The record has been deleted successfully" };
+
+
             }
-            catch (Exception err)
+            catch (Exception ex)
             {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to delete records, Please try again later!"
-                };
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record, Please try again later!" };
             }
         }
+
+        [HttpGet("GetAllEvent/{TargetDate}")]
+        public async Task<APIResponse> GetAllEvent(DateTime TargetDate)
+        {
+            try
+            {
+                var data = await _unitOfWork.AddeventRepository.GetAllEvent(TargetDate);
+                if (data == null)
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found" };
+                }
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve record, Please try again later!" };
+            }
+        }
+
 
     }
 }

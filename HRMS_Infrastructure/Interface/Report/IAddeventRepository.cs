@@ -2,6 +2,7 @@
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.ManagePermision;
+using HRMS_Core.VM.Report;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,8 +15,8 @@ namespace HRMS_Infrastructure.Interface.Report
     {
         Task<SP_Response> CreateEvent(AddEvent model);
         Task<SP_Response> UpdateEvent(AddEvent model);
-        Task<SP_Response> DeleteEvent(DeleteRecordVM deleteRecord);
+        Task<VMCommonResult> DeleteEvent(DeleteRecordVModel deleteRecord);
         Task<AddEvent?> GetEventById(vmCommonGetById filter);
-        Task<List<VmLeftEmployee>> GetAllEvent();
+        Task<List<EventModelVM>> GetAllEvent( DateTime TargetDate);
     }
 }

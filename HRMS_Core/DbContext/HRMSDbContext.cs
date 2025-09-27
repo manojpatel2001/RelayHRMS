@@ -280,6 +280,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<RecentJoinedEmplForAdmin>().HasNoKey().ToView(null);
              modelBuilder.Entity<EmpInOutReportforAdmin>().HasNoKey().ToView(null);
              modelBuilder.Entity<EmpInOutReportFilter>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EventModelVM>().HasNoKey().ToView(null);
 
 
 

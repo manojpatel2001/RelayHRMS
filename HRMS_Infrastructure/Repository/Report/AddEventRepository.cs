@@ -1,8 +1,10 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Report;
+using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.ManagePermision;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.Report;
 using Microsoft.EntityFrameworkCore;
@@ -37,7 +39,6 @@ namespace HRMS_Infrastructure.Repository.Report
                             @IsShowall = {model.IsShowall},
                             @IsDeleted = {model.IsDeleted},
                             @IsEnabled = {model.IsEnabled},
-                            @IsBlocked = {model.IsBlocked},
                             @CreatedBy = {model.CreatedBy}
                         ").ToListAsync();
 
@@ -49,28 +50,41 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
-        public async Task<SP_Response> DeleteEvent(DeleteRecordVM deleteRecord)
+        public async Task<VMCommonResult> DeleteEvent(DeleteRecordVModel deleteRecordVM)
         {
+
             try
             {
-                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
-                            EXEC sp_AddEvent_CRUD
-                                @Operation = {"DELETE"},
-                                @EventId = {deleteRecord.Id},
-                                @DeletedBy = {deleteRecord.DeletedBy}
-                            ").ToListAsync();
+                string ids = string.Join(",", deleteRecordVM.Id); // Convert List<int> to "1,2,3"
 
-                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+            EXEC DeleteEvent                    
+                @Ids = {ids},
+                @DeletedBy = {deleteRecordVM.DeletedBy}
+        ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
             }
-            catch
+            catch (Exception)
             {
-                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+                return new VMCommonResult { Id = 0 };
             }
         }
 
-        public Task<List<VmLeftEmployee>> GetAllEvent()
+
+           
+        public async Task<List<EventModelVM>> GetAllEvent(DateTime TargetDate)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var result = await _db.Set<EventModelVM>().FromSqlInterpolated($"EXEC GetAllEvents @TargetDate={TargetDate}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EventModelVM>();
+            }
+
         }
 
         public async Task<AddEvent?> GetEventById(vmCommonGetById filter)
