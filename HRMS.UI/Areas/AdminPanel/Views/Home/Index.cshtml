@@ -715,9 +715,8 @@
         </div>
 
         <div class="posted-events">Posted Events</div>
-        <div style="padding: 10px 20px; background-color: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
+        <div id="deleteButtonContainer" style="padding: 10px 20px; background-color: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
             <button onclick="deleteSelectedEvents()" style="margin-left: auto;padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; background-color: #5a6b7d; color: white;">Delete</button>
-       
         </div>
         <div id="postedEventsGridContainer" style="height: 300px; margin: 10px 20px;">
             <div id="postedEventsGrid"></div>
@@ -725,9 +724,6 @@
 
     </div>
 </div>
-
-
-
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
@@ -2786,7 +2782,9 @@
        $(document).ready(function () {
          
            initializeEventsGrid();
-    });
+            $("#postedEventsGridContainer").hide(); // Pehle hide karo
+             $("#deleteButtonContainer").hide(); 
+       });
 
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -2847,8 +2845,7 @@
         currentYear = current.year;
 
         generateCalendar();
-
-        // Check if eventsList element exists before updating
+  
         const eventsList = document.getElementById('eventsList');
         if (eventsList) {
             updateEventsDisplay();
@@ -3073,7 +3070,7 @@
                         }
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            closeModal();  // <-- ADD THIS LINE
+                            closeModal();  
                             clearForm();
                             generateCalendar();
 
@@ -3271,35 +3268,34 @@
     }
 
 
-    function loadEventsForDate(dateString) {
+      function loadEventsForDate(dateString) {
         $.ajax({
             url: `@baseDomainUrl/api/AddEventAPI/GetAllEvent/${dateString}`,
             type: 'GET',
             contentType: 'application/json',
             success: function(response) {
-                if (response.isSuccess && response.data) {
-                    const gridInstance = $("#postedEventsGrid").dxDataGrid("instance");
-
-                    // Format dates for display
-                    const formattedData = response.data.map(event => ({
+                const gridInstance = $("#postedEventsGrid").dxDataGrid("instance");
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    // Data mila → Grid aur button dikhao
+                    $("#postedEventsGridContainer").show();
+                    $("#deleteButtonContainer").show(); 
+                    gridInstance.option("dataSource", response.data.map(event => ({
                         ...event,
                         date: event.date ? new Date(event.date) : null
-                    }));
-
-                    gridInstance.option("dataSource", formattedData);
-
-                 
+                    }))); // <-- Yahan missing parenthesis tha (ab add kar diya)
                 } else {
-                    const gridInstance = $("#postedEventsGrid").dxDataGrid("instance");
+                    // Data nahi → Sab hide karo
+                    $("#postedEventsGridContainer").hide();
+                    $("#deleteButtonContainer").hide();
                     gridInstance.option("dataSource", []);
-
-                
                 }
             },
             error: function(xhr, status, error) {
-                const gridInstance = $("#postedEventsGrid").dxDataGrid("instance");
+                // Error → Sab hide karo
+                $("#postedEventsGridContainer").hide();
+                 $("#deleteButtonContainer").hide();
+                const gridInstance = $("#postedEventsGrid").dxDataGrid("instance"); // <-- Yahan bhi gridInstance re-declare karna padega
                 gridInstance.option("dataSource", []);
-
                 DevExpress.ui.notify(
                     { message: "Failed to load events. Please try again.", width: 300 },
                     "error",
