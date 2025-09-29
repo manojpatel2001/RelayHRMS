@@ -119,6 +119,7 @@ namespace HRMS_Infrastructure.Interface
         IEmployeeIncrementRespository EmployeeIncrementRespository { get; }
         IExportDataRepository ExportDataRepository { get; }
         IAddeventRepository AddeventRepository { get; }
+        ISchemeMasterRepository SchemeMasterRepository { get; }
 
         void Commit();
         Task CommitAsync();
