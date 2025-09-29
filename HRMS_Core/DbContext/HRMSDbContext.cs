@@ -107,6 +107,7 @@ namespace HRMS_Core.DbContext
         public DbSet<AttendanceRegularization> AttendanceRegularization { get; set; }
         public DbSet<LeftEmployee> LeftEmployee { get; set; }
         public DbSet<AddEvent> AddEvent { get; set; }
+        public DbSet<SchemeMaster> SchemeMaster { get; set; }
 
 
 
