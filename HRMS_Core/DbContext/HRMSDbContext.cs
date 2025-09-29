@@ -107,7 +107,6 @@ namespace HRMS_Core.DbContext
         public DbSet<AttendanceRegularization> AttendanceRegularization { get; set; }
         public DbSet<LeftEmployee> LeftEmployee { get; set; }
         public DbSet<AddEvent> AddEvent { get; set; }
-        public DbSet<SchemeMaster> SchemeMaster { get; set; }
 
 
 
@@ -283,6 +282,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<EmpInOutReportFilter>().HasNoKey().ToView(null);
              modelBuilder.Entity<EventModelVM>().HasNoKey().ToView(null);
              modelBuilder.Entity<NewJoinerDetailsViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<SchemeMasterViewModel>().HasNoKey().ToView(null);
 
 
 

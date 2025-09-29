@@ -8,14 +8,12 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.Master.OtherMaster
 {
-    [Table("SchemeMaster")]
-    public class SchemeMaster
+    public class SchemeMasterViewModel
     {
-        [Key]
         public int SchemeID { get; set; }
         public string?  SchemeName { get; set; }
         public string? Type { get; set; }
-        public bool IsDefaultScheme { get; set; }
+        public bool? IsDefaultScheme { get; set; }
         public bool? IsDeleted { get; set; } = false;
         public bool? IsEnabled { get; set; } = true;
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
