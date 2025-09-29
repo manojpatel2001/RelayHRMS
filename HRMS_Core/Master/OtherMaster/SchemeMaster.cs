@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.Master.OtherMaster
 {
-    [Table("Scheme Master")]
+    [Table("SchemeMaster")]
     public class SchemeMaster
     {
         [Key]

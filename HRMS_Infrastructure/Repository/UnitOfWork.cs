@@ -142,7 +142,7 @@ namespace HRMS_Infrastructure.Repository
             EmployeeIncrementRespository = new EmployeeIncrementRespository(_dbContext);
             ExportDataRepository = new ExportDataRepository(_dbContext);
             AddeventRepository = new AddEventRepository(_dbContext);
-
+            SchemeMasterRepository = new SchemeMasterRepository(_dbContext);
 
         }
 
@@ -251,6 +251,8 @@ namespace HRMS_Infrastructure.Repository
         public IEmployeeIncrementRespository EmployeeIncrementRespository { get; set; }
         public IExportDataRepository ExportDataRepository { get; set; }
         public IAddeventRepository AddeventRepository { get; set; }
+
+        public ISchemeMasterRepository SchemeMasterRepository {get; set; }
 
         public void Commit()
         {
