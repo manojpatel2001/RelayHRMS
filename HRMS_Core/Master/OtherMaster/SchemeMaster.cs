@@ -13,7 +13,7 @@ namespace HRMS_Core.Master.OtherMaster
     {
         [Key]
         public int SchemeID { get; set; }
-        public string? SchemeName { get; set; }
+        public string?  SchemeName { get; set; }
         public string? Type { get; set; }
         public bool IsDefaultScheme { get; set; }
         public bool? IsDeleted { get; set; } = false;
