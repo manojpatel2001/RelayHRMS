@@ -652,6 +652,25 @@
             background-color: #218838 !important;
             border-color: #1e7e34 !important;
         }
+
+
+    #employeeDetailsPopup .dx-datagrid {
+        margin: 10px;
+    }
+
+    #grid-loader {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.2);
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
 </style>
 
 <!-- Scripts -->
@@ -2710,64 +2729,210 @@
             popup.style.top = `${event.clientY + 10}px`;
             popup.style.display = 'block';
         }
-        
-        
-        function BranchData() {
-            $('#grid-loader').addClass('d-flex').show();
-            $.ajax({
-                type: "GET",
-                url: '@baseDomainUrl/api/BranchAPI/GetBranchWiseEmpCount/' + CompanyId,
-                headers: {
-                    'Authorization': 'Bearer ' + Token
-                },
-                success: function (data) {
-                    if (data.isSuccess && data.data.length > 0) {
-                        $("#employeeGrid").dxDataGrid({
-                            dataSource: data.data,
-                            columns: [
-                                { dataField: 'branchName', caption: 'Branch', alignment: 'center' },
-                                { dataField: 'totalUsers', caption: 'Total', alignment: 'center' },
-                                { dataField: 'joinLastMonth', caption: 'Join (Last Month)', alignment: 'center' },
-                                { dataField: 'leftLastMonth', caption: 'Left (Last Month)', alignment: 'center' }
-                            ],
-                            height: 250,
-                            showBorders: true,
-                            columnAutoWidth: true,
-                            paging: {
-                                enabled: false
-                            },
-                            scrolling: {
-                                mode: "standard",
-                                useNative: true,
-                                showScrollbar: "always"
-                            },
-                            filterRow: { visible: false, aplyFilter: "auto" },
-                            headerFilter: { visible: false },
-                            groupPanel: { visible: false },
-                            summary: {
-                                totalItems: [
-                                    { column: "branchName", summaryType: "count", displayFormat: "Total" },
-                                    { column: "totalUsers", summaryType: "sum" },
-                                    { column: "joinLastMonth", summaryType: "sum" },
-                                    { column: "leftLastMonth", summaryType: "sum" }
-                                ]
-                            },
-                            onContentReady(e) {
-                                $('#grid-loader').removeClass('d-flex').hide()
-                                const totalRecords = e.component.option("dataSource").length;
-                            }
-                        });
-                    } else {
-                        round_error_noti("No record found!");
-                        $('#grid-loader').removeClass('d-flex').hide()
-                    }
-                },
-                error: function (xhr, status, error) {
+
+
+           function BranchData() {
+        $('#grid-loader').addClass('d-flex').show();
+        $.ajax({
+            type: "GET",
+            url: '@baseDomainUrl/api/BranchAPI/GetBranchWiseEmpCount/' + CompanyId,
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (data) {
+                console.log('data' ,data);
+                if (data.isSuccess && data.data.length > 0) {
+                    $("#employeeGrid").dxDataGrid({
+                        dataSource: data.data,
+                        columns: [
+                            { dataField: 'branchId', caption: 'Branch', visible:false },
+                            { dataField: 'branchName', caption: 'Branch', alignment: 'center' },
+                            { dataField: 'totalUsers', caption: 'Total', alignment: 'center' },
+                            { dataField: 'joinLastMonth', caption: 'Join (Last Month)', alignment: 'center' },
+                            { dataField: 'leftLastMonth', caption: 'Left (Last Month)', alignment: 'center' }
+                        ],
+                        height: 250,
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        paging: {
+                            enabled: false
+                        },
+                        scrolling: {
+                            mode: "standard",
+                            useNative: true,
+                            showScrollbar: "always"
+                        },
+                        filterRow: { visible: false, applyFilter: "auto" },
+                        headerFilter: { visible: false },
+                        groupPanel: { visible: false },
+                        summary: {
+                            totalItems: [
+                                { column: "branchName", summaryType: "count", displayFormat: "Total" },
+                                { column: "totalUsers", summaryType: "sum" },
+                                { column: "joinLastMonth", summaryType: "sum" },
+                                { column: "leftLastMonth", summaryType: "sum" }
+                            ]
+                        },
+                        onContentReady(e) {
+                            $('#grid-loader').removeClass('d-flex').hide()
+                            const totalRecords = e.component.option("dataSource").length;
+                        },
+                        onRowClick: function(e) {
+
+                            var branchId = e.data.branchId; // Make sure your data includes branchId
+                            console.log('branchId', branchId);
+                            showEmployeeDetailsPopup(branchId);
+                        }
+                    });
+                } else {
+                    round_error_noti("No record found!");
                     $('#grid-loader').removeClass('d-flex').hide()
-                    console.error("AJAX Error: ", error);
                 }
-            });
+            },
+            error: function (xhr, status, error) {
+                $('#grid-loader').removeClass('d-flex').hide()
+                console.error("AJAX Error: ", error);
+            }
+        });
+    }
+
+     // Global variables
+    let employeeGridInstance = null;
+    let popupInstance = null;
+
+    function showEmployeeDetailsPopup(branchId) {
+        // Show loading indicator
+        $('#grid-loader').addClass('d-flex').show();
+
+        // First check if there's any data before showing popup
+        $.ajax({
+            type: "GET",
+            url: '@baseDomainUrl/api/EmployeeDashBoardAPI/GetBranchNewJoinerDetails/' + CompanyId + '/' + branchId,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function(data) {
+                $('#grid-loader').removeClass('d-flex').hide();
+
+                if (data.isSuccess && data.data && data.data.length > 0) {
+                    // Only show popup if there's data
+                    showPopupWithData(data.data);
+                } else {
+                    // Show error message without opening popup
+                    round_error_noti(data.responseMessage || "No employees found for this branch");
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#grid-loader').removeClass('d-flex').hide();
+                round_error_noti("Failed to load employee data. Please try again.");
+                console.error("AJAX Error:", error, xhr.responseText);
+            }
+        });
+    }
+
+    function showPopupWithData(employeeData) {
+        // Create popup if it doesn't exist
+        if (!popupInstance) {
+            // First create the popup HTML
+            if (!$("#employeeDetailsPopup").length) {
+                $("body").append(`
+                    <div id="employeeDetailsPopup">
+                        <div id="employeeDetailsGrid"></div>
+                    </div>
+                `);
+            }
+
+            // Initialize popup
+            popupInstance = $("#employeeDetailsPopup").dxPopup({
+                width: 800,
+                height: 550,
+                title: "Employee Details",
+                showTitle: true,
+                visible: false,
+                dragEnabled: true,
+                closeOnOutsideClick: true,
+                shading: true,
+                position: {
+                    of: "body",
+                    at: "center",
+                    my: "center"
+                },
+                onShown: function() {
+                    // Initialize grid when popup is shown for the first time
+                    if (!employeeGridInstance) {
+                        initializeGrid(employeeData);
+                    }
+                }
+            }).dxPopup("instance");
         }
+
+        // If grid already exists, just update the data
+        if (employeeGridInstance) {
+            employeeGridInstance.option("dataSource", employeeData);
+            employeeGridInstance.refresh();
+        }
+
+        // Show the popup (grid will initialize in onShown event if needed)
+        popupInstance.show();
+    }
+
+    function initializeGrid(employeeData) {
+        $("#employeeDetailsGrid").dxDataGrid({
+            dataSource: employeeData,
+            columns: [
+                {
+                    dataField: 'employeeCode',
+                    caption: 'Employee Code',
+                    alignment: 'center',
+                    width: 130
+                },
+                {
+                    dataField: 'fullName',
+                    caption: 'Employee Name',
+                    alignment: 'left',
+                    width: 180
+                },
+                {
+                    dataField: 'designationName',
+                    caption: 'Designation',
+                    alignment: 'left',
+                    width: 150
+                },
+                {
+                    dataField: 'departmentName',
+                    caption: 'Department',
+                    alignment: 'left',
+                    width: 150
+                },
+                {
+                    dataField: 'joiningDate',
+                    caption: 'Joining Date',
+                    alignment: 'center',
+                    dataType: 'date',
+                    format: 'dd-MM-yyyy',
+                    width: 120
+                }
+            ],
+            height: 450,
+            showBorders: true,
+            columnAutoWidth: false,
+            paging: {
+                enabled: true,
+                pageSize: 10
+            },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 20, 50],
+                showInfo: true
+            },
+            scrolling: {
+                mode: "standard"
+            },
+        
+            noDataText: "No employee details found for this branch"
+        });
+
+        employeeGridInstance = $("#employeeDetailsGrid").dxDataGrid("instance");
+    }
+
 </script>
 
 <script>

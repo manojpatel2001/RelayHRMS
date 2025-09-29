@@ -21,5 +21,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<MyTeamleavesVM>> GetMyteamleave(int EmpId, int Compid, int Repoid);
         Task<List<EmployeeDetailsViewModel>> GetEmployeeDetails(int EmpId);
         Task<List<RecentJoinedEmplForAdmin>> GetRecentJoinedEmployeesForAdmin();
+        Task<List<NewJoinerDetailsViewModel>> GetBranchNewJoinerDetails(int CompId , int BranchId);
     }
 }

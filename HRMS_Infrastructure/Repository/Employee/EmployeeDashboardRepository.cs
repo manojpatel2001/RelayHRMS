@@ -27,6 +27,29 @@ namespace HRMS_Infrastructure.Repository.Employee
             _db = db;
         }
 
+        public async Task<List<NewJoinerDetailsViewModel>> GetBranchNewJoinerDetails(int CompId, int BranchId)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@CompanyId", CompId) ,
+                    new SqlParameter("@BranchId", BranchId)
+
+                    };
+
+                var result = await _db.Set<NewJoinerDetailsViewModel>()
+                    .FromSqlRaw("EXEC GetBranchNewJoinerDetails @CompanyId , @BranchId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<NewJoinerDetailsViewModel>();
+            }
+        }
+
         public async Task<List<GetCountDirectOrIndirectEmployeesVM>> GetCountDirectOrIndirectEmployees( int EmployeeId, int Compid)
         {
             try

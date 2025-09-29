@@ -281,6 +281,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<EmpInOutReportforAdmin>().HasNoKey().ToView(null);
              modelBuilder.Entity<EmpInOutReportFilter>().HasNoKey().ToView(null);
              modelBuilder.Entity<EventModelVM>().HasNoKey().ToView(null);
+             modelBuilder.Entity<NewJoinerDetailsViewModel>().HasNoKey().ToView(null);
 
 
 
