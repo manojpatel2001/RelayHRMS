@@ -1,4 +1,5 @@
-﻿using HRMS_Core.Migrations;
+﻿using HRMS_Core.Master.OtherMaster;
+using HRMS_Core.Migrations;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.ManagePermision;
@@ -10,11 +11,12 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Interface.Employee
 {
-    public interface ISchemeMasterRepository :IRepository<SchemeMaster>
+    public interface ISchemeMasterRepository :IRepository<SchemeMasterViewModel>
     {
-        Task<SP_Response> AddSchemeMaster(SchemeMaster model);
-        Task<SP_Response> UpdateSchemeMaster(SchemeMaster model);
+        Task<SP_Response> AddSchemeMaster(SchemeMasterViewModel model);
+        Task<SP_Response> UpdateSchemeMaster(SchemeMasterViewModel model);
         Task<SP_Response> DeleteSchemeMaster(DeleteRecordVM deleteRecord);
-        Task<SchemeMaster?> GetBySchemeId(vmCommonGetById filter);
+        Task<SchemeMasterViewModel?> GetBySchemeId(int Id);
+        Task<List<SchemeMasterViewModel>> GetAllSchemeMaster();
     }
 }
