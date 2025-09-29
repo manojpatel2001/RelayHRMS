@@ -14,5 +14,6 @@ namespace HRMS_Core.VM.Report
         public string? DepartmentName { get; set; }
         public string? DesignationName { get; set; }
         public DateTime? JoiningDate { get; set; }
+        public string? BranchName { get; set; }
     }
 }
