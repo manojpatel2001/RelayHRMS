@@ -4,6 +4,7 @@ using HRMS_Core.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRMS_Core.Migrations
 {
     [DbContext(typeof(HRMSDbContext))]
-    partial class HRMSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250929111014_Scheme")]
+    partial class Scheme
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3522,6 +3525,12 @@ namespace HRMS_Core.Migrations
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.SchemeMaster", b =>
                 {
+                    b.Property<int>("SchemeID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SchemeID"));
+
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -3534,7 +3543,7 @@ namespace HRMS_Core.Migrations
                     b.Property<DateTime?>("DeletedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool?>("IsDefaultScheme")
+                    b.Property<bool>("IsDefaultScheme")
                         .HasColumnType("bit");
 
                     b.Property<bool?>("IsDeleted")
@@ -3542,9 +3551,6 @@ namespace HRMS_Core.Migrations
 
                     b.Property<bool?>("IsEnabled")
                         .HasColumnType("bit");
-
-                    b.Property<int>("SchemeID")
-                        .HasColumnType("int");
 
                     b.Property<string>("SchemeName")
                         .HasColumnType("nvarchar(max)");
@@ -3558,9 +3564,9 @@ namespace HRMS_Core.Migrations
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");
 
-                    b.ToTable((string)null);
+                    b.HasKey("SchemeID");
 
-                    b.ToView(null, (string)null);
+                    b.ToTable("SchemeMaster");
                 });
 
             modelBuilder.Entity("HRMS_Core.Master.OtherMaster.SkillMaster", b =>
