@@ -120,6 +120,8 @@ namespace HRMS_Infrastructure.Interface
         IExportDataRepository ExportDataRepository { get; }
         IAddeventRepository AddeventRepository { get; }
         ISchemeMasterRepository SchemeMasterRepository { get; }
+        ISchemeTypeRepository SchemeTypeRepository { get; }
+
 
         void Commit();
         Task CommitAsync();

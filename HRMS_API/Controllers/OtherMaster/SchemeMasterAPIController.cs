@@ -21,12 +21,12 @@ namespace HRMS_API.Controllers.OtherMaster
         }
 
 
-        [HttpGet("GetAllSchemeMaster")]
-        public async Task<APIResponse> GetAllSchemeMaster()
+        [HttpPost("GetAllSchemeMaster")]
+        public async Task<APIResponse> GetAllSchemeMaster([FromQuery] string SearchFor, [FromQuery] string SearchBy)
         {
             try
             {
-                var data = await _unitOfWork.SchemeMasterRepository.GetAllSchemeMaster();
+                var data = await _unitOfWork.SchemeMasterRepository.GetAllSchemeMaster(SearchFor, SearchBy);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 

@@ -143,7 +143,7 @@ namespace HRMS_Infrastructure.Repository
             ExportDataRepository = new ExportDataRepository(_dbContext);
             AddeventRepository = new AddEventRepository(_dbContext);
             SchemeMasterRepository = new SchemeMasterRepository(_dbContext);
-
+            SchemeTypeRepository = new SchemeTypeRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -252,7 +252,8 @@ namespace HRMS_Infrastructure.Repository
         public IExportDataRepository ExportDataRepository { get; set; }
         public IAddeventRepository AddeventRepository { get; set; }
 
-        public ISchemeMasterRepository SchemeMasterRepository {get; set; }
+        public ISchemeMasterRepository SchemeMasterRepository { get; set; }
+        public ISchemeTypeRepository SchemeTypeRepository { get; set; }
 
         public void Commit()
         {

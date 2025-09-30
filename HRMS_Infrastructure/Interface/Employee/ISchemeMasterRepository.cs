@@ -17,6 +17,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<SP_Response> UpdateSchemeMaster(SchemeMasterViewModel model);
         Task<SP_Response> DeleteSchemeMaster(DeleteRecordVM deleteRecord);
         Task<SchemeMasterViewModel?> GetBySchemeId(int Id);
-        Task<List<SchemeMasterViewModel>> GetAllSchemeMaster();
+        Task<List<SchemeMasterViewModel>> GetAllSchemeMaster(string SearchFor ,string SearchBy);
     }
 }
