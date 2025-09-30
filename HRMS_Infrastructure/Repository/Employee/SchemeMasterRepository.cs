@@ -6,6 +6,7 @@ using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.JobMaster;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -85,24 +86,31 @@ namespace HRMS_Infrastructure.Repository.Employee
             throw new NotImplementedException();
         }
 
-        public async Task<List<SchemeMasterViewModel>> GetAllSchemeMaster()
+        public async Task<List<SchemeMasterViewModel>> GetAllSchemeMaster(string SearchFor, string SearchBy)
         {
             try
             {
+                var parameters = new[]
+                {
+            new SqlParameter("@SearchFor", SearchFor ?? (object)DBNull.Value),
+            new SqlParameter("@SearchBy", SearchBy ?? (object)DBNull.Value)
+        };
+
                 var result = await _db.Database
                     .SqlQueryRaw<SchemeMasterViewModel>($@"
-                EXEC sp_GetAllSchemeMasters 
-            ")
+                EXEC sp_GetAllSchemeMasters @SearchFor, @SearchBy",
+                        parameters)
                     .ToListAsync();
 
                 return result;
             }
             catch (Exception ex)
             {
+               
                 return new List<SchemeMasterViewModel>();
             }
-
         }
+
 
         public Task<SchemeMasterViewModel> GetAsync(Expression<Func<SchemeMasterViewModel, bool>> filter, string? includeProperties = null, bool tracked = false)
         {
