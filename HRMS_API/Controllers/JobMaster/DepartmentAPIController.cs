@@ -76,6 +76,7 @@ namespace HRMS_API.Controllers.JobMaster
                         return new APIResponse { isSuccess = false, ResponseMessage = $"Record with department code '{model.DepartmentCode}' already exists." };
                     
                 }
+
                 var result = await _unitOfWork.DepartmentRepository.CreateDepartment(model);
 
                 if (result.Id > 0)
