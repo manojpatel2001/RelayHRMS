@@ -609,8 +609,7 @@
 
 			  $('#ddlEmpType').change(function() {
 				  var selectedText = $(this).find('option:selected').text().toLowerCase();
-				  console.log("Selected Text: " + selectedText);
-
+				  
 				  if(selectedText === "probation") {
 					  $("#probation").prop('checked', true);
 				  } else {
@@ -631,9 +630,9 @@
 			$('#grid-loader').removeClass('d-flex').hide();
 	}	
 	$(document).ready( async function () {
-		//await LoadCompanyDetails();
-				  await Promise.all([showLoder(),bindBranch(),loadBindRoleOption(),bindReporting(), bindDesignation(), bindDepartment(), bindGrade(),bindCategory(),bindEmployeeType(),bindShift(),loadBindbusinessSegmentOption()]);
-		await new Promise(resolve => setTimeout(resolve, 1000));
+			  loadEmployeeRecords();
+		// 		  await Promise.all([showLoder(),bindBranch(),loadBindRoleOption(),bindReporting(), bindDesignation(), bindDepartment(), bindGrade(),bindCategory(),bindEmployeeType(),bindShift(),loadBindbusinessSegmentOption()]);
+		// await new Promise(resolve => setTimeout(resolve, 1000));
 
 		// $('#companyDropdown').change(async function() {
 		// 	var selectedCompany = $(this).val();
@@ -648,7 +647,7 @@
 			round_error_noti("Please select company");
 			return;
 		}
-	  getEmployeeDetailsByCompanyId(CurrentCompanyId);
+	  // getEmployeeDetailsByCompanyId(CurrentCompanyId);
 
 
 	  $("#ddlBranch").change(()=>{
@@ -675,39 +674,54 @@
 			$(this).toggleClass('bx-show bx-hide');
 		});
 	});
-	function getEmployeeDetailsByCompanyId(company)
-	{
-		showLoder();
-	 $.ajax({
-			type: "GET",
-			url: "@baseUrl/EmployeeMasterAPI/GetAllEmployeeForUpdate"+ "?companyId=" + company,
-			success: function(data) {
-				if (data.isSuccess)
-				{
-					employeeList=data.data;
-					if(CurrentEmployeeId==0)
-					{
-					 currentIndex=0;
+
+		async function loadEmployeeRecords(){
+				 showLoder();
+	       $.ajax({
+					url: '@baseUrl/EmployeeMasterAPI/GetRecordsForUpdate/'+CurrentCompanyId,
+					method: 'GET',
+					success: function(response) {
+							
+							if (response.isSuccess)
+							{
+								bindBranch(response.data.branches);
+								bindCategory(response.data.categories);
+								bindDesignation(response.data.designations);
+								bindReporting(response.data.reportingEmployees);
+								bindDepartment(response.data.departments);
+								bindGrade(response.data.grades);
+								bindRole(response.data.roles);
+								bindEmployeeType(response.data.employeeTypes);
+								bindShift(response.data.shifts);
+								employeeList=response.data.employees;
+						  
+								if(CurrentEmployeeId==0)
+								{
+								currentIndex=0;
+								}
+								else{
+								currentIndex=findIndexById(CurrentEmployeeId);
+								}
+								fillEmployeeForm(employeeList[currentIndex]);
+							}
+							else{
+								round_error_noti(data.responseMessage);
+									round_error_noti(data.responseMessage);
+									setTimeout(function() {
+										window.location.href = "@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster";
+									}, 1000);
+							}
+										hideLoder();
+					},
+					error: function(error) {
+						console.error('Error fetching  data:', error);
+							  hideLoder();
 					}
-					else{
-					currentIndex=findIndexById(CurrentEmployeeId);
-					}
-					fillEmployeeForm(employeeList[currentIndex]);
-				}
-				else{
-					round_error_noti(data.responseMessage);
-						round_error_noti(data.responseMessage);
-						setTimeout(function() {
-							window.location.href = "@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster";
-						}, 1000);
-				}
-			},
-			error: function(xhr, status, error) {
-					  
-				console.error("AJAX Error: " + status + " - " + error);
-			}
-		})
-	}
+				});
+
+		}
+
+
 	function findIndexById(idToFind) {
 		
 		const index = employeeList.findIndex(function(obj) {
@@ -757,7 +771,7 @@
 		$('#doj').val(formatDate(employee.dateOfJoining) || '');
 		// bindBranch();
 		$('#ddlBranch').val(employee.branchId || '');
-		LoadWeekOffMaster();
+		await LoadWeekOffMaster();
 		$('#ddlGrade').val(employee.gradeId || '');
 		$('#ddlShift').val(employee.shiftMasterId || '');
 		$('#txtCTC').val(employee.ctc || '');
@@ -918,39 +932,133 @@
 	}
 
 
-	async function bindDesignation(){
+		 
 
-	   $.ajax({
-				url: '@baseUrl/DesignationAPI/GetAllDesignation',
-				method: 'GET',
-				success: function(data) {
-					if(data.isSuccess){
-						var dropdown = $('#ddlDesignation');
-						dropdown.empty();
-						dropdown.append('<option disabled selected value="">Select Designation</option>');
-						$.each(data.data, function(index, company) {
-							dropdown.append($('<option>', {
-								value: company.designationId,
-								text: company.designationName
-							}));
-						});
+		   function bindBranch(data)
+		   {
+				var dropdown = $('#ddlBranch');
+				dropdown.empty();
+				dropdown.append('<option disabled selected value="">Select</option>');
+				$.each(data, function(index, company) {
+					dropdown.append($('<option>', {
+						value: company.branchId,
+						text: company.branchName
+					}));
+				});
 
+		   }
 
-					}
-				},
-				error: function(error) {
-					console.error('Error fetching designation data:', error);
-				}
+		   function bindDesignation(data)
+		   {
+					 var dropdown = $('#ddlDesignation');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select Designation</option>');
+					$.each(data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.designationId,
+							text: company.designationName
+						}));
+					});
+		   }
+
+		   function bindCategory(data){
+				var dropdown = $('#ddlCategory');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.categoryId,
+							text: company.categoryName
+						}));
+					});
+		   }
+
+			async function bindReporting(data)
+            {
+				var dropdown = $('#drpReporting,#ddlManagerProbation');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.employeeId,
+							text: company.fullName+" - "+company.employeeCode
+						}));
+					});
+			}
+
+			async  function bindDepartment(data)
+			{
+				var dropdown = $('#ddlDepartment');
+				dropdown.empty();
+				dropdown.append('<option disabled selected value="">Select </option>');
+				$.each(data, function(index, company) {
+						dropdown.append($('<option>', {
+										value: company.departmentId,
+										text: company.departmentName
+						}));
+				});
+			}
+
+		async function bindGrade(data)
+		{
+			var dropdown = $('#ddlGrade');
+			dropdown.empty();
+			dropdown.append('<option disabled selected value="">Select </option>');
+			$.each(data, function(index, company) {
+				dropdown.append($('<option>', {
+					value: company.gradeId,
+					text: company.gradeName
+				}));
+		     });
+		}
+
+		async function bindRole(data) 
+		{
+		  var dropdowns = $('#ddlRole');
+				dropdowns.empty();
+			   dropdowns.append('<option disabled selected value="">Select </option>');
+
+				$.each(data, function(index, role) {
+						dropdowns.append($('<option >', {
+						value: role.roleId,
+						text: role.roleName
+					}));
+				});
+		}
+
+		async function bindEmployeeType(data)
+		{
+			var dropdown = $('#ddlEmpType');
+			dropdown.empty();
+			dropdown.append('<option disabled selected value="">Select</option>');
+			$.each(data, function(index, company) {
+				dropdown.append($('<option>', {
+					value: company.employeeTypeId,
+					text: company.employeeTypeName
+				}));
 			});
+		}
 
-	 }
-	function LoadWeekOffMaster()
+		async function bindShift(data)
+		{
+			var dropdown = $('#ddlShift');
+			dropdown.empty();
+			 dropdown.append('<option disabled selected value="">Select</option>');
+			$.each(data, function(index, company) {
+				dropdown.append($('<option>', {
+					value: company.shiftId,
+					text: company.shiftName
+				}));
+		     });
+		}
+
+
+	async function LoadWeekOffMaster()
 	{
 		 let branchId = $('#ddlBranch').val();
 
 			// Validation
 			if (!branchId) {
-				round_error_noti("Please select branch first!");
 				return;
 			}
 			var data={
@@ -992,237 +1100,7 @@
 
 	}
 
-	 async function bindReporting(){
-		$.ajax({
-		type: "GET",
-			  url: "@baseUrl/EmployeeMasterAPI/GetAllReportingPersons",
-		success: function(data) {
-				if(data.isSuccess){
-						var dropdown = $('#drpReporting,#ddlManagerProbation');
-					dropdown.empty();
-					dropdown.append('<option disabled selected value="">Select</option>');
-					$.each(data.data, function(index, company) {
-						dropdown.append($('<option>', {
-							value: company.id,
-							text: company.fullName+" - "+company.employeeCode
-						}));
-					});
-
-
-	            }
-		},
-		error: function(xhr, status, error) {
-			console.error("AJAX Error: " + status + " - " + error);
-		}
-	})
-
-	 }
-	async  function bindDepartment(){
-
-		  $.ajax({
-				   url: '@baseUrl/DepartmentAPI/GetAllDepartments',
-				   method: 'GET',
-					   headers: {
-						   'Authorization': 'Bearer ' + Token
-					   },
-				   success: function(data) {
-					   if(data.isSuccess){
-						   var dropdown = $('#ddlDepartment');
-						   dropdown.empty();
-						   dropdown.append('<option disabled selected value="">Select </option>');
-						   $.each(data.data, function(index, company) {
-							   dropdown.append($('<option>', {
-								   value: company.departmentId,
-								   text: company.departmentName
-							   }));
-						   });
-
-
-					   }
-				   },
-				   error: function(error) {
-					   console.error('Error fetching designation data:', error);
-				   }
-			   });
-
-		}
 	
-	 
-	 async function bindGrade(){
-	   $.ajax({
-				url: '@baseUrl/GradeAPI/GetAllGrade',
-				method: 'GET',
-				success: function(data) {
-					if(data.isSuccess){
-						var dropdown = $('#ddlGrade');
-						dropdown.empty();
-						dropdown.append('<option disabled selected value="">Select Grade</option>');
-						$.each(data.data, function(index, company) {
-							dropdown.append($('<option>', {
-								value: company.gradeId,
-								text: company.gradeName
-							}));
-						});
-
-
-					}
-				},
-				error: function(error) {
-					console.error('Error fetching grade data:', error);
-				}
-			});
-
-	 }
-
-	async function loadBindRoleOption() {
-
-		try {
-			const response = await fetch('@baseUrl/RoleAPI/GetAllRoles', {
-				method: 'GET',
-					  headers: {
-							  'Authorization': 'Bearer ' + Token
-					  },
-			});
-
-			const data = await response.json();
-
-			if (data.isSuccess) {
-
-				var arrayDta=data.data;
-				 var dropdowns = $('#ddlRole');
-							dropdowns.empty();
-							dropdowns.append(
-								$('<option>', {
-								value: '0',
-								text: 'Select',
-								selected: true,
-								disabled: true
-								})
-							);
-
-							$.each(data.data, function(index, role) {
-									dropdowns.append($('<option >', {
-									value: role.id,
-									text: role.name
-								}));
-							});
-			}
-		} catch (error) {
-			console.error('Fetch error:', error);
-		}
-	}
-
-		async	function bindBranch()
-		{
-
-			 $.ajax({
-						url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/'+CurrentCompanyId,
-				  method: 'GET',
-					  headers: {
-							  'Authorization': 'Bearer ' + Token
-						  },
-				  success: function(data) {
-					  if(data.isSuccess){
-						  var dropdown = $('#ddlBranch');
-						  dropdown.empty();
-						  dropdown.append('<option disabled selected value="">Select</option>');
-						  $.each(data.data, function(index, company) {
-							  dropdown.append($('<option>', {
-								  value: company.branchId,
-								  text: company.branchName
-							  }));
-						  });
-
-
-					  }
-				  },
-				  error: function(error) {
-					  console.error('Error fetching branch data:', error);
-				  }
-			  });
-
-		  }
-	
-	async function bindEmployeeType(){
-
-	   $.ajax({
-			url: '@baseUrl/EmployeeTypeAPI/GetAllEmployeeTypes',
-			method: 'GET',
-			success: function(data) {
-				if(data.isSuccess){
-					var dropdown = $('#ddlEmpType');
-					dropdown.empty();
-					dropdown.append('<option disabled selected value="">Select</option>');
-					$.each(data.data, function(index, company) {
-						dropdown.append($('<option>', {
-							value: company.employeeTypeId,
-							text: company.employeeTypeName
-						}));
-					});
-
-
-				}
-			},
-			error: function(error) {
-				console.error('Error fetching category data:', error);
-			}
-		});
-
-	}
-	async function bindCategory(){
-
-	   $.ajax({
-			url: '@baseUrl/CategoryAPI/GetAllCategories',
-			method: 'GET',
-			success: function(data) {
-				if(data.isSuccess){
-					var dropdown = $('#ddlCategory');
-					dropdown.empty();
-					dropdown.append('<option disabled selected value="">Select</option>');
-					$.each(data.data, function(index, company) {
-						dropdown.append($('<option>', {
-							value: company.categoryId,
-							text: company.categoryName
-						}));
-					});
-
-
-				}
-			},
-			error: function(error) {
-				console.error('Error fetching category data:', error);
-			}
-		});
-
-	}
-	async function bindShift(){
-
-	   $.ajax({
-			url: '@baseUrl/ShiftMasterAPI/GetAllShifts',
-			method: 'GET',
-			success: function(data) {
-				if(data.isSuccess){
-					var dropdown = $('#ddlShift');
-					dropdown.empty();
-					dropdown.append('<option disabled selected value="">Select</option>');
-					$.each(data.data, function(index, company) {
-						dropdown.append($('<option>', {
-							value: company.shiftID,
-							text: company.shiftName
-						}));
-					});
-
-
-				}
-			},
-			error: function(error) {
-				console.error('Error fetching category data:', error);
-			}
-		});
-
-	}
-
-	// Bind navigation buttons
 	$(document).ready( async function () {
 		 
 		 $('span:contains("Next")').click(function () {
@@ -1248,7 +1126,6 @@
 		}
    $(document).ready(function() {
 	  $('#btnUpdateEmployee').click(async function() {
-			// $("#btnUpdateEmployee").prop("disabled", true);
 		  showBtnLoder();
 			// Capture form values in variables
 			var initial = $('#ddlInitial').val();
@@ -1607,14 +1484,14 @@
 					success: function(response) {
 						if (response.isSuccess) {
 						round_success_noti(response.responseMessage);
-							 getEmployeeDetailsByCompanyId(CurrentCompanyId);
+								  loadEmployeeRecords();
 								   loadReportingDetails();
 
 						} else {
 							round_error_noti(response.responseMessage);
 								  
 						}
-							   hideBtnLoder();
+						  hideBtnLoder();
 					},
 					error: function(xhr, status, error) {
 							  hideBtnLoder();
