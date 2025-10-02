@@ -1,16 +1,22 @@
-﻿using HRMS_Core.ControlPanel.CompanyInformation;
+﻿using Dapper;
+using HRMS_Core.ControlPanel.CompanyInformation;
 using HRMS_Core.DbContext;
 using HRMS_Core.ProfileManage;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Core.VM.UpdateEmployee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
+using HRMS_Utility;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
+using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,10 +26,12 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
     public class EmployeeManageRepository : Repository<HRMSUserIdentity>, IEmployeeManageRepository
     {
         private HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public EmployeeManageRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
 
 
@@ -370,6 +378,73 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             catch (Exception)
             {
                 return null;
+            }
+        }
+
+
+        public async Task<APIResponse> GetRecordsForUpdate(int CompanyId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (var multi = await connection.QueryMultipleAsync(
+                        "GetRecordsForUpdate",
+                        new { CompanyId },
+                        commandType: CommandType.StoredProcedure))
+                    {
+                        var result = new EmployeeUpdateViewModel
+                        {
+                            Employees = (await multi.ReadAsync<EmployeeDetailViewModel>()).AsList(),
+                            Branches = (await multi.ReadAsync<BranchViewModel>()).AsList(),
+                            Grades = (await multi.ReadAsync<GradeViewModel>()).AsList(),
+                            Shifts = (await multi.ReadAsync<ShiftViewModel>()).AsList(),
+                            Designations = (await multi.ReadAsync<DesignationViewModel>()).AsList(),
+                            Categories = (await multi.ReadAsync<CategoryViewModel>()).AsList(),
+                            Departments = (await multi.ReadAsync<DepartmentViewModel>()).AsList(),
+                            EmployeeTypes = (await multi.ReadAsync<EmployeeTypeViewModel>()).AsList(),
+                            Roles = (await multi.ReadAsync<RoleViewModel>()).AsList(),
+                            ReportingEmployees = (await multi.ReadAsync<ReportingEmployeeViewModel>()).AsList()
+                        };
+
+                       
+
+                        return new APIResponse { Data=result,ResponseMessage="Fetched successfully!",isSuccess=true};
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return new APIResponse { ResponseMessage = "Some thing Went wrong!", isSuccess = false };
+            }
+        }
+        public async Task<APIResponse> GetReportingList()
+        {
+            try
+            {
+                var ReportingEmployees = new List<ReportingEmployeeViewModel>();
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (var multi = await connection.QueryMultipleAsync(
+                        "GetReportingList",
+                        commandType: CommandType.StoredProcedure))
+                    {
+
+                         ReportingEmployees = (await multi.ReadAsync<ReportingEmployeeViewModel>()).AsList();
+                    };
+
+
+                        return new APIResponse { Data= ReportingEmployees, ResponseMessage="Fetched successfully!",isSuccess=true};
+                    
+                }
+            }
+            catch (Exception)
+            {
+                return new APIResponse { ResponseMessage = "Some thing Went wrong!", isSuccess = false };
             }
         }
     }
