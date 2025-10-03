@@ -87,6 +87,10 @@
             background-color: #e3f2fd;
         }
 
+        .dropdown-option.highlighted {
+            background-color: #2395c6;
+            color: white;
+        }
     .no-results {
         padding: 10px 12px;
         color: #999;
@@ -922,17 +926,17 @@
                 round_error_noti('An error occurred while deleting the record. Please try again');
             }
         });
-    }  
+    }
 
 
-        function initSearchableEmployeeDropdown() {
+       function initSearchableEmployeeDropdown() {
         const $branchemp = $('#branchemp');
         $branchemp.siblings('.select-wrapper').remove();
         $branchemp.hide();
 
         const customDropdownHTML = `
             <div class="select-wrapper">
-                <div class="custom-select-display" id="empSelectDisplay">
+                <div class="custom-select-display" id="empSelectDisplay" tabindex="0">
                     <span class="selected-text">--Select Employee--</span>
                     <span class="arrow">▼</span>
                 </div>
@@ -952,9 +956,11 @@
         const $searchInput = $('#empSearchInput');
         const $itemsContainer = $('#empDropdownItems');
         const $selectedText = $('.selected-text');
+        let highlightedIndex = -1;  // YE NAYA VARIABLE HAI
 
         function renderEmployeeItems(filterText = '') {
             $itemsContainer.empty();
+            highlightedIndex = -1;  // YE LINE ADD KARI
             const options = $branchemp.find('option').filter(function() {
                 return $(this).val() !== '' && !$(this).is(':disabled');
             });
@@ -980,21 +986,56 @@
                 const $item = $('<div class="dropdown-option"></div>')
                     .text(text)
                     .toggleClass('selected', isSelected)
+                    .attr('data-value', value)  // YE LINE ADD KARI
                     .on('click', function() {
-                        $branchemp.val(value).trigger('change');
-                        $selectedText.text(text);
-                        $dropdown.removeClass('active');
-                        $display.removeClass('active');
-                        $searchInput.val('');
-                        $itemsContainer.find('.dropdown-option').removeClass('selected');
-                        $(this).addClass('selected');
+                        selectOption(value, text);  // YE FUNCTION CALL CHANGE KARI
                     });
 
                 $itemsContainer.append($item);
             });
         }
 
-        $display.on('click', function(e) {
+        // YE PURA NAYA FUNCTION HAI
+        function selectOption(value, text) {
+            $branchemp.val(value).trigger('change');
+            $selectedText.text(text);
+            $dropdown.removeClass('active');
+            $display.removeClass('active');
+            $searchInput.val('');
+            highlightedIndex = -1;
+        }
+
+        // YE PURA NAYA FUNCTION HAI
+        function highlightOption(index) {
+            const $items = $itemsContainer.find('.dropdown-option');
+            if ($items.length === 0) return;
+
+            $items.removeClass('highlighted');
+
+            if (index < 0) index = 0;
+            if (index >= $items.length) index = $items.length - 1;
+
+            highlightedIndex = index;
+            const $highlighted = $items.eq(index);
+            $highlighted.addClass('highlighted');
+
+            const itemTop = $highlighted.position().top;
+            const itemHeight = $highlighted.outerHeight();
+            const containerHeight = $itemsContainer.height();
+            const scrollTop = $itemsContainer.scrollTop();
+
+            if (itemTop < 0) {
+                $itemsContainer.scrollTop(scrollTop + itemTop);
+            } else if (itemTop + itemHeight > containerHeight) {
+                $itemsContainer.scrollTop(scrollTop + itemTop + itemHeight - containerHeight);
+            }
+        }
+
+        // YAHA PAR 'keydown' ADD KIYA AUR LOGIC CHANGE KARI
+        $display.on('click keydown', function(e) {
+            if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+            if (e.type === 'keydown') e.preventDefault();
+
             e.stopPropagation();
             const optionsCount = $branchemp.find('option').length;
             if (optionsCount <= 1) {
@@ -1015,6 +1056,39 @@
             renderEmployeeItems($(this).val());
         });
 
+        // YE PURA NAYA EVENT HANDLER HAI - KEYBOARD NAVIGATION KE LIYE
+        $searchInput.on('keydown', function(e) {
+            const $items = $itemsContainer.find('.dropdown-option');
+
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    highlightOption(highlightedIndex + 1);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    highlightOption(highlightedIndex - 1);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (highlightedIndex >= 0 && $items.length > 0) {
+                        const $selected = $items.eq(highlightedIndex);
+                        const value = $selected.attr('data-value');
+                        const text = $selected.text();
+                        selectOption(value, text);
+                    }
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    $dropdown.removeClass('active');
+                    $display.removeClass('active');
+                    $searchInput.val('');
+                    highlightedIndex = -1;
+                    $display.focus();
+                    break;
+            }
+        });
+
         $searchInput.on('click', function(e) {
             e.stopPropagation();
         });
@@ -1024,6 +1098,7 @@
                 $dropdown.removeClass('active');
                 $display.removeClass('active');
                 $searchInput.val('');
+                highlightedIndex = -1;  // YE LINE ADD KARI
             }
         });
 
