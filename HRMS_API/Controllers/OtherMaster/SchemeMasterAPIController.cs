@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -22,11 +23,11 @@ namespace HRMS_API.Controllers.OtherMaster
 
 
         [HttpPost("GetAllSchemeMaster")]
-        public async Task<APIResponse> GetAllSchemeMaster([FromQuery] string SearchFor, [FromQuery] string SearchBy)
+        public async Task<APIResponse> GetAllSchemeMaster(SchemeMasterRequest schemeMaster)
         {
             try
             {
-                var data = await _unitOfWork.SchemeMasterRepository.GetAllSchemeMaster(SearchFor, SearchBy);
+                var data = await _unitOfWork.SchemeMasterRepository.GetAllSchemeMaster(schemeMaster);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -40,12 +41,12 @@ namespace HRMS_API.Controllers.OtherMaster
 
 
 
-        [HttpGet("GetBySchemeId/{id}")]
-        public async Task<APIResponse> GetBySchemeId(int id)
+        [HttpGet("GetBySchemeId/{schemeId}")]
+        public async Task<APIResponse> GetBySchemeId(int schemeId)
         {
             try
             {
-                var data = await _unitOfWork.SchemeMasterRepository.GetBySchemeId(id);
+                var data = await _unitOfWork.SchemeMasterRepository.GetBySchemeId(schemeId);
                 if (data == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Record not found." };
 

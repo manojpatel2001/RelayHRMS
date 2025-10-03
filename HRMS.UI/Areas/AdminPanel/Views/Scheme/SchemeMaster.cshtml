@@ -424,7 +424,7 @@
     }
 
     .btn-add {
-        background-color: #87CEEB;
+        background-color: #5dade2;
         color: white;
         font-weight: 600;
         padding: 4px 14px;
@@ -469,8 +469,8 @@
                 <label for="Schemeforid" class="form-label me-2" style="white-space: nowrap;">Search For:</label>
                 <select class="form-control form-control-sm" id="Schemeforid">
                     <option value="0">-- Select --</option>
-                    <option value="1">Scheme Name</option>
-                    <option value="2">Scheme Type</option>
+                    <option value="Scheme Name">Scheme Name</option>
+                    <option value="Scheme Type">Scheme Type</option>
                 </select>
             </div>
 
@@ -506,6 +506,17 @@
     </div>
 
     <!-- Data Grid -->
+
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+        <img src="@baseDomainUrl/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+        <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+    </div>
+
     <div class="grid-container">
         <div id="attendanceGrid">Loading...</div>
     </div>
@@ -524,6 +535,8 @@
         <div class="modal-body">
             <div class="form-container">
                 <form id="schemeForm">
+                    <input type="hidden" id="schemeID" name="schemeID" value="0" />
+
                     <div class="form-group">
                         <label class="required">Name :</label>
                         <div class="input-wrapper">
@@ -567,11 +580,19 @@
     $(document).ready(function () {
         loadSchemeData();
          loadSchemeTypes();
-
+    });
         // GO Button Click
         $('#goButtonId').click(function () {
             loadSchemeData();
         });
+
+               async function showLoder() {
+              $('#grid-loader').addClass('d-flex').show();
+          }
+
+          async function hideLoder() {
+              $('#grid-loader').removeClass('d-flex').hide();
+          }
 
         // Clear Button Click
         $('#clearButtonId').click(function () {
@@ -581,23 +602,17 @@
             loadSchemeData();
         });
 
-        // Search For Dropdown Change
-        $('#Schemeforid').change(function () {
-            $('#input1').prop('disabled', $(this).val() === '0');
-            if ($(this).val() === '0') {
-                $('#input1').val('');
-            }
-        });
 
-        // Add Button Click
-        $('#btnAdd').click(function () {
-            $('#schemeForm')[0].reset();
-            $('#addSchemeModal .modal-header span').text('Add Scheme');
-            $('#btnSave').off('click').on('click', saveScheme);
-            $('#addSchemeModal').fadeIn(200);
-        });
 
-    
+                 $('#btnAdd').click(function () {
+                        $('#schemeForm')[0].reset();
+                        $('#schemeID').val('0'); // Reset to 0 for new entry
+                        $('#addSchemeModal .modal-header span').text('Add Scheme');
+                        $('#btnSave').text('Save'); // Make sure it says Save
+                        $('#btnSave').off('click').on('click', saveScheme);
+                        $('#addSchemeModal').fadeIn(200);
+                    });
+
         $('#btnModalClear').click(function () {
             $('#schemeForm')[0].reset();
         });
@@ -613,34 +628,6 @@
             saveScheme();
         });
 
-        $('#btnDelete').click(function () {
-            if (selectedKeys.length === 0) {
-                Swal.fire({
-                    title: 'No Selection',
-                    text: 'Please select at least one record to delete',
-                    icon: 'warning',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-            Swal.fire({
-                title: 'Are you sure?',
-                text: `You are about to delete ${selectedKeys.length} record(s)`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    deleteSchemes();
-                }
-            });
-        });
-
-        // View Modal Close Buttons
         $('#btnViewModalClose, #btnViewClose').click(function () {
             closeViewModal();
         });
@@ -711,64 +698,65 @@
                 closeViewModal();
             }
         });
-    });
+
 
     function closeModal() {
         $('#addSchemeModal').fadeOut(200);
         $('#addSchemeModal .modal-header span').text('Add Scheme');
+        $('#btnSave').text('Save'); // Reset button text
         $('#schemeForm')[0].reset();
+        $('#schemeID').val('0'); // Reset hidden field
 
-        // Validation errors clear करें
+        // Clear validation errors
         $('#schemeName').removeClass('error');
         $('#schemeType').removeClass('error');
         $('#schemeNameError').removeClass('show');
         $('#schemeTypeError').removeClass('show');
 
+        // Rebind Save button to saveScheme function
         $('#btnSave').off('click').on('click', saveScheme);
     }
+
 
     function closeViewModal() {
         $('#viewSchemeModal').fadeOut(200);
     }
 
-    function loadSchemeData() {
-        $('#attendanceGrid').html('<div class="text-center p-4"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
+
+
+    function loadSchemeData() { 
+ 
+        $('#attendanceGrid').html('<div class="text-center p-4"><i class="fas fa-spinner fa-spin"></i></div>');
+    const searchFor = $('#Schemeforid').val(); // "Scheme Name" or "Scheme Type"
+    const searchBy = $('#input1').val().trim(); // The actual search term
+
+    const requestData = {
+        SearchFor: searchFor === '0' ? 'Scheme Name' : searchFor,
+        SearchBy: searchBy
+    };
+    showLoder();
 
         $.ajax({
-            url: `${baseDomainUrl}/api/SchemeMasterAPI/GetAllSchemeMaster`,
-            method: 'GET',
+            url: `@baseDomainUrl/api/SchemeMasterAPI/GetAllSchemeMaster`,
+            method: 'POST',  // Changed to POST since we're sending a body
             headers: {
-                'Authorization': `Bearer ${Token}`
+                'Authorization': `Bearer ${Token}`,
+                'Content-Type': 'application/json'
             },
+            data: JSON.stringify(requestData),  // Send search criteria to the server
             success: function (response) {
+             hideLoder();
                 if (response.isSuccess && response.data) {
                     allData = response.data;
-
-                    // Filter data based on search criteria
-                    let filteredData = [...allData];
-                    const searchFor = $('#Schemeforid').val();
-                    const searchBy = $('#input1').val().trim();
-
-                    if (searchFor !== '0' && searchBy !== '') {
-                        if (searchFor === '1') { // Scheme Name
-                            filteredData = filteredData.filter(item =>
-                                item.schemeName && item.schemeName.toLowerCase().includes(searchBy.toLowerCase())
-                            );
-                        } else if (searchFor === '2') { // Scheme Type
-                            filteredData = filteredData.filter(item =>
-                                item.type && item.type.toLowerCase().includes(searchBy.toLowerCase())
-                            );
-                        }
-                    }
-
-                    renderTable(filteredData);
-                    updateRecordSummary(filteredData.length);
+                    renderTable(allData);  // No need for client-side filtering now
+                    updateRecordSummary(allData.length);
                 } else {
                     $('#attendanceGrid').html('<div class="text-center p-4 text-muted">No records found</div>');
                     $('#recordSummary').text('');
                 }
             },
             error: function (xhr, status, error) {
+           hideLoder();
                 console.error('Error loading data:', error);
                 $('#attendanceGrid').html('<div class="text-center p-4 text-danger">Error loading data. Please try again.</div>');
                 Swal.fire({
@@ -781,18 +769,30 @@
     }
 
     function renderTable(data) {
+        // Check if grid instance exists before trying to dispose
+        try {
+            const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+            // Grid not initialized yet, just clear the container
+            $("#attendanceGrid").empty();
+        }
+
+        // Calculate equal width for non-button columns (3 columns: schemeName, schemeType, isDefaultScheme)
+        const nonButtonColumns = 3;
+        const equalWidth = `${100 / nonButtonColumns}%`;
+
+        // Initialize new grid with equal-width columns
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             keyExpr: "schemeID",
             showBorders: true,
-            columnAutoWidth: true,
+            columnAutoWidth: false, // Disable auto-width since we're manually setting widths
             width: '100%',
             rowAlternationEnabled: false,
             hoverStateEnabled: true,
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "always"
-            },
             paging: {
                 pageSize: 10
             },
@@ -802,78 +802,67 @@
                 allowedPageSizes: [5, 10, 20, 50],
                 showInfo: true
             },
-            onSelectionChanged: function (e) {
-                selectedKeys = e.selectedRowKeys;
-                if (selectedKeys.length > 0) {
-                    $('#actionButtons').show();
-                } else {
-                    $('#actionButtons').hide();
-                }
-            },
             columns: [
                 {
                     dataField: "schemeID",
                     caption: "Scheme ID",
-                    width: 100,
-                    alignment: "center"
+                    alignment: "center",
+                    visible: false // Hidden column
                 },
                 {
                     dataField: "schemeName",
                     caption: "Scheme Name",
-                    width: 200
+                    alignment: "center",
+                    width: equalWidth // Equal width (33.33%)
                 },
                 {
-                    dataField: "type",
+                    dataField: "schemeType",
                     caption: "Type",
-                    width: 150,
-                    alignment: "center"
+                    alignment: "center",
+                    width: equalWidth // Equal width (33.33%)
                 },
                 {
                     dataField: "isDefaultScheme",
-                    caption: "Default Scheme",
-                    width: 130,
+                    caption: "Default",
+                    width: equalWidth, // Equal width (33.33%)
                     alignment: "center",
                     cellTemplate: function (container, options) {
-                        const badge = options.value
-                            ? '<span class="badge badge-success">Yes</span>'
-                            : '<span class="badge badge-secondary">No</span>';
-                        container.append(badge);
+                        const text = options.value ? "Yes" : "No";
+                        const color = options.value ? "#212529" : "#6c757d";
+                        container.append(`<span style="color: ${color}; font-weight: 500;">${text}</span>`);
                     }
                 },
                 {
-                    dataField: "isEnabled",
-                    caption: "Status",
-                    width: 100,
-                    alignment: "center",
+                    dataField: '',
+                    caption: 'Edit',
+                    dataType: 'string',
+                    width: 70, // Fixed small width for action buttons
                     cellTemplate: function (container, options) {
-                        const badge = options.value
-                            ? '<span class="badge badge-success">Active</span>'
-                            : '<span class="badge badge-secondary">Inactive</span>';
-                        container.append(badge);
-                    }
-                },
-                {
-                    caption: "Actions",
-                    width: 120,
-                    alignment: "center",
-                    cellTemplate: function (container, options) {
-                        $('<button>')
-                            .addClass('btn btn-sm btn-info me-1')
-                            .html('<i class="fas fa-eye"></i>')
-                            .attr('title', 'View')
-                            .css({ 'font-size': '11px', 'padding': '3px 8px' })
-                            .on('click', function () {
-                                viewScheme(options.data.schemeID);
+                        $('<div class="d-flex order-actions">')
+                            .append('<a href="javascript:;" class="edit-action" title="Update Scheme">'+
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">'+
+                                '<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 1.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.354-.854z"/></svg>'+
+                                '</a>')
+                            .on('click', function() {
+                                openEditModal(options.data.schemeID);
                             })
                             .appendTo(container);
-
-                        $('<button>')
-                            .addClass('btn btn-sm btn-primary me-1')
-                            .html('<i class="fas fa-edit"></i>')
-                            .attr('title', 'Edit')
-                            .css({ 'font-size': '11px', 'padding': '3px 8px' })
-                            .on('click', function () {
-                                editScheme(options.data.schemeID);
+                    }
+                },
+                {
+                    dataField: '',
+                    caption: 'Delete',
+                    dataType: 'string',
+                    width: 70, // Fixed small width for action buttons
+                    cellTemplate: function (container, options) {
+                        $('<div class="d-flex order-actions">')
+                            .append('<a href="javascript:;" class="delete-action" title="Delete Scheme">'+
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">'+
+                                '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/></path>'+
+                                '</svg>'+
+                                '</a>')
+                            .on('click', function() {
+                                deleteScheme(options.data.schemeID);
                             })
                             .appendTo(container);
                     }
@@ -891,7 +880,7 @@
     }
 
     function saveScheme() {
-        debugger;
+
         $('#schemeName').removeClass('error');
         $('#schemeType').removeClass('error');
         $('#schemeNameError').removeClass('show');
@@ -929,8 +918,7 @@
             IsEnabled: true,
             CreatedBy: Empid
         };
-
-          console.log('schemeData' ,schemeData);
+     showLoder();
         $.ajax({
             url: '@baseDomainUrl/api/SchemeMasterAPI/AddScheme',
             method: 'POST',
@@ -940,6 +928,7 @@
             },
             data: JSON.stringify(schemeData),
             success: function (response) {
+             hideLoder();
                 if (response.isSuccess) {
                     Swal.fire({
                         title: 'Success!',
@@ -960,6 +949,7 @@
                 }
             },
             error: function (xhr, status, error) {
+            hideLoder();
                 console.error('Error saving scheme:', error);
                 Swal.fire({
                     title: 'Error!',
@@ -971,156 +961,166 @@
         });
     }
 
-    function deleteSchemes() {
-        const deletePromises = selectedKeys.map(id => {
-            return $.ajax({
-                url: `${baseDomainUrl}/api/SchemeMasterAPI/Delete`,
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${Token}`,
-                    'Content-Type': 'application/json'
-                },
-                data: JSON.stringify({
-                    Id: id,
-                    DeletedBy: Empid
-                })
-            });
-        });
+    function deleteScheme(schemeID) {
+        if (!schemeID || isNaN(schemeID)) {
+            Swal.fire('Error!', 'Invalid scheme ID', 'error');
+            return;
+        }
 
-        Promise.all(deletePromises)
-            .then(responses => {
-                const allSuccess = responses.every(r => r.isSuccess);
-                if (allSuccess) {
-                    Swal.fire({
-                        title: 'Deleted!',
-                        text: `${selectedKeys.length} scheme(s) deleted successfully`,
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        selectedKeys = [];
-                        $('#actionButtons').hide();
-                        loadSchemeData();
-                    });
-                } else {
-                    Swal.fire({
-                        title: 'Partial Success',
-                        text: 'Some schemes could not be deleted',
-                        icon: 'warning',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        selectedKeys = [];
-                        $('#actionButtons').hide();
-                        loadSchemeData();
-                    });
+        if (!Empid) {
+            Swal.fire('Error!', 'Employee ID missing', 'error');
+            return;
+        }
+       showLoder();
+
+        $.ajax({
+            url: '@baseDomainUrl/api/SchemeMasterAPI/Delete',
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${Token}`,
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                Id: parseInt(schemeID),   
+                DeletedBy: Empid.toString()
+            }),
+            success: function(response) {
+                 hideLoder();
+                Swal.fire({
+                    title: 'Success!',
+                    text: response.responseMessage || 'Scheme deleted successfully',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    loadSchemeData(); // Refresh the data
+                });
+            },
+            error: function(xhr) {
+               hideLoder();
+                let errorMsg = 'Failed to delete scheme';
+
+                if (xhr.responseText) {
+                    try {
+                        const errorResponse = JSON.parse(xhr.responseText);
+                        errorMsg = errorResponse.responseMessage ||
+                                  errorResponse.message ||
+                                  errorResponse.data ||
+                                  'An error occurred while deleting the scheme';
+                    } catch (e) {
+                        errorMsg = 'Unable to process the delete request';
+                    }
                 }
-            })
-            .catch(error => {
-                console.error('Error deleting schemes:', error);
+
                 Swal.fire({
                     title: 'Error!',
-                    text: 'Failed to delete schemes',
+                    text: errorMsg,
                     icon: 'error',
                     confirmButtonText: 'OK'
                 });
-            });
-    }
-
-    function viewScheme(schemeId) {
-        $.ajax({
-            url: `${baseDomainUrl}/api/SchemeMasterAPI/GetBySchemeId/${schemeId}`,
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${Token}`
-            },
-            success: function (response) {
-                if (response.isSuccess && response.data) {
-                    const data = response.data;
-
-                    // Populate view modal
-                    $('#viewSchemeID').text(data.schemeID || '-');
-                    $('#viewSchemeName').text(data.schemeName || '-');
-                    $('#viewSchemeType').text(data.type || '-');
-
-                    const defaultBadge = data.isDefaultScheme
-                        ? '<span class="badge badge-success">Yes</span>'
-                        : '<span class="badge badge-secondary">No</span>';
-                    $('#viewDefaultScheme').html(defaultBadge);
-
-                    const statusBadge = data.isEnabled
-                        ? '<span class="badge badge-success">Active</span>'
-                        : '<span class="badge badge-secondary">Inactive</span>';
-                    $('#viewStatus').html(statusBadge);
-
-                    $('#viewCreatedDate').text(data.createdDate ? formatDate(data.createdDate) : '-');
-                    $('#viewModifiedDate').text(data.modifiedDate ? formatDate(data.modifiedDate) : '-');
-
-                    $('#viewSchemeModal').fadeIn(200);
-                }
-            },
-            error: function () {
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'Failed to load scheme details',
-                    icon: 'error'
-                });
             }
         });
     }
 
-    function editScheme(schemeId) {
+    function openEditModal(schemeId) {
+        // Clear previous errors
+        $('#schemeName').removeClass('error');
+        $('#schemeType').removeClass('error');
+        $('#schemeNameError').removeClass('show');
+        $('#schemeTypeError').removeClass('show');
+
+        // Fetch scheme data by ID
         $.ajax({
             url: `${baseDomainUrl}/api/SchemeMasterAPI/GetBySchemeId/${schemeId}`,
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${Token}`
+                'Authorization': `Bearer ${Token}`,
+                'Content-Type': 'application/json'
             },
-            success: function (response) {
+            success: function(response) {
                 if (response.isSuccess && response.data) {
-                    $('#schemeName').val(response.data.schemeName);
-                    $('#schemeType').val(response.data.type);
-                    $('#isDefaultScheme').prop('checked', response.data.isDefaultScheme);
-                    $('#addSchemeModal .modal-header span').text('Edit Scheme');
-                    $('#addSchemeModal').fadeIn(200);
+                    const schemeData = response.data;
+                    console.log('schemeData' ,schemeData);
+                    // Populate form fields
+                    $('#schemeID').val(schemeData.schemeID);
+                    $('#schemeName').val(schemeData.schemeName);
+                    $('#schemeType').val(schemeData.type || schemeData.schemeTypeId);
+                    $('#isDefaultScheme').prop('checked', schemeData.isDefaultScheme);
 
+                    // Change modal title to Edit
+                    $('#addSchemeModal .modal-header span').text('Edit Scheme');
+
+                    // Change Save button text to Update
+                    $('#btnSave').text('Update');
+
+                    // Bind update function to Save button
                     $('#btnSave').off('click').on('click', function() {
-                        updateScheme(schemeId);
+                        updateSchemeData();
+                    });
+
+                    // Show modal
+                    $('#addSchemeModal').fadeIn(200);
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to load scheme data',
+                        icon: 'error'
                     });
                 }
             },
-            error: function () {
+            error: function(xhr, status, error) {
+                console.error('Error loading scheme:', error);
                 Swal.fire({
                     title: 'Error!',
-                    text: 'Failed to load scheme details',
+                    text: 'Failed to load scheme data',
                     icon: 'error'
                 });
             }
         });
     }
 
-    function updateScheme(schemeId) {
+    // New function for updating scheme
+    function updateSchemeData() {
+        // Clear previous errors
+        $('#schemeName').removeClass('error');
+        $('#schemeType').removeClass('error');
+        $('#schemeNameError').removeClass('show');
+        $('#schemeTypeError').removeClass('show');
+
+        const schemeID = $('#schemeID').val();
         const schemeName = $('#schemeName').val().trim();
         const schemeType = $('#schemeType').val();
         const isDefaultScheme = $('#isDefaultScheme').is(':checked');
 
-        if (!schemeName || !schemeType) {
-            Swal.fire({
-                title: 'Validation Error',
-                text: 'Please fill all required fields',
-                icon: 'warning'
-            });
+        let isValid = true;
+
+        if (!schemeName) {
+            $('#schemeName').addClass('error');
+            $('#schemeNameError').addClass('show');
+            isValid = false;
+        }
+
+        if (!schemeType) {
+            $('#schemeType').addClass('error');
+            $('#schemeTypeError').addClass('show');
+            isValid = false;
+        }
+
+        if (!isValid) {
             return;
         }
 
         const schemeData = {
-            SchemeID: schemeId,
+            SchemeID: parseInt(schemeID),
             SchemeName: schemeName,
-            Type: schemeType,
+            Type: parseInt(schemeType),
             IsDefaultScheme: isDefaultScheme,
             IsDeleted: false,
             IsEnabled: true,
-            CreatedBy: Empid
+            ModifiedBy: Empid
         };
 
+          showLoder();
         $.ajax({
             url: `${baseDomainUrl}/api/SchemeMasterAPI/UpdateScheme`,
             method: 'PUT',
@@ -1129,15 +1129,17 @@
                 'Content-Type': 'application/json'
             },
             data: JSON.stringify(schemeData),
-            success: function (response) {
+            success: function(response) {  
+                     hideLoder();
                 if (response.isSuccess) {
                     Swal.fire({
                         title: 'Success!',
                         text: response.responseMessage || 'Scheme updated successfully',
-                        icon: 'success'
+                        icon: 'success',
+                        confirmButtonText: 'OK'
                     }).then(() => {
                         closeModal();
-                        loadSchemeData();
+                         loadSchemeData();
                     });
                 } else {
                     Swal.fire({
@@ -1147,24 +1149,28 @@
                     });
                 }
             },
-            error: function () {
+            error: function(xhr) {
+                     hideLoder();
+                let errorMsg = 'Failed to update scheme';
+                if (xhr.responseText) {
+                    try {
+                        const errorResponse = JSON.parse(xhr.responseText);
+                        errorMsg = errorResponse.responseMessage ||
+                                  errorResponse.message ||
+                                  errorResponse.data ||
+                                  errorMsg;
+                    } catch (e) {
+                        errorMsg = xhr.responseText || errorMsg;
+                    }
+                }
                 Swal.fire({
                     title: 'Error!',
-                    text: 'Failed to update scheme',
+                    text: errorMsg,
                     icon: 'error'
                 });
             }
         });
     }
 
-    function formatDate(dateString) {
-        if (!dateString) return '-';
-        const date = new Date(dateString);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${day}/${month}/${year} ${hours}:${minutes}`;
-    }
+
 </script>
