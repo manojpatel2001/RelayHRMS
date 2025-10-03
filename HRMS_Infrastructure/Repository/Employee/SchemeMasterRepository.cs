@@ -4,12 +4,14 @@ using HRMS_Core.Migrations;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.ManagePermision;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.JobMaster;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -86,18 +88,19 @@ namespace HRMS_Infrastructure.Repository.Employee
             throw new NotImplementedException();
         }
 
-        public async Task<List<SchemeMasterViewModel>> GetAllSchemeMaster(string SearchFor, string SearchBy)
+        public async Task<List<GetAllSchemeMasterViewModel>> GetAllSchemeMaster(SchemeMasterRequest schemeMaster)
         {
             try
             {
-                var parameters = new[]
-                {
-            new SqlParameter("@SearchFor", SearchFor ?? (object)DBNull.Value),
-            new SqlParameter("@SearchBy", SearchBy ?? (object)DBNull.Value)
-        };
-
+        
+               var parameters = new SqlParameter[]
+            {
+                new SqlParameter("@SearchFor", (object)schemeMaster.SearchFor ?? DBNull.Value) { SqlDbType = SqlDbType.NVarChar },
+                new SqlParameter("@SearchBy", (object)schemeMaster.SearchBy ?? DBNull.Value) { SqlDbType = SqlDbType.NVarChar }
+            };
+       
                 var result = await _db.Database
-                    .SqlQueryRaw<SchemeMasterViewModel>($@"
+                    .SqlQueryRaw<GetAllSchemeMasterViewModel>($@"
                 EXEC sp_GetAllSchemeMasters @SearchFor, @SearchBy",
                         parameters)
                     .ToListAsync();
@@ -107,7 +110,7 @@ namespace HRMS_Infrastructure.Repository.Employee
             catch (Exception ex)
             {
                
-                return new List<SchemeMasterViewModel>();
+                return new List<GetAllSchemeMasterViewModel>();
             }
         }
 
