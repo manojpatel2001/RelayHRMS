@@ -1,4 +1,6 @@
-﻿using HRMS_Infrastructure.Interface;
+﻿using HRMS_Core.VM;
+using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -34,5 +36,53 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
+        [HttpPost("CreateEmployeeIncrementSalary")]
+        public async Task<APIResponse> CreateEmployeeIncrementSalary(vmEmployeeIncrementSalary salaryPara)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeIncrementRespository.CreateEmployeeIncrementSalary(salaryPara);
+
+                return data;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to add. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetAllIncrementEmployees/{companyId}")]
+        public async Task<APIResponse> GetAllIncrementEmployees(int companyId)
+        {
+            try
+            {
+             
+                var result = await _unitOfWork.EmployeeIncrementRespository.GetAllIncrementEmployees(companyId);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Failed to fetch increment records"
+                };
+            }
+        }
+
+        [HttpDelete("DeleteIncrement")]
+        public async Task<APIResponse> DeleteIncrement(DeleteRecordVM delete )
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeIncrementRespository.DeleteIncrement(delete.Id);
+
+                return data;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete. Please try again later." };
+            }
+        }
     }
 }
