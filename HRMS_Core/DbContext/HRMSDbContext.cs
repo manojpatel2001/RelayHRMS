@@ -284,6 +284,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<NewJoinerDetailsViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<SchemeMasterViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<SchemeTypeModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<vmGetAllIncrementEmployees>().HasNoKey().ToView(null);
 
 
 

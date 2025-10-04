@@ -297,31 +297,37 @@
         <form class="form-tag">
             <div class="form-row ">
                 <div class="form-group">
-                    <label for="effectDate">Effect Date*</label>
+                <label for="effectDate">Effect Date<span class="text-danger">*</span></label>
                     <input type="date" id="effectDate" value="2025-09-15" >
+                <span id="spneffectDate" class="text-danger" style="display:none;">Please select effected date </span>
+
                 </div>
 
             <div class="form-group">
-                <label for="ddlBranch">Branch*</label>
+                <label for="ddlBranch">Branch</label>
                 <select id="ddlBranch" >
-                    <option value="">Select</option>
+                    <option value="" selected disabled>Select</option>
                 </select>
+
             </div>
 
             </div>
            
             <div class="form-row mt-0">
             <div class="form-group">
-                <label for="ddlEmployee">Employee Name*</label>
+                <label for="ddlEmployee">Employee Name<span class="text-danger">*</span></label>
                 <select id="ddlEmployee" >
-                    <option value="">Select</option>
+                    <option value="" selected disabled>Select</option>
                 </select>
+                <span id="spnddlEmployee" class="text-danger" style="display:none;">Please select employee </span>
+
             </div>
                 <div class="form-group">
-                    <label for="ddlReason">Reason*</label>
+                <label for="ddlReason">Reason<span class="text-danger">*</span></label>
                 <select id="ddlReason">
-                    <option value="">Select</option>
+                    <option value="" selected disabled >Select</option>
                     </select>
+                <span id="spnddlReason" class="text-danger" style="display:none;">Please select reason </span>
                 </div>
             </div>
             <div style="margin-top: 20px; display:none;" id="salaryChange">
@@ -377,8 +383,8 @@
 
             <div class="text-center mt-3 btnTag" style="display:none;">
 
-                <button class="btn btn-sm px-2" style="background-color:#2395c6; color:white;" id="btnSave">Save</button>
-                <button onclick="resetForm()" class="btn btn-sm btn-secondary px-2" >Clear</button>
+                <button type ="button"class="btn btn-sm px-2" style="background-color:#2395c6; color:white;" id="btnIncrementSave">Save</button>
+                <button type ="button" onclick="resetForm()" class="btn btn-sm btn-secondary px-2" >Clear</button>
             </div>
         </form>
     </div>
@@ -551,6 +557,7 @@
         const Token=localStorage.getItem("authToken");
 
      $(document).ready( async function() {
+           
            effectDate();
            BindBranchDropdown();
              BindReason();
@@ -562,25 +569,22 @@
           document.getElementById('effectDate').value = formattedDate;
       };
 
-        function handleSingleInput(currentInput, currentId) {
-            // Reset all inputs to 0
-            $('#basic').val('0');
-            $('#gross').val('0');
-            $('#ctc').val('0');
-
+         function handleSingleInput(currentInput, currentId) {
             // Set the value for the current input
             $('#' + currentId).val($(currentInput).val());
-               const isPercentageMode = $('input[name="incrementMode"]:checked').val() === 'percentage';
-               if(isPercentageMode)
-               {
-                      if (parseFloat($(this).val()) > 100) {
-                          $(this).val('100');
 
-                      }
-               }
+            const isPercentageMode = $('input[name="incrementMode"]:checked').val() === 'percentage';
+            if (isPercentageMode) {
+                // Ensure currentInput is a jQuery object
+                const $input = $(currentInput);
+                if (parseFloat($input.val()) > 100) {
+                    $input.val('100');
+                }
+            }
             // Recalculate salary
             calculateNewSalary();
         }
+
 
        function toggleInputMode() {
 
@@ -588,7 +592,9 @@
           $('#basic').val("0");
           $('#gross').val("0");
           $('#ctc').val("0");
-
+              $('#newBasicSalary').val("");
+              $('#newGrossSalary').val("");
+              $('#newctcSalary').val("");
          
       }
      
@@ -724,6 +730,9 @@
                    $("#salaryChange").hide();
                     $(".SalaryContainer").hide();
                       $(".btnTag").hide();
+           $('#spneffectDate').hide();
+          $('#spnddlEmployee').hide();
+          $('#spnddlReason').hide();
       }
 
       $('#ddlEmployee').change(async function () {
@@ -741,7 +750,6 @@
                 }
             });
             const data = await response.json();
-            console.log("salary",data);
             if (data.isSuccess) {
 
                bindSalaryAllowance(data.data)
@@ -773,17 +781,17 @@
             return;
         }
            try {
-                    const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetLiveEmployeeSalaryAllowance', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            IsPFApplicable: isPFApplicable,
-                            GrossSalary: grossSalary,
-                                    BasicSalary: basicSalary
-                        })
-                    });
+            const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetLiveEmployeeSalaryAllowance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    IsPFApplicable: isPFApplicable,
+                    GrossSalary: grossSalary,
+                            BasicSalary: basicSalary
+                })
+            });
 
             const data = await response.json();
             if (data.isSuccess) {
@@ -871,4 +879,72 @@
     }
 
 
+    $("#btnIncrementSave").click(async function() {
+        var grossSalary = $('#newGrossSalary').val();
+        var basicSalary = $('#newBasicSalary').val();
+        var reasonId = $('#ddlReason').val();
+        var effectedDated = $('#effectDate').val();
+        var employeeId = $('#ddlEmployee').val();
+        var isValid = true;
+
+        // Hide all error spans
+        $('#spneffectDate').hide();
+        $('#spnddlEmployee').hide();
+        $('#spnddlReason').hide();
+
+        // Validation
+        if (!effectedDated) {
+            $('#spneffectDate').show();
+            isValid = false;
+        }
+        if (!employeeId) {
+            $('#spnddlEmployee').show();
+            isValid = false;
+        }
+        if (!reasonId) {
+            $('#spnddlReason').show();
+            isValid = false;
+        }
+        if (!isValid) return;
+
+        // Default values
+        if (basicSalary == null || basicSalary === '') {
+            basicSalary = 0;
+        }
+        if (!grossSalary) {
+            round_error_noti("Please enter gross salary!");
+            return;
+        }
+
+        // Prepare payload
+        var payload = {  // Renamed from 'data' to avoid conflict
+            GrossSalary: grossSalary,
+            BasicSalary: basicSalary,
+            EffectedDate: effectedDated,
+            ReasonId: reasonId,
+            EmployeeId: employeeId,
+            CompanyId: CompanyId
+        };
+        try {
+            const response = await fetch('@baseUrl/EmployeeIncrementAPI/CreateEmployeeIncrementSalary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)  // Use 'payload' instead of 'data'
+            });
+
+            const responseData = await response.json();  // Renamed to avoid conflict
+
+            if (responseData.isSuccess) {
+                round_success_noti(responseData.responseMessage);
+                  resetForm();
+            } else {
+                round_error_noti(responseData.responseMessage);
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            round_error_noti("An error occurred. Please try again.");
+        }
+    });
 </script>
