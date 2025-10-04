@@ -7,6 +7,97 @@
     string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 
+<style>
+    /* Searchable Dropdown CSS - Add this to your existing styles */
+    .select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .custom-select-display {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        background-color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .custom-select-display:focus {
+            outline: none;
+            border-color: #2395c6;
+        }
+
+        .custom-select-display .arrow {
+            transition: transform 0.3s;
+        }
+
+        .custom-select-display.active .arrow {
+            transform: rotate(180deg);
+        }
+
+    .search-dropdown {
+        display: none;
+        position: absolute;
+        width: 100%;
+        background-color: white;
+        border: 1px solid #2395c6;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+        .search-dropdown.active {
+            display: block;
+        }
+
+    .search-input-wrapper {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .dropdown-search-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .dropdown-items {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+
+    .dropdown-option {
+        padding: 10px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+
+        .dropdown-option:hover {
+            background-color: #2395c6;
+            color: white;
+        }
+
+        .dropdown-option.selected {
+            background-color: #e3f2fd;
+        }
+
+        .dropdown-option.highlighted {
+            background-color: #2395c6;
+            color: white;
+        }
+    .no-results {
+        padding: 10px 12px;
+        color: #999;
+        text-align: center;
+    }
+</style>
+
 <div class="card">
     <div class="card-header bg-transparent ml-0 py-0">
         <div class="row">
@@ -293,7 +384,7 @@
         BindBranchDropdown();
         bindReporting();
         loadDataTable();
-
+        initSearchableEmployeeDropdown();
         function hideAllConditionalFields() {
             $('.common-reason').hide();
         }
@@ -336,13 +427,6 @@
 
 
 
-    $('#branchemp').on('focus', function () {
-        const optionsCount = $(this).find('option').length;
-        if (optionsCount <= 1) {
-            round_error_noti('Please select branch first');
-        }
-    });
-
     $("#branchemp").change(() => {
         GetEmployeeById();
     });
@@ -373,10 +457,11 @@
         });
     }
 
-     function BindEmployeeByBranchId() {
+      function BindEmployeeByBranchId() {
         var branchId = $("#branch").val();
         if (!branchId || branchId === "" || branchId === "--Select--") {
             $('#branchemp').empty().append('<option disabled selected value="">--Select Employee--</option>');
+            initSearchableEmployeeDropdown(); 
             return Promise.resolve();
         }
 
@@ -394,20 +479,23 @@
                     $.each(response.data, function (i, item) {
                         var option = $('<option></option>')
                             .attr('value', item.id)
-                            .text(item.fullName);
-
+                            .text(item.fullName + " - " + item.employeeCode)
                         $empDropdown.append(option);
                     });
+
+                    initSearchableEmployeeDropdown(); 
 
                 } else {
                     if (response && !response.isSuccess) {
                         console.log("API returned isSuccess = false, message:", response.message);
                     }
                     round_error_noti("No employees found for this branch");
+                    initSearchableEmployeeDropdown(); 
                 }
             },
             error: function (xhr, status, error) {
                 $('#branchemp').empty().append('<option disabled selected value="">--Select Employee--</option>');
+                initSearchableEmployeeDropdown(); 
                 if (xhr.status === 401) {
                     round_error_noti("Authentication failed. Please login again.");
                 } else if (xhr.status === 404) {
@@ -737,6 +825,7 @@
         $("#leftDateLabel").css('color', '');
         $("#addEmployeeLeftLabel").text("Add Left Employee");
         $("#btnSaveLeftEmployee").text("Save").prop("disabled", false);
+        initSearchableEmployeeDropdown();
     }
 
     $("#addLeftEmployee").off('click').on('click', async function () {
@@ -839,6 +928,187 @@
         });
     }
 
+
+       function initSearchableEmployeeDropdown() {
+        const $branchemp = $('#branchemp');
+        $branchemp.siblings('.select-wrapper').remove();
+        $branchemp.hide();
+
+        const customDropdownHTML = `
+            <div class="select-wrapper">
+                <div class="custom-select-display" id="empSelectDisplay" tabindex="0">
+                    <span class="selected-text">--Select Employee--</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="search-dropdown" id="empSearchDropdown">
+                    <div class="search-input-wrapper">
+                        <input type="text" class="dropdown-search-input" id="empSearchInput" placeholder="Search employee...">
+                    </div>
+                    <div class="dropdown-items" id="empDropdownItems"></div>
+                </div>
+            </div>
+        `;
+
+        $branchemp.after(customDropdownHTML);
+
+        const $display = $('#empSelectDisplay');
+        const $dropdown = $('#empSearchDropdown');
+        const $searchInput = $('#empSearchInput');
+        const $itemsContainer = $('#empDropdownItems');
+        const $selectedText = $('.selected-text');
+        let highlightedIndex = -1;  // YE NAYA VARIABLE HAI
+
+        function renderEmployeeItems(filterText = '') {
+            $itemsContainer.empty();
+            highlightedIndex = -1;  // YE LINE ADD KARI
+            const options = $branchemp.find('option').filter(function() {
+                return $(this).val() !== '' && !$(this).is(':disabled');
+            });
+
+            let filteredOptions = options;
+            if (filterText) {
+                filteredOptions = options.filter(function() {
+                    return $(this).text().toLowerCase().includes(filterText.toLowerCase());
+                });
+            }
+
+            if (filteredOptions.length === 0) {
+                $itemsContainer.append('<div class="no-results">No results found</div>');
+                return;
+            }
+
+            filteredOptions.each(function() {
+                const $option = $(this);
+                const value = $option.val();
+                const text = $option.text();
+                const isSelected = $branchemp.val() === value;
+
+                const $item = $('<div class="dropdown-option"></div>')
+                    .text(text)
+                    .toggleClass('selected', isSelected)
+                    .attr('data-value', value)  // YE LINE ADD KARI
+                    .on('click', function() {
+                        selectOption(value, text);  // YE FUNCTION CALL CHANGE KARI
+                    });
+
+                $itemsContainer.append($item);
+            });
+        }
+
+        // YE PURA NAYA FUNCTION HAI
+        function selectOption(value, text) {
+            $branchemp.val(value).trigger('change');
+            $selectedText.text(text);
+            $dropdown.removeClass('active');
+            $display.removeClass('active');
+            $searchInput.val('');
+            highlightedIndex = -1;
+        }
+
+        // YE PURA NAYA FUNCTION HAI
+        function highlightOption(index) {
+            const $items = $itemsContainer.find('.dropdown-option');
+            if ($items.length === 0) return;
+
+            $items.removeClass('highlighted');
+
+            if (index < 0) index = 0;
+            if (index >= $items.length) index = $items.length - 1;
+
+            highlightedIndex = index;
+            const $highlighted = $items.eq(index);
+            $highlighted.addClass('highlighted');
+
+            const itemTop = $highlighted.position().top;
+            const itemHeight = $highlighted.outerHeight();
+            const containerHeight = $itemsContainer.height();
+            const scrollTop = $itemsContainer.scrollTop();
+
+            if (itemTop < 0) {
+                $itemsContainer.scrollTop(scrollTop + itemTop);
+            } else if (itemTop + itemHeight > containerHeight) {
+                $itemsContainer.scrollTop(scrollTop + itemTop + itemHeight - containerHeight);
+            }
+        }
+
+        // YAHA PAR 'keydown' ADD KIYA AUR LOGIC CHANGE KARI
+        $display.on('click keydown', function(e) {
+            if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+            if (e.type === 'keydown') e.preventDefault();
+
+            e.stopPropagation();
+            const optionsCount = $branchemp.find('option').length;
+            if (optionsCount <= 1) {
+                round_error_noti('Please select branch first');
+                return;
+            }
+
+            $('.search-dropdown').removeClass('active');
+            $('.custom-select-display').removeClass('active');
+
+            $dropdown.addClass('active');
+            $display.addClass('active');
+            setTimeout(() => $searchInput.focus(), 100);
+            renderEmployeeItems();
+        });
+
+        $searchInput.on('input', function() {
+            renderEmployeeItems($(this).val());
+        });
+
+        // YE PURA NAYA EVENT HANDLER HAI - KEYBOARD NAVIGATION KE LIYE
+        $searchInput.on('keydown', function(e) {
+            const $items = $itemsContainer.find('.dropdown-option');
+
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    highlightOption(highlightedIndex + 1);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    highlightOption(highlightedIndex - 1);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (highlightedIndex >= 0 && $items.length > 0) {
+                        const $selected = $items.eq(highlightedIndex);
+                        const value = $selected.attr('data-value');
+                        const text = $selected.text();
+                        selectOption(value, text);
+                    }
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    $dropdown.removeClass('active');
+                    $display.removeClass('active');
+                    $searchInput.val('');
+                    highlightedIndex = -1;
+                    $display.focus();
+                    break;
+            }
+        });
+
+        $searchInput.on('click', function(e) {
+            e.stopPropagation();
+        });
+
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.select-wrapper').length) {
+                $dropdown.removeClass('active');
+                $display.removeClass('active');
+                $searchInput.val('');
+                highlightedIndex = -1;  // YE LINE ADD KARI
+            }
+        });
+
+        $branchemp.on('change', function() {
+            const selectedOption = $(this).find('option:selected');
+            $selectedText.text(selectedOption.text() || '--Select Employee--');
+        });
+
+        renderEmployeeItems();
+    }
  
     $("#refreshData").click(function() {
         loadDataTable();
