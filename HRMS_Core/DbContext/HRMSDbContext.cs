@@ -286,6 +286,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<SchemeTypeModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<SchemeMasterRequest>().HasNoKey().ToView(null);
              modelBuilder.Entity<GetAllSchemeMasterViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EventViewModel>().HasNoKey().ToView(null);
 
 
 

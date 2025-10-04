@@ -104,7 +104,19 @@ namespace HRMS_Infrastructure.Repository.Report
                 return null;
             }
         }
-        
+
+        public async Task<List<EventViewModel>> GetUserEvent(int UserId)
+        {
+            try
+            {
+                var result = await _db.Set<EventViewModel>().FromSqlInterpolated($"EXEC GetUserEvents @UserId={UserId}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EventViewModel>();
+            }
+        }
 
         public async Task<SP_Response> UpdateEvent(AddEvent model)
         {

@@ -114,6 +114,23 @@ namespace HRMS_API.Controllers.Report
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve record, Please try again later!" };
             }
         }
+        [HttpGet("GetUserEvents/{UserId}")]
+        public async Task<APIResponse> GetUserEvents(int UserId)
+        {
+            try
+            {
+                var data = await _unitOfWork.AddeventRepository.GetUserEvent(UserId);
+                if (data == null)
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found" };
+                }
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve record, Please try again later!" };
+            }
+        }
 
 
     }
