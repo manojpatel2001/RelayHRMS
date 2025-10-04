@@ -574,7 +574,7 @@ public class ImportDataController : ControllerBase
             }
             List<string> dailyAttendance = new();
             bool anyBlankDay = false;
-            string[] allowedCodes = { "P", "A", "W", "HF", "LWP", "PL", "COM", "H" };
+            string[] allowedCodes = { "P", "A", "W", "HF", "LWP", "PL", "COM", "H","-" };
 
             for (int day = 0; day < 31; day++) // Loop through columns 3 to 33 (Day1 to Day31)
             {
