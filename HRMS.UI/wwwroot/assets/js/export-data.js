@@ -34,20 +34,36 @@ function hideBtnExportLoder() {
     $('#btnExporting').removeClass('d-flex').hide();
     $('#btnExport').addClass('d-flex').show();
 }
+function showBtnExportDataLoder() {
+   
+    $('#exportEmployee').hide();
+    $('#exportingEmployee').show();
+}
+function hideBtnExportDataLoder() {
+    $('#exportEmployee').show();
+    $('#exportingEmployee').hide();
+}
 
-async function loadEmployeeMasterData() {
+async function loadEmployeeMasterData(data) {
     try {
-        const response = await fetch(BaseUrlLayout + '/ExportDataAPI/GetAllEmployeeExportData/' + CompanyId, {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem("authToken")
-            },
-        });
-        const data = await response.json();
-        if (data.isSuccess) {
-            firstDataRowHeader = data.data[0];
-            sampleData = data.data.slice(1);
+        const payload = {
+            CompanyId: CompanyId, // Make sure to define CompanyId
+            IsLeft: data
+        };
 
+        const response = await fetch(BaseUrlLayout + '/ExportDataAPI/GetAllEmployeeExportData', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem("authToken"),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const responseData = await response.json();
+        if (responseData.isSuccess) {
+            firstDataRowHeader = responseData.data[0];
+            sampleData = responseData.data.slice(1);
             initializeModal();
         }
     } catch (error) {
@@ -58,8 +74,16 @@ async function loadEmployeeMasterData() {
 async function openExportModal(report) {
 
     showBtnExportLoder();
-    if (report == "Employee Master") {
-        await loadEmployeeMasterData();
+    if (report ==="Employee Master") {
+        const selectedOption = $('input[name="options"]:checked').val();
+        let data = null;
+
+        if (selectedOption === "LeftEmployee") {
+            data = true;
+        } else if (selectedOption === "CurrentEmployee") {
+            data = false;
+        }
+        await loadEmployeeMasterData(data);
     }
     hideBtnExportLoder();
     initializeModal();
@@ -270,6 +294,7 @@ function performExport() {
         alert('Please select at least one column to export.');
         return;
     }
+    showBtnExportDataLoder();
 
     // Create export data with selected columns in the specified order
     const exportData = sampleData.map(row => {
@@ -292,6 +317,7 @@ function performExport() {
             exportToJSON(exportData);
             break;
     }
+    hideBtnExportDataLoder();
 }
 
 //function exportToExcel(data) {

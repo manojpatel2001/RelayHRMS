@@ -1,4 +1,5 @@
-﻿using HRMS_Infrastructure.Interface;
+﻿using HRMS_Core.VM;
+using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,12 +16,12 @@ namespace HRMS_API.Controllers.ExportData
         {
             _unitOfWork = unitOfWork;
         }
-        [HttpGet("GetAllEmployeeExportData/{CompanyId}")]
-        public async Task<APIResponse> GetAllEmployeeExportData(int CompanyId)
+        [HttpPost("GetAllEmployeeExportData")]
+        public async Task<APIResponse> GetAllEmployeeExportData(ExportParameter vm)
         {
             try
             {
-                var data = await _unitOfWork.ExportDataRepository.GetAllEmployeeExportData(CompanyId);
+                var data = await _unitOfWork.ExportDataRepository.GetAllEmployeeExportData(vm);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
