@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
+using HRMS_Core.VM;
 using HRMS_Core.VM.ExportData;
 using HRMS_Infrastructure.Interface.ExportData;
 using Microsoft.EntityFrameworkCore;
@@ -18,12 +19,12 @@ namespace HRMS_Infrastructure.Repository.ExportData
         {
             _db = db;
         }
-        public async Task<List<vmGetAllEmployeeExportData>> GetAllEmployeeExportData(int CompanyId)
+        public async Task<List<vmGetAllEmployeeExportData>> GetAllEmployeeExportData(ExportParameter vm)
         {
             try
             {
                 var result = await _db.Set<vmGetAllEmployeeExportData>()
-                                      .FromSqlInterpolated($"EXEC GetAllEmployeeExportData @CompanyId={CompanyId}")
+                                      .FromSqlInterpolated($"EXEC GetAllEmployeeExportData @CompanyId={vm.CompanyId},@IsLeft={vm.IsLeft}")
                                       .ToListAsync();
 
                 return result ?? new List<vmGetAllEmployeeExportData>();
