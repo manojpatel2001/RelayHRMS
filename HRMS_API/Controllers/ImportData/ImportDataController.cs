@@ -53,7 +53,7 @@ public class ImportDataController : ControllerBase
         {
             if (request.File == null || request.RowFrom <= 0 || request.RowTo < request.RowFrom)
                 return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input" };
-
+        
             // Step 1: Parse Excel File
             var dt = await ParseExcelFile(request);
             if (dt == null)
@@ -73,12 +73,12 @@ public class ImportDataController : ControllerBase
             if (IsLargeVolumeImport(request.Type))
             {
                 // Use Stored Procedure for large volume imports
-                return await ProcessWithStoredProcedure(dt, request.Type, request.RowFrom);
+                return await ProcessWithStoredProcedure(dt, request.Type, request.RowFrom ,request.CreatedBy);
             }
             else
             {
                 // Use API logic for small master imports
-                return await ProcessWithAPI(dt, request.Type, request.RowFrom);
+                return await ProcessWithAPI(dt, request.Type, request.RowFrom ,request.CreatedBy);
             }
         }
         catch (Exception ex)
@@ -168,7 +168,7 @@ public class ImportDataController : ControllerBase
                type == "LeaveOpening";
     }
 
-    private async Task<APIResponse> ProcessWithStoredProcedure(DataTable dt, string type, int startRow)
+    private async Task<APIResponse> ProcessWithStoredProcedure(DataTable dt, string type, int startRow ,string createdBy)
     {
         try
         {
@@ -182,19 +182,19 @@ public class ImportDataController : ControllerBase
             switch (type)
             {
                 case "Attendance":
-                    result = await _unitOfWork.importDataRepository.ImportAttendance(jsonData);
+                    result = await _unitOfWork.importDataRepository.ImportAttendance(jsonData, createdBy);
                     break;
 
                 case "MonthlyEar":
-                    result = await _unitOfWork.importDataRepository.ImportMonthlyEarnings(jsonData);
+                    result = await _unitOfWork.importDataRepository.ImportMonthlyEarnings(jsonData , createdBy);
                     break;
 
                 case "MonthlyDed":
-                    result = await _unitOfWork.importDataRepository.ImportMonthlyDeductions(jsonData);
+                    result = await _unitOfWork.importDataRepository.ImportMonthlyDeductions(jsonData , createdBy);
                     break;
 
                 case "LeaveOpening":
-                    result = await _unitOfWork.importDataRepository.ImportLeaveOpening(jsonData);
+                    result = await _unitOfWork.importDataRepository.ImportLeaveOpening(jsonData , createdBy);
                     break;
 
                 default:
@@ -262,7 +262,7 @@ public class ImportDataController : ControllerBase
     }
 
  
-    private async Task<APIResponse> ProcessWithAPI(DataTable dt, string type, int startRow)
+    private async Task<APIResponse> ProcessWithAPI(DataTable dt, string type, int startRow ,string createdBy)
     {
         var cache = await LoadCacheData(type);
 
@@ -274,7 +274,7 @@ public class ImportDataController : ControllerBase
         foreach (DataRow row in dt.Rows)
         {
             int rowIndex = dt.Rows.IndexOf(row) + startRow;
-            var result = await ProcessRowByType(row, type, rowIndex, cache);
+            var result = await ProcessRowByType(row, type, rowIndex, cache, createdBy);
 
             if (result.IsSuccess)
                 insertedCount++;
@@ -439,7 +439,7 @@ public class ImportDataController : ControllerBase
     }
 
     private async Task<(bool IsSuccess, bool IsDuplicate, bool IsBlank, object ErrorRow)> ProcessRowByType(
-        DataRow row, string type, int rowIndex, ImportCache cache)
+        DataRow row, string type, int rowIndex, ImportCache cache ,string createdBy)
     {
         if (type == "Branch")
         {
@@ -460,7 +460,8 @@ public class ImportDataController : ControllerBase
                 BranchName = name,
                 CountryName = country,
                 IsEnabled = true,
-                IsDeleted = false
+                IsDeleted = false,
+                 CreatedBy = createdBy,
             });
 
             cache.ExistingBranches.Add(key);
@@ -479,7 +480,8 @@ public class ImportDataController : ControllerBase
             {
                 DepartmentName = name,
                 IsEnabled = true,
-                IsDeleted = false
+                IsDeleted = false,
+                CreatedBy = createdBy,
             });
 
             cache.ExistingDepartments.Add(name?.ToLower() ?? "");
@@ -499,7 +501,8 @@ public class ImportDataController : ControllerBase
                 DesignationName = name,
                 SortingNo = int.TryParse(row[1]?.ToString(), out int sortNo) ? sortNo : 0,
                 IsEnabled = true,
-                IsDeleted = false
+                IsDeleted = false,
+                CreatedBy = createdBy,
             });
 
             cache.ExistingDesignations.Add(name?.ToLower() ?? "");
@@ -530,7 +533,8 @@ public class ImportDataController : ControllerBase
                 BankBSRCode = row[6]?.ToString(),
                 IsDefaultBank = bool.TryParse(row[7]?.ToString(), out bool isDefault) ? isDefault : false,
                 IsEnabled = true,
-                IsDeleted = false
+                IsDeleted = false,
+                CreatedBy = createdBy,
             });
 
             cache.ExistingBanks.Add(code?.ToLower() ?? "");
@@ -561,7 +565,8 @@ public class ImportDataController : ControllerBase
                 CityCategoryId = int.TryParse(row[3]?.ToString(), out int catId) ? catId : (int?)null,
                 Remarks = row[4]?.ToString(),
                 IsEnabled = true,
-                IsDeleted = false
+                IsDeleted = false,
+                CreatedBy = createdBy,
             });
 
             cache.ExistingCities.Add(cityKey);
