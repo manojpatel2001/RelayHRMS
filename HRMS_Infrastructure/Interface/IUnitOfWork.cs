@@ -8,6 +8,7 @@ using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.ManageProfile;
+using HRMS_Infrastructure.Interface.NewFolder;
 using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
@@ -121,7 +122,7 @@ namespace HRMS_Infrastructure.Interface
         IAddeventRepository AddeventRepository { get; }
         ISchemeMasterRepository SchemeMasterRepository { get; }
         ISchemeTypeRepository SchemeTypeRepository { get; }
-
+        IImportDataRepository importDataRepository { get; }
 
         void Commit();
         Task CommitAsync();
