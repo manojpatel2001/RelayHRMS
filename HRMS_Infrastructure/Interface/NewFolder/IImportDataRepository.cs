@@ -8,10 +8,10 @@ namespace HRMS_Infrastructure.Interface.NewFolder
 {
     public interface IImportDataRepository
     {
-        Task<ImportSPResult> ImportAttendance(string jsonData);
-        Task<ImportSPResult> ImportMonthlyEarnings(string jsonData);
-        Task<ImportSPResult> ImportMonthlyDeductions(string jsonData);
-        Task<ImportSPResult> ImportLeaveOpening(string jsonData);
+        Task<ImportSPResult> ImportAttendance(string jsonData, string createdBy);
+        Task<ImportSPResult> ImportMonthlyEarnings(string jsonData, string createdBy);
+        Task<ImportSPResult> ImportMonthlyDeductions(string jsonData, string createdBy);
+        Task<ImportSPResult> ImportLeaveOpening(string jsonData, string createdBy);
     }
     public class ImportSPResult
     {

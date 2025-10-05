@@ -20,55 +20,55 @@ namespace HRMS_Infrastructure.Repository.NewFolder
             _db = db;
         }
 
-        public async Task<ImportSPResult> ImportAttendance(string jsonData)
+        public async Task<ImportSPResult> ImportAttendance(string jsonData , string createdBy)
         {
-            return await ExecuteImportSP("sp_ImportAttendance", jsonData);
+            return await ExecuteImportSP("sp_ImportAttendance", jsonData, createdBy);
         }
 
-        public async Task<ImportSPResult> ImportMonthlyEarnings(string jsonData)
+        public async Task<ImportSPResult> ImportMonthlyEarnings(string jsonData, string createdBy)
         {
-            return await ExecuteImportSP("sp_ImportMonthlyEar", jsonData);
+            return await ExecuteImportSP("sp_ImportMonthlyEar", jsonData, createdBy);
         }
 
-        public async Task<ImportSPResult> ImportMonthlyDeductions(string jsonData)
+        public async Task<ImportSPResult> ImportMonthlyDeductions(string jsonData, string createdBy)
         {
-            return await ExecuteImportSP("sp_ImportMonthlyDed", jsonData);
+            return await ExecuteImportSP("sp_ImportMonthlyDed", jsonData, createdBy);
         }
 
-        public async Task<ImportSPResult> ImportLeaveOpening(string jsonData)
+        public async Task<ImportSPResult> ImportLeaveOpening(string jsonData, string createdBy)
         {
-            return await ExecuteImportSP("sp_ImportLeaveOpening", jsonData);
+            return await ExecuteImportSP("sp_ImportLeaveOpening", jsonData , createdBy);
         }
 
         // Common method to execute any import SP
-        private async Task<ImportSPResult> ExecuteImportSP(string spName, string jsonData)
+        private async Task<ImportSPResult> ExecuteImportSP(string spName, string jsonData, string createdBy)
         {
-            var result = new ImportSPResult();
+            var result = new ImportSPResult { Errors = new List<ImportError>() }; 
 
             try
             {
-                // Get connection string from DbContext
                 var connectionString = _db.Database.GetConnectionString();
-
                 using var connection = new SqlConnection(connectionString);
                 await connection.OpenAsync();
 
                 using var command = new SqlCommand(spName, connection);
                 command.CommandType = CommandType.StoredProcedure;
-                command.CommandTimeout = 600; // 10 minutes for large data
+                command.CommandTimeout = 600;
 
-                // Add parameter
+                // Add BOTH parameters
                 command.Parameters.AddWithValue("@ImportData", jsonData);
+                command.Parameters.AddWithValue("@CreatedBy", createdBy); // ⭐ ADD THIS
 
                 using var reader = await command.ExecuteReaderAsync();
 
-                // FIRST RESULT SET: Summary (InsertedCount, ErrorCount, etc.)
+                // FIRST RESULT SET: Summary
                 if (await reader.ReadAsync())
                 {
-                    result.InsertedCount = reader.GetInt32(0);
-                    result.ErrorCount = reader.GetInt32(1);
-                    result.DuplicateCount = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
-                    result.BlankCount = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
+                    result.InsertedCount = reader.GetInt32(reader.GetOrdinal("InsertedCount"));
+                    result.DuplicateCount = reader.GetInt32(reader.GetOrdinal("DuplicateCount"));
+                    result.BlankCount = reader.GetInt32(reader.GetOrdinal("BlankCount"));
+
+                    // ⭐ REMOVE ErrorCount - it's not in SP output anymore
                 }
 
                 // SECOND RESULT SET: Error Details
@@ -78,10 +78,12 @@ namespace HRMS_Infrastructure.Repository.NewFolder
                     {
                         result.Errors.Add(new ImportError
                         {
-                            RowNumber = reader.GetInt32(0),
-                            EmployeeCode = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                            ErrorType = reader.GetString(2),
-                            ErrorMessage = reader.GetString(3)
+                            RowNumber = reader.GetInt32(reader.GetOrdinal("RowNumber")),
+                            EmployeeCode = reader.IsDBNull(reader.GetOrdinal("EmployeeCode"))
+                                ? ""
+                                : reader.GetString(reader.GetOrdinal("EmployeeCode")),
+                            ErrorType = reader.GetString(reader.GetOrdinal("ErrorType")),
+                            ErrorMessage = reader.GetString(reader.GetOrdinal("ErrorMessage"))
                         });
                     }
                 }
@@ -97,6 +99,6 @@ namespace HRMS_Infrastructure.Repository.NewFolder
 
             return result;
         }
-    
+
     }
 }
