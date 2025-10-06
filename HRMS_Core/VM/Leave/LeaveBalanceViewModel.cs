@@ -15,4 +15,24 @@ namespace HRMS_Core.VM.Leave
         public string? CompanyName { get; set; }
         public DateTime? LastTransactionDate { get; set; }
     }
+
+    public class LeaveBalanceViewModelForAdmin
+    {
+        public string? LeaveType { get; set; }
+
+        public decimal LeaveBalance { get; set; }
+
+        public string? FullName { get; set; }
+
+        public string? EmployeeCode { get; set; }
+
+        public string? CompanyName { get; set; }
+
+        public DateTime? LastTransactionDate { get; set; }
+
+        public int EmployeeId { get; set; }
+
+        public string? BranchName { get; set; }
+    }
+
 }
