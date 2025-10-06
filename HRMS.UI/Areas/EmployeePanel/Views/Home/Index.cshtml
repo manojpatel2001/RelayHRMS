@@ -310,7 +310,7 @@
             <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center" style="padding: 15px 20px;">
                 <h6 class="mb-0 fw-bold" style="color: #2c3e50;">Latest Members</h6>
                 <div class="d-flex align-items-center gap-2">
-                    <span id="totalMemberCount" class="badge bg-success text-white" style="font-size: 12px; padding: 4px 8px;">31 new employees</span>
+                    <span id="totalMemberCount" class="badge bg-success text-white" style="font-size: 12px; padding: 4px 8px;">0 </span>
                     <i class='bx bx-refresh' style="font-size: 20px; color: #666; cursor: pointer;"></i>
                 </div>
             </div>
@@ -612,6 +612,31 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #e68900;
         }
+
+
+
+
+    .birthday-card {
+        position: relative;
+        display: flex;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .date-corner {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: #6c757d;
+    }
+
+        .date-corner svg {
+            flex-shrink: 0;
+        }
 </style>
 
 <script>
@@ -854,6 +879,11 @@
                 if (!Array.isArray(members) || members.length === 0) {
                     html = '<p class="card-text">No new members found.</p>';
                 } else {
+
+                        const count = members.length;
+                        const text = count === 1 ? "1 new employee" : `${count} new employees`;
+                        $("#totalMemberCount").text(text);
+
                     html += '<ul class="list-group">';
                     members.forEach(member => {
                         const imageUrl = member.employeeProfileUrl || `${baseDomain}/default-image/avatar-2.png`;
@@ -864,7 +894,7 @@
                         html += `
                             <li class="list-group-item d-flex align-items-center">
                                 <img src="${imageUrl}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;" alt="Profile" />
-                                <div>
+                                <div  style="font-size: 13px;margin-bottom: 0;">
                                     <div><strong>${member.fullName}</strong></div>
                                     <div class="text-muted">${member.designationName ?? ''}</div>
                                     <small class="text-secondary">Joined: ${joiningDate}</small>
@@ -895,6 +925,15 @@
     }
 
 
+       function formatDateWithCurrentYear(isoDate) {
+        if (!isoDate) return '';
+        const date = new Date(isoDate);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const currentYear = new Date().getFullYear();
+        return `${day}-${month}-${currentYear}`;
+    }
+
      function loadBirthday() {
         const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetTodayBirthdaysByCompany?Compid=${Compid}`;
         $.ajax({
@@ -903,8 +942,9 @@
             success: function (response) {
                 const members = response.data;
                 if (!Array.isArray(members) || members.length === 0) {
-                    $('#groupedBirthdayList').html('<p class="text-muted">No upcoming birthdays found.</p>');
-                    return;
+          $('#groupedBirthdayList')
+           .html('<p class="text-muted">No upcoming birthdays found.</p>')
+           .removeClass('has-birthday');                    return;
                 }
 
                 const grouped = {};
@@ -926,33 +966,43 @@
                     html += `
                         <div class="group-wrapper">
                             <div class="group-header">
-                                ${isToday ? 'TODAY' : date} 
+                                ${isToday ? 'Today' : date}
                             </div>
                         </div>
                     `;
                     grouped[date].forEach(member => {
                         const imageUrl = member.employeeProfileUrl || `${baseDomain}/default-image/avatar-2.png`;
                         html += `
-                            <div class="birthday-card">
-                                <img src="${imageUrl}" alt="Profile" />
-                                <div>
-                                    <div><strong>${member.fullName}</strong></div>
-                                    <div class="text-muted">${member.designationName ?? ''} | ${member.departmentName ?? ''}</div>
-                                    <div>${member.companyName ?? ''} - ${member.branchName ?? ''}</div>
-                                    <div class="text-primary">Turning Age: ${member.ageInYears ?? ''}</div>
-                                </div>
-                            </div>
+
+                                  <div class="birthday-card"  style="font-size: 13px;margin-bottom: 0;">
+                                        <img src="${imageUrl}" alt="Profile" />
+                                        <div>
+                                            <div style="color:#63739c;"><strong>${member.employeeCode} - ${member.fullName}</strong></div>
+                                            <div>Company: ${member.companyName ?? ''}</div>
+                                            <div>Branch: ${member.branchName ?? ''}</div>
+                                            <div>Designation: ${member.designationName ?? ''}</div>
+                                            <div>Department: ${member.departmentName ?? ''}</div>
+                                            <div>Date of Birth: ${formatDateToDDMMYYYY(member.date) ?? ''}</div>
+                                            <div>No Of Years: ${member.ageInYears ?? ''}</div>
+                                        </div>
+                                        <div class="date-corner">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <polyline points="12 6 12 12 16 14"></polyline>
+                                            </svg>
+                                            <span>${formatDateWithCurrentYear(member.date) ?? ''}</span>
+                                        </div>
+                                    </div>
                         `;
                     });
                 }
-                $('#groupedBirthdayList').html(html);
+                $('#groupedBirthdayList').addClass('has-birthday').html(html);
             },
             error: function () {
                 $('#groupedBirthdayList').html('<p class="text-danger">Failed to load birthdays.</p>');
             }
         });
     }
-
 
 
            function loadworkanniversary() {
