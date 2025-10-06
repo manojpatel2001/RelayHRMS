@@ -123,6 +123,7 @@ namespace HRMS_Infrastructure.Interface
         ISchemeMasterRepository SchemeMasterRepository { get; }
         ISchemeTypeRepository SchemeTypeRepository { get; }
         IImportDataRepository importDataRepository { get; }
+        IReportRepository ReportRepository { get; }
 
         void Commit();
         Task CommitAsync();

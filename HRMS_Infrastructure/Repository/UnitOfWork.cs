@@ -147,6 +147,7 @@ namespace HRMS_Infrastructure.Repository
             SchemeMasterRepository = new SchemeMasterRepository(_dbContext);
             SchemeTypeRepository = new SchemeTypeRepository(_dbContext);
             importDataRepository = new ImportDataRepository(_dbContext);
+            ReportRepository = new ReportRepository (_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -259,6 +260,8 @@ namespace HRMS_Infrastructure.Repository
         public ISchemeTypeRepository SchemeTypeRepository { get; set; }
 
         public IImportDataRepository importDataRepository { get; set; }
+
+        public IReportRepository ReportRepository { get; set; }
 
         public void Commit()
         {
