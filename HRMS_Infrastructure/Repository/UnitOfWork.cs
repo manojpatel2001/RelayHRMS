@@ -144,6 +144,7 @@ namespace HRMS_Infrastructure.Repository
             AddeventRepository = new AddEventRepository(_dbContext);
             SchemeMasterRepository = new SchemeMasterRepository(_dbContext);
             SchemeTypeRepository = new SchemeTypeRepository(_dbContext);
+            ManpowerRequisitionRepository = new ManpowerRequisitionRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -254,6 +255,7 @@ namespace HRMS_Infrastructure.Repository
 
         public ISchemeMasterRepository SchemeMasterRepository { get; set; }
         public ISchemeTypeRepository SchemeTypeRepository { get; set; }
+        public IManpowerRequisitionRepository ManpowerRequisitionRepository { get; set; }
 
         public void Commit()
         {
