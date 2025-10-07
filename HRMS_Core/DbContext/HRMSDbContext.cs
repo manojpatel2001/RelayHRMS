@@ -289,9 +289,12 @@ namespace HRMS_Core.DbContext
 
              modelBuilder.Entity<SchemeMasterRequest>().HasNoKey().ToView(null);
              modelBuilder.Entity<GetAllSchemeMasterViewModel>().HasNoKey().ToView(null);
+
              modelBuilder.Entity<ManpowerRequisitionViewModel>().HasNoKey().ToView(null);
 
-
+             modelBuilder.Entity<EventViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LeaveBalance_ParamForAdmin>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LeaveBalanceViewModelForAdmin>().HasNoKey().ToView(null);
 
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

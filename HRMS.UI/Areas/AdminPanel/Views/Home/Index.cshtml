@@ -128,9 +128,30 @@
     .events-list {
         padding: 20px;
         min-height: 150px;
+        max-height: 300px;
         background: #f9f9f9;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
+        /* Scrollbar styling for events list */
+        .events-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .events-list::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+
+        .events-list::-webkit-scrollbar-thumb {
+            background: #5a6b7d;
+            border-radius: 10px;
+        }
+
+            .events-list::-webkit-scrollbar-thumb:hover {
+                background: #4a5a6b;
+            }
     .no-events {
         color: #666;
         font-style: italic;
@@ -479,7 +500,7 @@
 
                                 <div class="events-section">Events</div>
 
-                                <div class="events-list" id="eventsList">
+                                <div class="events-list" id="eventsList" style="max-height: 300px; overflow-y: auto; overflow-x: hidden;">
                                     <div class="no-events">No Event Today</div>
                                     <div class="no-events">No Upcoming Event</div>
                                 </div>
@@ -1500,10 +1521,9 @@
         // Placeholder functions for other tabs
         function loadBirthdayAnniversaryData() {
         }
-
-        function loadEventsData() {
-        }
-
+    function loadEventsData() {
+        loadUserEvents();
+    }
         function loadMessageBoardData() {
         }
 
@@ -3634,6 +3654,110 @@
         if (document.getElementById('calendarGrid')) {
             initializeCalendar();
         }
+    }
+
+
+    function loadUserEvents() {
+        $.ajax({
+            url: '@baseDomainUrl/api/AddEventAPI/GetUserEvents/' + userId,
+            type: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function(response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    displayEventsByCategory(response.data);
+                } else {
+                    $('#eventsList').html(`
+                        <div class="no-events">No Event Today</div>
+                        <div class="no-events">No Upcoming Event</div>
+                    `);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Error loading events:", error);
+                $('#eventsList').html(`
+                    <div class="no-events">Failed to load events</div>
+                `);
+            }
+        });
+    }
+
+    // Function to display events categorized by Today's and Upcoming
+    function displayEventsByCategory(events) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Separate events into Today's and Upcoming
+        const todaysEvents = [];
+        const upcomingEvents = [];
+
+        events.forEach(event => {
+            const eventDate = new Date(event.date);
+            eventDate.setHours(0, 0, 0, 0);
+
+            if (eventDate.getTime() === today.getTime()) {
+                todaysEvents.push(event);
+            } else if (eventDate > today) {
+                upcomingEvents.push(event);
+            }
+        });
+
+        let eventsHtml = '';
+
+        // Display Today's Events
+        if (todaysEvents.length > 0) {
+            eventsHtml += '<div style="background: #5a6b7d; color: white; padding: 8px 12px; font-weight: bold; font-size: 13px; margin-bottom: 8px;">Today\'s Event</div>';
+            eventsHtml += groupEventsByType(todaysEvents);
+        } else {
+            eventsHtml += '<div class="no-events">No Event Today</div>';
+        }
+
+        // Display Upcoming Events
+        if (upcomingEvents.length > 0) {
+            eventsHtml += '<div style="background: #5a6b7d; color: white; padding: 8px 12px; font-weight: bold; font-size: 13px; margin: 12px 0 8px 0;">Upcoming Event</div>';
+            eventsHtml += groupEventsByType(upcomingEvents);
+        } else {
+            eventsHtml += '<div class="no-events" style="margin-top: 12px;">No Upcoming Event</div>';
+        }
+
+        $('#eventsList').html(eventsHtml);
+    }
+
+    // Function to group events by Event Type
+    function groupEventsByType(events) {
+        // Group events by eventType
+        const groupedEvents = {};
+
+        events.forEach(event => {
+            if (!groupedEvents[event.eventType]) {
+                groupedEvents[event.eventType] = [];
+            }
+            groupedEvents[event.eventType].push(event);
+        });
+
+        let html = '';
+
+        // Display events grouped by type
+        Object.keys(groupedEvents).forEach(eventType => {
+            // Event Type Heading
+            html += `<div style="background: #E0E5E5; color: #333; padding: 6px 10px; font-weight: 600; font-size: 12px; margin: 8px 0 4px 0; text-transform: capitalize;">${eventType}</div>`;
+
+            // Events under this type
+            groupedEvents[eventType].forEach(event => {
+                const eventDate = new Date(event.date);
+                const formattedDate = `${eventDate.getDate().toString().padStart(2, '0')}/${(eventDate.getMonth() + 1).toString().padStart(2, '0')}/${eventDate.getFullYear()}`;
+
+                html += `
+                    <div class="event-item" style="background: white; margin: 4px 0; padding: 8px 10px; border-radius: 4px; border-left: 4px solid #ff9933; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-weight: 500; color: #333; font-size: 12px; margin-bottom: 3px;">${event.eventName}</div>
+                        <div style="color: #666; font-size: 11px;">${formattedDate}</div>
+                    </div>
+                `;
+            });
+        });
+
+        return html;
     }
 
 </script>

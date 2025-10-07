@@ -18,5 +18,6 @@ namespace HRMS_Infrastructure.Interface.Report
         Task<VMCommonResult> DeleteEvent(DeleteRecordVModel deleteRecord);
         Task<AddEvent?> GetEventById(vmCommonGetById filter);
         Task<List<EventModelVM>> GetAllEvent( DateTime TargetDate);
+        Task<List<EventViewModel>> GetUserEvent(int UserId);
     }
 }

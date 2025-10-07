@@ -86,14 +86,6 @@
         padding: .25rem .5rem;
     }
 
-    /* Grid specific styles */
-    .grid-container {
-        width: 100%;
-        overflow-x: auto;
-        margin-top: 20px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
 
     /* Action buttons positioning */
     .action-buttons-container {
@@ -109,26 +101,47 @@
         font-size: 14px;
     }
 
-    /* Ensure grid takes full width */
-    #attendanceGrid {
-        width: 100% !important;
-        min-height: 400px;
-    }
+ 
 
-    /* DevExtreme grid width fix */
-    .dx-datagrid {
-        width: 100% !important;
-    }
-
-    .dx-datagrid-content {
-        width: 100% !important;
-    }
 
     /* Container adjustments */
     .main-container {
         padding: 0 15px;
         max-width: 100%;
         margin: 0 auto;
+    }
+
+
+    #attendanceGrid {
+        width: 100% !important;
+        min-height: auto !important;
+    }
+
+    .dx-datagrid {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .dx-datagrid-content {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .dx-datagrid-rowsview {
+        height: auto !important;
+    }
+
+    .dx-scrollable-container {
+        height: auto !important;
+    }
+
+    .grid-container {
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        /* Remove any fixed height */
     }
 </style>
 
@@ -285,21 +298,29 @@
         $('#grid-loader').removeClass('d-flex').hide();
     }
 
-    function loadGrid(data) {
+      function loadGrid(data) {
         // Dispose existing grid first to prevent conflicts
-        $("#attendanceGrid").dxDataGrid("dispose");
+        try {
+            const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+            // Grid doesn't exist yet, that's okay
+        }
+
+        // Clear the container
+        $("#attendanceGrid").empty();
 
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             keyExpr: "attendanceRegularizationId",
             showBorders: true,
             width: "100%",
-            height: 400, // Fixed numeric height
+            height: "auto",
 
             scrolling: {
-                mode: "standard",
-                useNative: false,
-                showScrollbar: "onScroll"
+                mode: "virtual"
             },
 
             columnAutoWidth: false,
@@ -312,7 +333,7 @@
 
             paging: {
                 enabled: true,
-                pageSize: 20
+                pageSize: 10
             },
 
             filterRow: { visible: false },
@@ -325,16 +346,16 @@
             columns: [
                 { dataField: "employeeCode", caption: "Code", width: 80 },
                 { dataField: "empId", visible: false },
-                { dataField: "fullName", caption: "Name", width: 150 },
-                { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 110 },
-                { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy", width: 110 },
+                { dataField: "fullName", caption: "Name", width: 240 },
+                { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
+                { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
                 { dataField: "inTime", caption: "In Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
                 { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
                 { dataField: "duration", caption: "Duration", dataType: "string", width: 80 },
                 { dataField: "day", caption: "Day", dataType: "string", width: 80 },
                 {
                     caption: "Status",
-                    width: 90,
+                    width: 60,
                     calculateCellValue: function (row) {
                         if (row.isApproved) return "Approved";
                         if (row.isRejected) return "Rejected";
@@ -344,26 +365,19 @@
                 }
             ],
 
-            // Force refresh after initialization
-            onInitialized: function(e) {
-                setTimeout(function() {
-                    e.component.updateDimensions();
-                }, 100);
-            },
-
             onContentReady: function(e) {
-                // Force height after content loads
-                $('.dx-datagrid').css('height', '400px');
-                $('.dx-scrollable-container').css('height', '400px');
+                // Auto height
+                $('#attendanceGrid .dx-datagrid').css('height', 'auto');
+                $('#attendanceGrid .dx-scrollable-container').css('height', 'auto');
             }
         });
 
         $("#actionButtons").show();
     }
-   
-    
+    // Also fix your btnGo click handler
     $('#btnGo').on('click', function () {
         showLoder();
+
         let model = {
             SearchBy: getSearchByText($('#searchby').val()),
             SearchValue: $('#searchfor').val(),
@@ -378,27 +392,63 @@
             data: JSON.stringify(model),
             contentType: 'application/json',
             success: function (res) {
-                if (res.isSuccess) {                    
-                    loadGrid(res.data); 
+                console.log('API Response:', res);
+                hideLoder();
+
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    loadGrid(res.data);
                     $("#actionButtons").show();
                     $("#btnDelete").show();
                     $("#btnApprove").show();
                     $("#btnReject").show();
-                } else {         
+                } else {
+                    // Clear grid if no data
+                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+                    if (gridInstance) {
+                        gridInstance.dispose();
+                    }
+                    $("#attendanceGrid").empty();
+
                     $("#actionButtons").hide();
                     $("#btnDelete").hide();
                     $("#btnApprove").hide();
                     $("#btnReject").hide();
-                    round_error_noti(res.responseMessage || 'No Data');
+                    round_error_noti(res.responseMessage || 'No Data Found');
                 }
             },
-            error: function () {               
-                round_error_noti('Error occurred while fetching data');
-            },
-            complete: function () {
+            error: function (xhr, status, error) {
                 hideLoder();
+                console.error('API Error:', error);
+                round_error_noti('Error occurred while fetching data');
             }
         });
+    });
+
+    // Fix the Clear button too
+    $("#btnClear").click(function () {
+        // Reset form
+        $('#searchby').val("1");
+        $('#searchfor').val('');
+        $('#fromdate').val('');
+        $('#todate').val('');
+        $("input[name='type']").prop('checked', false);
+        $('#r2').prop('checked', true);
+
+        // Dispose grid safely
+        try {
+            const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+            // Grid doesn't exist, ignore
+        }
+
+        $("#attendanceGrid").empty();
+        $("#actionButtons").hide();
+        $("#btnDelete").hide();
+        $("#btnApprove").hide();
+        $("#btnReject").hide();
     });
 
     $('#btnDelete').on('click', function () {
@@ -526,23 +576,5 @@
         });
     }
 
-    $("#btnClear").click(function () {
-        // Reset form
-        $('#searchby').val("1");
-        $('#searchfor').val('');
-        $('#fromdate').val('');
-        $('#todate').val('');
-        $("input[name='type']").prop('checked', false);
-        $('#r2').prop('checked', true);
-        $("#attendanceGrid").dxDataGrid("dispose");
-        $("#attendanceGrid").dxDataGrid({
-            dataSource: [],
-            showBorders: true,
-            width: "100%"
-        });
-        $("#actionButtons").hide();
-        $("#btnDelete").hide();
-        $("#btnApprove").hide();
-        $("#btnReject").hide();
-    });
+
 </script>

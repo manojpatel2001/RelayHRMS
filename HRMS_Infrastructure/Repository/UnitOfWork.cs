@@ -10,6 +10,7 @@ using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
 using HRMS_Infrastructure.Interface.ManageProfile;
+using HRMS_Infrastructure.Interface.NewFolder;
 using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
@@ -27,6 +28,7 @@ using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.Leave;
 using HRMS_Infrastructure.Repository.ManagePermissions;
 using HRMS_Infrastructure.Repository.ManageProfile;
+using HRMS_Infrastructure.Repository.NewFolder;
 using HRMS_Infrastructure.Repository.Notifications;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
@@ -144,7 +146,12 @@ namespace HRMS_Infrastructure.Repository
             AddeventRepository = new AddEventRepository(_dbContext);
             SchemeMasterRepository = new SchemeMasterRepository(_dbContext);
             SchemeTypeRepository = new SchemeTypeRepository(_dbContext);
+
             ManpowerRequisitionRepository = new ManpowerRequisitionRepository(_dbContext);
+
+            importDataRepository = new ImportDataRepository(_dbContext);
+            ReportRepository = new ReportRepository (_dbContext);
+
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -256,6 +263,10 @@ namespace HRMS_Infrastructure.Repository
         public ISchemeMasterRepository SchemeMasterRepository { get; set; }
         public ISchemeTypeRepository SchemeTypeRepository { get; set; }
         public IManpowerRequisitionRepository ManpowerRequisitionRepository { get; set; }
+
+        public IImportDataRepository importDataRepository { get; set; }
+
+        public IReportRepository ReportRepository { get; set; }
 
         public void Commit()
         {
