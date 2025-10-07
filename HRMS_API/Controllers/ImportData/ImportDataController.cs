@@ -189,10 +189,10 @@ public class ImportDataController : ControllerBase
     {
         try
         {
-            // Convert DataTable to JSON
+        
             var jsonData = ConvertDataTableToJson(dt, type, startRow);
 
-            // Variable to hold SP result
+        
             ImportSPResult result = null;
 
             // Call appropriate repository method based on import type
