@@ -122,8 +122,13 @@ namespace HRMS_Infrastructure.Interface
         IAddeventRepository AddeventRepository { get; }
         ISchemeMasterRepository SchemeMasterRepository { get; }
         ISchemeTypeRepository SchemeTypeRepository { get; }
+
+        IManpowerRequisitionRepository ManpowerRequisitionRepository { get; }
+
+
         IImportDataRepository importDataRepository { get; }
         IReportRepository ReportRepository { get; }
+
 
         void Commit();
         Task CommitAsync();
