@@ -89,75 +89,92 @@ public class ImportDataController : ControllerBase
 
     private async Task<DataTable> ParseExcelFile(ImportRequest request)
     {
+        if (request.File == null || string.IsNullOrEmpty(request.SheetName))
+            return null;
+
+        if (request.RowTo < request.RowFrom)
+            return null;
+
         var dt = new DataTable();
         var extension = Path.GetExtension(request.File.FileName).ToLower();
-
         using var stream = new MemoryStream();
         await request.File.CopyToAsync(stream);
         stream.Position = 0;
 
-        if (extension == ".xlsx")
+        try
         {
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using var package = new ExcelPackage(stream);
-            var worksheet = package.Workbook.Worksheets[request.SheetName];
-            if (worksheet == null) return null;
-
-            int colCount = worksheet.Dimension.End.Column;
-            for (int col = 1; col <= colCount; col++)
-                dt.Columns.Add(worksheet.Cells[1, col].Text);
-
-            int startRow = Math.Max(request.RowFrom, 2);
-            for (int row = startRow; row <= request.RowTo; row++)
+            if (extension == ".xlsx")
             {
-                var dataRow = dt.NewRow();
-                bool isRowEmpty = true;
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                using var package = new ExcelPackage(stream);
+                var worksheet = package.Workbook.Worksheets[request.SheetName];
+                if (worksheet == null || worksheet.Dimension == null)
+                    return null;
 
+                int colCount = worksheet.Dimension.End.Column;
                 for (int col = 1; col <= colCount; col++)
+                    dt.Columns.Add(worksheet.Cells[1, col]?.Text ?? $"Column {col}");
+
+                int startRow = Math.Max(request.RowFrom, 2);
+                int endRow = request.RowTo;
+                for (int row = startRow; row <= endRow; row++)
                 {
-                    var cellValue = worksheet.Cells[row, col].Text?.Trim();
-                    dataRow[col - 1] = cellValue;
-                    if (!string.IsNullOrWhiteSpace(cellValue)) isRowEmpty = false;
+                    var dataRow = dt.NewRow();
+                    bool isRowEmpty = true;
+                    for (int col = 1; col <= colCount; col++)
+                    {
+                        var cellValue = worksheet.Cells[row, col]?.Text?.Trim() ?? string.Empty;
+                        dataRow[col - 1] = cellValue;
+                        if (!string.IsNullOrEmpty(cellValue))
+                            isRowEmpty = false;
+                    }
+                    if (!isRowEmpty)
+                        dt.Rows.Add(dataRow);
                 }
-
-                if (!isRowEmpty) dt.Rows.Add(dataRow);
             }
-        }
-        else if (extension == ".xls")
-        {
-            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-            using var reader = ExcelReaderFactory.CreateBinaryReader(stream);
-            var result = reader.AsDataSet(new ExcelDataSetConfiguration()
+            else if (extension == ".xls")
             {
-                ConfigureDataTable = (_) => new ExcelDataTableConfiguration() { UseHeaderRow = false }
-            });
-
-            var sheet = result.Tables.Cast<DataTable>().FirstOrDefault(t => t.TableName == request.SheetName);
-            if (sheet == null) return null;
-
-            for (int col = 0; col < sheet.Columns.Count; col++)
-                dt.Columns.Add(sheet.Rows[0][col]?.ToString());
-
-            int startRow = Math.Max(request.RowFrom - 1, 1);
-            for (int row = startRow; row <= request.RowTo - 1 && row < sheet.Rows.Count; row++)
-            {
-                var sourceRow = sheet.Rows[row];
-                var dataRow = dt.NewRow();
-                bool isRowEmpty = true;
+                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                using var reader = ExcelReaderFactory.CreateBinaryReader(stream);
+                var result = reader.AsDataSet(new ExcelDataSetConfiguration
+                {
+                    ConfigureDataTable = (_) => new ExcelDataTableConfiguration { UseHeaderRow = false }
+                });
+                var sheet = result.Tables.Cast<DataTable>().FirstOrDefault(t => t.TableName == request.SheetName);
+                if (sheet == null)
+                    return null;
 
                 for (int col = 0; col < sheet.Columns.Count; col++)
-                {
-                    var value = sourceRow[col]?.ToString()?.Trim();
-                    dataRow[col] = value;
-                    if (!string.IsNullOrWhiteSpace(value)) isRowEmpty = false;
-                }
+                    dt.Columns.Add(sheet.Rows[0][col]?.ToString() ?? $"Column {col}");
 
-                if (!isRowEmpty) dt.Rows.Add(dataRow);
+                int startRow = Math.Max(request.RowFrom - 1, 1);
+                int endRow = request.RowTo - 1;
+                for (int row = startRow; row <= endRow && row < sheet.Rows.Count; row++)
+                {
+                    var sourceRow = sheet.Rows[row];
+                    var dataRow = dt.NewRow();
+                    bool isRowEmpty = true;
+                    for (int col = 0; col < sheet.Columns.Count; col++)
+                    {
+                        var value = sourceRow[col]?.ToString()?.Trim() ?? string.Empty;
+                        dataRow[col] = value;
+                        if (!string.IsNullOrEmpty(value))
+                            isRowEmpty = false;
+                    }
+                    if (!isRowEmpty)
+                        dt.Rows.Add(dataRow);
+                }
             }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error parsing Excel: {ex.Message}");
+            return null;
+        }
 
-        return dt;
+        return dt.Rows.Count > 0 ? dt : null;
     }
+
 
     private bool IsLargeVolumeImport(string type)
     {
