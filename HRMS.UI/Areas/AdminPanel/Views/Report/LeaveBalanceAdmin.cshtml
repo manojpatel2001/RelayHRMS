@@ -10,7 +10,9 @@
 <title>Search Panel</title>
 <!-- jQuery + Bootstrap + SweetAlert -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>  
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+
 <style>
     body, html {
         height: 100%;
@@ -127,16 +129,23 @@
     }
     /* Button row styling */
 
-    .button-row {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        margin-top: 15px;
-    }
 
         .button-row .btn {
             min-width: 80px; /* Consistent button width */
         }
+
+
+    .button-row {
+        display: none; /* Hidden by default */
+        justify-content: flex-end;
+        margin-bottom: 10px;
+        padding-right: 0;
+    }
+
+    .btn-success:hover {
+        background-color: #218838 !important;
+        border-color: #1e7e34 !important;
+    }
 </style>
 
 <div class="search-panel-wrapper">
@@ -222,6 +231,11 @@
         <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
     </div>
     <!-- Grid Container with full width -->
+    <div class="button-row" id="exportButtonContainer" style="display: none; justify-content: flex-end; margin-bottom: 10px;">
+        <button id="btnExport" class="btn btn-success" style="background-color: #28a745; border-color: #28a745; color: white; padding: 6px 20px; font-size: 14px; font-weight: 600;">
+            Export
+        </button>
+    </div>
     <div class="grid-container">
         <div id="leaveBalanceGrid"></div>
     </div>
@@ -239,6 +253,7 @@
     $(document).ready(function () {
         GetAllLeave(CompanyId);
         BindBranchDropdown();
+    $('#exportButtonContainer').hide();
     });
 
     async function showLoder() {
@@ -356,56 +371,45 @@
             height: "auto",
             width: "100%",
             columnAutoWidth: true,
-            scrolling: {
-                mode: "virtual"
-            },
-            paging: {
-                enabled: true,
-                pageSize: 10
-            },
+            scrolling: { mode: "virtual" },
+            paging: { enabled: true, pageSize: 10 },
             pager: {
                 showPageSizeSelector: true,
                 allowedPageSizes: [5, 10, 20]
             },
             columnResizingMode: 'widget',
             allowColumnResizing: true,
+             export: { enabled: false },
             columns: [
-                {
-                    dataField: "companyName",
-                    caption: "Company Name",
-                    minWidth: 150
-                },
-                {
-                    dataField: "branchName",
-                    caption: "Branch",
-                    minWidth: 80
-                },
-                {
-                    dataField: "employeeCode",
-                    caption: "Code",
-                    minWidth: 80
-                },
-                {
-                    dataField: "fullName",
-                    caption: "Employee Name",
-                    minWidth: 150
-                },
-                {
-                    dataField: "leaveType",
-                    caption: "Leave Name",
-                    minWidth: 120
-                },
-                {
-                    dataField: "leaveBalance",
-                    caption: "Opening",
-                    minWidth: 80
-                }
-            ]
+                { dataField: "companyName", caption: "Company Name", minWidth: 150 },
+                { dataField: "branchName", caption: "Branch", minWidth: 80 },
+                { dataField: "employeeCode", caption: "Code", minWidth: 80 },
+                { dataField: "fullName", caption: "Employee Name", minWidth: 150 },
+                { dataField: "leaveType", caption: "Leave Name", minWidth: 120 },
+                { dataField: "leaveBalance", caption: "Opening", minWidth: 80 }
+            ],
+            onExporting: function(e) {
+                // Excel export ke pehle koi custom logic ho toh yahan likhen
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet("Leave Balance");
+
+                // DevExtreme grid se Excel format mein data export karna
+                const devGrid = $("#leaveBalanceGrid").dxDataGrid("instance");
+                DevExpress.excelExporter.exportDataGrid({
+                    component: devGrid,
+                    worksheet: worksheet,
+                    autoFilterEnabled: true
+                }).then(function() {
+                    workbook.xlsx.writeBuffer().then(function(buffer) {
+                        saveAs(new Blob([buffer], { type: "application/octet-stream" }), "LeaveBalance_Report.xlsx");
+                    });
+                });
+                e.cancel = true; // Default export cancel karke custom logic chalana
+            }
         });
     }
 
-    $('#btnGo').on('click', function () {
-   
+     $('#btnGo').on('click', function () {
         var txtasofdate = $("#asofdate").val();
         var txtStatus = $("#statusid").val();
         var selectedEmployees = $("#employeeDropdown").dxTagBox("instance").option("value");
@@ -425,7 +429,6 @@
             $("#spnstatusid").hide();
         }
 
-
         if (!selectedEmployees || selectedEmployees.length === 0) {
             $("#spnemployee").show();
             isValid = false;
@@ -443,24 +446,30 @@
         let model = {
             AsOfDate: txtasofdate,
             Status: txtStatus,
-            EmployeeCodes: selectedEmployees, // Multiple employee codes
+            EmployeeCodes: selectedEmployees,
             CompId: CompanyId
         };
-        console.log('model' ,model);
 
-        $.ajax({     
+        $.ajax({
             url: '@(baseDomainUrl + "/api/ReportAPI/GetLeaveBalanceAdmin")',
             type: 'POST',
             data: JSON.stringify(model),
             contentType: 'application/json',
             success: function (res) {
-                if (res.isSuccess) {
+                hideLoder();
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    // Show export button
+                    $('#exportButtonContainer').css('display', 'flex');
                     loadGrid(res.data);
                 } else {
+                    // Hide export button
+                    $('#exportButtonContainer').hide();
                     round_error_noti(res.responseMessage || 'No Data');
                 }
             },
             error: function (xhr) {
+                hideLoder();
+                $('#exportButtonContainer').hide();
                 round_error_noti(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.');
             },
             complete: function () {
@@ -469,7 +478,117 @@
         });
     });
 
-    $("#btnClear").click(function () {
+
+    // Excel Export Function with Styled Headers
+    function exportGridToExcel() {
+        const gridInstance = $("#leaveBalanceGrid").dxDataGrid("instance");
+
+        // Check if grid has data
+        if (!gridInstance) {
+            round_error_noti("No data to export!");
+            return;
+        }
+
+        const dataSource = gridInstance.option("dataSource");
+        if (!dataSource || dataSource.length === 0) {
+            round_error_noti("No data available to export!");
+            return;
+        }
+
+        // Create new workbook and worksheet
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Leave Balance");
+
+        // Get visible columns from grid
+        const columns = gridInstance.getVisibleColumns();
+
+        // Set column headers and width
+        worksheet.columns = columns.map(col => ({
+            header: col.caption,
+            key: col.dataField,
+            width: 20
+        }));
+
+        // Style the header row (Row 1)
+        const headerRow = worksheet.getRow(1);
+
+        // Apply styling to each header cell
+        headerRow.eachCell((cell) => {
+            // Font styling - Bold and White text
+            cell.font = {
+                bold: true,
+                color: { argb: 'FFFFFFFF' }, // White color
+                size: 11
+            };
+
+            // Background color - Same as grid header (#3e4b6d)
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF3E4B6D' } // Blue-grey color
+            };
+
+            // Text alignment - Center aligned
+            cell.alignment = {
+                vertical: 'middle',
+                horizontal: 'center'
+            };
+
+            // Border styling
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FF000000' } },
+                left: { style: 'thin', color: { argb: 'FF000000' } },
+                bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                right: { style: 'thin', color: { argb: 'FF000000' } }
+            };
+        });
+
+        // Set header row height
+        headerRow.height = 25;
+
+        // Add data rows to worksheet
+        const data = gridInstance.option("dataSource");
+        data.forEach((rowData) => {
+            const row = worksheet.addRow(rowData);
+
+            // Optional: Add borders to data cells
+            row.eachCell((cell) => {
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                };
+                cell.alignment = {
+                    vertical: 'middle',
+                    horizontal: 'left'
+                };
+            });
+        });
+
+        // Generate Excel file and download
+        workbook.xlsx.writeBuffer().then(buffer => {
+            const blob = new Blob([buffer], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "Leave_Balance_Report.xlsx";
+            a.click();
+            URL.revokeObjectURL(url);
+        }).catch(error => {
+            console.error("Excel export error:", error);
+            round_error_noti("Error exporting to Excel!");
+        });
+    }
+
+    // Button click event
+    $("#btnExport").on("click", function() {
+        exportGridToExcel();
+    });
+
+     $("#btnClear").click(function () {
         $('#asofdate').val('');
         $('#statusid').val('--Select--');
         $("#branchDropdown").dxTagBox("instance").option("value", []);
@@ -484,5 +603,7 @@
         $("#spnstatusid").hide();
         $("#spnbranch").hide();
         $("#spnemployee").hide();
+        // Hide export button
+        $('#exportButtonContainer').hide();
     });
 </script>
