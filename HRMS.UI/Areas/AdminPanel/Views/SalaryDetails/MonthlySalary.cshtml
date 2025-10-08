@@ -500,73 +500,52 @@
         });
     });
 
-
      function RenderSalaryGrid(data) {
         $("#salaryGridContainer").show();
-        let exportButtonInstance = null;
+        let isExportingSelected = false;
 
         $("#salaryGridContainer").dxDataGrid({
-                dataSource: data,
-                keyExpr: "employeeId",
-                showBorders: true,
-                columnAutoWidth: true,
-                 height: 350,  // Fixed height for scrollable content
-                selection: {
-                    mode: "multiple",
-                    showCheckBoxesMode: "always"
-                },
-                columnFixing: {
-                    enabled: true
-                },
-                // Remove or disable paging
-                paging: {
-                    enabled: false // Explicitly disable paging
-                },
-                        scrolling: {
-                    mode: "virtual", // or "standard"
-                    useNative: false,
-                    showScrollbar: "always"
-                },
+            dataSource: data,
+            keyExpr: "employeeId",
+            showBorders: true,
+            columnAutoWidth: true,
+            height: 350,
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
+            },
+            columnFixing: {
+                enabled: true
+            },
+            paging: {
+                enabled: false
+            },
+            scrolling: {
+                mode: "standard",
+                useNative: false,
+                scrollByContent: true,
+                scrollByThumb: true,
+                showScrollbar: "always"
+            },
             export: {
                 enabled: true,
-                fileName: "MonthlySalary",
-                allowExportSelectedData: true,
-                formats: ['xlsx'],
-                customizeExcelCell: (options) => {
-                    if (options.gridCell.rowType === "header") {
-                        options.font.bold = true;
-                        options.fill = {
-                            type: "pattern",
-                            pattern: "solid",
-                            fgColor: { argb: "FF3E4B6D" }
-                        };
-                        options.font.color = { argb: "FFFFFFFF" };
-                    }
-                }
+                allowExportSelectedData: true
             },
+
             onExporting: function(e) {
-                const selectedRowsData = e.component.getSelectedRowsData();
-
-                if (e.exportMode === 'selected' && selectedRowsData.length === 0) {
-                    e.cancel = true;
-                    DevExpress.ui.notify({
-                        message: "Please select at least one row to export",
-                        type: "warning",
-                        displayTime: 3000,
-                        closeOnClick: true
-                    });
-                    return;
-                }
-
                 const workbook = new ExcelJS.Workbook();
                 const worksheet = workbook.addWorksheet('MonthlySalary');
 
+                // Get visible columns with dataField only
+                const visibleColumns = e.component.getVisibleColumns()
+                    .filter(column => column.visible !== false && column.dataField);
+
+                // Add header row
                 const headerRow = worksheet.addRow(
-                    e.component.getVisibleColumns()
-                        .filter(column => column.visible !== false)
-                        .map(column => column.caption)
+                    visibleColumns.map(column => column.caption)
                 );
 
+                // Style header row
                 headerRow.eachCell((cell) => {
                     cell.fill = {
                         type: 'pattern',
@@ -577,23 +556,33 @@
                         color: { argb: 'FFFFFFFF' },
                         bold: true
                     };
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 });
 
-                const dataToExport = e.exportMode === 'selected' ?
-                    selectedRowsData :
-                    e.component.getDataSource().items();
+                // CRITICAL: Check if selectedRowsOnly is true in the export options
+                let dataToExport;
+                const selectedRowsData = e.component.getSelectedRowsData();
 
+                // Check the format parameter to determine export type
+                if (e.format === 'xlsx' && selectedRowsData.length > 0) {
+                    // This will be true when "Export selected rows" is clicked
+                    dataToExport = selectedRowsData;
+                } else {
+                    // Export all data
+                    dataToExport = e.component.getDataSource().items();
+                }
+
+                // Add data rows
                 dataToExport.forEach((row) => {
-                    const dataRow = [];
-                    e.component.getVisibleColumns()
-                        .filter(column => column.visible !== false)
-                        .forEach(column => {
-                            dataRow.push(row[column.dataField]);
-                        });
+                    const dataRow = visibleColumns.map(column => {
+                        const value = row[column.dataField];
+                        return value !== undefined && value !== null ? value : '';
+                    });
                     worksheet.addRow(dataRow);
                 });
 
-                worksheet.columns.forEach(column => {
+                // Auto-fit columns
+                worksheet.columns.forEach((column) => {
                     let maxLength = 0;
                     column.eachCell({ includeEmpty: true }, cell => {
                         const columnLength = cell.value ? cell.value.toString().length : 0;
@@ -604,53 +593,27 @@
                     column.width = maxLength < 10 ? 10 : maxLength + 2;
                 });
 
+                // Generate and download file
+                const fileName = dataToExport === selectedRowsData && selectedRowsData.length > 0
+                    ? 'MonthlySalary_Selected_' + new Date().toISOString().slice(0, 10) + '.xlsx'
+                    : 'MonthlySalary_All_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+
                 workbook.xlsx.writeBuffer().then((buffer) => {
                     saveAs(
                         new Blob([buffer], { type: 'application/octet-stream' }),
-                        'MonthlySalary_' + new Date().toISOString().slice(0, 10) + '.xlsx'
+                        fileName
                     );
                 });
 
                 e.cancel = true;
             },
             onSelectionChanged: function(e) {
-                if (exportButtonInstance) {
-                    exportButtonInstance.option("disabled", e.selectedRowsData.length === 0);
-                }
+                // No need to manage custom button anymore
             },
             toolbar: {
                 items: [
+                    "exportButton",
                     "searchPanel",
-                    {
-                        location: "after",
-                        widget: "dxButton",
-                        options: {
-                            icon: "fa fa-file-excel",
-                            hint: "Export to Excel",
-                            disabled: true,
-                            onClick: function () {
-                                const grid = $("#salaryGridContainer").dxDataGrid("instance");
-                                const selectedRows = grid.getSelectedRowsData();
-
-                                if (selectedRows.length === 0) {
-                                    DevExpress.ui.notify({
-                                        message: "Please select at least one row to export",
-                                        type: "warning",
-                                        displayTime: 3000,
-                                        closeOnClick: true
-                                    });
-                                    return;
-                                }
-
-                                grid.exportToExcel({
-                                    selectedRowsOnly: true
-                                });
-                            }
-                        },
-                        onInitialized: function (e) {
-                            exportButtonInstance = e.component;
-                        }
-                    },
                     {
                         location: "after",
                         widget: "dxButton",
@@ -671,25 +634,19 @@
                 width: 240,
                 placeholder: "Search..."
             },
-            scrolling: {
-                mode: "standard", // Changed back to standard for better column fixing
-                useNative: false,
-                scrollByContent: true,
-                scrollByThumb: true
-            },
             columns: [
                 { dataField: "employeeId", caption: "Employee ID", visible: false },
                 {
                     dataField: "employeeCode",
                     caption: "Code",
-                    fixed: true, // Fixed column - will not scroll horizontally
+                    fixed: true,
                     fixedPosition: "left",
                     width: 100
                 },
                 {
                     dataField: "employeeName",
                     caption: "Name",
-                    fixed: true, // Fixed column - will not scroll horizontally
+                    fixed: true,
                     fixedPosition: "left",
                     width: 200
                 },
@@ -725,7 +682,6 @@
 
         $("#salaryActions").show();
     }
-
 
     $('#btnProcessSalary').on('click', function () {
         const selectedMonth = $('#month').val();
