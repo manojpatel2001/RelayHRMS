@@ -251,4 +251,249 @@
         sidebar.classList.remove('active');
     overlay.classList.remove('active');
             }
+    });
+
+
+
+
+
+(function ($) {
+    $.fn.searchableSelect = function (options) {
+        const settings = $.extend({
+            data: [],
+            valueKey: 'id',
+            textKey: 'name',
+            placeholder: 'Select an option',
+            searchPlaceholder: 'Search...',
+            onChange: null
+        }, options);
+
+        return this.each(function () {
+            const $wrapper = $(this).closest('.searchable-select-wrapper');
+            const $input = $(this);
+            const $dropdown = $wrapper.find('.searchable-select-dropdown');
+            const $searchInput = $wrapper.find('.search-input');
+            const $optionsContainer = $wrapper.find('.searchable-select-options');
+
+            let selectedValue = null;
+            let allData = settings.data;
+            let currentHighlightIndex = -1;
+            let filteredData = [];
+
+            // Initialize
+            $searchInput.attr('placeholder', settings.searchPlaceholder);
+
+            // Update floating label state
+            function updateFloatingLabel() {
+                if (selectedValue) {
+                    $wrapper.addClass('has-value');
+                } else {
+                    $wrapper.removeClass('has-value');
+                }
+            }
+
+            // Scroll highlighted option into view
+            function scrollToHighlighted() {
+                const $highlighted = $optionsContainer.find('.searchable-select-option.highlighted');
+                if ($highlighted.length) {
+                    const containerHeight = $optionsContainer.height();
+                    const optionTop = $highlighted.position().top;
+                    const optionHeight = $highlighted.outerHeight();
+                    const scrollTop = $optionsContainer.scrollTop();
+
+                    if (optionTop < 0) {
+                        $optionsContainer.scrollTop(scrollTop + optionTop);
+                    } else if (optionTop + optionHeight > containerHeight) {
+                        $optionsContainer.scrollTop(scrollTop + optionTop + optionHeight - containerHeight);
+                    }
+                }
+            }
+
+            // Highlight option by index
+            function highlightOption(index) {
+                $optionsContainer.find('.searchable-select-option').removeClass('highlighted');
+
+                if (index >= 0 && index < filteredData.length) {
+                    currentHighlightIndex = index;
+                    $optionsContainer.find('.searchable-select-option').eq(index).addClass('highlighted');
+                    scrollToHighlighted();
+                }
+            }
+
+            // Select highlighted option
+            function selectHighlightedOption() {
+                if (currentHighlightIndex >= 0 && currentHighlightIndex < filteredData.length) {
+                    const item = filteredData[currentHighlightIndex];
+                    selectOption(item[settings.valueKey], item[settings.textKey]);
+                }
+            }
+
+            // Select option
+            function selectOption(value, text) {
+                selectedValue = allData.find(item => item[settings.valueKey] == value);
+
+                $input.val(text).removeClass('is-invalid');
+                $wrapper.removeClass('active').removeClass('is-invalid');
+                updateFloatingLabel();
+
+                // Clear error
+                $wrapper.closest('.form-floating-custom').find('.error-message').text('');
+
+                // Trigger onChange callback
+                if (settings.onChange && typeof settings.onChange === 'function') {
+                    settings.onChange(selectedValue);
+                }
+            }
+
+            // Render options
+            function renderOptions(data) {
+                filteredData = data;
+                currentHighlightIndex = -1;
+
+                if (data.length === 0) {
+                    $optionsContainer.html('<div class="searchable-select-no-results">No results found</div>');
+                    return;
+                }
+
+                const optionsHtml = data.map(item => {
+                    const isSelected = selectedValue && selectedValue[settings.valueKey] == item[settings.valueKey];
+                    return `<div class="searchable-select-option ${isSelected ? 'selected' : ''}"
+                                          data-value="${item[settings.valueKey]}"
+                                          data-text="${item[settings.textKey]}">
+                                          ${item[settings.textKey]}
+                                      </div>`;
+                }).join('');
+
+                $optionsContainer.html(optionsHtml);
+            }
+
+            // Initial render
+            renderOptions(allData);
+            updateFloatingLabel();
+
+            // Toggle dropdown
+            $input.on('click', function (e) {
+                e.stopPropagation();
+                $('.searchable-select-wrapper').not($wrapper).removeClass('active');
+                $wrapper.toggleClass('active');
+                if ($wrapper.hasClass('active')) {
+                    $searchInput.val('').focus();
+                    renderOptions(allData);
+                }
+            });
+
+            // Search functionality
+            $searchInput.on('input', function () {
+                const searchTerm = $(this).val().toLowerCase();
+                const filtered = allData.filter(item =>
+                    item[settings.textKey].toLowerCase().includes(searchTerm)
+                );
+                renderOptions(filtered);
+            });
+
+            // Keyboard navigation for search input
+            $searchInput.on('keydown', function (e) {
+                const visibleOptions = $optionsContainer.find('.searchable-select-option').length;
+
+                switch (e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        if (visibleOptions > 0) {
+                            const nextIndex = currentHighlightIndex + 1;
+                            highlightOption(nextIndex >= visibleOptions ? 0 : nextIndex);
+                        }
+                        break;
+
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        if (visibleOptions > 0) {
+                            const prevIndex = currentHighlightIndex - 1;
+                            highlightOption(prevIndex < 0 ? visibleOptions - 1 : prevIndex);
+                        }
+                        break;
+
+                    case 'Enter':
+                        e.preventDefault();
+                        if (currentHighlightIndex >= 0) {
+                            selectHighlightedOption();
+                        }
+                        break;
+
+                    case 'Escape':
+                        e.preventDefault();
+                        $wrapper.removeClass('active');
+                        $input.focus();
+                        break;
+
+                    case 'Tab':
+                        $wrapper.removeClass('active');
+                        break;
+                }
+            });
+
+            // Keyboard navigation for main input
+            $input.on('keydown', function (e) {
+                if (!$wrapper.hasClass('active') && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    $input.click();
+                }
+            });
+
+            // Option selection
+            $optionsContainer.on('click', '.searchable-select-option', function () {
+                const value = $(this).data('value');
+                const text = $(this).data('text');
+                selectOption(value, text);
+            });
+
+            // Hover effect for options
+            $optionsContainer.on('mouseenter', '.searchable-select-option', function () {
+                const index = $(this).index();
+                highlightOption(index);
+            });
+
+            // Click outside to close
+            $(document).on('click', function (e) {
+                if (!$wrapper.is(e.target) && $wrapper.has(e.target).length === 0) {
+                    $wrapper.removeClass('active');
+                }
+            });
+
+            // Prevent dropdown close on search input click
+            $searchInput.on('click', function (e) {
+                e.stopPropagation();
+            });
+
+            // Public methods
+            $input.data('searchableSelect', {
+                getValue: function () {
+                    return selectedValue ? selectedValue[settings.valueKey] : null;
+                },
+                getSelectedItem: function () {
+                    return selectedValue;
+                },
+                setValue: function (value) {
+                    const item = allData.find(d => d[settings.valueKey] == value);
+                    if (item) {
+                        selectedValue = item;
+                        $input.val(item[settings.textKey]);
+                        renderOptions(allData);
+                        updateFloatingLabel();
+                    }
+                },
+                clear: function () {
+                    selectedValue = null;
+                    $input.val('').removeClass('is-invalid');
+                    $wrapper.removeClass('is-invalid').removeClass('has-value');
+                    $wrapper.closest('.form-floating-custom').find('.error-message').text('');
+                    renderOptions(allData);
+                    updateFloatingLabel();
+                },
+                setData: function (data) {
+                    allData = data;
+                    renderOptions(allData);
+                }
+            });
         });
+    };
+})(jQuery);

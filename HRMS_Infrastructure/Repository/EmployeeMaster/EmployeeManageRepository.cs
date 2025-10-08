@@ -382,6 +382,43 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
         }
 
 
+        public async Task<APIResponse> GetRecordsForAdd(int CompanyId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (var multi = await connection.QueryMultipleAsync(
+                        "GetRecordsForAdd",
+                        new { CompanyId },
+                        commandType: CommandType.StoredProcedure))
+                    {
+                        var result = new EmployeeUpdateViewModel
+                        {
+                            Branches = (await multi.ReadAsync<BranchViewModel>()).AsList(),
+                            Grades = (await multi.ReadAsync<GradeViewModel>()).AsList(),
+                            Shifts = (await multi.ReadAsync<ShiftViewModel>()).AsList(),
+                            Designations = (await multi.ReadAsync<DesignationViewModel>()).AsList(),
+                            Categories = (await multi.ReadAsync<CategoryViewModel>()).AsList(),
+                            Departments = (await multi.ReadAsync<DepartmentViewModel>()).AsList(),
+                            EmployeeTypes = (await multi.ReadAsync<EmployeeTypeViewModel>()).AsList(),
+                            Roles = (await multi.ReadAsync<RoleViewModel>()).AsList(),
+                            ReportingEmployees = (await multi.ReadAsync<ReportingEmployeeViewModel>()).AsList()
+                        };
+
+                       
+
+                        return new APIResponse { Data=result,ResponseMessage="Fetched successfully!",isSuccess=true};
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return new APIResponse { ResponseMessage = "Some thing Went wrong!", isSuccess = false };
+            }
+        }
         public async Task<APIResponse> GetRecordsForUpdate(int CompanyId)
         {
             try
