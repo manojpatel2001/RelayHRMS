@@ -773,6 +773,20 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
             }
         }
+        [HttpGet("GetRecordsForAdd/{CompanyId}")]
+        public async Task<APIResponse> GetRecordsForAdd(int CompanyId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetRecordsForAdd(CompanyId);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
         [HttpGet("GetReportingList")]
         public async Task<APIResponse> GetReportingList()
         {

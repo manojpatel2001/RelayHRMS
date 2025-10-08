@@ -28,6 +28,7 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<vmUserLogin?> UserLogin(vmLogin login);
         Task<List<vmGetAllEmployee_DropDown>> GetAllEmployee_DropDown(int companyId ,string BranchId);
         Task<APIResponse> GetRecordsForUpdate(int CompanyId);
+        Task<APIResponse> GetRecordsForAdd(int CompanyId);
         Task<APIResponse> GetReportingList();
     }
 }
