@@ -36,10 +36,8 @@
             <div class="col-md-6 mb-3">
                 <div class="form-group position-relative">
                     <select id="documentName" class="form-control floating-input">
-                        <option value="">Select</option>
-                        <option value="Aadhar">Aadhar</option>
-                        <option value="PAN Card">PAN Card</option>
-                        <option value="Passport">Passport</option>
+                        <option value="" selected disabled>Select</option>
+                        
                     </select>
                     <label class="floating-label" for="documentName">Document Name*</label>
                 </div>
@@ -133,6 +131,31 @@
     let attachmentDetailsId=0;
     let attachmentDetails=[]
 
+
+    async function loadDocumentType(){
+           $.ajax({
+                    url: '@baseUrl/AttachmentDetailsAPI/GetAllDocumentTypes',
+                    method: 'GET',
+                    success: function(response) {
+
+                        var dropdown = $('#documentName');
+                        dropdown.empty();
+                        dropdown.append('<option disabled selected value="">Select </option>');
+                        $.each(response.data, function(index, doc) {
+                            dropdown.append($('<option>', {
+                                value: doc.documentTypeId,
+                                text: doc.documentName
+                            }));
+                         });
+                    },
+                    error: function(error) {
+                        console.error('Error fetching  data:', error);
+                             
+                    }
+                });
+
+        }
+
          async function loadAttachmentDetails() {
         try {
             const response = await fetch('@baseUrl/AttachmentDetailsAPI/GetAllAttachmentDetails/' + CurrentEmployeeId, {
@@ -204,6 +227,7 @@
 
 		
         loadAttachmentDetails();
+        loadDocumentType();
 	
         $('#btnSaveAttachment').click(function () {
             $('#btnSaveAttachment').prop("disabled", true)
@@ -214,7 +238,7 @@
 
             var formData = new FormData();
             formData.append('EmployeeId', CurrentEmployeeId);
-            formData.append('DocumentName', $('#documentName').val());
+            formData.append('DocumentTypeId', $('#documentName').val());
             formData.append('Comment', $('#attachmentComments').val());
             formData.append('DateOfExpiry', $('#expiryDate').val());
             const attachUrl=attachmentDetailsId==0?'@baseUrl/AttachmentDetailsAPI/CreateAttachmentDetail':'@baseUrl/AttachmentDetailsAPI/UpdateAttachmentDetail';
@@ -277,7 +301,7 @@
         const rowData = attachmentDetails.find(x => x.attachmentDetailsId === AttachmentDetaislId);
        
         attachmentDetailsId = AttachmentDetaislId;
-        $('#documentName').val(rowData.documentName);
+        $('#documentName').val(rowData.documentTypeId);
         $('#attachmentComments').val(rowData.comment);
        $('#expiryDate').val(rowData.dateOfExpiry ? rowData.dateOfExpiry.substring(0, 10) : '');
          if (rowData.documentUrl)
