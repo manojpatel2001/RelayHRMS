@@ -110,14 +110,8 @@ function showNotificationToast(notification) {
         $toast.removeClass('slide-in').addClass('show');
     }, 300);
 
-    // Close button click event
-    $toast.find('.toast-close').on('click', function (e) {
-        e.stopPropagation();
-        e.preventDefault();
-        clearTimeout(autoCloseTimer);
-        closeToast($toast);
-    });
-
+  
+    // Pause on hover/touch
     // Pause on hover/touch
     $toast.on({
         mouseenter: function () {
@@ -133,28 +127,28 @@ function showNotificationToast(notification) {
             }, duration);
         },
         touchstart: function (e) {
-            isPaused = true;
-            $toast.addClass('paused');
-            clearTimeout(autoCloseTimer);
-            e.preventDefault();
+            // Don't prevent default if clicking close button
+            if (!$(e.target).closest('.toast-close').length) {
+                isPaused = true;
+                $toast.addClass('paused');
+                clearTimeout(autoCloseTimer);
+                e.preventDefault();
+            }
         },
         touchend: function (e) {
-            isPaused = false;
-            $toast.removeClass('paused');
-            autoCloseTimer = setTimeout(function () {
-                closeToast($toast);
-            }, duration);
-            e.preventDefault();
+            // Don't prevent default if clicking close button
+            if (!$(e.target).closest('.toast-close').length) {
+                isPaused = false;
+                $toast.removeClass('paused');
+                autoCloseTimer = setTimeout(function () {
+                    closeToast($toast);
+                }, duration);
+                e.preventDefault();
+            }
         }
     });
 
-    // Prevent toast from closing when touched/clicked (except close button)
-    $toast.on('click touchstart', function (e) {
-        if (!$(e.target).closest('.toast-close').length) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    });
+ 
 
     // Initial auto close timer
     autoCloseTimer = setTimeout(function () {
