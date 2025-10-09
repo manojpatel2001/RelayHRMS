@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace HRMS_Infrastructure.Interface.Salary
 {
@@ -24,6 +25,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<List<YearlySalaryComponent>>  GetYearlySalaryCard(int Year ,int EmpId);
         Task<List<EmployeeSalaryDaysViewModel>> GetEmployeeSalaryDays(int EmpId);
         Task<List<EmployeesByBranchId>> GetEmployeesByBranchId(string BranchIds, int CompanyId);
+        Task<List<EmployeesByBranchId>> GetEmployeesForSalary(string BranchIds, int CompanyId , int Month);
         Task<List<EmployeeSalaryRegisterViewModel>> GetEmployeeSalaryRegister(int Month, int Year,int CompanyId ,int EmpId);
         Task<SalaryDetailForGetById?> GetBySalaryDetailsId(List<int> Ids);
         Task<VMCommonResult> DeleteSalaryDetails(DeleteRecordVModel deleteRecordVM);
