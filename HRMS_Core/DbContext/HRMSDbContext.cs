@@ -295,6 +295,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<EventViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<LeaveBalance_ParamForAdmin>().HasNoKey().ToView(null);
              modelBuilder.Entity<LeaveBalanceViewModelForAdmin>().HasNoKey().ToView(null);
+             modelBuilder.Entity<DocumentType>().HasNoKey().ToView(null);
+             modelBuilder.Entity<vmGetAttachmentDetailById>().HasNoKey().ToView(null);
 
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
