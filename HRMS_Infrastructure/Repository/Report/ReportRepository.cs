@@ -1,5 +1,7 @@
 ﻿using HRMS_Core.DbContext;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.Report;
 using Microsoft.Data.SqlClient;
@@ -19,6 +21,31 @@ namespace HRMS_Infrastructure.Repository.Report
         public ReportRepository(HRMSDbContext db)
         {
             _db = db;
+        }
+
+        public async Task<List<ActiveorInactiveUsers>> GetActiveOrInactiveUsers(string Action,int Compid )
+        {
+            try
+            {
+                var parameters = new[]
+                {
+           
+               
+                    new SqlParameter("@Action", Action),
+                    new SqlParameter("@CompId", Compid) 
+
+                    };
+
+                var result = await _db.Set<ActiveorInactiveUsers>()
+                    .FromSqlRaw("EXEC sp_GetAndUpdateUserStatus @Action, @CompId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<ActiveorInactiveUsers>();
+            }
         }
 
         public async Task<List<LeaveBalanceViewModelForAdmin>> GetLeaveBalanceForAdmin(LeaveBalance_ParamForAdmin vm)

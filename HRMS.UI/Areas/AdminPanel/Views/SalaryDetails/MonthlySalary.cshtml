@@ -383,15 +383,19 @@
     function BindEmployeeDropdownByBranch(selectedBranchIds) {
         const branchParam = (selectedBranchIds?.length > 0) ? selectedBranchIds.join(",") : "0";
 
+        // Get selected month (1-12)
+        const selectedMonth = $('#month').val();
+        const monthNumber = new Date(Date.parse(selectedMonth + " 1, 2000")).getMonth() + 1;
+
         $.ajax({
             type: "GET",
-                url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")?BranchIds=' + branchParam+'&CompanyId='+CompanyId,
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeesForSalary")?BranchIds=' + branchParam + '&CompanyId=' + CompanyId + '&Month=' + monthNumber,
             success: function (response) {
                 const $empDropdown = $("#employeeDropdown");
-                
+
                 if (response?.data?.length > 0) {
                     const employeeData = response.data.map(emp => ({
-                        employeeCode: emp.employeeCode, 
+                        employeeCode: emp.employeeCode,
                         displayName: `${emp.fullName} - ${emp.employeeCode}`
                     }));
 
@@ -412,7 +416,6 @@
                             $(".dx-overlay-content").css("max-width", "300px");
                         }
                     });
-
                 } else {
                     $empDropdown.dxTagBox({
                         items: [],
@@ -422,6 +425,17 @@
                         width: "100%"
                     });
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error("Error fetching employees:", error);
+                const $empDropdown = $("#employeeDropdown");
+                $empDropdown.dxTagBox({
+                    items: [],
+                    placeholder: "Error Loading Employees",
+                    searchEnabled: false,
+                    showClearButton: true,
+                    width: "100%"
+                });
             }
         });
     }
@@ -444,9 +458,6 @@
         // Create end date (last day of month)
         const endDate = `${year}-${monthNumber.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`;
 
-        console.log(`Selected Month: ${month}, Year: ${year}`);
-        console.log(`Start Date: ${startDate}, End Date: ${endDate}`);
-        console.log(`Days in ${month}: ${lastDayOfMonth}`);
 
         const branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
         const employeeIds = $("#employeeDropdown").dxTagBox("instance").option("value");

@@ -51,5 +51,26 @@ namespace HRMS_API.Controllers.Report
             }
         }
 
+
+        [HttpGet("ActiveOrInactive")]
+        public async Task<APIResponse> GetDirectIndirectEmployee(int Compid, int EmployeeId, string Action)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeDashboardRepository.GetDirectIndirectEmp(Compid, EmployeeId, Action);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.VM.Leave;
+using HRMS_Core.VM.Report;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,5 +11,6 @@ namespace HRMS_Infrastructure.Interface.Report
     public interface IReportRepository
     {
         Task<List<LeaveBalanceViewModelForAdmin>> GetLeaveBalanceForAdmin(LeaveBalance_ParamForAdmin vm);
+        Task<List<ActiveorInactiveUsers>> GetActiveOrInactiveUsers(string Action , int Compid);
     }
 }

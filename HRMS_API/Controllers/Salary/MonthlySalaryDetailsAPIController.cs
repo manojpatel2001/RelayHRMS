@@ -44,7 +44,7 @@ namespace HRMS_API.Controllers.Salary
             try
             {
                 var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetSalaryDetails(vm);
-                if(data==null || !data.Any())
+                if (data == null || !data.Any())
                 {
                     return new APIResponse()
                     {
@@ -101,7 +101,7 @@ namespace HRMS_API.Controllers.Salary
                     ResponseMessage = $"Error: {err.Message}"
                 };
             }
-        } 
+        }
 
 
         [HttpPost("GetSalarySlipReport")]
@@ -205,7 +205,7 @@ namespace HRMS_API.Controllers.Salary
 
 
         [HttpGet("GetEmployeeSalaryDays")]
-        public async Task<APIResponse> GetEmployeeSalaryDays( int EmployeeId)
+        public async Task<APIResponse> GetEmployeeSalaryDays(int EmployeeId)
         {
             try
             {
@@ -268,11 +268,11 @@ namespace HRMS_API.Controllers.Salary
         }
 
         [HttpGet("GetEmployeeSalaryRegister")]
-        public async Task<APIResponse> GetEmployeeSalaryRegister(int Month ,int year,int CompanyId ,int EmployeeId)
+        public async Task<APIResponse> GetEmployeeSalaryRegister(int Month, int year, int CompanyId, int EmployeeId)
         {
             try
             {
-                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeeSalaryRegister(Month,year, CompanyId, EmployeeId);
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeeSalaryRegister(Month, year, CompanyId, EmployeeId);
                 if (data == null || !data.Any())
                 {
                     return new APIResponse()
@@ -342,7 +342,7 @@ namespace HRMS_API.Controllers.Salary
         {
             try
             {
-                if (model == null )
+                if (model == null)
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
                 }
@@ -350,14 +350,33 @@ namespace HRMS_API.Controllers.Salary
 
                 model.DeletedDate = DateTime.UtcNow;
                 var result = await _unitOfWork.MonthlySalaryDetailsRepository.DeleteSalaryDetails(model);
-           
-                    return new APIResponse { isSuccess = true, Data = result, ResponseMessage = "The record has been deleted successfully" };
-     
+
+                return new APIResponse { isSuccess = true, Data = result, ResponseMessage = "The record has been deleted successfully" };
+
 
             }
             catch (Exception ex)
             {
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record, Please try again later!" };
+            }
+        }
+
+        [HttpGet("GetEmployeesForSalary")]
+        public async Task<APIResponse> GetEmployeesForSalary([FromQuery] string? BranchIds, int CompanyId ,int Month)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeesForSalary(BranchIds, CompanyId , Month);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
             }
         }
     }

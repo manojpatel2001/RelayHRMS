@@ -268,5 +268,19 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return new List<EmployeeSalaryRegisterViewModel>();
             }
         }
+
+        public async Task<List<EmployeesByBranchId>> GetEmployeesForSalary(string BranchIds, int CompanyId, int Month)
+        {
+            try
+            {
+
+                var result = await _db.Set<EmployeesByBranchId>().FromSqlInterpolated($"EXEC GetEmployeesForSalary @BranchIds={BranchIds},@CompanyId={CompanyId} ,@Month={Month}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EmployeesByBranchId>();
+            }
+        }
     }
 }
