@@ -1,0 +1,454 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+<title>Today's Attendance Panel</title>
+<!-- jQuery + Bootstrap + SweetAlert -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    body, html {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .search-panel-wrapper {
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .btn-add {
+        background-color: orange;
+        color: white;
+        font-size: 14px;
+        padding: 6px 15px;
+        border: none;
+        border-radius: 4px;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+    /* Fixed container styles for full width */
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 500px;
+        padding: 10px;
+        box-sizing: border-box;
+        margin: 0;
+    }
+    /* Grid container specific styles */
+    .grid-container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    /* DevExtreme grid full width fix */
+    #attendanceGrid {
+        width: 100% !important;
+    }
+
+        #attendanceGrid .dx-datagrid {
+            width: 100% !important;
+        }
+
+        #attendanceGrid .dx-datagrid-headers {
+            width: 100% !important;
+        }
+
+        #attendanceGrid .dx-datagrid-rowsview {
+            width: 100% !important;
+        }
+    /* Remove any fixed widths that might constrain the grid */
+    .search-panel-wrapper + .container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    /* Button row styling */
+
+    .button-row {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+        .button-row .btn {
+            min-width: 80px; /* Consistent button width */
+        }
+</style>
+
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search Panel</div>
+        </div>
+    </div>
+</div>
+
+<div class="form-section">
+    <!-- First Row: Branch and Shift -->
+    <div class="row justify-content-center mb-2">
+        <div class="col-md-4 d-flex align-items-center">
+            <label for="branchDropdown" class="form-label mb-0 me-2" style="min-width: 85px;">Branch<span class="text-danger">*</span>:</label>
+            <div style="flex: 1;">
+                <div id="branchDropdown" style="width: 100%;"></div>
+                <span id="spnbranch" style="color:red; display:none;">Please Select Branch</span>
+            </div>
+        </div>
+        <div class="col-md-4 d-flex align-items-center">
+            <label for="shiftDropdown" class="form-label mb-0 me-2" style="min-width: 85px;">
+                Shift:
+            </label>
+            <div style="flex: 1;">
+                <div id="shiftDropdown" style="width: 100%;"></div>
+                <span id="spnshift" style="color:red; display:none;">Please Select Shift</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Second Row: Centered Buttons -->
+    <div class="row justify-content-center mt-2 mb-3">
+        <div class="col-auto">
+            <div class="d-flex gap-2 justify-content-center">
+                <button class="btn btn-custom" id="btnGo" style="min-width: 70px;">Go</button>
+                <button class="btn btn-custom" id="btnClear" style="min-width: 70px;">Clear</button>
+                <button type="button" class="btn btn-custom" onclick="window.location.href='@Url.Action("Index", "MyReports")'" style="min-width: 70px;">
+                    Back
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Today's Attendance</div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-3">
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+        <img src="@baseDomainUrl/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+        <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+    </div>
+    <!-- Grid Container with full width -->
+
+    <div class="grid-container">
+        <div id="attendanceGrid"></div>
+    </div>
+</div>
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+    const baseUrl = '@baseUrl';
+    const baseDomainUrl = '@baseDomainUrl';
+
+    $(document).ready(function () {
+        BindBranchDropdown();
+        BindShiftDropdown();
+    });
+
+    async function showLoder() {
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    async function hideLoder() {
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    function BindBranchDropdown() {
+        $.ajax({
+            url: baseUrl + '/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response?.data?.length > 0) {
+                    $("#branchDropdown").dxTagBox({
+                        items: response.data,
+                        displayExpr: "branchName",
+                        valueExpr: "branchId",
+                        placeholder: "--Select Branch--",
+                        showSelectionControls: true,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        maxDisplayedTags: 3,
+                        applyValueMode: "instantly",
+                        multiline: false,
+                        minSearchLength: 0,
+                        width: "100%",
+                        onOpened: function () {
+                            $(".dx-overlay-content").css("max-width", "300px");
+                        }
+                    });
+                }
+            },
+            error: function () {
+                console.log("Error loading branches");
+            }
+        });
+    }
+
+    async function BindShiftDropdown() {
+        try {
+            const response = await fetchShiftData();
+            if (response.isSuccess && response.data?.length > 0) {
+                $("#shiftDropdown").dxSelectBox({
+                    items: response.data,
+                    displayExpr: "shiftName",
+                    valueExpr: "shiftMasterId",
+                    placeholder: "--Select Shift--",
+                    searchEnabled: true,
+                    showClearButton: true,
+                    width: "100%"
+                });
+            }
+        } catch (error) {
+            console.log("Error loading shifts");
+        }
+    }
+
+    async function fetchShiftData() {
+        try {
+            const response = await $.ajax({
+                type: "GET",
+                url: baseDomainUrl + '/api/ShiftMasterAPI/GetAllShifts',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+            return response;
+        } catch (error) {
+            console.error("Error fetching shift data:", error);
+            return { isSuccess: false, data: [] };
+        }
+    }
+    async function fetchTodaysAttendance(branchIds, ShiftMasterId, CompanyId) {
+        try {
+            // Convert array to comma-separated string
+            const branchIdsString = branchIds.join(',');
+
+            const response = await $.ajax({
+                type: "GET",
+                url: `${baseDomainUrl}/api/EmpAttendanceAPI/GetTodaysAttendanceDashbord?BranchId=${branchIdsString}&ShiftMatserId=${ShiftMasterId}&CompanyId=${CompanyId}`,
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+            return response;
+        } catch (error) {
+            console.error("Error fetching attendance data:", error);
+            return { isSuccess: false, ResponseMessage: "Error fetching data" };
+        }
+    }
+
+    function loadGrid(data) {  
+        console.log('data' ,data);
+        $("#attendanceGrid").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            height: "auto",
+            width: "100%",
+            columnAutoWidth: true,
+            scrolling: {
+                mode: "virtual"
+            },
+            paging: {
+                enabled: true,
+                pageSize: 10
+            },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [5, 10, 20, 50]
+            },
+            columnResizingMode: 'widget',
+            allowColumnResizing: true,
+            columns: [
+                {
+                    dataField: "employeeCode",
+                    caption: "Code",
+                    minWidth: 80
+                },
+                {
+                    dataField: "fullName",
+                    caption: "Employee Name",
+                    minWidth: 150
+                },
+                {
+                    dataField: "branchName",
+                    caption: "Branch",
+                    minWidth: 120
+                },
+                {
+                    dataField: "shiftName",
+                    caption: "Shift",
+                    minWidth: 100
+                },
+                {
+                    dataField: "inTime",
+                    caption: "Check In",
+                    minWidth: 100
+                },
+                {
+                    dataField: "outTime",
+                    caption: "Check Out",
+                    minWidth: 100
+                },
+                {
+                    dataField: "attendanceStatus",
+                    caption: "Status",
+                    minWidth: 100
+                }
+            ]
+        });
+    }
+
+    $('#btnGo').on('click', async function () {
+        debugger;
+        var branchInstance = $("#branchDropdown").dxTagBox("instance");
+        var shiftInstance = $("#shiftDropdown").dxSelectBox("instance");
+
+        var selectedBranches = branchInstance.option("value");
+        var selectedShift = shiftInstance.option("value");
+        console.log('selectedShift' ,selectedShift);
+        var isValid = true;
+
+        // Branch is mandatory
+        if (!selectedBranches || selectedBranches.length === 0) {
+            $("#spnbranch").show();
+            isValid = false;
+        } else {
+            $("#spnbranch").hide();
+        }
+
+        if (!isValid) {
+            return;
+        }
+
+        showLoder();
+
+        try {
+            // Pass branch IDs as array (not comma-separated string)
+            const branchIds = selectedBranches; // Already an array
+            const shiftId = selectedShift || 0; // 0 for all shifts if not selected
+
+            const response = await fetchTodaysAttendance(branchIds, shiftId, CompanyId);
+
+            if (response.isSuccess && response.data) {
+                loadGrid(response.data);
+            } else {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Data',
+                    text: response.ResponseMessage || 'No attendance data found',
+                    confirmButtonColor: '#3e4b6d'
+                });
+                $("#attendanceGrid").dxDataGrid({
+                    dataSource: [],
+                    showBorders: true,
+                    width: "100%"
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while fetching data',
+                confirmButtonColor: '#3e4b6d'
+            });
+        } finally {
+            hideLoder();
+        }
+    });
+    $("#btnClear").click(function () {
+        var branchInstance = $("#branchDropdown").dxTagBox("instance");
+        var shiftInstance = $("#shiftDropdown").dxSelectBox("instance");
+
+        branchInstance.option("value", []);
+        shiftInstance.option("value", null);
+
+        $("#attendanceGrid").dxDataGrid("dispose");
+        $("#attendanceGrid").dxDataGrid({
+            dataSource: [],
+            showBorders: true,
+            width: "100%"
+        });
+
+        $("#spnbranch").hide();
+        $("#spnshift").hide();
+    });
+</script>

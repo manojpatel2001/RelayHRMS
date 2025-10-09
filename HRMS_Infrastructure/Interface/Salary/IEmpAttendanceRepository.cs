@@ -20,6 +20,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<List<EmpAttendanceVM>> GetEmpAttendanceDataAsync(SearchFilterModel filter);
         Task<List<GetEmployeeInTime>> GetEmployeeInTime(int EmployeeId);
         Task<List<TodaysAttendanceAdminViewModel>> GetTodaysAttendanceAdmin(int BranchId ,int ShiftMatserId , int CompId);
+        Task<List<TodaysAttendanceAdminViewModel>> GetTodaysAttendanceDashbord(List<int> branchIds, int ShiftMatserId , int CompId);
 
     }
 }

@@ -1,4 +1,5 @@
-﻿using HRMS_Core.Salary;
+﻿using HRMS_Core.Master.JobMaster;
+using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.Salary;
@@ -218,6 +219,43 @@ namespace HRMS_API.Controllers.Salary
             try
             {
                 var data = await _unitOfWork.EmpAttendanceRepository.GetTodaysAttendanceAdmin(BranchId, ShiftMatserId, CompanyId);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No data found"
+                    };
+                }
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+
+        [HttpGet("GetTodaysAttendanceDashbord")]
+        public async Task<APIResponse> GetTodaysAttendanceDashbord(string BranchId, int ShiftMatserId ,int CompanyId)
+        {
+            try
+            {
+
+                List<int> branchIds = BranchId.Split(',')
+         .Where(x => !string.IsNullOrWhiteSpace(x))
+         .Select(x => int.Parse(x.Trim()))
+         .ToList();
+                var data = await _unitOfWork.EmpAttendanceRepository.GetTodaysAttendanceDashbord(branchIds, ShiftMatserId, CompanyId);
                 if (data == null || !data.Any())
                 {
                     return new APIResponse()
