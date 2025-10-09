@@ -82,6 +82,32 @@ namespace HRMS_Infrastructure.Repository.Salary
             }
         }
 
+
+        public async Task<List<TodaysAttendanceAdminViewModel>> GetTodaysAttendanceDashbord(
+    List<int> branchIds, // List of branch IDs
+    int shiftMasterId,
+    int compId)
+        {
+            try
+            {
+     
+                string branchIdsString = string.Join(",", branchIds);
+
+                var result = await _db.Set<TodaysAttendanceAdminViewModel>()
+                    .FromSqlInterpolated($@"EXEC GetTodaysAttendanceDashboard
+                @BranchIds = {branchIdsString},
+                @ShiftMasterId = {shiftMasterId},
+                @CompanyId = {compId}")
+                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetTodaysAttendanceDashboard Error: " + ex.Message);
+                return new List<TodaysAttendanceAdminViewModel>();
+            }
+        }
+
         public async Task<EmpAttendanceImport> SoftDelete(DeleteRecordVM DeleteRecord)
         {
             var Attendance = await _db.EmpAttendanceImport.FirstOrDefaultAsync(asd => asd.EmpAttendanceId == DeleteRecord.Id);
