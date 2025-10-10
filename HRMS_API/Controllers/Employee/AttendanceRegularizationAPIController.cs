@@ -127,7 +127,7 @@ namespace HRMS_API.Controllers.Employee
 
                 //Notification send to reporting persion
                 var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(Convert.ToInt32(CreatedBy));
-                if (employeeDetails != null && employeeDetails?.Id != Convert.ToInt32(CreatedBy))
+                if (employeeDetails != null )
                 {
                     var attdenceDate = string.Join(", ", attdenceDateList.Select(date => date.ToString("dd-MM-yyyy")));
                     var notification = new NotificationRemainders()
@@ -287,7 +287,7 @@ namespace HRMS_API.Controllers.Employee
                    
                     //Notification send to reporting persion
                     var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(Convert.ToInt32(attendance.CreatedBy));
-                    if (employeeDetails != null && employeeDetails?.Id != Convert.ToInt32(attendance.CreatedBy))
+                    if (employeeDetails != null )
                     {
                         var notification = new NotificationRemainders()
                         {
