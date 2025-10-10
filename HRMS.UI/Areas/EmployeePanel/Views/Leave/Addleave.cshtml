@@ -1266,14 +1266,26 @@
         $('#halfDayType').removeClass('is-invalid');
     }
 
-    function validateHalfDayByAttendanceData(attendanceData, selectedDate, leaveTypeName) {
+      function validateHalfDayByAttendanceData(attendanceData) {
         const workingHours = attendanceData.workingHours || 0;
         const attendanceStatus = attendanceData.attendanceStatus?.trim();
-        const inTime = attendanceData.inTime && attendanceData.inTime !== '-' ? new Date(attendanceData.inTime) : null;
-        const outTime = attendanceData.outTime && attendanceData.outTime !== '-' ? new Date(attendanceData.outTime) : null;
+        const inTime = attendanceData.inTime ? new Date(attendanceData.inTime) : null;
+        const outTime = attendanceData.outTime ? new Date(attendanceData.outTime) : null;
+        const shiftTime = attendanceData.shiftTime; // e.g., "09:30 to 18:30"
 
         let allowedHalves = [];
         let validationMessage = "";
+
+        // Parse shift start and end time
+        const [startTimeStr, endTimeStr] = shiftTime.split(" to ");
+        const shiftStartTime = new Date(`2025-10-09 ${startTimeStr}`);
+        const shiftEndTime = new Date(`2025-10-09 ${endTimeStr}`);
+
+        // Calculate shift mid time
+        const shiftMidTime = new Date(
+            shiftStartTime.getTime() +
+            (shiftEndTime.getTime() - shiftStartTime.getTime()) / 2
+        );
 
         if (attendanceStatus === 'A' && workingHours === 0) {
             allowedHalves = ['first', 'second'];
@@ -1291,28 +1303,40 @@
 
         if (workingHours >= 4.5 && workingHours < 9) {
             if (inTime && outTime) {
-                const shiftMidHour = 13;
-                const inHour = inTime.getHours();
-                const outHour = outTime.getHours();
+                // Calculate hours worked in first half (shift start → shift mid)
+                const firstHalfHours = (outTime <= shiftMidTime)
+                    ? (outTime - inTime) / (1000 * 60 * 60)
+                    : (shiftMidTime - inTime) / (1000 * 60 * 60);
 
-                if (inHour < shiftMidHour && outHour <= shiftMidHour) {
-                    allowedHalves = ['second'];
-                    validationMessage = `You worked ${workingHours} hours in first half. You can apply for second half leave.`;
-                } else if (inHour >= shiftMidHour && outHour > shiftMidHour) {
-                    allowedHalves = ['first'];
-                    validationMessage = `You worked ${workingHours} hours in second half. You can apply for first half leave.`;
+                // Calculate hours worked in second half (shift mid → shift end)
+                const secondHalfHours = (inTime >= shiftMidTime)
+                    ? (outTime - inTime) / (1000 * 60 * 60)
+                    : (outTime - shiftMidTime) / (1000 * 60 * 60);
+
+                // Allow half day for the half where hours < 4.5
+                if (firstHalfHours < 4.5) {
+                    allowedHalves.push('first');
+                }
+                if (secondHalfHours < 4.5) {
+                    allowedHalves.push('second');
+                }
+
+                if (allowedHalves.length > 0) {
+                    validationMessage = `You can apply for half day leave in the ${allowedHalves.join(' and ')} half(s) because you worked less than 4.5 hours there.`;
                 } else {
-                    allowedHalves = [];
-                    validationMessage = `You worked ${workingHours} hours across both halves. Half day leave cannot be applied.`;
+                    validationMessage = `You worked 4.5+ hours in both halves. Half day leave cannot be applied.`;
                 }
             } else {
                 allowedHalves = [];
-                validationMessage = `You worked ${workingHours} hours. Half day leave cannot be applied.`;
+                validationMessage = `In/Out time not recorded properly. Half day leave cannot be applied.`;
             }
-        } else if (workingHours > 0 && workingHours < 4.5) {
+            updateHalfDayOptions(allowedHalves, validationMessage);
+            return;
+        }
+
+        if (workingHours > 0 && workingHours < 4.5) {
             if (inTime) {
-                const inHour = inTime.getHours();
-                if (inHour < 13) {
+                if (inTime < shiftMidTime) {
                     allowedHalves = ['second'];
                     validationMessage = `You worked ${workingHours} hours in first half. You can apply for second half leave.`;
                 } else {
@@ -1330,6 +1354,7 @@
 
         updateHalfDayOptions(allowedHalves, validationMessage);
     }
+
 
     function updateHalfDayOptions(allowedHalves, validationMessage = "") {
         const halfDayDropdown = $('#halfDayType');
