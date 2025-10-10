@@ -53,11 +53,11 @@ namespace HRMS_API.Controllers.Report
 
 
         [HttpGet("ActiveOrInactive")]
-        public async Task<APIResponse> GetDirectIndirectEmployee(int Compid, int EmployeeId, string Action)
+        public async Task<APIResponse> ActiveOrInactive(int Compid,  string Action)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeDashboardRepository.GetDirectIndirectEmp(Compid, EmployeeId, Action);
+                var data = await _unitOfWork.ReportRepository.GetActiveOrInactiveUsers(Action ,Compid);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
