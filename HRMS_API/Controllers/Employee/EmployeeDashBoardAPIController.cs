@@ -152,6 +152,25 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+
+        [HttpGet("GetEmployeesforAttendanceRegister")]
+        public async Task<APIResponse> GetEmployeesforAttendanceRegister(int Compid, int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeDashboardRepository.GetEmployeesforAttendanceRegister(Compid, EmployeeId);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
         [HttpGet("Getupcommingholidays")]
         public async Task<APIResponse> Getupcommingholidays(int Compid, int EmployeeId)
         {

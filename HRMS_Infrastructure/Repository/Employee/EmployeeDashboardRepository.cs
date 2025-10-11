@@ -120,6 +120,30 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
+        public async Task<List<EmployeeDirectIndirectReport>> GetEmployeesforAttendanceRegister(int Compid, int EmployeeId)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@ReportingId", EmployeeId) ,
+                    new SqlParameter("@CompanyId", Compid) 
+                 
+
+                    };
+
+                var result = await _db.Set<EmployeeDirectIndirectReport>()
+                    .FromSqlRaw("EXEC GetEmployeesforAttendanceRegister @ReportingId, @CompanyId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EmployeeDirectIndirectReport>();
+            }
+        }
+
         public async Task<List<MyTeamleavesVM>> GetMyteamleave(int EmpId, int Compid, int Repoid)
         {
             try
