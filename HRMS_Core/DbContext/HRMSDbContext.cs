@@ -300,6 +300,9 @@ namespace HRMS_Core.DbContext
 
              modelBuilder.Entity<DocumentType>().HasNoKey().ToView(null);
              modelBuilder.Entity<vmGetAttachmentDetailById>().HasNoKey().ToView(null);
+             modelBuilder.Entity<SerialNoViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ManpowerRequisitionViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<vmGetEmployeeListByBranchId>().HasNoKey().ToView(null);
 
 
         }

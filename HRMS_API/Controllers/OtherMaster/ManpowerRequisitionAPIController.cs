@@ -18,12 +18,12 @@ namespace HRMS_API.Controllers.OtherMaster
             _unitOfWork = unitOfWork;
         }
 
-        [HttpGet("GetAllManpowerRequisitions/{CompanyId}")]
-        public async Task<APIResponse> GetAllManpowerRequisitions(int CompanyId)
+        [HttpPost("GetAllManpowerRequisitions")]
+        public async Task<APIResponse> GetAllManpowerRequisitions(CommonParameter commonParameter)
         {
             try
             {
-                var data = await _unitOfWork.ManpowerRequisitionRepository.GetAllManpowerRequisitions(CompanyId);
+                var data = await _unitOfWork.ManpowerRequisitionRepository.GetAllManpowerRequisitions(commonParameter);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No manpower requisitions found." };
                 return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Manpower requisitions fetched successfully." };
@@ -123,6 +123,51 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete manpower requisition. Please try again later." };
             }
         }
+
+        [HttpPost("GetAllSerialNo")]
+        public async Task<APIResponse> GetAllSerialNo(CommonParameter model)
+        {
+            try
+            {
+                var data = await _unitOfWork.ManpowerRequisitionRepository.GetAllSerialNo(model);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetManpowerRequisitionByManpowerRequisitionId/{ManpowerRequisitionId}")]
+        public async Task<APIResponse> GetManpowerRequisitionByManpowerRequisitionId(int ManpowerRequisitionId)
+        {
+            try
+            {
+                var data = await _unitOfWork.ManpowerRequisitionRepository.GetManpowerRequisitionByManpowerRequisitionId(ManpowerRequisitionId);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+        [HttpPost("UpdateJoinningDetails")]
+        public async Task<APIResponse> UpdateJoinningDetails(UpdateJoinningDetailsModel model)
+        {
+            try
+            {
+                var data = await _unitOfWork.ManpowerRequisitionRepository.UpdateJoinningDetails( model);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
     }
 
 }

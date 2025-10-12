@@ -49,7 +49,7 @@ namespace HRMS_API.Controllers.Salary
                     return new APIResponse()
                     {
                         isSuccess = false,
-                        ResponseMessage = "Record fetched successfully"
+                        ResponseMessage = "No record found!"
                     };
                 }
 
@@ -362,7 +362,7 @@ namespace HRMS_API.Controllers.Salary
         }
 
         [HttpGet("GetEmployeesForSalary")]
-        public async Task<APIResponse> GetEmployeesForSalary([FromQuery] string? BranchIds, int CompanyId ,int Month)
+        public async Task<APIResponse> GetEmployeesForSalary([FromQuery] string? BranchIds, int CompanyId ,int? Month)
         {
             try
             {

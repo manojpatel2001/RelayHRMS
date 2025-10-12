@@ -11,11 +11,14 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
 {
     public interface IManpowerRequisitionRepository
     {
-        Task<List<ManpowerRequisitionViewModel>> GetAllManpowerRequisitions(int CompanyId);
+        Task<List<ManpowerRequisitionViewModel>> GetAllManpowerRequisitions(CommonParameter commonParameter);
         Task<SP_Response> CreateManpowerRequisition(ManpowerRequisition manpowerRequisition);
         Task<SP_Response> UpdateManpowerRequisition(ManpowerRequisition manpowerRequisition);
         Task<SP_Response> DeleteManpowerRequisition(DeleteRecordVM model);
         Task<APIResponse> GetDropDownForManpower(int CompanyId);
+        Task<APIResponse> GetManpowerRequisitionByManpowerRequisitionId(int ManpowerRequisitionId);
+        Task<APIResponse> GetAllSerialNo(CommonParameter commonParameter);
+        Task<APIResponse> UpdateJoinningDetails(UpdateJoinningDetailsModel model);
     }
 
 }

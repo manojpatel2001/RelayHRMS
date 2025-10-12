@@ -387,67 +387,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
-        //public async Task<APIResponse> UpdateEmployee(vmUpdateEmployee updateEmployee)
-        //{
-        //    try
-        //    {
-        //        var employeeData = updateEmployee.vmEmployeeData;
-        //        if (employeeData == null || string.IsNullOrEmpty(employeeData.LoginAlias))
-        //        {
-        //            return new APIResponse { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
-        //        }
-
-        //        var existingUser = await _unitOfWork.EmployeeManageRepository.GetAsync(x=>x.Id==employeeData.Id && x.IsDeleted==false && x.IsEnabled==true);
-        //        if (existingUser == null)
-        //        {
-        //            return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
-        //        }
-
-
-        //        // Check if another user with the same EmployeeCode exists (excluding the current user)
-        //        var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.EmployeeCode == employeeData.EmployeeCode && u.Id != existingUser.Id);
-        //        if (existingUserByEmployeeCode.Any())
-        //        {
-        //            return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Employee Code already exists." };
-        //        }
-
-        //        // Update the user
-        //        var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployee(employeeData);
-
-        //        if (result.Emp_Id!=null)
-        //        {
-        //            // Additional information
-        //            if (updateEmployee.EmployeePersonalInfo != null)
-        //            {
-        //                var modelEmployeePersonalInfo = updateEmployee.EmployeePersonalInfo;
-        //                //Add employee info
-        //                if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0)
-        //                {
-        //                    var resultEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.CreateEmployeePersonalInfo(modelEmployeePersonalInfo);
-        //                }
-        //                else
-        //                {
-        //                    var check = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoById(modelEmployeePersonalInfo.EmployeePersonalInfoId);
-        //                    if (check != null)
-        //                    {
-        //                        var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.UpdateEmployeePersonalInfo(modelEmployeePersonalInfo);
-        //                    }
-        //                }
-        //            }
-
-
-        //            var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(result.Emp_Id);
-        //            return new APIResponse { isSuccess = true, Data = updatedEmployee, ResponseMessage = "Employee has been updated successfully" };
-        //        }
-
-        //        return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update employee, Please try again later!" };
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update employee, Please try again later!" };
-        //    }
-        //}
-
+       
 
 
         [HttpDelete("DeleteEmployee")]
@@ -793,6 +733,21 @@ namespace HRMS_API.Controllers.EmployeeMaster
             try
             {
                 var data = await _unitOfWork.EmployeeManageRepository.GetReportingList();
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetEmployeeListByBranchId/{BranchId}")]
+        public async Task<APIResponse> GetEmployeeListByBranchId(int BranchId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetEmployeeListByBranchId( BranchId);
 
                 return data;
             }
