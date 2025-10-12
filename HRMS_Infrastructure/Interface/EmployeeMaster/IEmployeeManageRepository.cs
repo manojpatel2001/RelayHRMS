@@ -30,5 +30,6 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<APIResponse> GetRecordsForUpdate(int CompanyId);
         Task<APIResponse> GetRecordsForAdd(int CompanyId);
         Task<APIResponse> GetReportingList();
+        Task<APIResponse> GetEmployeeListByBranchId(int BranchId);
     }
 }

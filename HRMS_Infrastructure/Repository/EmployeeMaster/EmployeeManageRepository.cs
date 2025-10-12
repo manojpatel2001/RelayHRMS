@@ -484,5 +484,33 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 return new APIResponse { ResponseMessage = "Some thing Went wrong!", isSuccess = false };
             }
         }
+        public async Task<APIResponse> GetEmployeeListByBranchId(int BranchId)
+        {
+            try
+            {
+                var EmployeesList = new List<vmGetEmployeeListByBranchId>();
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (var multi = await connection.QueryMultipleAsync(
+                        "GetEmployeeListByBranchId",
+                          new { BranchId },
+                        commandType: CommandType.StoredProcedure))
+                    {
+
+                        EmployeesList = (await multi.ReadAsync<vmGetEmployeeListByBranchId>()).AsList();
+                    };
+
+
+                        return new APIResponse { Data= EmployeesList, ResponseMessage="Fetched successfully!",isSuccess=true};
+                    
+                }
+            }
+            catch (Exception)
+            {
+                return new APIResponse { ResponseMessage = "Some thing Went wrong!", isSuccess = false };
+            }
+        }
     }
 }

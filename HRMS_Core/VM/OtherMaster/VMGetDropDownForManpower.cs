@@ -13,5 +13,6 @@ namespace HRMS_Core.VM.OtherMaster
              public List<DepartmentViewModel> Departments { get; set; }
         public List<DesignationViewModel> Designations { get; set; }  
         public List<ReportingEmployeeViewModel> ReportingEmployees { get; set; }
+        public List<branchViewModel> Branches { get; set; }
     }
 }

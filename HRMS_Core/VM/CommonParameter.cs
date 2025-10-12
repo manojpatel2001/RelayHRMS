@@ -10,6 +10,7 @@ namespace HRMS_Core.VM
     public class CommonParameter
     {
         public int? CompanyId { get; set; }
+        public int? BranchId { get; set; }
         public int? DepartmentId { get; set; }
         public int? EmployeeId { get; set; }
         public int? Month { get; set; }

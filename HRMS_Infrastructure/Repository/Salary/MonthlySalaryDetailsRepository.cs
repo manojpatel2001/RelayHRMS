@@ -269,7 +269,7 @@ namespace HRMS_Infrastructure.Repository.Salary
             }
         }
 
-        public async Task<List<EmployeesByBranchId>> GetEmployeesForSalary(string BranchIds, int CompanyId, int Month)
+        public async Task<List<EmployeesByBranchId>> GetEmployeesForSalary(string BranchIds, int CompanyId, int? Month)
         {
             try
             {
