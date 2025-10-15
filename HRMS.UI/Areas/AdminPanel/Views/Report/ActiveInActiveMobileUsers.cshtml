@@ -1,0 +1,424 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Mobile Users Panel";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+<style>
+    .fixed-label {
+        min-width: 180px;
+        white-space: nowrap;
+        margin-bottom: 0;
+        text-align: right;
+    }
+
+    .section-heading {
+        background-color: #1e3a5f !important;
+        color: white !important;
+        font-weight: 600;
+        padding: 8px 15px;
+        border-radius: 0.375rem 0.375rem 0 0;
+    }
+
+    .card-header.custom-header {
+        background-color: transparent !important;
+        border-bottom: none;
+        padding: 0;
+    }
+
+    .form-check-input:checked {
+        background-color: #1e3a5f;
+        border-color: #1e3a5f;
+    }
+
+    .form-check-label {
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .grid-container {
+        margin-top: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
+
+    .radio-container {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        padding: 15px;
+        border-radius: 0 0 0.375rem 0.375rem;
+    }
+
+    .radio-section {
+        border-right: 2px solid #dee2e6;
+        padding-right: 20px;
+    }
+
+        .radio-section:last-child {
+            border-right: none;
+            padding-left: 20px;
+        }
+
+    .radio-section-title {
+        font-weight: 600;
+        color: #1e3a5f;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+
+    .toggle-button-container {
+        text-align: right;
+        margin-bottom: 10px;
+    }
+
+    .toggle-button {
+        background-color: #1e3a5f;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.3s;
+    }
+
+        .toggle-button:hover {
+            background-color: #152a45;
+        }
+
+        .toggle-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+</style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="card mb-4">
+    <div class="card-header custom-header">
+        <div class="row">
+            <div class="col">
+                <h6 class="section-heading">Mobile Users Records</h6>
+            </div>
+        </div>
+        <!-- Radio buttons section -->
+        <div class="radio-container">
+            <form>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-check d-inline-block me-4">
+                            <input class="form-check-input" type="radio" name="Status" id="activeid" value="Active" checked>
+                            <label class="form-check-label" for="activeid">Active</label>
+                        </div>
+                        <div class="form-check d-inline-block">
+                            <input class="form-check-input" type="radio" name="Status" id="inactiveid" value="Inactive">
+                            <label class="form-check-label" for="inactiveid">Inactive</label>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Toggle Button (Dynamic) -->
+        <div class="toggle-button-container">
+            <button id="toggleStatusButton" class="toggle-button" style="display: none;"></button>
+        </div>
+        <!-- Mobile Users Grid -->
+
+
+        <div id="grid-loader"
+             class="grid-loader justify-content-center align-items-center flex-column"
+             style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+            <img src="@baseDomainUrl/loders/loder.png"
+                 class="grid-logo-spinner"
+                 style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+            <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+        </div>
+
+        <div class="grid-container">
+            <div id="mobileUsersGrid"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const apiBase = '@baseUrl';
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    $(document).ready(function () {
+        let selectedStatus = 'Active';
+
+        // Initialize grid first
+        initializeGrid();
+
+        // Load initial data
+        loadMobileUsersGrid(selectedStatus);
+
+        // Radio change event
+        $('input[name="Status"]').change(function () {
+            selectedStatus = $(this).val();
+            loadMobileUsersGrid(selectedStatus);
+        });
+    });
+    
+       async function showLoder() {
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    async function hideLoder() {
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    let gridInstance = null;
+    let currentStatus = 'Active';
+
+    function initializeGrid() {
+        if (!gridInstance) {
+            gridInstance = $("#mobileUsersGrid").dxDataGrid({
+                dataSource: [],
+                showBorders: true,
+                height: '400',
+                rowAlternationEnabled: true,
+                columnAutoWidth: true,
+                showColumnLines: true,
+                showRowLines: true,
+                selection: {
+                    mode: "multiple",
+                    allowSelectAll: true,
+                    showCheckBoxesMode: "always"
+                },
+                paging: {
+                    enabled: false
+                },
+                scrolling: {
+                    mode: "standard",
+                    useNative: true,
+                    showScrollbar: "always"
+                },
+                // Add search panel
+                searchPanel: {
+                    visible: true,
+                    width: 250,
+                    placeholder: "Search..."
+                },
+                columns: [
+                    {
+                        dataField: "employeeCode",
+                        caption: "Mobile User Code",
+                        width: 150
+                    },
+                    {
+                        dataField: "fullName",
+                        caption: "User Name",
+                        width: 200
+                    },
+                    {
+                        dataField: "designationName",
+                        caption: "Designation Name",
+                        width: 170
+                    },
+                    {
+                        dataField: "departmentName",
+                        caption: "Department Name",
+                        width: 170
+                    },
+                    {
+                        dataField: "loginAlias",
+                        caption: "Login Alias"
+                    }
+                ],
+                onContentReady: function(e) {
+                    $('.dx-header-row').css({
+                        'background-color': '#1e3a5f',
+                        'color': 'white',
+                        'font-weight': '600'
+                    });
+                }
+            }).dxDataGrid("instance");
+        }
+    }
+
+
+    function loadMobileUsersGrid(status) {
+        currentStatus = status;
+        showLoder();
+        $.ajax({
+            type: "GET",
+            url: apiBase + '/ReportAPI/ActiveOrInactiveMobileUsers',
+            data: {
+                Compid: CompanyId,
+                Action: status
+            },
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                hideLoder();
+                if (response.isSuccess) {
+                    const data = response.data;  
+                    console.log('data',data);
+                    initializeGrid();
+
+                    if (gridInstance) {
+                        gridInstance.option("dataSource", data);
+                        gridInstance.refresh();
+                    }
+
+                    // Update toggle button
+                    updateToggleButton(status);
+                } else {
+                    if (gridInstance) {
+                        gridInstance.option("dataSource", []);
+                        gridInstance.refresh();
+                    }
+                    updateToggleButton(status);
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr);
+                if (gridInstance) {
+                    gridInstance.option("dataSource", []);
+                    gridInstance.refresh();
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to load mobile users data!',
+                    confirmButtonColor: '#1e3a5f'
+                });
+            }
+        });
+    }
+
+    function updateToggleButton(currentStatus) {
+        const toggleButton = $("#toggleStatusButton");
+
+        if (currentStatus === "Active") {
+            toggleButton.text("Inactive-Users");
+            toggleButton.off("click").on("click", function() {
+                updateSelectedUsers("Inactive");
+            });
+        } else {
+            toggleButton.text("Active-Users");
+            toggleButton.off("click").on("click", function() {
+                updateSelectedUsers("Active");
+            });
+        }
+
+        toggleButton.show();
+    }
+    function updateSelectedUsers(newStatus) {
+        // Get selected rows from grid
+        const selectedRowsData = gridInstance.getSelectedRowsData();
+        if (selectedRowsData.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Selection',
+                text: 'Please select at least one user to update!',
+                confirmButtonColor: '#1e3a5f'
+            });
+            return;
+        }
+ 
+        processUserUpdates(selectedRowsData, newStatus);
+    }
+
+    function processUserUpdates(selectedUsers, newStatus) {
+        let successCount = 0;
+        let failCount = 0;
+        const totalUsers = selectedUsers.length;
+
+        // Disable button during processing
+        $("#toggleStatusButton").prop('disabled', true);
+
+        const promises = selectedUsers.map(user => {
+            const requestData = {
+                Action: newStatus,
+                EmpId: user.employeeCode,
+                UpdatedBy: EmployeeId
+            };
+            showLoder(); // Show loader before each request
+            return $.ajax({
+                type: "PUT",
+                url: apiBase + '/ReportAPI/UpdateMobileUser',
+                contentType: "application/json",
+                data: JSON.stringify(requestData),
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+        });
+
+        // Wait for all promises to complete
+        Promise.allSettled(promises).then(results => {
+            // Hide loader after all requests are done
+            hideLoder();
+
+            results.forEach(result => {
+                if (result.status === 'fulfilled' && result.value.isSuccess) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            });
+
+            // Re-enable button
+            $("#toggleStatusButton").prop('disabled', false);
+
+            // Show result message
+            if (successCount > 0 && failCount === 0) {
+                const statusText = newStatus === "Active" ? "activated" : "inactivated";
+                const userText = successCount === 1 ? "user" : "users";
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: `${successCount} ${userText} ${statusText} successfully!`,
+                    confirmButtonColor: '#1e3a5f'
+                }).then(() => {
+                    loadMobileUsersGrid(currentStatus);
+                });
+            } else if (successCount > 0 && failCount > 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Partial Success',
+                    text: `${successCount} users updated successfully, ${failCount} failed!`,
+                    confirmButtonColor: '#1e3a5f'
+                }).then(() => {
+                    loadMobileUsersGrid(currentStatus);
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed',
+                    text: 'Failed to update users. Please try again!',
+                    confirmButtonColor: '#1e3a5f'
+                });
+            }
+        }).catch(error => {
+            // Hide loader in case of error
+            hideLoder();
+            $("#toggleStatusButton").prop('disabled', false);
+            console.error("Error during batch update:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while updating users!',
+                confirmButtonColor: '#1e3a5f'
+            });
+        });
+    }
+
+
+</script>
