@@ -305,6 +305,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<vmGetEmployeeListByBranchId>().HasNoKey().ToView(null);
              modelBuilder.Entity<MobileUserViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<UpdateMobileUserStatusRequest>().HasNoKey().ToView(null);
+             modelBuilder.Entity<HolidayViewModel>().HasNoKey().ToView(null);
 
 
         }

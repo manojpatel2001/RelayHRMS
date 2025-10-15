@@ -74,6 +74,28 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+        public async Task<List<HolidayViewModel>> GetHolidaysForYear(int Year)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@Year", Year)
+
+                    };
+
+                var result = await _db.Set<HolidayViewModel>()
+                    .FromSqlRaw("EXEC GetHolidaysForYear  @Year", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<HolidayViewModel>();
+            }
+        }
+
         public async Task<List<LeaveBalanceViewModelForAdmin>> GetLeaveBalanceForAdmin(LeaveBalance_ParamForAdmin vm)
         {
             try
