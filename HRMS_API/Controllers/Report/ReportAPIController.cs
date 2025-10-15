@@ -1,4 +1,6 @@
-﻿using HRMS_Core.VM.Leave;
+﻿using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Leave;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -53,11 +55,11 @@ namespace HRMS_API.Controllers.Report
 
 
         [HttpGet("ActiveOrInactive")]
-        public async Task<APIResponse> ActiveOrInactive(int Compid,  string Action)
+        public async Task<APIResponse> ActiveOrInactive(int Compid, string Action)
         {
             try
             {
-                var data = await _unitOfWork.ReportRepository.GetActiveOrInactiveUsers(Action ,Compid);
+                var data = await _unitOfWork.ReportRepository.GetActiveOrInactiveUsers(Action, Compid);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
@@ -67,6 +69,54 @@ namespace HRMS_API.Controllers.Report
                     isSuccess = false,
                     Data = err.Message,
                     ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+        [HttpGet("ActiveOrInactiveMobileUsers")]
+        public async Task<APIResponse> ActiveOrInactiveMobileUsers(int Compid, string Action)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetActiveOrInactiveMobileUsers(Action, Compid);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+        [HttpPut("UpdateMobileUser")]
+        public async Task<APIResponse> UpdateMobileUser([FromBody] UpdateMobileUserStatusRequest model)
+        {
+            try
+            {
+                if (model == null)
+                {
+                    return new APIResponse() { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
+                }
+
+
+                var result = await _unitOfWork.ReportRepository.UpdateMobileUsers(model);
+                if (result.Success > 0)
+                {
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                }
+
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to update record, Please try again later!"
                 };
             }
         }
