@@ -15,6 +15,7 @@ namespace HRMS_Infrastructure.Interface.Report
         Task<List<LeaveBalanceViewModelForAdmin>> GetLeaveBalanceForAdmin(LeaveBalance_ParamForAdmin vm);
         Task<List<ActiveorInactiveUsers>> GetActiveOrInactiveUsers(string Action , int Compid);
         Task<List<MobileUserViewModel>> GetActiveOrInactiveMobileUsers(string Action, int Compid);
+        Task<List<HolidayViewModel>> GetHolidaysForYear(int Year);
         Task<SP_Response> UpdateMobileUsers(UpdateMobileUserStatusRequest model);
     }
 }

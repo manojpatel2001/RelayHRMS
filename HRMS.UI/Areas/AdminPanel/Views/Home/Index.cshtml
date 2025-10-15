@@ -368,11 +368,12 @@
                         <div class="dashboard-card">
                             <div class="dashboard-header">Quick Data</div>
                             <div class="dashboard-body">
+                                <a href="#" class="dashboard-link" onclick="openHolidayModal(); return false;">Yearly Holiday</a>
                                 <a href="/AdminPanel/DashboardReport/ActiveInActiveUsers" class="dashboard-link">Active/InActive Users <span class="red-count" id="activeUsersCount">(0)</span></a>
                                 <a href="/AdminPanel/DashboardReport/ActiveInActiveMobileUsers" class="dashboard-link">Active/InActive Mobile Users <span class="red-count" id="mobileUsersCount">(0)</span></a>
 @*                                 <a href="#" class="dashboard-link">Allowance/Reim Application <span class="red-count" id="allowanceCount">(0)</span></a> *@
                   @*               <a href="#" class="dashboard-link">Company Consolidate Info</a> *@
-                                <a href="#" class="dashboard-link">Yearly Holiday</a>
+                         
                                 @* <a href="#" class="dashboard-link">Scheme Not Assigned</a> *@
                             </div>
                         </div>
@@ -381,12 +382,13 @@
                         <div class="dashboard-card">
                             <div class="dashboard-header">Graphics Report</div>
                             <div class="dashboard-body">
+                         
                                 <a href="#" class="dashboard-link">Continues Absent</a>
                                 <a href="#" class="dashboard-link">Leave Reports</a>
                                 <a href="#" class="dashboard-link">View Message</a>
                                 <a href="#" class="dashboard-link">View Graphical Report</a>
                                 <a href="#" class="dashboard-link">WhosOff</a>
-                                <a href="#" class="dashboard-link">Yearly Salary</a>
+                             
                             </div>
                         </div>
                     </div>
@@ -761,6 +763,31 @@
     </div>
 </div>
 
+
+
+
+<!-- Holiday Modal -->
+<div class="modal" id="holidayModal">
+    <div class="modal-content" style="width: 900px; max-width: 95vw; max-height: 90vh; overflow: hidden;">
+        <div class="modal-header">
+            <div class="modal-title">Holiday Details</div>
+            <button class="close-btn" onclick="closeHolidayModal()">×</button>
+        </div>
+        <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; height: calc(90vh - 60px);">
+            <!-- Year Selector - Centered -->
+            <div style="padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 15px; flex-shrink: 0;">
+                <button onclick="previousYear()" style="background: #5a6b7d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 18px;">❮</button>
+                <div id="selectedYear" style="font-size: 18px; font-weight: bold; min-width: 80px; text-align: center;">2025</div>
+                <button onclick="nextYear()" style="background: #5a6b7d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 18px;">❯</button>
+            </div>
+
+            <!-- Holiday Grid - With Scrollbar -->
+            <div id="holidayGridContainer" style="flex: 1; padding: 15px; overflow: hidden;">
+                <div id="holidayGrid" style="height: 100%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
         const Token = localStorage.getItem("authToken");
@@ -3797,4 +3824,179 @@
         return html;
     }
 
+
+
+    // Holiday Modal Variables
+    let currentHolidayYear = new Date().getFullYear();
+    let holidayGridInstance = null;
+
+    // Initialize Holiday Grid
+    function initializeHolidayGrid() {
+        $("#holidayGrid").dxDataGrid({
+            dataSource: [],
+            columns: [
+                {
+                    dataField: "holidayName",
+                    caption: "Holiday Name",
+                    alignment: "left",
+                    width: 200
+                },
+                {
+                    dataField: "fromDate",
+                    caption: "From Date",
+                    dataType: "date",
+                    format: "dd MMM yyyy",
+                    alignment: "center",
+                    width: 150
+                },
+                {
+                    dataField: "toDate",
+                    caption: "To Date",
+                    dataType: "date",
+                    format: "dd MMM yyyy",
+                    alignment: "center",
+                    width: 150
+                },
+                {
+                    dataField: "branchName",
+                    caption: "Branch",
+                    alignment: "left",
+                    width: 200
+                },
+                {
+                    dataField: "annualyRepeat",
+                    caption: "Annually Repeat",
+                    alignment: "center",
+                    width: 130,
+                    cellTemplate: function(container, options) {
+                        const value = options.value === 'Y' || options.value === true ? 'Yes' : 'No';
+                        $("<div>").text(value).appendTo(container);
+                    }
+                }
+            ],
+            showBorders: true,
+            columnAutoWidth: true,
+            height: '100%',
+            paging: {
+                enabled: false
+            },
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
+             searchPanel: {
+            visible: true,
+            width: 250,
+            placeholder: "Search holidays...",
+            highlightCaseSensitive: false // Optional: case-insensitive search
+        },
+            export: {
+                enabled: false
+          
+            }
+       
+        });
+
+        holidayGridInstance = $("#holidayGrid").dxDataGrid("instance");
+    }
+
+    // Load Holidays for Selected Year
+    function loadHolidaysForYear(year) {
+        if (holidayGridInstance) {
+            holidayGridInstance.beginCustomLoading("Loading holidays...");
+        }
+
+        $.ajax({
+            url: '@baseDomainUrl/api/ReportAPI/GetHolidaysForYear?Year=' + year,
+            type: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function(response) {
+                if (holidayGridInstance) {
+                    holidayGridInstance.endCustomLoading();
+                }
+
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    holidayGridInstance.option("dataSource", response.data);
+
+                    const recordCount = response.data.length;
+                    holidayGridInstance.option("onToolbarPreparing", function(e) {
+                        e.toolbarOptions.items.unshift({
+                            location: "before",
+                            template: function() {
+                                return $("<div>").css({
+                                    "font-weight": "600",
+                                    "color": "#333",
+                                    "font-size": "14px"
+                                }).text(`Holiday List - ${year} (${recordCount} holidays)`);
+                            }
+                        });
+                    });
+
+                    holidayGridInstance.refresh();
+                } else {
+                    holidayGridInstance.option("dataSource", []);
+                    DevExpress.ui.notify(
+                        `No holidays found for year ${year}`,
+                        "warning",
+                        2000
+                    );
+                }
+            },
+            error: function(xhr, status, error) {
+                if (holidayGridInstance) {
+                    holidayGridInstance.endCustomLoading();
+                }
+                holidayGridInstance.option("dataSource", []);
+                DevExpress.ui.notify(
+                    "Failed to load holidays. Please try again.",
+                    "error",
+                    3000
+                );
+                console.error("Error loading holidays:", error);
+            }
+        });
+    }
+
+    // Open Holiday Modal
+    function openHolidayModal() {
+        const modal = document.getElementById('holidayModal');
+        if (modal) {
+            modal.style.display = 'block';
+            currentHolidayYear = new Date().getFullYear();
+            document.getElementById('selectedYear').textContent = currentHolidayYear;
+
+            if (!holidayGridInstance) {
+                initializeHolidayGrid();
+            }
+
+            loadHolidaysForYear(currentHolidayYear);
+        }
+    }
+
+    // Close Holiday Modal
+    function closeHolidayModal() {
+        const modal = document.getElementById('holidayModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // Previous Year
+    function previousYear() {
+        currentHolidayYear--;
+        document.getElementById('selectedYear').textContent = currentHolidayYear;
+        loadHolidaysForYear(currentHolidayYear);
+    }
+
+    // Next Year
+    function nextYear() {
+        currentHolidayYear++;
+        document.getElementById('selectedYear').textContent = currentHolidayYear;
+        loadHolidaysForYear(currentHolidayYear);
+    }
+
+ 
 </script>
