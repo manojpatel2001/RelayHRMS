@@ -22,11 +22,11 @@ namespace HRMS_API.Controllers.Leave
 
 
         [HttpGet("LeaveType")]
-        public async Task<APIResponse> LeaveType()
+        public async Task<APIResponse> LeaveType(int Compid)
         {
             try
             {
-                var data = await _unitOfWork.LeaveMasterRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
+                var data = await _unitOfWork.LeaveMasterRepository.GetAllAsync(asd => asd.Comp_Id == Compid && asd.IsEnabled == true && asd.IsDeleted == false);
                 if (data == null)
                 {
                     return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
