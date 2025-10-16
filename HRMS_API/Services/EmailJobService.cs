@@ -31,7 +31,7 @@ namespace HRMS_API.Services
             {
                 
                 List<DailyAbsentReportResult>? AbsentReport = await _unitOfWork.EmailReportRepository.GetDailyAbsentReport();
-                if ( AbsentReport == null|| !AbsentReport.Any())
+                if (emailReport==null|| AbsentReport == null|| !AbsentReport.Any())
                     return;
 
                 // Iterate over each reporting manager
@@ -122,7 +122,7 @@ namespace HRMS_API.Services
                 string cronExpression = "";
                 if (emailReport.EmailSendTime == null)
                 {
-                    cronExpression = "30 2 * * *";
+                    return;
                 }
                 else
                 {
@@ -130,16 +130,6 @@ namespace HRMS_API.Services
 
                 }
 
-
-
-                //RecurringJob.RemoveIfExists("daily-email-job");
-
-                //RecurringJob.AddOrUpdate(
-                //    "daily-email-job",
-                //    () => SendDailyEmailAsync(emailReport),
-                //    cronExpression,
-                //    TimeZoneInfo.FindSystemTimeZoneById("India Standard Time") // Use IST
-                //);
                 RecurringJob.RemoveIfExists("update-job-schedule-check");
                 RecurringJob.AddOrUpdate(
                     "update-job-schedule-check",
