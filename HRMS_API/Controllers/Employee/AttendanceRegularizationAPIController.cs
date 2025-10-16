@@ -224,44 +224,47 @@ namespace HRMS_API.Controllers.Employee
                     };
                 }
 
-               
                 foreach (var attendance in attendances)
                 {
-                    var record = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x => x.AttendanceRegularizationId == attendance.AttendanceRegularizationId && x.IsEnabled == true && x.IsDeleted == false);
-
+                    var record = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(
+                        x => x.AttendanceRegularizationId == attendance.AttendanceRegularizationId &&
+                             x.IsEnabled == true &&
+                             x.IsDeleted == false
+                    );
                     if (record == null) continue;
 
-                    // 1. Update attendance status
+                    // Update status fields
                     record.Status = attendance.Status;
                     record.IsApproved = attendance.Status == "Approved";
                     record.IsRejected = attendance.Status == "Rejected";
                     record.IsPending = attendance.Status == "Pending";
 
+                
+                    record.UpdatedBy = attendance.CreatedBy;  
+                    record.UpdatedDate = DateTime.UtcNow;
+
+                    // Save changes
                     await _unitOfWork.AttendanceRegularizationRepository.Update(record);
 
+                    // If approved, update or create InOut records
                     if (record.IsApproved)
                     {
                         var existingInOutList = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeInOut(attendance.EmpId, attendance.ForDate);
-
                         var existingInOut = existingInOutList.FirstOrDefault();
-
                         if (existingInOut != null)
                         {
                             int empInOutId = existingInOut.Id;
-
                             var updateModel = new AttendanceDetailsViewModel
                             {
-                                AttendanceDetailsid= empInOutId,
+                                AttendanceDetailsid = empInOutId,
                                 EmployeeId = attendance.EmpId,
                                 ShiftDate = attendance.ForDate,
                                 InTime = attendance.InTime ?? DateTime.Now,
                                 OutTime = attendance.OutTime ?? DateTime.Now,
                                 WorkingHours = attendance.Duration,
-                                //AttendanceStatus = attendance.Status,
                                 SalaryDay = 1,
                                 CreatedOn = DateTime.Now
                             };
-
                             await _unitOfWork.EmployeeInOutRepository.UpdateAttendanceDetails(updateModel);
                         }
                         else
@@ -273,25 +276,27 @@ namespace HRMS_API.Controllers.Employee
                                 InTime = attendance.InTime ?? DateTime.Now,
                                 OutTime = attendance.OutTime ?? DateTime.Now,
                                 WorkingHours = attendance.Duration,
-                                //AttendanceStatus = attendance.Status,
                                 SalaryDay = 1,
                                 CreatedOn = DateTime.Now
                             };
                             await _unitOfWork.EmployeeInOutRepository.CreateAttendanceDetails(newInOut);
-                            var updateNotification = await _unitOfWork.NotificationRemainderRepository.UpdateNotificationRemainder(new NotificationRemainders { NotificationType= NotificationType.AttendanceApplication,NotificationAffectedId=attendance.EmpId});
-
+                            var updateNotification = await _unitOfWork.NotificationRemainderRepository.UpdateNotificationRemainder(
+                                new NotificationRemainders
+                                {
+                                    NotificationType = NotificationType.AttendanceApplication,
+                                    NotificationAffectedId = attendance.EmpId
+                                }
+                            );
                         }
-
                     }
 
-                   
-                    //Notification send to reporting persion
+                    // Send notification to the reporting person
                     var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(Convert.ToInt32(attendance.CreatedBy));
-                    if (employeeDetails != null )
+                    if (employeeDetails != null)
                     {
                         var notification = new NotificationRemainders()
                         {
-                            NotificationMessage = $" Your attendance for Date: {attendance.ForDate:dd-MM-yyyy} has been {attendance.Status?.ToLower()} by {employeeDetails?.FullName}.",
+                            NotificationMessage = $"Your attendance for Date: {attendance.ForDate:dd-MM-yyyy} has been {attendance.Status?.ToLower()} by {employeeDetails?.FullName}.",
                             NotificationTime = DateTime.UtcNow,
                             SenderId = employeeDetails?.Id.ToString(),
                             ReceiverIds = attendance?.EmpId.ToString(),
@@ -302,16 +307,15 @@ namespace HRMS_API.Controllers.Employee
                         if (savedNotification.Success > 0)
                         {
                             notification.NotificationRemainderId = savedNotification.Success;
-                            var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(attendance?.EmpId.ToString());
-                            if (reprtingConnection.Any())
+                            var reportingConnection = NotificationRemainderConnectionManager.GetConnections(attendance?.EmpId.ToString());
+                            if (reportingConnection.Any())
                             {
-                                await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                                await _hubContext.Clients.Clients(reportingConnection).SendAsync("ReceiveNotificationRemainder", notification);
                             }
                         }
                     }
                 }
 
-                
                 return new APIResponse
                 {
                     isSuccess = true,
@@ -328,6 +332,7 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+
 
         [HttpDelete("Delete")]
         public async Task<APIResponse> Delete([FromBody] DeleteRecordVModel DeleteRecord)

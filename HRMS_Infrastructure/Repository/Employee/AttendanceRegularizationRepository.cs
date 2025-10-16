@@ -186,7 +186,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                     @Day = {model.Day},
                     @Reason = {model.Reason},
                     @Status = {model.Status},
-                    @CreatedBy = {model.CreatedBy}
+                    @CreatedBy = {model.UpdatedBy}
             ").ToListAsync();
 
                 return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
