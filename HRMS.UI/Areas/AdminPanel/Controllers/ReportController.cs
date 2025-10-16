@@ -37,6 +37,10 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View(); 
         }
+        public IActionResult  ActiveInActiveMobileUsers()
+        {
+            return View(); 
+        }
       
     }
 }

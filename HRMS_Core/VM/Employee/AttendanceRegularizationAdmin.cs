@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.VM.Employee
 {
-    public class AttendanceRegularizationVM
-
+    public class AttendanceRegularizationAdmin
     {
-
         public int? AttendanceRegularizationId { get; set; }
         public int? EmpId { get; set; }
         public string? FullName { get; set; }
@@ -23,12 +21,12 @@ namespace HRMS_Core.VM.Employee
         public DateTime? OutTime { get; set; }
         public decimal? Duration { get; set; }
         public string? Day { get; set; }
-     
+
         public string? Reason { get; set; }
 
         public bool IsApproved { get; set; }
         public bool IsPending { get; set; }
         public bool IsRejected { get; set; }
-        public bool IsReportingManager { get; set; }
+    
     }
 }

@@ -186,7 +186,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                     @Day = {model.Day},
                     @Reason = {model.Reason},
                     @Status = {model.Status},
-                    @CreatedBy = {model.CreatedBy}
+                    @CreatedBy = {model.UpdatedBy}
             ").ToListAsync();
 
                 return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
@@ -243,7 +243,7 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<List<AttendanceRegularizationVM>> GetAttendanceRegularizationForAdmin(AttendanceRegularizationSearchFilterForAdminVM attendance)
+        public async Task<List<AttendanceRegularizationAdmin>> GetAttendanceRegularizationForAdmin(AttendanceRegularizationSearchFilterForAdminVM attendance)
         {
             try
             {
@@ -253,7 +253,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var todateParam = new SqlParameter("@ToDate", (object?)attendance.ToDate ?? DBNull.Value);
                 var statustypeParam = new SqlParameter("@Status", (object?)attendance.Status ?? DBNull.Value);
 
-                return await _db.Set<AttendanceRegularizationVM>()
+                return await _db.Set<AttendanceRegularizationAdmin>()
               .FromSqlRaw("EXEC [dbo].[GetAttendanceRegularizationSearchForAdmin] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status",
                   searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam)
               .ToListAsync();
@@ -261,7 +261,7 @@ namespace HRMS_Infrastructure.Repository.Employee
             catch (Exception ex)
             {
 
-                return new List<AttendanceRegularizationVM>();
+                return new List<AttendanceRegularizationAdmin>();
             }
         }
     }

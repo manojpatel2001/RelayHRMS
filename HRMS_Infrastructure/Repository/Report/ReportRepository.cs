@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.DbContext;
+using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Report;
@@ -23,6 +24,31 @@ namespace HRMS_Infrastructure.Repository.Report
             _db = db;
         }
 
+        public async Task<List<MobileUserViewModel>> GetActiveOrInactiveMobileUsers(string Action, int Compid)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+
+
+                    new SqlParameter("@Action", Action),
+                    new SqlParameter("@CompId", Compid)
+
+                    };
+
+                var result = await _db.Set<MobileUserViewModel>()
+                    .FromSqlRaw("EXEC sp_GetActiveInactiveMobileuser @Action, @CompId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<MobileUserViewModel>();
+            }
+        }
+
         public async Task<List<ActiveorInactiveUsers>> GetActiveOrInactiveUsers(string Action,int Compid )
         {
             try
@@ -45,6 +71,28 @@ namespace HRMS_Infrastructure.Repository.Report
             catch (Exception)
             {
                 return new List<ActiveorInactiveUsers>();
+            }
+        }
+
+        public async Task<List<HolidayViewModel>> GetHolidaysForYear(int Year)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@Year", Year)
+
+                    };
+
+                var result = await _db.Set<HolidayViewModel>()
+                    .FromSqlRaw("EXEC GetHolidaysForYear  @Year", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<HolidayViewModel>();
             }
         }
 
@@ -81,6 +129,25 @@ namespace HRMS_Infrastructure.Repository.Report
                 Console.WriteLine("GetLeaveBalanceAdmin Error: " + ex.Message);
                 Console.WriteLine("Stack Trace: " + ex.StackTrace);
                 return new List<LeaveBalanceViewModelForAdmin>();
+            }
+        }
+
+        public async Task<SP_Response> UpdateMobileUsers(UpdateMobileUserStatusRequest model)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+                EXEC sp_UpdateMobileUserStatus
+                    @Action = {model.Action},
+                    @EmpCode = {model.EmpId},
+                    @UpdatedBy = {model.UpdatedBy}
+            ").ToListAsync();
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
         }
     }

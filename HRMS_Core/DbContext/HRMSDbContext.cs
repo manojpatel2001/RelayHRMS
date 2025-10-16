@@ -304,7 +304,14 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<SerialNoViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<ManpowerRequisitionViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<vmGetEmployeeListByBranchId>().HasNoKey().ToView(null);
+
              modelBuilder.Entity<EmailReport>().HasNoKey().ToView(null);
+
+             modelBuilder.Entity<MobileUserViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<UpdateMobileUserStatusRequest>().HasNoKey().ToView(null);
+             modelBuilder.Entity<HolidayViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<AttendanceRegularizationAdmin>().HasNoKey().ToView(null);
+
 
 
         }
