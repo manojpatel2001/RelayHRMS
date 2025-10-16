@@ -1,3 +1,5 @@
+using Hangfire;
+using Hangfire.MemoryStorage;
 using HRMS_API.NotificationService.HubService;
 using HRMS_API.Services;
 using HRMS_Core.DbContext;
@@ -96,6 +98,19 @@ builder.Services.AddSwaggerGen();
 // Register FileUploadService
 builder.Services.AddScoped<FileUploadService>();
 
+// Add Hangfire services
+builder.Services.AddHangfire(config =>
+{
+    config.UseSimpleAssemblyNameTypeSerializer()
+          .UseRecommendedSerializerSettings()
+          .UseMemoryStorage(); // Use SQL Server in production
+});
+
+builder.Services.AddHangfireServer();
+//Email Service
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<EmailJobService>();
+
 var app = builder.Build();
 
 // Configure pipeline
@@ -112,6 +127,14 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<NotificationRemainderHub>("/NotificationRemainderHub");
+app.UseHangfireDashboard("/hangfire");
+
+using (var scope = app.Services.CreateScope())
+{
+    var emailJobService = scope.ServiceProvider.GetRequiredService<EmailJobService>();
+    emailJobService.StartScheduleDailyEmail();
+}
+
 app.MapControllers();
 
 app.Run();

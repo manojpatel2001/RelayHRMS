@@ -2,6 +2,7 @@
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.EmailService;
 using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
@@ -20,6 +21,7 @@ using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.CompanyInformation;
 using HRMS_Infrastructure.Repository.CompanyStructure;
+using HRMS_Infrastructure.Repository.EmailService;
 using HRMS_Infrastructure.Repository.EmergencyContacts;
 using HRMS_Infrastructure.Repository.Employee;
 using HRMS_Infrastructure.Repository.EmployeeMaster;
@@ -151,6 +153,7 @@ namespace HRMS_Infrastructure.Repository
 
             importDataRepository = new ImportDataRepository(_dbContext);
             ReportRepository = new ReportRepository (_dbContext);
+            EmailReportRepository = new EmailReportRepository(_dbContext);
 
         }
 
@@ -267,6 +270,7 @@ namespace HRMS_Infrastructure.Repository
         public IImportDataRepository importDataRepository { get; set; }
 
         public IReportRepository ReportRepository { get; set; }
+        public IEmailReportRepository EmailReportRepository { get; set; }
 
         public void Commit()
         {
