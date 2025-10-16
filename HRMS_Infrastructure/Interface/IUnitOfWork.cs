@@ -1,5 +1,6 @@
 ﻿using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.EmailService;
 using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
@@ -128,6 +129,7 @@ namespace HRMS_Infrastructure.Interface
 
         IImportDataRepository importDataRepository { get; }
         IReportRepository ReportRepository { get; }
+        IEmailReportRepository EmailReportRepository { get; }
 
 
         void Commit();

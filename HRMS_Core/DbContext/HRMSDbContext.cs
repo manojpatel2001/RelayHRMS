@@ -15,6 +15,7 @@ using HRMS_Core.SuperAdmin;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.CompanyStructure;
+using HRMS_Core.VM.EmailService;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.Ess.InOut;
@@ -303,10 +304,14 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<SerialNoViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<ManpowerRequisitionViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<vmGetEmployeeListByBranchId>().HasNoKey().ToView(null);
+
+             modelBuilder.Entity<EmailReport>().HasNoKey().ToView(null);
+
              modelBuilder.Entity<MobileUserViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<UpdateMobileUserStatusRequest>().HasNoKey().ToView(null);
              modelBuilder.Entity<HolidayViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<AttendanceRegularizationAdmin>().HasNoKey().ToView(null);
+
 
 
         }
