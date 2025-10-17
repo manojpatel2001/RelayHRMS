@@ -62,12 +62,12 @@
         margin: 0 5px;
     }
 
-    #btnFetchSalary {
+    #btnFetchSalary, #btnFetchingSalary {
         background-color: #2395c6;
         color: #fff;
     }
 
-        #btnFetchSalary:hover {
+    #btnFetchSalary, #btnFetchingSalary:hover {
             background-color: #1d7ba3;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(35, 149, 198, 0.3);
@@ -284,7 +284,7 @@
                     </div>
 
                     <!-- Branch Dropdown (Multi Select) -->
-                    <div class="form-group-row d-flex align-items-center">
+                   @*  <div class="form-group-row d-flex align-items-center">
                         <label class="form-label">Branch<span class="text-danger">*</span> :</label>
                         <div class="form-floating-custom flex-grow-1">
                             <div class="searchable-select-wrapper multi-select" id="branchWrapper">
@@ -312,7 +312,8 @@
                             </div>
                             <span class="text-danger error-message" id="errorBranch">Please select branch</span>
                         </div>
-                    </div>
+                    </div> *@
+
                 </div>
 
                 <!-- Right Column -->
@@ -343,6 +344,11 @@
                             <span class="text-danger error-message" id="errorYear">Please select year</span>
                         </div>
                     </div>
+
+                   
+                </div>
+
+                <div class="col-md-6">
 
                     <!-- Employee Dropdown (Multi Select) -->
                     <div class="form-group-row d-flex align-items-center">
@@ -464,18 +470,7 @@
             }
         });
 
-           $('#employeeDropdown').searchableSelect({
-                data: [],
-                valueKey: 'employeeCode',
-                textKey: 'displayName',
-                searchPlaceholder: 'Search ...',
-                placeholder: 'Employee ...',
-                multiple: true,
-                onChange: function(items) {
-
-                }
-            });
-        BindBranchDropdown();
+       loadEmployeeDropdown();
       
     });
 
@@ -483,8 +478,32 @@
         window.history.back();
     }
 
+     function loadEmployeeDropdown() {
+        $.ajax({
+            url: '@baseUrl/EmployeeMasterAPI/GetReportingList',
+            method: 'GET',
+            success: function (res) {
+                 $('#employeeDropdown').searchableSelect({
+                    data:  res.data||[],
+                    valueKey: 'employeeId',
+                    textKey: 'employeeName',
+                    searchPlaceholder: 'Search ...',
+                    placeholder: 'Employee ...',
+                    multiple: true,
+                    onChange: function(items) {
 
-     function showbtnLoader(){
+                    }
+                   
+                });
+
+            },
+            error: function () {
+                console.error('Error loading responsible dropdown');
+            }
+        });
+    }
+
+    function showbtnLoader(){
         $("#btnFetchingSalary").show();
         $("#btnFetchSalary").hide();
     }
@@ -501,33 +520,33 @@
         $("#btnProcessSalary").show();
     }
 
-    function BindBranchDropdown() {
-        $.ajax({
-                    url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
-                method: 'GET',
-                    headers: {
-                            'Authorization': 'Bearer ' + Token
-                        },
-            success: function (response) { 
-                if (response?.data?.length > 0) {
+    // function BindBranchDropdown() {
+    //     $.ajax({
+    //                 url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+    //             method: 'GET',
+    //                 headers: {
+    //                         'Authorization': 'Bearer ' + Token
+    //                     },
+    //         success: function (response) { 
+    //             if (response?.data?.length > 0) {
                   
 
-                    $('#branchDropdown').searchableSelect({
-                        data: response.data||[],
-                        valueKey: 'branchId',
-                        textKey: 'branchName',
-                        searchPlaceholder: 'Search ...',
-                        placeholder: 'Branch ...',
-                        multiple: true,
-                        onChange: function(items) {
-                            const branchIds = items.map(i => i.branchId).join(',');
-                            BindEmployeeDropdownByBranch();
-                        }
-                    });
-                }
-            }
-        });
-    }
+    //                 $('#branchDropdown').searchableSelect({
+    //                     data: response.data||[],
+    //                     valueKey: 'branchId',
+    //                     textKey: 'branchName',
+    //                     searchPlaceholder: 'Search ...',
+    //                     placeholder: 'Branch ...',
+    //                     multiple: true,
+    //                     onChange: function(items) {
+    //                         const branchIds = items.map(i => i.branchId).join(',');
+    //                         BindEmployeeDropdownByBranch();
+    //                     }
+    //                 });
+    //             }
+    //         }
+    //     });
+    // }
      
 
            async function showLoder() {
@@ -540,56 +559,55 @@
 
 
 
-    function BindEmployeeDropdownByBranch() {
-        var selectedBranchIds=$('#branchDropdown').data('searchableSelect').getValue().join(",");
-        if(!selectedBranchIds){
-            selectedBranchIds="0";
-        }
+    // function BindEmployeeDropdownByBranch() {
+    //     var selectedBranchIds=$('#branchDropdown').data('searchableSelect').getValue().join(",");
+    //     if(!selectedBranchIds){
+    //         selectedBranchIds="0";
+    //     }
 
-        // Get selected month (1-12)
-        const monthNumber = $('#monthDropdown').data('searchableSelect').getValue();
-        $('#errorMonth').hide();
-        if(!monthNumber){
-            $('#errorMonth').show();
-            $('#branchDropdown').data('searchableSelect').clear();
-            return ;
-        }
+    //     // Get selected month (1-12)
+    //     const monthNumber = $('#monthDropdown').data('searchableSelect').getValue();
+    //     $('#errorMonth').hide();
+    //     if(!monthNumber){
+    //         $('#errorMonth').show();
+    //         $('#branchDropdown').data('searchableSelect').clear();
+    //         return ;
+    //     }
 
-        $.ajax({
-            type: "GET",
-            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeesForSalary")?BranchIds=' + selectedBranchIds + '&CompanyId=' + CompanyId + '&Month=' + monthNumber,
-            success: function (response) {
-                const $empDropdown = $("#employeeDropdown");
+    //     $.ajax({
+    //         type: "GET",
+    //         url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeesForSalary")?BranchIds=' + selectedBranchIds + '&CompanyId=' + CompanyId + '&Month=' + monthNumber,
+    //         success: function (response) {
+    //             const $empDropdown = $("#employeeDropdown");
 
-                if (response?.data?.length > 0) {
-                    const employeeData = response.data.map(emp => ({
-                        employeeCode: emp.employeeCode,
-                        displayName: `${emp.fullName} - ${emp.employeeCode}`
-                    }));
+    //             if (response?.data?.length > 0) {
+    //                 const employeeData = response.data.map(emp => ({
+    //                     employeeCode: emp.employeeCode,
+    //                     displayName: `${emp.fullName} - ${emp.employeeCode}`
+    //                 }));
 
 
-                          const dropdownddlEmployee = $('#employeeDropdown').data('searchableSelect');
-                                if(dropdownddlEmployee){
-                                        dropdownddlEmployee.setData(employeeData);
-                                }
-                } 
-            },
-            error: function(xhr, status, error) {
-                console.error("Error fetching employees:", error);
+    //                       const dropdownddlEmployee = $('#employeeDropdown').data('searchableSelect');
+    //                             if(dropdownddlEmployee){
+    //                                     dropdownddlEmployee.setData(employeeData);
+    //                             }
+    //             } 
+    //         },
+    //         error: function(xhr, status, error) {
+    //             console.error("Error fetching employees:", error);
                 
-            }
-        });
-    }
+    //         }
+    //     });
+    // }
 
 
     $('#btnFetchSalary').on('click', function () {
          showbtnLoader();
         const monthNumber = $('#monthDropdown').data('searchableSelect').getValue();
         const year = $('#yearDropdown').data('searchableSelect').getValue();
-        const branchIds = $('#branchDropdown').data('searchableSelect').getValue();
+        //const branchIds = $('#branchDropdown').data('searchableSelect').getValue();
         const employeeIds = $('#employeeDropdown').data('searchableSelect').getValue();
             let isValid = true;
-
             if (!monthNumber) {
                 $('#errorMonth').show();
                 isValid = false;
@@ -603,14 +621,14 @@
             } else {
                 $('#errorYear').hide();
             }
-            if (!branchIds) {
-                $('#errorBranch').show();
-                isValid = false;
-            } else {
-                $('#errorBranch').hide();
-            }
+            // if (!branchIds) {
+            //     $('#errorBranch').show();
+            //     isValid = false;
+            // } else {
+            //     $('#errorBranch').hide();
+            // }
 
-            if (!employeeIds) {
+            if (!employeeIds||employeeIds.length==0) {
                 $('#errorEmployee').show();
                 isValid = false;
             } else {
@@ -642,7 +660,6 @@
             StartDate: startDate,
             EndDate: endDate,
             EmployeeCodes: empCodes,
-            BranchIds: branchIds, // Changed from BranchId to BranchIds and sending the full array
             CompanyId: CompanyId,
             Action: "GetData"
         };
