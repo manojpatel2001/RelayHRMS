@@ -384,7 +384,7 @@
                             <div class="dashboard-body">
                          
                                 <a href="#" class="dashboard-link">Continues Absent</a>
-                                <a href="#" class="dashboard-link">Leave Reports</a>
+                                <a href="#" class="dashboard-link" onclick="openLeaveReportModal(); return false;">Leave Reports</a>
                                 <a href="#" class="dashboard-link">View Message</a>
                                 <a href="#" class="dashboard-link" onclick="openYearlySalaryModal(); return false;">Yearly Salary </a>
                                 <a href="#" class="dashboard-link">View Graphical Report</a>
@@ -859,6 +859,33 @@
     </div>
 </div>
 
+
+<!-- Leave Report Modal -->
+<div class="modal" id="leaveReportModal">
+    <div class="modal-content" style="width: 900px; max-width: 95vw; max-height: 85vh; overflow: hidden;">
+        <div class="modal-header">
+            <div class="modal-title">Leave Summary Report</div>
+            <button class="close-btn" onclick="closeLeaveReportModal()">×</button>
+        </div>
+        <div class="modal-body" style="padding: 15px; display: flex; flex-direction: column; height: calc(85vh - 60px);">
+            <!-- Chart and Table Container -->
+            <div style="flex: 1; overflow: hidden; display: flex; gap: 15px; min-height: 0;">
+                <!-- Chart Section (Left Side - 60%) -->
+                <div style="flex: 0 0 60%; display: flex; flex-direction: column; min-height: 0;">
+                    <div id="leaveChart" style="flex: 1; min-height: 0;"></div>
+                </div>
+
+                <!-- Table Section (Right Side - 40%) -->
+                <div style="flex: 0 0 40%; display: flex; flex-direction: column; border-left: 1px solid #e0e0e0; padding-left: 15px; min-height: 0;">
+                    <h5 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 600; color: #333; text-align: center;">Leave Details</h5>
+                    <div id="leaveTable" style="flex: 1; overflow-y: auto; overflow-x: hidden; border: 1px solid #ddd; border-radius: 4px; background: white;">
+                        <!-- Table will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
         const Token = localStorage.getItem("authToken");
@@ -4279,5 +4306,214 @@
             closeYearlySalaryModal();
         }
     });
- 
+
+
+        // Leave Report Modal Variables
+    let leaveChartInstance = null;
+
+    // Define colors for different leave types
+    const leaveColors = {
+        'Comp-Off Leave': '#1f77b4',      // Blue
+        'Half Day': '#ff7f0e',            // Orange
+        'LWP': '#d62728',                 // Red
+        'Privilege Leave': '#9467bd',     // Purple
+        'Casual Leave': '#2ca02c',        // Green
+        'Sick Leave': '#8c564b',          // Brown
+        'Maternity Leave': '#e377c2',     // Pink
+        'Paternity Leave': '#7f7f7f'      // Gray
+    };
+
+    // Open Leave Report Modal
+    function openLeaveReportModal() {
+        const modal = document.getElementById('leaveReportModal');
+        if (modal) {
+            modal.style.display = 'block';
+            loadLeaveReportData();
+        }
+    }
+
+    // Close Leave Report Modal
+    function closeLeaveReportModal() {
+        const modal = document.getElementById('leaveReportModal');
+        if (modal) {
+            modal.style.display = 'none';
+            if (leaveChartInstance) {
+                leaveChartInstance.dispose();
+                leaveChartInstance = null;
+            }
+        }
+    }
+
+    // Load Leave Report Data
+    function loadLeaveReportData() {
+        $('#leaveChart').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%;"><img src="@baseDomainUrl/loders/loder.png" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" /></div>');
+        $('#leaveTable').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #666;">Loading...</div>');
+
+        $.ajax({
+            url: '@baseDomainUrl/api/ReportAPI/GetUsedLeavesSummary',
+            type: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function(response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    displayLeaveChart(response.data);
+                    displayLeaveTable(response.data);
+                } else {
+                    $('#leaveChart').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #999; font-style: italic;">No leave data found</div>');
+                    $('#leaveTable').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #999; font-style: italic;">No data available</div>');
+                    DevExpress.ui.notify("No leave data found", "warning", 2000);
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#leaveChart').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #d62728;">Error loading data</div>');
+                $('#leaveTable').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #d62728;">Error loading data</div>');
+                DevExpress.ui.notify("Failed to load leave data. Please try again.", "error", 3000);
+                console.error("Error loading leave data:", error);
+            }
+        });
+    }
+    // Display Leave Chart with different colors for each leave type
+    function displayLeaveChart(data) {
+        // Define vibrant colors for each bar
+        const colors = [
+            '#1f77b4',  // Blue
+            '#ff7f0e',  // Orange
+            '#d62728',  // Red
+            '#9467bd',  // Purple
+            '#2ca02c',  // Green
+            '#8c564b',  // Brown
+            '#e377c2',  // Pink
+            '#7f7f7f',  // Gray
+            '#bcbd22',  // Yellow-Green
+            '#17becf'   // Cyan
+        ];
+
+        const chartData = data.map((item, index) => ({
+            leaveName: item.leaveName,
+            totalUsedDays: parseFloat(item.totalUsedDays || 0),
+            color: colors[index % colors.length] // Each bar gets different color
+        }));
+
+        if (leaveChartInstance) {
+            leaveChartInstance.dispose();
+        }
+
+        leaveChartInstance = $("#leaveChart").dxChart({
+            dataSource: chartData,
+            series: [{
+                argumentField: "leaveName",
+                valueField: "totalUsedDays",
+                name: "Leave Used",
+                type: "bar",
+                label: {
+                    visible: true,
+                    format: {
+                        type: "fixedPoint",
+                        precision: 2
+                    },
+                    font: {
+                        size: 12,
+                        weight: 500
+                    },
+                    backgroundColor: 'transparent'
+                }
+            }],
+            customizePoint: function() {
+                // Get the index from the data
+                const index = this.index;
+                return {
+                    color: colors[index % colors.length] // Apply different color to each bar
+                };
+            },
+            argumentAxis: {
+                label: {
+                    rotationAngle: -45,
+                    overlappingBehavior: "rotate",
+                    font: {
+                        size: 11
+                    }
+                }
+            },
+            valueAxis: {
+                label: {
+                    format: {
+                        type: "fixedPoint",
+                        precision: 0
+                    },
+                    font: {
+                        size: 11
+                    }
+                },
+                title: {
+                    text: "Days Used",
+                    font: {
+                        size: 13,
+                        weight: 500
+                    }
+                }
+            },
+            legend: {
+                visible: false
+            },
+            title: {
+                text: "Leave Summary",
+                font: {
+                    size: 16,
+                    weight: 600
+                }
+            },
+            tooltip: {
+                enabled: true,
+                customizeTooltip: function(arg) {
+                    return {
+                        text: `${arg.argumentText}<br/>Used: ${arg.value.toFixed(2)} days`
+                    };
+                }
+            },
+            size: {
+                height: '100%'
+            }
+        }).dxChart("instance");
+    }
+    // Display Leave Table - Left aligned with no total row
+    function displayLeaveTable(data) {
+        let tableHtml = `
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead style="position: sticky; top: 0; background: #5a6b7d; color: white; z-index: 1;">
+                    <tr>
+                        <th style="padding: 8px 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Leave Name</th>
+                        <th style="padding: 8px 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Used (Days)</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.forEach((item, index) => {
+            const bgColor = index % 2 === 0 ? '#ffffff' : '#f8f9fa';
+            const used = parseFloat(item.totalUsedDays || 0);
+
+            tableHtml += `
+                <tr style="background: ${bgColor};">
+                    <td style="padding: 6px 10px; border-bottom: 1px solid #e9ecef; white-space: nowrap;">${item.leaveName}</td>
+                    <td style="padding: 6px 10px; text-align: left; border-bottom: 1px solid #e9ecef; font-weight: 500;">${used.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        tableHtml += `
+                </tbody>
+            </table>
+        `;
+
+        $('#leaveTable').html(tableHtml);
+    }
+
+    // Close modal on outside click
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('leaveReportModal');
+        if (event.target === modal) {
+            closeLeaveReportModal();
+        }
+    });
 </script>

@@ -312,6 +312,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<HolidayViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<AttendanceRegularizationAdmin>().HasNoKey().ToView(null);
              modelBuilder.Entity<MonthlySalarySummaryViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<UsedLeavesSummary>().HasNoKey().ToView(null);
 
 
 

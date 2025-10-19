@@ -17,6 +17,7 @@ namespace HRMS_Infrastructure.Interface.Report
         Task<List<MobileUserViewModel>> GetActiveOrInactiveMobileUsers(string Action, int Compid);
         Task<List<MonthlySalarySummaryViewModel>> GetYearlySalaryReportForAdmin(int StartYear, int EndYear);
         Task<List<HolidayViewModel>> GetHolidaysForYear(int Year);
+        Task<List<UsedLeavesSummary>> GetUsedLeavesSummary();
         Task<SP_Response> UpdateMobileUsers(UpdateMobileUserStatusRequest model);
     }
 }
