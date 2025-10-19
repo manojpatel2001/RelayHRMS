@@ -311,6 +311,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<UpdateMobileUserStatusRequest>().HasNoKey().ToView(null);
              modelBuilder.Entity<HolidayViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<AttendanceRegularizationAdmin>().HasNoKey().ToView(null);
+             modelBuilder.Entity<MonthlySalarySummaryViewModel>().HasNoKey().ToView(null);
 
 
 

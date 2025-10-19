@@ -139,6 +139,23 @@ namespace HRMS_API.Controllers.Report
             }
         }
 
-
+        [HttpGet("GetYearlySalaryReportForAdmin")]
+        public async Task<APIResponse> GetYearlySalaryReportForAdmin(int StartYear, int EnadYear)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetYearlySalaryReportForAdmin(StartYear, EnadYear);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
     }
 }

@@ -132,6 +132,31 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+        public async Task<List<MonthlySalarySummaryViewModel>> GetYearlySalaryReportForAdmin(int StartYear, int EndYear)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+
+
+                    new SqlParameter("@FinancialYearStartYear", StartYear),
+                    new SqlParameter("@FinancialYearEndYear", EndYear)
+
+                    };
+
+                var result = await _db.Set<MonthlySalarySummaryViewModel>()
+                    .FromSqlRaw("EXEC usp_GetMonthlyTotalNetSalary @FinancialYearStartYear, @FinancialYearEndYear", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<MonthlySalarySummaryViewModel>();
+            }
+        }
+
         public async Task<SP_Response> UpdateMobileUsers(UpdateMobileUserStatusRequest model)
         {
             try
