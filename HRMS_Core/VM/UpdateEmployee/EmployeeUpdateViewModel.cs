@@ -2,7 +2,7 @@
 {
     public class EmployeeUpdateViewModel
     {
-        public List<EmployeeDetailViewModel> Employees { get; set; }
+        public EmployeeDetailViewModel? Employees { get; set; }
         public List<BranchViewModel> Branches { get; set; }
         public List<GradeViewModel> Grades { get; set; }
         public List<ShiftViewModel> Shifts { get; set; }

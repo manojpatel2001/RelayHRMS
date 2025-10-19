@@ -387,34 +387,163 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
-       
-
-
-        [HttpDelete("DeleteEmployee")]
-        public async Task<APIResponse> DeleteEmployee(DeleteRecordVM model)
+        [HttpPost("UpdateBasicInfo")]
+        public async Task<APIResponse> UpdateBasicInfo(vmUpdateEmployee employeeData)
         {
             try
             {
-                if (model == null || model.emp_id == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
-                var existingUser = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.Id == model.emp_id && x.IsDeleted == false && x.IsEnabled == true);
-                if (existingUser == null)
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
-                }
-                model.DeletedDate = DateTime.UtcNow;
-                var result = await _unitOfWork.EmployeeManageRepository.DeleteEmployee(model);
+                var data = await _unitOfWork.EmployeeManageRepository.UpdateBasicInfo(employeeData);
 
-                if (result.Id !=null)
-                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been deleted successfully." };
-
-                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete city. Please try again later." };
+                return data;
             }
-            catch (Exception ex)
+            catch
             {
-                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
             }
         }
+        [HttpPost("UpdatePersonalInfo")]
+        public async Task<APIResponse> UpdatePersonalInfo(vmUpdateEmployee employeeData)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.UpdatePersonalInfo(employeeData);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+        [HttpPost("UpdateContactInfo")]
+        public async Task<APIResponse> UpdateContactInfo(vmUpdateEmployee employeeData)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.UpdateContactInfo(employeeData);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+
+        [HttpPost("UpdateSalaryInfo")]
+        public async Task<APIResponse> UpdateSalaryInfo(vmUpdateEmployee employeeData)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.UpdateSalaryInfo(employeeData);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+
+        [HttpDelete("DeleteEmployee")]
+        public async Task<APIResponse> DeleteEmployee(DeleteRecordVM deleteRecord)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.DeleteEmployee(deleteRecord);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetBasicInfoById/{EmployeeId}")]
+        public async Task<APIResponse> GetBasicInfoById(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetUpdateEmployeeById(EmployeeId, "BASIC");
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+        [HttpGet("GetPersonalInfoById/{EmployeeId}")]
+        public async Task<APIResponse> GetPersonalInfoById(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetUpdateEmployeeById(EmployeeId, "PERSONAL");
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+        [HttpGet("GetContactInfoById/{EmployeeId}")]
+        public async Task<APIResponse> GetContactInfoById(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetUpdateEmployeeById(EmployeeId, "CONTACT");
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+        [HttpGet("GetSalaryInfoById/{EmployeeId}")]
+        public async Task<APIResponse> GetSalaryInfoById(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetUpdateEmployeeById(EmployeeId, "SALARY");
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+
+
+
+        //[HttpDelete("DeleteEmployee")]
+        //public async Task<APIResponse> DeleteEmployee(DeleteRecordVM model)
+        //{
+        //    try
+        //    {
+        //        if (model == null || model.emp_id == null)
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
+        //        var existingUser = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.Id == model.emp_id && x.IsDeleted == false && x.IsEnabled == true);
+        //        if (existingUser == null)
+        //        {
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
+        //        }
+        //        model.DeletedDate = DateTime.UtcNow;
+        //        var result = await _unitOfWork.EmployeeManageRepository.DeleteEmployee(model);
+
+        //        if (result.Id !=null)
+        //            return new APIResponse { isSuccess = true, ResponseMessage = "The record has been deleted successfully." };
+
+        //        return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete city. Please try again later." };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
+        //    }
+        //}
 
         [HttpGet("GetAllEmployeeActiveOrLeft/{IsLeft}")]
         public async Task<APIResponse> GetAllEmployeeActiveOrLeft( bool IsLeft, int companyId)
@@ -699,12 +828,12 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
-        [HttpGet("GetRecordsForUpdate/{CompanyId}")]
-        public async Task<APIResponse> GetRecordsForUpdate(int CompanyId)
+        [HttpPost("GetRecordsForUpdate")]
+        public async Task<APIResponse> GetRecordsForUpdate(CommonParameter param)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetRecordsForUpdate(CompanyId);
+                var data = await _unitOfWork.EmployeeManageRepository.GetRecordsForUpdate( param);
 
                 return data;
             }
