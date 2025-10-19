@@ -157,5 +157,26 @@ namespace HRMS_API.Controllers.Report
                 };
             }
         }
+
+
+
+        [HttpGet("GetUsedLeavesSummary")]
+        public async Task<APIResponse> GetUsedLeavesSummary()
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetUsedLeavesSummary();
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
     }
 }

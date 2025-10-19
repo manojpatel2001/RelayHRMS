@@ -132,6 +132,22 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+        public async Task<List<UsedLeavesSummary>> GetUsedLeavesSummary()
+        {
+            try
+            {            
+                var result = await _db.Set<UsedLeavesSummary>()
+                    .FromSqlRaw("EXEC GetUsedLeavesSummary")
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<UsedLeavesSummary>();
+            }
+        }
+
         public async Task<List<MonthlySalarySummaryViewModel>> GetYearlySalaryReportForAdmin(int StartYear, int EndYear)
         {
             try
