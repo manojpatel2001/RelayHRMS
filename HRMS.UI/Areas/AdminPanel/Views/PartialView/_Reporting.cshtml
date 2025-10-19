@@ -21,17 +21,28 @@
 
                     </div>
 
-                    <!-- Reporting Manager -->
+                 
                     <div class="col-md-6 mb-2">
-                        <div class="form-group mt-3 position-relative">
-                            <select id="reportingManagerEdit" class="form-control floating-input">
-                                <option value="">Select</option>
-                            </select>
-                            <label class="floating-label" for="reportingManagerEdit">Reporting Manager*</label>
+                        <div class="mt-3 form-floating-custom">
+                            <div class="searchable-select-wrapper" id="reportingWrapper">
+                                <label for="reportingManagerEdit">Reporting Manager <span class="text-danger">*</span></label>
+                                <input type="text" class="searchable-select-input" id="reportingManagerEdit" readonly>
+                                <span class="searchable-select-arrow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                    </svg>
+                                </span>
+                                <div class="searchable-select-dropdown">
+                                    <div class="searchable-select-search">
+                                        <input type="text" placeholder="Search reporting manager..." class="search-input">
+                                    </div>
+                                    <div class="searchable-select-options"></div>
+                                </div>
+                            </div>
+                            <span id="spnReporting" style="color:red; display:none;">Please Select Reporting Manager</span>
                         </div>
-                        <span id="spnReportingManager" style="color:red; display:none;">Please Select Reporting Manager</span>
-
                     </div>
+
 
                     <!-- Method -->
                     <div class="col-md-6 mb-2">
@@ -245,9 +256,24 @@
 
     let reportingDetails=[];
     let ReportingManagerDetailsId=0;
+     const userReporting=localStorage.getItem('EmployeeId');
+      let EmployeeIdReporting=localStorage.getItem('CurrentEmployeeId');
+
+     function formatToDDMMYYYY(dateInput) {
+        if (!dateInput) return "--/--/----";
+        const dateObj = new Date(dateInput);
+        if (isNaN(dateObj.getTime())) return "--/--/----";
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+
+
       async function loadReportingDetails() {
         try {
-            const response = await fetch('@baseUrl/ReportingManagerDetailsAPI/GetAllReportingManagerDetails/' + CurrentEmployeeId, {
+            const response = await fetch('@baseUrl/ReportingManagerDetailsAPI/GetAllReportingManagerDetails/' + EmployeeIdReporting, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json'
@@ -270,7 +296,7 @@
 
                     tbody.append(`
                         <tr>
-                            <td>${row.employeeCode ?? ''} ${row.reportingManagerName ?? ''}</td>
+                            <td>${row.employeeCode ?? ''} - ${row.reportingManagerName ?? ''}</td>
                         <td>${row.methodName ?? ''}</td>
                         <td>${effectedDate}</td>
                         <td>${createdDate}</td>
@@ -299,30 +325,33 @@
             console.error('Fetch error:', error);
         }
     }
-
-
-    async function bindReportingManger() {
-        $.ajax({
-            type: "GET",
-            url: "@baseUrl/EmployeeMasterAPI/GetReportingList",
-            success: function (data) {
-                if (data.isSuccess) {
-                    var dropdown = $('#reportingManagerEdit');
-                    dropdown.empty();
-                    dropdown.append('<option disabled selected value="">Select</option>');
-                    $.each(data.data, function (index, company) {
-                        dropdown.append($('<option>', {
-                            value: company.employeeId,
-                            text: company.fullName+" - "+company.employeeCode
-                        }));
+    async function bindReportingManager() {
+                try {
+                    const response = await $.ajax({
+                        type: "GET",
+                        url: "@baseUrl/EmployeeMasterAPI/GetReportingList"
                     });
+
+                    if (response.isSuccess) {
+                        $('#reportingManagerEdit').searchableSelect({
+                        data: data.data||[],
+                        valueKey: 'employeeId',
+                        textKey: 'employeeName',
+                        placeholder:'Reporting Manager',
+                        searchPlaceholder: 'Search reporting...',
+                        onChange: function(item) {
+
+                        }
+                     });
+
+                    }
+                } catch (error) {
+                    console.error("AJAX Error:", error);
                 }
-            },
-            error: function (xhr, status, error) {
-                console.error("AJAX Error: " + status + " - " + error);
             }
-        });
-    }
+
+
+   
 
     function validateReportingManagerForm() {
         let isValid = true;
@@ -335,7 +364,7 @@
             $('#spnEffectDate').hide();
         }
 
-        const managerId = $('#reportingManagerEdit').val();
+        const managerId = $('#reportingManagerEdit').data('searchableSelect').getValue();
         if (!managerId) {
             $('#spnReportingManager').show();
             isValid = false;
@@ -348,7 +377,7 @@
 
     function resetReportingForm() {
         $('#effectDateEdit').val('');
-        $('#reportingManagerEdit').val('');
+       $('#reportingManagerEdit').data('searchableSelect').clear();
         $('#methodEdit').val('');
         $('#spnEffectDate').hide();
         $('#spnReportingManager').hide();
@@ -357,10 +386,10 @@
           $('#btnSaveReportingManager').text('Save');
     }
 
-    $(document).ready(function () {
-        loadReportingDetails();
-        bindReportingManger();
-        
+    $(document).ready( async function () {
+        await  bindReportingManager();
+                loadReportingDetails();
+
         
 
         $("#btnSaveReportingManager").click(function () {
@@ -372,11 +401,11 @@
             }
             var payloadReporting = {
                 reportingManagerDetailsId:ReportingManagerDetailsId,
-                employeeId: CurrentEmployeeId,
+                employeeId: EmployeeIdReporting,
                 effectedDate: $("#effectDateEdit").val(),
-                reportingManagerId: $("#reportingManagerEdit").val(),
+                reportingManagerId: $('#reportingManagerEdit').data('searchableSelect').getValue(),
                 methodName: $("#methodEdit").val() == "" ? null : $("#methodEdit").val(),
-                createdBy: user
+                createdBy: userReporting
 
             };
 
@@ -415,7 +444,7 @@
         const rowData = reportingDetails.find(x => x.reportingManagerDetailsId === reportingManagerDetailsId);
    
         ReportingManagerDetailsId = reportingManagerDetailsId;
-        $('#reportingManagerEdit').val(rowData.reportingManagerId);
+        $('#reportingManagerEdit').data('searchableSelect').setValue(rowData.reportingManagerId);
         $('#methodEdit').val(rowData.methodName);
        $('#effectDateEdit').val(rowData.effectedDate ? rowData.effectedDate.substring(0, 10) : '');
          
@@ -423,7 +452,7 @@
 
     }
 
-    function deleteReportingManager(reportingManagerDetailsId){
+      function deleteReportingManager(reportingManagerDetailsId){
                 if (!confirm("Are you sure you want to delete?")) {
                         return; // Cancel the delete operation
                 }
@@ -450,10 +479,7 @@
                     console.log('Error deleting reporting manager!');
                 }
             });
-    }
-</script>
-
-<script>
+      }
     let ContractDetailsId = 0;
     let ContractDetails=[];
     $(document).ready(function () {
@@ -471,15 +497,15 @@
 
             const payloadContract = {
                 contractDetailsId: ContractDetailsId,
-                employeeId: CurrentEmployeeId,
+                employeeId: EmployeeIdReporting,
                 ProjectDetailsId: $("#projectEdit").val(),
                 startDate: $("#startDateEdit").val(),
                 endDate: $("#endDateEdit").val(),
                 comment: $("#commentsEdit").val() || null,
                 IsRenew: $("#renew").is(":checked")||false,
                 IsContractRenew: $("#contractReminder").is(":checked")||false,
-                createdBy: ContractDetailsId==0?user:null,
-                updatedBy: ContractDetailsId==0?null:user
+                createdBy: ContractDetailsId==0?userReporting:null,
+                updatedBy: ContractDetailsId==0?null:userReporting
             };
            
             const urlContract = ContractDetailsId === 0
@@ -554,7 +580,7 @@
 
      async function loadContractDetails() {
         try {
-            const response = await fetch('@baseUrl/ContractDetailsAPI/GetAllContractDetails/' + CurrentEmployeeId, {
+            const response = await fetch('@baseUrl/ContractDetailsAPI/GetAllContractDetails/' + EmployeeIdReporting, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json'
@@ -615,7 +641,7 @@
      async function bindProjectDropdown() {
         $.ajax({
             type: "GET",
-            url: "@baseUrl/ProjectDetailsAPI/GetAllProjectDetails/"+CurrentCompanyId ,
+            url: "@baseUrl/ProjectDetailsAPI/GetAllProjectDetails/"+EmployeeIdReporting  ,
             success: function (data) {
                 if (data.isSuccess) {
                     var dropdown = $('#projectEdit');
@@ -712,8 +738,8 @@
             ProjectDetailsId:0,
             ProjectName: projectName,
             Description:projectDescription==""?null:projectDescription,
-            CompanyId:CurrentCompanyId,
-            createdBy: user
+            CompanyId:EmployeeIdReporting,
+            createdBy: userReporting
         };
         $.ajax({
             url: '@baseUrl/ProjectDetailsAPI/CreateProjectDetail',

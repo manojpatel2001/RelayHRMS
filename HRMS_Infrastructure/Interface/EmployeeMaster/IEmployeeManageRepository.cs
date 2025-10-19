@@ -19,7 +19,15 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<vmGetEmployeeById?> GetEmployeeById(int Id);
         Task<List<vmUpdateEmployee>> GetAllEmployeeForUpdate(int companyId);
         Task<VMCommonResult> UpdateEmployee(vmUpdateEmployee employee);
-        Task<VMCommonResult> DeleteEmployee(DeleteRecordVM deleteRecord);
+        Task<APIResponse> CreateEmployee(vmUpdateEmployee employee);
+
+        Task<APIResponse> UpdateBasicInfo(vmUpdateEmployee employee);
+        Task<APIResponse> UpdatePersonalInfo(vmUpdateEmployee employee);
+        Task<APIResponse> UpdateContactInfo(vmUpdateEmployee employee);
+        Task<APIResponse>  UpdateSalaryInfo(vmUpdateEmployee employee);
+        Task<APIResponse> DeleteEmployee(DeleteRecordVM deleteRecord);
+        Task<APIResponse> GetUpdateEmployeeById(int id, string? action = null);
+        //Task<VMCommonResult> DeleteEmployee(DeleteRecordVM deleteRecord);
         Task<VMCommonResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model);
         Task<vmGetNextEmployeeCode?> GetNextEmployeeCode(int CompanyId);
         Task<VMGetExistEmployeeCode?> GetExistEmployeeCode(vmCommonParameters vmCommonParameters);
@@ -27,7 +35,7 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<List<EmployeePersonalInformationVM>> EmployeePersonalInformation(int empid, int compId);
         Task<vmUserLogin?> UserLogin(vmLogin login);
         Task<List<vmGetAllEmployee_DropDown>> GetAllEmployee_DropDown(int companyId ,string BranchId);
-        Task<APIResponse> GetRecordsForUpdate(int CompanyId);
+        Task<APIResponse> GetRecordsForUpdate(CommonParameter param);
         Task<APIResponse> GetRecordsForAdd(int CompanyId);
         Task<APIResponse> GetReportingList();
         Task<APIResponse> GetEmployeeListByBranchId(int BranchId);
