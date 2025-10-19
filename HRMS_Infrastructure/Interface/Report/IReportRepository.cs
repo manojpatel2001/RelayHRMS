@@ -19,5 +19,6 @@ namespace HRMS_Infrastructure.Interface.Report
         Task<List<HolidayViewModel>> GetHolidaysForYear(int Year);
         Task<List<UsedLeavesSummary>> GetUsedLeavesSummary();
         Task<SP_Response> UpdateMobileUsers(UpdateMobileUserStatusRequest model);
+        Task<List<CompoffLapseReminderViewModel>> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays);
     }
 }

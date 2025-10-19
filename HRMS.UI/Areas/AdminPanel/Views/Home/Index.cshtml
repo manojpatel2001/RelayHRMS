@@ -398,7 +398,8 @@
                         <div class="dashboard-card">
                             <div class="dashboard-header">Other Details</div>
                             <div class="dashboard-body">
-                                <a href="#" class="dashboard-link">Compoff Lapse Reminder</a>
+                                <!-- Update this line in your "Other Details" section -->
+                                <a href="#" class="dashboard-link" onclick="openCompoffLapseModal(); return false;">Compoff Lapse Reminder</a>
                                 <a href="#" class="dashboard-link">Insurance Reminder <span class="red-count" id="insuranceCount">(0)</span></a>
                                 <a href="#" class="dashboard-link">IT Declaration History</a>
                                 <a href="#" class="dashboard-link">Survey</a>
@@ -886,6 +887,50 @@
         </div>
     </div>
 </div>
+
+<!-- Compoff Lapse Reminder Modal -->
+<div class="modal" id="compoffLapseModal">
+    <div class="modal-content" style="width: 900px; max-width: 95vw; max-height: 90vh; overflow: hidden;">
+        <div class="modal-header">
+            <div class="modal-title">Employee Compoff Lapse Details</div>
+            <button class="close-btn" onclick="closeCompoffLapseModal()">×</button>
+        </div>
+        <div class="modal-body" style="padding: 15px; display: flex; flex-direction: column; height: calc(90vh - 60px);">
+            <!-- Filter Section -->
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 6px; border: 1px solid #ddd;">
+                <!-- For Date -->
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label style="font-weight: 600; font-size: 14px; color: #555; min-width: 70px;">For Date :</label>
+                    <input type="date"
+                           id="compoffLapseDate"
+                           style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-width: 150px;">
+                </div>
+
+                <!-- Lapse Days -->
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label style="font-weight: 600; font-size: 14px; color: #555; min-width: 90px;">Lapse Days :</label>
+                    <input type="number"
+                           id="compoffLapseDays"
+                           value="3"
+                           min="1"
+                           style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100px;">
+                </div>
+
+                <!-- Go Button -->
+                <button onclick="loadCompoffLapseData()"
+                        style="background: #5a6b7d; color: white; border: none; padding: 7px 30px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    Go
+                </button>
+            </div>
+
+            <!-- Grid Container -->
+            <div id="compoffLapseGridContainer" style="flex: 1; overflow: hidden;">
+                <div id="compoffLapseGrid" style="height: 100%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
         const Token = localStorage.getItem("authToken");
@@ -4514,6 +4559,193 @@
         const modal = document.getElementById('leaveReportModal');
         if (event.target === modal) {
             closeLeaveReportModal();
+        }
+    });
+
+
+    let compoffLapseGridInstance = null;
+
+    // Function to open Compoff Lapse Modal
+    function openCompoffLapseModal() {
+        const modal = document.getElementById('compoffLapseModal');
+        if (modal) {
+            modal.style.display = 'block';
+
+            // Set current date in the date input
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+            document.getElementById('compoffLapseDate').value = formattedDate;
+
+            // Initialize grid if not already initialized
+            if (!compoffLapseGridInstance) {
+                initializeCompoffLapseGrid();
+            }
+
+            // Load data automatically on modal open
+            loadCompoffLapseData();
+        }
+    }
+
+    // Function to close Compoff Lapse Modal
+    function closeCompoffLapseModal() {
+        const modal = document.getElementById('compoffLapseModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // Function to initialize the grid
+    function initializeCompoffLapseGrid() {
+        $("#compoffLapseGrid").dxDataGrid({
+            dataSource: [],
+            columns: [
+                {
+                    dataField: "employeeCode",
+                    caption: "Employee Code",
+                    alignment: "center",
+                    width: 140
+                },
+                {
+                    dataField: "fullName",
+                    caption: "Employee Name",
+                    alignment: "left",
+                    width: 200
+                },
+                {
+                    dataField: "designationName",
+                    caption: "Designation",
+                    alignment: "left",
+                    width: 150
+                },
+                {
+                    dataField: "forDate",
+                    caption: "For Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    alignment: "center",
+                    width: 120
+                },
+                {
+                    dataField: "balance",
+                    caption: "Balance",
+                    alignment: "center",
+                    width: 100,
+                    dataType: "number",
+                    format: {
+                        type: "fixedPoint",
+                        precision: 2
+                    }
+                },
+                {
+                    dataField: "dueDate",
+                    caption: "Due Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    alignment: "center",
+                    width: 120
+                }
+            ],
+            showBorders: true,
+            columnAutoWidth: true,
+            height: '100%',
+            paging: {
+                enabled: false
+            },
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
+     
+            export: {
+                enabled: false
+              
+            },
+            onToolbarPreparing: function(e) {
+                e.toolbarOptions.items.unshift({
+                    location: "before",
+                    template: function() {
+                        return $("<div>").attr("id", "compoffLapseRecordCount").css({
+                            "font-weight": "600",
+                            "color": "#333",
+                            "font-size": "14px"
+                        }).text("0 Records Found");
+                    }
+                });
+            }
+        });
+
+        compoffLapseGridInstance = $("#compoffLapseGrid").dxDataGrid("instance");
+    }
+
+    // Function to load Compoff Lapse data
+    function loadCompoffLapseData() {
+        const selectedDate = document.getElementById('compoffLapseDate').value;
+        const lapseDays = document.getElementById('compoffLapseDays').value;
+
+        // Validate inputs
+        if (!selectedDate) {
+            DevExpress.ui.notify("Please select a date", "warning", 2000);
+            return;
+        }
+
+        if (!lapseDays || lapseDays < 1) {
+            DevExpress.ui.notify("Please enter valid lapse days", "warning", 2000);
+            return;
+        }
+
+        // Show loading
+        if (compoffLapseGridInstance) {
+            compoffLapseGridInstance.beginCustomLoading("Loading...");
+        }
+
+        // Make API call
+        $.ajax({
+            url: `@baseDomainUrl/api/ReportAPI/GetCompoffLapseReminder?SelectedDate=${selectedDate}&LapseDays=${lapseDays}`,
+            type: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function(response) {
+                if (compoffLapseGridInstance) {
+                    compoffLapseGridInstance.endCustomLoading();
+                }
+
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    // Update grid with data
+                    compoffLapseGridInstance.option("dataSource", response.data);
+
+                    // Update record count
+                    const recordCount = response.data.length;
+                    $("#compoffLapseRecordCount").text(`${recordCount} Record${recordCount > 1 ? 's' : ''} Found`);
+
+                    // DevExpress.ui.notify(`${recordCount} record(s) loaded successfully`, "success", 2000);
+                } else {
+                    // No data found
+                    compoffLapseGridInstance.option("dataSource", []);
+                    $("#compoffLapseRecordCount").text("0 Records Found");
+                    DevExpress.ui.notify("No records found for selected criteria", "warning", 2000);
+                }
+            },
+            error: function(xhr, status, error) {
+                if (compoffLapseGridInstance) {
+                    compoffLapseGridInstance.endCustomLoading();
+                }
+
+                compoffLapseGridInstance.option("dataSource", []);
+                $("#compoffLapseRecordCount").text("0 Records Found");
+
+                DevExpress.ui.notify("Failed to load data. Please try again.", "error", 3000);
+                console.error("Error loading compoff lapse data:", error);
+            }
+        });
+    }
+
+    // Close modal on outside click
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('compoffLapseModal');
+        if (event.target === modal) {
+            closeCompoffLapseModal();
         }
     });
 </script>
