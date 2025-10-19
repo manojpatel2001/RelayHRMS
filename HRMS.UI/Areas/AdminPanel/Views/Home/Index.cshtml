@@ -386,6 +386,7 @@
                                 <a href="#" class="dashboard-link">Continues Absent</a>
                                 <a href="#" class="dashboard-link">Leave Reports</a>
                                 <a href="#" class="dashboard-link">View Message</a>
+                                <a href="#" class="dashboard-link" onclick="openYearlySalaryModal(); return false;">Yearly Salary </a>
                                 <a href="#" class="dashboard-link">View Graphical Report</a>
                                 <a href="#" class="dashboard-link">WhosOff</a>
                              
@@ -690,6 +691,24 @@
         z-index: 9999;
     }
 
+    /* Salary Modal Table Scrollbar */
+    #salaryTable::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    #salaryTable::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    #salaryTable::-webkit-scrollbar-thumb {
+        background: #5a6b7d;
+        border-radius: 4px;
+    }
+
+        #salaryTable::-webkit-scrollbar-thumb:hover {
+            background: #4a5a6b;
+        }
 </style>
 
 <!-- Scripts -->
@@ -787,7 +806,59 @@
             </div>
         </div>
     </div>
+</div>  
+
+
+<!-- Yearly Salary Modal -->
+<div class="modal" id="yearlySalaryModal">
+    <div class="modal-content" style="width: 900px; max-width: 95vw; max-height: 85vh; overflow: hidden;">
+        <div class="modal-header">
+            <div class="modal-title">Yearly Salary Summary</div>
+            <button class="close-btn" onclick="closeYearlySalaryModal()">×</button>
+        </div>
+        <div class="modal-body" style="padding: 15px; display: flex; flex-direction: column; height: calc(85vh - 60px);">
+            <!-- Year Type Selector and Year Navigation -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
+                <!-- Radio Buttons for Year Type -->
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="radio" name="yearType" value="financial" checked onchange="onYearTypeChange()">
+                        <span style="font-size: 14px; font-weight: 500;">Financial Year</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="radio" name="yearType" value="calender" onchange="onYearTypeChange()">
+                        <span style="font-size: 14px; font-weight: 500;">Calender Year</span>
+                    </label>
+                </div>
+
+                <!-- Year Dropdown and Go Button -->
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <select id="salaryYearDropdown" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-width: 140px;">
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                    <button onclick="loadSalaryData()" style="background: #5a6b7d; color: white; border: none; padding: 6px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">Go</button>
+                </div>
+            </div>
+
+            <!-- Chart and Table Container -->
+            <div style="flex: 1; overflow: hidden; display: flex; gap: 15px; min-height: 0;">
+                <!-- Chart Section (Left Side - 60%) -->
+                <div style="flex: 0 0 60%; display: flex; flex-direction: column; min-height: 0;">
+                    <div id="salaryChart" style="flex: 1; min-height: 0;"></div>
+                </div>
+
+                <!-- Table Section (Right Side - 40%) -->
+                <div style="flex: 0 0 40%; display: flex; flex-direction: column; border-left: 1px solid #e0e0e0; padding-left: 15px; min-height: 0;">
+                    <h5 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 600; color: #333; text-align: center;">Month-wise Details</h5>
+                    <div id="salaryTable" style="flex: 1; overflow-y: auto; overflow-x: hidden; border: 1px solid #ddd; border-radius: 4px; background: white;">
+                        <!-- Table will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
         const Token = localStorage.getItem("authToken");
@@ -3984,19 +4055,229 @@
         }
     }
 
-    // Previous Year
-    function previousYear() {
-        currentHolidayYear--;
-        document.getElementById('selectedYear').textContent = currentHolidayYear;
-        loadHolidaysForYear(currentHolidayYear);
+    // Yearly Salary Modal Variables
+    let currentSalaryYear = new Date().getFullYear();
+    let currentYearType = 'financial';
+    let salaryChartInstance = null;
+
+    // Define colors for different months
+    const monthColors = [
+        '#1f77b4', // Blue
+        '#ff7f0e', // Orange
+        '#2ca02c', // Green
+        '#d62728', // Red
+        '#9467bd', // Purple
+        '#8c564b', // Brown
+        '#e377c2', // Pink
+        '#7f7f7f', // Gray
+        '#bcbd22', // Yellow-Green
+        '#17becf', // Cyan
+        '#aec7e8', // Light Blue
+        '#ffbb78'  // Light Orange
+    ];
+
+    // Initialize Year Dropdown
+    function initializeSalaryYearDropdown() {
+        const dropdown = document.getElementById('salaryYearDropdown');
+        const currentYear = new Date().getFullYear();
+
+        dropdown.innerHTML = '';
+
+        for (let i = currentYear - 5; i <= currentYear + 2; i++) {
+            const option = document.createElement('option');
+            if (currentYearType === 'financial') {
+                option.value = `${i}-${i + 1}`;
+                option.textContent = `${i}-${i + 1}`;
+                if (i === currentYear) {
+                    option.selected = true;
+                }
+            } else {
+                option.value = i;
+                option.textContent = i;
+                if (i === currentYear) {
+                    option.selected = true;
+                }
+            }
+            dropdown.appendChild(option);
+        }
     }
 
-    // Next Year
-    function nextYear() {
-        currentHolidayYear++;
-        document.getElementById('selectedYear').textContent = currentHolidayYear;
-        loadHolidaysForYear(currentHolidayYear);
+    // Handle Year Type Change
+    function onYearTypeChange() {
+        const selectedType = document.querySelector('input[name="yearType"]:checked').value;
+        currentYearType = selectedType;
+        initializeSalaryYearDropdown();
     }
 
+    // Open Yearly Salary Modal
+    function openYearlySalaryModal() {
+        const modal = document.getElementById('yearlySalaryModal');
+        if (modal) {
+            modal.style.display = 'block';
+            currentYearType = 'financial';
+            document.querySelector('input[name="yearType"][value="financial"]').checked = true;
+            initializeSalaryYearDropdown();
+            loadSalaryData();
+        }
+    }
+
+    // Close Yearly Salary Modal
+    function closeYearlySalaryModal() {
+        const modal = document.getElementById('yearlySalaryModal');
+        if (modal) {
+            modal.style.display = 'none';
+            if (salaryChartInstance) {
+                salaryChartInstance.dispose();
+                salaryChartInstance = null;
+            }
+        }
+    }
+
+    // Load Salary Data
+    function loadSalaryData() {
+        const selectedYear = document.getElementById('salaryYearDropdown').value;
+        let startYear, endYear;
+
+        if (currentYearType === 'financial') {
+            const years = selectedYear.split('-');
+            startYear = parseInt(years[0]);
+            endYear = parseInt(years[1]);
+        } else {
+            startYear = parseInt(selectedYear);
+            endYear = parseInt(selectedYear);
+        }
+
+        $('#salaryChart').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%;"><img src="@baseDomainUrl/loders/loder.png" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" /></div>');
+        $('#salaryTable').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #666;">Loading...</div>');
+
+        $.ajax({
+            url: `@baseDomainUrl/api/ReportAPI/GetYearlySalaryReportForAdmin?StartYear=${startYear}&EnadYear=${endYear}`,
+            type: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function(response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    displaySalaryChart(response.data);
+                    displaySalaryTable(response.data);
+                } else {
+                    $('#salaryChart').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #999; font-style: italic;">No salary data found</div>');
+                    $('#salaryTable').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #999; font-style: italic;">No data available</div>');
+                    DevExpress.ui.notify("No salary data found for selected period", "warning", 2000);
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#salaryChart').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #d62728;">Error loading data</div>');
+                $('#salaryTable').html('<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #d62728;">Error loading data</div>');
+                DevExpress.ui.notify("Failed to load salary data. Please try again.", "error", 3000);
+                console.error("Error loading salary data:", error);
+            }
+        });
+    }
+
+    // Display Salary Chart with different colors for each bar
+    function displaySalaryChart(data) {
+        const chartData = data.map((item, index) => ({
+            month: item.monthYear || item.monthName,
+            netAmount: parseFloat(item.totalNetSalary || 0),
+            color: monthColors[index % monthColors.length]
+        }));
+
+        if (salaryChartInstance) {
+            salaryChartInstance.dispose();
+        }
+
+        salaryChartInstance = $("#salaryChart").dxChart({
+            dataSource: chartData,
+            series: [{
+                argumentField: "month",
+                valueField: "netAmount",
+                name: "Yearly Salary Details",
+                type: "bar",
+                colorField: "color"
+            }],
+            argumentAxis: {
+                label: {
+                    rotationAngle: -45,
+                    overlappingBehavior: "rotate",
+                    font: {
+                        size: 11
+                    }
+                }
+            },
+            valueAxis: {
+                label: {
+                    format: {
+                        type: "fixedPoint",
+                        precision: 0
+                    },
+                    font: {
+                        size: 11
+                    }
+                }
+            },
+            legend: {
+                visible: true,
+                position: "outside",
+                horizontalAlignment: "center",
+                verticalAlignment: "bottom",
+                font: {
+                    size: 12
+                }
+            },
+            tooltip: {
+                enabled: true,
+                customizeTooltip: function(arg) {
+                    return {
+                        text: `${arg.argumentText}<br/>Net Amount: ₹${arg.value.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                    };
+                }
+            },
+            size: {
+                height: '100%'
+            }
+        }).dxChart("instance");
+    }
+
+     // Display Salary Table - Left aligned header with proper spacing
+    function displaySalaryTable(data) {
+        let tableHtml = `
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead style="position: sticky; top: 0; background: #5a6b7d; color: white; z-index: 1;">
+                    <tr>
+                        <th style="padding: 8px 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Month</th>
+                        <th style="padding: 8px 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">NetAmount</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.forEach((item, index) => {
+            const bgColor = index % 2 === 0 ? '#ffffff' : '#f8f9fa';
+            const netAmount = parseFloat(item.totalNetSalary || 0);
+
+            tableHtml += `
+                <tr style="background: ${bgColor};">
+                    <td style="padding: 6px 10px; border-bottom: 1px solid #e9ecef; white-space: nowrap;">${item.monthYear || item.monthName}</td>
+                    <td style="padding: 6px 10px; text-align: left; border-bottom: 1px solid #e9ecef; font-weight: 500;">${netAmount.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        tableHtml += `
+                </tbody>
+            </table>
+        `;
+
+        $('#salaryTable').html(tableHtml);
+    }
+
+    // Close modal on outside click
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('yearlySalaryModal');
+        if (event.target === modal) {
+            closeYearlySalaryModal();
+        }
+    });
  
 </script>
