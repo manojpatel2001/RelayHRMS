@@ -178,5 +178,28 @@ namespace HRMS_API.Controllers.Report
                 };
             }
         }
+
+
+
+        [HttpGet("GetCompoffLapseReminder")]
+        public async Task<APIResponse> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetCompoffLapseReminder(SelectedDate, LapseDays);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
     }
 }

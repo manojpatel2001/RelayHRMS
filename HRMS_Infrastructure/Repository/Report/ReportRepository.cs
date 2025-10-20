@@ -74,6 +74,31 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+        public async Task<List<CompoffLapseReminderViewModel>> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+
+
+                    new SqlParameter("@SelectedDate", SelectedDate),
+                    new SqlParameter("@LapseDays", LapseDays)
+
+                    };
+
+                var result = await _db.Set<CompoffLapseReminderViewModel>()
+                    .FromSqlRaw("EXEC GetCompoffLapseReminder @SelectedDate, @LapseDays", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<CompoffLapseReminderViewModel>();
+            }
+        }
+
         public async Task<List<HolidayViewModel>> GetHolidaysForYear(int Year)
         {
             try
