@@ -1,9 +1,11 @@
 ﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.ExtendedProperties;
 using Hangfire;
 using HRMS_Core.Services;
 using HRMS_Core.VM.EmailService;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Engineering;
 using System.Text;
 
 namespace HRMS_API.Services
@@ -34,12 +36,20 @@ namespace HRMS_API.Services
                 if (emailReport==null|| AbsentReport == null|| !AbsentReport.Any())
                     return;
 
+                var allEmployeeRows = new StringBuilder();
+                string allExcelDownloadLink = await GenerateAndUploadAllExcel(AbsentReport);
+
                 // Iterate over each reporting manager
                 foreach (var manager in AbsentReport)
                 {
                     // Generate Excel for this manager's team
                     string excelDownloadLink = await GenerateAndUploadExcel(manager.Employees, manager.ReportingManagerName);
 
+                    allEmployeeRows.AppendLine($@"
+                         <tr>  <td colspan='5' style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:#f8f9fa;'><b>Reporting Persion:</b> {manager.ReportingManagerName}</td>
+							</tr>
+
+                         ");
                     // Build dynamic employee table rows for this manager's team
                     var employeeRows = new StringBuilder();
                     int rowNum = 0;
@@ -56,6 +66,18 @@ namespace HRMS_API.Services
                             <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.BranchName}</td>
                             <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.Attendance}</td>
                          </tr>");
+
+
+                        allEmployeeRows.AppendLine($@"
+                           <tr>
+                             <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{i}</td>
+                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.EmployeeName}</td>
+                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.EmployeeCode}</td>
+                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.BranchName}</td>
+                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.Attendance}</td>
+                         </tr>
+
+                         ");
                         i++;
                     }
                     // Add a row for the Excel download link
@@ -74,7 +96,6 @@ namespace HRMS_API.Services
                     var placeholders = new Dictionary<string, string>
                     {
                         { "Date", dateFormate },
-
                         { "ManagerName", manager.ReportingManagerName??"" },
                         { "HRContactNumber", emailReport.HRContactNumber??"" },
                         { "HRContactEmail", emailReport.HRContactEmail??"" },
@@ -91,14 +112,54 @@ namespace HRMS_API.Services
                         TemplateName = "DailyAbsentReportEmailTemplate.html",
                         Placeholders = placeholders
                     };
+
+
+
                     //Send the email
                     bool result = await _emailService.SendEmailAsync(emailRequest);
                     if (result)
                         Console.WriteLine($"✅ Daily Absentee email sent to {manager.ReportingManagerName}.");
                     else
                         Console.WriteLine($"⚠️ Email sending failed for {manager.ReportingManagerName}.");
-                   
+
                 }
+                allEmployeeRows.AppendLine($@"
+                    <tr>
+                        <td colspan='5' style='padding:10px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:#e9ecef;'>
+                            <a href='{allExcelDownloadLink}' style='color: #0066cc; text-decoration: none;'>Download Absentee Report (Excel)</a>
+                                <p style=""margin: 0 0 10px 0; color: #666666; font-size: 12px; line-height: 1.5;"">
+                                    The Absentee Report (Excel) will be available for download for up to 10 days from the report generation date..
+                                </p>
+                        </td>
+                    </tr>");
+                var AllDateFormate = DateTime.Now.AddDays(-1).ToString("dd MMM yyyy");
+                var AllPlaceholders = new Dictionary<string, string>
+                {
+                    { "Date", AllDateFormate },
+                    { "HRContactNumber", emailReport.HRContactNumber??"" },
+                    { "HRContactEmail",  emailReport.HRContactEmail??"" },
+                    { "AllEmployeeRows", allEmployeeRows.ToString() }
+                };
+
+                // Prepare email request object
+                var AllToEmails = $"{emailReport.ToEmails}";
+                var AllEmailRequest = new EmailRequest
+                {
+                    ToEmails = AllToEmails.Split(',').ToList(),
+                    CcEmails = emailReport?.BccEmails?.Split(',').ToList(),
+                    BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
+                    Subject = $"{emailReport.Subject} – {AllDateFormate}",
+                    TemplateName = "DailyAbsentAllReportEmailTemplate.html",
+                    Placeholders = AllPlaceholders
+                };
+
+                //Send the email
+                bool allResult = await _emailService.SendEmailAsync(AllEmailRequest);
+                if (allResult)
+                    Console.WriteLine($"✅ Daily Absentee email sent to {emailReport.ToEmails}.");
+                else
+                    Console.WriteLine($"⚠️ Email sending failed for {emailReport.ToEmails}.");
+
             }
             catch (Exception ex)
             {
@@ -126,7 +187,7 @@ namespace HRMS_API.Services
                 }
                 else
                 {
-                     cronExpression = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
+                    cronExpression = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
 
                 }
 
@@ -134,7 +195,7 @@ namespace HRMS_API.Services
                 RecurringJob.AddOrUpdate(
                     "update-job-schedule-check",
                     () => SendDailyEmailAsync(emailReport),
-                    cronExpression // Every 5 minutes
+                    cronExpression 
                 );
 
             }
@@ -192,6 +253,60 @@ namespace HRMS_API.Services
                 excelDownloadLink = "#";
             }
             return excelDownloadLink;
+        }
+        private async Task<string> GenerateAndUploadAllExcel(List<DailyAbsentReportResult> allEmployees)
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Absent Employees");
+
+            // Add headers
+            worksheet.Cell(1, 1).Value = "S.No";
+            worksheet.Cell(1, 2).Value = "Employee Name";
+            worksheet.Cell(1, 3).Value = "Employee Code";
+            worksheet.Cell(1, 4).Value = "Branch";
+            worksheet.Cell(1, 5).Value = "Attendance";
+
+            int row = 2; // Start from row 2 (row 1 is headers)
+
+            foreach (var manager in allEmployees)
+            {
+                // Add Reporting Manager as a header row
+                worksheet.Cell(row, 1).Value = $"Reporting Person: {manager.ReportingManagerName}";
+                worksheet.Range(row, 1, row, 5).Merge().Style.Font.Bold = true;
+                worksheet.Range(row, 1, row, 5).Style.Fill.BackgroundColor = XLColor.LightGray;
+                row++;
+
+                // Add employees under the manager
+                for (int i = 0; i < manager.Employees.Count; i++)
+                {
+                    var emp = manager.Employees[i];
+                    worksheet.Cell(row, 1).Value = i + 1; // S.No
+                    worksheet.Cell(row, 2).Value = emp.EmployeeName;
+                    worksheet.Cell(row, 3).Value = emp.EmployeeCode;
+                    worksheet.Cell(row, 4).Value = emp.BranchName;
+                    worksheet.Cell(row, 5).Value = emp.Attendance;
+                    row++;
+                }
+
+                // Add a blank row after each manager's employees for clarity
+                row++;
+            }
+
+            // Auto-fit columns for better readability
+            worksheet.Columns().AdjustToContents();
+
+            // Save to a MemoryStream
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            stream.Position = 0;
+
+            // Upload to your server/cloud storage and get the URL
+            string fileName = $"All_AbsentReport_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            var excelFormFile = new MemoryFormFile(stream, fileName);
+            var folder = $"uploads/absent_report";
+            var excelDownloadLink = await _fileUploadService.UploadAndReplaceDocumentAsync(excelFormFile, folder, null);
+
+            return string.IsNullOrEmpty(excelDownloadLink) ? "#" : excelDownloadLink;
         }
 
     }
