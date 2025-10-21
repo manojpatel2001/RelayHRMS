@@ -948,6 +948,38 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
             return response;
         }
+        public async Task<APIResponse> GetGradeBySalaryRange(vmEmployeeSalary salaryPara)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                        "USP_GetGradeBySalaryRange",
+                        new { CompanyId= salaryPara.CompanyId, GrossSalary = salaryPara.GrossSalary, BasicSalary = salaryPara.BasicSalary, IsPFApplicable=salaryPara.IsPFApplicable },
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (result == null)
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "Grade not found.";
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result; // Return dynamic object directly
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+            }
+            return response;
+        }
 
     }
 }

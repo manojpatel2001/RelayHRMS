@@ -885,5 +885,20 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
             }
         }
+
+        [HttpPost("GetGradeBySalaryRange")]
+        public async Task<APIResponse> GetGradeBySalaryRange(vmEmployeeSalary param)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetGradeBySalaryRange(param);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
     }
 }
