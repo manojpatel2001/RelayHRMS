@@ -154,6 +154,7 @@ namespace HRMS_Infrastructure.Repository
             importDataRepository = new ImportDataRepository(_dbContext);
             ReportRepository = new ReportRepository (_dbContext);
             EmailReportRepository = new EmailReportRepository(_dbContext);
+            EmailLoggerRepository = new EmailLoggerRepository(_dbContext);
 
         }
 
@@ -271,6 +272,7 @@ namespace HRMS_Infrastructure.Repository
 
         public IReportRepository ReportRepository { get; set; }
         public IEmailReportRepository EmailReportRepository { get; set; }
+        public IEmailLoggerRepository EmailLoggerRepository { get; set; }
 
         public void Commit()
         {

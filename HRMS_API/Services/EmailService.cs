@@ -1,4 +1,7 @@
 ﻿using HRMS_Core.Services;
+using HRMS_Core.VM.EmailService;
+using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Repository;
 using System.Net;
 using System.Net.Mail;
 
@@ -7,14 +10,15 @@ namespace HRMS_API.Services
     public class EmailService
     {
         private readonly IConfiguration _configuration;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly string _templateFolder;
         private readonly bool _enableEmail;
         private readonly string _environment;
 
-        public EmailService(IConfiguration configuration)
+        public EmailService(IConfiguration configuration, IUnitOfWork unitOfWork)
         {
             _configuration = configuration;
-
+            _unitOfWork = unitOfWork;
             _templateFolder = _configuration["MailSettings:TemplateFolder"] ?? "EmailTemplates";
             _enableEmail = bool.Parse(_configuration["MailSettings:EnableEmail"] ?? "true");
             _environment = _configuration["MailSettings:Environment"] ?? "Production";
@@ -89,12 +93,46 @@ namespace HRMS_API.Services
                         message.Attachments.Add(new Attachment(filePath));
 
                 await smtp.SendMailAsync(message);
-                Console.WriteLine($"✅ Email sent successfully to: {string.Join(", ", request.ToEmails ?? new List<string>())}");
+
+                // ✅ Log the email as "Sent"
+                var emailLogger = new EmailLogger
+                {
+                    FromEmail = fromEmail,
+                    ToEmail = string.Join(";", request.ToEmails ?? new List<string>()),
+                    CCEmail = string.Join(";", request.CcEmails ?? new List<string>()),
+                    BCCEmail = string.Join(";", request.BccEmails ?? new List<string>()),
+                    Subject = request.Subject,
+                    Body = request.TemplateName,
+                    Status = EmailStatus.Sent,
+                    SentAt = DateTime.UtcNow,
+                    AttachmentsUrl = string.Join(";", request.AttachmentPaths ?? new List<string>()),
+                    Comments = "Email sent successfully",
+                    CreatedAt = DateTime.UtcNow,
+                };
+
+                await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(emailLogger, "CREATE");
+
+
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Failed to send email: {ex.Message}");
+                var emailLogger = new EmailLogger
+                {
+                    FromEmail = _configuration["MailSettings:From"],
+                    ToEmail = string.Join(";", request.ToEmails ?? new List<string>()),
+                    CCEmail = string.Join(";", request.CcEmails ?? new List<string>()),
+                    BCCEmail = string.Join(";", request.BccEmails ?? new List<string>()),
+                    Subject = request.Subject,
+                    Body = request.TemplateName ?? "N/A",
+                    Status = EmailStatus.Failed,
+                    SentAt = DateTime.UtcNow,
+                    AttachmentsUrl = string.Join(";", request.AttachmentPaths ?? new List<string>()),
+                    Comments = $"Failed to send email: {ex.Message}"
+                };
+
+                await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(emailLogger, "CREATE");
+
                 return false;
             }
         }

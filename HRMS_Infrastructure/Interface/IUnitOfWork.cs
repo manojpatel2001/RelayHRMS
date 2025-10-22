@@ -130,6 +130,7 @@ namespace HRMS_Infrastructure.Interface
         IImportDataRepository importDataRepository { get; }
         IReportRepository ReportRepository { get; }
         IEmailReportRepository EmailReportRepository { get; }
+        IEmailLoggerRepository EmailLoggerRepository { get; }
 
 
         void Commit();

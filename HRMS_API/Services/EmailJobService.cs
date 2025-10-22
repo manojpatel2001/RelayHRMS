@@ -33,7 +33,11 @@ namespace HRMS_API.Services
             {
                 
                 List<DailyAbsentReportResult>? AbsentReport = await _unitOfWork.EmailReportRepository.GetDailyAbsentReport();
-                if (emailReport==null|| AbsentReport == null|| !AbsentReport.Any())
+
+                EmailReport? allEmailReport = await _unitOfWork.EmailReportRepository.GetEmailSendTime(EmailReportType.DailyAbsentAllEmployeesReport.ToString());
+
+                
+                if (emailReport==null|| allEmailReport==null || AbsentReport == null|| !AbsentReport.Any())
                     return;
 
                 var allEmployeeRows = new StringBuilder();
@@ -106,7 +110,7 @@ namespace HRMS_API.Services
                     var emailRequest = new EmailRequest
                     {
                         ToEmails = ToEmails.Split(',').ToList(),
-                        CcEmails = emailReport?.BccEmails?.Split(',').ToList(),
+                        CcEmails = emailReport?.CcEmails?.Split(',').ToList(),
                         BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
                         Subject = $"{emailReport.Subject} – {dateFormate}",
                         TemplateName = "DailyAbsentReportEmailTemplate.html",
@@ -114,6 +118,21 @@ namespace HRMS_API.Services
                     };
 
 
+                    var reportingEmailLogger = new EmailLogger
+                    {
+                        ToEmail = ToEmails,
+                        CCEmail = emailReport?.CcEmails,
+                        BCCEmail = emailReport?.BccEmails,
+                        Subject = emailRequest.Subject,
+                        Body = emailRequest.TemplateName,
+                        Status = EmailStatus.Pending,
+                        SentAt = DateTime.UtcNow,
+                        AttachmentsUrl = excelDownloadLink,
+                        Comments = "Email ready for sent"
+
+                    };
+
+                    await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(reportingEmailLogger, "CREATE");
 
                     //Send the email
                     bool result = await _emailService.SendEmailAsync(emailRequest);
@@ -136,23 +155,42 @@ namespace HRMS_API.Services
                 var AllPlaceholders = new Dictionary<string, string>
                 {
                     { "Date", AllDateFormate },
-                    { "HRContactNumber", emailReport.HRContactNumber??"" },
-                    { "HRContactEmail",  emailReport.HRContactEmail??"" },
+                    { "HRContactNumber", allEmailReport.HRContactNumber??"" },
+                    { "HRContactEmail",  allEmailReport.HRContactEmail??"" },
                     { "AllEmployeeRows", allEmployeeRows.ToString() }
                 };
 
                 // Prepare email request object
-                var AllToEmails = $"{emailReport.ToEmails}";
+                var AllToEmails = $"{allEmailReport.ToEmails}";
                 var AllEmailRequest = new EmailRequest
                 {
                     ToEmails = AllToEmails.Split(',').ToList(),
-                    CcEmails = emailReport?.BccEmails?.Split(',').ToList(),
-                    BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
-                    Subject = $"{emailReport.Subject} – {AllDateFormate}",
+                    CcEmails = allEmailReport?.BccEmails?.Split(',').ToList(),
+                    BccEmails = allEmailReport?.BccEmails?.Split(',').ToList(),
+                    Subject = $"{allEmailReport.Subject} – {AllDateFormate}",
                     TemplateName = "DailyAbsentAllReportEmailTemplate.html",
                     Placeholders = AllPlaceholders
                 };
 
+
+
+                var allEmailLogger = new EmailLogger
+                {
+                    ToEmail = AllToEmails,
+                    CCEmail = allEmailReport?.CcEmails,
+                    BCCEmail = allEmailReport?.BccEmails,
+                    Subject = AllEmailRequest.Subject,
+                    Body = AllEmailRequest.TemplateName,
+                    Status = EmailStatus.Pending,
+                    SentAt = DateTime.UtcNow,
+                    AttachmentsUrl = allExcelDownloadLink,
+                    Comments = "Email ready for sent"
+
+                };
+
+                await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(allEmailLogger, "CREATE");
+
+              
                 //Send the email
                 bool allResult = await _emailService.SendEmailAsync(AllEmailRequest);
                 if (allResult)
