@@ -190,7 +190,6 @@ namespace HRMS_API.Services
 
                 await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(allEmailLogger, "CREATE");
 
-              
                 //Send the email
                 bool allResult = await _emailService.SendEmailAsync(AllEmailRequest);
                 if (allResult)
