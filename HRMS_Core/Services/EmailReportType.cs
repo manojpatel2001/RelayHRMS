@@ -9,6 +9,7 @@ namespace HRMS_Core.Services
     public static class EmailReportType
     {
         public const string DailyAbsentEmployeesReport = "Daily Absent Employees Report";
+        public const string DailyAbsentAllEmployeesReport = "Daily Absent All Employees Report";
         
     }
 
