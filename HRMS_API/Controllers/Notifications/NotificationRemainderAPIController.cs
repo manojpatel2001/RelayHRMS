@@ -77,6 +77,19 @@ namespace HRMS_API.Controllers.Notifications
             }
         }
 
+        [HttpGet("GetRemainingCompOffLeave/{EmployeeId}")]
+        public async Task<APIResponse> GetRemainingCompOffLeave(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.NotificationRemainderRepository.GetRemainingCompOffLeave(EmployeeId);
 
+                return data;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve record. Please try again later." };
+            }
+        }
     }
 }

@@ -1,12 +1,17 @@
-﻿using HRMS_Core.DbContext;
+﻿using Dapper;
+using HRMS_Core.DbContext;
 using HRMS_Core.Notifications;
 using HRMS_Core.VM;
+using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Core.VM.Notifications;
 using HRMS_Infrastructure.Interface.Notifications;
+using HRMS_Utility;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,9 +22,12 @@ namespace HRMS_Infrastructure.Repository.Notifications
     {
         private readonly HRMSDbContext _db;
 
-        public NotificationRemainderRepository(HRMSDbContext db)
+        private readonly string _connectionString;
+
+        public NotificationRemainderRepository(HRMSDbContext db) 
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
 
         public async Task<List<vmGetAllNotificationByUserId>> GetAllNotificationByUserId(int userId)
@@ -113,5 +121,39 @@ namespace HRMS_Infrastructure.Repository.Notifications
                 return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
+
+        public async Task<APIResponse> GetRemainingCompOffLeave(int EmployeeId)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var result = await connection.QueryAsync<dynamic>(
+                        "USP_GetCompOffTransactionBalance",
+                        new { @EmpId = EmployeeId},
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (result == null||!result.Any())
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "record not found.";
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result; 
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+            }
+            return response;
+        }
+
     }
 }
