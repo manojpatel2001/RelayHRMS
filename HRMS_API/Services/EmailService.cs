@@ -87,10 +87,6 @@ namespace HRMS_API.Services
                     foreach (var bcc in request.BccEmails.Distinct())
                         message.Bcc.Add(bcc);
 
-                // Attachments
-                if (request.AttachmentPaths?.Any() == true)
-                    foreach (var filePath in request.AttachmentPaths.Where(File.Exists))
-                        message.Attachments.Add(new Attachment(filePath));
 
                 await smtp.SendMailAsync(message);
 
@@ -105,7 +101,7 @@ namespace HRMS_API.Services
                     Body = request.TemplateName,
                     Status = EmailStatus.Sent,
                     SentAt = DateTime.UtcNow,
-                    AttachmentsUrl = string.Join(";", request.AttachmentPaths ?? new List<string>()),
+                    AttachmentsUrl = request.AttachmentPaths,
                     Comments = "Email sent successfully",
                     CreatedAt = DateTime.UtcNow,
                 };
@@ -127,7 +123,7 @@ namespace HRMS_API.Services
                     Body = request.TemplateName ?? "N/A",
                     Status = EmailStatus.Failed,
                     SentAt = DateTime.UtcNow,
-                    AttachmentsUrl = string.Join(";", request.AttachmentPaths ?? new List<string>()),
+                    AttachmentsUrl =request.AttachmentPaths ,
                     Comments = $"Failed to send email: {ex.Message}"
                 };
 
