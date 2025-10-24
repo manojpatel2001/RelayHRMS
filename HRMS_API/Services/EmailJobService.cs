@@ -37,7 +37,7 @@ namespace HRMS_API.Services
                 EmailReport? allEmailReport = await _unitOfWork.EmailReportRepository.GetEmailSendTime(EmailReportType.DailyAbsentAllEmployeesReport.ToString());
 
                 
-                if (emailReport==null|| allEmailReport==null || AbsentReport == null|| !AbsentReport.Any())
+                if ((emailReport==null && allEmailReport==null) || AbsentReport == null|| !AbsentReport.Any())
                     return;
 
                 var allEmployeeRows = new StringBuilder();
@@ -95,52 +95,73 @@ namespace HRMS_API.Services
                         </td>
                     </tr>");
                     // Create the placeholder dictionary
-
-                    var dateFormate = DateTime.Now.AddDays(-1).ToString("dd MMM yyyy");
-                    var placeholders = new Dictionary<string, string>
+                    if (emailReport != null)
                     {
-                        { "Date", dateFormate },
-                        { "ManagerName", manager.ReportingManagerName??"" },
-                        { "HRContactNumber", emailReport.HRContactNumber??"" },
-                        { "HRContactEmail", emailReport.HRContactEmail??"" },
-                        { "EmployeeRows", employeeRows.ToString() }
-                    };
-                    // Prepare email request object
-                    var ToEmails = $"{manager.ReportingManagerEmail},{emailReport.ToEmails}";
-                    var emailRequest = new EmailRequest
-                    {
-                        ToEmails = ToEmails.Split(',').ToList(),
-                        CcEmails = emailReport?.CcEmails?.Split(',').ToList(),
-                        BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
-                        Subject = $"{emailReport.Subject} – {dateFormate}",
-                        TemplateName = "DailyAbsentReportEmailTemplate.html",
-                        Placeholders = placeholders
-                    };
+                        var dateFormate = DateTime.Now.AddDays(-1).ToString("dd MMM yyyy");
+                        var placeholders = new Dictionary<string, string>
+                        {
+                            { "Date", dateFormate },
+                            { "ManagerName", manager.ReportingManagerName??"" },
+                            { "HRContactNumber", emailReport.HRContactNumber??"" },
+                            { "HRContactEmail", emailReport.HRContactEmail??"" },
+                            { "EmployeeRows", employeeRows.ToString() }
+                        };
+                        // Prepare email request object
+                        var ToEmails = "";
+                        if (!string.IsNullOrEmpty(emailReport.ToEmails) && !string.IsNullOrEmpty(manager.ReportingManagerEmail))
+                        {
+                            ToEmails = $"{manager.ReportingManagerEmail},{emailReport.ToEmails}";
+                        }
+                        else if (!string.IsNullOrEmpty(emailReport.ToEmails))
+                        {
+                            ToEmails = $"{emailReport.ToEmails}";
+                        }
+                        else if (!string.IsNullOrEmpty(manager.ReportingManagerEmail))
+                        {
+                            ToEmails = $"{manager.ReportingManagerEmail}";
+                        }
+
+                        if (!string.IsNullOrEmpty(emailReport.ToEmails))
+                        {
+
+                            continue;
+                        }
+
+                        var emailRequest = new EmailRequest
+                        {
+                            ToEmails = ToEmails.Split(',').ToList(),
+                            CcEmails = emailReport?.CcEmails?.Split(',').ToList(),
+                            BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
+                            Subject = $"{emailReport.Subject} – {dateFormate}",
+                            TemplateName = "DailyAbsentReportEmailTemplate.html",
+                            Placeholders = placeholders,
+                            AttachmentPaths = excelDownloadLink
+                        };
 
 
-                    var reportingEmailLogger = new EmailLogger
-                    {
-                        ToEmail = ToEmails,
-                        CCEmail = emailReport?.CcEmails,
-                        BCCEmail = emailReport?.BccEmails,
-                        Subject = emailRequest.Subject,
-                        Body = emailRequest.TemplateName,
-                        Status = EmailStatus.Pending,
-                        SentAt = DateTime.UtcNow,
-                        AttachmentsUrl = excelDownloadLink,
-                        Comments = "Email ready for sent"
+                        var reportingEmailLogger = new EmailLogger
+                        {
+                            ToEmail = ToEmails,
+                            CCEmail = emailReport?.CcEmails,
+                            BCCEmail = emailReport?.BccEmails,
+                            Subject = emailRequest.Subject,
+                            Body = emailRequest.TemplateName,
+                            Status = EmailStatus.Pending,
+                            SentAt = DateTime.UtcNow,
+                            AttachmentsUrl = excelDownloadLink,
+                            Comments = "Email ready for sent"
 
-                    };
+                        };
 
-                    await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(reportingEmailLogger, "CREATE");
+                        await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(reportingEmailLogger, "CREATE");
 
-                    //Send the email
-                    bool result = await _emailService.SendEmailAsync(emailRequest);
-                    if (result)
-                        Console.WriteLine($"✅ Daily Absentee email sent to {manager.ReportingManagerName}.");
-                    else
-                        Console.WriteLine($"⚠️ Email sending failed for {manager.ReportingManagerName}.");
-
+                        //Send the email
+                        bool result = await _emailService.SendEmailAsync(emailRequest);
+                        if (result)
+                            Console.WriteLine($"✅ Daily Absentee email sent to {manager.ReportingManagerName}.");
+                        else
+                            Console.WriteLine($"⚠️ Email sending failed for {manager.ReportingManagerName}.");
+                    }
                 }
                 allEmployeeRows.AppendLine($@"
                     <tr>
@@ -151,52 +172,64 @@ namespace HRMS_API.Services
                                 </p>
                         </td>
                     </tr>");
-                var AllDateFormate = DateTime.Now.AddDays(-1).ToString("dd MMM yyyy");
-                var AllPlaceholders = new Dictionary<string, string>
+
+                if (allEmailReport == null)
                 {
-                    { "Date", AllDateFormate },
-                    { "HRContactNumber", allEmailReport.HRContactNumber??"" },
-                    { "HRContactEmail",  allEmailReport.HRContactEmail??"" },
-                    { "AllEmployeeRows", allEmployeeRows.ToString() }
-                };
 
-                // Prepare email request object
-                var AllToEmails = $"{allEmailReport.ToEmails}";
-                var AllEmailRequest = new EmailRequest
-                {
-                    ToEmails = AllToEmails.Split(',').ToList(),
-                    CcEmails = allEmailReport?.BccEmails?.Split(',').ToList(),
-                    BccEmails = allEmailReport?.BccEmails?.Split(',').ToList(),
-                    Subject = $"{allEmailReport.Subject} – {AllDateFormate}",
-                    TemplateName = "DailyAbsentAllReportEmailTemplate.html",
-                    Placeholders = AllPlaceholders
-                };
+                    var AllDateFormate = DateTime.Now.AddDays(-1).ToString("dd MMM yyyy");
+                    var AllPlaceholders = new Dictionary<string, string>
+                    {
+                        { "Date", AllDateFormate },
+                        { "HRContactNumber", allEmailReport.HRContactNumber??"" },
+                        { "HRContactEmail",  allEmailReport.HRContactEmail??"" },
+                        { "AllEmployeeRows", allEmployeeRows.ToString() }
+                    };
+
+                    // Prepare email request object
+                    var AllToEmails = $"{allEmailReport.ToEmails}";
 
 
+                    if (!string.IsNullOrEmpty(AllToEmails))
+                    {
+                        return;
+                    }
 
-                var allEmailLogger = new EmailLogger
-                {
-                    ToEmail = AllToEmails,
-                    CCEmail = allEmailReport?.CcEmails,
-                    BCCEmail = allEmailReport?.BccEmails,
-                    Subject = AllEmailRequest.Subject,
-                    Body = AllEmailRequest.TemplateName,
-                    Status = EmailStatus.Pending,
-                    SentAt = DateTime.UtcNow,
-                    AttachmentsUrl = allExcelDownloadLink,
-                    Comments = "Email ready for sent"
+                    var AllEmailRequest = new EmailRequest
+                    {
+                        ToEmails = AllToEmails.Split(',').ToList(),
+                        CcEmails = allEmailReport?.BccEmails?.Split(',').ToList(),
+                        BccEmails = allEmailReport?.BccEmails?.Split(',').ToList(),
+                        Subject = $"{allEmailReport.Subject} – {AllDateFormate}",
+                        TemplateName = "DailyAbsentAllReportEmailTemplate.html",
+                        Placeholders = AllPlaceholders,
+                        AttachmentPaths = allExcelDownloadLink
+                    };
 
-                };
 
-                await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(allEmailLogger, "CREATE");
 
-                //Send the email
-                bool allResult = await _emailService.SendEmailAsync(AllEmailRequest);
-                if (allResult)
-                    Console.WriteLine($"✅ Daily Absentee email sent to {emailReport.ToEmails}.");
-                else
-                    Console.WriteLine($"⚠️ Email sending failed for {emailReport.ToEmails}.");
+                    var allEmailLogger = new EmailLogger
+                    {
+                        ToEmail = AllToEmails,
+                        CCEmail = allEmailReport?.CcEmails,
+                        BCCEmail = allEmailReport?.BccEmails,
+                        Subject = AllEmailRequest.Subject,
+                        Body = AllEmailRequest.TemplateName,
+                        Status = EmailStatus.Pending,
+                        SentAt = DateTime.UtcNow,
+                        AttachmentsUrl = allExcelDownloadLink,
+                        Comments = "Email ready for sent"
 
+                    };
+
+                    await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(allEmailLogger, "CREATE");
+
+                    //Send the email
+                    bool allResult = await _emailService.SendEmailAsync(AllEmailRequest);
+                    if (allResult)
+                        Console.WriteLine($"✅ Daily Absentee email sent to {emailReport.ToEmails}.");
+                    else
+                        Console.WriteLine($"⚠️ Email sending failed for {emailReport.ToEmails}.");
+                }
             }
             catch (Exception ex)
             {
