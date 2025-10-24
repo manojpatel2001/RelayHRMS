@@ -76,6 +76,30 @@ namespace HRMS_API.Controllers.Leave
                 };
             }
         }
+        [HttpGet("GetLeaveTypesForEmployee")]
+        public async Task<APIResponse> GetLeaveTypesForEmployee(int CompId ,int EmpId)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveMasterRepository.GetLeaveTypesForEmployee(CompId ,EmpId);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
 
         //[HttpPost("AddLeavemanage")]
         //public async Task<APIResponse> AddLeavemanage(List<int> id,string status)
