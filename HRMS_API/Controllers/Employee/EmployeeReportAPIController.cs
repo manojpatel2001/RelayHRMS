@@ -39,7 +39,7 @@ namespace HRMS_API.Controllers.Employee
                 {
                     isSuccess = true,
                     Data = data,
-                    ResponseMessage = "Records have been added successfully."
+                    ResponseMessage = "Records fetched successfully."
                 };
             }
             catch (Exception ex)
@@ -47,7 +47,7 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = "Unable to add records. Please try again later."
+                    ResponseMessage = "Unable to retrieve records. Please try again later."
                 };
             }
         }
@@ -68,7 +68,7 @@ namespace HRMS_API.Controllers.Employee
                 {
                     isSuccess = true,
                     Data = data,
-                    ResponseMessage = "Records have been added successfully."
+                    ResponseMessage = "Records fetched successfully."
                 };
             }
             catch (Exception ex)
@@ -76,7 +76,7 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = "Unable to add records. Please try again later."
+                    ResponseMessage = "Unable to retrieve records. Please try again later."
                 };
             }
         }
