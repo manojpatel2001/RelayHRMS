@@ -39,5 +39,21 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
+        public async Task<List<LeaveTypeViewModel>> GetLeaveTypesForEmployee(int CompId, int Empid)
+        {
+            try
+            {
+                var result = await _db.Set<LeaveTypeViewModel>()
+                    .FromSqlInterpolated($"EXEC GetLeaveTypesForEmployee @CompId = {CompId} ,@Empid ={Empid}")
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetLeaveTypesForEmployee Error: " + ex.Message);
+                return new List<LeaveTypeViewModel>();
+            }
+        }
     }
 }

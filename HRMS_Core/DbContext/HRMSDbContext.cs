@@ -314,6 +314,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<MonthlySalarySummaryViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<UsedLeavesSummary>().HasNoKey().ToView(null);
              modelBuilder.Entity<CompoffLapseReminderViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LeaveTypeViewModel>().HasNoKey().ToView(null);
 
 
 
