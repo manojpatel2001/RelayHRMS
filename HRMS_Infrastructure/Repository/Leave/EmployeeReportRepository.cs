@@ -63,7 +63,8 @@ namespace HRMS_Infrastructure.Repository.Leave
                                 A = reader["A"].ToString(),
                                 W = reader["W"].ToString(),
                                 L = reader["L"].ToString(),
-                                H = reader["H"].ToString()
+                                H = reader["H"].ToString(),
+                                HF = reader["HF"].ToString()
                             };
 
                             foreach (var col in columnNames)
