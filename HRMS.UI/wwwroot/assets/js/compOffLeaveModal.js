@@ -12,7 +12,6 @@
                 }
             });
         });
-        debugger;
         if (response.isSuccess) {
             showLeaveModal(response.data)
         }

@@ -40,5 +40,6 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<APIResponse> GetReportingList();
         Task<APIResponse> GetEmployeeListByBranchId(int BranchId);
         Task<APIResponse> GetGradeBySalaryRange(vmEmployeeSalary salaryPara);
+        Task<APIResponse> GetEmplyeeDetailsById(int EmployeeId);
     }
 }

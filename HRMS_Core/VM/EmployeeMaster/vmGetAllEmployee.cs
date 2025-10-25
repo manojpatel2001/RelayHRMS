@@ -34,7 +34,7 @@ namespace HRMS_Core.VM.EmployeeMaster
 
 
         public string? LoginAlias { get; set; }
-        public bool? IsLeft { get; set; }
+        public string? IsLeft { get; set; }
         public DateTime? LeftDate { get; set; }
 
 
