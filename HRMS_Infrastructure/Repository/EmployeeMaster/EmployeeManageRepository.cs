@@ -980,6 +980,38 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
             return response;
         }
+        public async Task<APIResponse> GetEmplyeeDetailsById(int EmployeeId)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                        "GetEmplyeeDetailsById",
+                        new { EmployeeId = EmployeeId},
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (result == null)
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "Record not found.";
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result; // Return dynamic object directly
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+            }
+            return response;
+        }
 
     }
 }

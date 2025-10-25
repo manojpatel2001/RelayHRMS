@@ -30,7 +30,7 @@ namespace HRMS_Core.VM.Employee
         public int? RptManagerID { get; set; }
         public bool? IsRetire { get; set; } = false;
         public int? RequestAprID { get; set; }
-        public int? LeftReasonValue { get; set; }
+        public string? LeftReasonValue { get; set; }
         public string? LeftReasonText { get; set; }
         public int? Res_Id { get; set; } 
         public bool IsLeft { get; set; } 
