@@ -27,33 +27,25 @@ namespace HRMS_API.Services
         /// <summary>
         /// Hangfire will call this method for recurring emails
         /// </summary>
-        public async Task SendDailyEmailAsync(EmailReport? emailReport)
+        public async Task SendReportingDailyEmailAsync(EmailReport? emailReport)
         {
             try
             {
                 
                 List<DailyAbsentReportResult>? AbsentReport = await _unitOfWork.EmailReportRepository.GetDailyAbsentReport();
 
-                EmailReport? allEmailReport = await _unitOfWork.EmailReportRepository.GetEmailSendTime(EmailReportType.DailyAbsentAllEmployeesReport.ToString());
-
-                
-                if ((emailReport==null && allEmailReport==null) || AbsentReport == null|| !AbsentReport.Any())
+               
+                if (emailReport==null  || AbsentReport == null|| !AbsentReport.Any())
                     return;
 
-                var allEmployeeRows = new StringBuilder();
-                string allExcelDownloadLink = await GenerateAndUploadAllExcel(AbsentReport);
-
+              
                 // Iterate over each reporting manager
                 foreach (var manager in AbsentReport)
                 {
                     // Generate Excel for this manager's team
                     string excelDownloadLink = await GenerateAndUploadExcel(manager.Employees, manager.ReportingManagerName);
 
-                    allEmployeeRows.AppendLine($@"
-                         <tr>  <td colspan='5' style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:#f8f9fa;'><b>Reporting Persion:</b> {manager.ReportingManagerName}</td>
-							</tr>
-
-                         ");
+                 
                     // Build dynamic employee table rows for this manager's team
                     var employeeRows = new StringBuilder();
                     int rowNum = 0;
@@ -72,17 +64,7 @@ namespace HRMS_API.Services
                          </tr>");
 
 
-                        allEmployeeRows.AppendLine($@"
-                           <tr>
-                             <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{i}</td>
-                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.EmployeeName}</td>
-                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.EmployeeCode}</td>
-                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.BranchName}</td>
-                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.Attendance}</td>
-                         </tr>
-
-                         ");
-                        i++;
+                       
                     }
                     // Add a row for the Excel download link
                     employeeRows.AppendLine($@"
@@ -121,7 +103,7 @@ namespace HRMS_API.Services
                             ToEmails = $"{manager.ReportingManagerEmail}";
                         }
 
-                        if (!string.IsNullOrEmpty(emailReport.ToEmails))
+                        if (string.IsNullOrEmpty(emailReport.ToEmails))
                         {
 
                             continue;
@@ -163,6 +145,62 @@ namespace HRMS_API.Services
                             Console.WriteLine($"⚠️ Email sending failed for {manager.ReportingManagerName}.");
                     }
                 }
+              
+                
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error in SendDailyEmailAsync: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+            }
+        }
+        public async Task SendHrDailyEmailAsync(EmailReport? allEmailReport)
+        {
+            try
+            {
+                
+                List<DailyAbsentReportResult>? AbsentReport = await _unitOfWork.EmailReportRepository.GetDailyAbsentReport();
+
+               
+                
+                if (allEmailReport==null || AbsentReport == null|| !AbsentReport.Any())
+                    return;
+
+                var allEmployeeRows = new StringBuilder();
+                string allExcelDownloadLink = await GenerateAndUploadAllExcel(AbsentReport);
+
+                // Iterate over each reporting manager
+                foreach (var manager in AbsentReport)
+                {
+                         allEmployeeRows.AppendLine($@"
+                         <tr>  <td colspan='5' style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:#f8f9fa;'><b>Reporting Persion:</b> {manager.ReportingManagerName}</td>
+							</tr>
+
+                         ");
+                    // Build dynamic employee table rows for this manager's team
+                    int rowNum = 0;
+                    int i = 1;
+                    foreach (var emp in manager.Employees)
+                    {
+                        rowNum++;
+                        var backgroundColor = rowNum % 2 == 0 ? "#f8f9fa" : "#ffffff";
+                        
+
+                        allEmployeeRows.AppendLine($@"
+                           <tr>
+                             <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{i}</td>
+                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.EmployeeName}</td>
+                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.EmployeeCode}</td>
+                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.BranchName}</td>
+                            <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.Attendance}</td>
+                         </tr>
+
+                         ");
+                        i++;
+                    }
+                    
+
+                }
                 allEmployeeRows.AppendLine($@"
                     <tr>
                         <td colspan='5' style='padding:10px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:#e9ecef;'>
@@ -173,7 +211,7 @@ namespace HRMS_API.Services
                         </td>
                     </tr>");
 
-                if (allEmailReport == null)
+                if (allEmailReport != null)
                 {
 
                     var AllDateFormate = DateTime.Now.AddDays(-1).ToString("dd MMM yyyy");
@@ -189,7 +227,7 @@ namespace HRMS_API.Services
                     var AllToEmails = $"{allEmailReport.ToEmails}";
 
 
-                    if (!string.IsNullOrEmpty(AllToEmails))
+                    if (string.IsNullOrEmpty(AllToEmails))
                     {
                         return;
                     }
@@ -197,7 +235,7 @@ namespace HRMS_API.Services
                     var AllEmailRequest = new EmailRequest
                     {
                         ToEmails = AllToEmails.Split(',').ToList(),
-                        CcEmails = allEmailReport?.BccEmails?.Split(',').ToList(),
+                        CcEmails = allEmailReport?.CcEmails?.Split(',').ToList(),
                         BccEmails = allEmailReport?.BccEmails?.Split(',').ToList(),
                         Subject = $"{allEmailReport.Subject} – {AllDateFormate}",
                         TemplateName = "DailyAbsentAllReportEmailTemplate.html",
@@ -226,9 +264,9 @@ namespace HRMS_API.Services
                     //Send the email
                     bool allResult = await _emailService.SendEmailAsync(AllEmailRequest);
                     if (allResult)
-                        Console.WriteLine($"✅ Daily Absentee email sent to {emailReport.ToEmails}.");
+                        Console.WriteLine($"✅ Daily Absentee email sent to {allEmailReport.ToEmails}.");
                     else
-                        Console.WriteLine($"⚠️ Email sending failed for {emailReport.ToEmails}.");
+                        Console.WriteLine($"⚠️ Email sending failed for {allEmailReport.ToEmails}.");
                 }
             }
             catch (Exception ex)
@@ -240,7 +278,7 @@ namespace HRMS_API.Services
         /// <summary>
         /// Schedules the daily email job with the time from the database (default: 8 AM)
         /// </summary>
-        public async Task ScheduleDailyEmail()
+        public async Task ScheduleReportingDailyEmail()
         {
             try
             {
@@ -264,7 +302,41 @@ namespace HRMS_API.Services
                 RecurringJob.RemoveIfExists("update-job-schedule-check");
                 RecurringJob.AddOrUpdate(
                     "update-job-schedule-check",
-                    () => SendDailyEmailAsync(emailReport),
+                    () => SendReportingDailyEmailAsync(emailReport),
+                    cronExpression 
+                );
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error scheduling email job: {ex.Message}");
+            }
+        }
+        public async Task ScheduleHrDailyEmail()
+        {
+            try
+            {
+                EmailReport? emailReport = await _unitOfWork.EmailReportRepository.GetEmailSendTime(EmailReportType.DailyAbsentAllEmployeesReport.ToString());
+
+                if (emailReport == null)
+                {
+                    return;
+                }
+                string cronExpression = "";
+                if (emailReport.EmailSendTime == null)
+                {
+                    return;
+                }
+                else
+                {
+                    cronExpression = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
+
+                }
+
+                RecurringJob.RemoveIfExists("update-job-schedule-check");
+                RecurringJob.AddOrUpdate(
+                    "update-job-schedule-check",
+                    () => SendHrDailyEmailAsync(emailReport),
                     cronExpression 
                 );
 
@@ -279,8 +351,15 @@ namespace HRMS_API.Services
         {
             RecurringJob.AddOrUpdate(
                 "update-job-schedule-check",
-                () => ScheduleDailyEmail(),
-                "*/5 * * * *" // Every 5 minutes
+                () => ScheduleReportingDailyEmail(),
+                "*/2 * * * *" // Every 2 minutes
+            );
+
+            // Schedule the second job every 2 minutes
+            RecurringJob.AddOrUpdate(
+                "update-job-schedule-hr",
+                () => ScheduleHrDailyEmail(),
+                "*/2 * * * *" // Every 2 minutes
             );
         }
 

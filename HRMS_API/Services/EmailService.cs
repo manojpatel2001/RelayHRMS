@@ -90,7 +90,7 @@ namespace HRMS_API.Services
 
                 await smtp.SendMailAsync(message);
 
-                // ✅ Log the email as "Sent"
+                 //✅ Log the email as "Sent"
                 var emailLogger = new EmailLogger
                 {
                     FromEmail = fromEmail,
