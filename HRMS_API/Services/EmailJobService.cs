@@ -282,88 +282,74 @@ namespace HRMS_API.Services
         {
             try
             {
-                EmailReport? emailReport = await _unitOfWork.EmailReportRepository.GetEmailSendTime(EmailReportType.DailyAbsentEmployeesReport.ToString());
+                var emailReport = await _unitOfWork.EmailReportRepository
+                    .GetEmailSendTime(EmailReportType.DailyAbsentEmployeesReport.ToString());
 
-                if (emailReport == null)
-                {
+                if (emailReport?.EmailSendTime == null)
                     return;
-                }
-                string cronExpression = "";
-                if (emailReport.EmailSendTime == null)
-                {
-                    return;
-                }
-                else
-                {
-                    cronExpression = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
 
-                }
+                string cronExpression = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
 
-                RecurringJob.RemoveIfExists("update-job-schedule-check");
+                RecurringJob.RemoveIfExists("reporting-daily-email");
                 RecurringJob.AddOrUpdate(
-                    "update-job-schedule-check",
+                    "reporting-daily-email",
                     () => SendReportingDailyEmailAsync(emailReport),
-                    cronExpression 
+                    cronExpression
                 );
 
+                Console.WriteLine("✅ Reporting daily email job scheduled successfully.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error scheduling email job: {ex.Message}");
+                Console.WriteLine($"❌ Error scheduling reporting email job: {ex.Message}");
             }
         }
+
         public async Task ScheduleHrDailyEmail()
         {
             try
             {
-                EmailReport? emailReport = await _unitOfWork.EmailReportRepository.GetEmailSendTime(EmailReportType.DailyAbsentAllEmployeesReport.ToString());
+                var emailReport = await _unitOfWork.EmailReportRepository
+                    .GetEmailSendTime(EmailReportType.DailyAbsentAllEmployeesReport.ToString());
 
-                if (emailReport == null)
-                {
+                if (emailReport?.EmailSendTime == null)
                     return;
-                }
-                string cronExpression = "";
-                if (emailReport.EmailSendTime == null)
-                {
-                    return;
-                }
-                else
-                {
-                    cronExpression = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
 
-                }
+                string cronExpression = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
 
-                RecurringJob.RemoveIfExists("update-job-schedule-check");
+                RecurringJob.RemoveIfExists("hr-daily-email");
                 RecurringJob.AddOrUpdate(
-                    "update-job-schedule-check",
+                    "hr-daily-email",
                     () => SendHrDailyEmailAsync(emailReport),
-                    cronExpression 
+                    cronExpression
                 );
 
+                Console.WriteLine("✅ HR daily email job scheduled successfully.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error scheduling email job: {ex.Message}");
+                Console.WriteLine($"❌ Error scheduling HR email job: {ex.Message}");
             }
         }
+
 
         public void StartScheduleDailyEmail()
         {
             RecurringJob.AddOrUpdate(
-                "update-job-schedule-check",
+                "reporting-schedule-check",
                 () => ScheduleReportingDailyEmail(),
-                "*/2 * * * *" // Every 2 minutes
+                "*/2 * * * *"
             );
 
-            // Schedule the second job every 2 minutes
             RecurringJob.AddOrUpdate(
-                "update-job-schedule-hr",
+                "hr-schedule-check",
                 () => ScheduleHrDailyEmail(),
-                "*/2 * * * *" // Every 2 minutes
+                "*/2 * * * *"
             );
+
         }
 
-       
+
         private async Task<string> GenerateAndUploadExcel(List<EmployeeRecord> employees, string managerName)
         {
             using var workbook = new XLWorkbook();
