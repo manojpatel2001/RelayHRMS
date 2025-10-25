@@ -103,7 +103,7 @@ namespace HRMS_API.Services
                             ToEmails = $"{manager.ReportingManagerEmail}";
                         }
 
-                        if (string.IsNullOrEmpty(emailReport.ToEmails))
+                        if (string.IsNullOrEmpty(ToEmails))
                         {
 
                             continue;
