@@ -155,6 +155,7 @@ namespace HRMS_Infrastructure.Repository
             ReportRepository = new ReportRepository (_dbContext);
             EmailReportRepository = new EmailReportRepository(_dbContext);
             EmailLoggerRepository = new EmailLoggerRepository(_dbContext);
+            LeaveTransactionRepository = new LeaveTransactionRepository(_dbContext);
 
         }
 
@@ -273,6 +274,7 @@ namespace HRMS_Infrastructure.Repository
         public IReportRepository ReportRepository { get; set; }
         public IEmailReportRepository EmailReportRepository { get; set; }
         public IEmailLoggerRepository EmailLoggerRepository { get; set; }
+        public ILeaveTransactionRepository LeaveTransactionRepository { get; set; }
 
         public void Commit()
         {

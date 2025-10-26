@@ -27,6 +27,13 @@
             if (parts.length > 2) {
                 val = parts.shift() + '.' + parts.join('');
             }
+            if (parts.length === 2) {
+                parts[1] = parts[1].substring(0, 2);
+                val = parts.join('.');
+            }
+            if (val.endsWith('.')) {
+                val = val.slice(0, -1);
+            }
         }
         else if ($el.is('[data-letters-only]')) {
             val = val.replace(/[^a-zA-Z\s]/g, '');

@@ -131,6 +131,7 @@ namespace HRMS_Infrastructure.Interface
         IReportRepository ReportRepository { get; }
         IEmailReportRepository EmailReportRepository { get; }
         IEmailLoggerRepository EmailLoggerRepository { get; }
+        ILeaveTransactionRepository LeaveTransactionRepository { get; }
 
 
         void Commit();

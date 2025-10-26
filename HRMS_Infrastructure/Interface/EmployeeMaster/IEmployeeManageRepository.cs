@@ -38,7 +38,7 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<APIResponse> GetRecordsForUpdate(CommonParameter param);
         Task<APIResponse> GetRecordsForAdd(int CompanyId);
         Task<APIResponse> GetReportingList();
-        Task<APIResponse> GetEmployeeListByBranchId(int BranchId);
+        Task<APIResponse> GetEmployeeListByBranchId(CommonParameter parameter);
         Task<APIResponse> GetGradeBySalaryRange(vmEmployeeSalary salaryPara);
         Task<APIResponse> GetEmplyeeDetailsById(int EmployeeId);
     }
