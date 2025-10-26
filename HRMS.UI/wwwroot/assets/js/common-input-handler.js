@@ -23,18 +23,23 @@
         }
         else if ($el.is('[data-decimal]')) {
             val = val.replace(/[^0-9.]/g, '');
+            // Handle leading decimal point (e.g., ".5" → "0.5")
+            if (val.startsWith('.')) {
+                val = '0' + val;
+            }
+
             const parts = val.split('.');
+
             if (parts.length > 2) {
-                val = parts.shift() + '.' + parts.join('');
+                val = parts[0] + '.' + parts.slice(1).join('').substring(0, 2);
             }
-            if (parts.length === 2) {
-                parts[1] = parts[1].substring(0, 2);
-                val = parts.join('.');
+            else if (parts.length === 2) {
+                val = parts[0] + '.' + parts[1].substring(0, 2);
             }
-            if (val.endsWith('.')) {
-                val = val.slice(0, -1);
-            }
+
+           
         }
+
         else if ($el.is('[data-letters-only]')) {
             val = val.replace(/[^a-zA-Z\s]/g, '');
         }
