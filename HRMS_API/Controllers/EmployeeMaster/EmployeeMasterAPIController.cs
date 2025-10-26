@@ -871,12 +871,12 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
-        [HttpGet("GetEmployeeListByBranchId/{BranchId}")]
-        public async Task<APIResponse> GetEmployeeListByBranchId(int BranchId)
+        [HttpPost("GetEmployeeListByBranchId")]
+        public async Task<APIResponse> GetEmployeeListByBranchId(CommonParameter parameter)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetEmployeeListByBranchId( BranchId);
+                var data = await _unitOfWork.EmployeeManageRepository.GetEmployeeListByBranchId(parameter);
 
                 return data;
             }

@@ -885,7 +885,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 return new APIResponse { ResponseMessage = "Some thing Went wrong!", isSuccess = false };
             }
         }
-        public async Task<APIResponse> GetEmployeeListByBranchId(int BranchId)
+        public async Task<APIResponse> GetEmployeeListByBranchId(CommonParameter parameter)
         {
             try
             {
@@ -896,7 +896,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
 
                     using (var multi = await connection.QueryMultipleAsync(
                         "GetEmployeeListByBranchId",
-                          new { BranchId },
+                          new { BranchId=parameter.BranchId,CompanyId= parameter.CompanyId },
                         commandType: CommandType.StoredProcedure))
                     {
 
