@@ -1,5 +1,5 @@
 ﻿function initTrimInputHandler() {
-    const selector = '[data-trim-input], [data-integer-only], [data-integer-with-space], [data-decimal], [data-letters-only], [data-uppercase-only]';
+    const selector = '[data-trim-input], [data-integer-only], [data-integer-with-space], [data-decimal], [data-letters-only], [data-uppercase-only],[data-decimal-two]';
 
     // Trim spaces on blur
     $(document).on('blur', selector, function () {
@@ -39,6 +39,33 @@
 
            
         }
+        else if ($el.is('[data-decimal-two]')) {
+            debugger
+             val = $el.val();
+            const maxDigits = 2; // Enforce 2 digits before and after decimal
+
+            val = val.replace(/[^0-9.]/g, '');
+
+            if (val.startsWith('.')) {
+                val = '0' + val;
+            }
+
+            const parts = val.split('.');
+
+            if (parts[0].length > maxDigits) {
+                parts[0] = parts[0].substring(0, maxDigits);
+            }
+
+            if (parts.length > 1) {
+                parts[1] = parts[1].substring(0, maxDigits);
+                val = parts.join('.');
+            } else {
+                val = parts[0];
+            }
+
+            $el.val(val);
+        }
+
 
         else if ($el.is('[data-letters-only]')) {
             val = val.replace(/[^a-zA-Z\s]/g, '');
