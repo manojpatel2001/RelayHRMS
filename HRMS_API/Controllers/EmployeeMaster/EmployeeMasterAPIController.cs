@@ -870,6 +870,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
             }
         }
+        
 
         [HttpPost("GetEmployeeListByBranchId")]
         public async Task<APIResponse> GetEmployeeListByBranchId(CommonParameter parameter)
@@ -907,6 +908,21 @@ namespace HRMS_API.Controllers.EmployeeMaster
             try
             {
                 var data = await _unitOfWork.EmployeeManageRepository.GetEmplyeeDetailsById(EmployeeId);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetAllEmployeeList/{CompanyId}")]
+        public async Task<APIResponse> GetAllEmployeeList(int CompanyId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeList(CompanyId);
 
                 return data;
             }
