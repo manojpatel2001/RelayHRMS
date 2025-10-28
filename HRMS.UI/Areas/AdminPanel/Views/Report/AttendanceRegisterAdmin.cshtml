@@ -250,6 +250,38 @@
             .attendance-table-container::-webkit-scrollbar-thumb:hover {
                 background: #555;
             }
+   
+    /* Button loader styling */
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.8;
+        color: transparent !important; /* Text ko hide karta hai */
+    }
+
+        .btn-loading::after {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+        }
+
+    @@keyframes spin {
+        to
+
+    {
+        transform: rotate(360deg);
+    }
+
+    }
 </style>
 
     <div class="header">
@@ -573,68 +605,74 @@
             originalEmployeeData = []; // Clear original data
         }
 
-        $('#btnView').on('click', function () {
-       
-            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+    $('#btnView').on('click', function () {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
 
-            if (!selectedBranchIds || selectedBranchIds.length === 0) {
-                Swal.fire('Warning', 'Please select at least one branch.', 'warning');
-                return;
-            }
+        if (!selectedBranchIds || selectedBranchIds.length === 0) {
+            Swal.fire('Warning', 'Please select at least one branch.', 'warning');
+            return;
+        }
 
-            var selectedYear = $('#yearSelect').val();
-            var selectedMonth = $('#monthSelect').val();
+        var selectedYear = $('#yearSelect').val();
+        var selectedMonth = $('#monthSelect').val();
 
-            const month = parseInt(selectedMonth);
-            const year = parseInt(selectedYear);
+        const month = parseInt(selectedMonth);
+        const year = parseInt(selectedYear);
 
-            const grid = $('#employeeAttendanceGrid').dxDataGrid("instance");
-            const selected = grid.getSelectedRowsData();
+        const grid = $('#employeeAttendanceGrid').dxDataGrid("instance");
+        const selected = grid.getSelectedRowsData();
 
-            if (!selected.length) {
-                Swal.fire('Warning', 'Select at least one employee.', 'warning');
-                return;
-            }
+        if (!selected.length) {
+            Swal.fire('Warning', 'Select at least one employee.', 'warning');
+            return;
+        }
 
-            const empCodes = selected.map(emp => emp.id);
+        const empCodes = selected.map(emp => emp.id);
 
-            const paddedMonth = String(month).padStart(2, '0');
-            const startDate = `${year}-${paddedMonth}-01`;
-            const lastDay = new Date(year, month, 0).getDate();
-            const endDate = `${year}-${paddedMonth}-${lastDay}`;
+        const paddedMonth = String(month).padStart(2, '0');
+        const startDate = `${year}-${paddedMonth}-01`;
+        const lastDay = new Date(year, month, 0).getDate();
+        const endDate = `${year}-${paddedMonth}-${lastDay}`;
 
-            const request = {
-                StartDate: startDate,
-                EndDate: endDate,
-                EmployeeIds: empCodes
-         
-            };
+        const request = {
+            StartDate: startDate,
+            EndDate: endDate,
+            EmployeeIds: empCodes
+        };
 
-            $.ajax({
-                url: '@(baseDomainUrl + "/api/EmployeeReportAPI/Attendencereport")',
-                method: 'POST',
-                contentType: 'application/json',
-                headers: {
-                    'Authorization': 'Bearer ' + Token
-                },
-                data: JSON.stringify(request),
-                success: function (res) {
-         
-                    if (!res || !res.data || res.data.length === 0) {
-                        $('#attendanceModalBody').html('<p class="text-danger">No attendance records found.</p>');
-                        const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
-                        modal.show();
-                        return;
-                    }
+        // Button ko disable karo aur loader show karo
+                 const $btnView = $(this);
+                const originalText = $btnView.text();
+                $btnView.prop('disabled', true).addClass('btn-loading');
 
-                    renderAttendanceTable(res.data, startDate, endDate);
-                },
-                error: function () {
-                    Swal.fire('Error', 'Something went wrong while fetching data.', 'error');
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/EmployeeReportAPI/Attendencereport")',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            data: JSON.stringify(request),
+            success: function (res) {
+                if (!res || !res.data || res.data.length === 0) {
+                    $('#attendanceModalBody').html('<p class="text-danger">No attendance records found.</p>');
+                    const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+                    modal.show();
+                    return;
                 }
-            });
+
+                renderAttendanceTable(res.data, startDate, endDate);
+            },
+            error: function () {
+                Swal.fire('Error', 'Something went wrong while fetching data.', 'error');
+            },
+            complete: function () {
+                // Button ko enable karo aur loader remove karo
+                $btnView.prop('disabled', false).removeClass('btn-loading').text(originalText);
+            }
         });
+    });
 
 
 
