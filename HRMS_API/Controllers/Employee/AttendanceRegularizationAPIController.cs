@@ -284,7 +284,7 @@ namespace HRMS_API.Controllers.Employee
                                 new NotificationRemainders
                                 {
                                     NotificationType = NotificationType.AttendanceApplication,
-                                    NotificationAffectedId = attendance.EmpId
+                                    SenderId = attendance.EmpId.ToString()
                                 }
                             );
                         }
