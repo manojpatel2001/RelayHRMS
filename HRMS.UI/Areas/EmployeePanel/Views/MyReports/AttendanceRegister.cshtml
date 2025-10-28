@@ -302,7 +302,7 @@
 
     }
     function renderAttendanceTable(data, startDate, endDate) {
-   
+        // First row contains day names - extract it separately
         const dayRow = data[0];
         const dayKeys = Object.keys(dayRow.days).sort((a, b) => parseInt(a) - parseInt(b));
 
@@ -312,16 +312,25 @@
         };
         const today = formatDate(new Date().toISOString().split('T')[0]);
 
+        // Get selected branch names for report header
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+        const allBranches = branchTagBox ? branchTagBox.option("items") : [];
+        const selectedBranchNames = allBranches
+            .filter(branch => selectedBranchIds.includes(branch.branchId))
+            .map(branch => branch.branchName)
+            .join(', ');
+
         let header = `
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div id="reportInfo">
-                <strong>Company:</strong> ${Compname} &nbsp;&nbsp;
-                <strong>From:</strong> ${formatDate(startDate)} &nbsp;&nbsp;
-                <strong>To:</strong> ${formatDate(endDate)} &nbsp;&nbsp;
-                <strong>Print Date:</strong> ${today}
-            </div>
-            <button class="btn btn-success btn-sm" id="btnExportExcel">Export to Excel</button>
-        </div>`;
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div id="reportInfo">
+                    <strong>Company:</strong> ${Compname} &nbsp;&nbsp;
+                    <strong>From:</strong> ${formatDate(startDate)} &nbsp;&nbsp;
+                    <strong>To:</strong> ${formatDate(endDate)} &nbsp;&nbsp;
+                    <strong>Print Date:</strong> ${today}
+                </div>
+                <button class="btn btn-success btn-sm" id="btnExportExcel">Export to Excel</button>
+            </div>`;
 
         let html = `<div class="attendance-table-container">
             <table class="table table-bordered table-sm align-middle">
@@ -331,30 +340,32 @@
                         <th class="text-nowrap">Emp Code</th>
                         <th class="text-nowrap" style="min-width: 180px;">Employee</th>`;
 
+        // Build day headers with day names
         dayKeys.forEach(day => {
             const dayLabel = `${day} (${dayRow.days[day]})`;
             html += `<th class="text-center" style="min-width: 45px;">${dayLabel}</th>`;
         });
 
         html += `
-                    <th class="text-nowrap">Total P</th>
-                    <th class="text-nowrap">Total A</th>
-                    <th class="text-nowrap">Total W</th>
-                    <th class="text-nowrap">Total L</th>
-                    <th class="text-nowrap">Total H</th>
-                    <th class="text-nowrap">Total HF</th>
-                </tr>
-                </thead>
-                <tbody>`;
+            <th class="text-nowrap">Total P</th>
+            <th class="text-nowrap">Total A</th>
+            <th class="text-nowrap">Total W</th>
+            <th class="text-nowrap">Total L</th>
+            <th class="text-nowrap">Total H</th>
+            <th class="text-nowrap">Total HF Leave</th>
+        </tr>
+        </thead>
+        <tbody>`;
 
-        for (let i = 0; i < data.length; i++) {
+        // Skip first row (index 0) as it contains only day names, start from index 1
+        for (let i = 1; i < data.length; i++) {
             const row = data[i];
             html += `<tr>
                 <td>${row.branchName ?? ''}</td>
                 <td>${row.employeeCode ?? ''}</td>
                 <td>${row.fullName ?? ''}</td>`;
 
-            // Day-wise attendance columns - ab saare A red honge
+            // Day-wise attendance columns - mark 'A' as red
             dayKeys.forEach(day => {
                 const value = row.days?.[day] ?? '';
                 const trimmedValue = value.toString().trim().toUpperCase();
@@ -362,16 +373,19 @@
                 html += `<td class="text-center ${redClass}">${value}</td>`;
             });
 
+            // Totals - use lowercase property names from API response
             html += `
                 <td class="text-center">${row.p ?? 0}</td>
                 <td class="text-center text-danger fw-bold">${row.a ?? 0}</td>
                 <td class="text-center">${row.w ?? 0}</td>
                 <td class="text-center">${row.l ?? 0}</td>
                 <td class="text-center">${row.h ?? 0}</td>
-                <td class="text-center">${row.hF ?? 0}</td>
+                <td class="text-center">${row.hf ?? 0}</td>
             </tr>`;
         }
+
         html += `</tbody></table></div>`;
+
         $('#attendanceModalBody').html(header + html);
         const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
         modal.show();
