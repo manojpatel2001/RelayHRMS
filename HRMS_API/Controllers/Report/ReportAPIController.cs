@@ -181,6 +181,44 @@ namespace HRMS_API.Controllers.Report
 
 
 
+        [HttpGet("GetEmployeeMonthlyLeaveStatus")]
+        public async Task<APIResponse> GetEmployeeMonthlyLeaveStatus(int EmpId, int SelectedMonth, int SelectedYear)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetEmployeeMonthlyLeaveStatus(EmpId, SelectedMonth, SelectedYear);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+        [HttpGet("GetEmployeeYearlyLeaveStatus")]
+        public async Task<APIResponse> GetEmployeeYearlyLeaveStatus(int EmpId, int CompId, int Year)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetEmployeeMonthlyLeaveStatus( EmpId,  CompId, Year);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
         [HttpGet("GetCompoffLapseReminder")]
         public async Task<APIResponse> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays)
         {

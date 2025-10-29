@@ -315,6 +315,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<UsedLeavesSummary>().HasNoKey().ToView(null);
              modelBuilder.Entity<CompoffLapseReminderViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<LeaveTypeViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EmployeeLeaveStatus>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EmployeeYearlyLeaveStatus>().HasNoKey().ToView(null);
 
 
 
