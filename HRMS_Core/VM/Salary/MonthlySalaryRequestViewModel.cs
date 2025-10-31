@@ -15,6 +15,7 @@ namespace HRMS_Core.VM.Salary
         public string? BranchId { get; set; }
         public int? CompanyId { get; set; }
         public string? Action { get; set; }
+        public int CreatedBy { get; set; }
 
     }
 
