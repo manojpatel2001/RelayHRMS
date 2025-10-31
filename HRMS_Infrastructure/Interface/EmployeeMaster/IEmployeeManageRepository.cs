@@ -34,7 +34,7 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<VMCommonResult> UpdateLastLogin(int empid, int compId);
         Task<List<EmployeePersonalInformationVM>> EmployeePersonalInformation(int empid, int compId);
         Task<vmUserLogin?> UserLogin(vmLogin login);
-        Task<List<vmGetAllEmployee_DropDown>> GetAllEmployee_DropDown(int companyId ,string BranchId);
+        Task<List<vmGetAllEmployee_DropDown>> GetAllEmployee_DropDown(int companyId ,string BranchId ,int Month, int Year);
         Task<APIResponse> GetRecordsForUpdate(CommonParameter param);
         Task<APIResponse> GetRecordsForAdd(int CompanyId);
         Task<APIResponse> GetReportingList();

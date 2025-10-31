@@ -65,7 +65,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
         [HttpGet("GetAllEmployee_DropDown/{companyId}")]
-        public async Task<APIResponse> GetAllEmployee_DropDown(int companyId, [FromQuery] string BranchId)
+        public async Task<APIResponse> GetAllEmployee_DropDown(int companyId, [FromQuery] string BranchId, int Month, int Year)
         {
             try
             {
@@ -73,7 +73,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 var branchIds = string.IsNullOrEmpty(BranchId) ? new List<string>()
                                : BranchId.Split(',').ToList();
 
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployee_DropDown(companyId, BranchId);
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployee_DropDown(companyId, BranchId, Month, Year);
 
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
