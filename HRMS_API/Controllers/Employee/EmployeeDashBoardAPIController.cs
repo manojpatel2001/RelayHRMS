@@ -154,11 +154,11 @@ namespace HRMS_API.Controllers.Employee
         }
 
         [HttpGet("GetEmployeesforAttendanceRegister")]
-        public async Task<APIResponse> GetEmployeesforAttendanceRegister(int Compid, int EmployeeId)
+        public async Task<APIResponse> GetEmployeesforAttendanceRegister(int Compid, int EmployeeId, int Month, int Year)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeDashboardRepository.GetEmployeesforAttendanceRegister(Compid, EmployeeId);
+                var data = await _unitOfWork.EmployeeDashboardRepository.GetEmployeesforAttendanceRegister(Compid, EmployeeId,Month ,Year);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)

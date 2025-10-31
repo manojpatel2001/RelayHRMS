@@ -18,7 +18,7 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<UpcommingholidaysVM>> Getupcommingholidays(int EmployeeId, int Compid);
         Task<List<GetCountDirectOrIndirectEmployeesVM>> GetCountDirectOrIndirectEmployees(int Compid ,int EmployeeId);
         Task<List<EmployeeDirectIndirectReport>> GetDirectIndirectEmp(int Compid, int EmployeeId, string Action);
-        Task<List<EmployeeDirectIndirectReport>> GetEmployeesforAttendanceRegister(int Compid, int EmployeeId);
+        Task<List<EmployeeDirectIndirectReport>> GetEmployeesforAttendanceRegister(int Compid, int EmployeeId ,int Month,int Year);
         Task<List<MyTeamleavesVM>> GetMyteamleave(int EmpId, int Compid, int Repoid);
         Task<List<EmployeeDetailsViewModel>> GetEmployeeDetails(int EmpId);
         Task<List<RecentJoinedEmplForAdmin>> GetRecentJoinedEmployeesForAdmin();
