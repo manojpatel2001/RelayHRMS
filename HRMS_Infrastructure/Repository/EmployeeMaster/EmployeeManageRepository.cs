@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace HRMS_Infrastructure.Repository.EmployeeMaster
 {
@@ -1045,5 +1046,43 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             return response;
         }
 
+        public async Task<APIResponse> GetEmployeesListForSalary(int Month, int Year)
+        {
+            try
+            {
+                var ReportingEmployees = new List<ReportingEmployeeViewModel>();
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Month", Month, DbType.Int32, ParameterDirection.Input);
+                    parameters.Add("@Year", Year, DbType.Int32, ParameterDirection.Input);
+
+                    using (var multi = await connection.QueryMultipleAsync(
+                        "GetEmployeesListForSalary",
+                        param: parameters,
+                        commandType: CommandType.StoredProcedure))
+                    {
+                        ReportingEmployees = (await multi.ReadAsync<ReportingEmployeeViewModel>()).AsList();
+                    }
+
+                    return new APIResponse
+                    {
+                        Data = ReportingEmployees,
+                        ResponseMessage = "Fetched successfully!",
+                        isSuccess = true
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    ResponseMessage = "Something went wrong!",
+                    isSuccess = false
+                };
+            }
+        }
     }
 }

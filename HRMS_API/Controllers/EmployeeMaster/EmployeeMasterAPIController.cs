@@ -870,7 +870,21 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
             }
         }
-        
+
+        [HttpGet("GetEmployeesListForSalary")]
+        public async Task<APIResponse> GetEmployeesListForSalary([FromQuery] int month, [FromQuery] int year)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetEmployeesListForSalary(month, year);
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
 
         [HttpPost("GetEmployeeListByBranchId")]
         public async Task<APIResponse> GetEmployeeListByBranchId(CommonParameter parameter)

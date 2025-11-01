@@ -1,4 +1,4 @@
-@inject IConfiguration Configuration
+﻿@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Monthly Salary";
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
@@ -423,86 +423,119 @@
            const CompanyId=companyDetails.CompanyId;
            const EmployeeId=localStorage.getItem('EmployeeId');
            const Token=localStorage.getItem("authToken");
-
     $(document).ready(function () {
- 
-
-           const months = [
-            { monthNumber: 1,monthName: 'January' },
-            { monthNumber: 2,monthName: 'February' },
-            {monthNumber: 3, monthName: 'March' },
-            { monthNumber: 4,monthName: 'April' },
-            { monthNumber: 5,monthName: 'May' },
-            {monthNumber: 6, monthName: 'June' },
-            {monthNumber: 7, monthName: 'July' },
-            {monthNumber: 8, monthName: 'August' },
-            {monthNumber: 9, monthName: 'September' },
-            { monthNumber: 10,monthName: 'October' },
-            {monthNumber: 11,monthName: 'November' },
-            {monthNumber: 12, monthName: 'December' }
+        const months = [
+            { monthNumber: 1, monthName: 'January' },
+            { monthNumber: 2, monthName: 'February' },
+            { monthNumber: 3, monthName: 'March' },
+            { monthNumber: 4, monthName: 'April' },
+            { monthNumber: 5, monthName: 'May' },
+            { monthNumber: 6, monthName: 'June' },
+            { monthNumber: 7, monthName: 'July' },
+            { monthNumber: 8, monthName: 'August' },
+            { monthNumber: 9, monthName: 'September' },
+            { monthNumber: 10, monthName: 'October' },
+            { monthNumber: 11, monthName: 'November' },
+            { monthNumber: 12, monthName: 'December' }
         ];
 
-        // Generate years (current year - 5 to current year + 2)
+        const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
+
         const years = [];
-        for (let i = currentYear ; i <= currentYear ; i++) {
-            years.push({ yearName: i.toString() });
-        }
-            // Initialize Month Dropdown (Single Select)
+         for (let i = currentYear - 2; i <= currentYear + 1; i++) {  // ✅ Last 2 + Current + Next 1 year
+        years.push({ yearName: i.toString() });
+    }
+
+        // Month Dropdown
         $('#monthDropdown').searchableSelect({
             data: months,
             valueKey: 'monthNumber',
             textKey: 'monthName',
             searchPlaceholder: 'Search month...',
+            defaultValue: currentMonth,
             onChange: function(item) {
-               
+                loadEmployeeDropdown();
             }
         });
 
-        // Initialize Year Dropdown (Single Select)
+        // Year Dropdown
         $('#yearDropdown').searchableSelect({
             data: years,
             valueKey: 'yearName',
             textKey: 'yearName',
             searchPlaceholder: 'Search year...',
+            defaultValue: currentYear.toString(),
             onChange: function(item) {
-               
+                loadEmployeeDropdown();
             }
         });
 
-       loadEmployeeDropdown();
-      
-    });
+        // **FIX: Force update the visible input text**
+        setTimeout(function() {
+            // Month ko display update karo
+            const selectedMonthName = months.find(m => m.monthNumber === currentMonth)?.monthName;
+            if (selectedMonthName) {
+                $('#monthDropdown').val(selectedMonthName).trigger('change');
+            }
 
+            // Year ko display update karo
+            $('#yearDropdown').val(currentYear.toString()).trigger('change');
+
+            // Employee dropdown bhi load karo with current values
+            loadEmployeeDropdown();
+        }, 150);
+    });
     function goBack() {
         window.history.back();
     }
+    function loadEmployeeDropdown() {
+        // Get selected month and year from dropdowns
+        const monthNumber = $('#monthDropdown').data('searchableSelect')?.getValue() || new Date().getMonth() + 1;
+        const year = $('#yearDropdown').data('searchableSelect')?.getValue() || new Date().getFullYear();
 
-     function loadEmployeeDropdown() {
+        // Validate month and year before API call
+        if (!monthNumber || !year) {
+            console.error('Month or Year not selected');
+            return;
+        }
+
         $.ajax({
-            url: '@baseUrl/EmployeeMasterAPI/GetReportingList',
+            url: '@baseUrl/EmployeeMasterAPI/GetEmployeesListForSalary',
             method: 'GET',
-            success: function (res) {
-                 $('#employeeDropdown').searchableSelect({
-                    data:  res.data||[],
-                    valueKey: 'employeeId',
-                    textKey: 'employeeName',
-                    searchPlaceholder: 'Search ...',
-                    placeholder: 'Employee ...',
-                    multiple: true,
-                    onChange: function(items) {
-
-                    }
-                   
-                });
-
+            data: {
+                month: monthNumber,
+                year: year
             },
-            error: function () {
-                console.error('Error loading responsible dropdown');
+            success: function (res) {
+                // Clear existing employee dropdown data
+                const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
+
+                if (employeeDropdown) {
+                    // If dropdown already exists, update its data
+                    employeeDropdown.setData(res.data || []);
+                    employeeDropdown.clear(); // Clear any previous selections
+                } else {
+                    // Initialize dropdown for the first time
+                    $('#employeeDropdown').searchableSelect({
+                        data: res.data || [],
+                        valueKey: 'employeeCode',
+                        textKey: 'employeeName',
+                        searchPlaceholder: 'Search ...',
+                        placeholder: 'Employee ...',
+                        multiple: true,
+                        onChange: function(items) {
+                            // Handle employee selection change if needed
+                        }
+                    });
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error loading employee dropdown:', error);
+                round_error_noti('Failed to load employees for selected month and year');
             }
         });
     }
-
     function showbtnLoader(){
         $("#btnFetchingSalary").show();
         $("#btnFetchSalary").hide();
@@ -607,6 +640,7 @@
         const year = $('#yearDropdown').data('searchableSelect').getValue();
         //const branchIds = $('#branchDropdown').data('searchableSelect').getValue();
         const employeeIds = $('#employeeDropdown').data('searchableSelect').getValue();
+  
             let isValid = true;
             if (!monthNumber) {
                 $('#errorMonth').show();
@@ -981,9 +1015,10 @@
 
         // Clear selection
         grid.clearSelection();
-
-        // Force refresh to update header checkbox state
         grid.refresh();
+            $('#yearDropdown').prop('disabled', false);
+    $('#monthDropdown').prop('disabled', false);
+    $('#employeeDropdown').css('pointer-events', 'auto');
     });
 
      
