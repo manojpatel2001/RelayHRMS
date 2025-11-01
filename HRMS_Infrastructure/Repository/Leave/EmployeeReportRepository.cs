@@ -64,7 +64,8 @@ namespace HRMS_Infrastructure.Repository.Leave
                                 W = reader["W"].ToString(),
                                 L = reader["L"].ToString(),
                                 H = reader["H"].ToString(),
-                                HF = reader["HF"].ToString()
+                                HF = reader["HF"].ToString(),
+                                TotalPayableDays = reader["TotalPayableDays"].ToString(),
                             };
 
                             foreach (var col in columnNames)
