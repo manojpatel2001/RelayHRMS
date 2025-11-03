@@ -317,6 +317,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<LeaveTypeViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<EmployeeLeaveStatus>().HasNoKey().ToView(null);
              modelBuilder.Entity<EmployeeYearlyLeaveStatus>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EmployeeHolidayMarking>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EmployeeHolidayMarkingViewModel>().HasNoKey().ToView(null);
 
 
 
