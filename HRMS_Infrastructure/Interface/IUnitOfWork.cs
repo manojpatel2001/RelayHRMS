@@ -133,7 +133,7 @@ namespace HRMS_Infrastructure.Interface
         IEmailLoggerRepository EmailLoggerRepository { get; }
         ILeaveTransactionRepository LeaveTransactionRepository { get; }
 
-
+        IEmployeeHolidayMarkingRepository EmployeeHolidayMarkingRepository { get; }
         void Commit();
         Task CommitAsync();
     }
