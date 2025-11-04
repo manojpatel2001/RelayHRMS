@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
+using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Report;
@@ -29,6 +30,50 @@ namespace HRMS_Infrastructure.Repository.Employee
         {
             throw new NotImplementedException();
         }
+
+        public async Task<SP_Response> CreateAttendanceLockEmp(AttendanceLock model)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+        EXEC sp_AttendanceLock_CRUD
+        @Operation = {"CREATE"},
+        @EmpId = {model.EmpId},
+        @Month = {model.Month},
+        @Year = {model.Year},
+        @IsLocked = {model.IsLocked},
+        @IsEnabled = {model.IsEnabled},
+        @IsDeleted = {model.IsDeleted},
+        @CreatedBy = {model.CreatedBy}
+        ").ToListAsync();
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
+
+        public async Task<SP_Response> DeleteAttendanceLockEmp(DeleteRecordVM deleteRecord)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+        EXEC sp_AttendanceLock_CRUD
+        @Operation = {"DELETE"},
+        @AttendanceLockId = {deleteRecord.Id},
+        @DeletedBy = {deleteRecord.DeletedBy}
+        ").ToListAsync();
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
+
 
         public Task<IEnumerable<AttendanceLock>> GetAllAsync(Expression<Func<AttendanceLock, bool>>? filter = null, string? includeProperties = null)
         {
@@ -60,5 +105,31 @@ namespace HRMS_Infrastructure.Repository.Employee
         {
             throw new NotImplementedException();
         }
+
+        public async Task<SP_Response> UpdateAttendanceLockEmp(AttendanceLock model)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+        EXEC sp_AttendanceLock_CRUD
+        @Operation = {"UPDATE"},
+        @AttendanceLockId = {model.AttendanceLockId},
+        @EmpId = {model.EmpId},
+        @Month = {model.Month},
+        @Year = {model.Year},
+        @IsLocked = {model.IsLocked},
+        @IsEnabled = {model.IsEnabled},
+        @IsDeleted = {model.IsDeleted},
+        @UpdatedBy = {model.UpdatedBy}
+        ").ToListAsync();
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
+
     }
 }
