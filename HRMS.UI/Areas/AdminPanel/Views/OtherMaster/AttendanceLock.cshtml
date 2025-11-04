@@ -1,6 +1,6 @@
 ﻿@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Attendance Report";
+    ViewData["Title"] = "Attendance Lock";
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
     var uri = new Uri(baseUrl);
@@ -9,8 +9,6 @@
 }
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <style>
     .salary-box {
@@ -53,12 +51,12 @@
         margin: 0 5px;
     }
 
-    #btnFetchAttendance, #btnFetchingAttendance {
+    #btnFetchLockData, #btnFetchingLockData {
         background-color: #2395c6;
         color: #fff;
     }
 
-        #btnFetchAttendance:hover, #btnFetchingAttendance:hover {
+        #btnFetchLockData:hover, #btnFetchingLockData:hover {
             background-color: #1d7ba3;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(35, 149, 198, 0.3);
@@ -86,17 +84,6 @@
             box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
         }
 
-    .btn-go:last-child {
-        background-color: #6c757d;
-        color: #fff;
-    }
-
-        .btn-go:last-child:hover {
-            background-color: #5a6268;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
-        }
-
     .text-danger {
         color: #dc3545;
     }
@@ -107,7 +94,7 @@
         display: none;
     }
 
-    #attendanceGridContainer {
+    #lockGridContainer {
         margin-bottom: 20px !important;
         max-height: 500px !important;
         overflow: auto !important;
@@ -135,28 +122,51 @@
     }
 
     @@keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
+        0%
 
-        100% {
-            transform: rotate(360deg);
-        }
+    {
+        transform: rotate(0deg);
     }
 
-    .form-floating-custom {
-        position: relative;
+    100% {
+        transform: rotate(360deg);
     }
+
+    }
+
+    /* Radio Button Styles */
+    .radio-group {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+    }
+
+    .radio-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #2395c6;
+        }
+
+        .radio-option label {
+            cursor: pointer;
+            margin-bottom: 0;
+            font-size: 14px;
+            color: #495057;
+        }
 
     /* Searchable Multi-Select Dropdown Styles */
     .searchable-select-wrapper {
         position: relative;
         width: 100%;
     }
-
-        .searchable-select-wrapper label {
-            display: none;
-        }
 
     .searchable-select-input {
         min-height: 38px;
@@ -188,24 +198,25 @@
     }
 
     .selected-tag {
-        background-color: #e7f3ff;
-        border: 1px solid #2395c6;
+        background-color: #3e4b6d;
+        border: 1px solid #3e4b6d;
         border-radius: 3px;
         padding: 2px 8px;
         font-size: 13px;
         display: inline-flex;
         align-items: center;
         gap: 5px;
+        color: white;
     }
 
         .selected-tag .remove-tag {
             cursor: pointer;
             font-weight: bold;
-            color: #2395c6;
+            color: white;
         }
 
             .selected-tag .remove-tag:hover {
-                color: #1d7ba3;
+                color: #f0f0f0;
             }
 
     .searchable-select-arrow {
@@ -327,18 +338,97 @@
         color: #6c757d;
         font-size: 14px;
     }
+
+    /* Status Badge Styles */
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-block;
+    }
+
+    .status-locked {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .status-unlocked {
+        background-color: #28a745;
+        color: white;
+    }
+
+    /* Lock/Unlock Action Buttons */
+    .grid-action-buttons {
+        display: none;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+
+    .btn-lock-action {
+        padding: 8px 35px;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-lock {
+        background-color: #dc3545;
+        color: white;
+    }
+
+        .btn-lock:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-lock:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+    .btn-unlock {
+        background-color: #28a745;
+        color: white;
+    }
+
+        .btn-unlock:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-unlock:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
 </style>
 
 <div class="salary-box">
-    <div class="salary-header">Attendance Report</div>
+    <div class="salary-header">Attendance Lock</div>
     <div class="row justify-content-center mt-3">
-        <div class="col-lg-8">
+        <div class="col-lg-10">
             <!-- First Row: Month and Year -->
             <div class="row justify-content-center mb-3">
                 <div class="col-md-6">
                     <div class="form-group-row d-flex align-items-center">
                         <label class="form-label">Month<span class="text-danger">*</span>:</label>
-                        <div class="form-floating-custom flex-grow-1">
+                        <div class="flex-grow-1">
                             <select class="form-select" id="monthDropdown">
                                 <option value="">Select Month</option>
                                 <option value="1">January</option>
@@ -361,7 +451,7 @@
                 <div class="col-md-6">
                     <div class="form-group-row d-flex align-items-center">
                         <label class="form-label">Year<span class="text-danger">*</span>:</label>
-                        <div class="form-floating-custom flex-grow-1">
+                        <div class="flex-grow-1">
                             <select class="form-select" id="yearDropdown">
                                 <option value="">Select Year</option>
                             </select>
@@ -371,12 +461,12 @@
                 </div>
             </div>
 
-            <!-- Second Row: Branch and Employee with Searchable Multi-Select -->
+            <!-- Second Row: Branch and Employee -->
             <div class="row justify-content-center">
                 <div class="col-md-6">
                     <div class="form-group-row d-flex align-items-center">
                         <label class="form-label">Branch<span class="text-danger">*</span>:</label>
-                        <div class="form-floating-custom flex-grow-1">
+                        <div class="flex-grow-1">
                             <div class="searchable-select-wrapper multi-select" id="branchWrapper">
                                 <div class="searchable-select-input" id="branchDropdown">
                                     <div class="selected-tags">
@@ -406,7 +496,7 @@
                 <div class="col-md-6">
                     <div class="form-group-row d-flex align-items-center">
                         <label class="form-label">Employee<span class="text-danger">*</span>:</label>
-                        <div class="form-floating-custom flex-grow-1">
+                        <div class="flex-grow-1">
                             <div class="searchable-select-wrapper multi-select" id="employeeWrapper">
                                 <div class="searchable-select-input" id="employeeDropdown">
                                     <div class="selected-tags">
@@ -437,15 +527,30 @@
         </div>
     </div>
 
-    <!-- Buttons -->
-
-    <div class="col-md-12 text-center mt-4">
-        <button class="btn-go" id="btnFetchAttendance">Go</button>
-        <button class="btn-go" id="btnFetchingAttendance" disabled style="display: none;">
-            <span class="spinner-border spinner-border-sm me-2" role="status"></span> Go
-        </button>
-        <button class="btn-go" id="btnClear">Clear</button>
-        <button class="btn-go" onclick="goBack()">Back</button>
+    <!-- Radio Button and Buttons Row -->
+    <div class="row justify-content-center mt-3">
+        <div class="col-lg-10">
+            <div class="d-flex align-items-center justify-content-center gap-3">
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="radioLocked" name="lockStatus" value="Locked">
+                        <label for="radioLocked">Locked</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="radioUnlocked" name="lockStatus" value="Unlocked">
+                        <label for="radioUnlocked">Unlocked</label>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn-go" id="btnFetchLockData">Go</button>
+                    <button class="btn-go" id="btnFetchingLockData" disabled style="display: none;">
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span> Go
+                    </button>
+                    <button class="btn-go" id="btnClear">Clear</button>
+                    <button class="btn-go" onclick="goBack()">Back</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -455,14 +560,47 @@
     <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
 </div>
 
-<!-- Attendance Grid -->
-<div id="attendanceGridContainer" style="display: none; margin-top: 20px;"></div>
+<!-- Lock Status Grid -->
+<div id="lockGridContainer" style="display: none; margin-top: 20px;"></div>
 
-<script>
+<!-- Lock/Unlock Action Buttons -->
+<div id="gridActionButtons" class="grid-action-buttons">
+    <button class="btn-lock-action btn-lock" id="btnLockAttendance">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+        </svg>
+        Lock Attendance
+    </button>
+    <button class="btn-lock-action btn-lock" id="btnLockingAttendance" disabled style="display: none;">
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+        Locking...
+    </button>
+
+    <button class="btn-lock-action btn-unlock" id="btnUnlockAttendance">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M11 1a2 2 0 0 0-2 2v4a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h5V3a3 3 0 0 1 6 0v4a.5.5 0 0 1-1 0V3a2 2 0 0 0-2-2z" />
+        </svg>
+        Unlock Attendance
+    </button>
+    <button class="btn-lock-action btn-unlock" id="btnUnlockingAttendance" disabled style="display: none;">
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+        Unlocking...
+    </button>
+</div>
+
+<script> 
+       const Empid = parseInt(localStorage.getItem("EmployeeId"));
     const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany);
     const CompanyId = companyDetails.CompanyId;
     const Token = localStorage.getItem("authToken");
+
+    // Store current grid data and filters
+    let currentGridData = [];
+    let currentFilters = {
+        month: null,
+        year: null
+    };
 
     // Searchable Multi-Select Component
     class SearchableMultiSelect {
@@ -473,7 +611,6 @@
             this.searchInput = this.wrapper.querySelector('.search-input');
             this.optionsContainer = this.wrapper.querySelector('.searchable-select-options');
             this.selectedTags = this.wrapper.querySelector('.selected-tags');
-            this.placeholder = this.wrapper.querySelector('.selected-tags-placeholder');
             this.selectAllBtn = this.wrapper.querySelector('.select-all-btn');
             this.clearAllBtn = this.wrapper.querySelector('.clear-all-btn');
 
@@ -494,13 +631,8 @@
                 this.filterOptions(e.target.value);
             });
 
-            this.selectAllBtn.addEventListener('click', () => {
-                this.selectAll();
-            });
-
-            this.clearAllBtn.addEventListener('click', () => {
-                this.clearAll();
-            });
+            this.selectAllBtn.addEventListener('click', () => this.selectAll());
+            this.clearAllBtn.addEventListener('click', () => this.clearAll());
 
             document.addEventListener('click', (e) => {
                 if (!this.wrapper.contains(e.target)) {
@@ -687,7 +819,6 @@
     });
 
     function loadEmployeesForBranches(branchIds) {
-        // Reset employee dropdown
         employeeMultiSelect.setOptions([]);
         employeeMultiSelect.reset();
 
@@ -695,16 +826,13 @@
             return;
         }
 
-        // Create comma-separated string of branch IDs
         const branchIdsParam = branchIds.join(',');
 
-        // Call the specified API
         $.ajax({
             url: `@baseDomainUrl/api/EmployeeMasterAPI/GetAllEmployeeByBranch/${CompanyId}?BranchId=${branchIdsParam}`,
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + Token },
             success: function(response) {
-                console.log('response' ,response);
                 if (response?.data?.length > 0) {
                     const employeeOptions = response.data.map(emp => ({
                         value: emp.id,
@@ -712,12 +840,15 @@
                     }));
                     employeeMultiSelect.setOptions(employeeOptions);
                 } else {
+                    console.warn('No employees found for selected branches');
                     employeeMultiSelect.setOptions([]);
                 }
             },
-            error: function(error) {
+            error: function(xhr, status, error) {
                 console.error('Error loading employees:', error);
+                console.error('XHR Response:', xhr.responseText);
                 employeeMultiSelect.setOptions([]);
+                Swal.fire('Error', 'Failed to load employees for selected branches.', 'error');
             }
         });
     }
@@ -727,29 +858,22 @@
     }
 
     function clearPage() {
-        // Reset Month dropdown
         $('#monthDropdown').val('');
-
-        // Reset Year dropdown
         $('#yearDropdown').val('');
-
-        // Reset Branch multi-select
+        $('input[name="lockStatus"]').prop('checked', false);
         branchMultiSelect.clearAll();
-
-        // Reset Employee multi-select
         employeeMultiSelect.clearAll();
-
-        // Hide all error messages
         $('.error-message').hide();
-
-        // Hide attendance grid
-        $('#attendanceGridContainer').hide().empty();
+        $('#lockGridContainer').hide().empty();
+        $('#gridActionButtons').hide();
+        currentGridData = [];
+        currentFilters = { month: null, year: null };
     }
 
-    // Clear button click event
     $('#btnClear').click(function() {
         clearPage();
     });
+
     function showLoader() {
         $('#grid-loader').css('display', 'flex');
     }
@@ -759,27 +883,26 @@
     }
 
     function showBtnLoader() {
-        $('#btnFetchingAttendance').show();
-        $('#btnFetchAttendance').hide();
+        $('#btnFetchingLockData').show();
+        $('#btnFetchLockData').hide();
     }
 
     function hideBtnLoader() {
-        $('#btnFetchingAttendance').hide();
-        $('#btnFetchAttendance').show();
+        $('#btnFetchingLockData').hide();
+        $('#btnFetchLockData').show();
     }
 
-    $('#btnFetchAttendance').click(function() {
-        debugger;
+    $('#btnFetchLockData').click(function() {
         showBtnLoader();
+
         const month = $('#monthDropdown').val();
         const year = $('#yearDropdown').val();
-        const branchIds = branchMultiSelect.getSelectedValues();
+        const status = $('input[name="lockStatus"]:checked').val() || null;
         const employeeIds = employeeMultiSelect.getSelectedValues();
 
         let isValid = true;
         if (!month) { $('#errorMonth').show(); isValid = false; } else { $('#errorMonth').hide(); }
         if (!year) { $('#errorYear').show(); isValid = false; } else { $('#errorYear').hide(); }
-        if (branchIds.length === 0) { $('#errorBranch').show(); isValid = false; } else { $('#errorBranch').hide(); }
         if (employeeIds.length === 0) { $('#errorEmployee').show(); isValid = false; } else { $('#errorEmployee').hide(); }
 
         if (!isValid) {
@@ -787,85 +910,278 @@
             return;
         }
 
+        // Store current filters
+        currentFilters = {
+            month: parseInt(month),
+            year: parseInt(year)
+        };
+
         showLoader();
-        const startDate = `${year}-${month.padStart(2, '0')}-01`;
-        const lastDay = new Date(year, month, 0).getDate();
-        const endDate = `${year}-${month.padStart(2, '0')}-${lastDay}`;
+
+        // Create request payload
+        const requestData = {
+            Month: parseInt(month),
+            Year: parseInt(year),
+            EmployeeId: employeeIds.join(','),
+            Status: status
+        };
 
         $.ajax({
-            url: '@(baseDomainUrl + "/api/EmployeeReportAPI/Attendencereport")',
+            url: '@(baseDomainUrl + "/api/AttendanceLockAPI/GetAttendanceLockDetails")',
             method: 'POST',
             contentType: 'application/json',
             headers: { 'Authorization': 'Bearer ' + Token },
-            data: JSON.stringify({
-                StartDate: startDate,
-                EndDate: endDate,
-                EmployeeIds: employeeIds,
-                BranchIds: branchIds
-            }),
+            data: JSON.stringify(requestData),
             success: function(response) {
                 hideLoader();
                 hideBtnLoader();
-                if (response?.data?.length > 0) {
-                    renderAttendanceGrid(response.data);
+
+                if (response?.isSuccess && response?.data?.length > 0) {
+                    currentGridData = response.data;
+                    renderLockGrid(response.data);
+                    $('#gridActionButtons').css('display', 'flex');
                 } else {
-                    Swal.fire('Info', 'No attendance records found.', 'info');
+                    $('#gridActionButtons').hide();
+                    Swal.fire('Info', response?.responseMessage || 'No lock records found.', 'info');
                 }
             },
             error: function(xhr, status, error) {
                 hideLoader();
                 hideBtnLoader();
-                console.error('Error fetching attendance:', error);
-                Swal.fire('Error', 'Failed to fetch attendance data.', 'error');
+                $('#gridActionButtons').hide();
+                console.error('Error fetching lock data:', error);
+                Swal.fire('Error', 'Failed to fetch attendance lock data.', 'error');
             }
         });
     });
 
-    function renderAttendanceGrid(data) {
-        const days = Object.keys(data[0].days).sort((a, b) => parseInt(a) - parseInt(b));
+    function renderLockGrid(data) {
         const columns = [
-            { dataField: "branchName", caption: "Branch", width: 120 },
-            { dataField: "employeeCode", caption: "Employee Code", width: 120 },
-            { dataField: "fullName", caption: "Employee Name", width: 200 }
+            { dataField: "employeeCode", caption: "Employee Code", width: 150 },
+            { dataField: "employeeId", caption: "EmployeeId", visible: false },
+            { dataField: "fullName", caption: "Employee Name", width: 200 },
+            { dataField: "designationName", caption: "Designation Name", width: 150 },
+            { dataField: "month", caption: "Month", width: 100 },
+            { dataField: "year", caption: "Year", width: 100 },
+            {
+                dataField: "status",
+                caption: "Status",
+                width: 120,
+                cellTemplate: function(container, options) {
+                    const status = options.value;
+                    const badgeClass = status === 'Locked' ? 'status-locked' : 'status-unlocked';
+                    container.html(`<span class="status-badge ${badgeClass}">${status}</span>`);
+                }
+            }
         ];
 
-        // Add day columns
-        days.forEach(day => {
-            columns.push({
-                dataField: `days.${day}`,
-                caption: day,
-                width: 40,
-                cellTemplate: function(container, options) {
-                    const value = options.value;
-                    container.text(value);
-                    if (value === 'P') container.css('color', 'green');
-                    else if (value === 'A') container.css('color', 'red');
-                    else if (value === 'W') container.css('color', 'blue');
-                }
-            });
-        });
-
-        // Add total columns
-        columns.push(
-            { dataField: "p", caption: "P", width: 50 },
-            { dataField: "a", caption: "A", width: 50 },
-            { dataField: "w", caption: "W", width: 50 },
-            { dataField: "l", caption: "L", width: 50 },
-            { dataField: "h", caption: "H", width: 50 },
-            { dataField: "hf", caption: "HF", width: 50 }
-        );
-
-        $("#attendanceGridContainer").dxDataGrid({
+        $("#lockGridContainer").dxDataGrid({
             dataSource: data,
-            keyExpr: "employeeCode",
+            keyExpr: "employeeId",
             showBorders: true,
             columnAutoWidth: true,
-            rowHeight: 50,
+            rowAlternationEnabled: true,
+            export: {
+                enabled: false
+            },
+            searchPanel: {
+                visible: true,
+                width: 240,
+                placeholder: "Search..."
+            },
+            paging: {
+                enabled: true,
+                pageSize: 20
+            },
+            pager: {
+                visible: true,
+                showPageSizeSelector: true,
+                allowedPageSizes: [20, 50, 100],
+                showInfo: true
+            },
+            scrolling: {
+                mode: "standard"
+            },
+            loadPanel: {
+                enabled: true
+            },
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
+            },
             columns: columns,
-            export: { enabled: true },
-            searchPanel: { visible: true },
-            paging: { enabled: false },
-            scrolling: { mode: "standard" }
+            onContentReady: function(e) {
+                // Set the width of the selection column
+                var $checkBoxes = $(".dx-selection-checkbox");
+                $checkBoxes.closest("th").css("width", "30px");
+                $checkBoxes.closest("td").css("width", "30px");
+            }
         }).show();
+    }
+
+    // Lock Attendance Button Click
+    $('#btnLockAttendance').click(function() {
+        const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
+        const selectedRows = gridInstance.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            Swal.fire('Warning', 'Please select at least one employee to lock attendance.', 'warning');
+            return;
+        }
+
+        // Confirm before locking
+        Swal.fire({
+            title: 'Confirm Lock',
+            text: `Are you sure you want to lock attendance for ${selectedRows.length} employee(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Lock It!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                lockAttendance(selectedRows);
+            }
+        });
+    });
+
+    // Unlock Attendance Button Click
+    $('#btnUnlockAttendance').click(function() {
+        const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
+        const selectedRows = gridInstance.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            Swal.fire('Warning', 'Please select at least one employee to unlock attendance.', 'warning');
+            return;
+        }
+
+        // Confirm before unlocking
+        Swal.fire({
+            title: 'Confirm Unlock',
+            text: `Are you sure you want to unlock attendance for ${selectedRows.length} employee(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Unlock It!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                unlockAttendance(selectedRows);
+            }
+        });
+    });
+
+    // Lock Attendance Function (Insert)
+    function lockAttendance(selectedRows) {
+        $('#btnLockingAttendance').show();
+        $('#btnLockAttendance').hide();
+        showLoader();
+
+        // Prepare data for insert
+        const lockRecords = selectedRows.map(row => ({
+            EmpId: row.employeeId,
+            Month: currentFilters.month,
+            Year: currentFilters.year,
+            IsLocked: true,
+            IsEnabled: true,
+            IsDeleted: false,
+            CreatedBy: Empid 
+        }));
+
+        // DEMO API - Replace with actual endpoint
+        const demoApiUrl = '@(baseDomainUrl + "/api/AttendanceLockAPI/InsertAttendanceLock")';
+
+        $.ajax({
+            url: demoApiUrl,
+            method: 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(lockRecords),
+            success: function(response) {
+                hideLoader();
+                $('#btnLockingAttendance').hide();
+                $('#btnLockAttendance').show();
+
+                if (response?.isSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: `Attendance locked successfully for ${selectedRows.length} employee(s).`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Refresh grid data
+                        $('#btnFetchLockData').click();
+                    });
+                } else {
+                    Swal.fire('Error', response?.responseMessage || 'Failed to lock attendance.', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoader();
+                $('#btnLockingAttendance').hide();
+                $('#btnLockAttendance').show();
+                console.error('Error locking attendance:', error);
+                Swal.fire('Error', 'Failed to lock attendance. Please try again.', 'error');
+            }
+        });
+    }
+
+    // Unlock Attendance Function (Update)
+    function unlockAttendance(selectedRows) {
+        $('#btnUnlockingAttendance').show();
+        $('#btnUnlockAttendance').hide();
+        showLoader();
+
+        // Prepare data for update
+        const unlockRecords = selectedRows.map(row => ({
+            EmpId: row.employeeId,
+            Month: currentFilters.month,
+            Year: currentFilters.year,
+            IsLocked: false,
+            IsEnabled: true,
+            IsDeleted: false,
+            UpdatedBy: Empid // Replace with actual user ID if available
+        }));
+
+        // DEMO API - Replace with actual endpoint
+        const demoApiUrl = '@(baseDomainUrl + "/api/AttendanceLockAPI/UpdateAttendanceLock")';
+
+        $.ajax({
+            url: demoApiUrl,
+            method: 'PUT',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(unlockRecords),
+            success: function(response) {
+                hideLoader();
+                $('#btnUnlockingAttendance').hide();
+                $('#btnUnlockAttendance').show();
+
+                if (response?.isSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: `Attendance unlocked successfully for ${selectedRows.length} employee(s).`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Refresh grid data
+                        $('#btnFetchLockData').click();
+                    });
+                } else {
+                    Swal.fire('Error', response?.responseMessage || 'Failed to unlock attendance.', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoader();
+                $('#btnUnlockingAttendance').hide();
+                $('#btnUnlockAttendance').show();
+                console.error('Error unlocking attendance:', error);
+                Swal.fire('Error', 'Failed to unlock attendance. Please try again.', 'error');
+            }
+        });
     }
 </script>
