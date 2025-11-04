@@ -1084,5 +1084,19 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 };
             }
         }
+
+        public async Task<List<vmGetAllEmployee_DropDown>> GetAllEmployeeByBranch(int companyId, string BranchId)
+        {
+            try
+            {
+                return await _db.Set<vmGetAllEmployee_DropDown>()
+                                .FromSqlInterpolated($"EXEC GetAllEmployeeByBranch @companyId={companyId} , @BranchIds={BranchId}")
+                                .ToListAsync();
+            }
+            catch (Exception)
+            {
+                return new List<vmGetAllEmployee_DropDown>();
+            }
+        }
     }
 }
