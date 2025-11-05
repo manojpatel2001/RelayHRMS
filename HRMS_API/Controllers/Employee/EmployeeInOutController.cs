@@ -1,4 +1,6 @@
-﻿using HRMS_Core.Employee;
+﻿using Dapper;
+using HRMS_Core.Employee;
+using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Ess.InOut;
 using HRMS_Core.VM.Report;
@@ -6,6 +8,8 @@ using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace HRMS_API.Controllers.Employee
 {
@@ -373,8 +377,6 @@ namespace HRMS_API.Controllers.Employee
         }
 
 
-
-
         [HttpPost("GetEmpInOutReportForAdmin")]
         public async Task<APIResponse> GetEmpInOutReportForAdmin(EmpInOutReportFilter fiter)
         {
@@ -391,5 +393,22 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
+
+        [HttpPost("GetAttendanceRegularizationAlerts")]
+        public async Task<APIResponse> GetAttendanceRegularizationAlerts(CommonParameter model)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetAttendanceRegularizationAlerts(model);
+
+                return data;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to fetch data. Please try again later." };
+            }
+        }
+
+
     }
 }

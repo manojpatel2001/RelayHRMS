@@ -64,27 +64,7 @@
         public string? ESICNo { get; set; }
         public string? PAN { get; set; }
 
-        // Contact Details Tab Fields
-        public string? ContactNo1 { get; set; }
-        public string? ContactPersonName1 { get; set; }
-        public string? ContactPersonRelation1 { get; set; }
-        public string? ContactNo2 { get; set; }
-        public string? ContactPersonName2 { get; set; }
-        public string? ContactPersonRelation2 { get; set; }
-        public string? ContactNo3 { get; set; }
-        public string? ContactPersonName3 { get; set; }
-        public string? ContactPersonRelation3 { get; set; }
-
-        // Document Details Tab Fields
-        public string? AadharCardNo { get; set; }
-        public string? AadharCardCopyPath { get; set; }
-        public string? PanCardNo { get; set; }
-        public string? PanCardCopyPath { get; set; }
-        public string? FreshResumePath { get; set; }
-        public string? PassportSizePhotoCopyPath { get; set; }
-        public string? CancelledChequePath { get; set; }
-        public string? PayslipPath { get; set; }
-        public string? ExperienceCertificatePath { get; set; }
+        
     }
    
 }
