@@ -45,7 +45,8 @@ namespace HRMS_Infrastructure.Repository.Salary
             @EndDate = {vm.EndDate:yyyy-MM-dd}, 
             @EmployeeCodes = {vm.EmployeeCodes}, 
             @CompanyId ={vm.CompanyId},
-            @Action = {vm.Action ?? "Insert"}
+            @Action = {vm.Action ?? "Insert"},
+              @CreatedBy = {vm.CreatedBy}
         ").ToListAsync();
 
                 return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
@@ -91,7 +92,11 @@ namespace HRMS_Infrastructure.Repository.Salary
                 @EmployeeCodes ={vm.EmployeeCodes},
                 @BranchIdS ={vm.BranchId},
                 @CompanyId ={vm.CompanyId},
-                @Action={vm.Action}")
+                @Action={vm.Action},       
+                @CreatedBy = {vm.CreatedBy}")
+
+
+
                     .ToListAsync();
             }
             catch

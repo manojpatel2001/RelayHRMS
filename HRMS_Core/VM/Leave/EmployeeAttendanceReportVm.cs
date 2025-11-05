@@ -24,5 +24,6 @@ namespace HRMS_Core.VM.Leave
         public string? L { get; set; }
         public string? H { get; set; }
         public string? HF { get; set; }
+        public string? TotalPayableDays { get; set; }
     }
 }

@@ -120,20 +120,22 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<List<EmployeeDirectIndirectReport>> GetEmployeesforAttendanceRegister(int Compid, int EmployeeId)
+        public async Task<List<EmployeeDirectIndirectReport>> GetEmployeesforAttendanceRegister(int Compid, int EmployeeId, int Month, int Year)
         {
             try
             {
                 var parameters = new[]
                 {
                     new SqlParameter("@ReportingId", EmployeeId) ,
-                    new SqlParameter("@CompanyId", Compid) 
+                    new SqlParameter("@CompanyId", Compid) ,
+                    new SqlParameter("@Month", Month) ,
+                    new SqlParameter("@Year", Year) 
                  
 
                     };
 
                 var result = await _db.Set<EmployeeDirectIndirectReport>()
-                    .FromSqlRaw("EXEC GetEmployeesforAttendanceRegister @ReportingId, @CompanyId", parameters)
+                    .FromSqlRaw("EXEC GetEmployeesforAttendanceRegister @ReportingId, @CompanyId ,@Month,@Year", parameters)
                     .ToListAsync();
 
                 return result;

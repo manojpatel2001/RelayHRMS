@@ -396,6 +396,27 @@
             hideDataElements();
         });
 
+         
+    $('#monthSelect').on('change', function() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+
+        // Sirf tab reload karo jab branch selected ho
+        if (selectedBranchIds && selectedBranchIds.length > 0) {
+            onFind();
+        }
+    });
+
+        // Year change hone par auto reload
+    $('#yearSelect').on('change', function() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+
+        // Sirf tab reload karo jab branch selected ho
+        if (selectedBranchIds && selectedBranchIds.length > 0) {
+            onFind();
+        }
+    });
         // Function to hide data-related elements
         function hideDataElements() {
             $('#recordCount').removeClass('show').hide();
@@ -482,105 +503,111 @@
             }
         }
 
-        function onFind() {
-            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
 
-            if (!selectedBranchIds || selectedBranchIds.length === 0) {
-                Swal.fire('Warning', 'Please select at least one branch.', 'warning');
-                return;
-            }
+          function onFind() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
 
-            $('#grid-loader').addClass('d-flex').show();
-            hideDataElements(); // Hide elements during loading
-
-            // Convert array to comma-separated string for API
-            const branchIdsParam = selectedBranchIds.join(',');
-
-            $.ajax({
-                url: `@baseDomainUrl/api/EmployeeMasterAPI/GetAllEmployee_DropDown/${CompanyId}?BranchId=${branchIdsParam}`,
-                type: "GET",
-                headers: {
-                    'Authorization': 'Bearer ' + Token
-                },
-                dataType: "json",
-                success: function (response) {
-                    const employeeData = response.data || response;
-                    originalEmployeeData = employeeData; // Store original data
-
-                    if (employeeData && employeeData.length > 0) {
-                     
-                        showDataElements();
-
-                        const grid = $("#employeeAttendanceGrid").dxDataGrid({
-                            dataSource: employeeData,
-                            keyExpr: "id",
-                            selection: {
-                                mode: "multiple",
-                                showCheckBoxesMode: "always"
-                            },
-                            showBorders: true,
-                            columnAutoWidth: true,
-                            paging: {
-                                enabled: false
-                            },
-                            scrolling: {
-                                mode: "standard",
-                                useNative: true,
-                                showScrollbar: "always"
-                            },
-                            searchPanel: {
-                                visible: false  // Hide the built-in search panel
-                            },
-                            height: 500,
-                            columns: [
-                                { dataField: "employeeCode", caption: "Employee Code", width: 150 },
-                                { dataField: "id", caption: "EmployeeId", visible: false },
-                                { dataField: "fullName", caption: "Employee Name" },
-                                { dataField: "branchName", caption: "Branch", width: 150 }
-                            ],
-                            onContentReady: function() {
-                                updateRecordCount(); // Update count when grid is ready
-                            }
-                        }).dxDataGrid("instance");
-
-                        // Custom search functionality with count update
-                        $('#employeeSearch').off('input').on('input', function() {
-                            const searchValue = $(this).val();
-                            if (searchValue) {
-                                grid.filter([
-                                    ['fullName', 'contains', searchValue],
-                                    'or',
-                                    ['employeeCode', 'contains', searchValue],
-                                    'or',
-                                    ['branchName', 'contains', searchValue]
-                                ]);
-                            } else {
-                                grid.clearFilter();
-                            }
-                            // Update record count after filtering
-                            setTimeout(updateRecordCount, 100);
-                        });
-
-                        const recordCount = employeeData.length;
-                        $('#recordCount').text(`${recordCount} Records found.`);
-                        $('#recordCount').css('color', '#28a745'); // Green for found records
-                    } else {
-                        // No data found
-                        hideDataElements();
-                        $('#noDataMessage').text('No employees found for the selected branch(es).').show();
-                    }
-
-                    $('#grid-loader').removeClass('d-flex').hide();
-                },
-                error: function () {
-                    $('#grid-loader').removeClass('d-flex').hide();
-                    hideDataElements();
-                    $('#noDataMessage').text('Failed to load employees. Please try again.').show();
-                    Swal.fire('Error', 'Failed to load employees.', 'error');
-                }
-            });
+        if (!selectedBranchIds || selectedBranchIds.length === 0) {
+            Swal.fire('Warning', 'Please select at least one branch.', 'warning');
+            return;
         }
+
+        // Get selected month and year
+        const selectedMonth = $('#monthSelect').val();
+        const selectedYear = $('#yearSelect').val();
+
+        $('#grid-loader').addClass('d-flex').show();
+        hideDataElements(); // Hide elements during loading
+
+        // Convert array to comma-separated string for API
+        const branchIdsParam = selectedBranchIds.join(',');
+
+        $.ajax({
+            url: `@baseDomainUrl/api/EmployeeMasterAPI/GetAllEmployee_DropDown/${CompanyId}?BranchId=${branchIdsParam}&Month=${selectedMonth}&Year=${selectedYear}`,
+            type: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            dataType: "json",
+            success: function (response) {
+                const employeeData = response.data || response;
+                originalEmployeeData = employeeData; // Store original data
+
+                if (employeeData && employeeData.length > 0) {
+
+                    showDataElements();
+
+                    const grid = $("#employeeAttendanceGrid").dxDataGrid({
+                        dataSource: employeeData,
+                        keyExpr: "id",
+                        selection: {
+                            mode: "multiple",
+                            showCheckBoxesMode: "always"
+                        },
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        paging: {
+                            enabled: false
+                        },
+                        scrolling: {
+                            mode: "standard",
+                            useNative: true,
+                            showScrollbar: "always"
+                        },
+                        searchPanel: {
+                            visible: false  // Hide the built-in search panel
+                        },
+                        height: 500,
+                        columns: [
+                            { dataField: "employeeCode", caption: "Employee Code", width: 150 },
+                            { dataField: "id", caption: "EmployeeId", visible: false },
+                            { dataField: "fullName", caption: "Employee Name" },
+                            { dataField: "branchName", caption: "Branch", width: 150 }
+                        ],
+                        onContentReady: function() {
+                            updateRecordCount(); // Update count when grid is ready
+                        }
+                    }).dxDataGrid("instance");
+
+                    // Custom search functionality with count update
+                    $('#employeeSearch').off('input').on('input', function() {
+                        const searchValue = $(this).val();
+                        if (searchValue) {
+                            grid.filter([
+                                ['fullName', 'contains', searchValue],
+                                'or',
+                                ['employeeCode', 'contains', searchValue],
+                                'or',
+                                ['branchName', 'contains', searchValue]
+                            ]);
+                        } else {
+                            grid.clearFilter();
+                        }
+                        // Update record count after filtering
+                        setTimeout(updateRecordCount, 100);
+                    });
+
+                    const recordCount = employeeData.length;
+                    $('#recordCount').text(`${recordCount} Records found.`);
+                    $('#recordCount').css('color', '#28a745'); // Green for found records
+                } else {
+                    // No data found
+                    hideDataElements();
+                    $('#noDataMessage').text('No employees found for the selected branch(es).').show();
+                }
+
+                $('#grid-loader').removeClass('d-flex').hide();
+            },
+            error: function () {
+                $('#grid-loader').removeClass('d-flex').hide();
+                hideDataElements();
+                $('#noDataMessage').text('Failed to load employees. Please try again.').show();
+                Swal.fire('Error', 'Failed to load employees.', 'error');
+            }
+        });
+    }
+
 
         function onClear() {
             const branchTagBox = $("#branchDropdown").dxTagBox("instance");
@@ -718,6 +745,7 @@
             <th class="text-nowrap">Total L</th>
             <th class="text-nowrap">Total H</th>
             <th class="text-nowrap">Total HF Leave</th>
+            <th class="text-nowrap">Total Payable Days</th>
         </tr>
         </thead>
         <tbody>`;
@@ -746,6 +774,7 @@
                 <td class="text-center">${row.l ?? 0}</td>
                 <td class="text-center">${row.h ?? 0}</td>
                 <td class="text-center">${row.hf ?? 0}</td>
+                <td class="text-center">${row.totalPayableDays ?? 0}</td>
             </tr>`;
         }
 

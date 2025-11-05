@@ -1879,17 +1879,20 @@
 
 <script>
 
-
-	$(document).on('click', '.allowanceIcon', function (e) {
+	$(document).on('click', '.allowanceIcon', async function (e) {
 		var grossSalary = $('#txtGrossSalary').val();
 		if(!grossSalary)
 		{
 			round_error_noti("Please enter gross salary");
 			return;
 		}
+
+		// ⭐ YE 2 LINES ADD KI HAIN - Grade aur Basic Salary update karenge
+		await GetGradeBySalaryRange();
+		await loadSalaryAllowance();
+
 		$('#SalaryAllowanceModal').modal('show');
 	});
-
 
 	function handleAllowanceIconClick() {
 	  // Do something useful
@@ -1907,9 +1910,9 @@
 		await GetGradeBySalaryRange();
 		await loadSalaryAllowance();
 
-	});  
+	});
 
-
+	
 	
 			async function GetGradeBySalaryRange() {
 				var grossSalary = $('#txtGrossSalary').val();
@@ -1954,47 +1957,43 @@
 					console.error('Error fetching data:', error);
 				}
 			}
-
 	async function loadSalaryAllowance() {
-		var grossSalary = $('#txtGrossSalary').val(); 
-		var basicSalary = $('#txtBasicSalary').val();
+		debugger;
+		var grossSalary = $('#txtGrossSalary').val();
 		var isPFApplicable = $('#isPFApplicable').is(':checked');
+		var basicSalary = 0;
 
-		if (basicSalary == null || basicSalary === "" ) {
-		basicSalary = 0;
-	}
-		if(!grossSalary)
-		{
+		if(!grossSalary) {
 			return;
 		}
-	
-	   try {
-				const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetLiveEmployeeSalaryAllowance', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						IsPFApplicable: isPFApplicable,
-						GrossSalary: grossSalary,
-						BasicSalary: basicSalary
-					})
-				});
 
+		try {
+			const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetLiveEmployeeSalaryAllowance', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					IsPFApplicable: isPFApplicable,
+					GrossSalary: grossSalary,
+					BasicSalary: basicSalary  // ⭐ Ab ye hamesha 0 jayegi
+				})
+			});
 
 			const data = await response.json();
 			if (data.isSuccess) {
 				var arrayDta = data.data;
-				bindSalaryAllowance(arrayDta);
-				
+
+				// ⭐ PEHLE BASIC SALARY SET KARO
 				$('#txtBasicSalary').val(arrayDta.basicSalary);
+
+				// ⭐ PHIR ALLOWANCE MODAL BIND KARO
+				bindSalaryAllowance(arrayDta);
 			}
 		} catch (error) {
 			console.error('Fetch error:', error);
 		}
 	}
-
-
 	 function formatCurrency(amount) {
 		return '₹' + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 	}

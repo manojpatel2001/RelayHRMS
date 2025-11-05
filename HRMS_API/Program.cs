@@ -77,7 +77,8 @@ builder.Services.AddAuthentication(options =>
 var allowedOrigins = new[]
 {
     "https://localhost:7165",
-    "http://15.235.82.113:81"
+    "http://15.235.82.113:81",
+    "http://164.52.206.29:81" 
 };
 
 // CORS

@@ -64,8 +64,8 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
-        [HttpGet("GetAllEmployee_DropDown/{companyId}")]
-        public async Task<APIResponse> GetAllEmployee_DropDown(int companyId, [FromQuery] string BranchId)
+        [HttpGet("GetAllEmployeeByBranch/{companyId}")]
+        public async Task<APIResponse> GetAllEmployeeByBranch(int companyId, [FromQuery] string BranchId)
         {
             try
             {
@@ -73,7 +73,28 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 var branchIds = string.IsNullOrEmpty(BranchId) ? new List<string>()
                                : BranchId.Split(',').ToList();
 
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployee_DropDown(companyId, BranchId);
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeByBranch(companyId, BranchId);
+
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+        [HttpGet("GetAllEmployee_DropDown/{companyId}")]
+        public async Task<APIResponse> GetAllEmployee_DropDown(int companyId, [FromQuery] string BranchId, int Month, int Year)
+        {
+            try
+            {
+                // Split comma-separated BranchIds if multiple branches are sent
+                var branchIds = string.IsNullOrEmpty(BranchId) ? new List<string>()
+                               : BranchId.Split(',').ToList();
+
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployee_DropDown(companyId, BranchId, Month, Year);
 
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
@@ -870,7 +891,21 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
             }
         }
-        
+
+        [HttpGet("GetEmployeesListForSalary")]
+        public async Task<APIResponse> GetEmployeesListForSalary([FromQuery] int month, [FromQuery] int year)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetEmployeesListForSalary(month, year);
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
 
         [HttpPost("GetEmployeeListByBranchId")]
         public async Task<APIResponse> GetEmployeeListByBranchId(CommonParameter parameter)

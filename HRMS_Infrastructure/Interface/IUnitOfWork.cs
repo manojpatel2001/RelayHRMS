@@ -135,6 +135,8 @@ namespace HRMS_Infrastructure.Interface
         IManpowerRelationRepository ManpowerRelationRepository { get; }
         IManpowerAttachmentRepository ManpowerAttachmentRepository { get; }
 
+        IEmployeeHolidayMarkingRepository EmployeeHolidayMarkingRepository { get; }
+        IAttendanceLockRepository AttendanceLockRepository { get; }
         void Commit();
         Task CommitAsync();
     }

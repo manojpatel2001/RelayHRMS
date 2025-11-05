@@ -99,6 +99,58 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+        public async Task<List<EmployeeLeaveStatus>> GetEmployeeMonthlyLeaveStatus(int EmpId, int SelectedMonth, int SelectedYear)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+
+
+                    new SqlParameter("@EmployeeId", EmpId),
+                    new SqlParameter("@SelectedMonth", SelectedMonth),
+                    new SqlParameter("@SelectedYear", SelectedYear)
+
+                    };
+
+                var result = await _db.Set<EmployeeLeaveStatus>()
+                    .FromSqlRaw("EXEC sp_GetEmployeeMonthlyLeaveStatus @EmployeeId, @SelectedMonth,@SelectedYear", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EmployeeLeaveStatus>();
+            }
+        }
+
+        public async Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(int EmpId, int CompId, int Year)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+
+
+                    new SqlParameter("@Year", Year),
+                    new SqlParameter("@EmployeeId", EmpId),
+                    new SqlParameter("@CompId", CompId)
+
+                    };
+
+                var result = await _db.Set<EmployeeYearlyLeaveStatus>()
+                    .FromSqlRaw("EXEC sp_GetEmployeeYearlyLeaveStatus @Year, @EmployeeId,@CompId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EmployeeYearlyLeaveStatus>();
+            }
+        }
+
         public async Task<List<HolidayViewModel>> GetHolidaysForYear(int Year)
         {
             try
