@@ -24,9 +24,7 @@ namespace HRMS_API.Controllers.OtherMaster
             try
             {
                 var data = await _unitOfWork.ManpowerRequisitionRepository.GetAllManpowerRequisitions(commonParameter);
-                if (data == null || !data.Any())
-                    return new APIResponse { isSuccess = false, ResponseMessage = "No manpower requisitions found." };
-                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Manpower requisitions fetched successfully." };
+                return data;
             }
             catch (Exception ex)
             {

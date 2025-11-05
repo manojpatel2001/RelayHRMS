@@ -29,22 +29,50 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
             _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
 
-        public async Task<List<ManpowerRequisitionViewModel>> GetAllManpowerRequisitions(CommonParameter commonParameter)
+   
+     public async Task<APIResponse> GetAllManpowerRequisitions(CommonParameter commonParameter)
+    {
+        var response = new APIResponse();
+        try
         {
-            try
+            using (var connection = new SqlConnection(_connectionString))
             {
-                return await _db.Set<ManpowerRequisitionViewModel>()
-                    .FromSqlInterpolated($"EXEC GetAllManpowerRequisitions @CompanyId={commonParameter.CompanyId},@BranchId={commonParameter.BranchId}")
-                    .ToListAsync();
-            }
-            catch
-            {
-                return new List<ManpowerRequisitionViewModel>();
+                var parameters = new DynamicParameters();
+                parameters.Add("@CompanyId", commonParameter.CompanyId);
+                parameters.Add("@BranchId", commonParameter.BranchId);
+
+                // Execute the stored procedure and map results to a dynamic list
+                var result = await connection.QueryAsync<dynamic>(
+                    "GetAllManpowerRequisitions",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                if (!result.AsList().Any())
+                {
+                    response.isSuccess = false;
+                    response.ResponseMessage = "No records found.";
+                    response.Data = new List<dynamic>(); 
+                    return response;
+                }
+
+                response.isSuccess = true;
+                response.ResponseMessage = "Success!";
+                response.Data = result.AsList(); 
             }
         }
+        catch (Exception ex)
+        {
+            response.isSuccess = false;
+            response.ResponseMessage = ex.Message;
+            response.Data = new List<dynamic>(); 
+        }
+        return response;
+    }
 
-       
-        public async Task<SP_Response> CreateManpowerRequisition(ManpowerRequisition manpowerRequisition)
+
+
+    public async Task<SP_Response> CreateManpowerRequisition(ManpowerRequisition manpowerRequisition)
         {
             try
             {
@@ -195,28 +223,43 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
 
         public async Task<APIResponse> GetManpowerRequisitionByManpowerRequisitionId(int ManpowerRequisitionId)
         {
+            var response = new APIResponse();
             try
             {
-                var result = await _db.Set<ManpowerRequisitionViewModel>()
-                    .FromSqlInterpolated($@"EXEC GetManpowerRequisitionByManpowerRequisitionId @ManpowerRequisitionId={ManpowerRequisitionId}")
-                    .ToListAsync();
-                var data=result.FirstOrDefault()??null;
-                if (data!=null)
+                using (var connection = new SqlConnection(_connectionString))
                 {
-                    return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Fetch successfully!" };
-                }
-                else
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "No Record found!" };
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@ManpowerRequisitionId", ManpowerRequisitionId);
+
+                    // Execute the stored procedure and map the result to a dynamic object
+                    var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                        "GetManpowerRequisitionByManpowerRequisitionId",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (result != null)
+                    {
+                        response.isSuccess = true;
+                        response.Data = result;
+                        response.ResponseMessage = "Fetch successfully!";
+                    }
+                    else
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No Record found!";
+                    }
                 }
             }
             catch (Exception ex)
             {
                 // Log exception here if needed
-                return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong!" };
+                response.isSuccess = false;
+                response.ResponseMessage = "Something went wrong!";
+                response.Data = null;
             }
+            return response;
         }
-
         public async Task<APIResponse> GetAllSerialNo(CommonParameter commonParameter)
         {
             try

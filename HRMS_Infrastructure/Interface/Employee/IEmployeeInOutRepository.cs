@@ -4,6 +4,7 @@ using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Ess.InOut;
 using HRMS_Core.VM.Report;
+using HRMS_Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,5 +30,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<vmGetMonthlyAttendanceDetails>> GetDateWiseAttendanceDetails(vmInOutParameter vmInOutParameter);
         Task<List<vmGetEmployeesByReportingManager>> GetEmployeesByReportingManager(int EmployeeId);
         Task<List<EmpInOutReportforAdmin>> GetEmpInOutReportForAdmin(EmpInOutReportFilter filter);
+        Task<APIResponse> GetAttendanceRegularizationAlerts(CommonParameter model);
     }
 }

@@ -1,4 +1,5 @@
-﻿using HRMS_Core.DbContext;
+﻿using Dapper;
+using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
@@ -8,10 +9,12 @@ using HRMS_Core.VM.importData;
 using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Employee;
+using HRMS_Utility;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
@@ -21,11 +24,15 @@ namespace HRMS_Infrastructure.Repository.Employee
     public class EmployeeInOutRepository : Repository<EmployeeInOutRecord>, IEmployeeInOutRepository
     {
         private readonly HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public EmployeeInOutRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
+
         }
+
 
         public async Task<List<AttendanceInOutReportVM>> AttendancefirstInOutReport(int empid, string Month, string Year)
         {
@@ -95,7 +102,7 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
- 
+
         public async Task<List<EmployeeInOutReportVM>> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM)
         {
             try
@@ -147,7 +154,7 @@ namespace HRMS_Infrastructure.Repository.Employee
         {
             try
             {
-                var result= await _db.Set<vmGetMonthlyAttendanceLog>()
+                var result = await _db.Set<vmGetMonthlyAttendanceLog>()
                                 .FromSqlInterpolated($"EXEC GetMonthlyAttendanceLog  @MonthNumber={vmInOutParameter.MonthNumber}, @Year={vmInOutParameter.year},  @EmployeeId = {vmInOutParameter.EmployeeId},@CompanyId={vmInOutParameter.CompanyId}")
                                 .ToListAsync();
                 return result;
@@ -161,7 +168,7 @@ namespace HRMS_Infrastructure.Repository.Employee
         {
             try
             {
-                var result= await _db.Set<vmGetMonthlyAttendanceDetails>()
+                var result = await _db.Set<vmGetMonthlyAttendanceDetails>()
                                 .FromSqlInterpolated($"EXEC GetMonthlyAttendanceDetails  @MonthNumber={vmInOutParameter.MonthNumber}, @Year={vmInOutParameter.year},  @EmployeeId = {vmInOutParameter.EmployeeId},@CompanyId={vmInOutParameter.CompanyId}")
                                 .ToListAsync();
                 return result;
@@ -175,7 +182,7 @@ namespace HRMS_Infrastructure.Repository.Employee
         {
             try
             {
-                var result= await _db.Set<vmGetMonthlyAttendanceDetails>()
+                var result = await _db.Set<vmGetMonthlyAttendanceDetails>()
                                 .FromSqlInterpolated($"EXEC GetDateWiseAttendanceDetails  @FromDate={vmInOutParameter.FromDate}, @ToDate={vmInOutParameter.ToDate},  @EmployeeId = {vmInOutParameter.EmployeeId},@CompanyId={vmInOutParameter.CompanyId},@MemberId={vmInOutParameter.MemberId}")
                                 .ToListAsync();
                 return result;
@@ -299,22 +306,76 @@ namespace HRMS_Infrastructure.Repository.Employee
             try
             {
 
-               
-                    var result = await _db.Set<EmpInOutReportforAdmin>()
-                        .FromSqlInterpolated($@"EXEC [dbo].[GetEmpInOutReportForAdmin]
+
+                var result = await _db.Set<EmpInOutReportforAdmin>()
+                    .FromSqlInterpolated($@"EXEC [dbo].[GetEmpInOutReportForAdmin]
                 @StartDate ={filter.StartDate},
                 @EndDate ={filter.EndDate},
                 @BranchId ={filter.BranchId},
                 @EmployeeId ={filter.EmployeeCodes},
                 @CompanyId ={filter.CompanyId}")
-                    .ToListAsync();
-                return  result;
-                }
-                catch
-                {
-                    return new List<EmpInOutReportforAdmin>();
-                }
+                .ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EmpInOutReportforAdmin>();
             }
         }
-    }
 
+
+        public async Task<APIResponse> GetAttendanceRegularizationAlerts(CommonParameter model)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmpId", model.EmployeeId);
+                    parameters.Add("@Month", model.Month);
+                    parameters.Add("@Year", model.Year);
+
+                    // Use QueryMultipleAsync to handle multiple result sets
+                    using (var multi = await connection.QueryMultipleAsync(
+                        "sp_GetAttendanceRegularizationAlerts",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    ))
+                    {
+                        // Read the first result set (e.g., AttendanceDetails)
+                        var attendanceDetails = (await multi.ReadAsync<dynamic>()).ToList();
+
+                        // Read the second result set (e.g., Summary)
+                        var summary = (await multi.ReadAsync<dynamic>()).ToList();
+
+                        if ((!attendanceDetails.Any() && !summary.Any()) || (attendanceDetails == null && summary == null))
+                        {
+                            response.Data = null;
+                            response.isSuccess = false;
+                            response.ResponseMessage = "No Record found!";
+                        }
+                        else
+                        {
+                            response.Data = new
+                            {
+                                AttendanceDetails = attendanceDetails,
+                                Summary = summary
+                            };
+                            response.isSuccess = true;
+                            response.ResponseMessage = "Fetched successfully!";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
+            }
+            return response;
+        }
+
+    }
+}

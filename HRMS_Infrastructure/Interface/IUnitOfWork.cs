@@ -132,7 +132,8 @@ namespace HRMS_Infrastructure.Interface
         IEmailReportRepository EmailReportRepository { get; }
         IEmailLoggerRepository EmailLoggerRepository { get; }
         ILeaveTransactionRepository LeaveTransactionRepository { get; }
-
+        IManpowerRelationRepository ManpowerRelationRepository { get; }
+        IManpowerAttachmentRepository ManpowerAttachmentRepository { get; }
 
         void Commit();
         Task CommitAsync();
