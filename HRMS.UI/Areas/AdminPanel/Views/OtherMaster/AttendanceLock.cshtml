@@ -96,8 +96,9 @@
 
     #lockGridContainer {
         margin-bottom: 20px !important;
-        max-height: 500px !important;
+        max-height: 450px !important;
         overflow: auto !important;
+        margin-top: 20px;
     }
 
     #grid-loader {
@@ -122,16 +123,13 @@
     }
 
     @@keyframes spin {
-        0%
+        0% {
+            transform: rotate(0deg);
+        }
 
-    {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     /* Radio Button Styles */
@@ -537,7 +535,7 @@
                         <label for="radioLocked">Locked</label>
                     </div>
                     <div class="radio-option">
-                        <input type="radio" id="radioUnlocked" name="lockStatus" value="Unlocked">
+                        <input type="radio" id="radioUnlocked" name="lockStatus" value="Unlocked" checked>
                         <label for="radioUnlocked">Unlocked</label>
                     </div>
                 </div>
@@ -561,7 +559,7 @@
 </div>
 
 <!-- Lock Status Grid -->
-<div id="lockGridContainer" style="display: none; margin-top: 20px;"></div>
+<div id="lockGridContainer" style="display: none;"></div>
 
 <!-- Lock/Unlock Action Buttons -->
 <div id="gridActionButtons" class="grid-action-buttons">
@@ -588,8 +586,9 @@
     </button>
 </div>
 
-<script> 
-       const Empid = parseInt(localStorage.getItem("EmployeeId"));
+<script>
+
+    const Empid = parseInt(localStorage.getItem("EmployeeId"));
     const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany);
     const CompanyId = companyDetails.CompanyId;
@@ -898,11 +897,13 @@
         const month = $('#monthDropdown').val();
         const year = $('#yearDropdown').val();
         const status = $('input[name="lockStatus"]:checked').val() || null;
+        const branchIds = branchMultiSelect.getSelectedValues();
         const employeeIds = employeeMultiSelect.getSelectedValues();
 
         let isValid = true;
         if (!month) { $('#errorMonth').show(); isValid = false; } else { $('#errorMonth').hide(); }
         if (!year) { $('#errorYear').show(); isValid = false; } else { $('#errorYear').hide(); }
+        if (branchIds.length === 0) { $('#errorBranch').show(); isValid = false; } else { $('#errorBranch').hide(); }
         if (employeeIds.length === 0) { $('#errorEmployee').show(); isValid = false; } else { $('#errorEmployee').hide(); }
 
         if (!isValid) {
@@ -941,6 +942,7 @@
                     renderLockGrid(response.data);
                     $('#gridActionButtons').css('display', 'flex');
                 } else {
+                    $('#lockGridContainer').hide().empty();
                     $('#gridActionButtons').hide();
                     Swal.fire('Info', response?.responseMessage || 'No lock records found.', 'info');
                 }
@@ -948,6 +950,7 @@
             error: function(xhr, status, error) {
                 hideLoader();
                 hideBtnLoader();
+                $('#lockGridContainer').hide().empty();
                 $('#gridActionButtons').hide();
                 console.error('Error fetching lock data:', error);
                 Swal.fire('Error', 'Failed to fetch attendance lock data.', 'error');
@@ -960,7 +963,7 @@
             { dataField: "employeeCode", caption: "Employee Code", width: 150 },
             { dataField: "employeeId", caption: "EmployeeId", visible: false },
             { dataField: "fullName", caption: "Employee Name", width: 200 },
-            { dataField: "designationName", caption: "Designation Name", width: 150 },
+            { dataField: "designationName", caption: "Designation Name", width: 180 },
             { dataField: "month", caption: "Month", width: 100 },
             { dataField: "year", caption: "Year", width: 100 },
             {
@@ -981,6 +984,7 @@
             showBorders: true,
             columnAutoWidth: true,
             rowAlternationEnabled: true,
+            width: '100%',
             export: {
                 enabled: false
             },
@@ -1013,10 +1017,63 @@
             onContentReady: function(e) {
                 // Set the width of the selection column
                 var $checkBoxes = $(".dx-selection-checkbox");
-                $checkBoxes.closest("th").css("width", "30px");
-                $checkBoxes.closest("td").css("width", "30px");
+                $checkBoxes.closest("th").css("width", "50px");
+                $checkBoxes.closest("td").css("width", "50px");
             }
         }).show();
+    }
+
+    // Refresh grid data
+    function refreshGridData() {
+        if (!currentFilters.month || !currentFilters.year) {
+            return;
+        }
+
+        showLoader();
+            const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
+            gridInstance.clearSelection();
+        const employeeIds = employeeMultiSelect.getSelectedValues();
+        const status = $('input[name="lockStatus"]:checked').val() || null;
+
+        const requestData = {
+            Month: currentFilters.month,
+            Year: currentFilters.year,
+            EmployeeId: employeeIds.join(','),
+            Status: status
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/AttendanceLockAPI/GetAttendanceLockDetails")',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(requestData),
+              success: function(response) {
+                        hideLoader();
+                        hideBtnLoader();
+                        if (response?.isSuccess && response?.data?.length > 0) {
+                            currentGridData = response.data;
+                            renderLockGrid(response.data);
+                            $('#gridActionButtons').css('display', 'flex');
+                        } else {
+                            $('#lockGridContainer').hide().empty();
+                            $('#gridActionButtons').hide();
+                            // Show error/info notification
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'No Data Found',
+                                text: 'No locked attendance records found for the selected filters.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        }
+                    },
+
+            error: function(xhr, status, error) {
+                hideLoader();
+                console.error('Error refreshing grid data:', error);
+            }
+        });
     }
 
     // Lock Attendance Button Click
@@ -1026,6 +1083,18 @@
 
         if (selectedRows.length === 0) {
             Swal.fire('Warning', 'Please select at least one employee to lock attendance.', 'warning');
+            return;
+        }
+
+        // Check if any selected employee is already locked
+        const alreadyLocked = selectedRows.filter(row => row.status === 'Locked');
+        if (alreadyLocked.length > 0) {
+            const employeeNames = alreadyLocked.map(row => row.fullName).join(', ');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Already Locked',
+                html: `The following employee(s) are already locked:<br><b>${employeeNames}</b><br><br>Please deselect them and try again.`,
+            });
             return;
         }
 
@@ -1046,13 +1115,34 @@
         });
     });
 
-    // Unlock Attendance Button Click
     $('#btnUnlockAttendance').click(function() {
         const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
         const selectedRows = gridInstance.getSelectedRowsData();
 
         if (selectedRows.length === 0) {
             Swal.fire('Warning', 'Please select at least one employee to unlock attendance.', 'warning');
+            return;
+        }
+
+        // Check if any selected employee is already unlocked "UnLocked"
+         const alreadyUnlocked = selectedRows.filter(row => row.status === 'UnLocked');
+        if (alreadyUnlocked.length > 0) {
+            const employeeNames = alreadyUnlocked.map(row => row.fullName).join(', ');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Already Unlocked',
+                html: `The following employee(s) are already unlocked:<br><b>${employeeNames}</b><br><br>Please deselect them and try again.`,
+            });
+            return;
+        }
+
+        // Check if all selected rows are unlocked (this handles the case where alreadyUnlocked.length === selectedRows.length)
+        if (alreadyUnlocked.length === selectedRows.length) { 
+            Swal.fire({
+                icon: 'info',
+                title: 'No Action Needed',
+                text: 'All selected employees are already unlocked.',
+            });
             return;
         }
 
@@ -1072,13 +1162,12 @@
             }
         });
     });
-
     // Lock Attendance Function (Insert)
     function lockAttendance(selectedRows) {
         $('#btnLockingAttendance').show();
         $('#btnLockAttendance').hide();
         showLoader();
-        debugger;
+
         // Prepare data for insert
         const lockRecords = selectedRows.map(row => ({
             EmpId: row.employeeId,
@@ -1087,10 +1176,9 @@
             IsLocked: true,
             IsEnabled: true,
             IsDeleted: false,
-            CreatedBy: Empid 
+            CreatedBy: Empid
         }));
-        console.log('lockRecords' ,lockRecords);
-        // DEMO API - Replace with actual endpoint
+
         const demoApiUrl = '@(baseDomainUrl + "/api/AttendanceLockAPI/CreateAttendanceLockEmp")';
 
         $.ajax({
@@ -1113,7 +1201,7 @@
                         showConfirmButton: false
                     }).then(() => {
                         // Refresh grid data
-                        $('#btnFetchLockData').click();
+                        refreshGridData();
                     });
                 } else {
                     Swal.fire('Error', response?.responseMessage || 'Failed to lock attendance.', 'error');
@@ -1129,24 +1217,33 @@
         });
     }
 
-    // Unlock Attendance Function (Update)
     function unlockAttendance(selectedRows) {
+        // Filter only locked records
+        const lockedRecords = selectedRows.filter(row => row.status === 'Locked');
+
+        if (lockedRecords.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'No Records to Unlock',
+                text: 'No locked records found in the selection.',
+            });
+            return;
+        }
+
         $('#btnUnlockingAttendance').show();
         $('#btnUnlockAttendance').hide();
         showLoader();
 
-        // Prepare data for update
-        const unlockRecords = selectedRows.map(row => ({
+        const unlockRecords = lockedRecords.map(row => ({
             EmpId: row.employeeId,
             Month: currentFilters.month,
             Year: currentFilters.year,
             IsLocked: false,
             IsEnabled: true,
             IsDeleted: false,
-            UpdatedBy: Empid // Replace with actual user ID if available
+            UpdatedBy: Empid
         }));
 
-        // DEMO API - Replace with actual endpoint
         const demoApiUrl = '@(baseDomainUrl + "/api/AttendanceLockAPI/UpdateAttendanceLock")';
 
         $.ajax({
@@ -1164,12 +1261,11 @@
                     Swal.fire({
                         icon: 'success',
                         title: 'Success!',
-                        text: `Attendance unlocked successfully for ${selectedRows.length} employee(s).`,
+                        text: `Attendance unlocked successfully for ${lockedRecords.length} employee(s).`,
                         timer: 2000,
                         showConfirmButton: false
                     }).then(() => {
-                        // Refresh grid data
-                        $('#btnFetchLockData').click();
+                        refreshGridData();
                     });
                 } else {
                     Swal.fire('Error', response?.responseMessage || 'Failed to unlock attendance.', 'error');
