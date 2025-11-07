@@ -351,20 +351,21 @@ namespace HRMS_API.Controllers.Employee
                 }
                 var data = await _unitOfWork.EmployeeInOutRepository.GetEmployeeInOutReport(outFilterVM);
 
-                if (data == null || !data.Any())
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = "No matching IN record found or update failed."
-                    };
-                }
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Data fetched successfully."
-                };
+                return data;
+                //if (data == null || !data.Any())
+                //{
+                //    return new APIResponse
+                //    {
+                //        isSuccess = false,
+                //        ResponseMessage = "No matching IN record found or update failed."
+                //    };
+                //}
+                //return new APIResponse
+                //{
+                //    isSuccess = true,
+                //    Data = data,
+                //    ResponseMessage = "Data fetched successfully."
+                //};
             }
             catch (Exception ex)
             {
@@ -375,7 +376,6 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
-
 
         [HttpPost("GetEmpInOutReportForAdmin")]
         public async Task<APIResponse> GetEmpInOutReportForAdmin(EmpInOutReportFilter fiter)

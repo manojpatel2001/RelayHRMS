@@ -604,117 +604,119 @@
       }
 
       // Go Button Click Event
-      $('#btnGo').on('click', function () {
-          if (!validateForm()) {
-              return;
-          }
-          const emp = $('#employeeDropdown').data('searchableSelect').getValue();;
-          const record = $('#recordtype').val();
-          const dateRange = getDateRange();
+    $('#btnGo').on('click', function () { 
+        if (!validateForm()) {
+            return;
+        }
+        const emp = $('#employeeDropdown').data('searchableSelect').getValue();
+        const record = $('#recordtype').val();
+        const dateRange = getDateRange();
 
-          if (!dateRange) {
-              Swal.fire({
-                  text: "Please provide valid date range.",
-                  icon: "warning",
-                  confirmButtonText: "OK",
-                  width: "300px",
-                  customClass: {
-                      popup: 'swal-small'
-                  }
-              });
-              return;
-          }
+        if (!dateRange) {
+            Swal.fire({
+                text: "Please provide a valid date range.",
+                icon: "warning",
+                confirmButtonText: "OK",
+                width: "300px",
+                customClass: {
+                    popup: 'swal-small'
+                }
+            });
+            return;
+        }
 
-          // Check joining date before proceeding
-          GetEmployeeById().done(function (data) {
-              if (data.isSuccess && data.data) {
-                  let joiningDate = new Date(data.data.dateOfJoining);
-                  let selectedStartDate = new Date(dateRange.startDate); 
-                  let formattedJoiningDate = joiningDate.toLocaleDateString('en-GB');
-             
-                  if (selectedStartDate < joiningDate) {
-                      Swal.fire({
-                       text: `Attendance Regularisation is only allowed from ${formattedJoiningDate}.`,      
-                       icon: 'warning',
-                          width: '300px',
-                          confirmButtonText: 'OK',
-                          customClass: {
-                              popup: 'swal-small'
-                          }
-                      });
-                      return;
-                  }
+        // Check joining date before proceeding
+        GetEmployeeById().done(function (data) {
+            if (data.isSuccess && data.data) {
+                let joiningDate = new Date(data.data.dateOfJoining);
+                let selectedStartDate = new Date(dateRange.startDate);
+                let formattedJoiningDate = joiningDate.toLocaleDateString('en-GB');
 
-                  // Proceed with AJAX
-                  showLoder();
-                  const formData = new FormData();
-                  formData.append("EmpId", emp);
-                  formData.append("StartDate", dateRange.startDate);
-                  formData.append("EndDate", dateRange.endDate);
-                  formData.append("RecordType", record);
+                if (selectedStartDate < joiningDate) {
+                    Swal.fire({
+                        text: `Attendance Regularisation is only allowed from ${formattedJoiningDate}.`,
+                        icon: 'warning',
+                        width: '300px',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal-small'
+                        }
+                    });
+                    return;
+                }
 
-                  $.ajax({
-                      url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
-                      type: 'POST',
-                      data: formData,
-                      contentType: false,
-                      processData: false,
-                      success: function (response) {
+                // Proceed with AJAX
+                showLoder();
+                const formData = new FormData();
+                formData.append("EmpId", emp);
+                formData.append("StartDate", dateRange.startDate);
+                formData.append("EndDate", dateRange.endDate);
+                formData.append("RecordType", record);
 
-                          if (response?.isSuccess) {
-                              if (response.data && response.data.length > 0) {
-                                  $("#attendanceSummary").show();
-                                  showAttendanceSummary(response.data);
-                                  LoadAttendanceGrid(response.data);
-                                  $("#saveButtonContainer").show();
-                                  $("#attendanceSection").show();
-                              } else {
-                                  $("#attendanceSummary").hide();
-                                  $("#saveButtonContainer").hide();
-                                  $("#attendanceSection").hide();
-                                  Swal.fire({
-                                      text: "No Record Found.",
-                                      icon: "info",
-                                      confirmButtonText: "OK",
-                                      width: "300px",
-                                      customClass: {
-                                          popup: 'swal-small'
-                                      }
-                                  });
-                              }
-                          } else {
-                              Swal.fire({
-                                  text: "No Record Found.",
-                                  icon: "info",
-                                  confirmButtonText: "OK",
-                                  width: "300px",
-                                  customClass: {
-                                      popup: 'swal-small'
-                                  }
-                              });
-                              $("#attendanceSummary").hide();
-                              $("#saveButtonContainer").hide();
-                              $("#attendanceSection").hide();
-                          }
-                      },
-                      error: function () {
-                          Swal.fire({
-                              text: "Something went wrong while fetching data.",
-                              icon: "error",
-                              confirmButtonText: "OK",
-                              width: "300px",
-                              customClass: {
-                                  popup: 'swal-small'
-                              }
-                          });
-                      },
-                      complete: function () {
-                          hideLoder();
-                      }
-                  });
-              }
-          });
-      });
+                $.ajax({
+                    url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {                   
+                        if (response?.isSuccess) {                        
+                            if (response.data && response.data.length > 0) {                           
+                                $("#attendanceSummary").show();
+                                showAttendanceSummary(response.data);
+                                LoadAttendanceGrid(response.data);
+                                $("#saveButtonContainer").show();
+                                $("#attendanceSection").show();
+                            } else {
+                                // Show no data popup
+                                Swal.fire({
+                                     text: response.responseMessage ,
+                                    icon: "info",
+                                    confirmButtonText: "OK",
+                                    width: "300px",
+                                    customClass: {
+                                        popup: 'swal-small'
+                                    }
+                                });
+                                $("#attendanceSummary").hide();
+                                $("#saveButtonContainer").hide();
+                                $("#attendanceSection").hide();
+                            }
+                        } else {
+                            // Show API error message
+                            Swal.fire({
+                                text: response.responseMessage ,
+                                icon: "info",
+                                confirmButtonText: "OK",
+                                width: "300px",
+                                customClass: {
+                                    popup: 'swal-small'
+                                }
+                            });
+                            $("#attendanceSummary").hide();
+                            $("#saveButtonContainer").hide();
+                            $("#attendanceSection").hide();
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        // Show error popup
+                        Swal.fire({
+                            text: "Something went wrong while fetching data. Error: " + error,
+                            icon: "error",
+                            confirmButtonText: "OK",
+                            width: "300px",
+                            customClass: {
+                                popup: 'swal-small'
+                            }
+                        });
+                    },
+                    complete: function () {
+                        hideLoder();
+                    }
+                });
+            }
+        });
+    });
 
       // Clear Button Click Event
       $('#btnClear').on('click', function () {
