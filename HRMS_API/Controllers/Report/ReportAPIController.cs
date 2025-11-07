@@ -182,7 +182,7 @@ namespace HRMS_API.Controllers.Report
 
 
         [HttpGet("GetEmployeeMonthlyLeaveStatus")]
-        public async Task<APIResponse> GetEmployeeMonthlyLeaveStatus(int EmpId, int SelectedMonth, int SelectedYear)
+        public async Task<APIResponse> GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear)
         {
             try
             {
@@ -201,7 +201,7 @@ namespace HRMS_API.Controllers.Report
         }
 
         [HttpGet("GetEmployeeYearlyLeaveStatus")]
-        public async Task<APIResponse> GetEmployeeYearlyLeaveStatus(int EmpId, int CompId, int Year)
+        public async Task<APIResponse> GetEmployeeYearlyLeaveStatus(string EmpId, int CompId, int Year)
         {
             try
             {
