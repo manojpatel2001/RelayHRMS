@@ -2,6 +2,7 @@
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Ess.InOut;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface.Employee;
 using Microsoft.EntityFrameworkCore;
@@ -84,19 +85,18 @@ namespace HRMS_Infrastructure.Repository.Employee
 
         }
 
-        public async Task<List<VmLeftEmployee>> GetAllLeftEmployee()
+        public async Task<List<VmLeftEmployee>> GetAllLeftEmployee(int CompanyId)
         {
             try
             {
                 var result = await _db.Set<VmLeftEmployee>()
-                    .FromSqlInterpolated($@"EXEC sp_GetLeftEmployeeList")
-                    .ToListAsync();
-
+                                .FromSqlInterpolated($"EXEC sp_GetLeftEmployeeList  @CompanyId={CompanyId}")
+                                .ToListAsync();
                 return result;
             }
-            catch (Exception ex)
-            {       
-                return new List<VmLeftEmployee>(); 
+            catch (Exception)
+            {
+                return new List<VmLeftEmployee>();
             }
         }
 

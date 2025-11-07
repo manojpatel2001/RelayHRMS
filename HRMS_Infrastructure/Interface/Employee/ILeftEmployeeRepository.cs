@@ -17,6 +17,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<SP_Response> UpdateLeftEmployee(LeftEmployee model);
         Task<SP_Response> DeleteLeftEmployee(DeleteRecordVM deleteRecord);
         Task<LeftEmployee?> GetLeftEmpById(vmCommonGetById filter);
-        Task<List<VmLeftEmployee>> GetAllLeftEmployee();
+        Task<List<VmLeftEmployee>> GetAllLeftEmployee(int CompanyId);
     }
 }

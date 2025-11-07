@@ -23,11 +23,11 @@ namespace HRMS_API.Controllers.Employee
         }
 
         [HttpGet("GetAllLeftEmp")]
-        public async Task<APIResponse> GetAllLeftEmp()
+        public async Task<APIResponse> GetAllLeftEmp(int CompanyId)
         {
             try
             {
-                var data = await _unitOfWork.leftEmployeeRepository.GetAllLeftEmployee();
+                var data = await _unitOfWork.leftEmployeeRepository.GetAllLeftEmployee(CompanyId);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
