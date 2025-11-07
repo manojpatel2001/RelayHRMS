@@ -102,28 +102,40 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-
-        public async Task<List<EmployeeInOutReportVM>> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM)
+        public async Task<APIResponse> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM)
         {
+            var response = new APIResponse();
             try
             {
-                var empCodeParam = new SqlParameter("@EmpId", (object?)outFilterVM.EmpId ?? DBNull.Value);
-                var monthParam = new SqlParameter("@StartDate", (object?)outFilterVM.StartDate ?? DBNull.Value);
-                var yearParam = new SqlParameter("@EndDate", (object?)outFilterVM.EndDate ?? DBNull.Value);
-                var recordtypeParam = new SqlParameter("@RecordType", (object?)outFilterVM.RecordType ?? DBNull.Value);
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmpId", outFilterVM.EmpId);
+                    parameters.Add("@StartDate", outFilterVM.StartDate);
+                    parameters.Add("@EndDate", outFilterVM.EndDate);
+                    parameters.Add("@RecordType", outFilterVM.RecordType);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
 
-                return await _db.Set<EmployeeInOutReportVM>()
-              .FromSqlRaw("EXEC [dbo].[GetEmployeeInOutReport]  @EmpId, @StartDate,@EndDate, @RecordType",
-                   empCodeParam, monthParam, yearParam, recordtypeParam)
-              .ToListAsync();
+                    var reportData = (await connection.QueryAsync<EmployeeInOutReportVM>(
+                        "GetEmployeeInOutReport",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    )).ToList();
+
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                    response.Data = reportData; // Directly set the report data in response.Data
+                }
             }
             catch (Exception ex)
             {
-
-                return new List<EmployeeInOutReportVM>();
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
             }
+            return response;
         }
-
 
         public async Task<List<VMInOutRecord>> GetInOutRecord(int empid, string month, string year)
         {

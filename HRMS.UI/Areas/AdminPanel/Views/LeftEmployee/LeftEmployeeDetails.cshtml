@@ -16,8 +16,18 @@
                     Left Employee Details
                 </h6>
             </div>
-
+          
             <div class="col-6 d-flex justify-content-end align-items-center">
+                <button id="exportToExcel"
+                        type="button"
+                        class="btn mr-1 rounded-1"
+                        style="background-color:#28a745; color:white;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-excel" viewBox="0 0 16 16" style="margin-right: 5px;">
+                        <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z" />
+                        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z" />
+                    </svg>
+                    Export to Excel
+                </button>
                 <button id="addLeftEmployee"
                         type="button"
                         class="btn mr-1 rounded-1"
@@ -299,7 +309,7 @@
     </div>
 </div>
 
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -937,6 +947,80 @@
         });
     }
 
+        function exportGridToExcel() {
+         var gridInstance = $("#gridContainer").dxDataGrid('instance');
+
+         if (!gridInstance) {
+             round_error_noti('Grid not initialized');
+             return;
+         }
+
+         // Get the data source
+         var dataSource = gridInstance.getDataSource();
+         var data = dataSource.items();
+
+         if (!data || data.length === 0) {
+             round_error_noti('No data available to export');
+             return;
+         }
+
+         // Prepare data for export (excluding action columns)
+         var exportData = data.map(function(item) {
+             return {
+                 'Employee Code': item.employeeCode || '',
+                 'Employee Name': item.fullName || '',
+                 'Branch Name': item.branchName || '',
+                 'Joining Date': item.dateOfJoining ? formatDate(item.dateOfJoining) : '',
+                 'Leaving Date': item.leftDate ? formatDate(item.leftDate) : '',
+                 'Reason Type': item.reasonType || ''
+             };
+         });
+
+         // Create workbook
+         var wb = XLSX.utils.book_new();
+         var ws = XLSX.utils.json_to_sheet(exportData);
+
+         // Set column widths
+         ws['!cols'] = [
+             { wch: 15 }, // Employee Code
+             { wch: 25 }, // Employee Name
+             { wch: 20 }, // Branch Name
+             { wch: 15 }, // Joining Date
+             { wch: 15 }, // Leaving Date
+             { wch: 20 }  // Reason Type
+         ];
+
+         // Add worksheet to workbook
+         XLSX.utils.book_append_sheet(wb, ws, 'Left Employees');
+
+         // Generate filename with current date
+         var today = new Date();
+         var filename = 'LeftEmployees_' + today.getFullYear() +
+                       ('0' + (today.getMonth() + 1)).slice(-2) +
+                       ('0' + today.getDate()).slice(-2) + '.xlsx';
+
+         // Save file
+         XLSX.writeFile(wb, filename);
+
+         round_success_noti('Excel file exported successfully');
+     }
+
+     // Helper function to format dates
+     function formatDate(dateString) {
+         if (!dateString) return '';
+         var date = new Date(dateString);
+         var day = ('0' + date.getDate()).slice(-2);
+         var month = ('0' + (date.getMonth() + 1)).slice(-2);
+         var year = date.getFullYear();
+         return day + '-' + month + '-' + year;
+     }
+
+     // Add click event for export button
+     $(document).ready(function() {
+         $('#exportToExcel').click(function() {
+             exportGridToExcel();
+         });
+     });
 
       
 </script>
