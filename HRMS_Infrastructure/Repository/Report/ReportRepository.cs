@@ -99,7 +99,7 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
-        public async Task<List<EmployeeLeaveStatus>> GetEmployeeMonthlyLeaveStatus(int EmpId, int SelectedMonth, int SelectedYear)
+        public async Task<List<EmployeeLeaveStatus>> GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear)
         {
             try
             {
@@ -125,7 +125,7 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
-        public async Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(int EmpId, int CompId, int Year)
+        public async Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(string EmpId, int CompId, int Year)
         {
             try
             {
