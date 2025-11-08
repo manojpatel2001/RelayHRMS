@@ -9,7 +9,6 @@ namespace HRMS_Core.VM.Employee
     public class AttendanceRegularizationVM
 
     {
-
         public int? AttendanceRegularizationId { get; set; }
         public int? EmpId { get; set; }
         public string? FullName { get; set; }
@@ -29,7 +28,6 @@ namespace HRMS_Core.VM.Employee
         public bool IsApproved { get; set; }
         public bool IsPending { get; set; }
         public bool IsRejected { get; set; }
-        public bool IsReportingManager { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
     }

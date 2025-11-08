@@ -1,6 +1,6 @@
 ﻿@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Attendance Regularization";
+    ViewData["Title"] = "Attendance Regularization Approval";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
     string baseUrl = ViewBag.BaseUrl;
     string apiBase = ViewBag.BaseUrlAPI;
@@ -146,18 +146,19 @@
     }
 </style>
 
+<!-- Search Panel Header -->
 <div class="search-panel-wrapper">
     <div class="search-panel-container">
         <div class="search-panel-row">
             <div class="search-heading">Search panel</div>
-            <a href="/EmployeePanel/Leave/AddAttendance" class="btn-add">Add</a>
         </div>
     </div>
 </div>
+
 <!-- Form Starts -->
 <div class="form-section">
     <!-- Row 1: Search By & Search For -->
-@*     <div class="row justify-content-center mb-3">
+        <div class="row justify-content-center mb-3">
         <div class="col-md-5 d-flex align-items-center">
             <label for="searchby" class="form-label mb-0 me-2" style="width: 120px;">Search By<span class="text-danger">*</span>:</label>
             <select class="form-select form-select-sm" id="searchby" style="width: 180px;">
@@ -171,7 +172,7 @@
             <label for="searchfor" class="form-label mb-0 me-2" style="width: 120px;">Search for<span class="text-danger">*</span>:</label>
             <input type="text" class="form-control form-control-sm" id="searchfor" style="width: 180px;" />
         </div>
-    </div> *@
+    </div>
 
     <!-- Row 2: From Date & To Date -->
     <div class="row justify-content-center mb-3">
@@ -228,11 +229,11 @@
 <!-- Delete Button + Grid Container -->
 <div class="container mt-3">
     <!-- Action Buttons Row -->
- @*    <div id="actionButtons" class="custom-action-buttons text-end mb-2" style="display: none;">
+    <div id="actionButtons" class="custom-action-buttons text-end mb-2" style="display: none;">
         <button id="btnDelete" class="btn btn-custom">Delete</button>
         <button id="btnApprove" class="btn btn-custom">Approve</button>
         <button id="btnReject" class="btn btn-custom">Reject</button>
-    </div> *@
+    </div>
 
     <!--Loader-->
     <div id="grid-loader"
@@ -398,7 +399,12 @@
         });
     }
 
-    $('#btnGo').on('click', function () {
+     $('#btnGo').on('click', function () {
+        console.log('Go button clicked'); // Add this
+
+        // Remove or comment out debugger in production
+        // debugger;
+
         let model = {
             SearchBy: getSearchByText($('#searchby').val()),
             SearchValue: $('#searchfor').val(),
@@ -408,33 +414,46 @@
             LoggedInUserId: EmployeeId
         };
 
+        console.log('Request Model:', model); // Add this
+        console.log('API URL:', apiBase + "/AttendanceRegularizationAPI/GetAttendanceRegularizationApproval"); // Add this
+
         $.ajax({
-            url: apiBase + "/AttendanceRegularizationAPI/GetAttendanceRegularization",
+            url: apiBase + "/AttendanceRegularizationAPI/GetAttendanceRegularizationApproval",
             type: 'POST',
             data: JSON.stringify(model),
             contentType: 'application/json',
-          success: function (res) {
-       
-        if (res.isSuccess) {
-            if (res.data && res.data.length > 0) {
-                loadGrid(res.data);
-            } else {
-         
-                safeDisposeGrid();
-                round_error_noti('No Data Found');
-            }
-        } else {
-        
-            safeDisposeGrid();
-            round_error_noti(res.responseMessage || 'No Data');
-        }
-    },
+            beforeSend: function(xhr) {
+                console.log('Request starting...'); // Add this
+            },
+            success: function (res) {
+                console.log('Response received:', res); // Add this
 
-            error: function () {
-             
-                // Safe grid disposal
+                if (res.isSuccess) {
+                    if (res.data && res.data.length > 0) {
+                        loadGrid(res.data);
+                        $("#actionButtons").show();
+                    } else {
+                        $("#actionButtons").hide();
+                        safeDisposeGrid();
+                        round_error_noti('No Data Found');
+                    }
+                } else {
+                    $("#actionButtons").hide();
+                    safeDisposeGrid();
+                    round_error_noti(res.responseMessage || 'No Data');
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('AJAX Error:', {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText,
+                    statusCode: xhr.status
+                }); // Add detailed error logging
+
+                $("#actionButtons").hide();
                 safeDisposeGrid();
-                round_error_noti('Error loading data');
+                round_error_noti('Error loading data: ' + error);
             }
         });
     });
@@ -566,6 +585,7 @@
             },
             error: function () {
                 hideLoder();
+                   console.error("AJAX Error:", error);
                 round_error_noti("Something went wrong during update.");
             }
         });
