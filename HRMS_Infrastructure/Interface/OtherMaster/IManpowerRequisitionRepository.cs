@@ -19,6 +19,7 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
         Task<APIResponse> GetManpowerRequisitionByManpowerRequisitionId(int ManpowerRequisitionId);
         Task<APIResponse> GetAllSerialNo(CommonParameter commonParameter);
         Task<APIResponse> UpdateJoinningDetails(UpdateJoinningDetailsModel model);
+        Task<APIResponse> GetAllJoiningManpowerRequisitions(CommonParameter commonParameter);
     }
 
 }

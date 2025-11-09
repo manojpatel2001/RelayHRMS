@@ -166,6 +166,19 @@ namespace HRMS_API.Controllers.OtherMaster
             }
         }
 
+        [HttpPost("GetAllJoiningManpowerRequisitions")]
+        public async Task<APIResponse> GetAllJoiningManpowerRequisitions(CommonParameter commonParameter)
+        {
+            try
+            {
+                var data = await _unitOfWork.ManpowerRequisitionRepository.GetAllJoiningManpowerRequisitions(commonParameter);
+                return data;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve manpower requisitions. Please try again later." };
+            }
+        }
     }
 
 }

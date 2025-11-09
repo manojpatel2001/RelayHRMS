@@ -13,5 +13,9 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View();
         }
+        public IActionResult EmployeeJoiningReport()
+        {
+            return View();
+        }
     }
 }
