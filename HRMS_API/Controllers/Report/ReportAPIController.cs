@@ -205,8 +205,13 @@ namespace HRMS_API.Controllers.Report
         {
             try
             {
-                var data = await _unitOfWork.ReportRepository.GetEmployeeMonthlyLeaveStatus( EmpId,  CompId, Year);
-                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+                var data = await _unitOfWork.ReportRepository.GetEmployeeYearlyLeaveStatus(EmpId, CompId, Year);
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
             }
             catch (Exception err)
             {
@@ -219,7 +224,7 @@ namespace HRMS_API.Controllers.Report
             }
         }
 
-        [HttpGet("GetCompoffLapseReminder")]
+            [HttpGet("GetCompoffLapseReminder")]
         public async Task<APIResponse> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays)
         {
             try
