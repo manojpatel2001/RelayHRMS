@@ -30,7 +30,7 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
         }
 
    
-     public async Task<APIResponse> GetAllManpowerRequisitions(CommonParameter commonParameter)
+    public async Task<APIResponse> GetAllManpowerRequisitions(CommonParameter commonParameter)
     {
         var response = new APIResponse();
         try
@@ -351,6 +351,48 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong!" };
             }
         }
+
+
+        public async Task<APIResponse> GetAllJoiningManpowerRequisitions(CommonParameter commonParameter)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@CompanyId", commonParameter.CompanyId);
+                    parameters.Add("@BranchId", commonParameter.BranchId);
+                    parameters.Add("@StartDate", commonParameter.StartDate);
+                    parameters.Add("@EndDate", commonParameter.EndDate);
+
+                    // Execute the stored procedure and map results to ManpowerRequisitionModel
+                    var result = await connection.QueryAsync<GetAllJoiningManpowerRequisitions>(
+                        "GetAllJoiningManpowerRequisitions",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (!result.Any())
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No records found.";
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+            }
+            return response;
+        }
+
     }
 
 }
