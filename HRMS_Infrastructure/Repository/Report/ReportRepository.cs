@@ -1,4 +1,5 @@
-﻿using HRMS_Core.DbContext;
+﻿using Dapper;
+using HRMS_Core.DbContext;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
@@ -9,6 +10,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,10 +20,11 @@ namespace HRMS_Infrastructure.Repository.Report
     public class ReportRepository : IReportRepository
     {
         private readonly HRMSDbContext _db;
-
+        private readonly string _connectionString;
         public ReportRepository(HRMSDbContext db)
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
 
         public async Task<List<MobileUserViewModel>> GetActiveOrInactiveMobileUsers(string Action, int Compid)
@@ -124,33 +127,26 @@ namespace HRMS_Infrastructure.Repository.Report
                 return new List<EmployeeLeaveStatus>();
             }
         }
-
-        public async Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(string EmpId, int CompId, int Year)
+        public async Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(string empId, int compId, int year)
         {
-            try
+            using (var connection = new SqlConnection(_connectionString))
             {
-                var parameters = new[]
-                {
+                await connection.OpenAsync();
 
+                var parameters = new DynamicParameters();
+                parameters.Add("@Year", year);
+                parameters.Add("@EmployeeId", string.IsNullOrEmpty(empId) ? (object)DBNull.Value : empId);
+                parameters.Add("@CompId", compId);
 
-                    new SqlParameter("@Year", Year),
-                    new SqlParameter("@EmployeeId", EmpId),
-                    new SqlParameter("@CompId", CompId)
-
-                    };
-
-                var result = await _db.Set<EmployeeYearlyLeaveStatus>()
-                    .FromSqlRaw("EXEC sp_GetEmployeeYearlyLeaveStatus @Year, @EmployeeId,@CompId", parameters)
-                    .ToListAsync();
+                var result =( await connection.QueryAsync<EmployeeYearlyLeaveStatus>(
+                    "sp_GetEmployeeYearlyLeaveStatus",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                )).ToList();
 
                 return result;
             }
-            catch (Exception)
-            {
-                return new List<EmployeeYearlyLeaveStatus>();
-            }
         }
-
         public async Task<List<HolidayViewModel>> GetHolidaysForYear(int Year)
         {
             try
@@ -268,5 +264,6 @@ namespace HRMS_Infrastructure.Repository.Report
                 return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
         }
+
     }
 }

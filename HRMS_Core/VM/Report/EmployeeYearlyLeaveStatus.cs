@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ namespace HRMS_Core.VM.Report
 {
     public class EmployeeYearlyLeaveStatus
     {
+        [Column("LeaveName")]
         public string? LeaveName { get; set; }
         public decimal Jan { get; set; }
         public decimal Feb { get; set; }
