@@ -9,7 +9,7 @@ namespace HRMS_Core.VM.Report
 {
     public class EmployeeYearlyLeaveStatus
     {
-        [Column("LeaveName")]
+   
         public string? LeaveName { get; set; }
         public decimal Jan { get; set; }
         public decimal Feb { get; set; }
