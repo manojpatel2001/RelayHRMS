@@ -12,6 +12,15 @@ namespace HRMS_Core.VM.Report
         public decimal OpeningBalance { get; set; }
         public decimal Credit { get; set; }
         public decimal Used { get; set; }
-        public decimal ClosingBalance { get; set; }
+        public decimal Balance { get; set; }
+    }
+
+    public class EmployeeLeaveApplication
+    {
+        public string? LeaveType { get; set; }
+        public decimal LeavePeriod { get; set; }
+        public string? FromDate { get; set; }
+        public string? ToDate { get; set; }
+        public string? LeaveStatus { get; set; }
     }
 }

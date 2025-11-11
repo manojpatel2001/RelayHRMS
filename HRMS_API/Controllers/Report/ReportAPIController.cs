@@ -182,12 +182,25 @@ namespace HRMS_API.Controllers.Report
 
 
         [HttpGet("GetEmployeeMonthlyLeaveStatus")]
-        public async Task<APIResponse> GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear)
+        public async Task<APIResponse> GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear ,int CompId)
         {
             try
             {
-                var data = await _unitOfWork.ReportRepository.GetEmployeeMonthlyLeaveStatus(EmpId, SelectedMonth, SelectedYear);
-                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+                var (leaveApplications, leaveStatuses) =
+                    await _unitOfWork.ReportRepository.GetEmployeeMonthlyLeaveStatus(EmpId, SelectedMonth, SelectedYear, CompId);
+
+                var responseData = new
+                {
+                    LeaveApplications = leaveApplications,
+                    LeaveStatuses = leaveStatuses
+                };
+
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = responseData,
+                    ResponseMessage = "Records fetched successfully"
+                };
             }
             catch (Exception err)
             {
@@ -195,7 +208,7 @@ namespace HRMS_API.Controllers.Report
                 {
                     isSuccess = false,
                     Data = err.Message,
-                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                    ResponseMessage = "Unable to retrieve records. Please try again later!"
                 };
             }
         }
