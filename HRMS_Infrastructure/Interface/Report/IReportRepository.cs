@@ -20,7 +20,10 @@ namespace HRMS_Infrastructure.Interface.Report
         Task<List<UsedLeavesSummary>> GetUsedLeavesSummary();
         Task<SP_Response> UpdateMobileUsers(UpdateMobileUserStatusRequest model);
         Task<List<CompoffLapseReminderViewModel>> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays);
-        Task<List<EmployeeLeaveStatus>> GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth ,int SelectedYear);
-        Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(string EmpId, int CompId ,int Year);
+        Task<(List<EmployeeLeaveApplication>, List<EmployeeLeaveStatus>)>
+               GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear ,int CompId);  
+        Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(string EmpId, int CompId, int Year);
+
+
     }
 }

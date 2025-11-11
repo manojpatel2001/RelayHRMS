@@ -102,29 +102,29 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
-        public async Task<List<EmployeeLeaveStatus>> GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear)
+        public async Task<(List<EmployeeLeaveApplication>, List<EmployeeLeaveStatus>)>
+       GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear ,int CompId)
         {
-            try
+            using (var connection = new SqlConnection(_db.Database.GetConnectionString()))
             {
-                var parameters = new[]
+                await connection.OpenAsync();
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@EmployeeId", EmpId);
+                parameters.Add("@SelectedMonth", SelectedMonth);
+                parameters.Add("@SelectedYear", SelectedYear);
+                parameters.Add("@CompId", CompId);
+
+                using (var multi = await connection.QueryMultipleAsync(
+                    "sp_GetEmployeeMonthlyLeaveStatus",
+                    parameters,
+                    commandType: CommandType.StoredProcedure))
                 {
+                    var leaveApplications = (await multi.ReadAsync<EmployeeLeaveApplication>()).ToList();
+                    var leaveStatuses = (await multi.ReadAsync<EmployeeLeaveStatus>()).ToList();
 
-
-                    new SqlParameter("@EmployeeId", EmpId),
-                    new SqlParameter("@SelectedMonth", SelectedMonth),
-                    new SqlParameter("@SelectedYear", SelectedYear)
-
-                    };
-
-                var result = await _db.Set<EmployeeLeaveStatus>()
-                    .FromSqlRaw("EXEC sp_GetEmployeeMonthlyLeaveStatus @EmployeeId, @SelectedMonth,@SelectedYear", parameters)
-                    .ToListAsync();
-
-                return result;
-            }
-            catch (Exception)
-            {
-                return new List<EmployeeLeaveStatus>();
+                    return (leaveApplications, leaveStatuses);
+                }
             }
         }
         public async Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(string empId, int compId, int year)
