@@ -629,24 +629,29 @@
         });
     }
 
-
-      function showSalarySlipModal(data) {
+    function showSalarySlipModal(data) {
         $('#modalMonthYear').text(`${data.monthName} ${data.year}`);
+        console.log('data', data);
 
-        // Handle undefined values
- 
-
-        const earnings = [
+        // Separate positive and negative allowances
+        const positiveEarnings = [
             { name: "Basic Salary", actual: data.basicSalary },
             { name: "HRA", actual: data.hra },
             { name: "Conveyance", actual: data.conveyanceAllowance },
             { name: "Child Education", actual: data.childEducationAllowance },
             { name: "Medical", actual: data.medicalAllowance },
-            { name: "Deputation Allowance", actual: data.deputationAllowance },
             { name: "Arrears", actual: data.arrears }
         ].filter(e => e.actual > 0);
 
-        const totalEarnings = earnings.reduce((sum, e) => sum + e.actual, 0);
+        // Handle negative deputation allowance
+        const deputationAllowance = data.deputationAllowance || 0;
+        if (deputationAllowance > 0) {
+            positiveEarnings.push({ name: "Deputation Allowance", actual: deputationAllowance });
+        }
+
+        // Calculate total from VISIBLE items only
+        const totalEarnings = positiveEarnings.reduce((sum, e) => sum + e.actual, 0);
+
         const deductions = [
             { name: "PF", actual: data.pf },
             { name: "ESIC", actual: data.esic },
@@ -658,7 +663,17 @@
             { name: "Loan", actual: data.loan },
             { name: "OtherDeduction", actual: data.otherDeduction }
         ].filter(d => d.actual > 0);
-                const totalded = deductions.reduce((sum, e) => sum + e.actual, 0);
+
+        // Add negative deputation allowance as deduction
+        if (deputationAllowance < 0) {
+            deductions.push({
+                name: "Deputation Allowance (Recovery)",
+                actual: Math.abs(deputationAllowance)
+            });
+        }
+
+        // Calculate total from VISIBLE items only
+        const totalded = deductions.reduce((sum, d) => sum + d.actual, 0);
 
         // Compact header info
         const headerInfo = `
@@ -668,9 +683,9 @@
             </div>
             <div class="row mb-1" style="font-size: 12px;">
                 <div class="col-md-6 p-1"><strong>Month Days:</strong> ${data.monthDays} | <strong>Holiday:</strong> ${data.holiday}</div>
-                <div class="col-md-6 p-1"><strong>Absent:</strong> ${data.absentDays} | <strong>Salary Days:</strong> ${data.salaryDays}</div>  
+                <div class="col-md-6 p-1"><strong>Absent:</strong> ${data.absentDays} | <strong>Salary Days:</strong> ${data.salaryDays}</div>
                 <div class="col-md-6 p-1"><strong>Paid Leave Days:</strong> ${data.leave}
-            </div>       
+            </div>
         `;
 
         // CSS for compact design
@@ -717,7 +732,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        ${earnings.map(e => `
+                        ${positiveEarnings.map(e => `
                             <tr>
                                 <td>${e.name}</td>
                                 <td class="text-end">₹${e.actual.toFixed(2)}</td>
@@ -725,7 +740,7 @@
                         `).join('')}
                         <tr class="fw-bold">
                             <td>Total Earnings</td>
-                              <td class="text-end">₹${totalEarnings.toFixed(2)}</td>
+                            <td class="text-end">₹${totalEarnings.toFixed(2)}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -776,12 +791,12 @@
         `;
 
         // Apply compact modal size
-             $('#salarySlipModal .modal-dialog').removeClass('modal-xl').addClass('modal-lg');
+        $('#salarySlipModal .modal-dialog').removeClass('modal-xl').addClass('modal-lg');
         $('#salarySlipContent').html(content);
 
         const modal = new bootstrap.Modal(document.getElementById('salarySlipModal'));
         modal.show();
-    }
+    }  
 
     $('#btnClear').on('click', function () {
            
