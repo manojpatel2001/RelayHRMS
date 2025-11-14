@@ -323,6 +323,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<AttendanceLockParamVm>().HasNoKey().ToView(null);
              modelBuilder.Entity<EmployeeLockStatusViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<EmployeeLeaveApplication>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ProbationStatusSearchViewModel>().HasNoKey().ToView(null);
 
 
 
