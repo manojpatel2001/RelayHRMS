@@ -13,7 +13,7 @@ namespace HRMS_Infrastructure.Interface.Report
     public interface IReportRepository
     {
         Task<List<LeaveBalanceViewModelForAdmin>> GetLeaveBalanceForAdmin(LeaveBalance_ParamForAdmin vm);
-        Task<List<ActiveorInactiveUsers>> GetActiveOrInactiveUsers(string Action , int Compid);
+        Task<List<ActiveorInactiveUsers>> GetActiveOrInactiveUsers(string Action, int Compid);
         Task<List<MobileUserViewModel>> GetActiveOrInactiveMobileUsers(string Action, int Compid);
         Task<List<MonthlySalarySummaryViewModel>> GetYearlySalaryReportForAdmin(int StartYear, int EndYear);
         Task<List<HolidayViewModel>> GetHolidaysForYear(int Year);
@@ -21,8 +21,11 @@ namespace HRMS_Infrastructure.Interface.Report
         Task<SP_Response> UpdateMobileUsers(UpdateMobileUserStatusRequest model);
         Task<List<CompoffLapseReminderViewModel>> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays);
         Task<(List<EmployeeLeaveApplication>, List<EmployeeLeaveStatus>)>
-               GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear ,int CompId);  
+               GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear, int CompId);
         Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(string EmpId, int CompId, int Year);
+
+        Task<List<ProbationStatusSearchViewModel>> GetProbationStatusSearchAsync(GetProbationSearchParam Model);
+
 
 
     }
