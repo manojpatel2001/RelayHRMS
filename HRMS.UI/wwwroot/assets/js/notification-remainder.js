@@ -217,8 +217,6 @@ $(document).ready(function () {
     });
 });
 
-
-
 function toggleNotificationDropdown() {
     $('#notificationDropdown').toggleClass('show');
 }
@@ -232,7 +230,8 @@ function closeNotificationDropdown() {
 
 async function redirectPage(pageUrl,notificationType)
 {
-    if (notificationType == "Leave Approval" || notificationType == "CompOff Approval" || notificationType == "Attendance Approval" ||
+    if (notificationType == "Attendance Application" || notificationType == "Leave Application" || notificationType == "Leave Approval"
+        || notificationType == "CompOff Application" || notificationType == "CompOff Approval" || notificationType == "Attendance Approval" ||
         notificationType == "Ticket FollowUp" || notificationType == "Ticket Application" || notificationType == "Ticket Response")
     {
         await readNotification(notificationType);
@@ -294,10 +293,10 @@ function updateNotificationList(notificationDetails) {
                 href = '/EmployeePanel/CompOffApplication/Index';
                 break;
             case 'Attendance Application':
-                href = '/EmployeePanel/Leave/Attendance';
+                href = '/EmployeePanel/Leave/AttendanceRegularizationApproval';
                 break;
             case 'Attendance Approval':
-                href = '/EmployeePanel/Leave/AddAttendance';
+                href = '/EmployeePanel/Leave/Attendance';
                 break;
             case 'Ticket Application':
                 href = '/EmployeePanel/TicketRequest/TicketApplication';
