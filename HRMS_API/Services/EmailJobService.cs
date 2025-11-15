@@ -62,9 +62,7 @@ namespace HRMS_API.Services
                             <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.BranchName}</td>
                             <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.Attendance}</td>
                          </tr>");
-
-
-                       
+                        i++;                      
                     }
                     // Add a row for the Excel download link
                     employeeRows.AppendLine($@"
