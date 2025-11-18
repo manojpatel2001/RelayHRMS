@@ -1075,7 +1075,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             return response;
         }
 
-        public async Task<APIResponse> GetEmployeesListForSalary(int Month, int Year)
+        public async Task<APIResponse> GetEmployeesListForSalary(int Month, int Year, int CompId)
         {
             try
             {
@@ -1087,6 +1087,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     var parameters = new DynamicParameters();
                     parameters.Add("@Month", Month, DbType.Int32, ParameterDirection.Input);
                     parameters.Add("@Year", Year, DbType.Int32, ParameterDirection.Input);
+                    parameters.Add("@CompId", CompId, DbType.Int32, ParameterDirection.Input);
 
                     using (var multi = await connection.QueryMultipleAsync(
                         "GetEmployeesListForSalary",
