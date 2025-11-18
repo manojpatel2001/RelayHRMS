@@ -2,6 +2,7 @@
 using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Repository.Report;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -182,7 +183,7 @@ namespace HRMS_API.Controllers.Report
 
 
         [HttpGet("GetEmployeeMonthlyLeaveStatus")]
-        public async Task<APIResponse> GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear ,int CompId)
+        public async Task<APIResponse> GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear, int CompId)
         {
             try
             {
@@ -237,7 +238,7 @@ namespace HRMS_API.Controllers.Report
             }
         }
 
-            [HttpGet("GetCompoffLapseReminder")]
+        [HttpGet("GetCompoffLapseReminder")]
         public async Task<APIResponse> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays)
         {
             try
@@ -257,5 +258,31 @@ namespace HRMS_API.Controllers.Report
         }
 
 
+        [HttpPost("GetProbationStatusSearch")]
+        public async Task<IActionResult> GetProbationStatusSearch(
+    GetProbationSearchParam Model )
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetProbationStatusSearchAsync(Model);
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Records fetched successfully."
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log the exception here if needed
+                return StatusCode(500, new
+                {
+                    isSuccess = false,
+                    Data = (object)null,
+                    ResponseMessage = "Unable to retrieve records. Please try again later."
+                });
+            }
+        }
     }
 }

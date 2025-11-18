@@ -1020,30 +1020,9 @@
       $('#btnGo').on('click', async function () {
           await GetAttendanceRegularizationAlerts();
              getEmployeeReport();
-      });
+      });  
 
-      async function getEmployeeReport()
-      {
-            if (!validateForm()) {
-              return;
-          }
 
-          const emp = $('#employeeDropdown').val();
-          const record = $('#recordtype').val();
-          const dateRange = getDateRange();
-
-          if (!dateRange) {
-              Swal.fire({
-                  text: "Please provide valid date range.",
-                  icon: "warning",
-                  confirmButtonText: "OK",
-                  width: "300px",
-                  customClass: {
-                      popup: 'swal-small'
-                  }
-              });
-              return;
-          }
 
           // Check joining date before proceeding
           GetEmployeeById().done(function (data) {
@@ -1138,6 +1117,116 @@
       }
 
 
+    async function getEmployeeReport()
+    {
+        if (!validateForm()) {
+            return;
+        }
+        const emp = $('#employeeDropdown').val();
+        const record = $('#recordtype').val();
+        const dateRange = getDateRange();
+        if (!dateRange) {
+            Swal.fire({
+                text: "Please provide valid date range.",
+                icon: "warning",
+                confirmButtonText: "OK",
+                width: "300px",
+                customClass: {
+                    popup: 'swal-small'
+                }
+            });
+            return;
+        }
+        // Proceed with AJAX
+        showLoder();
+        const formData = new FormData();
+        formData.append("EmpId", emp);
+        formData.append("StartDate", dateRange.startDate);
+        formData.append("EndDate", dateRange.endDate);
+        formData.append("RecordType", record);
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (response) {
+                if (response?.isSuccess) {
+                    if (response.data && response.data.length > 0) {
+         
+                        const allSameStatus = response.data.every(record => {
+                            const status = record.attendanceStatus || record.AttendanceStatus || '-';
+                            return status === '-' || status === '' || status === null;
+                        });
+
+                        if (allSameStatus) {
+             
+                            $("#attendanceSummary").hide();
+                            $("#saveButtonContainer").hide();
+                            $("#attendanceSection").hide();
+                            Swal.fire({
+                                text: "No attendance data found for the selected period.",
+                                icon: "info",
+                                confirmButtonText: "OK",
+                                width: "300px",
+                                customClass: {
+                                    popup: 'swal-small'
+                                }
+                            });
+                            return;
+                        }
+
+                 
+                        $("#attendanceSummary").show();
+                        showAttendanceSummary(response.data);
+                        LoadAttendanceGrid(response.data);
+                        $("#saveButtonContainer").show();
+                        $("#attendanceSection").show();
+                    } else {
+                        $("#attendanceSummary").hide();
+                        $("#saveButtonContainer").hide();
+                        $("#attendanceSection").hide();
+                        Swal.fire({
+                            text: response.responseMessage,
+                            icon: "info",
+                            confirmButtonText: "OK",
+                            width: "300px",
+                            customClass: {
+                                popup: 'swal-small'
+                            }
+                        });
+                    }
+                } else {
+                    Swal.fire({
+                        text: "No Record Found.",
+                        icon: "info",
+                        confirmButtonText: "OK",
+                        width: "300px",
+                        customClass: {
+                            popup: 'swal-small'
+                        }
+                    });
+                    $("#attendanceSummary").hide();
+                    $("#saveButtonContainer").hide();
+                    $("#attendanceSection").hide();
+                }
+            },
+            error: function () {
+                Swal.fire({
+                    text: "Something went wrong while fetching data.",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                    width: "300px",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+            },
+            complete: function () {
+                hideLoder();
+            }
+        });
+    }
       // Clear Button Click Event
       $('#btnClear').on('click', function () {
           // Reset form fields
@@ -1316,8 +1405,10 @@
     });
 
     function LoadAttendanceGrid(data) {
+            const filteredData = data.filter(item => item.attendanceStatus !== "-");
         $("#attendanceGrid").dxDataGrid({
             dataSource: data||[],
+            dataSource: filteredData,
             showBorders: true,
             keyExpr: "shiftDate",
             width: "100%",

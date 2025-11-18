@@ -205,6 +205,34 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+
+        public async Task<List<ProbationStatusSearchViewModel>> GetProbationStatusSearchAsync(GetProbationSearchParam Model)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@SearchBy", Model.SearchBy, DbType.String, ParameterDirection.Input);
+                    parameters.Add("@SearchValue", Model.SearchValue, DbType.String, ParameterDirection.Input);
+                    parameters.Add("@BranchId", Model.BranchId, DbType.String, ParameterDirection.Input);
+                    parameters.Add("@Status", Model.Status ?? "Pending", DbType.String, ParameterDirection.Input);
+
+                    var result = await connection.QueryAsync<ProbationStatusSearchViewModel>(
+                        "GetProbationStatusSearch",
+                        parameters,
+                        commandType: CommandType.StoredProcedure);
+
+                    return result.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error
+                Console.WriteLine($"Error: {ex.Message}");
+                throw; // Re-throw the exception
+            }
+        }
         public async Task<List<UsedLeavesSummary>> GetUsedLeavesSummary()
         {
             try
