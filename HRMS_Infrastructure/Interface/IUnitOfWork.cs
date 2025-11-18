@@ -16,6 +16,7 @@ using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Probations;
 using HRMS_Infrastructure.Interface.Report;
 using HRMS_Infrastructure.Interface.Salary;
+using HRMS_Infrastructure.Interface.Scheme;
 using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.ManagePermissions;
 using HRMS_Infrastructure.Repository.OtherMaster;
@@ -137,6 +138,7 @@ namespace HRMS_Infrastructure.Interface
 
         IEmployeeHolidayMarkingRepository EmployeeHolidayMarkingRepository { get; }
         IAttendanceLockRepository AttendanceLockRepository { get; }
+        ISchemeReportingManagerRepository SchemeReportingManagerRepository { get; }
         void Commit();
         Task CommitAsync();
     }
