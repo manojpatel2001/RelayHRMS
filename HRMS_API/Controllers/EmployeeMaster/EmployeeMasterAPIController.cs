@@ -893,11 +893,11 @@ namespace HRMS_API.Controllers.EmployeeMaster
         }
 
         [HttpGet("GetEmployeesListForSalary")]
-        public async Task<APIResponse> GetEmployeesListForSalary([FromQuery] int month, [FromQuery] int year)
+        public async Task<APIResponse> GetEmployeesListForSalary([FromQuery] int month, [FromQuery] int year , [FromQuery] int compId)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetEmployeesListForSalary(month, year);
+                var data = await _unitOfWork.EmployeeManageRepository.GetEmployeesListForSalary(month, year,compId);
                 return data;
             }
             catch
