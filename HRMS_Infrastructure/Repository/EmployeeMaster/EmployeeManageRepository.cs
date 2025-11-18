@@ -915,6 +915,35 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
     
+        public async Task<APIResponse> GetEmployeeListByBranchIdForLeft(CommonParameter parameter)
+        {
+            try
+            {
+                var EmployeesList = new List<vmGetEmployeeListByBranchId>();
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (var multi = await connection.QueryMultipleAsync(
+                        "GetEmployeeListByBranchIdForLeft",
+                          new { BranchId=parameter.BranchId,CompanyId= parameter.CompanyId },
+                        commandType: CommandType.StoredProcedure))
+                    {
+
+                        EmployeesList = (await multi.ReadAsync<vmGetEmployeeListByBranchId>()).AsList();
+                    };
+
+
+                    return new APIResponse { Data = EmployeesList, ResponseMessage = "Fetched successfully!", isSuccess = true };
+
+                }
+            }
+            catch (Exception)
+            {
+                return new APIResponse { ResponseMessage = "Some thing Went wrong!", isSuccess = false };
+            }
+        }
+    
 
     
         public async Task<APIResponse> GetUpdateEmployeeById(int id, string? action = null)
