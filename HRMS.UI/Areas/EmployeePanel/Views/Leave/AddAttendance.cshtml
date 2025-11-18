@@ -1024,6 +1024,99 @@
 
 
 
+          // Check joining date before proceeding
+          GetEmployeeById().done(function (data) {
+              if (data.isSuccess && data.data) {
+                  let joiningDate = new Date(data.data.dateOfJoining);
+                  let selectedStartDate = new Date(dateRange.startDate);
+                      let formattedJoiningDate = joiningDate.toLocaleDateString('en-GB');
+
+                  if (selectedStartDate < joiningDate) {
+                      Swal.fire({
+                         text: `Attendance Regularisation is only allowed from ${formattedJoiningDate}.`,    
+                         icon: 'warning',
+                          width: '300px',
+                          confirmButtonText: 'OK',
+                          customClass: {
+                              popup: 'swal-small'
+                          }
+                      });
+                      return;
+                  }
+
+                  // Proceed with AJAX
+                  showLoder();
+                  const formData = new FormData();
+                  formData.append("EmpId", emp);
+                  formData.append("StartDate", dateRange.startDate);
+                  formData.append("EndDate", dateRange.endDate);
+                  formData.append("RecordType", record);
+
+                  $.ajax({
+                      url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
+                      type: 'POST',
+                      data: formData,
+                      contentType: false,
+                      processData: false,
+                      success: function (response) {
+                          if (response?.isSuccess) {
+                              if (response.data && response.data.length > 0) {
+                                  $("#attendanceSummary").show();
+                                  showAttendanceSummary(response.data);
+                                  LoadAttendanceGrid(response.data);
+                                  $("#saveButtonContainer").show();
+                                  $("#attendanceSection").show();
+                              } else {
+                                  $("#attendanceSummary").hide();
+                                  $("#saveButtonContainer").hide();
+                                  $("#attendanceSection").hide();
+                                  // Swal.fire({
+                                  //     text: response.responseMessage ,
+                                  //     icon: "info",
+                                  //     confirmButtonText: "OK",
+                                  //     width: "300px",
+                                  //     customClass: {
+                                  //         popup: 'swal-small'
+                                  //     }
+                                  // });
+                                 var  emptyData=[];
+                                  LoadAttendanceGrid(emptyData);
+                              }
+                          } else {
+                              Swal.fire({
+                                  text: "No Record Found.",
+                                  icon: "info",
+                                  confirmButtonText: "OK",
+                                  width: "300px",
+                                  customClass: {
+                                      popup: 'swal-small'
+                                  }
+                              });
+                              $("#attendanceSummary").hide();
+                              $("#saveButtonContainer").hide();
+                              $("#attendanceSection").hide();
+                          }
+                      },
+                      error: function () {
+                          Swal.fire({
+                              text: "Something went wrong while fetching data.",
+                              icon: "error",
+                              confirmButtonText: "OK",
+                              width: "300px",
+                              customClass: {
+                                  popup: 'swal-small'
+                              }
+                          });
+                      },
+                      complete: function () {
+                          hideLoder();
+                      }
+                  });
+              }
+          });
+      }
+
+
     async function getEmployeeReport()
     {
         if (!validateForm()) {
@@ -1314,6 +1407,7 @@
     function LoadAttendanceGrid(data) {
             const filteredData = data.filter(item => item.attendanceStatus !== "-");
         $("#attendanceGrid").dxDataGrid({
+            dataSource: data||[],
             dataSource: filteredData,
             showBorders: true,
             keyExpr: "shiftDate",
@@ -1321,7 +1415,7 @@
             columnAutoWidth: true,
             allowColumnResizing: true,
             paging: { enabled: false },
-            height: 300, // fixed height for scroll
+            height: 200, // fixed height for scroll
             autoHeight: false, // ensure scroll can appear
             scrolling: {
                 mode: "standard",
