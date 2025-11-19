@@ -5,6 +5,7 @@ using HRMS_Core.Notifications;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Utility;
@@ -494,9 +495,57 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
+        [HttpPost("GetAttendanceRequestAdminReport")]
+        public async Task<APIResponse> GetAttendanceRequestAdminReport([FromBody] AttendanceRequestReportFilterVm attendance)
+        {
+            try
+            {
+                if (attendance == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Attendance details are required."
+                    };
+                }
 
+                if (attendance.FromDate.HasValue && attendance.ToDate.HasValue &&
+                    attendance.FromDate > attendance.ToDate)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "From Date must be before To Date."
+                    };
+                }
 
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetAttendanceRequestAdminReport(attendance);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching records found."
+                    };
+                }
 
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (e.g., using ILogger)
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while fetching data."
+                };
+            }
+        }
 
         [HttpPost("GetAttendanceDetails")]
         public async Task<APIResponse> GetAttendanceDetails([FromBody] EmployeeInOutFilterVM attendance)
