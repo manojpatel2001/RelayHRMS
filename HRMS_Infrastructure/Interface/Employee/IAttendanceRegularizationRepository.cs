@@ -4,6 +4,7 @@ using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.importData;
+using HRMS_Core.VM.Report;
 using Microsoft.SqlServer.Server;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<AttendanceRegularizationVM>> GetAttendanceRegularization(AttendanceRegularizationSearchFilterVM attendance);
         Task<List<AttendanceRegularizationVM>> GetAttendanceRegularizationApproval(AttendanceRegularizationSearchFilterVM attendance);
         Task<List<AttendanceRegularizationAdmin>> GetAttendanceRegularizationForAdmin(AttendanceRegularizationSearchFilterForAdminVM attendance);
+        Task<List<AttendanceRegularizationAdmin>> GetAttendanceRequestAdminReport(AttendanceRequestReportFilterVm attendance);
         Task<bool> Update(AttendanceRegularization Record ,int empInOutId);
         Task<List<EmpInOutVM>> GetEmployeeInOut( int? EmpId , DateTime? ForDate);
         Task<VMCommonResult> Create(AttendanceRegularization model);

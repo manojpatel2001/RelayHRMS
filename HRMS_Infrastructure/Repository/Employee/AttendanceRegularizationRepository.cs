@@ -2,6 +2,7 @@
 using HRMS_Core.Employee;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface.Employee;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -285,6 +286,29 @@ namespace HRMS_Infrastructure.Repository.Employee
             {
 
                 return new List<AttendanceRegularizationVM>();
+            }
+        }
+
+        public async Task<List<AttendanceRegularizationAdmin>> GetAttendanceRequestAdminReport(AttendanceRequestReportFilterVm attendance)
+        {
+            try
+            {
+                var searchbyParam = new SqlParameter("@SearchBy", (object?)attendance.SearchBy ?? DBNull.Value);
+                var searchforParam = new SqlParameter("@SearchValue", (object?)attendance.SearchValue ?? DBNull.Value);
+                var fromdateParam = new SqlParameter("@FromDate", (object?)attendance.FromDate ?? DBNull.Value);
+                var todateParam = new SqlParameter("@ToDate", (object?)attendance.ToDate ?? DBNull.Value);
+                var statustypeParam = new SqlParameter("@Status", (object?)attendance.Status ?? DBNull.Value);
+                var compidParam = new SqlParameter("@CompanyId", (object?)attendance.CompanyId ?? DBNull.Value);
+
+                return await _db.Set<AttendanceRegularizationAdmin>()
+              .FromSqlRaw("EXEC [dbo].[GetAttendanceRequestAdminReport] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status ,@CompanyId",
+                  searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam, compidParam)
+              .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+
+                return new List<AttendanceRegularizationAdmin>();
             }
         }
     }
