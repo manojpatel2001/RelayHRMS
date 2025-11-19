@@ -11,5 +11,6 @@ namespace HRMS_Core.VM.Employee
         public string? FullName { get; set; }
         public string? EmployeeCode { get; set; }
         public int? Id { get; set; }
+        public int? CompanyId { get; set; }
     }
 }

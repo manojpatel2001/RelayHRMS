@@ -139,6 +139,7 @@ namespace HRMS_Infrastructure.Interface
         IEmployeeHolidayMarkingRepository EmployeeHolidayMarkingRepository { get; }
         IAttendanceLockRepository AttendanceLockRepository { get; }
         ISchemeReportingManagerRepository SchemeReportingManagerRepository { get; }
+        IEmployeeBankDetailsRepository EmployeeBankDetailsRepository { get; }
         void Commit();
         Task CommitAsync();
     }
