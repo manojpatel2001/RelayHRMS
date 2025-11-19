@@ -42,6 +42,8 @@ namespace HRMS_Core.VM.ExportData
         public string? PrimaryBankName { get; set; }
         public string? PrimaryBankAccountNo { get; set; }
         public string? PrimaryIFSCCode { get; set; }
+        public string? LeftDate { get; set; }
         public string? IsLeft { get; set; }
+
     }
 }
