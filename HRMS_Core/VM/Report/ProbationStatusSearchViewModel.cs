@@ -16,5 +16,6 @@ namespace HRMS_Core.VM.Report
         public string? ReviewType { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
+        public DateTime? ProbationEndDate { get; set; }
     }
 }

@@ -9,9 +9,10 @@
 
 <title>Probation Status</title>
 
-<!-- jQuery + Bootstrap + SweetAlert -->
+<!-- jQuery + Bootstrap + SweetAlert + XLSX -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
     .form-section {
@@ -223,6 +224,27 @@
             font-size: 14px;
         }
 
+    .btn-excel {
+        background-color: #28a745 !important;
+        color: white !important;
+        border: none;
+        padding: 6px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-excel:hover,
+        .btn-excel:focus,
+        .btn-excel:active {
+            background-color: #218838 !important;
+            color: white !important;
+            outline: none;
+            box-shadow: none;
+        }
+
     /* Container adjustments */
     .main-container {
         padding: 0 15px;
@@ -408,6 +430,13 @@
         <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
     </div>
 
+    <!-- Action Buttons -->
+    <div class="action-buttons-container">
+        <button class="btn btn-excel" id="btnExportExcel">
+            <i class="fas fa-file-excel me-1"></i> Export to Excel
+        </button>
+    </div>
+
     <!-- Grid Container -->
     <div class="grid-container">
         <div id="probationGrid"></div>
@@ -580,7 +609,7 @@
     })(jQuery);
 
     $(document).ready(function () {
-        console.log('Document ready!'); // Debug
+        console.log('Document ready!');
 
         // Close dropdowns when clicking outside
         $(document).on('click', function(e) {
@@ -601,15 +630,13 @@
             }
         });
 
-        // Manual click handler as backup - IMPORTANT!
+        // Manual click handler as backup
         $('.searchable-select-input').on('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Manual click handler triggered!');
             const $dropdown = $(this).siblings('.searchable-select-dropdown');
             $('.searchable-select-dropdown').not($dropdown).removeClass('active');
             $dropdown.toggleClass('active');
-            console.log('Dropdown has active class:', $dropdown.hasClass('active'));
         });
 
         // Wrapper click handler
@@ -627,6 +654,9 @@
         BindBranchDropdown();
 
         $('#r1').prop('checked', true);
+
+        // Load pending data by default on page load
+        loadDefaultPendingData();
 
         $("#btnApprove").click(function () {
             updateProbationStatus("Completed");
@@ -648,7 +678,6 @@
     }
 
     function BindBranchDropdown() {
-
         $.ajax({
             url: '@baseDomainUrl/api/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
             method: 'GET',
@@ -709,12 +738,15 @@
             allowColumnResizing: false,
             selection: {
                 mode: "multiple",
-                showCheckBoxesMode: "always"
+                showCheckBoxesMode: "always",
+                selectAllMode: "allPages"
             },
             filterRow: { visible: false },
             searchPanel: { visible: false },
             onSelectionChanged: function (e) {
                 selectedKeys = e.selectedRowKeys;
+                console.log('Selected Keys:', selectedKeys);
+                console.log('Selected Rows Count:', selectedKeys.length);
             },
             columns: [
                 { dataField: "employeeCode", caption: "Emp Code", width: 100 },
@@ -728,19 +760,26 @@
                     width: 140
                 },
                 {
+                    dataField: "probationEndDate",
+                    caption: "Probation End Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: 160
+                },
+                {
                     dataField: "reviewType",
                     caption: "Review Type",
                     width: 100
                 },
                 {
-                    dataField: "fullName",
+                    dataField: "reviewBy",
                     caption: "Review By",
                     width: 150,
                     calculateCellValue: function(rowData) {
                         return rowData.FullName ? rowData.FullName : "-";
                     }
                 }
-            
+
             ],
             onContentReady: function(e) {
                 $('#probationGrid .dx-datagrid').css('height', 'auto');
@@ -751,8 +790,142 @@
         $("#actionButtons").show();
     }
 
+    // Function to load default pending data
+    function loadDefaultPendingData() {
+        showLoder();
+
+        let model = {
+            searchBy: null,
+            searchValue: null,
+            branchId: null,
+            status: 'Pending'
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/ReportAPI/GetProbationStatusSearch")',
+            type: 'POST',
+            data: JSON.stringify(model),
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (res) {
+                console.log('res' ,res);
+                hideLoder();
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    loadGrid(res.data);
+                } else {
+                    $("#probationGrid").empty();
+                    $("#actionButtons").hide();
+                }
+            },
+            error: function (xhr, status, error) {
+                hideLoder();
+                console.error('API Error:', xhr.responseText);
+                round_error_noti('Error occurred while fetching data');
+            }
+        });
+    }
+
+    function exportToExcel() {
+        try {
+            const gridInstance = $("#probationGrid").dxDataGrid("instance");
+            if (!gridInstance) {
+                round_error_noti('No data available to export');
+                return;
+            }
+
+            const selectedRowKeys = gridInstance.getSelectedRowKeys();
+            if (!selectedRowKeys || selectedRowKeys.length === 0) {
+                round_error_noti('Please select at least one row to export');
+                return;
+            }
+
+            console.log('Selected Row Keys:', selectedRowKeys);
+
+            const dataSource = gridInstance.getDataSource();
+            const allData = dataSource.items();
+            if (!allData || allData.length === 0) {
+                round_error_noti('No data available to export');
+                return;
+            }
+
+            const selectedRows = allData.filter(row => selectedRowKeys.includes(row.employeeId));
+            if (!selectedRows || selectedRows.length === 0) {
+                round_error_noti('No data found for selected rows');
+                return;
+            }
+
+            console.log('Selected Rows:', selectedRows);
+
+            const headers = [
+                'Emp Code',
+                'Employee Name',
+                'Branch',
+                'Date of Joining',
+                'Probation End Date',
+                'Review Type',
+                'Review By'
+            ];
+
+            const data = selectedRows.map(row => [
+                row.employeeCode || '',
+                row.fullName || '',
+                row.branchName || '',
+                row.dateOfJoining ? formatDate(row.dateOfJoining) : '',
+                row.probationEndDate ? formatDate(row.probationEndDate) : '',
+                row.reviewType || '',
+                row.fullName || '-' // Use `fullName` instead of `FullName`
+            ]);
+
+            console.log('Data for Export:', data);
+
+            data.unshift(headers);
+            const ws = XLSX.utils.aoa_to_sheet(data);
+
+            ws['!cols'] = [
+                { wch: 12 },
+                { wch: 25 },
+                { wch: 20 },
+                { wch: 15 },
+                { wch: 18 },
+                { wch: 15 },
+                { wch: 20 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Probation Status');
+            const today = new Date();
+            const filename = `Probation_Status_${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            round_success_noti('Data exported successfully!');
+        } catch (error) {
+            console.error('Export Error:', error);
+            round_error_noti('Error occurred while exporting data: ' + error.message);
+        }
+    }
+
+    // Helper function to format date
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        } catch (e) {
+            return '';
+        }
+    }
+
+    // Export button click handler
+    $('#btnExportExcel').on('click', function() {
+        console.log('Export button clicked');
+        exportToExcel();
+    });
+
     $('#btnGo').on('click', function () {
-        debugger;
         showLoder();
         const branchDropdown = $('#branchDropdown').data('searchableSelect');
         const selectedBranches = branchDropdown ? branchDropdown.getValue() : [];
@@ -768,13 +941,16 @@
 
         $.ajax({
             url: '@(baseDomainUrl + "/api/ReportAPI/GetProbationStatusSearch")',
-            type: 'POST', // Changed to POST
-            data: JSON.stringify(model), // Stringify the data
-            contentType: 'application/json', // Add content type
+            type: 'POST',
+            data: JSON.stringify(model),
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
             success: function (res) {
                 hideLoder();
                 console.log('API Response:', res);
-                         if (res.isSuccess && res.data && res.data.length > 0) {
+                if (res.isSuccess && res.data && res.data.length > 0) {
                     loadGrid(res.data);
                 } else {
                     $("#probationGrid").empty();
@@ -791,6 +967,7 @@
             }
         });
     });
+
     $("#btnClear").click(function () {
         $('#searchby').val("");
         $('#searchfor').val('');
@@ -812,7 +989,9 @@
 
         $("#probationGrid").empty();
         $("#actionButtons").hide();
+
+        // Reload default pending data after clear
+        loadDefaultPendingData();
     });
 
-  
 </script>
