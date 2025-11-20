@@ -44,6 +44,7 @@ namespace HRMS_Core.VM.ExportData
         public string? PrimaryIFSCCode { get; set; }
         public string? LeftDate { get; set; }
         public string? IsLeft { get; set; }
+        public string? CategoryName { get; set; }
 
     }
 }
