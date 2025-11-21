@@ -1,6 +1,7 @@
 ﻿using HRMS_API.Services;
 using HRMS_Core.DbContext;
 using HRMS_Core.ProfileManage;
+using HRMS_Core.VM;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
@@ -198,6 +199,18 @@ namespace HRMS_API.Controllers.ManageProfile
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to  update employee profile. Please try again later." };
             }
         }
-
+        [HttpPost("CheckReportingPerson")]
+        public async Task<APIResponse> CheckReportingPerson(vmCommonCheckParameters model)
+        {
+            try
+            {
+                var data = await _unitOfWork.ManageProfileRepository.CheckReportingPerson(model);
+                return data;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve record. Please try again later." };
+            }
+        }
     }
 }

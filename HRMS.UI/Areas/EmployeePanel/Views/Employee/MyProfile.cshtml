@@ -312,8 +312,27 @@
                     <input type="datetime" id="dateofjoinid" class="form-control form-control-sm inp-width" readonly>
                 </div>
                 <div class="col-md-12 d-flex align-items-center">
-                    <label class="form-label-fixed mb-0">Shift Name:</label>
-                    <input type="text" id="shiftnameid" class="form-control form-control-sm inp-width" readonly>
+                    <label class="form-label-fixed mb-0" for="ddlShift">Shift Name:</label>
+                    @* <input type="text" id="shiftnameid" class="form-control form-control-sm inp-width" readonly>
+                *@
+                    <div class="mt-3 form-floating-custom inp-width">
+                        <div class="searchable-select-wrapper" id="shiftWrapper">
+                            <input type="text" class="searchable-select-input" id="ddlShift" readonly>
+                            <span class="searchable-select-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                    <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                </svg>
+                            </span>
+                            <div class="searchable-select-dropdown">
+                                <div class="searchable-select-search">
+                                    <input type="text" placeholder="Search shift..." class="search-input">
+                                </div>
+                                <div class="searchable-select-options"></div>
+                            </div>
+                        </div>
+                        <span id="spnShift" style="color:red; display:none;">Please Select Shift</span>
+                    </div>
+                
                 </div>
                 <div class="col-md-12 d-flex align-items-center">
                     <label class="form-label-fixed mb-0">Category:</label>
@@ -341,8 +360,26 @@
                     <input type="text" id="monthlyGrossid" class="form-control form-control-sm inp-width" readonly>
                 </div>
                 <div class="col-md-12 d-flex align-items-center">
-                    <label class="form-label-fixed mb-0">Department:</label>
-                    <input type="text" id="depatid" class="form-control form-control-sm inp-width" readonly>
+                    <label class="form-label-fixed mb-0" for="ddlDepartment">Department:</label>
+                    @*  <input type="text" id="depatid" class="form-control form-control-sm inp-width" readonly>
+                *@
+                    <div class="mt-3 form-floating-custom inp-width">
+                        <div class="searchable-select-wrapper" id="departmentWrapper">
+                            <input type="text" class="searchable-select-input" id="ddlDepartment" readonly>
+                            <span class="searchable-select-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                    <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                </svg>
+                            </span>
+                            <div class="searchable-select-dropdown">
+                                <div class="searchable-select-search">
+                                    <input type="text" placeholder="Search department..." class="search-input">
+                                </div>
+                                <div class="searchable-select-options"></div>
+                            </div>
+                        </div>
+                        <span id="spnDepartment" style="color:red; display:none;">Please Select Department</span>
+                    </div>
                 </div>
                 <div class="col-md-12 d-flex align-items-center">
                     <label class="form-label-fixed mb-0">Employment Type:</label>
@@ -569,8 +606,8 @@
     }
     
 
-    $(document).ready(function () {
-            loadEmployeeProfile();
+    $(document).ready(async function () {
+        await loadEmployeeRecords();
         $('#btnShowMore').click(function () {
             var $moreDetailsForm = $('#more-details-form');
             var $btnSubmitPersonal = $('#submit-personal');
@@ -586,8 +623,114 @@
                 $btnSubmitPersonal.hide();
             }
         });
-
+          loadEmployeeProfile();
+        CheckReportingPerson();
     });
+
+
+            async function loadEmployeeRecords() {
+                var parameter={
+                    CompanyId:companyId,
+                    EmployeeId:employeeId
+                }
+                try {
+                    const response = await new Promise((resolve, reject) => {
+                        $.ajax({
+                            url: '@baseUrl/EmployeeMasterAPI/GetRecordsForUpdate' ,
+                            method: 'POST',
+                            contentType: 'application/json',
+                              data: JSON.stringify(parameter),
+                            success: function(response) {
+                                resolve(response);
+                            },
+                            error: function(error) {
+                                reject(error);
+                            }
+                        });
+                    });
+
+                      
+                        bindDepartment(response.data.departments||[]);
+                        bindShift(response.data.shifts||[]);
+
+
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                } 
+            }
+
+         async function bindShift(data)
+        {
+
+             $('#ddlShift').searchableSelect({
+                data: data||[],
+                valueKey: 'shiftId',
+                textKey: 'shiftName',
+                placeholder:'Shift',
+                searchPlaceholder: 'Search shift...',
+                onChange: function(item) {
+
+                }
+              });
+            $('#ddlShift').prop('disabled', true).prop('readonly', true);
+
+
+        }
+
+            async  function bindDepartment(data)
+            {
+
+                $('#ddlDepartment').searchableSelect({
+                    data: data||[],
+                    valueKey: 'departmentId',
+                    textKey: 'departmentName',
+                    placeholder:'Department',
+                    searchPlaceholder: 'Search department...',
+                    onChange: function(item) {
+
+                    }
+                });
+                $('#ddlDepartment').prop('disabled', true).prop('readonly', true);
+
+            }
+
+
+
+    async function CheckReportingPerson(){
+       $.ajax({
+                url: '@baseUrl/ProfileManageAPI/CheckReportingPerson',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    UserId: localStorage.getItem('EmployeeId'),
+                    EmployeeId: employeeId
+                }),
+                success: function(response) {
+                    debugger;
+                     if (response.isSuccess)
+                     {
+                        $('#ddlDepartment').prop('disabled', false).prop('readonly', false);
+                        $('#ddlShift').prop('disabled', false).prop('readonly', false);
+                        
+                    } else {
+                        $('#ddlDepartment').prop('disabled', true).prop('readonly', true);
+                        $('#ddlShift').prop('disabled', true).prop('readonly', true);
+                       
+                    }
+
+                },
+                error: function(error) {
+                    $('#ddlDepartment').prop('disabled', true).prop('readonly', true);
+                        $('#ddlShift').prop('disabled', true).prop('readonly', true);
+
+                    console.error('Error fetching  data:', error);
+
+                }
+            });
+
+    }
+
+
 
 
         function loadEmployeeProfile()
@@ -611,18 +754,20 @@
                 },
                 success: function (data) {
                     if (data.isSuccess) {
+                        console.log(data);
                         let emp = data.data[0];
                         $('#loginid').val(emp.loginAlias);
                         $('#Alpempcodeid').val(emp.employeeCode);
                         $('#branchid').val(emp.branchName);
                         $('#gradeid').val(emp.gradeName);
                         $('#dateofjoinid').val(formatToDDMMYYYY(emp.dateOfJoining));
-                        $('#shiftnameid').val(emp.shiftName);
+                        $('#ddlShift').data('searchableSelect').setValue(emp.shiftId||'');
                         $('#desgid').val(emp.designationName);
                         $('#monthCTCid').val(emp.monthlyCTC);
                         $('#monthlybasicid').val(emp.monthlyBasic);
                         $('#monthlyGrossid').val(emp.monthlyGross);
-                        $('#depatid').val(emp.departmentName);
+                          $('#ddlDepartment').data('searchableSelect').setValue(emp.departmentId||'');
+
                         $('#enrollnoid').val(emp.enrollNo);
                         $('#mailid').val(emp.email);
                         $('#employmentType').val(emp.employeeTypeName);
