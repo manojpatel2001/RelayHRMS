@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.ProfileManage;
 using HRMS_Core.VM;
 using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +25,7 @@ namespace HRMS_Infrastructure.Interface.ManageProfile
         Task<SP_Response> UpdateSalaryDetails(vmSalaryDetails vmSalaryDetails);
         Task<vmGetEmployeeSalaryAllowance?> GetEmployeeSalaryAllowance(int EmployeeId);
         Task<SP_Response> UpdateProfilePic(vmUpdateEmployeeProfile model);
+        Task<APIResponse> CheckReportingPerson(vmCommonCheckParameters model);
 
     }
 }

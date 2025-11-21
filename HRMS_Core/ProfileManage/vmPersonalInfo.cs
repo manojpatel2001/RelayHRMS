@@ -9,6 +9,9 @@ namespace HRMS_Core.ProfileManage
     public class vmPersonalInfo
     {
         public int? EmployeeId { get; set; }
+        public int? DepartmentId { get; set; }
+        public int? ShiftId { get; set; }
+        public int? UpdatedBy { get; set; }
         public string? Gender { get; set; }
         public string? PersonalEmailId { get; set; }
         public string? FatherName { get; set; }
@@ -38,6 +41,7 @@ namespace HRMS_Core.ProfileManage
         public DateTime? RetirementDate { get; set; }
         public DateTime? OfferDate { get; set; }
         public int? TraineeCompletionPeriod { get; set; }
+        
         public string? TraineePeriodType { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public string? PFNo { get; set; }

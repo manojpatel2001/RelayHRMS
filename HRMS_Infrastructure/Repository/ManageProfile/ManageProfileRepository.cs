@@ -1,9 +1,13 @@
-﻿using HRMS_Core.DbContext;
+﻿using Dapper;
+using HRMS_Core.DbContext;
 using HRMS_Core.ProfileManage;
 using HRMS_Core.VM;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Infrastructure.Interface.ManageProfile;
+using HRMS_Utility;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 
 namespace HRMS_Infrastructure.Repository.ManageProfile
@@ -11,10 +15,14 @@ namespace HRMS_Infrastructure.Repository.ManageProfile
     public class ManageProfileRepository: IManageProfileRepository
     {
         private readonly HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public ManageProfileRepository(HRMSDbContext db)
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
+
+
         }
 
         // Fetch Personal Info details
@@ -77,6 +85,9 @@ namespace HRMS_Infrastructure.Repository.ManageProfile
                     .FromSqlInterpolated($@"
                         EXEC UpdateProfile
                             @Action = {"PersonalInfo"},
+                            @DepartmentId = {vmPersonalInfo.DepartmentId},
+                            @ShiftId = {vmPersonalInfo.ShiftId},
+                            @UpdatedBy = {vmPersonalInfo.UpdatedBy},
                             @EmployeeId = {vmPersonalInfo.EmployeeId},
                             @Gender = {vmPersonalInfo.Gender},
                             @PersonalEmailId = {vmPersonalInfo.PersonalEmailId},
@@ -236,5 +247,37 @@ namespace HRMS_Infrastructure.Repository.ManageProfile
             }
         }
 
+        public async Task<APIResponse> CheckReportingPerson(vmCommonCheckParameters model)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@UserId", model.UserId);
+                    parameters.Add("@EmployeeId", model.EmployeeId);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 100);
+
+                    await connection.ExecuteAsync(
+                        "CheckReportingPerson",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                    response.Data = null; // You can set this to a relevant object if needed
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
+            }
+            return response;
+        }
     }
 }
