@@ -1,4 +1,5 @@
-﻿using HRMS_Core.DbContext;
+﻿using Dapper;
+using HRMS_Core.DbContext;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.PrivilegeSetting;
 using HRMS_Core.Salary;
@@ -13,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
+using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -24,12 +26,14 @@ namespace HRMS_Infrastructure.Repository.Salary
     {
 
         private HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public MonthlySalaryDetailsRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
-        }
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
 
+        }
         public Task AddAsync(SalaryDetailViewModel entity)
         {
             throw new NotImplementedException();
@@ -260,13 +264,30 @@ namespace HRMS_Infrastructure.Repository.Salary
             }
         }
 
-        public async Task<List<EmployeeSalaryRegisterViewModel>> GetEmployeeSalaryRegister(int Month, int Year, int CompanyId ,int EmpId)
+        public async Task<List<EmployeeSalaryRegisterViewModel>> GetEmployeeSalaryRegister(
+           int Month,
+           int Year,
+           int CompanyId,
+           string EmployeeCodes)
         {
             try
             {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@MonthNumber", Month);
+                    parameters.Add("@Year", Year);
+                    parameters.Add("@CompId", CompanyId);
+                    parameters.Add("@EmployeeCode", EmployeeCodes);
 
-                var result = await _db.Set<EmployeeSalaryRegisterViewModel>().FromSqlInterpolated($"EXEC GetEmployeeSalaryRegister @MonthNumber={Month},@Year={Year} ,@CompId={CompanyId},@EmployeeId={EmpId} ").ToListAsync();
-                return result;
+                    var result = await connection.QueryAsync<EmployeeSalaryRegisterViewModel>(
+                        "GetEmployeeSalaryRegister",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result.AsList();
+                }
             }
             catch
             {

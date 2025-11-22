@@ -268,11 +268,21 @@ namespace HRMS_API.Controllers.Salary
         }
 
         [HttpGet("GetEmployeeSalaryRegister")]
-        public async Task<APIResponse> GetEmployeeSalaryRegister(int Month, int year, int CompanyId, int EmployeeId)
+        public async Task<APIResponse> GetEmployeeSalaryRegister(
+       int Month,
+       int Year,
+       int CompanyId,
+       [FromQuery] string EmployeeCodes) // Use [FromQuery] to accept query parameters
         {
             try
             {
-                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeeSalaryRegister(Month, year, CompanyId, EmployeeId);
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeeSalaryRegister(
+                    Month,
+                    Year,
+                    CompanyId,
+                    EmployeeCodes
+                );
+
                 if (data == null || !data.Any())
                 {
                     return new APIResponse()
@@ -281,6 +291,7 @@ namespace HRMS_API.Controllers.Salary
                         ResponseMessage = "No data found"
                     };
                 }
+
                 return new APIResponse()
                 {
                     isSuccess = true,
@@ -298,6 +309,7 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
         }
+
 
         [HttpPost("CreateMonthlySalary")]
         public async Task<APIResponse> CreateMonthlySalary(MonthlySalaryRequestViewModel vm)
