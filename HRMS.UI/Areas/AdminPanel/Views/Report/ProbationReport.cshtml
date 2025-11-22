@@ -442,7 +442,6 @@
         <div id="probationGrid"></div>
     </div>
 </div>
-
 <script>
     const savedCompany = localStorage.getItem('selectedCompany');
     var companyDetails = JSON.parse(savedCompany);
@@ -474,7 +473,6 @@
                 let selectedValues = [];
                 let allData = settings.data;
 
-                // Store instance data
                 $input.data('searchableSelect', {
                     setData: function(newData) {
                         allData = newData;
@@ -497,7 +495,6 @@
                     }
                 });
 
-                // Toggle dropdown
                 $input.on('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -508,18 +505,15 @@
                     }
                 });
 
-                // Prevent dropdown from closing when clicking inside
                 $dropdown.on('click', function(e) {
                     e.stopPropagation();
                 });
 
-                // Search functionality
                 $searchInput.on('input', function() {
                     const searchTerm = $(this).val().toLowerCase();
                     renderOptions(searchTerm);
                 });
 
-                // Select All
                 $selectAllBtn.on('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -529,7 +523,6 @@
                     if (settings.onChange) settings.onChange(selectedValues);
                 });
 
-                // Clear All
                 $clearAllBtn.on('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -539,7 +532,6 @@
                     if (settings.onChange) settings.onChange(selectedValues);
                 });
 
-                // Render options
                 function renderOptions(searchTerm = '') {
                     $optionsContainer.empty();
 
@@ -588,7 +580,6 @@
                     });
                 }
 
-                // Update input display
                 function updateInputDisplay() {
                     if (selectedValues.length === 0) {
                         $input.val('').attr('placeholder', settings.placeholder);
@@ -602,7 +593,6 @@
                     }
                 }
 
-                // Initial render
                 renderOptions();
             });
         };
@@ -611,14 +601,12 @@
     $(document).ready(function () {
         console.log('Document ready!');
 
-        // Close dropdowns when clicking outside
         $(document).on('click', function(e) {
             if (!$(e.target).closest('.searchable-select-wrapper').length) {
                 $('.searchable-select-dropdown').removeClass('active');
             }
         });
 
-        // Initialize Branch Dropdown
         $('#branchDropdown').searchableSelect({
             data: [],
             valueKey: 'branchId',
@@ -630,7 +618,6 @@
             }
         });
 
-        // Manual click handler as backup
         $('.searchable-select-input').on('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -639,7 +626,6 @@
             $dropdown.toggleClass('active');
         });
 
-        // Wrapper click handler
         $('.searchable-select-wrapper').on('click', function(e) {
             if (!$(e.target).hasClass('search-input') && !$(e.target).closest('.searchable-select-options').length) {
                 e.preventDefault();
@@ -650,21 +636,9 @@
             }
         });
 
-        // Load branches on page load
         BindBranchDropdown();
-
         $('#r1').prop('checked', true);
-
-        // Load pending data by default on page load
         loadDefaultPendingData();
-
-        $("#btnApprove").click(function () {
-            updateProbationStatus("Completed");
-        });
-
-        $("#btnReject").click(function () {
-            updateProbationStatus("Extended");
-        });
     });
 
     let selectedKeys = [];
@@ -698,37 +672,49 @@
         });
     }
 
-    async function showLoder(){
+    function showLoder(){
         $('#grid-loader').addClass('d-flex').show();
     }
 
-    async function hideLoder(){
+    function hideLoder(){
         $('#grid-loader').removeClass('d-flex').hide();
     }
 
     function loadGrid(data) {
-        // Dispose existing grid first to prevent conflicts
         try {
             const gridInstance = $("#probationGrid").dxDataGrid("instance");
             if (gridInstance) {
                 gridInstance.dispose();
             }
         } catch (e) {
-            // Grid doesn't exist yet, that's okay
+            // Grid doesn't exist yet
         }
 
-        // Clear the container
         $("#probationGrid").empty();
 
+        // Add unique row indices
+        const processedData = data.map(function(item, idx) {
+            return {
+                rowIndex: idx,
+                employeeId: item.employeeId,
+                employeeCode: item.employeeCode,
+                fullName: item.fullName,
+                branchName: item.branchName,
+                dateOfJoining: item.dateOfJoining,
+                probationEndDate: item.probationEndDate,
+                reviewType: item.reviewType,
+                updatedBy: item.updatedBy,
+                updatedDate: item.updatedDate
+            };
+        });
+
         $("#probationGrid").dxDataGrid({
-            dataSource: data,
-            keyExpr: "employeeId",
+            dataSource: processedData,
+            keyExpr: "rowIndex",
             showBorders: true,
             width: "100%",
             height: 500,
-            paging: {
-                enabled: false
-            },
+            paging: { enabled: false },
             scrolling: {
                 mode: "standard",
                 useNative: true,
@@ -746,7 +732,6 @@
             onSelectionChanged: function (e) {
                 selectedKeys = e.selectedRowKeys;
                 console.log('Selected Keys:', selectedKeys);
-                console.log('Selected Rows Count:', selectedKeys.length);
             },
             columns: [
                 { dataField: "employeeCode", caption: "Emp Code", width: 100 },
@@ -764,33 +749,26 @@
                     caption: "Probation End Date",
                     dataType: "date",
                     format: "dd/MM/yyyy",
-                    width: 160
+                    width: 160,
+                     calculateCellValue: function(rowData) {
+                        return rowData.probationEndDate ? rowData.probationEndDate : "-";
+                    }
                 },
+                { dataField: "reviewType", caption: "Review Type", width: 100 },
                 {
-                    dataField: "reviewType",
-                    caption: "Review Type",
-                    width: 100
-                },
-                {
-                    dataField: "reviewBy",
+                    dataField: "updatedBy",
                     caption: "Review By",
                     width: 150,
                     calculateCellValue: function(rowData) {
-                        return rowData.FullName ? rowData.FullName : "-";
+                        return rowData.updatedBy ? rowData.updatedBy : "-";
                     }
                 }
-
-            ],
-            onContentReady: function(e) {
-                $('#probationGrid .dx-datagrid').css('height', 'auto');
-                $('#probationGrid .dx-scrollable-container').css('height', 'auto');
-            }
+            ]
         });
 
         $("#actionButtons").show();
     }
 
-    // Function to load default pending data
     function loadDefaultPendingData() {
         showLoder();
 
@@ -800,7 +778,6 @@
             branchId: null,
             status: 'Pending'
         };
-
         $.ajax({
             url: '@(baseDomainUrl + "/api/ReportAPI/GetProbationStatusSearch")',
             type: 'POST',
@@ -810,7 +787,7 @@
                 'Authorization': 'Bearer ' + Token
             },
             success: function (res) {
-                console.log('res' ,res);
+                console.log('res', res);
                 hideLoder();
                 if (res.isSuccess && res.data && res.data.length > 0) {
                     loadGrid(res.data);
@@ -827,38 +804,40 @@
         });
     }
 
-    function exportToExcel() {
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
         try {
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return day + '/' + month + '/' + year;
+        } catch (e) {
+            return '';
+        }
+    }
+
+    // NEW EXPORT FUNCTION - Different name to avoid conflicts
+    function doExportProbationData() {
+        try {
+       
             const gridInstance = $("#probationGrid").dxDataGrid("instance");
             if (!gridInstance) {
-                round_error_noti('No data available to export');
+                round_error_noti('Grid not initialized');
                 return;
             }
-
-            const selectedRowKeys = gridInstance.getSelectedRowKeys();
-            if (!selectedRowKeys || selectedRowKeys.length === 0) {
+            const selectedRowsData = gridInstance.getSelectedRowsData();
+         
+            if (!selectedRowsData || selectedRowsData.length === 0) {
                 round_error_noti('Please select at least one row to export');
                 return;
             }
 
-            console.log('Selected Row Keys:', selectedRowKeys);
+       
+            const excelArray = [];
 
-            const dataSource = gridInstance.getDataSource();
-            const allData = dataSource.items();
-            if (!allData || allData.length === 0) {
-                round_error_noti('No data available to export');
-                return;
-            }
-
-            const selectedRows = allData.filter(row => selectedRowKeys.includes(row.employeeId));
-            if (!selectedRows || selectedRows.length === 0) {
-                round_error_noti('No data found for selected rows');
-                return;
-            }
-
-            console.log('Selected Rows:', selectedRows);
-
-            const headers = [
+            // Add header row
+            excelArray.push([
                 'Emp Code',
                 'Employee Name',
                 'Branch',
@@ -866,23 +845,25 @@
                 'Probation End Date',
                 'Review Type',
                 'Review By'
-            ];
-
-            const data = selectedRows.map(row => [
-                row.employeeCode || '',
-                row.fullName || '',
-                row.branchName || '',
-                row.dateOfJoining ? formatDate(row.dateOfJoining) : '',
-                row.probationEndDate ? formatDate(row.probationEndDate) : '',
-                row.reviewType || '',
-                row.fullName || '-' // Use `fullName` instead of `FullName`
             ]);
 
-            console.log('Data for Export:', data);
+            // Add data rows
+            for (let i = 0; i < selectedRowsData.length; i++) {
+                const row = selectedRowsData[i];
+                excelArray.push([
+                    row.employeeCode || '',
+                    row.fullName || '',
+                    row.branchName || '',
+                    row.dateOfJoining ? formatDate(row.dateOfJoining) : '',
+                    row.probationEndDate ? formatDate(row.probationEndDate) : '',
+                    row.reviewType || '',
+                    row.updatedBy || '-'
+                ]);
+            }
 
-            data.unshift(headers);
-            const ws = XLSX.utils.aoa_to_sheet(data);
+            const ws = XLSX.utils.aoa_to_sheet(excelArray);
 
+            // Set column widths
             ws['!cols'] = [
                 { wch: 12 },
                 { wch: 25 },
@@ -893,51 +874,49 @@
                 { wch: 20 }
             ];
 
+            // Create workbook
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Probation Status');
+
+            // Generate filename
             const today = new Date();
-            const filename = `Probation_Status_${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}.xlsx`;
+            const filename = 'Probation_Status_' + today.getDate() + '-' + (today.getMonth() + 1) + '-' + today.getFullYear() + '.xlsx';
+
+            // Download file
             XLSX.writeFile(wb, filename);
-            round_success_noti('Data exported successfully!');
+
+            round_success_noti('Exported ' + selectedRowsData.length + ' records successfully!');
+
         } catch (error) {
-            console.error('Export Error:', error);
-            round_error_noti('Error occurred while exporting data: ' + error.message);
+          
+            console.error('Error:', error);
+            console.error('Stack:', error.stack);
+            round_error_noti('Export failed: ' + error.message);
         }
     }
 
-    // Helper function to format date
-    function formatDate(dateStr) {
-        if (!dateStr) return '';
-        try {
-            const date = new Date(dateStr);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
-        } catch (e) {
-            return '';
-        }
-    }
-
-    // Export button click handler
-    $('#btnExportExcel').on('click', function() {
-        console.log('Export button clicked');
-        exportToExcel();
+    // Button click handler
+    $('#btnExportExcel').off('click').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();     
+        doExportProbationData();
+        return false;
     });
 
     $('#btnGo').on('click', function () {
+        debugger;
         showLoder();
         const branchDropdown = $('#branchDropdown').data('searchableSelect');
         const selectedBranches = branchDropdown ? branchDropdown.getValue() : [];
+        // Ensure selectedBranches is an array, even if getValue() returns null/undefined
+        const safeSelectedBranches = Array.isArray(selectedBranches) ? selectedBranches : [];
 
         let model = {
             searchBy: $('#searchby').val() || null,
             searchValue: $('#searchfor').val() || null,
-            branchId: selectedBranches.length > 0 ? selectedBranches.join(',') : null,
+            branchId: safeSelectedBranches.length > 0 ? safeSelectedBranches.join(',') : null,
             status: getStatus() || 'Pending'
         };
-
-        console.log('Request Data:', model);
 
         $.ajax({
             url: '@(baseDomainUrl + "/api/ReportAPI/GetProbationStatusSearch")',
@@ -949,24 +928,23 @@
             },
             success: function (res) {
                 hideLoder();
-                console.log('API Response:', res);
+             
                 if (res.isSuccess && res.data && res.data.length > 0) {
                     loadGrid(res.data);
                 } else {
                     $("#probationGrid").empty();
                     $("#actionButtons").hide();
-                    round_error_noti(res.responseMessage || 'No Data Found');
+                    round_error_noti('No Data Found');
                 }
             },
             error: function (xhr, status, error) {
                 hideLoder();
                 console.error('API Error:', xhr.responseText);
-                console.error('Status:', status);
-                console.error('Error:', error);
                 round_error_noti('Error occurred while fetching data');
             }
         });
     });
+
 
     $("#btnClear").click(function () {
         $('#searchby').val("");
@@ -984,13 +962,11 @@
                 gridInstance.dispose();
             }
         } catch (e) {
-            // Grid doesn't exist, ignore
+            
         }
 
         $("#probationGrid").empty();
         $("#actionButtons").hide();
-
-        // Reload default pending data after clear
         loadDefaultPendingData();
     });
 
