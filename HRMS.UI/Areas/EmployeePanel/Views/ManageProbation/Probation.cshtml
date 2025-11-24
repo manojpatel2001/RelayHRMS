@@ -7,6 +7,8 @@
     var uriAPI = new Uri(baseUrl);
     string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
 }
+<!-- Add SheetJS library for Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
     /* PDF Report Styles - Always available */
     .pdf-container {
@@ -16,59 +18,72 @@
         font-family: Arial, sans-serif;
         font-size: 11px;
     }
+
     .pdf-header {
         text-align: center;
         margin-bottom: 15px;
     }
+
     .pdf-title {
         font-size: 16px;
         font-weight: bold;
         margin-bottom: 10px;
         text-decoration: underline;
     }
+
     .company-section, .employee-info, .evaluation-section {
         margin-bottom: 15px;
     }
+
     .field-row {
         display: flex;
         margin-bottom: 5px;
         align-items: baseline;
     }
+
     .field-label {
         font-weight: bold;
         min-width: 150px;
         display: inline-block;
     }
+
     .field-colon {
         margin: 0 3px;
     }
+
     .field-value {
         flex: 1;
     }
+
     .table-section {
         margin: 15px 0;
     }
+
     .skills-table, .attributes-table {
         width: 100%;
         border-collapse: collapse;
         margin-bottom: 10px;
         font-size: 10px;
     }
-    .skills-table th, .skills-table td,
-    .attributes-table th, .attributes-table td {
-        border: 1px solid #000;
-        padding: 3px;
-        text-align: center;
-    }
-    .skills-table th, .attributes-table th {
-        background-color: #f0f0f0;
-        font-weight: bold;
-    }
+
+        .skills-table th, .skills-table td,
+        .attributes-table th, .attributes-table td {
+            border: 1px solid #000;
+            padding: 3px;
+            text-align: center;
+        }
+
+        .skills-table th, .attributes-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+
     .total-score {
         font-weight: bold;
         margin: 8px 0;
         font-size: 11px;
     }
+
     .print-date {
         text-align: right;
         font-size: 10px;
@@ -84,9 +99,11 @@
         body * {
             visibility: hidden;
         }
+
         .pdf-section, .pdf-section * {
             visibility: visible;
         }
+
         .pdf-section {
             position: absolute;
             left: 0;
@@ -94,14 +111,17 @@
             width: 100%;
             display: block !important;
         }
+
         .pdf-content {
             padding: 10px;
         }
+
         @@page {
             margin: 0.3in;
             size: A4;
         }
     }
+
     .print-btn {
         background: none;
         border: none;
@@ -109,9 +129,11 @@
         padding: 5px;
         font-size: 14px;
     }
-    .print-btn:hover {
-        opacity: 0.8;
-    }
+
+        .print-btn:hover {
+            opacity: 0.8;
+        }
+
 </style>
 <div class="no-print-content">
     <div class="card">
@@ -121,6 +143,19 @@
                     <h6 class="p-2 mb-0">
                         Manage Probation
                     </h6>
+                </div>
+                <div class="col-6 d-flex justify-content-end align-items-center">
+                    <button id="exportToExcel"
+                            type="button"
+                            class="btn mr-1 rounded-1"
+                            style="background-color:#28a745; color:white;"
+                            onclick="exportToExcel()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-excel" viewBox="0 0 16 16" style="margin-right: 5px;">
+                            <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z" />
+                            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z" />
+                        </svg>
+                        Export to Excel
+                    </button>
                 </div>
             </div>
         </div>
@@ -140,444 +175,513 @@
             </div>
         </div>
     </div>
-</div>
-<!-- PDF Section - Hidden by default, shown only during print -->
-<div class="pdf-section">
-    <div class="pdf-container">
-        <div class="pdf-content">
-            <div class="pdf-header">
-                <div class="pdf-title">Employee Probation Details</div>
+    <!-- PDF Section - Hidden by default, shown only during print -->
+    <div class="pdf-section">
+        <div class="pdf-container">
+            <div class="pdf-content">
+                <div class="pdf-header">
+                    <div class="pdf-title">Employee Probation Details</div>
+                </div>
+                <div class="company-section">
+                    <div class="field-row">
+                        <span class="field-label">Company Name</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-company-name"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Company Address</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-company-address"></span>
+                    </div>
+                </div>
+                <div class="employee-info">
+                    <div class="field-row">
+                        <span class="field-label">Name of the Probationer</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-employee-name"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Date Of Joining</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-joining-date"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Evaluation Date</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-evaluation-date"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Status</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-status"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Branch</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-branch"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Designation</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-designation"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Department</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-department"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Employee Type</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-employee-type"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Probation End Date</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-probation-end-date"></span>
+                    </div>
+                </div>
+                <div class="evaluation-section">
+                    <div class="field-row">
+                        <span class="field-label">Major Strengths</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-major-strengths"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Major Weaknesses</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-major-weaknesses"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Remarks of Appraiser</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-appraiser-remarks"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Remarks of Appraisal Reviewer</span>
+                        <span class="field-colon">:</span>
+                        <span class="field-value" id="pdf-reviewer-remarks"></span>
+                    </div>
+                </div>
+                <div class="table-section">
+                    <table class="skills-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">Sr.No</th>
+                                <th rowspan="2">Skills</th>
+                                <th rowspan="2">Skill Details</th>
+                                <th rowspan="2">Weightage</th>
+                                <th rowspan="2">Self Rating</th>
+                                <th colspan="2" id="rater1-name"></th>
+                                <th colspan="2" id="rater2-name"></th>
+                            </tr>
+                            <tr>
+                                <th>Rating</th>
+                                <th>Score</th>
+                                <th>Rating</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="skills-table-body">
+                        </tbody>
+                    </table>
+                    <div class="total-score">Total Score: <span id="total-skill-score"></span></div>
+                </div>
+                <div class="table-section">
+                    <table class="attributes-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">Sr.No</th>
+                                <th rowspan="2">Attributes</th>
+                                <th rowspan="2">Weightage</th>
+                                <th rowspan="2">Attribute Details</th>
+                                <th rowspan="2">Self Rating</th>
+                                <th colspan="2" id="rater1-name-attr"></th>
+                                <th colspan="2" id="rater2-name-attr"></th>
+                            </tr>
+                            <tr>
+                                <th>Rating</th>
+                                <th>Score</th>
+                                <th>Rating</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attributes-table-body">
+                        </tbody>
+                    </table>
+                    <div class="total-score">Total Score: <span id="total-attribute-score"></span></div>
+                </div>
+                <div class="total-score">Total Score of skill (A): <span id="total-skill-score-final"></span></div>
+                <div class="total-score">Total Score of Attributes (B): <span id="total-attribute-score-final"></span></div>
+                <div class="total-score">Total Score (A + B): <span id="total-combined-score"></span></div>
+                <div class="print-date">Print Date: <span id="pdf-print-date"></span></div>
             </div>
-            <div class="company-section">
-                <div class="field-row">
-                    <span class="field-label">Company Name</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-company-name"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Company Address</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-company-address"></span>
-                </div>
-            </div>
-            <div class="employee-info">
-                <div class="field-row">
-                    <span class="field-label">Name of the Probationer</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-employee-name"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Date Of Joining</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-joining-date"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Evaluation Date</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-evaluation-date"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Status</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-status"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Branch</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-branch"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Designation</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-designation"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Department</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-department"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Employee Type</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-employee-type"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Probation End Date</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-probation-end-date"></span>
-                </div>
-            </div>
-            <div class="evaluation-section">
-                <div class="field-row">
-                    <span class="field-label">Major Strengths</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-major-strengths"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Major Weaknesses</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-major-weaknesses"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Remarks of Appraiser</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-appraiser-remarks"></span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Remarks of Appraisal Reviewer</span>
-                    <span class="field-colon">:</span>
-                    <span class="field-value" id="pdf-reviewer-remarks"></span>
-                </div>
-            </div>
-            <div class="table-section">
-                <table class="skills-table">
-                    <thead>
-                        <tr>
-                            <th rowspan="2">Sr.No</th>
-                            <th rowspan="2">Skills</th>
-                            <th rowspan="2">Skill Details</th>
-                            <th rowspan="2">Weightage</th>
-                            <th rowspan="2">Self Rating</th>
-                            <th colspan="2" id="rater1-name"></th>
-                            <th colspan="2" id="rater2-name"></th>
-                        </tr>
-                        <tr>
-                            <th>Rating</th>
-                            <th>Score</th>
-                            <th>Rating</th>
-                            <th>Score</th>
-                        </tr>
-                    </thead>
-                    <tbody id="skills-table-body">
-                    </tbody>
-                </table>
-                <div class="total-score">Total Score: <span id="total-skill-score"></span></div>
-            </div>
-            <div class="table-section">
-                <table class="attributes-table">
-                    <thead>
-                        <tr>
-                            <th rowspan="2">Sr.No</th>
-                            <th rowspan="2">Attributes</th>
-                            <th rowspan="2">Weightage</th>
-                            <th rowspan="2">Attribute Details</th>
-                            <th rowspan="2">Self Rating</th>
-                            <th colspan="2" id="rater1-name-attr"></th>
-                            <th colspan="2" id="rater2-name-attr"></th>
-                        </tr>
-                        <tr>
-                            <th>Rating</th>
-                            <th>Score</th>
-                            <th>Rating</th>
-                            <th>Score</th>
-                        </tr>
-                    </thead>
-                    <tbody id="attributes-table-body">
-                    </tbody>
-                </table>
-                <div class="total-score">Total Score: <span id="total-attribute-score"></span></div>
-            </div>
-            <div class="total-score">Total Score of skill (A): <span id="total-skill-score-final"></span></div>
-            <div class="total-score">Total Score of Attributes (B): <span id="total-attribute-score-final"></span></div>
-            <div class="total-score">Total Score (A + B): <span id="total-combined-score"></span></div>
-            <div class="print-date">Print Date: <span id="pdf-print-date"></span></div>
         </div>
     </div>
-</div>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script>
-    const EmployeeId = localStorage.getItem("EmployeeId");
-    var Token = localStorage.getItem("authToken");
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        const EmployeeId = localStorage.getItem("EmployeeId");
+        var Token = localStorage.getItem("authToken");
+        var gridInstance;
 
-    // Sample data (replace with API call in production)
-    const sampleData = {
-        "employeeData": {
-            "employeeCode": "11128",
-            "fullName": "Banda Preet",
-            "dateOfJoining": "2024-06-01",
-            "evaluationDate": "2024-11-30",
-            "status": "Confirmed",
-            "branch": "HO",
-            "designation": "Executive",
-            "department": "Accounts",
-            "employeeType": "Confirm Permanent",
-            "probationEndDate": "2025-01-18",
-            "majorStrengths": "Good communication, team player, quick learner",
-            "majorWeaknesses": "Needs improvement in time management",
-            "appraiserRemarks": "Approved by Atri sir",
-            "reviewerRemarks": "Approved by Atri sir",
-            "skills": [
-                {
-                    "srNo": 1,
-                    "name": "Communication",
-                    "details": "Verbal & Written",
-                    "weightage": 20,
-                    "selfRating": 4,
-                    "rater1Rating": 4,
-                    "rater1Score": 80,
-                    "rater2Rating": 4,
-                    "rater2Score": 80
-                },
-                {
-                    "srNo": 2,
-                    "name": "Technical Skills",
-                    "details": "Software proficiency",
-                    "weightage": 30,
-                    "selfRating": 3,
-                    "rater1Rating": 4,
-                    "rater1Score": 120,
-                    "rater2Rating": 3,
-                    "rater2Score": 90
-                },
-                {
-                    "srNo": 3,
-                    "name": "Teamwork",
-                    "details": "Collaboration",
-                    "weightage": 25,
-                    "selfRating": 5,
-                    "rater1Rating": 5,
-                    "rater1Score": 125,
-                    "rater2Rating": 4,
-                    "rater2Score": 100
-                },
-                {
-                    "srNo": 4,
-                    "name": "Problem Solving",
-                    "details": "Analytical thinking",
-                    "weightage": 25,
-                    "selfRating": 4,
-                    "rater1Rating": 3,
-                    "rater1Score": 75,
-                    "rater2Rating": 4,
-                    "rater2Score": 100
-                }
-            ],
-            "attributes": [
-                {
-                    "srNo": 1,
-                    "name": "Punctuality",
-                    "details": "Adherence to schedule",
-                    "weightage": 20,
-                    "selfRating": 5,
-                    "rater1Rating": 5,
-                    "rater1Score": 100,
-                    "rater2Rating": 5,
-                    "rater2Score": 100
-                },
-                {
-                    "srNo": 2,
-                    "name": "Adaptability",
-                    "details": "Flexibility",
-                    "weightage": 20,
-                    "selfRating": 4,
-                    "rater1Rating": 4,
-                    "rater1Score": 80,
-                    "rater2Rating": 4,
-                    "rater2Score": 80
-                },
-                {
-                    "srNo": 3,
-                    "name": "Initiative",
-                    "details": "Proactiveness",
-                    "weightage": 20,
-                    "selfRating": 3,
-                    "rater1Rating": 4,
-                    "rater1Score": 80,
-                    "rater2Rating": 3,
-                    "rater2Score": 60
-                }
-            ],
-            "totalSkillScore": 375,
-            "totalAttributeScore": 260,
-            "totalCombinedScore": 635
-        },
-        "companyInfo": {
-            "name": "RELAY EXPRESS PVT LTD",
-            "address": "406, KATARIA ARCADE, MAKARBA, AHMEDABAD, GUJARAT 380051"
-        },
-        "raters": {
-            "rater1": {
-                "id": "10781",
-                "name": "G. Chavda"
+        // Sample data (replace with API call in production)
+        const sampleData = {
+            "employeeData": {
+                "employeeCode": "11128",
+                "fullName": "Banda Preet",
+                "dateOfJoining": "2024-06-01",
+                "evaluationDate": "2024-11-30",
+                "status": "Confirmed",
+                "branch": "HO",
+                "designation": "Executive",
+                "department": "Accounts",
+                "employeeType": "Confirm Permanent",
+                "probationEndDate": "2025-01-18",
+                "majorStrengths": "Good communication, team player, quick learner",
+                "majorWeaknesses": "Needs improvement in time management",
+                "appraiserRemarks": "Approved by Atri sir",
+                "reviewerRemarks": "Approved by Atri sir",
+                "skills": [
+                    {
+                        "srNo": 1,
+                        "name": "Communication",
+                        "details": "Verbal & Written",
+                        "weightage": 20,
+                        "selfRating": 4,
+                        "rater1Rating": 4,
+                        "rater1Score": 80,
+                        "rater2Rating": 4,
+                        "rater2Score": 80
+                    },
+                    {
+                        "srNo": 2,
+                        "name": "Technical Skills",
+                        "details": "Software proficiency",
+                        "weightage": 30,
+                        "selfRating": 3,
+                        "rater1Rating": 4,
+                        "rater1Score": 120,
+                        "rater2Rating": 3,
+                        "rater2Score": 90
+                    },
+                    {
+                        "srNo": 3,
+                        "name": "Teamwork",
+                        "details": "Collaboration",
+                        "weightage": 25,
+                        "selfRating": 5,
+                        "rater1Rating": 5,
+                        "rater1Score": 125,
+                        "rater2Rating": 4,
+                        "rater2Score": 100
+                    },
+                    {
+                        "srNo": 4,
+                        "name": "Problem Solving",
+                        "details": "Analytical thinking",
+                        "weightage": 25,
+                        "selfRating": 4,
+                        "rater1Rating": 3,
+                        "rater1Score": 75,
+                        "rater2Rating": 4,
+                        "rater2Score": 100
+                    }
+                ],
+                "attributes": [
+                    {
+                        "srNo": 1,
+                        "name": "Punctuality",
+                        "details": "Adherence to schedule",
+                        "weightage": 20,
+                        "selfRating": 5,
+                        "rater1Rating": 5,
+                        "rater1Score": 100,
+                        "rater2Rating": 5,
+                        "rater2Score": 100
+                    },
+                    {
+                        "srNo": 2,
+                        "name": "Adaptability",
+                        "details": "Flexibility",
+                        "weightage": 20,
+                        "selfRating": 4,
+                        "rater1Rating": 4,
+                        "rater1Score": 80,
+                        "rater2Rating": 4,
+                        "rater2Score": 80
+                    },
+                    {
+                        "srNo": 3,
+                        "name": "Initiative",
+                        "details": "Proactiveness",
+                        "weightage": 20,
+                        "selfRating": 3,
+                        "rater1Rating": 4,
+                        "rater1Score": 80,
+                        "rater2Rating": 3,
+                        "rater2Score": 60
+                    }
+                ],
+                "totalSkillScore": 375,
+                "totalAttributeScore": 260,
+                "totalCombinedScore": 635
             },
-            "rater2": {
-                "id": "1001",
-                "name": "A. Thakkar"
-            }
-        }
-    };
-
-    $(() => {
-        ProbationDataTable();
-    });
-
-    function ProbationDataTable() {
-        try {
-            $('#grid-loader').addClass('d-flex').show();
-            $.ajax({
-                type: "GET",
-                url: '@baseUrl/ProbationPerformanceAPI/GetAllProbationEmployees/' + EmployeeId,
-                headers: {
-                    'Authorization': 'Bearer ' + Token
+            "companyInfo": {
+                "name": "RELAY EXPRESS PVT LTD",
+                "address": "406, KATARIA ARCADE, MAKARBA, AHMEDABAD, GUJARAT 380051"
+            },
+            "raters": {
+                "rater1": {
+                    "id": "10781",
+                    "name": "G. Chavda"
                 },
-                success: function (data) {
-                    console.log(data);
-                    $("#GridContainer").dxDataGrid({
-                        dataSource: data.data || [],
-                        columns: [
-                            { dataField: 'employeeCode', caption: 'Employee Code' },
-                            { dataField: 'fullName', caption: 'Full Name' },
-                            { dataField: 'branchName', caption: 'Branch Name' },
-                            { dataField: 'dateOfJoining', caption: 'Date of Joining', dataType: 'date', format: 'dd-MM-yyyy' },
-                            { dataField: 'probationEndDate', caption: 'Probation End Date', dataType: 'date', format: 'dd-MM-yyyy' },
-                            { dataField: 'extendedInDays', caption: 'Extended In Days' },
-                            { dataField: 'reviewType', caption: 'Review Type' },
-                            {
-                                dataField: '',
-                                caption: '',
-                                alignment: 'center',
-                                dataType: 'string',
-                                format: '',
-                                type: 'buttons',
-                                width: '60px',
-                                cellTemplate: function (container, options) {
-                                    var reviewType = options.data.reviewType;
-                                    if (reviewType === "Final") {
-                                        // $('<button/>')
-                                        //     .addClass('print-btn')
-                                        //     .html('🖨️')
-                                        //     .on('dxclick', function () {
-                                        //         populatePDFData(sampleData);
-                                        //         window.print();
-                                        //     })
-                                        //     .appendTo(container);
-                                    } else {
-                                        $('<a/>')
-                                            .attr('href', 'javascript:;')
-                                            .addClass('edit-action')
-                                            .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>')
-                                            .on('dxclick', function () {
-                                                evaluateEmployeeProbation(options.data);
-                                            })
-                                            .appendTo(container);
+                "rater2": {
+                    "id": "1001",
+                    "name": "A. Thakkar"
+                }
+            }
+        };
+
+        $(() => {
+            ProbationDataTable();
+        });
+
+        function ProbationDataTable() {
+            try {
+                $('#grid-loader').addClass('d-flex').show();
+                $.ajax({
+                    type: "GET",
+                    url: '@baseUrl/ProbationPerformanceAPI/GetAllProbationEmployees/' + EmployeeId,
+                    headers: {
+                        'Authorization': 'Bearer ' + Token
+                    },
+                    success: function (data) {
+                        console.log(data);
+                        gridInstance = $("#GridContainer").dxDataGrid({
+                            dataSource: data.data || [],
+                            selection: {
+                                mode: 'multiple',
+                                showCheckBoxesMode: 'always'
+                            },
+                            columns: [
+                                { dataField: 'employeeCode', caption: 'Employee Code' },
+                                { dataField: 'fullName', caption: 'Full Name' },
+                                { dataField: 'branchName', caption: 'Branch Name' },
+                                { dataField: 'dateOfJoining', caption: 'Date of Joining', dataType: 'date', format: 'dd-MM-yyyy' },
+                                { dataField: 'probationEndDate', caption: 'Probation End Date', dataType: 'date', format: 'dd-MM-yyyy' },
+                                { dataField: 'extendedInDays', caption: 'Extended In Days' },
+                                { dataField: 'reviewType', caption: 'Review Type' },
+                                {
+                                    dataField: '',
+                                    caption: '',
+                                    alignment: 'center',
+                                    dataType: 'string',
+                                    format: '',
+                                    type: 'buttons',
+                                    width: '60px',
+                                    cellTemplate: function (container, options) {
+                                        var reviewType = options.data.reviewType;
+                                        if (reviewType === "Final") {
+                                            // $('<button/>')
+                                            //     .addClass('print-btn')
+                                            //     .html('🖨️')
+                                            //     .on('dxclick', function () {
+                                            //         populatePDFData(sampleData);
+                                            //         window.print();
+                                            //     })
+                                            //     .appendTo(container);
+                                        } else {
+                                            $('<a/>')
+                                                .attr('href', 'javascript:;')
+                                                .addClass('edit-action')
+                                                .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>')
+                                                .on('dxclick', function () {
+                                                    evaluateEmployeeProbation(options.data);
+                                                })
+                                                .appendTo(container);
+                                        }
                                     }
                                 }
+                            ],
+                            export: {
+                                enabled: false
+                            },
+                            columnsAutoWidth: true,
+                            wordWrapEnabled: true,
+                            rowAlternationEnabled: false,
+                            showBorders: true,
+                            grouping: { autoExpandAll: false },
+                            paging: { pageSize: 10 },
+                            pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+                            headerFilter: { visible: false },
+                            allowColumnResizing: false,
+                            groupPanel: { visible: false },
+                            searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+                            allowColumnReordering: false,
+                            columnFixing: { enabled: false },
+                            onContentReady(e) {
+                                $('#rowCount2').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
                             }
-                        ],
-                        columnsAutoWidth: true,
-                        wordWrapEnabled: true,
-                        rowAlternationEnabled: false,
-                        showBorders: true,
-                        grouping: { autoExpandAll: false },
-                        paging: { pageSize: 10 },
-                        pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
-                        headerFilter: { visible: false },
-                        allowColumnResizing: false,
-                        groupPanel: { visible: false },
-                        searchPanel: { visible: true, width: 240, placeholder: "Search..." },
-                        allowColumnReordering: false,
-                        columnFixing: { enabled: false },
-                        onContentReady(e) {
-                            $('#rowCount2').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
-                        }
-                    }).dxDataGrid('instance');
-                    $('#grid-loader').removeClass('d-flex').hide();
-                },
-                error: function (xhr, status, error) {
-                    $('#grid-loader').removeClass('d-flex').hide();
-                    console.error("AJAX Error: " + status + " - " + error);
-                }
-            });
-        } catch (e) {
-            console.error("Error in probation:", e);
-            $('#grid-loader').removeClass('d-flex').hide();
+                        }).dxDataGrid('instance');
+                        $('#grid-loader').removeClass('d-flex').hide();
+                    },
+                    error: function (xhr, status, error) {
+                        $('#grid-loader').removeClass('d-flex').hide();
+                        console.error("AJAX Error: " + status + " - " + error);
+                    }
+                });
+            } catch (e) {
+                console.error("Error in probation:", e);
+                $('#grid-loader').removeClass('d-flex').hide();
+            }
         }
-    }
 
-    function evaluateEmployeeProbation(data) {
-        localStorage.removeItem('ProbationEmployeeId');
-        localStorage.setItem('ProbationEmployeeId', data.employeeId);
-        window.location.href = '@UIBaseUrlLayout/EmployeePanel/ManageProbation/ProbationPerformance';
-    }
+                function formatDateForExcel(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
 
-    function populatePDFData(data) {
-        // Populate company info
-        $('#pdf-company-name').text(data.companyInfo.name);
-        $('#pdf-company-address').text(data.companyInfo.address);
+        function exportToExcel() {
+            if (!gridInstance) {
+                alert('Grid not initialized');
+                return;
+            }
 
-        // Populate employee info
-        $('#pdf-employee-name').text(data.employeeData.employeeCode + '-' + data.employeeData.fullName);
-        $('#pdf-joining-date').text(formatDate(data.employeeData.dateOfJoining));
-        $('#pdf-evaluation-date').text(formatDate(data.employeeData.evaluationDate));
-        $('#pdf-status').text(data.employeeData.status);
-        $('#pdf-branch').text(data.employeeData.branch);
-        $('#pdf-designation').text(data.employeeData.designation);
-        $('#pdf-department').text(data.employeeData.department);
-        $('#pdf-employee-type').text(data.employeeData.employeeType);
-        $('#pdf-probation-end-date').text(formatDate(data.employeeData.probationEndDate));
-        $('#pdf-major-strengths').text(data.employeeData.majorStrengths);
-        $('#pdf-major-weaknesses').text(data.employeeData.majorWeaknesses);
-        $('#pdf-appraiser-remarks').text(data.employeeData.appraiserRemarks);
-        $('#pdf-reviewer-remarks').text(data.employeeData.reviewerRemarks);
+            const selectedRows = gridInstance.getSelectedRowsData();
 
-        // Populate raters' names
-        $('#rater1-name').text(data.raters.rater1.name);
-        $('#rater2-name').text(data.raters.rater2.name);
-        $('#rater1-name-attr').text(data.raters.rater1.name);
-        $('#rater2-name-attr').text(data.raters.rater2.name);
+            if (selectedRows.length === 0) {
+                alert('Please select at least one row to export');
+                return;
+            }
 
-        // Populate skills table
-        const skillsTable = $('#skills-table-body');
-        skillsTable.empty();
-        data.employeeData.skills.forEach(skill => {
-            skillsTable.append(`
-                <tr>
-                    <td>${skill.srNo}</td>
-                    <td>${skill.name}</td>
-                    <td>${skill.details}</td>
-                    <td>${skill.weightage}%</td>
-                    <td>${skill.selfRating}</td>
-                    <td>${skill.rater1Rating}</td>
-                    <td>${skill.rater1Score}</td>
-                    <td>${skill.rater2Rating}</td>
-                    <td>${skill.rater2Score}</td>
-                </tr>
-            `);
-        });
+            // Create workbook
+            const wb = XLSX.utils.book_new();
 
-        // Populate attributes table
-        const attributesTable = $('#attributes-table-body');
-        attributesTable.empty();
-        data.employeeData.attributes.forEach(attribute => {
-            attributesTable.append(`
-                <tr>
-                    <td>${attribute.srNo}</td>
-                    <td>${attribute.name}</td>
-                    <td>${attribute.weightage}%</td>
-                    <td>${attribute.details}</td>
-                    <td>${attribute.selfRating}</td>
-                    <td>${attribute.rater1Rating}</td>
-                    <td>${attribute.rater1Score}</td>
-                    <td>${attribute.rater2Rating}</td>
-                    <td>${attribute.rater2Score}</td>
-                </tr>
-            `);
-        });
+            // Prepare data for export
+            const exportData = selectedRows.map(row => ({
+                'Employee Code': row.employeeCode || '',
+                'Full Name': row.fullName || '',
+                'Branch Name': row.branchName || '',
+                'Date of Joining': row.dateOfJoining ? formatDateForExcel(row.dateOfJoining) : '',
+                'Probation End Date': row.probationEndDate ? formatDateForExcel(row.probationEndDate) : '',
+                'Extended In Days': row.extendedInDays || '',
+                'Review Type': row.reviewType || ''
+            }));
 
-        // Update total scores
-        $('#total-skill-score').text(data.employeeData.totalSkillScore);
-        $('#total-attribute-score').text(data.employeeData.totalAttributeScore);
-        $('#total-skill-score-final').text(data.employeeData.totalSkillScore);
-        $('#total-attribute-score-final').text(data.employeeData.totalAttributeScore);
-        $('#total-combined-score').text(data.employeeData.totalCombinedScore);
+            // Convert to worksheet
+            const ws = XLSX.utils.json_to_sheet(exportData);
 
-        // Set print date
-        $('#pdf-print-date').text(new Date().toLocaleDateString('en-GB'));
-    }
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 15 }, // Employee Code
+                { wch: 25 }, // Full Name
+                { wch: 20 }, // Branch Name
+                { wch: 18 }, // Date of Joining
+                { wch: 20 }, // Probation End Date
+                { wch: 18 }, // Extended In Days
+                { wch: 15 }  // Review Type
+            ];
 
-    function formatDate(dateString) {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB');
-    }
-</script>
+     
+            XLSX.utils.book_append_sheet(wb, ws, 'Probation Data');
+
+            const fileName = `Probation_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+            XLSX.writeFile(wb, fileName);
+        }
+        function evaluateEmployeeProbation(data) {
+            localStorage.removeItem('ProbationEmployeeId');
+            localStorage.setItem('ProbationEmployeeId', data.employeeId);
+            window.location.href = '@UIBaseUrlLayout/EmployeePanel/ManageProbation/ProbationPerformance';
+        }
+
+        function populatePDFData(data) {
+            // Populate company info
+            $('#pdf-company-name').text(data.companyInfo.name);
+            $('#pdf-company-address').text(data.companyInfo.address);
+
+            // Populate employee info
+            $('#pdf-employee-name').text(data.employeeData.employeeCode + '-' + data.employeeData.fullName);
+            $('#pdf-joining-date').text(formatDate(data.employeeData.dateOfJoining));
+            $('#pdf-evaluation-date').text(formatDate(data.employeeData.evaluationDate));
+            $('#pdf-status').text(data.employeeData.status);
+            $('#pdf-branch').text(data.employeeData.branch);
+            $('#pdf-designation').text(data.employeeData.designation);
+            $('#pdf-department').text(data.employeeData.department);
+            $('#pdf-employee-type').text(data.employeeData.employeeType);
+            $('#pdf-probation-end-date').text(formatDate(data.employeeData.probationEndDate));
+            $('#pdf-major-strengths').text(data.employeeData.majorStrengths);
+            $('#pdf-major-weaknesses').text(data.employeeData.majorWeaknesses);
+            $('#pdf-appraiser-remarks').text(data.employeeData.appraiserRemarks);
+            $('#pdf-reviewer-remarks').text(data.employeeData.reviewerRemarks);
+
+            // Populate raters' names
+            $('#rater1-name').text(data.raters.rater1.name);
+            $('#rater2-name').text(data.raters.rater2.name);
+            $('#rater1-name-attr').text(data.raters.rater1.name);
+            $('#rater2-name-attr').text(data.raters.rater2.name);
+
+            // Populate skills table
+            const skillsTable = $('#skills-table-body');
+            skillsTable.empty();
+            data.employeeData.skills.forEach(skill => {
+                skillsTable.append(`
+                    <tr>
+                        <td>${skill.srNo}</td>
+                        <td>${skill.name}</td>
+                        <td>${skill.details}</td>
+                        <td>${skill.weightage}%</td>
+                        <td>${skill.selfRating}</td>
+                        <td>${skill.rater1Rating}</td>
+                        <td>${skill.rater1Score}</td>
+                        <td>${skill.rater2Rating}</td>
+                        <td>${skill.rater2Score}</td>
+                    </tr>
+                `);
+            });
+
+            // Populate attributes table
+            const attributesTable = $('#attributes-table-body');
+            attributesTable.empty();
+            data.employeeData.attributes.forEach(attribute => {
+                attributesTable.append(`
+                    <tr>
+                        <td>${attribute.srNo}</td>
+                        <td>${attribute.name}</td>
+                        <td>${attribute.weightage}%</td>
+                        <td>${attribute.details}</td>
+                        <td>${attribute.selfRating}</td>
+                        <td>${attribute.rater1Rating}</td>
+                        <td>${attribute.rater1Score}</td>
+                        <td>${attribute.rater2Rating}</td>
+                        <td>${attribute.rater2Score}</td>
+                    </tr>
+                `);
+            });
+
+            // Update total scores
+            $('#total-skill-score').text(data.employeeData.totalSkillScore);
+            $('#total-attribute-score').text(data.employeeData.totalAttributeScore);
+            $('#total-skill-score-final').text(data.employeeData.totalSkillScore);
+            $('#total-attribute-score-final').text(data.employeeData.totalAttributeScore);
+            $('#total-combined-score').text(data.employeeData.totalCombinedScore);
+
+            // Set print date
+            $('#pdf-print-date').text(new Date().toLocaleDateString('en-GB'));
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+    </script>
+
+ 
