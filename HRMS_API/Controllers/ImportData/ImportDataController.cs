@@ -178,11 +178,12 @@ public class ImportDataController : ControllerBase
 
     private bool IsLargeVolumeImport(string type)
     {
-    
+
         return type == "Attendance" ||
                type == "MonthlyEar" ||
                type == "MonthlyDed" ||
-               type == "LeaveOpening";
+               type == "LeaveOpening" ||
+               type == "Employee";
     }
 
     private async Task<APIResponse> ProcessWithStoredProcedure(DataTable dt, string type, int startRow ,string createdBy)
@@ -212,6 +213,9 @@ public class ImportDataController : ControllerBase
 
                 case "LeaveOpening":
                     result = await _unitOfWork.importDataRepository.ImportLeaveOpening(jsonData , createdBy);
+                    break;
+                case "Employee":
+                    result = await _unitOfWork.importDataRepository.ImportEmployeeType(jsonData , createdBy);
                     break;
 
                 default:
@@ -437,6 +441,9 @@ public class ImportDataController : ControllerBase
                 break;
             case "LeaveOpening":
                 expectedHeaders = new List<string> { "Alpha_Emp_Code", "LeaveName", "Leave_Credit_Days", "For_Date" };
+                break;
+            case "Employee":
+                expectedHeaders = new List<string> { "Alpha_Emp_Code", "Employee_Type",  };
                 break;
             default:
                 error = $"No template defined for type '{type}'";
