@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Interface.ApprovalManagement;
 using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.EmailService;
@@ -20,6 +21,7 @@ using HRMS_Infrastructure.Interface.Report;
 using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.Scheme;
 using HRMS_Infrastructure.Interface.SuperAdmin;
+using HRMS_Infrastructure.Repository.ApprovalManagement;
 using HRMS_Infrastructure.Repository.CompanyInformation;
 using HRMS_Infrastructure.Repository.CompanyStructure;
 using HRMS_Infrastructure.Repository.EmailService;
@@ -165,6 +167,7 @@ namespace HRMS_Infrastructure.Repository
             AttendanceLockRepository = new AttendanceLockRepository(_dbContext);
             SchemeReportingManagerRepository = new SchemeReportingManagerRepository(_dbContext);
             EmployeeBankDetailsRepository = new EmployeeBankDetailsRepository(_dbContext);
+            ApprovalManagementRepository = new ApprovalManagementRepository(_dbContext);
 
         }
 
@@ -292,6 +295,7 @@ namespace HRMS_Infrastructure.Repository
         public IAttendanceLockRepository AttendanceLockRepository { get; set; }
         public ISchemeReportingManagerRepository SchemeReportingManagerRepository { get; set; }
         public IEmployeeBankDetailsRepository EmployeeBankDetailsRepository { get; set; }
+        public IApprovalManagementRepository ApprovalManagementRepository { get; set; }
 
         public void Commit()
         {

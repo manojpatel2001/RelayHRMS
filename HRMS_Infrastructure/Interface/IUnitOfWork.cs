@@ -1,4 +1,5 @@
-﻿using HRMS_Infrastructure.Interface.CompanyInformation;
+﻿using HRMS_Infrastructure.Interface.ApprovalManagement;
+using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.EmailService;
 using HRMS_Infrastructure.Interface.EmegencyContacts;
@@ -140,6 +141,7 @@ namespace HRMS_Infrastructure.Interface
         IAttendanceLockRepository AttendanceLockRepository { get; }
         ISchemeReportingManagerRepository SchemeReportingManagerRepository { get; }
         IEmployeeBankDetailsRepository EmployeeBankDetailsRepository { get; }
+        IApprovalManagementRepository ApprovalManagementRepository { get; }
         void Commit();
         Task CommitAsync();
     }

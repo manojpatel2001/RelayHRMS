@@ -138,7 +138,8 @@ namespace HRMS_Infrastructure.Repository.Scheme
                 {
                     Companies = new List<CompanyModel>(),
                     SchemeTypes = new List<HRMS_Core.Master.Scheme.SchemeTypeModel>(),
-                    Designations = new List<DesignationModel>()
+                    Designations = new List<DesignationModel>(),
+                    Departments = new List<DepartmentModel>()
                 };
 
                 using (var connection = new SqlConnection(_connectionString))
@@ -148,6 +149,7 @@ namespace HRMS_Infrastructure.Repository.Scheme
                         result.Companies = (await multi.ReadAsync<CompanyModel>()).AsList();
                         result.SchemeTypes = (await multi.ReadAsync<HRMS_Core.Master.Scheme.SchemeTypeModel>()).AsList();
                         result.Designations = (await multi.ReadAsync<DesignationModel>()).AsList();
+                        result.Departments = (await multi.ReadAsync<DepartmentModel>()).AsList();
                     }
                 }
 
@@ -221,5 +223,35 @@ namespace HRMS_Infrastructure.Repository.Scheme
             }
             return response;
         }
+        public async Task<APIResponse> GetAllEmployByDepartmentId(int? companyId, int? departmentId)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@CompanyId", companyId);
+                    parameters.Add("@DepartmentId", departmentId);
+
+                    var employees = await connection.QueryAsync<EmployeeModel>(
+                        "GetAllEmployByDepartmentId",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Reporting managers fetched successfully.";
+                    response.Data = employees;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+            }
+            return response;
+        }
+
     }
 }

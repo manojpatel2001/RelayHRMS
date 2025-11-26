@@ -36,6 +36,7 @@ namespace HRMS_Core.Master.Scheme
         public List<CompanyModel>? Companies { get; set; }
         public List<SchemeTypeModel>? SchemeTypes { get; set; }
         public List<DesignationModel>?Designations { get; set; }
+        public List<DepartmentModel>? Departments { get; set; }
     }
 
     public class CompanyModel
@@ -68,6 +69,12 @@ namespace HRMS_Core.Master.Scheme
         public string? FullName { get; set; }
         public string? EmployeeCode { get; set; }
         public string? EmployeeName { get; set; }
+    }
+    public class DepartmentModel
+    {
+        public int? DepartmentId { get; set; }
+        public string? DepartmentName { get; set; }
+       
     }
 
 }

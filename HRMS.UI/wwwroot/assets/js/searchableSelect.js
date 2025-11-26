@@ -349,6 +349,13 @@
 					}
 					return selectedValues ? selectedValues[settings.valueKey] : null;
 				},
+				getText: function () {
+					if (settings.multiple) {
+						return selectedValues.map(item => item[settings.textKey]);
+					}
+					return selectedValues ? selectedValues[settings.textKey] : null;
+				},
+
 				getSelectedItem: function () {
 					return selectedValues;
 				},

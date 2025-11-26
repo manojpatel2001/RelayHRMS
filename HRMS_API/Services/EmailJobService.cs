@@ -273,6 +273,106 @@ namespace HRMS_API.Services
                 Console.WriteLine(ex.StackTrace);
             }
         }
+
+
+        public async Task SendDailyLeftEmployeeEmailAsync(EmailReport? emailReport)
+        {
+            try
+            {
+                // Fetch the list of employees who left today
+                List<TodayLeftEmployeeEmailVM> leftEmployees = await _unitOfWork.EmailReportRepository.GetTodayLeftEmployeesEmailData();
+
+                if (emailReport == null || leftEmployees == null || !leftEmployees.Any())
+                    return;
+
+                // Generate Excel for the left employees
+                //string excelDownloadLink = await GenerateAndUploadLeftEmployeeExcel(leftEmployees, "Daily Left Employee Report");
+
+                // Build dynamic employee table rows
+                var employeeRows = new StringBuilder();
+                int rowNum = 0;
+                foreach (var emp in leftEmployees)
+                {
+                    rowNum++;
+                    var backgroundColor = rowNum % 2 == 0 ? "#f8f9fa" : "#ffffff";
+                    employeeRows.AppendLine($@"
+                <tr>
+                    <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.SerialNo}</td>
+                    <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.Name}</td>
+                    <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.EmployeeCode}</td>
+                    <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.BranchName}</td>
+                    <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.LeftDate}</td>
+                </tr>");
+                        
+                 }
+
+                //// Add a row for the Excel download link
+                //employeeRows.AppendLine($@"
+                //<tr>
+                //    <td colspan='5' style='padding:10px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:#e9ecef;'>
+                //        <a href='{excelDownloadLink}' style='color: #0066cc; text-decoration: none;'>Download Left Employee Report (Excel)</a>
+                //        <p style='margin: 0 0 10px 0; color: #666666; font-size: 12px; line-height: 1.5;'>
+                //            The Left Employee Report (Excel) will be available for download for up to 10 days from the report generation date.
+                //        </p>
+                //    </td>
+                //</tr>");
+
+                // Create the placeholder dictionary
+                var dateFormat = DateTime.Now.ToString("dd MMM yyyy");
+                var placeholders = new Dictionary<string, string>
+                {
+                    { "Date", dateFormat },
+                    { "ManagerName", "HR Manager" }, // Replace with the actual manager name if needed
+                    { "HRContactNumber", emailReport.HRContactNumber ?? "" },
+                    { "HRContactEmail", emailReport.HRContactEmail ?? "" },
+                    { "EmployeeRows", employeeRows.ToString() }
+                };
+
+                if (string.IsNullOrEmpty(emailReport.ToEmails))
+                {
+                    return;
+                }
+                // Prepare email request object
+                var emailRequest = new EmailRequest
+                {
+                    ToEmails = emailReport.ToEmails.Split(',').ToList(),
+                    CcEmails = emailReport?.CcEmails?.Split(',').ToList(),
+                    BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
+                    Subject = $"{emailReport.Subject} – {dateFormat}",
+                    TemplateName = "DailyLeftEmployeeReportEmailTemplate.html",
+                    Placeholders = placeholders
+                };
+
+                // Log the email
+                var leftEmployeeEmailLogger = new EmailLogger
+                {
+                    ToEmail = emailReport.ToEmails,
+                    CCEmail = emailReport?.CcEmails,
+                    BCCEmail = emailReport?.BccEmails,
+                    Subject = emailRequest.Subject,
+                    Body = emailRequest.TemplateName,
+                    Status = EmailStatus.Pending,
+                    SentAt = DateTime.UtcNow,
+                    Comments = "Email ready for sent"
+                };
+                await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(leftEmployeeEmailLogger, "CREATE");
+
+                // Send the email
+                bool result = await _emailService.SendEmailAsync(emailRequest);
+                if (result)
+                    Console.WriteLine($"✅ Daily Left Employee email sent successfully.");
+                else
+                    Console.WriteLine($"⚠️ Email sending failed for Daily Left Employee Report.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error in SendDailyLeftEmployeeEmailAsync: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+            }
+        }
+
+
+
         /// <summary>
         /// Schedules the daily email job with the time from the database (default: 8 AM)
         /// </summary>
@@ -330,6 +430,37 @@ namespace HRMS_API.Services
             }
         }
 
+        public async Task ScheduleDailyLeftEmployeeEmail()
+        {
+            try
+            {
+                // Fetch the email report configuration for "Daily Left Employee Report"
+                var emailReport = await _unitOfWork.EmailReportRepository
+                    .GetEmailSendTime(EmailReportType.DailyLeftEmployeeReport.ToString());
+
+                if (emailReport?.EmailSendTime == null|| emailReport==null)
+                    return;
+
+                // Create a cron expression for the scheduled time (daily)
+                string cronExpression = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
+
+                // Remove the existing job if it exists
+                RecurringJob.RemoveIfExists("daily-left-employee-email");
+
+                // Schedule the job to run daily at the specified time
+                RecurringJob.AddOrUpdate(
+                    "daily-left-employee-email",
+                    () => SendDailyLeftEmployeeEmailAsync(emailReport),
+                     cronExpression
+                );
+
+                Console.WriteLine($"✅ Daily Left Employee email job scheduled successfully at {emailReport.EmailSendTime.Value:hh\\:mm} daily.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error scheduling Daily Left Employee email job: {ex.Message}");
+            }
+        }
 
         public void StartScheduleDailyEmail()
         {
@@ -343,6 +474,12 @@ namespace HRMS_API.Services
                 "hr-schedule-check",
                 () => ScheduleHrDailyEmail(),
                 "*/2 * * * *"
+            );
+
+            RecurringJob.AddOrUpdate(
+                "left-employee-schedule-check",
+                () => ScheduleDailyLeftEmployeeEmail(),
+                "*/2 * * * *" // Every 2 minutes
             );
 
         }
@@ -440,6 +577,49 @@ namespace HRMS_API.Services
             var excelDownloadLink = await _fileUploadService.UploadAndReplaceDocumentAsync(excelFormFile, folder, null);
 
             return string.IsNullOrEmpty(excelDownloadLink) ? "#" : excelDownloadLink;
+        }
+
+
+        private async Task<string> GenerateAndUploadLeftEmployeeExcel(List<TodayLeftEmployeeEmailVM> leftEmployees, string reportName)
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Left Employees");
+
+            // Add headers
+            worksheet.Cell(1, 1).Value = "S.No";
+            worksheet.Cell(1, 2).Value = "Employee Name";
+            worksheet.Cell(1, 3).Value = "Employee Code";
+            worksheet.Cell(1, 4).Value = "Branch";
+            worksheet.Cell(1, 5).Value = "Left Date";
+
+            // Add data
+            for (int i = 0; i < leftEmployees.Count; i++)
+            {
+                var emp = leftEmployees[i];
+                worksheet.Cell(i + 2, 1).Value = i + 1;
+                worksheet.Cell(i + 2, 2).Value = emp.Name;
+                worksheet.Cell(i + 2, 3).Value = emp.EmployeeCode;
+                worksheet.Cell(i + 2, 4).Value = emp.BranchName;
+                worksheet.Cell(i + 2, 5).Value = emp.LeftDate;
+            }
+
+            // Save to a MemoryStream
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            stream.Position = 0;
+
+            // Upload to your server/cloud storage and get the URL
+            string fileName = $"{reportName}_LeftEmployeeReport_{DateTime.Now:yyyyMMdd}.xlsx";
+            var excelFormFile = new MemoryFormFile(stream, fileName);
+            var folder = $"uploads/left_employee_report";
+            var excelDownloadLink = await _fileUploadService.UploadAndReplaceDocumentAsync(excelFormFile, folder, null);
+
+            if (string.IsNullOrEmpty(excelDownloadLink))
+            {
+                excelDownloadLink = "#";
+            }
+
+            return excelDownloadLink;
         }
 
     }

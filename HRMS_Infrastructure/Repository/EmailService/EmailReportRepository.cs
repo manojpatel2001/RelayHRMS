@@ -110,5 +110,28 @@ namespace HRMS_Infrastructure.Repository.EmailService
                 return null;
             }
         }
+
+        public async Task<List<TodayLeftEmployeeEmailVM>> GetTodayLeftEmployeesEmailData()
+        {
+            var response = new List<TodayLeftEmployeeEmailVM>();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var employees = await connection.QueryAsync<TodayLeftEmployeeEmailVM>(
+                        "USP_GetTodayLeftEmployeesEmailData",
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response = employees.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                response= new List<TodayLeftEmployeeEmailVM>();
+            }
+            return response;
+        }
+
     }
 }

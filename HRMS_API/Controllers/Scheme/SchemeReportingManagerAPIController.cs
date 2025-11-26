@@ -59,6 +59,19 @@ namespace HRMS_API.Controllers.Scheme
                 return new APIResponse { isSuccess = false, ResponseMessage = $"An error occurred: {ex.Message}" };
             }
         }
+        [HttpGet("GetAllEmployByDepartmentId")]
+        public async Task<APIResponse> GetAllEmployByDepartmentId(int? companyId,int?departmentId)
+        {
+            try
+            {
+                var data = await _unitOfWork.SchemeReportingManagerRepository.GetAllEmployByDepartmentId(companyId, departmentId);
+                return data;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = $"An error occurred: {ex.Message}" };
+            }
+        }
 
         [HttpGet("GetDrpSchemeDetailsBySchemeType/{schemeTypeId}")]
         public async Task<APIResponse> GetDrpSchemeDetailsBySchemeType(int schemeTypeId)
