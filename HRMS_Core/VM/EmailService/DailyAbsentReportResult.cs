@@ -44,4 +44,14 @@ namespace HRMS_Core.VM.EmailService
         public string? Attendance { get; set; }
 
     }
+
+    public class TodayLeftEmployeeEmailVM
+    {
+        public int? SerialNo { get; set; }
+        public string? BranchName { get; set; }
+        public string? EmployeeCode { get; set; }
+        public string? Name { get; set; }
+        public string? LeftDate { get; set; }
+    }
+
 }

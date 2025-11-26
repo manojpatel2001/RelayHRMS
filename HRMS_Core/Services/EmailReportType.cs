@@ -10,6 +10,7 @@ namespace HRMS_Core.Services
     {
         public const string DailyAbsentEmployeesReport = "Daily Absent Employees Report";
         public const string DailyAbsentAllEmployeesReport = "Daily Absent All Employees Report";
+        public const string DailyLeftEmployeeReport = "Daily Left Employee Report";
         
     }
 
