@@ -52,6 +52,7 @@ namespace HRMS_Core.VM.EmailService
         public string? EmployeeCode { get; set; }
         public string? Name { get; set; }
         public string? LeftDate { get; set; }
+        public string? LeftEnteredOn { get; set; }
     }
 
 }
