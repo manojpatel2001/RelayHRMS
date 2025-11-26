@@ -46,6 +46,7 @@ namespace HRMS_Core.VM.ExportData
         public string? IsLeft { get; set; }
         public string? CategoryName { get; set; }
         public string? EmergencyContact { get; set; }
+        public string? RelationName { get; set; }
         public string? Relation { get; set; }
 
     }
