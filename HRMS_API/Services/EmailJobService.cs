@@ -302,6 +302,7 @@ namespace HRMS_API.Services
                     <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.EmployeeCode}</td>
                     <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.BranchName}</td>
                     <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.LeftDate}</td>
+                    <td style='padding:6px 8px;font-size:13px;color:#333;border:1px solid #dee2e6;background-color:{backgroundColor};'>{emp.LeftEnteredOn}</td>
                 </tr>");
                         
                  }
@@ -451,7 +452,7 @@ namespace HRMS_API.Services
                 RecurringJob.AddOrUpdate(
                     "daily-left-employee-email",
                     () => SendDailyLeftEmployeeEmailAsync(emailReport),
-                     cronExpression
+                       cronExpression
                 );
 
                 Console.WriteLine($"✅ Daily Left Employee email job scheduled successfully at {emailReport.EmailSendTime.Value:hh\\:mm} daily.");
