@@ -160,29 +160,7 @@
             font-size: 13px;
         }
 
-    .multi-select-actions {
-        padding: 8px;
-        border-bottom: 1px solid #eee;
-        display: flex;
-        gap: 8px;
-    }
 
-    .multi-select-btn {
-        flex: 1;
-        padding: 5px 10px;
-        border: 1px solid #5a6c8f;
-        background: white;
-        color: #5a6c8f;
-        border-radius: 3px;
-        font-size: 12px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-        .multi-select-btn:hover {
-            background: #5a6c8f;
-            color: white;
-        }
 
     .searchable-select-options {
         max-height: 200px;
@@ -202,10 +180,7 @@
             background-color: #f5f5f5;
         }
 
-        .searchable-select-option input[type="checkbox"] {
-            cursor: pointer;
-        }
-
+ 
         .searchable-select-option.selected {
             background-color: #e8f0fe;
         }
@@ -322,10 +297,7 @@
                                     <div class="searchable-select-search">
                                         <input type="text" placeholder="Search branch..." class="search-input">
                                     </div>
-                                    <div class="multi-select-actions">
-                                        <button type="button" class="multi-select-btn select-all-btn">Select All</button>
-                                        <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
-                                    </div>
+                               
                                     <div class="searchable-select-options"></div>
                                 </div>
                             </div>
@@ -350,10 +322,7 @@
                                     <div class="searchable-select-search">
                                         <input type="text" placeholder="Search employee..." class="search-input">
                                     </div>
-                                    <div class="multi-select-actions">
-                                        <button type="button" class="multi-select-btn select-all-btn">Select All</button>
-                                        <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
-                                    </div>
+                            
                                     <div class="searchable-select-options"></div>
                                 </div>
                             </div>
@@ -439,6 +408,7 @@
     const Token = localStorage.getItem("authToken");
 
     // Custom Searchable Multi-Select Plugin
+
     (function($) {
         $.fn.searchableSelect = function(options) {
             const settings = $.extend({
@@ -456,39 +426,36 @@
                 const $dropdown = $wrapper.find('.searchable-select-dropdown');
                 const $searchInput = $dropdown.find('.search-input');
                 const $optionsContainer = $dropdown.find('.searchable-select-options');
-                const $selectAllBtn = $dropdown.find('.select-all-btn');
-                const $clearAllBtn = $dropdown.find('.clear-all-btn');
 
-                let selectedValues = [];
+                let selectedValue = null;
                 let allData = settings.data;
 
                 // Store instance data
                 $input.data('searchableSelect', {
                     setData: function(newData) {
                         allData = newData;
-                        selectedValues = [];
+                        selectedValue = null;
                         renderOptions();
                         updateInputDisplay();
                     },
                     getValue: function() {
-                        return selectedValues;
+                        return selectedValue;
                     },
-                    setValue: function(values) {
-                        selectedValues = values || [];
+                    setValue: function(value) {
+                        selectedValue = value || null;
                         renderOptions();
                         updateInputDisplay();
                     },
                     clear: function() {
-                        selectedValues = [];
+                        selectedValue = null;
                         renderOptions();
                         updateInputDisplay();
                     }
                 });
 
-                // Toggle dropdown - Fixed to work properly
+                // Toggle dropdown
                 $input.on('click', function(e) {
                     e.preventDefault();
-               
                     $('.searchable-select-dropdown').not($dropdown).removeClass('active');
                     $dropdown.toggleClass('active');
                     if ($dropdown.hasClass('active')) {
@@ -505,26 +472,6 @@
                 $searchInput.on('input', function() {
                     const searchTerm = $(this).val().toLowerCase();
                     renderOptions(searchTerm);
-                });
-
-                // Select All
-                $selectAllBtn.on('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    selectedValues = allData.map(item => item[settings.valueKey]);
-                    renderOptions($searchInput.val());
-                    updateInputDisplay();
-                    if (settings.onChange) settings.onChange(selectedValues);
-                });
-
-                // Clear All
-                $clearAllBtn.on('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    selectedValues = [];
-                    renderOptions($searchInput.val());
-                    updateInputDisplay();
-                    if (settings.onChange) settings.onChange(selectedValues);
                 });
 
                 // Render options
@@ -544,11 +491,10 @@
                     filteredData.forEach(item => {
                         const value = item[settings.valueKey];
                         const text = item[settings.textKey];
-                        const isSelected = selectedValues.includes(value);
+                        const isSelected = selectedValue === value;
 
                         const $option = $(`
                             <div class="searchable-select-option ${isSelected ? 'selected' : ''}" data-value="${value}">
-                                <input type="checkbox" ${isSelected ? 'checked' : ''}>
                                 <span>${text}</span>
                             </div>
                         `);
@@ -556,20 +502,14 @@
                         $option.on('click', function(e) {
                             e.preventDefault();
                             e.stopPropagation();
-                            const checkbox = $(this).find('input[type="checkbox"]');
-                            checkbox.prop('checked', !checkbox.prop('checked'));
 
-                            if (checkbox.prop('checked')) {
-                                if (!selectedValues.includes(value)) {
-                                    selectedValues.push(value);
-                                }
-                            } else {
-                                selectedValues = selectedValues.filter(v => v !== value);
-                            }
-
-                            $(this).toggleClass('selected', checkbox.prop('checked'));
+                            selectedValue = value;
                             updateInputDisplay();
-                            if (settings.onChange) settings.onChange(selectedValues);
+                            $dropdown.removeClass('active');
+
+                            if (settings.onChange) {
+                                settings.onChange(selectedValue);
+                            }
                         });
 
                         $optionsContainer.append($option);
@@ -578,15 +518,13 @@
 
                 // Update input display
                 function updateInputDisplay() {
-                    if (selectedValues.length === 0) {
+                    if (!selectedValue) {
                         $input.val('').attr('placeholder', settings.placeholder);
                     } else {
-                        const selectedTexts = selectedValues.map(val => {
-                            const item = allData.find(d => d[settings.valueKey] === val);
-                            return item ? item[settings.textKey] : '';
-                        }).filter(t => t);
-
-                        $input.val(selectedTexts.join(', '));
+                        const item = allData.find(d => d[settings.valueKey] === selectedValue);
+                        if (item) {
+                            $input.val(item[settings.textKey]);
+                        }
                     }
                 }
 
@@ -691,31 +629,41 @@
         });
     }
 
-    function BindEmployeeDropdownByBranch(selectedBranchIds) {
+    function BindEmployeeDropdownByBranch(selectedBranchId) {
+        debugger;
+        console.log('selectedBranchId type:', typeof selectedBranchId);
+        console.log('selectedBranchId value:', selectedBranchId);
+        console.log('selectedBranchId JSON:', JSON.stringify(selectedBranchId));
+
         const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
 
-        if (!Array.isArray(selectedBranchIds)) {
-            selectedBranchIds = selectedBranchIds ? [selectedBranchIds] : [];
-        }
-
-        if (!selectedBranchIds || selectedBranchIds.length === 0) {
+        if (!selectedBranchId) {
             employeeDropdown.setData([]);
             $('#employeeDropdown').attr('placeholder', 'Select Branch First');
             return;
         }
 
-        // Extract branchId from objects if needed
-        const branchParam = selectedBranchIds.map(branch => branch.branchId).join(',');
-     
+        let branchIdString;
+        if (typeof selectedBranchId === 'object' && selectedBranchId !== null) {
+            branchIdString = selectedBranchId.branchId || selectedBranchId;
+        } else {
+            branchIdString = selectedBranchId;
+        }
+
+        console.log('Final branchIdString:', branchIdString);
 
         $.ajax({
             type: "GET",
-            url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")?BranchIds=' + branchParam + '&CompanyId=' + CompanyId,
+            url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")',
+            data: {
+                BranchIds: branchIdString,  // Send as string, not array
+                CompanyId: CompanyId
+            },
             headers: {
                 'Authorization': 'Bearer ' + Token
             },
             success: function(response) {
-              
+                console.log('response', response);
                 if (response?.data?.length > 0) {
                     const employeeData = response.data.map(emp => ({
                         employeeCode: emp.employeeCode,
@@ -727,39 +675,38 @@
                     employeeDropdown.setData([]);
                     $('#employeeDropdown').attr('placeholder', 'No Employees Found');
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+                console.error('Response:', xhr.responseText);
+                employeeDropdown.setData([]);
+                $('#employeeDropdown').attr('placeholder', 'Error loading employees');
             }
         });
     }
-
     // Main Go Button - Fetch data and show sections
     $('#btnGo').on('click', function() {
         const branchDropdown = $('#branchDropdown').data('searchableSelect');
-        const branchIds = branchDropdown.getValue();
+        const branchId = branchDropdown.getValue();
 
-        if (!branchIds || branchIds.length === 0) {
+        if (!branchId) {
             Swal.fire("Please select Branch");
             return;
         }
 
         const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
-        const employeeCodes = employeeDropdown.getValue();
+        const employeeCode = employeeDropdown.getValue();
 
-        if (!employeeCodes || employeeCodes.length === 0) {
+        if (!employeeCode) {
             Swal.fire("Please select an Employee");
             return;
         }
 
-        // Show both sections
         $('#monthlySection').show();
         $('#yearlySection').show();
-
-        // Auto-fetch monthly data with current month/year
         FetchMonthlyLeaveStatus();
-
-        // Auto-fetch yearly data with current year
         FetchYearlyLeaveStatus();
     });
-
     // Fetch Monthly Leave Status
     $('#btnFetchMonthly').on('click', function() {
         FetchMonthlyLeaveStatus();
@@ -767,9 +714,9 @@
 
     function FetchMonthlyLeaveStatus() {
         const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
-        const employeeCodes = employeeDropdown.getValue();
+        const employeeCode = employeeDropdown.getValue();
 
-        if (!employeeCodes || employeeCodes.length === 0) {
+        if (!employeeCode) {
             Swal.fire("Please select an Employee first");
             return;
         }
@@ -779,13 +726,11 @@
 
         showLoder();
 
-        const empIdParam = employeeCodes;
-
         $.ajax({
             url: '@baseDomainUrl/api/ReportAPI/GetEmployeeMonthlyLeaveStatus',
             type: 'GET',
             data: {
-                EmpId: empIdParam,
+                EmpId: employeeCode,  // Changed from empIdParam
                 SelectedMonth: selectedMonth,
                 SelectedYear: selectedYear,
                 CompId: CompanyId
@@ -850,10 +795,9 @@
                 showInfo: true
             },
             searchPanel: { visible: true },
-            export: {
-                enabled: true,
-                allowExportSelectedData: false
-            },
+              export: {
+        enabled: false
+    },
             columns: [
                 { dataField: "leaveType", caption: "Leave Name", alignment: "center" },
                 { dataField: "leavePeriod", caption: "Leave Period", alignment: "center", format: "#0.00" },
@@ -868,12 +812,11 @@
     $('#btnFetchYearly').on('click', function() {
         FetchYearlyLeaveStatus();
     });
-
     function FetchYearlyLeaveStatus() {
         const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
-        const employeeCodes = employeeDropdown.getValue();
+        const employeeCode = employeeDropdown.getValue();
 
-        if (!employeeCodes || employeeCodes.length === 0) {
+        if (!employeeCode) {
             Swal.fire("Please select an Employee first");
             return;
         }
@@ -882,13 +825,11 @@
 
         showLoder();
 
-        const empIdParam = employeeCodes;
-
         $.ajax({
             url: '@baseDomainUrl/api/ReportAPI/GetEmployeeYearlyLeaveStatus',
             type: 'GET',
             data: {
-                EmpId: empIdParam,
+                EmpId: employeeCode,  // Changed from empIdParam
                 CompId: CompanyId,
                 Year: selectedYear
             },
@@ -939,10 +880,9 @@
                 showInfo: true
             },
             searchPanel: { visible: true },
-            export: {
-                enabled: true,
-                allowExportSelectedData: false
-            },
+             export: {
+        enabled: false
+    },
             columns: [
                 { dataField: "leaveType", caption: "Leave Type", alignment: "center" },
                 { dataField: "opening", caption: "Opening", alignment: "center", format: "#0.00" },
@@ -956,7 +896,7 @@
     }
 
     function RenderYearlyLeaveGrid(data) {
-      
+
         if ($("#yearlyLeaveGrid").data('dxDataGrid')) {
             $("#yearlyLeaveGrid").dxDataGrid('dispose');
         }
@@ -964,7 +904,9 @@
         $("#yearlyLeaveGrid").dxDataGrid({
             dataSource: data,
             showBorders: true,
-            columnAutoWidth: true,
+            columnAutoWidth: true,  // This enables auto-sizing
+            allowColumnResizing: true,  // Allow manual column resizing
+            columnResizingMode: "widget",  // Resize mode
             height: 'auto',
             paging: { enabled: true, pageSize: 10 },
             pager: {
@@ -973,35 +915,34 @@
                 showInfo: true
             },
             searchPanel: { visible: true },
-            export: {
-                enabled: true,
-                allowExportSelectedData: false
-            },
+              export: {
+        enabled: false
+    },
             columns: [
                 {
                     dataField: "leaveName",
                     caption: "Leave Name",
-                    width: 150,
+                    minWidth: 150,  // Changed from fixed width to minWidth
                     fixed: true,
                     fixedPosition: "left",
                     alignment: "left"
                 },
-                { dataField: "jan", caption: "Jan", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "feb", caption: "Feb", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "mar", caption: "Mar", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "apr", caption: "Apr", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "may", caption: "May", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "jun", caption: "Jun", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "jul", caption: "Jul", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "aug", caption: "Aug", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "sep", caption: "Sep", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "oct", caption: "Oct", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "nov", caption: "Nov", width: 70, alignment: "center", format: "#0.00" },
-                { dataField: "dec", caption: "Dec", width: 70, alignment: "center", format: "#0.00" },
+                { dataField: "jan", caption: "Jan", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "feb", caption: "Feb", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "mar", caption: "Mar", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "apr", caption: "Apr", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "may", caption: "May", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "jun", caption: "Jun", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "jul", caption: "Jul", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "aug", caption: "Aug", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "sep", caption: "Sep", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "oct", caption: "Oct", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "nov", caption: "Nov", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "dec", caption: "Dec", minWidth: 60, alignment: "center", format: "#0.00" },
                 {
                     dataField: "total",
                     caption: "Total",
-                    width: 90,
+                    minWidth: 80,  // Changed from fixed width to minWidth
                     alignment: "center",
                     format: "#0.00",
                     cssClass: "total-column"
@@ -1009,12 +950,15 @@
             ],
             scrolling: {
                 mode: "standard"
+            },
+            onContentReady: function(e) {
+                // Optional: Auto-adjust column widths after content is loaded
+                e.component.updateDimensions();
             }
         });
 
         $("#yearlyLeaveGrid").show();
     }
-
     function clearAllData() {
         const branchDropdown = $('#branchDropdown').data('searchableSelect');
         if (branchDropdown) {
