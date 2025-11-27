@@ -183,6 +183,7 @@ public class ImportDataController : ControllerBase
                type == "MonthlyEar" ||
                type == "MonthlyDed" ||
                type == "LeaveOpening" ||
+               type == "Employee" ||
                type == "Employee";
     }
 
@@ -216,6 +217,9 @@ public class ImportDataController : ControllerBase
                     break;
                 case "Employee":
                     result = await _unitOfWork.importDataRepository.ImportEmployeeType(jsonData , createdBy);
+                    break;
+                case "EmployeeUpdate":
+                    result = await _unitOfWork.importDataRepository.ImportEmployeeUpdate(jsonData , createdBy);
                     break;
 
                 default:
