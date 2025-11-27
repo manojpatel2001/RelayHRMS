@@ -315,60 +315,69 @@
         $('#grid-loader').removeClass('d-flex').hide();
     }
 
+
     function loadGrid(data) {
-        // Safely dispose existing grid if it exists
+        // Dispose existing grid first to prevent conflicts
         try {
-            var gridInstance = $("#attendanceGrid").data("dxDataGrid");
+            const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
             if (gridInstance) {
                 gridInstance.dispose();
             }
         } catch (e) {
-            // Grid doesn't exist, continue
+            // Grid doesn't exist yet, that's okay
         }
 
         // Clear the container
         $("#attendanceGrid").empty();
 
+        // Check if data is empty - hide everything if no data
+        if (!data || data.length === 0) {
+            $("#actionButtons").hide();
+            $(".search-panel-wrapper").last().hide(); // Hide "EMPLOYEE REGULARIZATION" heading
+            return;
+        }
+
+        // Show heading if data exists
+        $(".search-panel-wrapper").last().show();
+
         $("#attendanceGrid").dxDataGrid({
-            dataSource: data||[],
+            dataSource: data,
             keyExpr: "attendanceRegularizationId",
-            width: "100%",
-            height:250,
-            columnAutoWidth: false,
-            wordWrapEnabled: true,
             showBorders: true,
-            rowAlternationEnabled: true,
+            width: "100%",
+            height: 400,
+            columnAutoWidth: true,
+            wordWrapEnabled: false,
+            paging: {
+                enabled: false
+            },
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
-           paging: {  enabled: false  },
-            scrolling: {
-              mode: "standard",
-             useNative: true,
-               showScrollbar: "always"   },
-            columnResizingMode: "widget",
-            allowColumnResizing: true,
+            filterRow: { visible: false },
+            searchPanel: { visible: false },
             onSelectionChanged: function (e) {
                 selectedKeys = e.selectedRowKeys;
             },
-            onContentReady: function(e) {
-                e.component.updateDimensions();
-            },
             columns: [
-                { dataField: "employeeCode", caption: "Code", width: "8%", minWidth: 80 },
+                { dataField: "employeeCode", caption: "Code", width: 80 },
                 { dataField: "empId", visible: false },
-                { dataField: "fullName", caption: "Name", width: "15%", minWidth: 120 },
-                { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: "10%", minWidth: 100 },
-                { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy", width: "10%", minWidth: 100 },
-                { dataField: "inTime", caption: "In Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: "15%", minWidth: 140 },
-                { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: "15%", minWidth: 140 },
-                { dataField: "duration", caption: "Duration", dataType: "string", width: "10%", minWidth: 100 },
-                { dataField: "day", caption: "Day", dataType: "string", width: "10%", minWidth: 100 },
+                { dataField: "fullName", caption: "Name", width: 250 },
+                { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "inTime", caption: "In Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
+                { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
+                { dataField: "duration", caption: "Duration", dataType: "string", width: 80 },
+                { dataField: "day", caption: "Day", dataType: "string", width: 100 },
                 {
                     caption: "Status",
-                    width: "7%",
-                    minWidth: 80,
+                    width: 100,
                     calculateCellValue: function (row) {
                         if (row.isApproved) return "Approved";
                         if (row.isRejected) return "Rejected";
@@ -376,48 +385,36 @@
                         return "";
                     }
                 },
-                   {
-                        dataField: "updatedBy",
-                        caption: "Approved By",
-                        width: 120,
-                        calculateCellValue: function(rowData) {
-                            return rowData.updatedBy ? rowData.updatedBy : "-";
-                        }
-                    },
-                       {
-        dataField: "updatedDate",
-        caption: "Approved Date",
-        dataType: "date",
-        format: "dd/MM/yyyy",
-        width: "10%",
-        minWidth: 100,
-        calculateCellValue: function(rowData) {
-            if (!rowData.updatedDate) return "-";
-
-            // Parse the ISO date string
-            const date = new Date(rowData.updatedDate);
-
-            // Extract day, month, and year
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-            const year = date.getFullYear();
-
-            // Return formatted date as dd/MM/yyyy
-            return `${day}/${month}/${year}`;
-        }
-    }
-
-
+                {
+                    dataField: "updatedBy",
+                    caption: "Approved By",
+                    width: 150,
+                    calculateCellValue: function(rowData) {
+                        return rowData.updatedBy ? rowData.updatedBy : "-";
+                    }
+                },
+                {
+                    dataField: "updatedDate",
+                    caption: "Approved Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: 120,
+                    calculateCellValue: function(rowData) {
+                        if (!rowData.updatedDate) return "-";
+                        const date = new Date(rowData.updatedDate);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        return `${day}/${month}/${year}`;
+                    }
+                }
             ]
         });
+
+        $("#actionButtons").show();
     }
 
-     $('#btnGo').on('click', function () {
-        console.log('Go button clicked'); // Add this
-
-        // Remove or comment out debugger in production
-        // debugger;
-
+    $('#btnGo').on('click', function () {
         let model = {
             SearchBy: getSearchByText($('#searchby').val()),
             SearchValue: $('#searchfor').val(),
@@ -427,32 +424,30 @@
             LoggedInUserId: EmployeeId
         };
 
-        console.log('Request Model:', model); // Add this
-        console.log('API URL:', apiBase + "/AttendanceRegularizationAPI/GetAttendanceRegularizationApproval"); // Add this
-
         $.ajax({
             url: apiBase + "/AttendanceRegularizationAPI/GetAttendanceRegularizationApproval",
             type: 'POST',
             data: JSON.stringify(model),
             contentType: 'application/json',
             beforeSend: function(xhr) {
-                console.log('Request starting...'); // Add this
+                console.log('Request starting...');
             },
             success: function (res) {
-                console.log('Response received:', res); // Add this
+                console.log('Response received:', res);
 
                 if (res.isSuccess) {
                     if (res.data && res.data.length > 0) {
                         loadGrid(res.data);
-                        $("#actionButtons").show();
                     } else {
+                        // No data - hide everything
                         $("#actionButtons").hide();
+                        $(".search-panel-wrapper").last().hide();
                         safeDisposeGrid();
-                        var emptyData=[];
-                        loadGrid(emptyData);
+                        round_error_noti('No Data Found');
                     }
                 } else {
                     $("#actionButtons").hide();
+                    $(".search-panel-wrapper").last().hide();
                     safeDisposeGrid();
                     round_error_noti(res.responseMessage || 'No Data');
                 }
@@ -463,15 +458,32 @@
                     error: error,
                     responseText: xhr.responseText,
                     statusCode: xhr.status
-                }); // Add detailed error logging
+                });
 
                 $("#actionButtons").hide();
+                $(".search-panel-wrapper").last().hide();
                 safeDisposeGrid();
                 round_error_noti('Error loading data: ' + error);
             }
         });
     });
 
+     $("#btnClear").click(function () {
+        // Reset form
+        $('#searchby').val("1");
+        $('#searchfor').val('');
+        $('#fromdate').val('');
+        $('#todate').val('');
+        $("input[name='type']").prop('checked', false);
+        $('#r2').prop('checked', true);
+
+        // Safe grid disposal and hide everything
+        safeDisposeGrid();
+        $("#actionButtons").hide();
+        $(".search-panel-wrapper").last().hide();
+    });
+
+    // Update delete button handler to check for remaining data:
     $('#btnDelete').on('click', function () {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedIds = grid.getSelectedRowKeys();
@@ -495,19 +507,9 @@
             success: function (res) {
                 if (res.isSuccess) {
                     round_success_noti(res.responseMessage || "Deleted successfully.");
-                    selectedIds.forEach(function (key) {
-                        grid.deleteRow(grid.getRowIndexByKey(key));
-                    });
 
-                    // Check if grid has remaining data after deletion
-                    var currentDataSource = grid.option("dataSource");
-                    if (currentDataSource && currentDataSource.length > 0) {
-                        // Keep buttons visible if there's still data
-                        $("#actionButtons").show();
-                    } else {
-                        // Hide buttons if no data remains
-                        $("#actionButtons").hide();
-                    }
+                    // Reload grid with current search
+                    $('#btnGo').click();
                 } else {
                     round_error_noti(res.responseMessage || "Deletion failed.");
                 }
@@ -605,19 +607,6 @@
         });
     }
 
-    $("#btnClear").click(function () {
-        // Reset form
-        $('#searchby').val("1");
-        $('#searchfor').val('');
-        $('#fromdate').val('');
-        $('#todate').val('');
-        $("input[name='type']").prop('checked', false);
-        $('#r2').prop('checked', true);
-
-        // Safe grid disposal and hide buttons
-        safeDisposeGrid();
-        $("#actionButtons").hide();
-    });
 
     // Handle window resize
     $(window).on('resize', function() {
