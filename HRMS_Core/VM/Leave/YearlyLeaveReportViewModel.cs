@@ -13,7 +13,7 @@ namespace HRMS_Core.VM.Leave
         public DateTime? DOJ { get; set; }
         public string? LeaveType { get; set; }
         public decimal? Opening { get; set; }
-        public string? TransactionType { get; set; }
+        public string? RowType { get; set; }  // Changed from TransactionType
         public decimal? Jan { get; set; }
         public decimal? Feb { get; set; }
         public decimal? Mar { get; set; }
@@ -26,8 +26,6 @@ namespace HRMS_Core.VM.Leave
         public decimal? Oct { get; set; }
         public decimal? Nov { get; set; }
         public decimal? Dec { get; set; }
-        public decimal? TotalCredit { get; set; }
-        public decimal? TotalDebit { get; set; }
-        public decimal? TotalLaps { get; set; }
+        public decimal? Closing { get; set; }  // Add this - SP returns it
     }
 }
