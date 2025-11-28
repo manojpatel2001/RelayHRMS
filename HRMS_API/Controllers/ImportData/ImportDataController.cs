@@ -184,7 +184,7 @@ public class ImportDataController : ControllerBase
                type == "MonthlyDed" ||
                type == "LeaveOpening" ||
                type == "Employee" ||
-               type == "Employee";
+               type == "EmployeeUpdate";
     }
 
     private async Task<APIResponse> ProcessWithStoredProcedure(DataTable dt, string type, int startRow ,string createdBy)
@@ -448,6 +448,9 @@ public class ImportDataController : ControllerBase
                 break;
             case "Employee":
                 expectedHeaders = new List<string> { "Alpha_Emp_Code", "Employee_Type",  };
+                break;
+            case "EmployeeUpdate":
+                expectedHeaders = new List<string> { "Alpha_Emp_Code", "Designation_Name", "Reporting_Manager_Code" };
                 break;
             default:
                 error = $"No template defined for type '{type}'";
