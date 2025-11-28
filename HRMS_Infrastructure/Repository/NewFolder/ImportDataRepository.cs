@@ -45,7 +45,7 @@ namespace HRMS_Infrastructure.Repository.NewFolder
         }
         public async Task<ImportSPResult> ImportEmployeeUpdate(string jsonData, string createdBy)
         {
-            return await ExecuteImportSP("sp_ImportEmployeeUpdate", jsonData , createdBy);
+            return await ExecuteImportSP("sp_ImportEmployeeDesignation", jsonData , createdBy);
         }
 
         // Common method to execute any import SP
