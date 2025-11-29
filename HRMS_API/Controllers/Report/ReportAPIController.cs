@@ -260,7 +260,7 @@ namespace HRMS_API.Controllers.Report
 
         [HttpPost("GetProbationStatusSearch")]
         public async Task<IActionResult> GetProbationStatusSearch(
-    GetProbationSearchParam Model )
+    GetProbationSearchParam Model)
         {
             try
             {
@@ -284,5 +284,32 @@ namespace HRMS_API.Controllers.Report
                 });
             }
         }
+
+
+
+        [HttpGet("GetLeaveYearlySummary")]
+        public async Task<APIResponse> GetLeaveYearlySummary( string EmpCode, DateTime StratDate, DateTime EndDate)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetLeaveYearlySummary(EmpCode, StratDate, EndDate);
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
     }
 }

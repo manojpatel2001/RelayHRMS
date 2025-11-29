@@ -8,10 +8,12 @@ using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.Report;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -205,6 +207,27 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+        public async Task<List<LeaveYearlySummaryViewModel>> GetLeaveYearlySummary(string EmpCode, DateTime StartDate, DateTime EndDate)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                var parameters = new DynamicParameters();
+             
+                parameters.Add("@FromDate", StartDate);
+                parameters.Add("@ToDate", EndDate);
+                parameters.Add("@EmployeeCodes", string.IsNullOrEmpty(EmpCode) ? (object)DBNull.Value : EmpCode);
+
+                var result = (await connection.QueryAsync<LeaveYearlySummaryViewModel>(
+                    "usp_LeaveYearlySummary",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                )).ToList();
+
+                return result;
+            }
+        }
 
         public async Task<List<ProbationStatusSearchViewModel>> GetProbationStatusSearchAsync(GetProbationSearchParam Model)
         {

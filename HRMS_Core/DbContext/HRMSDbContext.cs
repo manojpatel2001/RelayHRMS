@@ -325,6 +325,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<EmployeeLeaveApplication>().HasNoKey().ToView(null);
              modelBuilder.Entity<ProbationStatusSearchViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<AttendanceRequestReportFilterVm>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LeaveYearlySummaryViewModel>().HasNoKey().ToView(null);
 
 
 
