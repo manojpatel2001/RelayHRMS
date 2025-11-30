@@ -180,6 +180,7 @@ namespace HRMS_Core.DbContext
         public string? EmployeeESIReport{ get; set; }
         public string? EmployeeNamePrmaryBank { get; set; }
         public DateTime? LastLogin { get; set; }
+        public int AttendanceLimit { get; set; }
 
 
     }

@@ -218,7 +218,9 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut,
                     IsLeft=employeeData.IsLeft,
                     IsPFApplicable=employeeData.IsPFApplicable,
-                    Probation = employeeData.Probation
+                    Probation = employeeData.Probation,
+                    AttendanceLimit=employeeData.AttendanceLimit
+
                 };
 
                 // Create the user
