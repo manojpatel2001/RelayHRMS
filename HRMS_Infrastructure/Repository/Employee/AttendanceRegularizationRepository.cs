@@ -6,6 +6,7 @@ using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface.Employee;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.SqlServer.Server;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -309,6 +310,50 @@ namespace HRMS_Infrastructure.Repository.Employee
             {
 
                 return new List<AttendanceRegularizationAdmin>();
+            }
+        }
+
+        public async Task<List<EMpDetails>> GetEmployeeDetails(int? EmpId)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@EmpId", EmpId),
+                
+                };
+
+                var result = await _db.Set<EMpDetails>()
+                    .FromSqlRaw("EXEC GetEmployeeAttendanceDetails @EmpId ", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EMpDetails>();
+            }
+        }
+
+        public async Task<List<AttendanceCount>> GetEmployeeAttendanceRequestsCountForCurrentMonth(int? EmpId)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+           new SqlParameter("@EmpId", EmpId),
+
+       };
+
+                var result = await _db.Set<AttendanceCount>()
+                    .FromSqlRaw("EXEC GetEmployeeAttendanceRequestsCountForCurrentMonth @EmpId ", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<AttendanceCount>();
             }
         }
     }

@@ -299,6 +299,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     parameters.Add("@EmployeeESIReport", employee.EmployeeESIReport);
                     parameters.Add("@EmployeeNamePrmaryBank", employee.EmployeeNamePrmaryBank);
                     parameters.Add("@CreatedBy", employee.CreatedBy);
+                    parameters.Add("@AttendanceLimit", employee.AttendanceLimit);
 
                     parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
                     parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 255);

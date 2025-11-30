@@ -590,6 +590,92 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+        [HttpGet("GetEmployeeDetails")]
+        public async Task<APIResponse> GetEmployeeDetails(int EmpId)
+        {
+            try
+            {
+                if (EmpId == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id is required."
+                    };
+                }
+
+
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeDetails(EmpId);
+
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
+                };
+            }
+        }
+        [HttpGet("GetEmployeeAttendanceRequestsCountForCurrentMonth")]
+        public async Task<APIResponse> GetEmployeeAttendanceRequestsCountForCurrentMonth(int EmpId)
+        {
+            try
+            {
+                if (EmpId == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id is required."
+                    };
+                }
+
+
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeAttendanceRequestsCountForCurrentMonth(EmpId);
+
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
+                };
+            }
+        }
 
     }
 }

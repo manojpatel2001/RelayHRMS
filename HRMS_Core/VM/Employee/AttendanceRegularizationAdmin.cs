@@ -23,12 +23,7 @@ namespace HRMS_Core.VM.Employee
         public string? Day { get; set; }
 
         public string? Reason { get; set; }
-
-        public bool IsApproved { get; set; }
-        public bool IsPending { get; set; }
-        public bool IsRejected { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
-    
     }
 }
