@@ -594,9 +594,8 @@
         });
     }
 
-
-
-   $('#btnSaveLeftEmployee').click(function () {
+    $('#btnSaveLeftEmployee').click(function () {
+  
         $("#btnSaveLeftEmployee").prop("disabled", true);
 
         var leftDateStr = $('#leftDate').val();
@@ -612,58 +611,87 @@
             reasonTypes.push($(this).val());
         });
 
-        var leftDate = $('#leftDate').val();
-       // var branch = $('#branch').data('searchableSelect').getValue();
-        var employee = $('#branchemps').data('searchableSelect').getValue();;
+        var employee = $('#branchemps').data('searchableSelect').getValue();
         var resignationDate = $('#resignationDate').val();
         var resignationAcceptedDate = $('#resignationAcceptedDate').val();
-        var reason = $('#reason').data('searchableSelect').getValue();;
+        var reason = $('#reason').data('searchableSelect').getValue();
         var otherReason = $('#otherReason').val();
         var uniformReturn = $('#uniformReturn').data('searchableSelect').getValue();
-        var exitInterview = $('#exitInterview').data('searchableSelect').getValue();;
-        var noticePeriod = $('#noticePeriod').data('searchableSelect').getValue();;
-        var replaceManager = $('#replaceManager').data('searchableSelect').getValue();;
-        var leftReasonPf = $('#leftReasonPf').data('searchableSelect').getValue();;
+        var exitInterview = $('#exitInterview').data('searchableSelect').getValue();
+        var noticePeriod = $('#noticePeriod').data('searchableSelect').getValue();
+        var replaceManager = $('#replaceManager').data('searchableSelect').getValue();
+        var leftReasonPf = $('#leftReasonPf').data('searchableSelect').getValue();
+
         var isValid = true;
-       if (!leftDate) {
-            $('#spnleftdate').show();
-                  // alert("Please Enter the Left Date");
-          isValid = false;
-         }
-       if (!resignationAcceptedDate) {
-            $('#spnresignationAcceptedDate').show();
-                  // alert("Please Enter the Left Date");
-        isValid = false;
-         }
 
-       if (leftDate && joiningDate && leftDate <= joiningDate) {
-            $('#spnleftdategreter').show();
-           $("#btnSaveLeftEmployee").prop("disabled", false);
-        return false;
-    }
+        // Hide all error messages first
+        $('#spnleftdate, #spnresignationAcceptedDate, #spnleftdategreter, #spnresignationAcceptedDategreter, #spnleftdateafterresignation, #spnemp').hide();
 
-    if (resignationAcceptDate && joiningDate && resignationAcceptDate <= joiningDate) {
-       $('#spnresignationAcceptedDategreter').show();
-        $("#btnSaveLeftEmployee").prop("disabled", false);
-        return false;
-    }
-
-      if (leftDate && resignationAcceptDate && leftDate < resignationAcceptDate) {
-        $('#spnleftdateafterresignation').show(); // yaha apna span ya alert use karo
-        $("#btnSaveLeftEmployee").prop("disabled", false);
-        return false;
-    }
-
-            if (!employee || employee === "--Select Employee--" || employee === "") {
-               $('#spnemp').show();
-            isValid = false;
-        }
-
+        // Check if at least one Reason Type is selected
         if (reasonTypes.length === 0) {
-          round_error_noti("Please select at least one Reason Type");
+            round_error_noti("Please select at least one Reason Type");
             isValid = false;
         }
-            
+
+        // Check if Employee is selected
+        if (!employee || employee === "--Select Employee--" || employee === "") {
+            $('#spnemp').show();
+            alert("Please Select Employee");
+            isValid = false;
+        }
+
+        // Determine the date label based on reason type
+        var dateLabel = "Left Date";
+        if (reasonTypes.includes("Resignation")) {
+            dateLabel = "Left Date";
+        } else if (reasonTypes.includes("Retirement")) {
+            dateLabel = "Retirement Date";
+        } else if (reasonTypes.includes("Terminated")) {
+            dateLabel = "Terminated Date";
+        } else if (reasonTypes.includes("Death")) {
+            dateLabel = "Death Date";
+        }
+
+        // Check if Left Date is entered (mandatory for all types)
+        if (!leftDateStr) {
+            $('#spnleftdate').show();
+            alert("Please Enter the " + dateLabel);
+            isValid = false;
+        }
+
+        // Validate Left Date is greater than Joining Date (for all types)
+        if (leftDate && joiningDate && leftDate <= joiningDate) {
+            $('#spnleftdategreter').show();
+            alert(dateLabel + " must be greater than joining date");
+            $("#btnSaveLeftEmployee").prop("disabled", false);
+            return false;
+        }
+
+        // Resignation specific validations
+        if (reasonTypes.includes("Resignation")) {
+            // Check if Resignation Accepted Date is mandatory
+            if (!resignationAcceptedDate) {
+                $('#spnresignationAcceptedDate').show();
+                alert("Please Enter the Resignation Accepted Date");
+                isValid = false;
+            }
+
+            // Validate Resignation Accepted Date is greater than Joining Date
+            if (resignationAcceptDate && joiningDate && resignationAcceptDate <= joiningDate) {
+                $('#spnresignationAcceptedDategreter').show();
+                alert("Resignation acceptance date must be greater than joining date");
+                $("#btnSaveLeftEmployee").prop("disabled", false);
+                return false;
+            }
+
+            // Validate Left Date is greater than or equal to Resignation Accepted Date
+            if (leftDate && resignationAcceptDate && leftDate < resignationAcceptDate) {
+                $('#spnleftdateafterresignation').show();
+                alert("Left date must be on or after resignation accepted date");
+                $("#btnSaveLeftEmployee").prop("disabled", false);
+                return false;
+            }
+        }
 
         if (!isValid) {
             $("#btnSaveLeftEmployee").prop("disabled", false);
@@ -674,8 +702,8 @@
             LeftID: leftempid,
             CmpID: CompanyId,
             EmpID: parseInt(employee),
-            BranchId: null,//parseInt(branch),
-           LeftDate: leftDate ? new Date(leftDate).toISOString() : null,
+            BranchId: null,
+            LeftDate: leftDateStr ? new Date(leftDateStr).toISOString() : null,
             LeftReason: reason,
             RegAcceptDate: resignationAcceptedDate ? new Date(resignationAcceptedDate).toISOString() : null,
             IsTerminate: reasonTypes.includes("Terminated"),
@@ -685,16 +713,16 @@
             IsDeath: reasonTypes.includes("Death"),
             RegDate: resignationDate ? new Date(resignationDate).toISOString() : null,
             IsFnFApplicable: reasonTypes.includes("Resignation"),
-            RptManagerID: replaceManager ? replaceManager: null,
+            RptManagerID: replaceManager ? replaceManager : null,
             IsRetire: reasonTypes.includes("Retirement"),
-            LeftReasonValue: leftReasonPf ,
+            LeftReasonValue: leftReasonPf,
             LeftReasonText: otherReason,
             IsDeleted: false,
             IsEnabled: true,
             IsLeft: true,
             Remark: reasonTypes.join(", "),
-             CreatedBy: EmployeeId.toString(),
-             UpdatedBy: EmployeeId.toString()
+            CreatedBy: EmployeeId.toString(),
+            UpdatedBy: EmployeeId.toString()
         };
 
         var apiUrl = (leftempid && leftempid > 0)
@@ -702,6 +730,7 @@
             : "@baseUrl/LeftEmployeeAPI/CreateLeftEmp";
 
         var methodType = (leftempid && leftempid > 0) ? "PUT" : "POST";
+
         $.ajax({
             url: apiUrl,
             type: methodType,
@@ -728,7 +757,6 @@
             }
         });
     });
-
     function loadDataTable() {
         $('#grid-loader').addClass('d-flex').show();
                   $.ajax({
