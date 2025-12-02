@@ -634,7 +634,7 @@ namespace HRMS_API.Controllers.Employee
             }
         }
         [HttpGet("GetEmployeeAttendanceRequestsCountForCurrentMonth")]
-        public async Task<APIResponse> GetEmployeeAttendanceRequestsCountForCurrentMonth(int EmpId)
+        public async Task<APIResponse> GetEmployeeAttendanceRequestsCountForCurrentMonth(int EmpId,int Month,int Year)
         {
             try
             {
@@ -648,7 +648,7 @@ namespace HRMS_API.Controllers.Employee
                 }
 
 
-                var data = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeAttendanceRequestsCountForCurrentMonth(EmpId);
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeAttendanceRequestsCountForCurrentMonth(EmpId,Month,Year);
 
 
                 if (data == null)

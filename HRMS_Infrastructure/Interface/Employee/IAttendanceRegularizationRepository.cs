@@ -25,7 +25,7 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<bool> Update(AttendanceRegularization Record ,int empInOutId);
         Task<List<EmpInOutVM>> GetEmployeeInOut( int? EmpId , DateTime? ForDate);
         Task<List<EMpDetails>> GetEmployeeDetails( int? EmpId );
-        Task<List<AttendanceCount>> GetEmployeeAttendanceRequestsCountForCurrentMonth( int? EmpId );
+        Task<List<AttendanceCount>> GetEmployeeAttendanceRequestsCountForCurrentMonth( int? EmpId ,int Month ,int year);
         Task<VMCommonResult> Create(AttendanceRegularization model);
         Task<VMCommonResult> Update(AttendanceRegularization model);
         Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord);
