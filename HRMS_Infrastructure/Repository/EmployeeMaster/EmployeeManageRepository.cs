@@ -368,6 +368,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     parameters.Add("@IsPFApplicable", employee.IsPFApplicable);
                     parameters.Add("@WeekOffDetailsId", employee.WeekOffDetailsId);
                     parameters.Add("@IsPermissionPunchInOut", employee.IsPermissionPunchInOut);
+                    parameters.Add("@AttendanceLimit", employee.AttendanceLimit);
                     parameters.Add("@UpdatedBy", employee.UpdatedBy);
 
                     parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
