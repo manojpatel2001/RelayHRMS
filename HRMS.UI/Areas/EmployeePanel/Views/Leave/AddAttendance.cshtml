@@ -1263,14 +1263,106 @@
         const date = new Date(dateStr);
         return !isNaN(date) ? date.toISOString() : null;
     }
+    async function validateAttendanceRequestLimit(EmployeeId, newRequestCount, selectedMonth, selectedYear) {
+        try {
+            // Get employee monthly limit
+            const employeeDetails = await $.ajax({
+                type: "GET",
+                url: apiBase + "/AttendanceRegularizationAPI/GetEmployeeDetails?EmpId=" + EmployeeId,
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+
+            // Get request count for the selected month/year
+            const currentMonthCount = await $.ajax({
+                type: "GET",
+                url: apiBase +
+                     "/AttendanceRegularizationAPI/GetEmployeeAttendanceRequestsCountForCurrentMonth?" +
+                     `EmpId=${EmployeeId}&month=${selectedMonth}&year=${selectedYear}`,
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+
+            if (!employeeDetails?.isSuccess || !currentMonthCount?.isSuccess) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Unable to fetch employee request limit details.'
+                });
+                return false;
+            }
+
+            // Fix: Use correct property names (lowercase)
+            const monthlyLimit = employeeDetails.data?.[0]?.attendanceLimit || 0;
+            const currentRequests = currentMonthCount.data?.[0]?.totalRequests || 0;
+            const totalRequests = currentRequests + newRequestCount;
+
+            console.log('Monthly Limit:', monthlyLimit);
+            console.log('Current Requests:', currentRequests);
+            console.log('Total Requests:', totalRequests);
+
+            // If no limit is set, block submission
+            if (monthlyLimit === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Request Blocked',
+                    text: 'No monthly limit is set. Request cannot be submitted.',
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-large'
+                    }
+                });
+                return false;
+            }
+
+            // Check if limit exceeded
+            if (totalRequests > monthlyLimit) {
+                const remaining = monthlyLimit - currentRequests;
+                const exceededBy = Math.abs(remaining); // Calculate how many requests are over the limit
+
+                let message = `
+                    <div style="text-align: left; padding: 10px;">
+                        <p><strong>Monthly Limit:</strong> ${monthlyLimit} requests</p>
+                        <p><strong>Already Submitted:</strong> ${currentRequests} requests</p>
+                        <p><strong>Attempting to Submit:</strong> ${newRequestCount} request(s)</p>
+                        <hr style="margin: 10px 0;">
+                        <p style="color: #d33; font-weight: bold;">
+                            ❌ You have exceeded the limit by <strong>${exceededBy}</strong> request(s) this month.
+                        </p>
+                    </div>
+                `;
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Attendance Regularization Request Limit Exceeded',
+                    html: message,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-large'
+                    }
+                });
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            console.error("Error validating request limit:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while validating request limit.'
+            });
+            return false;
+        }
+    }
 
 
-     $('#btnSaveGridData').on('click', function () {
+    $('#btnSaveGridData').on('click', async function () {
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
         gridInstance.saveEditData();
-
         const selectedRows = gridInstance.getSelectedRowsData();
-
         if (selectedRows.length === 0) {
             Swal.fire({
                 icon: 'warning',
@@ -1279,7 +1371,6 @@
             });
             return;
         }
-
         const empId = $('#employeeDropdown').val();
         if (!empId) {
             Swal.fire({
@@ -1289,30 +1380,28 @@
             });
             return;
         }
-
         const validRows = [];
         selectedRows.forEach(row => {
             const reason = row.reason?.trim();
             const dayType = row.dayType?.trim();
             if (reason && dayType) {
-                
-                 validRows.push({
-        EmpId: empId,
-        FullName: row.fullName || "",
-        BranchName: row.branchName || "",
-        ForDate: row.shiftDate,
-        ShiftTime: row.shiftTime || "",
-            InTime: (row.inTime && row.inTime !== "-") ? formatToISOString(row.inTime) : null,
-            OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
-        Day: dayType,
-        Status: row.attendanceStatus || "",
-        Reason: reason,
-        IsApproved: false,
-        IsPending: true,
-        IsRejected: false,
-        IsLocked: false,
-        CreatedBy:EmployeeId
-    });
+                validRows.push({
+                    EmpId: empId,
+                    FullName: row.fullName || "",
+                    BranchName: row.branchName || "",
+                    ForDate: row.shiftDate,
+                    ShiftTime: row.shiftTime || "",
+                    InTime: (row.inTime && row.inTime !== "-") ? formatToISOString(row.inTime) : null,
+                    OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
+                    Day: dayType,
+                    Status: row.attendanceStatus || "",
+                    Reason: reason,
+                    IsApproved: false,
+                    IsPending: true,
+                    IsRejected: false,
+                    IsLocked: false,
+                    CreatedBy: EmployeeId
+                });
             }
         });
         if (validRows.length === 0) {
@@ -1323,8 +1412,24 @@
             });
             return;
         }
-                     showLoder();
-
+        // Get the selected month and year from the form
+        const monthYearData = await getYearMonth();
+        if (!monthYearData) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select a valid month and year.'
+            });
+            return;
+        }
+        const selectedMonth = monthYearData.month;
+        const selectedYear = monthYearData.year;
+        // ✅ NEW: Validate request limit before saving
+        const isLimitValid = await validateAttendanceRequestLimit(empId, validRows.length, selectedMonth, selectedYear);
+        if (!isLimitValid) {
+            return; // Stop if limit exceeded
+        }
+        showLoder();
         // Save via AJAX
         $.ajax({
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/CreateAttendanceRegularization")',
@@ -1332,24 +1437,21 @@
             contentType: "application/json",
             data: JSON.stringify(validRows),
             success: function (response) {
-                      hideLoder();
+                hideLoder();
                 if (response?.isSuccess) {
                     round_success_noti(response.responseMessage || "Saved successfully.");
-              const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
-    const selectedRowsData = gridInstance.getSelectedRowsData();
-    let currentData = gridInstance.option("dataSource");
-
-    const updatedData = currentData.filter(item => {
-        return !selectedRowsData.some(sel =>
-            sel.empId === item.empId && new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
-        );
-    });
-
-    gridInstance.option("dataSource", updatedData);
-    gridInstance.refresh();
-    gridInstance.clearSelection(); // optional
-
-    $("#btnGo").trigger("click");
+                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+                    const selectedRowsData = gridInstance.getSelectedRowsData();
+                    let currentData = gridInstance.option("dataSource");
+                    const updatedData = currentData.filter(item => {
+                        return !selectedRowsData.some(sel =>
+                            sel.empId === item.empId && new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
+                        );
+                    });
+                    gridInstance.option("dataSource", updatedData);
+                    gridInstance.refresh();
+                    gridInstance.clearSelection(); // optional
+                    $("#btnGo").trigger("click");
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -1359,14 +1461,13 @@
                 }
             },
             error: function (xhr) {
-                    hideLoder();
+                hideLoder();
                 Swal.fire({
                     icon: 'error',
                     title: 'Server Error',
                     text: xhr.status + " - " + xhr.statusText
                 });
             },
-
         });
     });
 

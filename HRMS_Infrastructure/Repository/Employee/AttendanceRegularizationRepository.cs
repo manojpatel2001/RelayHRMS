@@ -335,18 +335,20 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<List<AttendanceCount>> GetEmployeeAttendanceRequestsCountForCurrentMonth(int? EmpId)
+        public async Task<List<AttendanceCount>> GetEmployeeAttendanceRequestsCountForCurrentMonth(int? EmpId ,int Month ,int Year )
         {
             try
             {
                 var parameters = new[]
                 {
            new SqlParameter("@EmpId", EmpId),
+           new SqlParameter("@Month", Month),
+           new SqlParameter("@Year", Year),
 
        };
 
                 var result = await _db.Set<AttendanceCount>()
-                    .FromSqlRaw("EXEC GetEmployeeAttendanceRequestsCountForCurrentMonth @EmpId ", parameters)
+                    .FromSqlRaw("EXEC GetEmployeeAttendanceRequestsCountForCurrentMonth @EmpId ,@Month,@Year ", parameters)
                     .ToListAsync();
 
                 return result;
