@@ -450,7 +450,7 @@ public class ImportDataController : ControllerBase
                 expectedHeaders = new List<string> { "Alpha_Emp_Code", "Employee_Type",  };
                 break;
             case "EmployeeUpdate":
-                expectedHeaders = new List<string> { "Alpha_Emp_Code", "Designation_Name", "Reporting_Manager_Code" };
+                expectedHeaders = new List<string> { "Alpha_Emp_Code", "Designation_Name", "Reporting_Manager_Code" , "AttendanceLimit" };
                 break;
             default:
                 error = $"No template defined for type '{type}'";
