@@ -19,7 +19,7 @@ namespace HRMS_Core.VM.Salary
         public decimal? PresentDays { get; set; }
         public int? WeekOff { get; set; }
         public decimal? Leave { get; set; }
-        public int? SalaryDays { get; set; }
+        public decimal? SalaryDays { get; set; }
 
         public int MonthNumber { get; set; }
         public string MonthName { get; set; }
