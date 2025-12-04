@@ -11,9 +11,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Search Panel</title>
+
+<!-- Common CSS -->
 <link href="~/commoncss.css" rel="stylesheet" />
 
-<!-- jQuery + Bootstrap + SweetAlert -->
+<!-- jQuery + SweetAlert (DevExtreme is already loaded in layout) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.32/sweetalert2.all.min.js"></script>
 
@@ -318,7 +320,7 @@
     <!-- Full width container -->
     <div class="container-fluid mt-3">
         <!-- Action buttons on the RIGHT side -->
-        <div class="action-buttons-right" id="actionButtons" >
+        <div class="action-buttons-right" id="actionButtons">
             <button id="btnApprove" class="btn-custom" value="Approved">
                 <i class="fas fa-check"></i> Approve
             </button>
@@ -345,9 +347,9 @@
     let selectedKeys = [];
 
     $(document).ready(function () {
-        GetBranch(); 
-        loadAllApplications();
-                  $('#actionButtons').hide();
+        GetBranch();
+        $('#actionButtons').hide();
+
         // Default grid message - no automatic loading
         $('#attendanceGrid').html('<div class="text-center text-muted">Click GO button to load data...</div>');
 
@@ -361,11 +363,23 @@
             }
         });
 
-        // Handle status change - hide buttons when status changes
+        // Handle status change - hide buttons and clear grid when status changes
         $('input[name="statusFilter"]').on('change', function () {
             // Hide action buttons when status filter changes
             $('#actionButtons').hide();
             selectedKeys = [];
+
+            // Clear the grid and show message
+            try {
+                const existingGrid = $("#attendanceGrid").dxDataGrid("instance");
+                if (existingGrid) {
+                    existingGrid.dispose();
+                }
+            } catch (e) {
+                // Grid doesn't exist
+            }
+            $('#attendanceGrid').html('<div class="text-center text-muted">Click GO button to load data...</div>');
+            $('#recordSummary').text('');
         });
 
         // GO button click - ONLY load data when GO is clicked
@@ -402,7 +416,6 @@
     });
 
     function GetBranch() {
-        
         $.ajax({
             url: '@(baseDomainUrl)/api/BranchAPI/GetAllBranchesListByCompanyId/' + Compid,
             type: 'GET',
@@ -427,7 +440,6 @@
     }
 
     function loadAllApplications() {
-        
         const searchType = $('#searchtypeid').val();
         const searchFor = $('#searchforid').val();
         const branchId = $('#branchid').val();
@@ -441,7 +453,6 @@
             ApplicationStatus: applicationStatus || null
         };
 
-       
         // Show loading message
         $('#attendanceGrid').html('<div class="text-center text-muted">Loading...</div>');
 
@@ -456,7 +467,7 @@
             success: function (data) {
                 if (data.isSuccess && data.data && data.data.length > 0) {
                     renderTable(data.data);
-                      $('#actionButtons').show();
+                    $('#actionButtons').show();
                     $('#recordSummary').text(`${data.data.length} records found.`);
                 } else {
                     $('#attendanceGrid').html('<div class="text-center text-muted">No records found.</div>');
@@ -475,6 +486,20 @@
     }
 
     function renderTable(data) {
+        try {
+            // Destroy existing grid instance if it exists
+            const existingGrid = $("#attendanceGrid").dxDataGrid("instance");
+            if (existingGrid) {
+                existingGrid.dispose();
+            }
+        } catch (e) {
+            // Grid doesn't exist yet, continue
+        }
+
+        // Clear the container
+        $("#attendanceGrid").empty();
+
+        // Create the grid
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             keyExpr: "comp_Off_Detailsid",
@@ -482,14 +507,14 @@
             columnAutoWidth: true,
             selection: {
                 mode: "multiple",
-                showCheckBoxesMode: "always"
+                showCheckBoxesMode: "always",
+                allowSelectAll: false  // Disable select all to avoid checkbox initialization issues
             },
-                 onSelectionChanged: function (e) {
-               selectedKeys = e.selectedRowKeys;          
+            onSelectionChanged: function (e) {
+                selectedKeys = e.selectedRowKeys;
             },
-        
             columns: [
-                { dataField: "comp_Off_Detailsid", caption: "Application ID", width: 120, cssClass: "text-center-cell" },
+                { dataField: "comp_Off_Detailsid", caption: "Application ID", width: 120, cssClass: "text-center-cell" ,visible:false},
                 { dataField: "employeeCode", caption: "Employee Code", cssClass: "text-center-cell" },
                 { dataField: "fullName", caption: "Employee Name", cssClass: "text-center-cell" },
                 { dataField: "branchName", caption: "Branch Name", cssClass: "text-center-cell" },
@@ -498,12 +523,19 @@
                 { dataField: "extraWorkHours", caption: "Extra Hours", dataType: "number", format: { type: "fixedPoint", precision: 2 }, cssClass: "text-center-cell" },
                 { dataField: "comoffReason", caption: "Reason", cssClass: "text-center-cell" },
                 { dataField: "applicationStatus", caption: "Application Status", cssClass: "text-center-cell" }
-            ]
+            ],
+            paging: {
+                pageSize: 10
+            },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 25, 50, 100],
+                showInfo: true
+            }
         });
     }
 
     function handleApprovalOrRejection(status) {
-        
         if (!selectedKeys || selectedKeys.length === 0) {
             Swal.fire('Warning', 'Please select at least one application.', 'warning');
             return;
