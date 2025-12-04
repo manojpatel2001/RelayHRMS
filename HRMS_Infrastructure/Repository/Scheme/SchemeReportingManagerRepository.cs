@@ -165,7 +165,7 @@ namespace HRMS_Infrastructure.Repository.Scheme
             return response;
         }
 
-        public async Task<APIResponse> GetDrpSchemeDetailsBySchemeType(int schemeTypeId)
+        public async Task<APIResponse> GetDrpSchemeDetailsBySchemeType(int? schemeTypeId)
         {
             var response = new APIResponse();
             try

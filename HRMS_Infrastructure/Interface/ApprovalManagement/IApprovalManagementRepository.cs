@@ -34,6 +34,9 @@ namespace HRMS_Infrastructure.Interface.ApprovalManagement
         Task<IEnumerable<dynamic>> GetApprovalRequests();
         Task<IEnumerable<dynamic>> GetApprovalRequestLevels(int requestId);
         Task<IEnumerable<dynamic>> GetApprovalRequestHistory(int requestId);
+        Task<APIResponse> GetAllApprovalSchemeLevelsByCompanyId(int companyId);
+        Task<APIResponse> GetAllApprovalSchemeLevelsBySchemeId(int schemeId);
+        Task<APIResponse> DeleteApprovalSchemeLevel(ApprovalSchemeLevelPara para);
     }
 }
 

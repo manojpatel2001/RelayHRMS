@@ -1,10 +1,12 @@
 ﻿using Dapper;
 using HRMS_Core.DbContext;
+using HRMS_Core.VM;
 using HRMS_Core.VM.ApprovalManagement;
 using HRMS_Infrastructure.Interface.ApprovalManagement;
 using HRMS_Utility;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -26,56 +28,107 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
         // -------------------------------------------------------------
         // APPROVAL SCHEME LEVEL
         // -------------------------------------------------------------
-        public async Task<APIResponse> ManageApprovalSchemeLevel(List<ApprovalSchemeLevelVM> model)
+        public async Task<APIResponse> ManageApprovalSchemeLevel(List<ApprovalSchemeLevelVM> models)
         {
             var response = new APIResponse();
-
             try
             {
-                //using (var con = new SqlConnection(_connectionString))
-                //{
-                //    var p = new DynamicParameters();
+                using (var con = new SqlConnection(_connectionString))
+                {
+                    await con.OpenAsync();
+                    var transaction = con.BeginTransaction();
+                    try
+                    {
+                        foreach (var model in models)
+                        {
+                            // Handle ApprovalSchemeLevel
+                            var p = new DynamicParameters();
+                            p.Add("@Action", "Upsert");
+                            p.Add("@ApprovalSchemeLevelId", model.ApprovalSchemeLevelId);
+                            p.Add("@SchemeId", model.SchemeId);
+                            p.Add("@SequenceNo", model.SequenceNo);
+                            p.Add("@ApproverEmployeeId", model.ApproverEmployeeId);
+                            p.Add("@ApproverDesignationName", model.ApproverDesignationName);
+                            p.Add("@IsDepartmentBased", model.IsDepartmentBased);
+                            p.Add("@EscalationDays", model.EscalationDays);
+                            p.Add("@SkipDays", model.SkipDays);
+                            p.Add("@IsNotMandatory", model.IsNotMandatory);
+                            p.Add("@CreatedBy", model.CreatedBy);
+                            p.Add("@UpdatedBy", model.UpdatedBy);
+                            p.Add("@DeletedBy", model.DeletedBy);
+                            p.Add("@CompanyId", model.CompanyId);
+                            p.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                            p.Add("@Message", dbType: DbType.String, direction: ParameterDirection.Output, size: 300);
+                            p.Add("@ReturnId", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-                //    p.Add("@Action", model.Action);
-                //    p.Add("@ApprovalSchemeLevelId", model.ApprovalSchemeLevelId);
+                            await con.ExecuteAsync(
+                                "sp_Manage_ApprovalSchemeLevel",
+                                p,
+                                commandType: CommandType.StoredProcedure,
+                                transaction: transaction
+                            );
 
-                //    p.Add("@SchemeId", model.SchemeId);
-                //    p.Add("@SequenceNo", model.SequenceNo);
-                //    p.Add("@ApproverEmployeeId", model.ApproverEmployeeId);
-                //    p.Add("@ApproverDesignationName", model.ApproverDesignationName);
-                //    p.Add("@IsDepartmentBased", model.IsDepartmentBased);
-                //    p.Add("@EscalationDays", model.EscalationDays);
-                //    p.Add("@SkipDays", model.SkipDays);
-                //    p.Add("@IsActive", model.IsActive);
-                //    p.Add("@IsNotMandatory", model.IsNotMandatory);
+                            var success = p.Get<bool>("@Success");
+                            var message = p.Get<string>("@Message");
+                            var returnId = p.Get<int>("@ReturnId");
 
-                //    p.Add("@CreatedBy", model.CreatedBy);
-                //    p.Add("@UpdatedBy", model.UpdatedBy);
-                //    p.Add("@DeletedBy", model.DeletedBy);
+                            if (!success)
+                            {
+                                response.isSuccess = false;
+                                response.ResponseMessage = message;
+                                return response;
+                            }
 
-                //    //// Department info
-                //    //p.Add("@DepartmentId", model.DepartmentId);
-                //    //p.Add("@DeptApproverEmployeeId", model.DeptApproverEmployeeId);
-                //    //p.Add("@DeptApproverDesignationName", model.DeptApproverDesignationName);
+                            // Handle ApprovalSchemeLevelDepartment if IsDepartmentBased is true
+                            if (model.IsDepartmentBased && model.approvalSchemeLevelDepartmentVMs != null && model.approvalSchemeLevelDepartmentVMs.Any())
+                            {
+                                foreach (var dept in model.approvalSchemeLevelDepartmentVMs)
+                                {
+                                    var deptParams = new DynamicParameters();
+                                    deptParams.Add("@ApprovalSchemeLevelId", returnId);
+                                    deptParams.Add("@DepartmentId", dept.DepartmentId);
+                                    deptParams.Add("@ApproverEmployeeId", dept.DeptApproverEmployeeId);
+                                    deptParams.Add("@ApproverDesignationName", dept.DeptApproverDesignationName);
+                                    deptParams.Add("@IsActive", true);
+                                    deptParams.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 100);
+                                    deptParams.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
 
-                //    var result = await con.QueryFirstOrDefaultAsync<dynamic>(
-                //        "s_manage_ApprovalSchemeLevel",
-                //        p,
-                //        commandType: CommandType.StoredProcedure
-                //    );
+                                    await con.ExecuteAsync(
+                                        "usp_UpsertApprovalSchemeLevelDepartment",
+                                        deptParams,
+                                        commandType: CommandType.StoredProcedure,
+                                        transaction: transaction
+                                    );
 
-                //    response.isSuccess = result.Success;
-                //    response.ResponseMessage = result.ResponseMessage;
-                //    response.Data = result.ApprovalSchemeLevelId;
-                //}
-                return response;
+                                    var deptSuccess = deptParams.Get<bool>("@Success");
+                                    var deptMessage = deptParams.Get<string>("@ResponseMessage");
+
+                                    if (!deptSuccess)
+                                    {
+                                        response.isSuccess = false;
+                                        response.ResponseMessage = deptMessage;
+                                        return response;
+                                    }
+                                }
+                            }
+                        }
+                        transaction.Commit();
+                        response.isSuccess = true;
+                        response.ResponseMessage = "All records processed successfully.";
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        response.isSuccess = false;
+                        response.ResponseMessage = ex.Message;
+                    }
+                }
             }
             catch (Exception ex)
             {
                 response.isSuccess = false;
                 response.ResponseMessage = ex.Message;
             }
-
             return response;
         }
 
@@ -126,6 +179,48 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
             return response;
         }
 
+        public async Task<APIResponse> DeleteApprovalSchemeLevel(ApprovalSchemeLevelPara para)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Action", "Delete");
+                    parameters.Add("@SchemeId", para.SchemeId);
+                    parameters.Add("@ApprovalSchemeLevelId", para.ApprovalSchemeLevelId);
+                    parameters.Add("@DeletedBy", para.DeletedBy);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@Message", dbType: DbType.String, direction: ParameterDirection.Output, size: 300);
+                    parameters.Add("@ReturnId", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                    await connection.ExecuteAsync(
+                        "sp_Manage_ApprovalSchemeLevel",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    var success = parameters.Get<bool>("@Success");
+                    var message = parameters.Get<string>("@Message");
+                    var returnId = parameters.Get<int>("@ReturnId");
+
+                    return new APIResponse
+                    {
+                        isSuccess = success,
+                        ResponseMessage = message,
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
 
         // -------------------------------------------------------------
         // APPROVAL REQUEST LEVEL
@@ -305,6 +400,91 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
         public Task<APIResponse> ManageApprovalSchemeLevelDepartment(ApprovalSchemeLevelDepartmentVM model)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<APIResponse> GetAllApprovalSchemeLevelsByCompanyId(int companyId)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var con = new SqlConnection(_connectionString))
+                {
+                    await con.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@CompanyId", companyId, DbType.Int32);
+
+                    var result = await con.QueryAsync<GetApprovalSchemeLevelVM>(
+                        "usp_GetAllApprovalSchemeLevelsByCompanyId",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    // Deserialize the JSON string for approvalSchemeLevelDepartmentVMs
+                    foreach (var level in result)
+                    {
+                        if (!string.IsNullOrEmpty(level.approvalSchemeLevelDepartmentVMsJson))
+                        {
+                            level.approvalSchemeLevelDepartmentVMs = JsonConvert.DeserializeObject<List<GetApprovalSchemeLevelDepartmentVM>>(level.approvalSchemeLevelDepartmentVMsJson);
+                        }
+                        else
+                        {
+                            level.approvalSchemeLevelDepartmentVMs = new List<GetApprovalSchemeLevelDepartmentVM>();
+                        }
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Approval scheme levels fetched successfully.";
+                    response.Data = result;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"Error fetching approval scheme levels: {ex.Message}";
+            }
+            return response;
+        }
+        public async Task<APIResponse> GetAllApprovalSchemeLevelsBySchemeId(int schemeId)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var con = new SqlConnection(_connectionString))
+                {
+                    await con.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@SchemeId", schemeId, DbType.Int32);
+
+                    var result = await con.QueryAsync<GetApprovalSchemeLevelVM>(
+                        "usp_GetAllApprovalSchemeLevelsBySchemeId",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    // Deserialize the JSON string for approvalSchemeLevelDepartmentVMs
+                    foreach (var level in result)
+                    {
+                        if (!string.IsNullOrEmpty(level.approvalSchemeLevelDepartmentVMsJson))
+                        {
+                            level.approvalSchemeLevelDepartmentVMs = JsonConvert.DeserializeObject<List<GetApprovalSchemeLevelDepartmentVM>>(level.approvalSchemeLevelDepartmentVMsJson);
+                        }
+                        else
+                        {
+                            level.approvalSchemeLevelDepartmentVMs = new List<GetApprovalSchemeLevelDepartmentVM>();
+                        }
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Approval scheme levels fetched successfully.";
+                    response.Data = result;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"Error fetching approval scheme levels: {ex.Message}";
+            }
+            return response;
         }
     }
 }
