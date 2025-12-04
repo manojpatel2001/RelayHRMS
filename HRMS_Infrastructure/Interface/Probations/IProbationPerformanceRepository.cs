@@ -16,5 +16,8 @@ namespace HRMS_Infrastructure.Interface.Probations
         Task<SP_Response> CreateProbationPerformance(ProbationPerformance probationPerformance);
         Task<SP_Response> UpdateProbationPerformance(ProbationPerformance probationPerformance);
         Task<SP_Response> DeleteProbationPerformance(DeleteRecordVM deleteRecord);
+
+
+
     }
 }

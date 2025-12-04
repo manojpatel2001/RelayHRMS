@@ -21,21 +21,22 @@ namespace HRMS_API.Controllers.ApprovalManagement
         // 1️⃣ MANAGE APPROVAL SCHEME LEVEL
         // -------------------------------------------------------------
         [HttpPost("ManageApprovalSchemeLevel")]
-        public async Task<APIResponse> ManageApprovalSchemeLevel(List<ApprovalSchemeLevelVM> model)
+        public async Task<APIResponse> ManageApprovalSchemeLevel([FromBody] List<ApprovalSchemeLevelVM> model)
         {
             try
             {
                 return await _unitOfWork.ApprovalManagementRepository.ManageApprovalSchemeLevel(model);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = "Unable to process approval scheme level."
+                    ResponseMessage = ex.Message // Return the actual error for debugging
                 };
             }
         }
+
 
 
         // -------------------------------------------------------------
@@ -225,6 +226,61 @@ namespace HRMS_API.Controllers.ApprovalManagement
                 {
                     isSuccess = false,
                     ResponseMessage = "Unable to retrieve approval request history."
+                };
+            }
+        }
+        [HttpGet("GetAllApprovalSchemeLevelsByCompanyId/{CompanyId}")]
+        public async Task<APIResponse> GetAllApprovalSchemeLevelsByCompanyId(int CompanyId)
+        {
+            try
+            {
+                var result = await _unitOfWork.ApprovalManagementRepository.GetAllApprovalSchemeLevelsByCompanyId(CompanyId);
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to retrieve approval request history."
+                };
+            }
+        }
+        [HttpGet("GetAllApprovalSchemeLevelsBySchemeId/{SchemeId}")]
+        public async Task<APIResponse> GetAllApprovalSchemeLevelsBySchemeId(int SchemeId)
+        {
+            try
+            {
+                var result = await _unitOfWork.ApprovalManagementRepository.GetAllApprovalSchemeLevelsBySchemeId(SchemeId);
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to retrieve approval request history."
+                };
+            }
+        }
+
+        [HttpPost("DeleteApprovalSchemeLevel")]
+        public async Task<APIResponse> DeleteApprovalSchemeLevel(ApprovalSchemeLevelPara model)
+        {
+            try
+            {
+                var result = await _unitOfWork.ApprovalManagementRepository.DeleteApprovalSchemeLevel(model);
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to delete approval ."
                 };
             }
         }

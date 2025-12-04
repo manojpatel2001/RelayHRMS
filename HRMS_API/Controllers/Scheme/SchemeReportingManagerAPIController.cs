@@ -73,8 +73,8 @@ namespace HRMS_API.Controllers.Scheme
             }
         }
 
-        [HttpGet("GetDrpSchemeDetailsBySchemeType/{schemeTypeId}")]
-        public async Task<APIResponse> GetDrpSchemeDetailsBySchemeType(int schemeTypeId)
+        [HttpGet("GetDrpSchemeDetailsBySchemeType")]
+        public async Task<APIResponse> GetDrpSchemeDetailsBySchemeType(int? schemeTypeId=null)
         {
             try
             {

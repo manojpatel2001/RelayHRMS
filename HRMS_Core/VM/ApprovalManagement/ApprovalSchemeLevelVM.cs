@@ -8,7 +8,6 @@ namespace HRMS_Core.VM.ApprovalManagement
 {
     public class ApprovalSchemeLevelVM
     {
-        public string Action { get; set; }
         public int? ApprovalSchemeLevelId { get; set; }
 
         public int SchemeId { get; set; }
@@ -24,6 +23,7 @@ namespace HRMS_Core.VM.ApprovalManagement
         public int? CreatedBy { get; set; }
         public int? UpdatedBy { get; set; }
         public int? DeletedBy { get; set; }
+        public int? CompanyId { get; set; }
         public List<ApprovalSchemeLevelDepartmentVM>? approvalSchemeLevelDepartmentVMs { get; set; }
        
     }
@@ -101,5 +101,48 @@ namespace HRMS_Core.VM.ApprovalManagement
         public int ActionBy { get; set; }
         public string? Remarks { get; set; }
     }
+
+
+
+    // Helper class to map the JSON string from SQL
+    public class GetApprovalSchemeLevelVM
+    {
+        public int ApprovalSchemeLevelId { get; set; }
+        public int SchemeId { get; set; }
+        public string? SchemeName { get; set; }
+        public int SequenceNo { get; set; }
+        public int? ApproverEmployeeId { get; set; }
+        public string? ApproverName { get; set; }
+        public string? ApproverDesignationName { get; set; }
+        public bool IsDepartmentBased { get; set; }
+        public bool IsNotMandatory { get; set; }
+        public int? EscalationDays { get; set; }
+        public int? SkipDays { get; set; }
+        public bool IsActive { get; set; }
+        public int CompanyId { get; set; }
+
+        // This property is used to temporarily hold the JSON string from SQL
+        public string? approvalSchemeLevelDepartmentVMsJson { get; set; }
+
+        // This is the actual property used in your application
+        public List<GetApprovalSchemeLevelDepartmentVM>? approvalSchemeLevelDepartmentVMs { get; set; }
+    }
+
+    public class GetApprovalSchemeLevelDepartmentVM
+    {
+        public int ApprovalSchemeLevelDeptId { get; set; }
+        public int DepartmentId { get; set; }
+        public string? DepartmentName { get; set; }
+        public int? DeptApproverEmployeeId { get; set; }
+        public string? DeptApproverName { get; set; }
+        public string? DeptApproverDesignationName { get; set; }
+    }
+    public class ApprovalSchemeLevelPara
+    {
+        public int SchemeId { get; set; }
+        public int ApprovalSchemeLevelId { get; set; }
+        public int DeletedBy { get; set; }
+    }
+
 
 }

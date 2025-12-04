@@ -12,7 +12,7 @@ namespace HRMS_Infrastructure.Interface.Scheme
     {
         Task<APIResponse> ManageSchemeReportingManagers(List<SchemeReportingManagerModel> models);
         Task<APIResponse> GetSchemeDropdownDetails();
-        Task<APIResponse> GetDrpSchemeDetailsBySchemeType(int schemeTypeId);
+        Task<APIResponse> GetDrpSchemeDetailsBySchemeType(int? schemeTypeId);
         Task<APIResponse> GetReportingByCompanyId(int companyId, int? designationId);
         Task<APIResponse> GetAllEmployByDepartmentId(int? companyId, int? departmentId);
     }
