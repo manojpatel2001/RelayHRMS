@@ -123,7 +123,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAllOrigins");
 app.UseStaticFiles();
-app.UseRouting();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
