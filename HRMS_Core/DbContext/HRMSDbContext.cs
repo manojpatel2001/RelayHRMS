@@ -328,6 +328,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<LeaveYearlySummaryViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<EMpDetails>().HasNoKey().ToView(null);
              modelBuilder.Entity<AttendanceCount>().HasNoKey().ToView(null);
+             modelBuilder.Entity<SalaryRegisterVM>().HasNoKey().ToView(null);
 
 
 
