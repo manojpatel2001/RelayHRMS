@@ -78,18 +78,20 @@ var allowedOrigins = new[]
 {
     "https://localhost:7165",
     "http://15.235.82.113:81",
-    "http://164.52.206.29:81" 
+    "http://164.52.206.29:81"
 };
 
 // CORS
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins", policy =>
-       policy.WithOrigins(allowedOrigins)
+       policy.SetIsOriginAllowed(_ => true)  // allow any origin
               .AllowAnyMethod()
               .AllowAnyHeader()
                .AllowCredentials()); // needed for SignalR
 });
+
 builder.Services.AddSignalR();
 // Add Controllers + Swagger
 builder.Services.AddControllers();
