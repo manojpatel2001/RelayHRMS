@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
@@ -268,19 +269,12 @@ namespace HRMS_API.Controllers.Salary
         }
 
         [HttpGet("GetEmployeeSalaryRegister")]
-        public async Task<APIResponse> GetEmployeeSalaryRegister(
-       int Month,
-       int Year,
-       int CompanyId,
-       [FromQuery] string EmployeeCodes) // Use [FromQuery] to accept query parameters
+        public async Task<APIResponse> GetEmployeeSalaryRegister([FromQuery] SalaryRegisterVM model) // Use [FromQuery] to accept query parameters
         {
             try
             {
                 var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeeSalaryRegister(
-                    Month,
-                    Year,
-                    CompanyId,
-                    EmployeeCodes
+                  model
                 );
 
                 if (data == null || !data.Any())
