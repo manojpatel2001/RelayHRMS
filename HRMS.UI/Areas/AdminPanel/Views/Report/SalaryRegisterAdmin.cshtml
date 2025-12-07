@@ -9,7 +9,7 @@
 }
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <style>
@@ -89,6 +89,9 @@
     #btnExportToExcel {
         background-color: #28a745;
         color: #fff;
+        padding: 6px 20px;
+        font-size: 14px;
+        font-weight: 600;
     }
 
         #btnExportToExcel:hover {
@@ -238,6 +241,7 @@
         // Load Years (current year only)
         const currentYear = new Date().getFullYear();
         $('#yearDropdown').append(`<option value="${currentYear}">${currentYear}</option>`);
+        $('#exportButtonContainer').hide();
     });
 
     function goBack() {
@@ -245,23 +249,15 @@
     }
 
     function clearPage() {
-        // Reset Month dropdown
         $('#monthDropdown').val('');
-
-        // Reset Year dropdown
         $('#yearDropdown').val('');
-
-        // Hide all error messages
         $('.error-message').hide();
-
-        // Hide salary grid and export button
         $('#salaryGridContainer').hide().empty();
         $('#exportButtonContainer').hide();
         salaryGridInstance = null;
         salaryData = [];
     }
 
-    // Clear button click event
     $('#btnClear').click(function() {
         clearPage();
     });
@@ -291,7 +287,6 @@
 
         let isValid = true;
 
-        // Validation
         if (!month) {
             $('#errorMonth').show();
             isValid = false;
@@ -329,20 +324,16 @@
                 hideLoader();
                 hideBtnLoader();
 
-                // Check isSuccess property (camelCase as per your API)
                 if (response.isSuccess) {
-                    // Check if Data exists and has records
                     if (response.data && response.data.length > 0) {
                         salaryData = response.data;
                         renderSalaryGrid(response.data);
                         $('#exportButtonContainer').show();
                     } else {
-                        // No data found
                         Swal.fire('Info', 'No salary records found for the selected criteria.', 'info');
                         $('#exportButtonContainer').hide();
                     }
                 } else {
-                    // API returned isSuccess: false
                     Swal.fire('Info', response.ResponseMessage || 'No salary records found.', 'info');
                     $('#exportButtonContainer').hide();
                 }
@@ -352,7 +343,6 @@
                 hideBtnLoader();
                 console.error('Error fetching salary data:', error);
 
-                // Try to parse error response
                 let errorMessage = 'Failed to fetch salary data.';
                 if (xhr.responseJSON && xhr.responseJSON.ResponseMessage) {
                     errorMessage = xhr.responseJSON.ResponseMessage;
@@ -365,6 +355,7 @@
     });
 
     function renderSalaryGrid(data) {
+        // Define columns WITHOUT id and employeeId - Employee Details FIRST
         const columns = [
             { dataField: "employeeCode", caption: "Employee Code", width: 120 },
             { dataField: "employeeName", caption: "Employee Name", width: 200 },
@@ -374,14 +365,8 @@
             { dataField: "dateOfJoining", caption: "Date of Joining", width: 120, dataType: "date", format: "dd/MM/yyyy" },
             { dataField: "monthName", caption: "Month", width: 100 },
             { dataField: "year", caption: "Year", width: 80 },
-            { dataField: "monthDays", caption: "Month Days", width: 100 },
-            { dataField: "presentDays", caption: "Present Days", width: 100 },
-            { dataField: "absentDays", caption: "Absent Days", width: 100 },
-            { dataField: "weekOff", caption: "Week Off", width: 100 },
-            { dataField: "holiday", caption: "Holiday", width: 100 },
-            { dataField: "leave", caption: "Leave", width: 100 },
-            { dataField: "payableDays", caption: "Payable Days", width: 100 },
-            { dataField: "salaryDays", caption: "Salary Days", width: 100 },
+            { dataField: "monthDays", caption: "Month Days", width: 100 },  
+            { dataField: "payableDays", caption: "Payable Days", width: 100 },    
             { dataField: "basicSalary", caption: "Basic Salary", width: 120, format: "#,##0.00" },
             { dataField: "hra", caption: "HRA", width: 100, format: "#,##0.00" },
             { dataField: "conveyanceAllowance", caption: "Conveyance", width: 120, format: "#,##0.00" },
@@ -411,11 +396,11 @@
             dataSource: data,
             keyExpr: "id",
             showBorders: true,
-            columnAutoWidth: false,
             allowColumnResizing: true,
             columnResizingMode: "widget",
             rowHeight: 50,
             columns: columns,
+            height:'auto',
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
@@ -440,13 +425,172 @@
             },
             loadPanel: {
                 enabled: true
+            },
+            export: {
+                enabled: false
+            },
+            // DevExtreme onExporting event - SAME AS LEAVE BALANCE PAGE
+            onExporting: function(e) {
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet("Salary Register");
+
+                const devGrid = $("#salaryGridContainer").dxDataGrid("instance");
+                
+                // Get selected rows for export
+                const selectedRows = devGrid.getSelectedRowsData();
+                
+                if (selectedRows.length === 0) {
+                    Swal.fire('Warning', 'Please select at least one row to export!', 'warning');
+                    e.cancel = true;
+                    return;
+                }
+
+                // Create custom export with selected rows only and styled headers
+                exportCustomExcel(selectedRows, workbook, worksheet);
+                e.cancel = true;
             }
         }).dxDataGrid("instance");
 
         $("#salaryGridContainer").show();
     }
 
-    // Export Selected Rows to Excel
+    // Custom Excel Export Function with Styled Headers
+    function exportCustomExcel(selectedData, workbook, worksheet) {
+        // Define columns WITHOUT id and employeeId
+        worksheet.columns = [
+            { header: 'Employee Code', key: 'employeeCode', width: 15 },
+            { header: 'Employee Name', key: 'employeeName', width: 25 },
+            { header: 'Branch', key: 'branchName', width: 20 },
+            { header: 'Designation', key: 'designationName', width: 20 },
+            { header: 'Department', key: 'departmentName', width: 20 },
+            { header: 'Date of Joining', key: 'dateOfJoining', width: 15 },
+            { header: 'Month', key: 'monthName', width: 12 },
+            { header: 'Year', key: 'year', width: 10 },
+            { header: 'Month Days', key: 'monthDays', width: 12 }, 
+            { header: 'Payable Days', key: 'payableDays', width: 12 },         
+            { header: 'Basic Salary', key: 'basicSalary', width: 15 },
+            { header: 'HRA', key: 'hra', width: 12 },
+            { header: 'Conveyance', key: 'conveyanceAllowance', width: 15 },
+            { header: 'Child Education', key: 'childEducationAllowance', width: 15 },
+            { header: 'Medical', key: 'medicalAllowance', width: 12 },
+            { header: 'Deputation', key: 'deputationAllowance', width: 15 },
+            { header: 'Gross Salary', key: 'grossSalary', width: 15 },
+            { header: 'Total Gross', key: 'totalGrossSalary', width: 15 },
+            { header: 'Arrears', key: 'arrears', width: 12 },
+            { header: 'PF', key: 'pf', width: 12 },
+            { header: 'ESIC', key: 'esic', width: 12 },
+            { header: 'Professional Tax', key: 'professionalTax', width: 15 },
+            { header: 'Group Medical', key: 'groupMedical', width: 15 },
+            { header: 'Term Insurance', key: 'termInsurance', width: 15 },
+            { header: 'LWF', key: 'lwf', width: 12 },
+            { header: 'TDS', key: 'tds', width: 12 },
+            { header: 'Loan', key: 'loan', width: 12 },
+            { header: 'Other Deduction', key: 'otherDeduction', width: 15 },
+            { header: 'Total Deductions', key: 'totalDeductions', width: 15 },
+            { header: 'Net Salary', key: 'netSalary', width: 15 },
+            { header: 'Bank Name', key: 'employeeNamePrmaryBank', width: 20 },
+            { header: 'Account Number', key: 'primaryAccountNumber', width: 20 },
+            { header: 'IFSC Code', key: 'primaryIFSCCode', width: 15 }
+        ];
+
+        // Style header row - EXACT SAME AS LEAVE BALANCE
+        const headerRow = worksheet.getRow(1);
+        headerRow.eachCell((cell) => {
+            cell.font = {
+                bold: true,
+                color: { argb: 'FFFFFFFF' },
+                size: 11
+            };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF3E4B6D' }
+            };
+            cell.alignment = {
+                vertical: 'middle',
+                horizontal: 'center'
+            };
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FF000000' } },
+                left: { style: 'thin', color: { argb: 'FF000000' } },
+                bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                right: { style: 'thin', color: { argb: 'FF000000' } }
+            };
+        });
+        headerRow.height = 25;
+
+        // Add data rows
+        selectedData.forEach((rowData) => {
+            const row = worksheet.addRow({
+                employeeCode: rowData.employeeCode || '',
+                employeeName: rowData.employeeName || '',
+                branchName: rowData.branchName || '',
+                designationName: rowData.designationName || '',
+                departmentName: rowData.departmentName || '',
+                dateOfJoining: rowData.dateOfJoining ? new Date(rowData.dateOfJoining).toLocaleDateString('en-GB') : '',
+                monthName: rowData.monthName || '',
+                year: rowData.year || '',
+                monthDays: rowData.monthDays || 0,
+                payableDays: rowData.payableDays || 0,        
+                basicSalary: rowData.basicSalary || 0,
+                hra: rowData.hra || 0,
+                conveyanceAllowance: rowData.conveyanceAllowance || 0,
+                childEducationAllowance: rowData.childEducationAllowance || 0,
+                medicalAllowance: rowData.medicalAllowance || 0,
+                deputationAllowance: rowData.deputationAllowance || 0,
+                grossSalary: rowData.grossSalary || 0,
+                totalGrossSalary: rowData.totalGrossSalary || 0,
+                arrears: rowData.arrears || 0,
+                pf: rowData.pf || 0,
+                esic: rowData.esic || 0,
+                professionalTax: rowData.professionalTax || 0,
+                groupMedical: rowData.groupMedical || 0,
+                termInsurance: rowData.termInsurance || 0,
+                lwf: rowData.lwf || 0,
+                tds: rowData.tds || 0,
+                loan: rowData.loan || 0,
+                otherDeduction: rowData.otherDeduction || 0,
+                totalDeductions: rowData.totalDeductions || 0,
+                netSalary: rowData.netSalary || 0,
+                employeeNamePrmaryBank: rowData.employeeNamePrmaryBank || '',
+                primaryAccountNumber: rowData.primaryAccountNumber || '',
+                primaryIFSCCode: rowData.primaryIFSCCode || ''
+            });
+
+            row.eachCell((cell, colNumber) => {
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                };
+
+                if (colNumber >= 17 && colNumber <= 36) {
+                    cell.numFmt = '#,##0.00';
+                    cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                } else if (colNumber === 1 || (colNumber >= 7 && colNumber <= 16)) {
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                } else {
+                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                }
+            });
+        });
+
+        // Download file - SAME AS LEAVE BALANCE
+        const month = $('#monthDropdown option:selected').text();
+        const year = $('#yearDropdown').val();
+        const fileName = `Salary_Register_${month}_${year}.xlsx`;
+
+        workbook.xlsx.writeBuffer().then(function(buffer) {
+            saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            Swal.fire('Success', 'Excel file downloaded successfully!', 'success');
+        }).catch(error => {
+            console.error("Excel export error:", error);
+            Swal.fire('Error', 'Error exporting to Excel!', 'error');
+        });
+    }
+
+    // Export button click - Trigger DevExtreme export
     $('#btnExportToExcel').click(function() {
         if (!salaryGridInstance) {
             Swal.fire('Warning', 'No data available to export.', 'warning');
@@ -454,159 +598,14 @@
         }
 
         const selectedRows = salaryGridInstance.getSelectedRowsData();
-
         if (selectedRows.length === 0) {
             Swal.fire('Warning', 'Please select at least one row to export.', 'warning');
             return;
         }
 
-        exportToExcel(selectedRows);
+        // Manually call the export function
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Salary Register");
+        exportCustomExcel(selectedRows, workbook, worksheet);
     });
-
-    function exportToExcel(data) {
-        try {
-            // Create a new workbook
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Salary Register');
-
-            // Define columns
-            worksheet.columns = [
-                { header: 'Employee Code', key: 'employeeCode', width: 15 },
-                { header: 'Employee Name', key: 'employeeName', width: 25 },
-                { header: 'Branch', key: 'branchName', width: 20 },
-                { header: 'Designation', key: 'designationName', width: 20 },
-                { header: 'Department', key: 'departmentName', width: 20 },
-                { header: 'Date of Joining', key: 'dateOfJoining', width: 15 },
-                { header: 'Month', key: 'monthName', width: 12 },
-                { header: 'Year', key: 'year', width: 10 },
-                { header: 'Month Days', key: 'monthDays', width: 12 },
-                { header: 'Present Days', key: 'presentDays', width: 12 },
-                { header: 'Absent Days', key: 'absentDays', width: 12 },
-                { header: 'Week Off', key: 'weekOff', width: 12 },
-                { header: 'Holiday', key: 'holiday', width: 12 },
-                { header: 'Leave', key: 'leave', width: 12 },
-                { header: 'Payable Days', key: 'payableDays', width: 12 },
-                { header: 'Salary Days', key: 'salaryDays', width: 12 },
-                { header: 'Basic Salary', key: 'basicSalary', width: 15 },
-                { header: 'HRA', key: 'hra', width: 12 },
-                { header: 'Conveyance', key: 'conveyanceAllowance', width: 15 },
-                { header: 'Child Education', key: 'childEducationAllowance', width: 15 },
-                { header: 'Medical', key: 'medicalAllowance', width: 12 },
-                { header: 'Deputation', key: 'deputationAllowance', width: 15 },
-                { header: 'Gross Salary', key: 'grossSalary', width: 15 },
-                { header: 'Total Gross', key: 'totalGrossSalary', width: 15 },
-                { header: 'Arrears', key: 'arrears', width: 12 },
-                { header: 'PF', key: 'pf', width: 12 },
-                { header: 'ESIC', key: 'esic', width: 12 },
-                { header: 'Professional Tax', key: 'professionalTax', width: 15 },
-                { header: 'Group Medical', key: 'groupMedical', width: 15 },
-                { header: 'Term Insurance', key: 'termInsurance', width: 15 },
-                { header: 'LWF', key: 'lwf', width: 12 },
-                { header: 'TDS', key: 'tds', width: 12 },
-                { header: 'Loan', key: 'loan', width: 12 },
-                { header: 'Other Deduction', key: 'otherDeduction', width: 15 },
-                { header: 'Total Deductions', key: 'totalDeductions', width: 15 },
-                { header: 'Net Salary', key: 'netSalary', width: 15 },
-                { header: 'Bank Name', key: 'employeeNamePrmaryBank', width: 20 },
-                { header: 'Account Number', key: 'primaryAccountNumber', width: 20 },
-                { header: 'IFSC Code', key: 'primaryIFSCCode', width: 15 }
-            ];
-
-            // Style the header row
-            const headerRow = worksheet.getRow(1);
-            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            headerRow.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FF3e4b6d' }
-            };
-            headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-            headerRow.height = 25;
-
-            // Add data rows
-            data.forEach(item => {
-                const row = worksheet.addRow({
-                    employeeCode: item.employeeCode,
-                    employeeName: item.employeeName,
-                    branchName: item.branchName,
-                    designationName: item.designationName,
-                    departmentName: item.departmentName,
-                    dateOfJoining: item.dateOfJoining ? new Date(item.dateOfJoining).toLocaleDateString('en-GB') : '',
-                    monthName: item.monthName,
-                    year: item.year,
-                    monthDays: item.monthDays,
-                    presentDays: item.presentDays,
-                    absentDays: item.absentDays,
-                    weekOff: item.weekOff,
-                    holiday: item.holiday,
-                    leave: item.leave,
-                    payableDays: item.payableDays,
-                    salaryDays: item.salaryDays,
-                    basicSalary: item.basicSalary,
-                    hra: item.hra,
-                    conveyanceAllowance: item.conveyanceAllowance,
-                    childEducationAllowance: item.childEducationAllowance,
-                    medicalAllowance: item.medicalAllowance,
-                    deputationAllowance: item.deputationAllowance,
-                    grossSalary: item.grossSalary,
-                    totalGrossSalary: item.totalGrossSalary,
-                    arrears: item.arrears,
-                    pf: item.pf,
-                    esic: item.esic,
-                    professionalTax: item.professionalTax,
-                    groupMedical: item.groupMedical,
-                    termInsurance: item.termInsurance,
-                    lwf: item.lwf,
-                    tds: item.tds,
-                    loan: item.loan,
-                    otherDeduction: item.otherDeduction,
-                    totalDeductions: item.totalDeductions,
-                    netSalary: item.netSalary,
-                    employeeNamePrmaryBank: item.employeeNamePrmaryBank,
-                    primaryAccountNumber: item.primaryAccountNumber,
-                    primaryIFSCCode: item.primaryIFSCCode
-                });
-
-                // Format number cells
-                const numberColumns = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36];
-                numberColumns.forEach(colNum => {
-                    const cell = row.getCell(colNum);
-                    cell.numFmt = '#,##0.00';
-                    cell.alignment = { horizontal: 'right' };
-                });
-
-                // Center align specific columns
-                [1, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].forEach(colNum => {
-                    row.getCell(colNum).alignment = { horizontal: 'center' };
-                });
-            });
-
-            // Add borders to all cells
-            worksheet.eachRow((row, rowNumber) => {
-                row.eachCell((cell) => {
-                    cell.border = {
-                        top: { style: 'thin' },
-                        left: { style: 'thin' },
-                        bottom: { style: 'thin' },
-                        right: { style: 'thin' }
-                    };
-                });
-            });
-
-            // Generate Excel file
-            const month = $('#monthDropdown option:selected').text();
-            const year = $('#yearDropdown').val();
-            const fileName = `Salary_Register_${month}_${year}_${new Date().getTime()}.xlsx`;
-
-            workbook.xlsx.writeBuffer().then(buffer => {
-                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                saveAs(blob, fileName);
-                Swal.fire('Success', 'Excel file downloaded successfully!', 'success');
-            });
-
-        } catch (error) {
-            console.error('Error exporting to Excel:', error);
-            Swal.fire('Error', 'Failed to export data to Excel.', 'error');
-        }
-    }
 </script>
