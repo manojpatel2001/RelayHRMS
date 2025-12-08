@@ -364,17 +364,27 @@
                 { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: "11%", minWidth: 140 },
                 { dataField: "duration", caption: "Duration", dataType: "string", width: "5%", minWidth: 50 },
                 { dataField: "day", caption: "Day", dataType: "string", width: "7%", minWidth: 70 },
-                {
-                    caption: "Status",
-                    width: "7%",
-                    minWidth: 80,
-                    calculateCellValue: function (row) {
-                        if (row.isApproved) return "Approved";
-                        if (row.isRejected) return "Rejected";
-                        if (row.isPending) return "Pending";
-                        return "";
-                    }
-                },
+                           {
+                     caption: "Status",
+                     width: 80,
+                     alignment: "center",
+                     allowFiltering: false,
+                     allowSorting: false,
+                     cellTemplate: function(container, options) {
+                         const row = options.data;
+                         let statusText = "";
+
+                         if (row.isApproved === true) {
+                             statusText = "Approved";
+                         } else if (row.isRejected === true) {
+                             statusText = "Rejected";
+                         } else if (row.isPending === true) {
+                             statusText = "Pending";
+                         }
+
+                         $("<div>").text(statusText).appendTo(container);
+                     }
+                 },
                    {
                         dataField: "updatedBy",
                         caption: "Approved By",
@@ -455,19 +465,48 @@
     });
 
     $('#btnDelete').on('click', function () {
-        var grid = $("#attendanceGrid").dxDataGrid("instance");
-        var selectedIds = grid.getSelectedRowKeys();
+       var grid = $("#attendanceGrid").dxDataGrid("instance");
+    var selectedRows = grid.getSelectedRowsData();
 
-        if (selectedIds.length === 0) {
-            round_error_noti('Please select records to delete.');
-            return;
-        }
+    if (selectedRows.length === 0) {
+        round_error_noti("Please select at least one record.");
+        return;
+    }
+    const approvedRecords = selectedRows.filter(row => row.isApproved);
+    if (approvedRecords.length > 0) {
+        Swal.fire({
+            title: "Not Allowed",
+            text: "Approved records cannot be deleted.",
+            icon: "error",
+            customClass: {
+                popup: 'swal-small'
+            }
+        });
+        return;
+    }
 
-        showLoder();
-        const deletePayload = {
-            Id: selectedIds,
-            DeletedBy: ""
-        };
+    // Check for rejected records
+    const rejectedRecords = selectedRows.filter(row => row.isRejected);
+    if (rejectedRecords.length > 0) {
+        Swal.fire({
+            title: "Not Allowed",
+            text: "Rejected records cannot be deleted.",
+            icon: "error",
+            customClass: {
+                popup: 'swal-small'
+            }
+        });
+        return;
+    }
+
+    showLoder();
+
+    const selectedIds = selectedRows.map(row => row.attendanceRegularizationId);
+
+    const deletePayload = {
+        Id: selectedIds,
+        DeletedBy: EmployeeId
+    };
 
         $.ajax({
             url: apiBase + "/AttendanceRegularizationAPI/Delete",
