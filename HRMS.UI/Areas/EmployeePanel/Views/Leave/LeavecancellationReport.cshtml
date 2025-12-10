@@ -219,9 +219,13 @@
     const EmployeeId = localStorage.getItem('EmployeeId');
     const Token = localStorage.getItem("authToken");
 
+    // Global variable to store cancellation reasons
+    let cancellationReasons = [];
+
     $(document).ready(function () {
         populateYearDropdown();
         GetEmployeeById();
+        GetLeaveCancellationReasons(); // Load cancellation reasons
 
         // Set default values
         const currentYear = new Date().getFullYear();
@@ -289,6 +293,28 @@
         });
     }
 
+    function GetLeaveCancellationReasons() {
+        return $.ajax({
+            url: '@(baseDomainUrl + "/api/CommonReasonsAPI/GetLeavecancellationReasons")',
+            type: 'GET', // Changed from POST to GET
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response?.isSuccess && response.data) {
+                    cancellationReasons = response.data;
+                    console.log('Cancellation reasons loaded:', cancellationReasons);
+                } else {
+                    console.log("No cancellation reasons found");
+                    cancellationReasons = [];
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error loading cancellation reasons: " + error);
+                cancellationReasons = [];
+            }
+        });
+    }
     async function showLoder() {
         $('#grid-loader').addClass('d-flex').show();
     }
@@ -446,8 +472,8 @@
 
         const validRows = [];
         selectedRows.forEach(row => {
-            const cancelReason = row.cancelReason?.trim();
-            if (cancelReason) {
+            const cancelReasonId = row.cancelReasonId;
+            if (cancelReasonId) {
                 validRows.push({
                     EmployeeCode: row.employeeCode,
                     FullName: row.fullName,
@@ -457,7 +483,7 @@
                     No_Of_Date: row.no_Of_Date,
                     Reason: row.reason,
                     LeaveStatus: row.leaveStatus,
-                    CancelReason: cancelReason
+                    CancelReasonId: cancelReasonId // Send the ID instead of text
                 });
             }
         });
@@ -466,7 +492,7 @@
             Swal.fire({
                 icon: 'warning',
                 title: 'Validation',
-                text: 'Please provide cancel reason for selected row(s).'
+                text: 'Please select cancel reason for selected row(s).'
             });
             return;
         }
@@ -528,7 +554,7 @@
     });
 
     function LoadLeaveGrid(data) {
-        console.log('data' ,data);
+        console.log('data', data);
         $("#leaveGrid").dxDataGrid({
             dataSource: data,
             showBorders: true,
@@ -642,13 +668,18 @@
                     }
                 },
                 {
-                    dataField: "cancelReason",
+                    dataField: "cancelReasonId",
                     caption: "Cancel Reason",
                     width: 200,
                     minWidth: 200,
                     allowEditing: true,
+                    lookup: {
+                        dataSource: cancellationReasons,
+                        valueExpr: "reasonId",
+                        displayExpr: "reason"
+                    },
                     editorOptions: {
-                        placeholder: "Enter cancel reason..."
+                        placeholder: "Select cancel reason..."
                     }
                 }
             ]

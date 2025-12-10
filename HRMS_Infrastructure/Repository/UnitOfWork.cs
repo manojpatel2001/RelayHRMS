@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.ApprovalManagement;
+using HRMS_Infrastructure.Interface.CommanReason;
 using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.EmailService;
@@ -169,6 +170,7 @@ namespace HRMS_Infrastructure.Repository
             EmployeeBankDetailsRepository = new EmployeeBankDetailsRepository(_dbContext);
             ApprovalManagementRepository = new ApprovalManagementRepository(_dbContext);
             LeaveCancellationRepository = new LeaveCancellationRepository(_dbContext);
+            CommonReasonsRepository = new CommonReasonsRepository(_dbContext);
 
         }
 
@@ -299,6 +301,8 @@ namespace HRMS_Infrastructure.Repository
         public IApprovalManagementRepository ApprovalManagementRepository { get; set; }
 
         public ILeaveCancellationRepository LeaveCancellationRepository { get; set; }
+
+        public ICommonReasonsRepository CommonReasonsRepository { get; set; }
 
         public void Commit()
         {

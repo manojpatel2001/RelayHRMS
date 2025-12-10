@@ -8,6 +8,7 @@ namespace HRMS_Core.VM.Leave
 {
     public class LeaveCancellationReportViewModel
     {
+        public int? Id { get; set; }
         public string? EmployeeCode { get; set; }
         public string? FullName { get; set; }
         public string? Leave_Name { get; set; }
@@ -16,5 +17,6 @@ namespace HRMS_Core.VM.Leave
         public int? No_Of_Date { get; set; }
         public string? Reason { get; set; }
         public string? LeaveStatus { get; set; }
+        public int? Leave_TypeId { get; set; }
     }
 }
