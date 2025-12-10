@@ -1,0 +1,657 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Leave Cancellation Request";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<style>
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .back-btn {
+        float: right;
+        margin-top: 20px;
+        margin-right: 40px;
+    }
+
+    .dx-editor-cell .dx-link.dx-link-cancel {
+        display: none !important;
+    }
+
+    .short-field {
+        width: 100px !important;
+    }
+
+    .medium-field {
+        width: 180px !important;
+    }
+
+    .field-error {
+        font-size: 12px;
+        margin-top: 2px;
+    }
+
+    .swal-small {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .myGrid, .myCard {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto;
+    }
+
+    #leaveGrid {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-y: hidden !important;
+        overflow-x: auto !important;
+    }
+
+    .form-section {
+        max-width: 100% !important;
+        margin-top: 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background-color: #fff;
+    }
+
+    .section-header {
+        background-color: #3e4b6d;
+        color: #fff;
+        font-weight: bold;
+        padding: 10px 20px;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        margin: 0 auto;
+        max-width: 100%;
+    }
+
+    #leaveGrid .dx-scrollbar-vertical {
+        display: none !important;
+    }
+
+    #leaveGrid .dx-scrollbar-horizontal {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    #leaveGrid:hover .dx-scrollbar-horizontal {
+        opacity: 1;
+    }
+
+    #leaveGrid .dx-scrollable-scroll,
+    #leaveGrid ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    #leaveGrid ::-webkit-scrollbar-thumb {
+        background-color: #999;
+        border-radius: 3px;
+    }
+
+    #leaveGrid ::-webkit-scrollbar-track {
+        background-color: #f0f0f0;
+    }
+
+    #leaveGrid {
+        scrollbar-width: thin;
+        scrollbar-color: #999 #f0f0f0;
+    }
+</style>
+
+<div class="section-header">
+    EMPLOYEE LEAVE CANCELLATION REQUEST
+</div>
+
+<div class="form-section">
+    <div class="row gutter-tight justify-content-center flex-wrap">
+        <!-- Year Field -->
+        <div class="col-md-2">
+            <label class="form-label">Year<span class="text-danger">*</span> :</label>
+            <select class="form-select" id="year"></select>
+            <div class="text-danger field-error" id="yearError"></div>
+        </div>
+        <!-- Month Field -->
+        <div class="col-md-2">
+            <label class="form-label">Month<span class="text-danger">*</span> :</label>
+            <select class="form-select" id="month">
+                <option value="">--Select--</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+            <div class="text-danger field-error" id="monthError"></div>
+        </div>
+        <!-- Leave Name Field -->
+        <div class="col-md-2">
+            <label class="form-label">Leave Name<span class="text-danger">*</span> :</label>
+            <select class="form-select" id="leaveName">
+                <option value="">--Select--</option>
+            </select>
+            <div class="text-danger field-error" id="leaveNameError"></div>
+        </div>
+        <!-- Employee Field -->
+        <div class="col-md-3">
+            <label class="form-label">Employee<span class="text-danger">*</span> :</label>
+            <input type="text" class="form-control" id="employeeDropdown" readonly />
+            <div class="text-danger field-error" id="employeeError"></div>
+        </div>
+        <!-- Record Type Field -->
+        <div class="col-md-2">
+            <label class="form-label">Record Type<span class="text-danger">*</span> :</label>
+            <select class="form-select" id="recordtype">
+                <option value="">--Select--</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+            </select>
+            <div class="text-danger field-error" id="recordTypeError"></div>
+        </div>
+    </div>
+    <!-- Action Buttons -->
+    <div class="action-buttons d-flex justify-content-center gap-3 mt-2">
+        <button class="btn btn-custom" id="btnGo">Go</button>
+        <button class="btn btn-custom" id="btnClear">Clear</button>
+        <button class="btn btn-custom" onclick="goBack()">Back</button>
+    </div>
+</div>
+
+<div id="grid-loader"
+     class="grid-loader justify-content-center align-items-center flex-column"
+     style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+    <img src="@baseDomainUrl/loders/loder.png"
+         class="grid-logo-spinner"
+         style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+    <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+</div>
+
+<div class="form-section" id="leaveSection" style="margin-top: 30px; display: none;">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h6 class="mb-0">Leave Details</h6>
+        <div id="saveButtonContainer" style="display: none;">
+            <button class="btn btn-custom mt-2 mt-md-0" id="btnSaveGridData" style="min-width: 90px;">Save</button>
+        </div>
+    </div>
+    <div id="leaveGrid" style="overflow-x: auto;"></div>
+</div>
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    $(document).ready(function () {
+        populateYearDropdown();
+        GetEmployeeById();
+
+        // Set default values
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+        $('#year').val(currentYear);
+        $('#month').val(currentMonth);
+    });
+
+    function goBack() {
+        window.history.back();
+    }
+
+    function populateYearDropdown() {
+        const startYear = 2024;
+        const currentYear = new Date().getFullYear();
+        const yearDropdown = $("#year");
+        yearDropdown.empty();
+        yearDropdown.append('<option value="">--Select--</option>');
+        for (let year = currentYear; year >= startYear; year--) {
+            yearDropdown.append(`<option value="${year}">${year}</option>`);
+        }
+    }
+
+    function GetEmployeeById() {
+        return $.ajax({
+            type: "GET",
+            url: '@baseDomainUrl/api/EmployeeMasterAPI/GetEmployeeById/' + EmployeeId,
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (data) {
+                if (data.isSuccess && data.data) {
+                    $('#employeeDropdown').val(data.data.fullName || data.data.employeeName);
+                    // Load leave types for this employee
+                    GetAllLeave(CompanyId, EmployeeId);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error: " + status + " - " + error);
+            }
+        });
+    }
+
+    function GetAllLeave(Compid, Empid) {
+        $.ajax({
+            url: '@baseUrl/LeaveMasterAPI/GetLeaveTypesForEmployee',
+            type: 'GET',
+            data: { CompId: Compid, EmpId: Empid },
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                var data = response.data || [];
+                $('#leaveName').empty();
+                $('#leaveName').append('<option value="">--Select--</option>');
+                if (data.length > 0) {
+                    data.forEach(function (item) {
+                        $('#leaveName').append(`<option value="${item.leaveTypeId}">${item.leaveName}</option>`);
+                    });
+                }
+            },
+            error: function () {
+                console.log("Error loading leave types");
+            }
+        });
+    }
+
+    async function showLoder() {
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    async function hideLoder() {
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    function clearValidationErrors() {
+        $('.field-error').text('');
+    }
+
+    function validateForm() {
+        clearValidationErrors();
+        let hasError = false;
+
+        const year = $('#year').val();
+        const month = $('#month').val();
+        const leaveName = $('#leaveName').val();
+        const record = $('#recordtype').val();
+
+        if (!year) {
+            $('#yearError').text("Please select Year.");
+            hasError = true;
+        }
+        if (!month) {
+            $('#monthError').text("Please select Month.");
+            hasError = true;
+        }
+        if (!leaveName) {
+            $('#leaveNameError').text("Please select Leave Name.");
+            hasError = true;
+        }
+        if (!record) {
+            $('#recordTypeError').text("Please select Record Type.");
+            hasError = true;
+        }
+
+        return !hasError;
+    }
+
+    $('#btnGo').on('click', function () {
+        if (!validateForm()) {
+            return;
+        }
+
+        const year = $('#year').val();
+        const month = $('#month').val();
+        const leaveName = $('#leaveName').val();
+        const record = $('#recordtype').val();
+
+        showLoder();
+
+        const requestData = {
+            EmployeeId: parseInt(EmployeeId),
+            CompanyId: parseInt(CompanyId),
+            LeaveTypeId: parseInt(leaveName),
+            RecordType: record,
+            Month: parseInt(month),
+            Year: parseInt(year)
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/GetLeavecancellation")',
+            type: 'POST',
+            data: JSON.stringify(requestData),
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response?.isSuccess) {
+                    if (response.data && response.data.length > 0) {
+                        LoadLeaveGrid(response.data);
+                        $("#saveButtonContainer").show();
+                        $("#leaveSection").show();
+                    } else {
+                        var emptyData = [];
+                        LoadLeaveGrid(emptyData);
+                        $("#saveButtonContainer").hide();
+                        $("#leaveSection").hide();
+                        Swal.fire({
+                            text: response.responseMessage || "No data found.",
+                            icon: "info",
+                            confirmButtonText: "OK",
+                            width: "300px",
+                            customClass: {
+                                popup: 'swal-small'
+                            }
+                        });
+                    }
+                } else {
+                    Swal.fire({
+                        text: response.responseMessage,
+                        icon: "info",
+                        confirmButtonText: "OK",
+                        width: "300px",
+                        customClass: {
+                            popup: 'swal-small'
+                        }
+                    });
+                    $("#saveButtonContainer").hide();
+                    $("#leaveSection").hide();
+                }
+            },
+            error: function (xhr, status, error) {
+                Swal.fire({
+                    text: "Something went wrong while fetching data. Error: " + error,
+                    icon: "error",
+                    confirmButtonText: "OK",
+                    width: "300px",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+            },
+            complete: function () {
+                hideLoder();
+            }
+        });
+    });
+
+    $('#btnClear').on('click', function () {
+        $('#month').val('');
+        $('#year').val('');
+        $('#recordtype').val('');
+        $('#leaveName').val('');
+
+        clearValidationErrors();
+
+        $("#saveButtonContainer").hide();
+        $("#leaveSection").hide();
+
+        const grid = $("#leaveGrid").dxDataGrid("instance");
+        if (grid) {
+            grid.option("dataSource", []);
+            grid.refresh();
+        }
+    });
+
+    $('#btnSaveGridData').on('click', function () {
+        const gridInstance = $("#leaveGrid").dxDataGrid("instance");
+        gridInstance.saveEditData();
+
+        const selectedRows = gridInstance.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select at least one row to save.'
+            });
+            return;
+        }
+
+        const validRows = [];
+        selectedRows.forEach(row => {
+            const cancelReason = row.cancelReason?.trim();
+            if (cancelReason) {
+                validRows.push({
+                    EmployeeCode: row.employeeCode,
+                    FullName: row.fullName,
+                    Leave_Name: row.leave_Name,
+                    FromDate: row.fromDate,
+                    Todate: row.todate,
+                    No_Of_Date: row.no_Of_Date,
+                    Reason: row.reason,
+                    LeaveStatus: row.leaveStatus,
+                    CancelReason: cancelReason
+                });
+            }
+        });
+
+        if (validRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please provide cancel reason for selected row(s).'
+            });
+            return;
+        }
+
+        showLoder();
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/CreateLeaveCancellation")',
+            type: "POST",
+            contentType: "application/json",
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            data: JSON.stringify(validRows),
+            success: function (response) {
+                hideLoder();
+                if (response?.isSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: response.responseMessage || "Saved successfully.",
+                        confirmButtonText: 'OK'
+                    });
+
+                    const gridInstance = $("#leaveGrid").dxDataGrid("instance");
+                    const selectedRowsData = gridInstance.getSelectedRowsData();
+                    let currentData = gridInstance.option("dataSource");
+
+                    const updatedData = currentData.filter(item => {
+                        return !selectedRowsData.some(sel =>
+                            sel.employeeCode === item.employeeCode &&
+                            new Date(sel.fromDate).toISOString() === new Date(item.fromDate).toISOString()
+                        );
+                    });
+
+                    gridInstance.option("dataSource", updatedData);
+                    gridInstance.refresh();
+                    gridInstance.clearSelection();
+
+                    // Optionally reload the grid
+                    $("#btnGo").trigger("click");
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Save Failed',
+                        text: response?.responseMessage || "Unknown error"
+                    });
+                }
+            },
+            error: function (xhr) {
+                hideLoder();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: xhr.status + " - " + xhr.statusText
+                });
+            }
+        });
+    });
+
+    function LoadLeaveGrid(data) {
+        console.log('data' ,data);
+        $("#leaveGrid").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            keyExpr: "employeeCode",
+            width: "100%",
+            columnAutoWidth: true,
+            allowColumnResizing: true,
+            paging: { enabled: false },
+            height: 250,
+            autoHeight: false,
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
+            },
+            editing: {
+                mode: "cell",
+                allowUpdating: true
+            },
+            onContentReady: function (e) {
+                e.component.option("width", "100%");
+            },
+            onCellPrepared: function (e) {
+                if (e.rowType === "data") {
+                    e.cellElement.css({
+                        'padding-top': '2px',
+                        'padding-bottom': '2px',
+                        'font-size': '12px',
+                        'line-height': '16px'
+                    });
+                }
+            },
+            columns: [
+                {
+                    dataField: "employeeCode",
+                    caption: "Employee Code",
+                    allowEditing: false,
+                    minWidth: 120
+                },
+                {
+                    dataField: "fullName",
+                    caption: "Full Name",
+                    allowEditing: false,
+                    minWidth: 150
+                },
+                {
+                    dataField: "leave_Name",
+                    caption: "Leave Name",
+                    allowEditing: false,
+                    minWidth: 120
+                },
+                {
+                    dataField: "fromDate",
+                    caption: "From Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    allowEditing: false,
+                    minWidth: 100
+                },
+                {
+                    dataField: "toDate",
+                    caption: "To Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    allowEditing: false,
+                    minWidth: 100
+                },
+                {
+                    dataField: "no_Of_Date",
+                    caption: "No. of Days",
+                    allowEditing: false,
+                    minWidth: 100
+                },
+                {
+                    dataField: "reason",
+                    caption: "Reason",
+                    allowEditing: false,
+                    minWidth: 150
+                },
+                {
+                    dataField: "leaveStatus",
+                    caption: "Leave Status",
+                    allowEditing: false,
+                    minWidth: 100,
+                    cellTemplate: function (container, options) {
+                        const status = options.data.leaveStatus?.trim();
+                        let color;
+
+                        if (status === "Approved") {
+                            color = "green";
+                        } else if (status === "Pending") {
+                            color = "orange";
+                        } else if (status === "Rejected") {
+                            color = "red";
+                        } else {
+                            color = "gray";
+                        }
+
+                        $("<div>")
+                            .text(status)
+                            .css({
+                                color: color,
+                                fontWeight: "bold",
+                                textAlign: "center"
+                            })
+                            .appendTo(container);
+                    }
+                },
+                {
+                    dataField: "cancelReason",
+                    caption: "Cancel Reason",
+                    width: 200,
+                    minWidth: 200,
+                    allowEditing: true,
+                    editorOptions: {
+                        placeholder: "Enter cancel reason..."
+                    }
+                }
+            ]
+        });
+    }
+</script>

@@ -142,6 +142,7 @@ namespace HRMS_Infrastructure.Interface
         ISchemeReportingManagerRepository SchemeReportingManagerRepository { get; }
         IEmployeeBankDetailsRepository EmployeeBankDetailsRepository { get; }
         IApprovalManagementRepository ApprovalManagementRepository { get; }
+        ILeaveCancellationRepository LeaveCancellationRepository { get; }
         void Commit();
         Task CommitAsync();
     }

@@ -168,6 +168,7 @@ namespace HRMS_Infrastructure.Repository
             SchemeReportingManagerRepository = new SchemeReportingManagerRepository(_dbContext);
             EmployeeBankDetailsRepository = new EmployeeBankDetailsRepository(_dbContext);
             ApprovalManagementRepository = new ApprovalManagementRepository(_dbContext);
+            LeaveCancellationRepository = new LeaveCancellationRepository(_dbContext);
 
         }
 
@@ -296,6 +297,8 @@ namespace HRMS_Infrastructure.Repository
         public ISchemeReportingManagerRepository SchemeReportingManagerRepository { get; set; }
         public IEmployeeBankDetailsRepository EmployeeBankDetailsRepository { get; set; }
         public IApprovalManagementRepository ApprovalManagementRepository { get; set; }
+
+        public ILeaveCancellationRepository LeaveCancellationRepository { get; set; }
 
         public void Commit()
         {

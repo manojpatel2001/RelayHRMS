@@ -74,5 +74,10 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
             ViewBag.BaseUrlAPI = _configuration["BaseUrlSettings:baseUrl"];
             return View();
         }
+        public IActionResult LeavecancellationReport()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];       
+            return View();
+        }
     }
 }
