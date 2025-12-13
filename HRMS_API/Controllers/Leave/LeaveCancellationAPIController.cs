@@ -1,10 +1,13 @@
 ﻿using HRMS_API.NotificationService.HubService;
+using HRMS_API.NotificationService.ManageService;
+using HRMS_Core.Notifications;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 
@@ -23,6 +26,39 @@ namespace HRMS_API.Controllers.Leave
             _hubContext = hubContext;
         }
 
+        [HttpGet("GetById/{id}")]
+        public async Task<APIResponse> GetById(int Id)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveCancellationRepository.GetAsync(x => x.LeaveCancellationId == Id && x.IsEnabled == true && x.IsDeleted == false);
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Record not found"
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrive records, Please try again later!"
+                };
+            }
+
+        }
         [HttpPost("GetEmpLeaveCancellationRequestReport")]
         public async Task<APIResponse> GetEmpLeaveCancellationRequestReport([FromBody] LeaveCancellationRequestFilterViewModel model)
         {
@@ -80,22 +116,54 @@ namespace HRMS_API.Controllers.Leave
                 if (models == null || !models.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records to save." };
 
+                var firstModel = models.First();
+                var savedIds = new List<int>();
+
+                // Create all leave cancellation requests
                 foreach (var model in models)
                 {
                     var spResponse = await _unitOfWork.LeaveCancellationRepository.CreateLeavecancellation(model);
-                    if (spResponse.Success == 0)
+                    if (spResponse.Success <= 0)
                     {
-                        // If any record fails, return the error message from the stored procedure
                         return new APIResponse { isSuccess = false, ResponseMessage = spResponse.ResponseMessage };
                     }
+                    savedIds.Add(spResponse.Success);
                 }
 
-                // Only return success if all records are saved successfully
-                return new APIResponse { isSuccess = true, ResponseMessage = "Leave cancellation saved successfully!" };
+                // Get leave application details first
+               // Get employee details
+                    var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)firstModel.EmployeeId);
+
+                    if (employeeDetails != null)
+                    {
+                        var notification = new NotificationRemainders()
+                        {
+                            NotificationMessage = $"{employeeDetails.FullName} has requested cancellation for leave from {firstModel.FromDate:dd-MM-yyyy} to {firstModel.ToDate:dd-MM-yyyy}.",
+                            NotificationTime = DateTime.UtcNow,
+                            SenderId = employeeDetails.Id.ToString(),
+                            ReceiverIds = employeeDetails.ReportingManagerId.ToString(),
+                            NotificationType = NotificationType.LeaveCancellation,
+                            NotificationAffectedId = savedIds.First()
+                        };
+
+                        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                        if (savedNotification.Success > 0)
+                        {
+                            notification.NotificationRemainderId = savedNotification.Success;
+                            var reportingConnection = NotificationRemainderConnectionManager.GetConnections(employeeDetails.ReportingManagerId.ToString());
+                            if (reportingConnection.Any())
+                            {
+                                await _hubContext.Clients.Clients(reportingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                            }
+                        }
+                    }
+                
+
+                return new APIResponse { isSuccess = true, ResponseMessage = "Leave cancellation request submitted successfully!" };
             }
             catch (Exception ex)
             {
-                return new APIResponse { isSuccess = false, ResponseMessage = ex.Message };
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to add records. Please try again later." };
             }
         }
         [HttpPut("UpdateLeaveCancellationStatus")]
@@ -107,12 +175,10 @@ namespace HRMS_API.Controllers.Leave
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records selected for update." };
                 }
-
                 // Process each request in the list
                 foreach (var request in requests)
                 {
                     var result = await _unitOfWork.LeaveCancellationRepository.UpdateLeavecancellation(request);
-
                     if (result.Success <= 0)
                     {
                         return new APIResponse
@@ -122,7 +188,47 @@ namespace HRMS_API.Controllers.Leave
                         };
                     }
                 }
+                // Send notifications for each request
+                foreach (var request in requests)
+                {
+                    var applicationDetails = await _unitOfWork.LeaveCancellationRepository
+                        .GetLeavecancellationById(request.LeaveCancellationId);
 
+                    if (applicationDetails != null)
+                    {
+                        var reportingDetails = await _unitOfWork.EmployeeManageRepository
+                            .GetEmployeeById(request.EmployeeId);
+
+                        // Convert boolean to proper status text
+                        string statusText = request.IsApproved ? "approved" : "rejected";
+
+                        var notification = new NotificationRemainders()
+                        {
+                            NotificationMessage = $"{reportingDetails?.FullName} has {statusText} your leave cancellation request from {applicationDetails.FromDate:dd-MM-yyyy} to {applicationDetails.ToDate:dd-MM-yyyy}",
+                            NotificationTime = DateTime.UtcNow,
+                            SenderId = reportingDetails?.Id.ToString(),
+                            ReceiverIds = applicationDetails.EmployeeId.ToString(),
+                            NotificationType = NotificationType.LeaveCancellationApproval,
+                            NotificationAffectedId = request.LeaveCancellationId
+                        };
+
+                        var savedNotification = await _unitOfWork.NotificationRemainderRepository
+                            .CreateNotificationRemainder(notification);
+
+                        if (savedNotification.Success > 0)
+                        {
+                            notification.NotificationRemainderId = savedNotification.Success;
+                            var employeeConnection = NotificationRemainderConnectionManager
+                                .GetConnections(applicationDetails.EmployeeId.ToString());
+
+                            if (employeeConnection.Any())
+                            {
+                                await _hubContext.Clients.Clients(employeeConnection)
+                                    .SendAsync("ReceiveNotificationRemainder", notification);
+                            }
+                        }
+                    }
+                }
                 return new APIResponse
                 {
                     isSuccess = true,
@@ -139,7 +245,6 @@ namespace HRMS_API.Controllers.Leave
                 };
             }
         }
-
         [HttpDelete("Delete")]
         public async Task<APIResponse> Delete(DeleteRecordVM DeleteRecord)
         {
