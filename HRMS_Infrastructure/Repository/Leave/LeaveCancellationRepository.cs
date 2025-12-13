@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using HRMS_Core.DbContext;
+using HRMS_Core.VM;
 using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
@@ -15,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Repository.Leave
 {
-    public class LeaveCancellationRepository : Repository<LeaveCancellationReportViewModel> ,ILeaveCancellationRepository
+    public class LeaveCancellationRepository : Repository<LeaveCancellationRequestVM> ,ILeaveCancellationRepository
     {
 
         private HRMSDbContext _db;
@@ -57,5 +58,141 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
+        public async Task<SP_Response> CreateLeavecancellation(LeaveCancellationRequestVM model)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@Operation", "INSERT");
+                parameters.Add("@LeaveCancellationId", model.LeaveCancellationId);
+                parameters.Add("@EmployeeId", model.EmployeeId);
+                parameters.Add("@FromDate", model.FromDate);
+                parameters.Add("@ToDate", model.ToDate);
+                parameters.Add("@NoOfDate", model.NoOfDate);
+                parameters.Add("@Reason", model.Reason);
+                parameters.Add("@LeaveCancelReasonId", model.LeaveCancelReasonId); // Updated parameter name
+                parameters.Add("@LeaveStatus", model.LeaveStatus);
+                parameters.Add("@LeaveTypeId", model.LeaveTypeId);
+                parameters.Add("@CreatedBy", model.CreatedBy);
+                parameters.Add("@IsEnabled", model.IsEnabled);
+                parameters.Add("@IsDeleted", model.IsDeleted);
+                parameters.Add("@IsApproved", model.IsApproved);
+                parameters.Add("@IsRejected", model.IsRejected);
+
+                var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                    "sp_LeaveCancellationRequest_CRUD",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return result;
+            }
+        }
+
+        public async Task<SP_Response> UpdateLeavecancellation(updateLeaveCancellationRequestVM model)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                var parameters = new DynamicParameters();
+      
+                parameters.Add("@LeaveCancellationId", model.LeaveCancellationId);
+                parameters.Add("@EmployeeId", model.EmployeeId);        
+                parameters.Add("@UpdatedBy", model.UpdatedBy);           
+                parameters.Add("@IsApproved", model.IsApproved);
+                parameters.Add("@IsRejected", model.IsRejected);
+
+                var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                    "sp_UpdateLeaveCancellationStatus",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return result;
+            }
+        }
+
+        public async Task<SP_Response> DeleteLeavecancellation(DeleteRecordVM deleteRecord)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@Operation", "DELETE");
+                parameters.Add("@LeaveCancellationId", deleteRecord.Id);
+                parameters.Add("@DeletedBy", deleteRecord.DeletedBy);
+
+                // Execute the stored procedure
+                var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                    "sp_LeaveCancellationRequest_CRUD",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return result;
+            }
+        }
+
+        public async Task<List<EmpLeaveCancellationRequestReportViewModel>> GetEmpLeaveCancellationRequestReport(LeaveCancellationRequestFilterViewModel vm)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@FromDate", vm.FromDate);
+                    parameters.Add("@ToDate", vm.ToDate);
+                    parameters.Add("@LeaveStatus", vm.LeaveStatus);
+                    parameters.Add("@EmployeeId", vm.EmployeeId);
+         
+
+                    var result = await connection.QueryAsync<EmpLeaveCancellationRequestReportViewModel>(
+                        "GetEmpLeaveCancellationRequestReport",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result.AsList();
+                }
+            }
+            catch
+            {
+                return new List<EmpLeaveCancellationRequestReportViewModel>();
+            }
+        }
+
+        public async Task<List<EmpLeaveCancellationRequestReportViewModel>> GetReportingWiseLeaveCancellationRequestReport(vmLeaveCancellationReportFilter vm)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@SearchBy", vm.SearchBy);
+                    parameters.Add("@SearchValue", vm.SearchValue);
+                    parameters.Add("@FromDate", vm.FromDate);
+                    parameters.Add("@ToDate", vm.ToDate);
+                    parameters.Add("@LeaveStatus", vm.LeaveStatus);
+                    parameters.Add("@EmployeeId", vm.EmployeeId);
+
+
+                    var result = await connection.QueryAsync<EmpLeaveCancellationRequestReportViewModel>(
+                        "GetReportingWiseLeaveCancellationRequestReport",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result.AsList();
+                }
+            }
+            catch
+            {
+                return new List<EmpLeaveCancellationRequestReportViewModel>();
+            }
+        }
     }
 }
