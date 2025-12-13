@@ -392,21 +392,34 @@
                         $("#saveButtonContainer").show();
                         $("#leaveSection").show();
                     } else {
-                        var emptyData = [];
-                        LoadLeaveGrid(emptyData);
+                        // Clear the grid when no data is found
+                        const gridInstance = $("#leaveGrid").dxDataGrid("instance");
+                        if (gridInstance) {
+                            gridInstance.option("dataSource", []);
+                            gridInstance.refresh();
+                        }
+
                         $("#saveButtonContainer").hide();
                         $("#leaveSection").hide();
+
                         Swal.fire({
-                            text: response.responseMessage || "No data found.",
+                            text: "No leave records found for the selected criteria.",
                             icon: "info",
                             confirmButtonText: "OK",
-                            width: "300px",
+                            width: "350px",
                             customClass: {
                                 popup: 'swal-small'
                             }
                         });
                     }
                 } else {
+                    // Clear the grid for unsuccessful response
+                    const gridInstance = $("#leaveGrid").dxDataGrid("instance");
+                    if (gridInstance) {
+                        gridInstance.option("dataSource", []);
+                        gridInstance.refresh();
+                    }
+
                     Swal.fire({
                         text: response.responseMessage,
                         icon: "info",
@@ -421,6 +434,13 @@
                 }
             },
             error: function (xhr, status, error) {
+                // Clear the grid on error
+                const gridInstance = $("#leaveGrid").dxDataGrid("instance");
+                if (gridInstance) {
+                    gridInstance.option("dataSource", []);
+                    gridInstance.refresh();
+                }
+
                 Swal.fire({
                     text: "Something went wrong while fetching data. Error: " + error,
                     icon: "error",
@@ -430,13 +450,14 @@
                         popup: 'swal-small'
                     }
                 });
+                $("#saveButtonContainer").hide();
+                $("#leaveSection").hide();
             },
             complete: function () {
                 hideLoder();
             }
         });
     });
-
     $('#btnClear').on('click', function () {
         $('#month').val('');
         $('#year').val('');
@@ -466,24 +487,52 @@
                 icon: 'warning',
                 title: 'Validation',
                 text: 'Please select at least one row to save.'
+            }).then(() => {
+                // Deselect all rows and refresh grid
+                gridInstance.clearSelection();
+                gridInstance.refresh();
             });
             return;
+        }
+
+        // Helper function to format date
+        function formatDate(dateValue) {
+            if (!dateValue) return null;
+
+            const date = new Date(dateValue);
+            if (isNaN(date.getTime())) return null;
+
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+
+            return `${year}-${month}-${day}`;
         }
 
         const validRows = [];
         selectedRows.forEach(row => {
             const cancelReasonId = row.cancelReasonId;
             if (cancelReasonId) {
+                const fromDate = formatDate(row.fromDate);
+                const toDate = formatDate(row.toDate);
+
+                if (!fromDate || !toDate) {
+                    console.error('Invalid date in row:', row);
+                    return;
+                }
+
                 validRows.push({
-                    EmployeeCode: row.employeeCode,
-                    FullName: row.fullName,
-                    Leave_Name: row.leave_Name,
-                    FromDate: row.fromDate,
-                    Todate: row.todate,
-                    No_Of_Date: row.no_Of_Date,
+                    EmployeeId: parseInt(EmployeeId),
+                    FromDate: fromDate,
+                    Todate: toDate,
+                    NoOfDate: row.no_Of_Date,
                     Reason: row.reason,
                     LeaveStatus: row.leaveStatus,
-                    CancelReasonId: cancelReasonId // Send the ID instead of text
+                    LeaveCancelReasonId: cancelReasonId,
+                    LeaveTypeId: row.leave_TypeId,
+                    CreatedBy: parseInt(EmployeeId),
+                    IsEnabled: true,
+                    IsDeleted: false
                 });
             }
         });
@@ -492,10 +541,16 @@
             Swal.fire({
                 icon: 'warning',
                 title: 'Validation',
-                text: 'Please select cancel reason for selected row(s).'
+                text: 'Please select cancel reason for all selected rows.'
+            }).then(() => {
+                // Deselect all rows and refresh grid
+                gridInstance.clearSelection();
+                gridInstance.refresh();
             });
             return;
         }
+
+        console.log('Data to send:', validRows);
 
         showLoder();
 
@@ -515,30 +570,21 @@
                         title: 'Success',
                         text: response.responseMessage || "Saved successfully.",
                         confirmButtonText: 'OK'
+                    }).then(() => {
+                        // Deselect all rows before refreshing
+                        gridInstance.clearSelection();
+                        // Trigger Go button to refresh the grid
+                        $("#btnGo").trigger("click");
                     });
-
-                    const gridInstance = $("#leaveGrid").dxDataGrid("instance");
-                    const selectedRowsData = gridInstance.getSelectedRowsData();
-                    let currentData = gridInstance.option("dataSource");
-
-                    const updatedData = currentData.filter(item => {
-                        return !selectedRowsData.some(sel =>
-                            sel.employeeCode === item.employeeCode &&
-                            new Date(sel.fromDate).toISOString() === new Date(item.fromDate).toISOString()
-                        );
-                    });
-
-                    gridInstance.option("dataSource", updatedData);
-                    gridInstance.refresh();
-                    gridInstance.clearSelection();
-
-                    // Optionally reload the grid
-                    $("#btnGo").trigger("click");
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Save Failed',
                         text: response?.responseMessage || "Unknown error"
+                    }).then(() => {
+                        // Deselect all rows and refresh grid
+                        gridInstance.clearSelection();
+                        gridInstance.refresh();
                     });
                 }
             },
@@ -548,17 +594,20 @@
                     icon: 'error',
                     title: 'Server Error',
                     text: xhr.status + " - " + xhr.statusText
+                }).then(() => {
+                    // Deselect all rows and refresh grid
+                    gridInstance.clearSelection();
+                    gridInstance.refresh();
                 });
             }
         });
     });
-
     function LoadLeaveGrid(data) {
         console.log('data', data);
         $("#leaveGrid").dxDataGrid({
             dataSource: data,
             showBorders: true,
-            keyExpr: "employeeCode",
+            keyExpr: "leaveApplicationid",
             width: "100%",
             columnAutoWidth: true,
             allowColumnResizing: true,
@@ -666,6 +715,11 @@
                             })
                             .appendTo(container);
                     }
+                },
+                    {
+                    dataField: "leave_TypeId ",
+                    visible: false,
+                    allowEditing: false
                 },
                 {
                     dataField: "cancelReasonId",
