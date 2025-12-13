@@ -232,7 +232,7 @@ async function redirectPage(pageUrl,notificationType)
 {
     if (notificationType == "Attendance Application" || notificationType == "Leave Application" || notificationType == "Leave Approval"
         || notificationType == "CompOff Application" || notificationType == "CompOff Approval" || notificationType == "Attendance Approval" ||
-        notificationType == "Ticket FollowUp" || notificationType == "Ticket Application" || notificationType == "Ticket Response")
+        notificationType == "Ticket FollowUp" || notificationType == "Ticket Application" || notificationType == "Ticket Response" || notificationType == "Leave Cancellation Request" || notificationType == "Leave Cancellation Approval")
     {
         await readNotification(notificationType);
     }
@@ -277,6 +277,7 @@ function updateNotificationList(notificationDetails) {
         return;
     }
     $("#notificationCount").text(notificationDetails.notificationCount);
+    debugger;
     const notificationsHtml = notificationsList.map(notification => {
         let href = '#';
         switch (notification.notificationType) {
@@ -310,11 +311,15 @@ function updateNotificationList(notificationDetails) {
             case 'Probation Over':
                 href = '/EmployeePanel/ManageProbation/Probation';
                 break;
-
+            case 'Leave Cancellation Request':
+                href = '/EmployeePanel/Leave/ReportingWiseLeavecancellationReport';
+               break;           
+            case 'Leave Cancellation Approval':
+                href = '/EmployeePanel/Leave/EmpLeavecancellationReport';
+               break;
             default:
                 href = '#'; // Default fallback
         }
-        
         return `
                     <div class="notification-item" onclick='redirectPage("${uiBaseUrlLayout}${href}", "${notification.notificationType}")'>
                     <span class="notification-item-count">${notification.notificationTypeCount}</span>

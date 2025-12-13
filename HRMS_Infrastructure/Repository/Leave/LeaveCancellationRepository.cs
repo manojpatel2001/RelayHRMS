@@ -194,5 +194,21 @@ namespace HRMS_Infrastructure.Repository.Leave
                 return new List<EmpLeaveCancellationRequestReportViewModel>();
             }
         }
+
+        public async Task<LeaveCancellationRequestVM?> GetLeavecancellationById(int leaveCancellationId)
+        {
+
+            try
+            {
+                var result = await _db.Set<LeaveCancellationRequestVM>()
+                    .FromSqlInterpolated($"EXEC sp_GetLeaveCancellationById @leaveCancellationId = {leaveCancellationId}")
+                    .ToListAsync();
+                return result.FirstOrDefault() ?? null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }
