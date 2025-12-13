@@ -225,9 +225,8 @@
     $(document).ready(function () {
         populateYearDropdown();
         GetEmployeeById();
-        GetLeaveCancellationReasons(); // Load cancellation reasons
+        GetLeaveCancellationReasons(); 
 
-        // Set default values
         const currentYear = new Date().getFullYear();
         const currentMonth = new Date().getMonth() + 1;
         $('#year').val(currentYear);
@@ -294,9 +293,10 @@
     }
 
     function GetLeaveCancellationReasons() {
+        debugger;
         return $.ajax({
             url: '@(baseDomainUrl + "/api/CommonReasonsAPI/GetLeavecancellationReasons")',
-            type: 'GET', // Changed from POST to GET
+            type: 'GET',
             headers: {
                 'Authorization': 'Bearer ' + Token
             },
@@ -356,6 +356,19 @@
         return !hasError;
     }
 
+    // Helper function to show alerts
+    function showAlert(message, icon = "info", width = "350px") {
+        Swal.fire({
+            text: message,
+            icon: icon,
+            confirmButtonText: "OK",
+            width: width,
+            customClass: {
+                popup: 'swal-small'
+            }
+        });
+    }
+
     $('#btnGo').on('click', function () {
         if (!validateForm()) {
             return;
@@ -369,8 +382,8 @@
         showLoder();
 
         const requestData = {
-            EmployeeId: parseInt(EmployeeId),
-            CompanyId: parseInt(CompanyId),
+            EmployeeId: parseInt(EmployeeId) || 0,
+            CompanyId: parseInt(CompanyId) || 0,
             LeaveTypeId: parseInt(leaveName),
             RecordType: record,
             Month: parseInt(month),
@@ -385,79 +398,47 @@
             headers: {
                 'Authorization': 'Bearer ' + Token
             },
-            success: function (response) {
-                if (response?.isSuccess) {
-                    if (response.data && response.data.length > 0) {
-                        LoadLeaveGrid(response.data);
-                        $("#saveButtonContainer").show();
-                        $("#leaveSection").show();
-                    } else {
-                        // Clear the grid when no data is found
-                        const gridInstance = $("#leaveGrid").dxDataGrid("instance");
-                        if (gridInstance) {
-                            gridInstance.option("dataSource", []);
-                            gridInstance.refresh();
-                        }
-
-                        $("#saveButtonContainer").hide();
-                        $("#leaveSection").hide();
-
-                        Swal.fire({
-                            text: "No leave records found for the selected criteria.",
-                            icon: "info",
-                            confirmButtonText: "OK",
-                            width: "350px",
-                            customClass: {
-                                popup: 'swal-small'
-                            }
-                        });
-                    }
+            success: function (res) {
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    LoadLeaveGrid(res.data);
+                    $("#saveButtonContainer").show();
+                    $("#leaveSection").show();
                 } else {
-                    // Clear the grid for unsuccessful response
-                    const gridInstance = $("#leaveGrid").dxDataGrid("instance");
-                    if (gridInstance) {
-                        gridInstance.option("dataSource", []);
-                        gridInstance.refresh();
-                    }
-
-                    Swal.fire({
-                        text: response.responseMessage,
-                        icon: "info",
-                        confirmButtonText: "OK",
-                        width: "300px",
-                        customClass: {
-                            popup: 'swal-small'
-                        }
-                    });
+                
                     $("#saveButtonContainer").hide();
                     $("#leaveSection").hide();
+                    Swal.fire({
+                        text: res.isSuccess ? "No leave records found for the selected criteria." : res.responseMessage,
+                        icon: "info",
+                        confirmButtonText: "OK",
+                        width: "350px",
+                        customClass: { popup: 'swal-small' }
+                    });
                 }
             },
             error: function (xhr, status, error) {
-                // Clear the grid on error
                 const gridInstance = $("#leaveGrid").dxDataGrid("instance");
                 if (gridInstance) {
                     gridInstance.option("dataSource", []);
                     gridInstance.refresh();
                 }
-
+                $("#saveButtonContainer").hide();
+                $("#leaveSection").hide();
                 Swal.fire({
                     text: "Something went wrong while fetching data. Error: " + error,
                     icon: "error",
                     confirmButtonText: "OK",
-                    width: "300px",
-                    customClass: {
-                        popup: 'swal-small'
-                    }
+                    width: "350px",
+                    customClass: { popup: 'swal-small' }
                 });
-                $("#saveButtonContainer").hide();
-                $("#leaveSection").hide();
             },
             complete: function () {
                 hideLoder();
             }
         });
     });
+
+
     $('#btnClear').on('click', function () {
         $('#month').val('');
         $('#year').val('');
