@@ -60,36 +60,39 @@ namespace HRMS_Infrastructure.Repository.Leave
 
         public async Task<SP_Response> CreateLeavecancellation(LeaveCancellationRequestVM model)
         {
-            using (var connection = new SqlConnection(_connectionString))
+            try
             {
-                await connection.OpenAsync();
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
 
-                var parameters = new DynamicParameters();
-                parameters.Add("@Operation", "INSERT");
-                parameters.Add("@LeaveCancellationId", model.LeaveCancellationId);
-                parameters.Add("@EmployeeId", model.EmployeeId);
-                parameters.Add("@FromDate", model.FromDate);
-                parameters.Add("@ToDate", model.ToDate);
-                parameters.Add("@NoOfDate", model.NoOfDate);
-                parameters.Add("@Reason", model.Reason);
-                parameters.Add("@LeaveCancelReasonId", model.LeaveCancelReasonId); // Updated parameter name
-                parameters.Add("@LeaveStatus", model.LeaveStatus);
-                parameters.Add("@LeaveTypeId", model.LeaveTypeId);
-                parameters.Add("@CreatedBy", model.CreatedBy);
-                parameters.Add("@IsEnabled", model.IsEnabled);
-                parameters.Add("@IsDeleted", model.IsDeleted);
-                parameters.Add("@IsApproved", model.IsApproved);
-                parameters.Add("@IsRejected", model.IsRejected);
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@CreatedBy", model.CreatedBy);
+                    parameters.Add("@LeaveCancelReasonId", model.LeaveCancelReasonId);
+                    parameters.Add("@LeaveApplicationId", model.LeaveApplicationId);
 
-                var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
-                    "sp_LeaveCancellationRequest_CRUD",
-                    parameters,
-                    commandType: CommandType.StoredProcedure
-                );
+                    var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                        "sp_LeaveCancellationRequest_CRUD",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
 
-                return result;
+                    return result;
+                }
+            }
+            catch (SqlException sqlEx)
+            {
+     
+                throw new Exception($"Database error: {sqlEx.Message}", sqlEx);
+            }
+            catch (Exception ex)
+            {
+                // Log general exceptions
+                // You can also return a custom SP_Response indicating failure
+                throw new Exception($"An error occurred: {ex.Message}", ex);
             }
         }
+
 
         public async Task<SP_Response> UpdateLeavecancellation(updateLeaveCancellationRequestVM model)
         {
@@ -99,8 +102,7 @@ namespace HRMS_Infrastructure.Repository.Leave
 
                 var parameters = new DynamicParameters();
       
-                parameters.Add("@LeaveCancellationId", model.LeaveCancellationId);
-                parameters.Add("@EmployeeId", model.EmployeeId);        
+                parameters.Add("@LeaveCancellationId", model.LeaveCancellationId);              
                 parameters.Add("@UpdatedBy", model.UpdatedBy);           
                 parameters.Add("@IsApproved", model.IsApproved);
                 parameters.Add("@IsRejected", model.IsRejected);
