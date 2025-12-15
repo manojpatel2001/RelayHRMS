@@ -277,7 +277,7 @@ function updateNotificationList(notificationDetails) {
         return;
     }
     $("#notificationCount").text(notificationDetails.notificationCount);
-    debugger;
+ 
     const notificationsHtml = notificationsList.map(notification => {
         let href = '#';
         switch (notification.notificationType) {
