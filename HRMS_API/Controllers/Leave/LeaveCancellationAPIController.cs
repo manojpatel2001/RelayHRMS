@@ -132,7 +132,7 @@ namespace HRMS_API.Controllers.Leave
 
                 // Get leave application details first
                // Get employee details
-                    var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)firstModel.EmployeeId);
+                    var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)firstModel.EmplooyeId);
 
                     if (employeeDetails != null)
                     {
@@ -207,7 +207,7 @@ namespace HRMS_API.Controllers.Leave
                             NotificationMessage = $"{reportingDetails?.FullName} has {statusText} your leave cancellation request from {applicationDetails.FromDate:dd-MM-yyyy} to {applicationDetails.ToDate:dd-MM-yyyy}",
                             NotificationTime = DateTime.UtcNow,
                             SenderId = reportingDetails?.Id.ToString(),
-                            ReceiverIds = applicationDetails.EmployeeId.ToString(),
+                            ReceiverIds = applicationDetails.EmplooyeId.ToString(),
                             NotificationType = NotificationType.LeaveCancellationApproval,
                             NotificationAffectedId = request.LeaveCancellationId
                         };
@@ -219,7 +219,7 @@ namespace HRMS_API.Controllers.Leave
                         {
                             notification.NotificationRemainderId = savedNotification.Success;
                             var employeeConnection = NotificationRemainderConnectionManager
-                                .GetConnections(applicationDetails.EmployeeId.ToString());
+                                .GetConnections(applicationDetails.EmplooyeId.ToString());
 
                             if (employeeConnection.Any())
                             {
