@@ -65,6 +65,14 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View(); 
         }
+        public IActionResult AddLeavecancellationRequestAdmin()
+        {
+            return View(); 
+        }
+        public IActionResult LeavecancellationRequestRepotAdmin()
+        {
+            return View(); 
+        }
       
     }
 }

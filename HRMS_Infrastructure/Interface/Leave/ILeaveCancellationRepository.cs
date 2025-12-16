@@ -16,6 +16,7 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<List<LeaveCancellationReportViewModel>> GetLeavecancellationReport(LeaveCancellationReportRequest vm);
         Task<List<EmpLeaveCancellationRequestReportViewModel>> GetEmpLeaveCancellationRequestReport(LeaveCancellationRequestFilterViewModel vm);
         Task<List<EmpLeaveCancellationRequestReportViewModel>> GetReportingWiseLeaveCancellationRequestReport(vmLeaveCancellationReportFilter vm);
+        Task<List<EmpLeaveCancellationRequestReportViewModel>> GetLeaveCancellationReportAdmin(vmLeaveCancellationReportFilterAdmin vm);
         Task<LeaveCancellationRequestVM?> GetLeavecancellationById(int leaveCancellationId);
         Task<SP_Response> CreateLeavecancellation(LeaveCancellationRequestVM model);
         Task<SP_Response> UpdateLeavecancellation(updateLeaveCancellationRequestVM model);

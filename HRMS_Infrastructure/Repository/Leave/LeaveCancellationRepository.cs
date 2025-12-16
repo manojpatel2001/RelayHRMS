@@ -212,5 +212,35 @@ namespace HRMS_Infrastructure.Repository.Leave
                 return null;
             }
         }
+
+        public async Task<List<EmpLeaveCancellationRequestReportViewModel>> GetLeaveCancellationReportAdmin(vmLeaveCancellationReportFilterAdmin vm)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@SearchBy", vm.SearchBy);
+                    parameters.Add("@SearchValue", vm.SearchValue);
+                    parameters.Add("@FromDate", vm.FromDate);
+                    parameters.Add("@ToDate", vm.ToDate);
+                    parameters.Add("@LeaveStatus", vm.LeaveStatus);
+                    parameters.Add("@CompanyId", vm.Companyid);
+
+
+                    var result = await connection.QueryAsync<EmpLeaveCancellationRequestReportViewModel>(
+                        "GetLeaveCancellationReportAdmin",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result.AsList();
+                }
+            }
+            catch
+            {
+                return new List<EmpLeaveCancellationRequestReportViewModel>();
+            }
+        }
     }
 }

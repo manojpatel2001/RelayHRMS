@@ -337,6 +337,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<LeaveCancellationRequestFilterViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<vmLeaveCancellationReportFilter>().HasNoKey().ToView(null);
              modelBuilder.Entity<updateLeaveCancellationRequestVM>().HasNoKey().ToView(null);
+             modelBuilder.Entity<vmLeaveCancellationReportFilterAdmin>().HasNoKey().ToView(null);
 
 
 
