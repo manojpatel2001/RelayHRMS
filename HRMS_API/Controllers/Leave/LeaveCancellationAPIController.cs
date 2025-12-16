@@ -298,6 +298,30 @@ namespace HRMS_API.Controllers.Leave
                 };
             }
         }
+        [HttpPost("GetLeaveCancellationReportAdmin")]
+        public async Task<APIResponse> GetLeaveCancellationReportAdmin([FromBody] vmLeaveCancellationReportFilterAdmin model)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveCancellationRepository.GetLeaveCancellationReportAdmin(model);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
 
     }
 }

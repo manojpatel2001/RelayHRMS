@@ -1,0 +1,843 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Leave Cancellation Approval";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<style>
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .back-btn {
+        float: right;
+        margin-top: 20px;
+        margin-right: 40px;
+    }
+
+    .field-error {
+        font-size: 12px;
+        margin-top: 2px;
+    }
+
+    .swal-small {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .myGrid, .myCard {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto;
+    }
+
+    #leaveCancellationGrid {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-y: hidden !important;
+        overflow-x: auto !important;
+    }
+
+    .form-section {
+        max-width: 100% !important;
+        margin-top: 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background-color: #fff;
+    }
+
+    .section-header {
+        background-color: #3e4b6d;
+        color: #fff;
+        font-weight: bold;
+        padding: 10px 20px;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        margin: 0 auto;
+        max-width: 100%;
+    }
+
+    #leaveCancellationGrid .dx-scrollbar-vertical {
+        display: none !important;
+    }
+
+    #leaveCancellationGrid .dx-scrollbar-horizontal {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    #leaveCancellationGrid:hover .dx-scrollbar-horizontal {
+        opacity: 1;
+    }
+
+    #leaveCancellationGrid .dx-scrollable-scroll,
+    #leaveCancellationGrid ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    #leaveCancellationGrid ::-webkit-scrollbar-thumb {
+        background-color: #999;
+        border-radius: 3px;
+    }
+
+    #leaveCancellationGrid ::-webkit-scrollbar-track {
+        background-color: #f0f0f0;
+    }
+
+    #leaveCancellationGrid {
+        scrollbar-width: thin;
+        scrollbar-color: #999 #f0f0f0;
+    }
+</style>
+
+<div class="section-header">
+    LEAVE CANCELLATION APPROVAL
+</div>
+
+<div class="form-section">
+    <div class="row gutter-tight justify-content-center flex-wrap">
+        <!-- Year Field -->
+        <div class="col-md-2">
+            <label class="form-label">Year<span class="text-danger">*</span> :</label>
+            <select class="form-select" id="year"></select>
+            <div class="text-danger field-error" id="yearError"></div>
+        </div>
+        <!-- Month Field -->
+        <div class="col-md-2">
+            <label class="form-label">Month<span class="text-danger">*</span> :</label>
+            <select class="form-select" id="month">
+                <option value="">--Select--</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+            <div class="text-danger field-error" id="monthError"></div>
+        </div>
+        <!-- Branch Field -->
+        <div class="col-md-2">
+            <label class="form-label">Branch<span class="text-danger">*</span> :</label>
+            <div class="form-group-row">
+                <div class="form-floating-custom flex-grow-1">
+                    <div class="searchable-select-wrapper">
+                        <input type="text" class="searchable-select-input" id="branch" placeholder="Branch" readonly>
+                        <span class="searchable-select-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                            </svg>
+                        </span>
+                        <div class="searchable-select-dropdown">
+                            <div class="searchable-select-search">
+                                <input type="text" placeholder="Search branch..." class="search-input">
+                            </div>
+                            <div class="multi-select-actions">
+                                <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                            </div>
+                            <div class="searchable-select-options"></div>
+                        </div>
+                    </div>
+                    <div class="text-danger field-error" id="branchError"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Employee Field -->
+        <div class="col-md-2">
+            <label class="form-label">Employee<span class="text-danger">*</span> :</label>
+            <div class="form-group-row">
+                <div class="form-floating-custom flex-grow-1">
+                    <div class="searchable-select-wrapper">
+                        <input type="text" class="searchable-select-input" id="employeeDropdown" placeholder="Employee" readonly>
+                        <span class="searchable-select-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                            </svg>
+                        </span>
+                        <div class="searchable-select-dropdown">
+                            <div class="searchable-select-search">
+                                <input type="text" placeholder="Search employee..." class="search-input">
+                            </div>
+                            <div class="multi-select-actions">
+                                <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                            </div>
+                            <div class="searchable-select-options"></div>
+                        </div>
+                    </div>
+                    <div class="text-danger field-error" id="employeeError"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Leave Type Field -->
+        <div class="col-md-2">
+            <label class="form-label">Leave Type<span class="text-danger">*</span> :</label>
+            <select class="form-select" id="leaveName">
+                <option value="">--Select--</option>
+            </select>
+            <div class="text-danger field-error" id="leaveNameError"></div>
+        </div>
+        <!-- Record Type Field -->
+        <div class="col-md-2">
+            <label class="form-label">Record Type :</label>
+            <select class="form-select" id="recordtype">
+                <option value="All">All</option>
+                <option value="Approved">Approved</option>
+                <option value="Pending">Pending</option>
+                <option value="Rejected">Rejected</option>
+            </select>
+            <div class="text-danger field-error" id="recordTypeError"></div>
+        </div>
+    </div>
+    <!-- Action Buttons -->
+    <div class="action-buttons d-flex justify-content-center gap-3 mt-2">
+        <button class="btn btn-custom" id="btnGo">Go</button>
+        <button class="btn btn-custom" id="btnClear">Clear</button>
+        <button class="btn btn-custom" onclick="goBack()">Back</button>
+    </div>
+</div>
+
+<div id="grid-loader"
+     class="grid-loader justify-content-center align-items-center flex-column"
+     style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+    <img src="@baseDomainUrl/loders/loder.png"
+         class="grid-logo-spinner"
+         style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+    <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+</div>
+
+<div class="form-section" id="leaveCancellationSection" style="margin-top: 30px; display: none;">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h6 class="mb-0">Leave Cancellation Requests</h6>
+        <div id="saveButtonContainer" style="display: none;">
+            <button class="btn btn-custom mt-2 mt-md-0" id="btnSaveGridData" style="min-width: 90px;">Save</button>
+        </div>
+    </div>
+    <div id="leaveGrid" style="overflow-x: auto;"></div>
+</div>
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    let approvalReasons = [];
+
+    $(document).ready(function () {
+        $('#employeeDropdown').searchableSelect({
+            data: [],
+            valueKey: 'employeeId',
+            textKey: 'employeeName',
+            placeholder: 'Employee',
+            searchPlaceholder: 'Search employee...',
+            onChange: function (item) {
+                // Load leave types when employee is selected
+                BindLeaveTypeDropdown();
+            }
+        });
+
+        BindBranchDropdown();
+        populateYearDropdown();
+        LoadApprovalReasons();
+
+        // Set default values
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+        $('#year').val(currentYear);
+        $('#month').val(currentMonth);
+
+        removeFutureMonths();
+    });
+
+    function LoadApprovalReasons() {
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/CommonReasonsAPI/GetLeavecancellationReasons")',
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess && response.data) {
+                    approvalReasons = response.data;
+                    console.log('Approval reasons loaded:', approvalReasons);
+                } else {
+                    console.log("No approval reasons found");
+                    approvalReasons = [];
+                }
+            },
+            error: function (error) {
+                console.error('Failed to load approval reasons:', error);
+                approvalReasons = [];
+            }
+        });
+    }
+
+    function BindLeaveTypeDropdown() {
+        const emp = $('#employeeDropdown').data('searchableSelect')?.getValue();
+
+        if (!emp) {
+            // If no employee selected, clear the dropdown
+            $('#leaveName').empty();
+            $('#leaveName').append('<option value="">--Select--</option>');
+            return;
+        }
+
+        $.ajax({
+            url: '@baseUrl/LeaveMasterAPI/GetLeaveTypesForEmployee',
+            method: 'GET',
+            data: {
+                CompId: CompanyId,
+                EmpId: emp
+            },
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess && response.data) {
+                    const leaveDropdown = $('#leaveName');
+                    leaveDropdown.empty();
+                    leaveDropdown.append('<option value="">--Select--</option>');
+                    response.data.forEach(function (item) {
+                        leaveDropdown.append(`<option value="${item.leaveTypeId}">${item.leaveName}</option>`);
+                    });
+                }
+            },
+            error: function (error) {
+                console.error('Failed to load leave types:', error);
+            }
+        });
+    }
+
+    function removeFutureMonths() {
+        const currentMonth = new Date().getMonth() + 1;
+        $('#month option').each(function () {
+            const monthValue = parseInt($(this).val());
+            if (monthValue > currentMonth) {
+                $(this).remove();
+            }
+        });
+    }
+
+    async function BindBranchDropdown() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (data) {
+                    if (data.isSuccess) {
+                        $('#branch').searchableSelect({
+                            data: data.data || [],
+                            valueKey: 'branchId',
+                            textKey: 'branchName',
+                            placeholder: 'Branch',
+                            searchPlaceholder: 'Search branch...',
+                            onChange: function (item) {
+                                GetEmployeeByBranchId(item.branchId);
+                                // Clear leave type dropdown when branch changes
+                                $('#leaveName').empty();
+                                $('#leaveName').append('<option value="">--Select--</option>');
+                            }
+                        });
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch branches');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    async function GetEmployeeByBranchId(branchId) {
+        if (!branchId) {
+            return Promise.resolve();
+        }
+        var payLoad = {
+            BranchId: branchId,
+            CompanyId: CompanyId
+        }
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/EmployeeMasterAPI/GetEmployeeListByBranchId',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                data: JSON.stringify(payLoad),
+                success: function (data) {
+                    if (data.isSuccess) {
+                        const dropdownddlEmployee = $('#employeeDropdown').data('searchableSelect');
+                        if (dropdownddlEmployee) {
+                            dropdownddlEmployee.setData(data.data);
+                        }
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch employees');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    function goBack() {
+        window.history.back();
+    }
+
+    function populateYearDropdown() {
+        const startYear = 2024;
+        const currentYear = new Date().getFullYear();
+        const yearDropdown = $("#year");
+        yearDropdown.empty();
+        yearDropdown.append('<option value="">--Select--</option>');
+        for (let year = currentYear; year >= startYear; year--) {
+            yearDropdown.append(`<option value="${year}">${year}</option>`);
+        }
+    }
+
+    async function showLoder() {
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    async function hideLoder() {
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    function clearValidationErrors() {
+        $('.field-error').text('');
+    }
+
+    function validateForm() {
+        clearValidationErrors();
+        let hasError = false;
+
+        const branch = $('#branch').data('searchableSelect').getValue();
+        const emp = $('#employeeDropdown').data('searchableSelect').getValue();
+        const year = $('#year').val();
+        const month = $('#month').val();
+        const leaveName = $('#leaveName').val();
+
+        if (!branch) {
+            $('#branchError').text("Please select Branch.");
+            hasError = true;
+        }
+        if (!emp) {
+            $('#employeeError').text("Please select Employee.");
+            hasError = true;
+        }
+        if (!year) {
+            $('#yearError').text("Please select Year.");
+            hasError = true;
+        }
+        if (!month) {
+            $('#monthError').text("Please select Month.");
+            hasError = true;
+        }
+        if (!leaveName) {
+            $('#leaveNameError').text("Please select Leave Type.");
+            hasError = true;
+        }
+
+        return !hasError;
+    }
+
+    $('#btnGo').on('click', function () {
+        if (!validateForm()) {
+            return;
+        }
+
+        const year = $('#year').val();
+        const month = $('#month').val();
+        const leaveName = $('#leaveName').val();
+        const record = $('#recordtype').val();
+
+        showLoder();
+
+        const requestData = {
+            EmployeeId: parseInt(EmployeeId) || 0,
+            CompanyId: parseInt(CompanyId) || 0,
+            LeaveTypeId: parseInt(leaveName),
+            RecordType: record,
+            Month: parseInt(month),
+            Year: parseInt(year)
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/GetLeavecancellation")',
+            type: 'POST',
+            data: JSON.stringify(requestData),
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (res) {
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    LoadLeaveGrid(res.data);
+                    $("#saveButtonContainer").show();
+                    $("#leaveCancellationSection").show();  // ✅ Fixed: Correct ID
+                } else {
+                    $("#saveButtonContainer").hide();
+                    $("#leaveCancellationSection").hide();  // ✅ Fixed: Correct ID
+                    Swal.fire({
+                        text: res.isSuccess ? "No leave records found for the selected criteria." : res.responseMessage,
+                        icon: "info",
+                        confirmButtonText: "OK",
+                        width: "350px",
+                        customClass: { popup: 'swal-small' }
+                    });
+                }
+            },
+            error: function (xhr, status, error) {
+                const gridInstance = $("#leaveGrid").dxDataGrid("instance");
+                if (gridInstance) {
+                    gridInstance.option("dataSource", []);
+                    gridInstance.refresh();
+                }
+                $("#saveButtonContainer").hide();
+                $("#leaveCancellationSection").hide();  // ✅ Fixed: Correct ID
+                Swal.fire({
+                    text: "Something went wrong while fetching data. Error: " + error,
+                    icon: "error",
+                    confirmButtonText: "OK",
+                    width: "350px",
+                    customClass: { popup: 'swal-small' }
+                });
+            },
+            complete: function () {
+                hideLoder();
+            }
+        });
+    });
+    // Clear Button Click Event
+    $('#btnClear').on('click', function () {
+        $('#month').val('');
+        $('#year').val('');
+        $('#leaveName').val('');
+        $('#recordtype').val('All');
+        $('#branch').data('searchableSelect').clear();
+        $('#employeeDropdown').data('searchableSelect').clear();
+
+        $('#leaveName').empty();
+        $('#leaveName').append('<option value="">--Select--</option>');
+
+        clearValidationErrors();
+
+        $("#saveButtonContainer").hide();
+        $("#leaveCancellationSection").hide();  // ✅ Fixed: Correct ID
+
+        const grid = $("#leaveGrid").dxDataGrid("instance");  // ✅ Fixed: Correct ID
+        if (grid) {
+            grid.option("dataSource", []);
+            grid.refresh();
+        }
+    });
+
+    $('#btnSaveGridData').on('click', function () {
+        debugger;
+        const gridInstance = $("#leaveGrid").dxDataGrid("instance");
+        gridInstance.saveEditData();
+
+        const selectedRows = gridInstance.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select at least one row to save.'
+            }).then(() => {
+                // Deselect all rows and refresh grid
+                gridInstance.clearSelection();
+                gridInstance.refresh();
+            });
+            return;
+        }
+
+        // Helper function to format date
+        function formatDate(dateValue) {
+            if (!dateValue) return null;
+
+            const date = new Date(dateValue);
+            if (isNaN(date.getTime())) return null;
+
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+
+            return `${year}-${month}-${day}`;
+        }
+
+        const validRows = [];
+        selectedRows.forEach(row => {
+            const cancelReasonId = row.cancelReasonId;
+            const  leaveApplicationId = row.leaveApplicationid
+            if (cancelReasonId) {
+                const fromDate = formatDate(row.fromDate);
+                const toDate = formatDate(row.toDate);
+
+                if (!fromDate || !toDate) {
+                    console.error('Invalid date in row:', row);
+                    return;
+                }
+
+                validRows.push({
+                          EmployeeId: parseInt(EmployeeId),
+                            FromDate: fromDate,
+                            Todate: toDate,
+                             CreatedBy: parseInt(EmployeeId),
+                            LeaveCancelReasonId: cancelReasonId,
+                            LeaveApplicationId: leaveApplicationId
+                });
+            }
+        });
+
+        if (validRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select cancel reason for all selected rows.'
+            }).then(() => {
+                // Deselect all rows and refresh grid
+                gridInstance.clearSelection();
+                gridInstance.refresh();
+            });
+            return;
+        }
+
+        console.log('Data to send:', validRows);
+
+        showLoder();
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/CreateLeaveCancellation")',
+            type: "POST",
+            contentType: "application/json",
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            data: JSON.stringify(validRows),
+            success: function (response) {
+                hideLoder();
+                if (response?.isSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: response.responseMessage || "Saved successfully.",
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        // Deselect all rows before refreshing
+                        gridInstance.clearSelection();
+                        // Trigger Go button to refresh the grid
+                        $("#btnGo").trigger("click");
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Save Failed',
+                        text: response?.responseMessage || "Unknown error"
+                    }).then(() => {
+                        // Deselect all rows and refresh grid
+                        gridInstance.clearSelection();
+                        gridInstance.refresh();
+                    });
+                }
+            },
+            error: function (xhr) {
+                hideLoder();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: xhr.status + " - " + xhr.statusText
+                }).then(() => {
+                    // Deselect all rows and refresh grid
+                    gridInstance.clearSelection();
+                    gridInstance.refresh();
+                });
+            }
+        });
+    });
+    function LoadLeaveGrid(data) {
+        console.log('data', data);
+        $("#leaveGrid").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            keyExpr: "leaveApplicationid",
+            width: "100%",
+            columnAutoWidth: true,
+            allowColumnResizing: true,
+            paging: { enabled: false },
+            height: 250,
+            autoHeight: false,
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
+            },
+            editing: {
+                mode: "cell",
+                allowUpdating: true
+            },
+            onContentReady: function (e) {
+                e.component.option("width", "100%");
+            },
+            onCellPrepared: function (e) {
+                if (e.rowType === "data") {
+                    e.cellElement.css({
+                        'padding-top': '2px',
+                        'padding-bottom': '2px',
+                        'font-size': '12px',
+                        'line-height': '16px'
+                    });
+                }
+            },
+            columns: [
+                {
+                    dataField: "employeeCode",
+                    caption: "Employee Code",
+                    allowEditing: false,
+                    minWidth: 120
+                },
+                {
+                    dataField: "fullName",
+                    caption: "Full Name",
+                    allowEditing: false,
+                    minWidth: 150
+                },
+                {
+                    dataField: "leave_Name",
+                    caption: "Leave Name",
+                    allowEditing: false,
+                    minWidth: 120
+                },
+                {
+                    dataField: "fromDate",
+                    caption: "From Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    allowEditing: false,
+                    minWidth: 100
+                },
+                {
+                    dataField: "toDate",
+                    caption: "To Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    allowEditing: false,
+                    minWidth: 100
+                },
+                {
+                    dataField: "no_Of_Date",
+                    caption: "No. of Days",
+                    allowEditing: false,
+                    minWidth: 100
+                },
+                {
+                    dataField: "reason",
+                    caption: "Reason",
+                    allowEditing: false,
+                    minWidth: 150
+                },
+                {
+                    dataField: "leaveStatus",
+                    caption: "Leave Status",
+                    allowEditing: false,
+                    minWidth: 100,
+                    cellTemplate: function (container, options) {
+                        const status = options.data.leaveStatus?.trim();
+                        let color;
+
+                        if (status === "Approved") {
+                            color = "green";
+                        } else if (status === "Pending") {
+                            color = "orange";
+                        } else if (status === "Rejected") {
+                            color = "red";
+                        } else {
+                            color = "gray";
+                        }
+
+                        $("<div>")
+                            .text(status)
+                            .css({
+                                color: color,
+                                fontWeight: "bold",
+                                textAlign: "center"
+                            })
+                            .appendTo(container);
+                    }
+                },
+                    {
+                    dataField: "leave_TypeId ",
+                    visible: false,
+                    allowEditing: false
+                },
+                    {
+                    dataField: "leaveApplicationid ",
+                    visible: false,
+                    allowEditing: false
+                },
+                {
+                    dataField: "cancelReasonId",
+                    caption: "Cancel Reason",
+                    width: 200,
+                    minWidth: 200,
+                    allowEditing: true,
+                    lookup: {
+                        dataSource: approvalReasons,
+                        valueExpr: "reasonId",
+                        displayExpr: "reason"
+                    },
+                    editorOptions: {
+                        placeholder: "Select cancel reason..."
+                    }
+                }
+            ]
+        });
+    }
+</script>
