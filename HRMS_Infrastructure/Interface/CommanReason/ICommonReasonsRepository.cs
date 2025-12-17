@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Interface.CommanReason
 {
-    public interface ICommonReasonsRepository:IRepository<LeaveCancellationReasonvm>
+    public interface ICommonReasonsRepository:IRepository<CancellationReasonvm>
     {
 
-        Task<List<LeaveCancellationReasonvm>> GetLeavecancellationReasons();
+        Task<List<CancellationReasonvm>> GetLeavecancellationReasons();
+        Task<List<CancellationReasonvm>> GetcancellationReasons();
 
     }
 }

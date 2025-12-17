@@ -780,12 +780,15 @@
       const Token = localStorage.getItem("authToken");
       const apiBase = '@apiBase';
     const EmployeeName = localStorage.getItem("EmployeeName");
+
+        var approvalReasons = [];
       $(document).ready(function () {
               bindEmployee();
           // GetEmployeesByBranchAndUser();
           populateYearDropdown();
           initializeDatePickers();
           setupDateRangeToggle();
+          LoadApprovalReasons();
           $("#attendanceSummary").hide();
 
           // Set default values
@@ -1015,6 +1018,30 @@
 
           return !hasError;
       }
+
+            function LoadApprovalReasons() {
+          $.ajax({
+              url: '@(baseDomainUrl + "/api/CommonReasonsAPI/GetcancellationReasons")',
+              method: 'GET',
+              headers: {
+                  'Authorization': 'Bearer ' + Token
+              },
+              success: function (response) {
+                  if (response.isSuccess && response.data) {
+                      approvalReasons = response.data;
+                      console.log('Approval reasons loaded:', approvalReasons);
+                  } else {
+                      console.log("No approval reasons found");
+                      approvalReasons = [];
+                  }
+              },
+              error: function (error) {
+                  console.error('Failed to load approval reasons:', error);
+                  approvalReasons = [];
+              }
+          });
+      }
+
 
     // Go Button Click Event
     $('#btnGo').on('click', async function () {
@@ -1264,8 +1291,20 @@
         const date = new Date(dateStr);
         return !isNaN(date) ? date.toISOString() : null;
     }
-    async function validateAttendanceRequestLimit(EmployeeId, newRequestCount, selectedMonth, selectedYear) {
+    async function validateAttendanceRequestLimit(EmployeeId, newRequestCount, selectedMonth, selectedYear, selectedRows) {
+        debugger;
         try {
+         
+
+        const allTOD = selectedRows.every(row => {
+            return row.Reason === "11" || row.Reason == 11; // Allow both string and number comparison
+        });
+
+        if (allTOD) {
+            console.log("All rows are TOD. Skipping limit validation.");
+            return true;
+        }
+
             // Get employee monthly limit
             const employeeDetails = await $.ajax({
                 type: "GET",
@@ -1295,14 +1334,10 @@
                 return false;
             }
 
-            // Fix: Use correct property names (lowercase)
+            // Use correct property names
             const monthlyLimit = employeeDetails.data?.[0]?.attendanceLimit || 0;
             const currentRequests = currentMonthCount.data?.[0]?.totalRequests || 0;
             const totalRequests = currentRequests + newRequestCount;
-
-            console.log('Monthly Limit:', monthlyLimit);
-            console.log('Current Requests:', currentRequests);
-            console.log('Total Requests:', totalRequests);
 
             // If no limit is set, block submission
             if (monthlyLimit === 0) {
@@ -1321,7 +1356,7 @@
             // Check if limit exceeded
             if (totalRequests > monthlyLimit) {
                 const remaining = monthlyLimit - currentRequests;
-                const exceededBy = Math.abs(remaining); // Calculate how many requests are over the limit
+                const exceededBy = Math.abs(remaining);
 
                 let message = `
                     <div style="text-align: left; padding: 10px;">
@@ -1381,11 +1416,12 @@
             });
             return;
         }
+
         const validRows = [];
         selectedRows.forEach(row => {
-            const reason = row.reason?.trim();
+            const reasonId = row.reasonId;
             const dayType = row.dayType?.trim();
-            if (reason && dayType) {
+            if (reasonId && dayType) {
                 validRows.push({
                     EmpId: empId,
                     FullName: row.fullName || "",
@@ -1396,15 +1432,15 @@
                     OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
                     Day: dayType,
                     Status: row.attendanceStatus || "",
-                    Reason: reason,
+                    Reason: reasonId.toString(),
                     IsApproved: false,
                     IsPending: true,
                     IsRejected: false,
-                    IsLocked: false,
-                    CreatedBy: EmployeeId
+                    IsLocked: false
                 });
             }
         });
+
         if (validRows.length === 0) {
             Swal.fire({
                 icon: 'warning',
@@ -1413,6 +1449,7 @@
             });
             return;
         }
+
         // Get the selected month and year from the form
         const monthYearData = await getYearMonth();
         if (!monthYearData) {
@@ -1425,11 +1462,13 @@
         }
         const selectedMonth = monthYearData.month;
         const selectedYear = monthYearData.year;
-        // ✅ NEW: Validate request limit before saving
-        const isLimitValid = await validateAttendanceRequestLimit(empId, validRows.length, selectedMonth, selectedYear);
+
+        // Validate request limit, passing selected rows
+        const isLimitValid = await validateAttendanceRequestLimit(empId, validRows.length, selectedMonth, selectedYear, validRows);
         if (!isLimitValid) {
             return; // Stop if limit exceeded
         }
+
         showLoder();
         // Save via AJAX
         $.ajax({
@@ -1451,7 +1490,7 @@
                     });
                     gridInstance.option("dataSource", updatedData);
                     gridInstance.refresh();
-                    gridInstance.clearSelection(); // optional
+                    gridInstance.clearSelection();
                     $("#btnGo").trigger("click");
                 } else {
                     Swal.fire({
@@ -1650,58 +1689,24 @@
                             .appendTo(container);
                     }
                 },
-                {
-                    dataField: "reason",
+             {
+                    dataField: "reasonId",
                     caption: "Reason",
                     width: 180,
                     minWidth: 180,
                     lookup: {
-                        dataSource: [
-                            { ID: "Forgot To Punch/Sign", Name: "Forgot To Punch/Sign" },
-                            { ID: "Working from Home", Name: "Working from Home" },
-                            { ID: "Client Visit", Name: "Client Visit" },
-                            { ID: "Training", Name: "Training" },
-                            { ID: "Other", Name: "Other" }
-                        ],
-                        valueExpr: "ID",
-                        displayExpr: "Name"
+                        dataSource: approvalReasons,
+                        valueExpr: "reasonId",
+                        displayExpr: "reason"
                     },
                     calculateDisplayValue: function (rowData) {
-                        return rowData.reason || "--Select--";
-                    },
-                    allowEditing: function (rowData) {
-                        // Check if current date
-                        const recordDate = new Date(rowData.shiftDate);
-                        const currentDate = new Date();
-                        recordDate.setHours(0, 0, 0, 0);
-                        currentDate.setHours(0, 0, 0, 0);
-
-                        if (recordDate.getTime() === currentDate.getTime()) {
-                            return false; // Disable editing for current date
+                        if (rowData.reasonId) {
+                            const foundReason = approvalReasons.find(r => r.reasonId === rowData.reasonId);
+                            return foundReason ? foundReason.reason : "--Select--";
                         }
-
-                        const status = rowData.attendanceStatus?.trim().toLowerCase();
-                        return status === "absent" || status === "half day";
-                    },
-                    editorOptions: function (rowData) {
-                        const recordDate = new Date(rowData.shiftDate);
-                        const currentDate = new Date();
-                        recordDate.setHours(0, 0, 0, 0);
-                        currentDate.setHours(0, 0, 0, 0);
-
-                        const isCurrentDate = recordDate.getTime() === currentDate.getTime();
-                        const status = rowData.attendanceStatus?.trim().toLowerCase();
-                        const isEditable = status === "absent" || status === "half day";
-
-                        return {
-                            showClearButton: true,
-                            disabled: isCurrentDate || !isEditable
-                        };
-                    },
-                    editing: {
-                        allowUpdating: true
+                        return "--Select--";
                     }
-                },
+                    },
                 {
                     dataField: "workingHours",
                     caption: "Working Hours",

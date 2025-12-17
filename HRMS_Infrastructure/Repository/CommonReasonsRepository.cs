@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Repository
 {
-    public class CommonReasonsRepository : Repository<LeaveCancellationReasonvm>, ICommonReasonsRepository
+    public class CommonReasonsRepository : Repository<CancellationReasonvm>, ICommonReasonsRepository
     {
         private HRMSDbContext _db;
         private readonly string _connectionString;
@@ -26,33 +26,33 @@ namespace HRMS_Infrastructure.Repository
 
         }
 
-        public Task AddAsync(LeaveCancellationReasonvm entity)
+        public Task AddAsync(CancellationReasonvm entity)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IEnumerable<LeaveCancellationReasonvm>> GetAllAsync(Expression<Func<LeaveCancellationReasonvm, bool>>? filter = null, string? includeProperties = null)
+        public Task<IEnumerable<CancellationReasonvm>> GetAllAsync(Expression<Func<CancellationReasonvm, bool>>? filter = null, string? includeProperties = null)
         {
             throw new NotImplementedException();
         }
 
-        public Task<LeaveCancellationReasonvm> GetAsync(Expression<Func<LeaveCancellationReasonvm, bool>> filter, string? includeProperties = null, bool tracked = false)
+        public Task<CancellationReasonvm> GetAsync(Expression<Func<CancellationReasonvm, bool>> filter, string? includeProperties = null, bool tracked = false)
         {
             throw new NotImplementedException();
         }
 
-        public Task RemoveAsync(LeaveCancellationReasonvm entity)
+        public Task RemoveAsync(CancellationReasonvm entity)
         {
             throw new NotImplementedException();
         }
-        public async Task<List<LeaveCancellationReasonvm>> GetLeavecancellationReasons()
+        public async Task<List<CancellationReasonvm>> GetLeavecancellationReasons()
         {
             try
             {
                 using (var connection = new SqlConnection(_connectionString))
                 {
                   
-                    var result = await connection.QueryAsync<LeaveCancellationReasonvm>(
+                    var result = await connection.QueryAsync<CancellationReasonvm>(
                         "GetLeaveApplicationReasons",
                         commandType: CommandType.StoredProcedure
                     );
@@ -62,9 +62,28 @@ namespace HRMS_Infrastructure.Repository
             catch
             {
                 // Return an empty list or handle the exception as needed
-                return new List<LeaveCancellationReasonvm>();
+                return new List<CancellationReasonvm>();
             }
         }
 
+        public async Task<List<CancellationReasonvm>> GetcancellationReasons()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+
+                    var result = await connection.QueryAsync<CancellationReasonvm>(
+                        "GetAttendanceReasons",
+                        commandType: CommandType.StoredProcedure
+                    );
+                    return result.AsList();
+                }
+            }
+            catch
+            {
+                return new List<CancellationReasonvm>();
+            }
+        }
     }
 }

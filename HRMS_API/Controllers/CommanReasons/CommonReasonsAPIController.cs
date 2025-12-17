@@ -45,6 +45,31 @@ namespace HRMS_API.Controllers.CommanReasons
             }
         }
 
+        [HttpGet("GetcancellationReasons")]
+        public async Task<APIResponse> GetcancellationReasons()
+        {
+            try
+            {
+                var data = await _unitOfWork.CommonReasonsRepository.GetcancellationReasons();
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
 
 
     }
