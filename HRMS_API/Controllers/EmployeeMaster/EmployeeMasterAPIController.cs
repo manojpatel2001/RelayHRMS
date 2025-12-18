@@ -366,33 +366,33 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
                     }
 
-                    if ((existingUser.ProbationCompletionPeriod == 0 || existingUser.ProbationCompletionPeriod == null) && employeeData.ProbationCompletionPeriod != 0)
-                    {
-                        //Notification send to reporting persion
-                        if (employeeData.ManagerProbationId != null)
-                        {
-                            var notification = new NotificationRemainders()
-                            {
-                                NotificationMessage = $"Employee {employeeData.FullName} is in probation from Now.",
-                                NotificationTime = DateTime.UtcNow,
-                                SenderId = employeeData.Id.ToString(),
-                                ReceiverIds = employeeData.ManagerProbationId.ToString(),
-                                NotificationType = NotificationType.ProbationOver,
-                                NotificationAffectedId = employeeData.Id
-                            };
-                            var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
-                            if (savedNotification.Success > 0)
-                            {
-                                notification.NotificationRemainderId = savedNotification.Success;
-                                var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(employeeData.ManagerProbationId.ToString());
-                                if (reprtingConnection.Any())
-                                {
-                                    await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
-                                }
-                            }
-                        }
+                    //if ((existingUser.ProbationCompletionPeriod == 0 || existingUser.ProbationCompletionPeriod == null) && employeeData.ProbationCompletionPeriod != 0)
+                    //{
+                    //    //Notification send to reporting persion
+                    //    if (employeeData.ManagerProbationId != null)
+                    //    {
+                    //        var notification = new NotificationRemainders()
+                    //        {
+                    //            NotificationMessage = $"Employee {employeeData.FullName} is in probation from Now.",
+                    //            NotificationTime = DateTime.UtcNow,
+                    //            SenderId = employeeData.Id.ToString(),
+                    //            ReceiverIds = employeeData.ManagerProbationId.ToString(),
+                    //            NotificationType = NotificationType.ProbationOver,
+                    //            NotificationAffectedId = employeeData.Id
+                    //        };
+                    //        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                    //        if (savedNotification.Success > 0)
+                    //        {
+                    //            notification.NotificationRemainderId = savedNotification.Success;
+                    //            var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(employeeData.ManagerProbationId.ToString());
+                    //            if (reprtingConnection.Any())
+                    //            {
+                    //                await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                    //            }
+                    //        }
+                    //    }
 
-                    }
+                    //}
 
 
                     var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)result.Id);
