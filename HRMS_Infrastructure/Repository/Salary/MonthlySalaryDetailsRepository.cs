@@ -90,7 +90,7 @@ namespace HRMS_Infrastructure.Repository.Salary
             try
             {
                 return await _db.Set<SalaryReportDTO>()
-                    .FromSqlInterpolated($@"EXEC [dbo].[USP_CalculateMonthlySalary1]
+                    .FromSqlInterpolated($@"EXEC [dbo].[USP_CalculateMonthlySalary_V2]
                 @StartDate ={vm.StartDate},
                 @EndDate ={vm.EndDate},
                 @EmployeeCodes ={vm.EmployeeCodes},
@@ -265,20 +265,17 @@ namespace HRMS_Infrastructure.Repository.Salary
         }
 
         public async Task<List<EmployeeSalaryRegisterViewModel>> GetEmployeeSalaryRegister(
-           int Month,
-           int Year,
-           int CompanyId,
-           string EmployeeCodes)
+         SalaryRegisterVM Model)
         {
             try
             {
                 using (var connection = new SqlConnection(_connectionString))
                 {
                     var parameters = new DynamicParameters();
-                    parameters.Add("@MonthNumber", Month);
-                    parameters.Add("@Year", Year);
-                    parameters.Add("@CompId", CompanyId);
-                    parameters.Add("@EmployeeCode", EmployeeCodes);
+                    parameters.Add("@MonthNumber", Model.Month);
+                    parameters.Add("@Year", Model.Year);
+                    parameters.Add("@CompId", Model.CompanyId);
+                    //parameters.Add("@EmployeeCode", Model.EmployeeCodes);
 
                     var result = await connection.QueryAsync<EmployeeSalaryRegisterViewModel>(
                         "GetEmployeeSalaryRegister",

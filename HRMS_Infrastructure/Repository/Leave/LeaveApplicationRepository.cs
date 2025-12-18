@@ -3,6 +3,7 @@ using HRMS_Core.DbContext;
 using HRMS_Core.Leave;
 using HRMS_Core.Notifications;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface.Leave;
 using Microsoft.Data.SqlClient;
@@ -302,6 +303,30 @@ namespace HRMS_Infrastructure.Repository.Leave
             {
                 Console.WriteLine("GetLeaveApplicationsReport Error: " + ex.Message);
                 return new List<LeaveApplicationReportModel>();
+            }
+        }
+
+        public async Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord)
+        {
+            try
+            {
+                VMCommonResult finalResult = new VMCommonResult();
+
+                foreach (int id in deleteRecord.Id)
+                {
+                     var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                      EXEC sp_DeleteLeaveApplication
+                          @LeaveApplicationid = {id},
+                          @DeletedBy = {deleteRecord.DeletedBy}").ToListAsync();
+
+                    finalResult = result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                }
+
+                return finalResult;
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
             }
         }
     }

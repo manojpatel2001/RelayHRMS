@@ -1,4 +1,5 @@
 ﻿using HRMS_Infrastructure.Interface.ApprovalManagement;
+using HRMS_Infrastructure.Interface.CommanReason;
 using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
 using HRMS_Infrastructure.Interface.EmailService;
@@ -140,7 +141,12 @@ namespace HRMS_Infrastructure.Interface
         IAttendanceLockRepository AttendanceLockRepository { get; }
         IEmployeeBankDetailsRepository EmployeeBankDetailsRepository { get; }
         IApprovalManagementRepository ApprovalManagementRepository { get; }
+
         IApprovalMasterRepository ApprovalMasterRepository { get; }
+
+        ILeaveCancellationRepository LeaveCancellationRepository { get; }
+        ICommonReasonsRepository CommonReasonsRepository { get; }
+
         void Commit();
         Task CommitAsync();
     }

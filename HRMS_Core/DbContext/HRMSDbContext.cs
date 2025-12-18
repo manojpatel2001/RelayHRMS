@@ -328,6 +328,16 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<LeaveYearlySummaryViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<EMpDetails>().HasNoKey().ToView(null);
              modelBuilder.Entity<AttendanceCount>().HasNoKey().ToView(null);
+             modelBuilder.Entity<SalaryRegisterVM>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LeaveCancellationReportViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LeaveCancellationReportRequest>().HasNoKey().ToView(null);
+             modelBuilder.Entity<CancellationReasonvm>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LeaveCancellationRequestVM>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EmpLeaveCancellationRequestReportViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LeaveCancellationRequestFilterViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<vmLeaveCancellationReportFilter>().HasNoKey().ToView(null);
+             modelBuilder.Entity<updateLeaveCancellationRequestVM>().HasNoKey().ToView(null);
+             modelBuilder.Entity<vmLeaveCancellationReportFilterAdmin>().HasNoKey().ToView(null);
 
 
 

@@ -59,6 +59,7 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
             ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
             ViewBag.BaseUrlAPI = _configuration["BaseUrlSettings:baseUrl"];
 
+
             return View();
         }
         public IActionResult AddAttendance()
@@ -72,6 +73,22 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
         {
             ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
             ViewBag.BaseUrlAPI = _configuration["BaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+        public IActionResult AddLeavecancellationRequest()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];       
+            return View();
+        }
+        public IActionResult EmpLeavecancellationReport()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];       
+            return View();
+        }
+        public IActionResult ReportingWiseLeavecancellationReport()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];       
             return View();
         }
     }

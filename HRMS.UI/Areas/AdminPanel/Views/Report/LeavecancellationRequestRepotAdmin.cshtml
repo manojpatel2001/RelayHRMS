@@ -1,18 +1,14 @@
 ﻿@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Attendance Regularization Approval";
-    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
-    string apiBase = ViewBag.BaseUrlAPI;
-    string baseUrls = Configuration["BaseUrlSettings:baseUrl"];
-    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
-    var uri = new Uri(baseUrls);
+    ViewData["Title"] = "Attendance Regularization";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
     string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
-
-<title>Search Panel</title>
+<title>Leave Cancellation Approval</title>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -107,20 +103,20 @@
         padding: 0;
     }
 
-    #attendanceGrid {
+    #leaveCancellationGrid {
         width: 100% !important;
         min-width: 100% !important;
     }
 
-        #attendanceGrid .dx-datagrid {
+        #leaveCancellationGrid .dx-datagrid {
             width: 100% !important;
         }
 
-        #attendanceGrid .dx-datagrid-content {
+        #leaveCancellationGrid .dx-datagrid-content {
             width: 100% !important;
         }
 
-        #attendanceGrid .dx-datagrid-table {
+        #leaveCancellationGrid .dx-datagrid-table {
             width: 100% !important;
             table-layout: auto !important;
         }
@@ -144,6 +140,15 @@
         width: 100%;
         margin-bottom: 10px;
     }
+
+    .btn-add {
+        background-color: orange;
+        color: white;
+        font-size: 14px;
+        padding: 6px 15px;
+        border: none;
+        border-radius: 4px;
+    }
 </style>
 
 <!-- Search Panel Header -->
@@ -151,20 +156,20 @@
     <div class="search-panel-container">
         <div class="search-panel-row">
             <div class="search-heading">Search panel</div>
+            <a href="/AdminPanel/Report/AddLeavecancellationRequestAdmin" class="btn-add">Add</a>
         </div>
     </div>
 </div>
-
 <!-- Form Starts -->
 <div class="form-section">
     <!-- Row 1: Search By & Search For -->
-        <div class="row justify-content-center mb-3">
+    <div class="row justify-content-center mb-3">
         <div class="col-md-5 d-flex align-items-center">
             <label for="searchby" class="form-label mb-0 me-2" style="width: 120px;">Search By<span class="text-danger">*</span>:</label>
             <select class="form-select form-select-sm" id="searchby" style="width: 180px;">
                 <option value="1">Emp Name</option>
                 <option value="2">Emp Code</option>
-                <option value="3">Reason</option>
+                <option value="3">Leave Type</option>
                 <option value="4">Manager Name</option>
             </select>
         </div>
@@ -210,27 +215,26 @@
                 <div class="d-flex align-items-center mt-2 mt-md-0">
                     <button class="btn btn-custom me-2" id="btnGo">Go</button>
                     <button class="btn btn-custom" id="btnClear">Clear</button>
-                    <button onclick="goBack()" class="btn btn-custom">Back</button>
+                    <button class="btn btn-custom" onclick="goBack()">Back</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- EMPLOYEE REGULARIZATION Heading -->
+<!-- LEAVE CANCELLATION Heading -->
 <div class="search-panel-wrapper mt-2">
     <div class="search-panel-container">
         <div class="search-panel-row">
-            <div class="search-heading">EMPLOYEE REGULARIZATION</div>
+            <div class="search-heading">LEAVE CANCELLATION REQUESTS</div>
         </div>
     </div>
 </div>
 
-<!-- Delete Button + Grid Container -->
+<!-- Action Buttons + Grid Container -->
 <div class="container mt-3">
     <!-- Action Buttons Row -->
     <div id="actionButtons" class="custom-action-buttons text-end mb-2" style="display: none;">
-        <button id="btnDelete" class="btn btn-custom">Delete</button>
         <button id="btnApprove" class="btn btn-custom">Approve</button>
         <button id="btnReject" class="btn btn-custom">Reject</button>
     </div>
@@ -240,7 +244,7 @@
          class="grid-loader justify-content-center align-items-center flex-column"
          style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
-        <img src="@baseDomainUrl/loders/loder.png"
+        <img src="@(baseDomainUrl)/loders/loder.png"
              class="grid-logo-spinner"
              style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
         <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
@@ -248,25 +252,26 @@
 
     <!-- Grid Container with proper width -->
     <div class="grid-container">
-        <div id="attendanceGrid"></div>
+        <div id="leaveCancellationGrid"></div>
     </div>
 </div>
 
 <script>
     const EmployeeId = localStorage.getItem('EmployeeId');
-    const apiBase = '@apiBase';
-
+      const savedCompany = localStorage.getItem('selectedCompany');
+      var companyDetails = JSON.parse(savedCompany);
+      const CompanyId = companyDetails.CompanyId;
     // Safe grid disposal function
     function safeDisposeGrid() {
         try {
-            var gridInstance = $("#attendanceGrid").data("dxDataGrid");
+            var gridInstance = $("#leaveCancellationGrid").data("dxDataGrid");
             if (gridInstance) {
                 gridInstance.dispose();
             }
         } catch (e) {
-            // Grid doesn't exist, continue
+
         }
-        $("#attendanceGrid").empty();
+        $("#leaveCancellationGrid").empty();
     }
 
     $(document).ready(function () {
@@ -274,11 +279,11 @@
         $('#btnGo').click(); // Trigger initial load
 
         $("#btnApprove").click(function () {
-            updateAttendanceStatus("Approved");
+            updateLeaveCancellationStatus("Approved");
         });
 
         $("#btnReject").click(function () {
-            updateAttendanceStatus("Rejected");
+            updateLeaveCancellationStatus("Rejected");
         });
     });
 
@@ -297,16 +302,15 @@
         switch (value) {
             case '1': return 'EmpName';
             case '2': return 'EmpCode';
-            case '3': return 'Reason';
+            case '3': return 'LeaveType';
             case '4': return 'ManagerName';
             default: return null;
         }
     }
 
-    function goBack() {
-        window.location.href = '@UIBaseUrl/EmployeePanel/Home/index';
-    }
-
+        function goBack() {
+            window.history.back(); // Navigates to the previous page
+        }
     async function showLoder() {
         $('#grid-loader').addClass('d-flex').show();
     }
@@ -315,11 +319,10 @@
         $('#grid-loader').removeClass('d-flex').hide();
     }
 
-
     function loadGrid(data) {
         // Dispose existing grid first to prevent conflicts
         try {
-            const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+            const gridInstance = $("#leaveCancellationGrid").dxDataGrid("instance");
             if (gridInstance) {
                 gridInstance.dispose();
             }
@@ -328,21 +331,20 @@
         }
 
         // Clear the container
-        $("#attendanceGrid").empty();
+        $("#leaveCancellationGrid").empty();
 
-        // Check if data is empty - hide everything if no data
         if (!data || data.length === 0) {
             $("#actionButtons").hide();
-            $(".search-panel-wrapper").last().hide(); // Hide "EMPLOYEE REGULARIZATION" heading
+            $(".search-panel-wrapper").last().hide();
             return;
         }
 
         // Show heading if data exists
         $(".search-panel-wrapper").last().show();
 
-        $("#attendanceGrid").dxDataGrid({
+        $("#leaveCancellationGrid").dxDataGrid({
             dataSource: data,
-            keyExpr: "attendanceRegularizationId",
+            keyExpr: "leaveCancellationId",
             showBorders: true,
             width: "100%",
             height: 400,
@@ -366,37 +368,17 @@
                 selectedKeys = e.selectedRowKeys;
             },
             columns: [
-                { dataField: "employeeCode", caption: "Code", width: 80 },
-                { dataField: "empId", visible: false },
-                { dataField: "fullName", caption: "Name", width: 250 },
-                { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
-                { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
-                { dataField: "inTime", caption: "In Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
-                { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
-                { dataField: "duration", caption: "Duration", dataType: "string", width: 80 },
-                { dataField: "day", caption: "Day", dataType: "string", width: 100 },
-                { dataField: "reason", caption: "Reason", dataType: "string", width: 150 },
-                  {
-                         caption: "Status",
-                         width: 80,
-                         alignment: "center",
-                         allowFiltering: false,
-                         allowSorting: false,
-                         cellTemplate: function(container, options) {
-                             const row = options.data;
-                             let statusText = "";
+                { dataField: "employeeCode", caption: "Employee Code", width: 80 },
+                { dataField: "id", visible: false },
+                { dataField: "fullName", caption: "Employee Name", width: 200 },
+                { dataField: "leave_Name", caption: "Leave Type", width: 120 },
+                { dataField: "fromDate", caption: "From Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "toDate", caption: "To Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "no_Of_Date", caption: "Days", width: 60 },
+                { dataField: "reason", caption: "Cancellation Reason", width: 200 },
+                { dataField: "leaveStatus", caption: "Leave Status", width: 200 },
+                // { dataField: "CreatedDate", caption: "Request Date", dataType: "date", format: "dd/MM/yyyy", width: 110 },
 
-                             if (row.isApproved === true) {
-                                 statusText = "Approved";
-                             } else if (row.isRejected === true) {
-                                 statusText = "Rejected";
-                             } else if (row.isPending === true) {
-                                 statusText = "Pending";
-                             }
-
-                             $("<div>").text(statusText).appendTo(container);
-                         }
-                     },
                 {
                     dataField: "updatedBy",
                     caption: "Approved By",
@@ -406,7 +388,7 @@
                     }
                 },
                 {
-                    dataField: "updatedDate",
+                    dataField: "approvedDate",
                     caption: "Approved Date",
                     dataType: "date",
                     format: "dd/MM/yyyy",
@@ -432,26 +414,26 @@
             SearchValue: $('#searchfor').val(),
             FromDate: $('#fromdate').val() || null,
             ToDate: $('#todate').val() || null,
-            Status: getStatus(),
-            LoggedInUserId: EmployeeId
+            LeaveStatus: getStatus(),
+            Companyid: CompanyId
         };
 
+        showLoder();
+
         $.ajax({
-            url: apiBase + "/AttendanceRegularizationAPI/GetAttendanceRegularizationApproval",
+            url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/GetLeaveCancellationReportAdmin")',
             type: 'POST',
             data: JSON.stringify(model),
             contentType: 'application/json',
-            beforeSend: function(xhr) {
-                console.log('Request starting...');
-            },
             success: function (res) {
+                hideLoder();
                 console.log('Response received:', res);
 
                 if (res.isSuccess) {
                     if (res.data && res.data.length > 0) {
                         loadGrid(res.data);
                     } else {
-                        // No data - hide everything
+
                         $("#actionButtons").hide();
                         $(".search-panel-wrapper").last().hide();
                         safeDisposeGrid();
@@ -465,6 +447,7 @@
                 }
             },
             error: function (xhr, status, error) {
+                hideLoder();
                 console.error('AJAX Error:', {
                     status: status,
                     error: error,
@@ -480,7 +463,7 @@
         });
     });
 
-     $("#btnClear").click(function () {
+    $("#btnClear").click(function () {
         // Reset form
         $('#searchby').val("1");
         $('#searchfor').val('');
@@ -489,170 +472,81 @@
         $("input[name='type']").prop('checked', false);
         $('#r2').prop('checked', true);
 
-        // Safe grid disposal and hide everything
         safeDisposeGrid();
         $("#actionButtons").hide();
         $(".search-panel-wrapper").last().hide();
     });
 
-    // Update delete button handler to check for remaining data:
-    $('#btnDelete').on('click', function () {
-         var grid = $("#attendanceGrid").dxDataGrid("instance");
-    var selectedRows = grid.getSelectedRowsData();
+    function updateLeaveCancellationStatus(status) {
+        debugger;
+        var grid = $("#leaveCancellationGrid").dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
 
-    if (selectedRows.length === 0) {
+     if (selectedRows.length === 0) {
         round_error_noti("Please select at least one record.");
         return;
     }
-    const approvedRecords = selectedRows.filter(row => row.isApproved);
-    if (approvedRecords.length > 0) {
+
+    const hasApproved = selectedRows.some(row => row.isApproved);
+    const hasRejected = selectedRows.some(row => row.isRejected);
+
+    if (hasApproved) {
         Swal.fire({
             title: "Not Allowed",
-            text: "Approved records cannot be deleted.",
+            text: "Approved records cannot be modified.",
             icon: "error",
-            customClass: {
-                popup: 'swal-small'
-            }
+            customClass: { popup: 'swal-small' }
         });
         return;
     }
 
-    // Check for rejected records
-    const rejectedRecords = selectedRows.filter(row => row.isRejected);
-    if (rejectedRecords.length > 0) {
+    if (hasRejected) {
         Swal.fire({
             title: "Not Allowed",
-            text: "Rejected records cannot be deleted.",
+            text: "Rejected records cannot be modified.",
             icon: "error",
-            customClass: {
-                popup: 'swal-small'
-            }
+            customClass: { popup: 'swal-small' }
         });
         return;
     }
 
-    showLoder();
-
-    const selectedIds = selectedRows.map(row => row.attendanceRegularizationId);
-
-    const deletePayload = {
-        Id: selectedIds,
-        DeletedBy: EmployeeId
-    };
-
-
-        $.ajax({
-            url: apiBase + "/AttendanceRegularizationAPI/Delete",
-            type: 'DELETE',
-            contentType: 'application/json',
-            data: JSON.stringify(deletePayload),
-            success: function (res) {
-                if (res.isSuccess) {
-                    round_success_noti(res.responseMessage || "Deleted successfully.");
-
-                    // Reload grid with current search
-                    $('#btnGo').click();
-                } else {
-                    round_error_noti(res.responseMessage || "Deletion failed.");
-                }
-            },
-            error: function () {
-                round_error_noti("Something went wrong during deletion.");
-            },
-            complete: function () {
-                hideLoder();
-            }
-        });
+    var payload = selectedRows.map(function (row) {
+        return {
+            leaveCancellationId: row.leaveCancellationId,
+            employeeId: row.id,
+            isApproved: (status === "Approved"),
+            isRejected: (status === "Rejected"),
+            updatedBy: EmployeeId
+        };
     });
 
-    function updateAttendanceStatus(status) {
-        var grid = $("#attendanceGrid").dxDataGrid("instance");
-        var selectedRows = grid.getSelectedRowsData();
-
-        if (selectedRows.length === 0) {
-            round_error_noti("Please select at least one record.");
-            return;
-        }
-
-        if (status === "Rejected") {
-            const approvedRecords = selectedRows.filter(row => row.isApproved);
-            if (approvedRecords.length > 0) {
-                Swal.fire({
-                    title: "Not Allowed",
-                    text: "Approved records cannot be rejected.",
-                    icon: "error",
-                    customClass: {
-                        popup: 'swal-small'
-                    }
-                });
-                return;
-            }
-        }
-
-        if (status === "Approved") {
-            const approvedRecords = selectedRows.filter(row => row.isApproved);
-            if (approvedRecords.length > 0) {
-                Swal.fire({
-                    title: "Not Allowed",
-                    text: "Already Approved.",
-                    icon: "error",
-                    customClass: {
-                        popup: 'swal-small'
-                    }
-                });
-                return;
-            }
-        }
-
-        if (status === "Rejected") {
-            const rejectedRecords = selectedRows.filter(row => row.isRejected);
-            if (rejectedRecords.length > 0) {
-                Swal.fire({
-                    title: "Not Allowed",
-                    text: "Already Rejected.",
-                    icon: "error",
-                    customClass: {
-                        popup: 'swal-small'
-                    }
-                });
-                return;
-            }
-        }
-
-        selectedRows.forEach(function (row) {
-            row.status = status;
-            row.createdBy = EmployeeId;
-        });
 
         showLoder();
         $.ajax({
-            url: apiBase + "/AttendanceRegularizationAPI/UpdateAttendanceRegularization",
+            url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/UpdateLeaveCancellationStatus")',
             type: "PUT",
-            data: JSON.stringify(selectedRows),
+            data: JSON.stringify(payload), // Send the list of requests
             contentType: "application/json",
             success: function (response) {
                 hideLoder();
                 if (response.isSuccess) {
-                    round_success_noti(response.responseMessage || "Status updated successfully.");
-
-                    // Reload the grid with current search criteria instead of hiding buttons
-                    $('#btnGo').click();
+                    round_success_noti(response.responseMessage);
+                    $('#btnGo').click(); // Refresh the grid
                 } else {
-                    round_error_noti(response.responseMessage || "Update failed.");
+                    round_error_noti(response.responseMessage);
                 }
             },
-            error: function () {
+            error: function (xhr, status, error) {
                 hideLoder();
-                   console.error("AJAX Error:", error);
+                console.error("AJAX Error:", error);
                 round_error_noti("Something went wrong during update.");
             }
         });
     }
 
-
-    // Handle window resize
+    //Handle window resize
     $(window).on('resize', function() {
-        var gridInstance = $("#attendanceGrid").data("dxDataGrid");
+        var gridInstance = $("#leaveCancellationGrid").data("dxDataGrid");
         if (gridInstance) {
             setTimeout(function() {
                 gridInstance.updateDimensions();
