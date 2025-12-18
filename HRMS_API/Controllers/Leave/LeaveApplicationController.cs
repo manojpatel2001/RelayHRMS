@@ -3,6 +3,7 @@ using HRMS_API.NotificationService.HubService;
 using HRMS_API.NotificationService.ManageService;
 using HRMS_Core.Leave;
 using HRMS_Core.Notifications;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
@@ -30,7 +31,7 @@ namespace HRMS_API.Controllers.Leave
 
         [HttpPost("AddLeaveapplication")]
 
-        public async Task<APIResponse> AddLeaveapplication([FromBody]LeaveApplication Leave)
+        public async Task<APIResponse> AddLeaveapplication([FromBody] LeaveApplication Leave)
         {
             try
             {
@@ -38,7 +39,7 @@ namespace HRMS_API.Controllers.Leave
                 Leave.LeaveStatus = "Pending";
 
                 var isexist = await _unitOfWork.LeaveApplicationRepository.GetAsync(asp => asp.EmplooyeId == Leave.EmplooyeId && asp.FromDate == Leave.FromDate && asp.Todate == Leave.Todate);
-             
+
                 if (isexist != null)
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Alredy leave applyed for this period" };
@@ -56,8 +57,8 @@ namespace HRMS_API.Controllers.Leave
 
                 var isSaved = await _unitOfWork.LeaveApplicationRepository.InsertLeaveApplicationAsync(Leave);
 
-                if (isSaved.Success<=0)
-                    return new APIResponse { isSuccess = false, ResponseMessage =isSaved.ResponseMessage };
+                if (isSaved.Success <= 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = isSaved.ResponseMessage };
 
                 //Notification send to reporting persion
                 var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)Leave.EmplooyeId);
@@ -66,9 +67,9 @@ namespace HRMS_API.Controllers.Leave
                     NotificationMessage = $"{employeeDetails?.FullName} has applied for leave from {Leave.FromDate:dd-MM-yyyy} to {Leave.Todate:dd-MM-yyyy}. Awaiting your approval.",
                     NotificationTime = DateTime.UtcNow,
                     SenderId = Leave.EmplooyeId.ToString(),
-                    ReceiverIds=Leave.ReportingManagerId.ToString(),
-                    NotificationType= NotificationType.LeaveApplication,
-                    NotificationAffectedId=isSaved.Success
+                    ReceiverIds = Leave.ReportingManagerId.ToString(),
+                    NotificationType = NotificationType.LeaveApplication,
+                    NotificationAffectedId = isSaved.Success
                 };
                 var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
                 if (savedNotification.Success > 0)
@@ -219,11 +220,11 @@ namespace HRMS_API.Controllers.Leave
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input." };
                 }
-                
+
 
                 var isSaved = await _unitOfWork.LeaveApplicationRepository.Updateapproval(LVM);
 
-                if (isSaved.Success<1)
+                if (isSaved.Success < 1)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
 
                 //if (LVM.Status == "Approved")
@@ -248,7 +249,7 @@ namespace HRMS_API.Controllers.Leave
                             NotificationMessage = $"{reportingDetails?.FullName} has {LVM.Status} your leave from {applicationDetails.FromDate:dd-MM-yyyy} to {applicationDetails.Todate:dd-MM-yyyy} ",
                             NotificationTime = DateTime.UtcNow,
                             SenderId = reportingDetails?.Id.ToString(),
-                            ReceiverIds =  applicationDetails.EmplooyeId.ToString(),
+                            ReceiverIds = applicationDetails.EmplooyeId.ToString(),
                             NotificationType = NotificationType.LeaveApproval,
                             NotificationAffectedId = applicationId
                         };
@@ -499,6 +500,34 @@ namespace HRMS_API.Controllers.Leave
                 };
             }
         }
+
+
+        [HttpDelete("Delete")]
+        public async Task<APIResponse> Delete([FromBody] DeleteRecordVModel DeleteRecord)
+        {
+            try
+            {
+                if (DeleteRecord == null)
+                {
+                    return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
+                }
+
+                var data = await _unitOfWork.LeaveApplicationRepository.Delete(DeleteRecord);
+                await _unitOfWork.CommitAsync();
+
+                return new APIResponse() { isSuccess = true, Data = DeleteRecord, ResponseMessage = "The record has been deleted successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to delete records, Please try again later!"
+                };
+            }
+        }
+
 
     }
 }

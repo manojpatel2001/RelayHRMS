@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using HRMS_Core.Leave;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
 using System;
 using System.Collections.Generic;
@@ -21,6 +22,7 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<List<LeaveBalanceViewModel>> GetLeaveBalance(LeaveBalance_Param vm);
         Task<SP_Response> Updateapproval(LeaveaprovalVM LVM);
         Task<bool> softdelete(LeaveApplication Leave);
+        Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord);
         Task<LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId);
         Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(GetYearlyLeaveReportRequest request);
         Task<List<LeaveApplicationReportModel>> GetLeaveApplicationsReport(GetYearlyLeaveReportRequest request);
