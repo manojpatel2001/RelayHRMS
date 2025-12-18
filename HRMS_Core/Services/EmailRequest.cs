@@ -15,6 +15,7 @@ namespace HRMS_Core.Services
         public string Subject { get; set; } = string.Empty;
         public string TemplateName { get; set; } = string.Empty;
         public Dictionary<string, string>? Placeholders { get; set; }
+        public byte[]? PdfFile { get; set; }
     }
 
 }

@@ -10,6 +10,7 @@ namespace HRMS_Core.VM.ManagePermision
     {
         public int Id { get; set; }
         public string? FullName { get; set; }
+        public string? EmployeeCode { get; set; }
         public string? Designation { get; set; }
         public string? ProfileUrl { get; set; }
         public string? Email { get; set; }

@@ -7,32 +7,33 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.Probations
 {
+
     public class ProbationPerformance
     {
-        public int ProbationPerformanceId {  get; set; }
-        public int? EmployeeId {  get; set; }
-        public string? ReviewType {  get; set; }
-        public DateTime? EvaluationDate {  get; set; }
-        public string? Period {  get; set; }
-        public int? EmployeeType {  get; set; }
-        public string? MajorStrengths {  get; set; }
-        public string? MajorWeaknesses {  get; set; }
-        public string? RemarksOfAppraiser {  get; set; }
-        public string? RemarksOfAppraisalReviewer {  get; set; }
-        public string? ScoreRange  {  get; set; }
-        public string? DocumentUrl  {  get; set; }
-        public IFormFile? DocumentFile  {  get; set; }
-        public int? ExtendedInDays {  get; set; }
-        public DateTime? ProbationExtendedDate {  get; set; }
+        public int? ProbationPerformanceId { get; set; }
+        public int? EmployeeId { get; set; }
+        public int ProbationStatusId { get; set; }
+        public int? ProbationEvaluationPeriodId { get; set; }
+        public int Rating { get; set; } = 0;
+        public DateTime? ProbationEvaluationDate { get; set; }
+        public string? RemarksOfApprover { get; set; }
+        public int? EmployeeTypeId { get; set; }
+        public int? Level { get; set; }
+        
 
-        //base
-        public bool? IsDeleted { get; set; } = false;
-        public bool? IsEnabled { get; set; } = true;
-        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
-        public string? CreatedBy { get; set; }
-        public DateTime? UpdatedDate { get; set; }
-        public string? UpdatedBy { get; set; }
-        public DateTime? DeletedDate { get; set; }
-        public string? DeletedBy { get; set; }
+        public DateTime? ProbationEndDate { get; set; }
+        public DateTime? EscalationDate { get; set; }
+        public int ApprovalRequestId { get; set; } = 0;
+        public int ApprovalRequestLevelId { get; set; } = 0;
+        public int? CreatedBy { get; set; }
+        public string? EmployeeName { get; set; }
+        public string? EmployeeCode { get; set; }
+        public string? ApproverName { get; set; }
+        public string? ApproverCode { get; set; }
+        public int? EvaluationDays { get; set; }
+        public string? CompanyName { get; set; }
+
     }
+
+   
 }

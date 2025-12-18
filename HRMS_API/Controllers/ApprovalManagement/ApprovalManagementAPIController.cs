@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.VM.ApprovalManagement;
+
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -17,15 +18,46 @@ namespace HRMS_API.Controllers.ApprovalManagement
             _unitOfWork = unitOfWork;
         }
 
-        // -------------------------------------------------------------
-        // 1️⃣ MANAGE APPROVAL SCHEME LEVEL
-        // -------------------------------------------------------------
-        [HttpPost("ManageApprovalSchemeLevel")]
-        public async Task<APIResponse> ManageApprovalSchemeLevel([FromBody] List<ApprovalSchemeLevelVM> model)
+        
+        [HttpGet("GetApprovalDropdownDetails")]
+        public async Task<APIResponse> GetApprovalDropdownDetails()
         {
             try
             {
-                return await _unitOfWork.ApprovalManagementRepository.ManageApprovalSchemeLevel(model);
+                return await _unitOfWork.ApprovalManagementRepository.GetApprovalDropdownDetails();
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = ex.Message // Return the actual error for debugging
+                };
+            }
+        }
+        [HttpGet("GetAllEmployByDepartmentId")]
+        public async Task<APIResponse> GetAllEmployByDepartmentId(int?CompanyId=null,int?DepartmentId=null)
+        {
+            try
+            {
+                return await _unitOfWork.ApprovalManagementRepository.GetAllEmployByDepartmentId(CompanyId, DepartmentId);
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = ex.Message // Return the actual error for debugging
+                };
+            }
+        }
+
+        [HttpPost("ManageApprovalLevel")]
+        public async Task<APIResponse> ManageApprovalLevel([FromBody] List<ApprovalLevelVM> model)
+        {
+            try
+            {
+                return await _unitOfWork.ApprovalManagementRepository.ManageApprovalLevel(model);
             }
             catch (Exception ex)
             {
@@ -123,118 +155,12 @@ namespace HRMS_API.Controllers.ApprovalManagement
         }
 
 
-        // -------------------------------------------------------------
-        // 6️⃣ GET LIST — APPROVAL SCHEME LEVEL
-        // -------------------------------------------------------------
-        [HttpGet("GetApprovalSchemeLevels")]
-        public async Task<APIResponse> GetApprovalSchemeLevels()
+        [HttpGet("GetAllApprovalLevelsByCompanyId/{CompanyId}")]
+        public async Task<APIResponse> GetAllApprovalLevelsByCompanyId(int CompanyId)
         {
             try
             {
-                var result = await _unitOfWork.ApprovalManagementRepository.GetApprovalSchemeLevels();
-
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = result
-                };
-            }
-            catch (Exception)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    ResponseMessage = "Unable to retrieve approval scheme levels."
-                };
-            }
-        }
-
-
-        // -------------------------------------------------------------
-        // 7️⃣ GET LIST — APPROVAL REQUESTS
-        // -------------------------------------------------------------
-        [HttpGet("GetApprovalRequests")]
-        public async Task<APIResponse> GetApprovalRequests()
-        {
-            try
-            {
-                var result = await _unitOfWork.ApprovalManagementRepository.GetApprovalRequests();
-
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = result
-                };
-            }
-            catch (Exception)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    ResponseMessage = "Unable to retrieve approval requests."
-                };
-            }
-        }
-
-
-        // -------------------------------------------------------------
-        // 8️⃣ GET LIST — REQUEST LEVELS
-        // -------------------------------------------------------------
-        [HttpGet("GetApprovalRequestLevels/{requestId}")]
-        public async Task<APIResponse> GetApprovalRequestLevels(int requestId)
-        {
-            try
-            {
-                var result = await _unitOfWork.ApprovalManagementRepository.GetApprovalRequestLevels(requestId);
-
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = result
-                };
-            }
-            catch (Exception)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    ResponseMessage = "Unable to retrieve approval request levels."
-                };
-            }
-        }
-
-
-        // -------------------------------------------------------------
-        // 9️⃣ GET LIST — REQUEST HISTORY
-        // -------------------------------------------------------------
-        [HttpGet("GetApprovalRequestHistory/{requestId}")]
-        public async Task<APIResponse> GetApprovalRequestHistory(int requestId)
-        {
-            try
-            {
-                var result = await _unitOfWork.ApprovalManagementRepository.GetApprovalRequestHistory(requestId);
-
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = result
-                };
-            }
-            catch (Exception)
-            {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    ResponseMessage = "Unable to retrieve approval request history."
-                };
-            }
-        }
-        [HttpGet("GetAllApprovalSchemeLevelsByCompanyId/{CompanyId}")]
-        public async Task<APIResponse> GetAllApprovalSchemeLevelsByCompanyId(int CompanyId)
-        {
-            try
-            {
-                var result = await _unitOfWork.ApprovalManagementRepository.GetAllApprovalSchemeLevelsByCompanyId(CompanyId);
+                var result = await _unitOfWork.ApprovalManagementRepository.GetAllApprovalLevelsByCompanyId(CompanyId);
 
                 return result;
             }
@@ -247,12 +173,12 @@ namespace HRMS_API.Controllers.ApprovalManagement
                 };
             }
         }
-        [HttpGet("GetAllApprovalSchemeLevelsBySchemeId/{SchemeId}")]
-        public async Task<APIResponse> GetAllApprovalSchemeLevelsBySchemeId(int SchemeId)
+        [HttpGet("GetAllApprovalLevelsByApprovalMasterId/{ApprovalMasterId}")]
+        public async Task<APIResponse> GetAllApprovalLevelsByApprovalMasterId(int ApprovalMasterId)
         {
             try
             {
-                var result = await _unitOfWork.ApprovalManagementRepository.GetAllApprovalSchemeLevelsBySchemeId(SchemeId);
+                var result = await _unitOfWork.ApprovalManagementRepository.GetAllApprovalLevelsByApprovalMasterId(ApprovalMasterId);
 
                 return result;
             }
@@ -266,12 +192,12 @@ namespace HRMS_API.Controllers.ApprovalManagement
             }
         }
 
-        [HttpPost("DeleteApprovalSchemeLevel")]
-        public async Task<APIResponse> DeleteApprovalSchemeLevel(ApprovalSchemeLevelPara model)
+        [HttpPost("DeleteApprovalLevel")]
+        public async Task<APIResponse> DeleteApprovalLevel(ApprovalLevelPara model)
         {
             try
             {
-                var result = await _unitOfWork.ApprovalManagementRepository.DeleteApprovalSchemeLevel(model);
+                var result = await _unitOfWork.ApprovalManagementRepository.DeleteApprovalLevel(model);
 
                 return result;
             }
@@ -281,6 +207,42 @@ namespace HRMS_API.Controllers.ApprovalManagement
                 {
                     isSuccess = false,
                     ResponseMessage = "Unable to delete approval ."
+                };
+            }
+        }
+        [HttpPost("GetPendingApprovalRequests")]
+        public async Task<APIResponse> GetPendingApprovalRequests([FromBody]GetPendingApprovalRequestsPara model)
+        {
+            try
+            {
+                var result = await _unitOfWork.ApprovalManagementRepository.GetPendingApprovalRequests(model);
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to fetch pending approval request."
+                };
+            }
+        }
+        [HttpPost("GetUpcomingProbationDetails")]
+        public async Task<APIResponse> GetUpcomingProbationDetails(GetUpcomingProbationDetailsPara model)
+        {
+            try
+            {
+                var result = await _unitOfWork.ApprovalManagementRepository.GetUpcomingProbationDetails(model);
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to fetch up comming probation ."
                 };
             }
         }

@@ -2,6 +2,8 @@
 using HRMS_Core.DbContext;
 using HRMS_Core.VM;
 using HRMS_Core.VM.ApprovalManagement;
+using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Probations;
 using HRMS_Infrastructure.Interface.ApprovalManagement;
 using HRMS_Utility;
 using Microsoft.Data.SqlClient;
@@ -25,10 +27,73 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
             _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
 
+
+        public async Task<APIResponse> GetApprovalDropdownDetails()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (var multi = await connection.QueryMultipleAsync(
+                        "GetApprovalDropdownDetails",
+                        commandType: CommandType.StoredProcedure))
+                    {
+                        var result = new ApprovalDropdownViewModel
+                        {
+                            Companies = (await multi.ReadAsync<CompanyViewModel>()).AsList(),
+                            ApprovalTypes = (await multi.ReadAsync<ApprovalTypeViewModel>()).AsList(),
+                            Designations = (await multi.ReadAsync<DesignationViewModel>()).AsList(),
+                            Departments = (await multi.ReadAsync<DepartmentViewModel>()).AsList()
+                        };
+
+                        return new APIResponse { Data = result, ResponseMessage = "Fetched successfully!", isSuccess = true };
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return new APIResponse { ResponseMessage = "Something went wrong!", isSuccess = false };
+            }
+        }
+
+
+        public async Task<APIResponse> GetAllEmployByDepartmentId(int? companyId, int? departmentId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var employees = await connection.QueryAsync<dynamic>(
+                        "GetAllEmployByDepartmentId",
+                        new { CompanyId = companyId, DepartmentId = departmentId },
+                        commandType: CommandType.StoredProcedure);
+
+                    return new APIResponse
+                    {
+                        Data = employees.AsList(),
+                        ResponseMessage = "Fetched successfully!",
+                        isSuccess = true
+                    };
+                }
+            }
+            catch (Exception)
+            {
+                return new APIResponse
+                {
+                    ResponseMessage = "Something went wrong!",
+                    isSuccess = false
+                };
+            }
+        }
+
         // -------------------------------------------------------------
         // APPROVAL SCHEME LEVEL
         // -------------------------------------------------------------
-        public async Task<APIResponse> ManageApprovalSchemeLevel(List<ApprovalSchemeLevelVM> models)
+        public async Task<APIResponse> ManageApprovalLevel(List<ApprovalLevelVM> models)
         {
             var response = new APIResponse();
             try
@@ -41,18 +106,19 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                     {
                         foreach (var model in models)
                         {
-                            // Handle ApprovalSchemeLevel
+                            // Handle ApprovalLevel
                             var p = new DynamicParameters();
                             p.Add("@Action", "Upsert");
-                            p.Add("@ApprovalSchemeLevelId", model.ApprovalSchemeLevelId);
-                            p.Add("@SchemeId", model.SchemeId);
-                            p.Add("@SequenceNo", model.SequenceNo);
+                            p.Add("@ApprovalLevelId", model.ApprovalLevelId);
+                            p.Add("@ApprovalMasterId", model.ApprovalMasterId);
+                            p.Add("@LevelNo", model.LevelNo);
                             p.Add("@ApproverEmployeeId", model.ApproverEmployeeId);
-                            p.Add("@ApproverDesignationName", model.ApproverDesignationName);
+                            p.Add("@IsReportingPerson", model.IsReportingPerson);
+                            p.Add("@IsHR", model.IsHR);
+                            p.Add("@IsNationalManager", model.IsNationalManager);
+                            p.Add("@IsHOD", model.IsHOD);
                             p.Add("@IsDepartmentBased", model.IsDepartmentBased);
                             p.Add("@EscalationDays", model.EscalationDays);
-                            p.Add("@SkipDays", model.SkipDays);
-                            p.Add("@IsNotMandatory", model.IsNotMandatory);
                             p.Add("@CreatedBy", model.CreatedBy);
                             p.Add("@UpdatedBy", model.UpdatedBy);
                             p.Add("@DeletedBy", model.DeletedBy);
@@ -62,7 +128,7 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                             p.Add("@ReturnId", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
                             await con.ExecuteAsync(
-                                "sp_Manage_ApprovalSchemeLevel",
+                                "sp_Manage_ApprovalLevel",
                                 p,
                                 commandType: CommandType.StoredProcedure,
                                 transaction: transaction
@@ -79,22 +145,22 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                                 return response;
                             }
 
-                            // Handle ApprovalSchemeLevelDepartment if IsDepartmentBased is true
-                            if (model.IsDepartmentBased && model.approvalSchemeLevelDepartmentVMs != null && model.approvalSchemeLevelDepartmentVMs.Any())
+                            // Handle ApprovalLevelDepartment if IsDepartmentBased is true
+                            if (model.IsDepartmentBased && model.ApprovalLevelDepartments != null && model.ApprovalLevelDepartments.Any())
                             {
-                                foreach (var dept in model.approvalSchemeLevelDepartmentVMs)
+                                foreach (var dept in model.ApprovalLevelDepartments)
                                 {
                                     var deptParams = new DynamicParameters();
-                                    deptParams.Add("@ApprovalSchemeLevelId", returnId);
+                                    deptParams.Add("@ApprovalLevelId", returnId);
                                     deptParams.Add("@DepartmentId", dept.DepartmentId);
-                                    deptParams.Add("@ApproverEmployeeId", dept.DeptApproverEmployeeId);
-                                    deptParams.Add("@ApproverDesignationName", dept.DeptApproverDesignationName);
+                                    deptParams.Add("@ApproverEmployeeId", dept.ApproverEmployeeId);
+                                    deptParams.Add("@IsNotMandatory", dept.IsNotMandatory);
                                     deptParams.Add("@IsActive", true);
                                     deptParams.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 100);
                                     deptParams.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
 
                                     await con.ExecuteAsync(
-                                        "usp_UpsertApprovalSchemeLevelDepartment",
+                                        "usp_UpsertApprovalLevelDepartment",
                                         deptParams,
                                         commandType: CommandType.StoredProcedure,
                                         transaction: transaction
@@ -179,7 +245,7 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
             return response;
         }
 
-        public async Task<APIResponse> DeleteApprovalSchemeLevel(ApprovalSchemeLevelPara para)
+        public async Task<APIResponse> DeleteApprovalLevel(ApprovalLevelPara para)
         {
             try
             {
@@ -188,15 +254,15 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                     await connection.OpenAsync();
                     var parameters = new DynamicParameters();
                     parameters.Add("@Action", "Delete");
-                    parameters.Add("@SchemeId", para.SchemeId);
-                    parameters.Add("@ApprovalSchemeLevelId", para.ApprovalSchemeLevelId);
+                    parameters.Add("@ApprovalMasterId", para.ApprovalMasterId);
+                    parameters.Add("@ApprovalLevelId", para.ApprovalLevelId);
                     parameters.Add("@DeletedBy", para.DeletedBy);
                     parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
                     parameters.Add("@Message", dbType: DbType.String, direction: ParameterDirection.Output, size: 300);
                     parameters.Add("@ReturnId", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
                     await connection.ExecuteAsync(
-                        "sp_Manage_ApprovalSchemeLevel",
+                        "sp_Manage_ApprovalLevel",
                         parameters,
                         commandType: CommandType.StoredProcedure
                     );
@@ -358,51 +424,8 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
         }
 
 
-        // -------------------------------------------------------------
-        // OPTIONAL GET METHODS
-        // -------------------------------------------------------------
-        public async Task<IEnumerable<dynamic>> GetApprovalSchemeLevels()
-        {
-            using (var con = new SqlConnection(_connectionString))
-            {
-                return await con.QueryAsync<dynamic>("SELECT * FROM ApprovalSchemeLevel WHERE IsActive = 1");
-            }
-        }
-
-        public async Task<IEnumerable<dynamic>> GetApprovalRequests()
-        {
-            using (var con = new SqlConnection(_connectionString))
-            {
-                return await con.QueryAsync<dynamic>("SELECT * FROM ApprovalRequest WHERE IsActive = 1");
-            }
-        }
-
-        public async Task<IEnumerable<dynamic>> GetApprovalRequestLevels(int requestId)
-        {
-            using (var con = new SqlConnection(_connectionString))
-            {
-                return await con.QueryAsync<dynamic>(
-                    "SELECT * FROM ApprovalRequestLevel WHERE ApprovalRequestId = @requestId AND IsActive = 1",
-                    new { requestId });
-            }
-        }
-
-        public async Task<IEnumerable<dynamic>> GetApprovalRequestHistory(int requestId)
-        {
-            using (var con = new SqlConnection(_connectionString))
-            {
-                return await con.QueryAsync<dynamic>(
-                    "SELECT * FROM ApprovalRequestHistory WHERE ApprovalRequestId = @requestId AND IsActive = 1",
-                    new { requestId });
-            }
-        }
-
-        public Task<APIResponse> ManageApprovalSchemeLevelDepartment(ApprovalSchemeLevelDepartmentVM model)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<APIResponse> GetAllApprovalSchemeLevelsByCompanyId(int companyId)
+     
+        public async Task<APIResponse> GetAllApprovalLevelsByCompanyId(int companyId)
         {
             var response = new APIResponse();
             try
@@ -413,8 +436,8 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                     var parameters = new DynamicParameters();
                     parameters.Add("@CompanyId", companyId, DbType.Int32);
 
-                    var result = await con.QueryAsync<GetApprovalSchemeLevelVM>(
-                        "usp_GetAllApprovalSchemeLevelsByCompanyId",
+                    var result = await con.QueryAsync<GetApprovalLevelVM>(
+                        "usp_GetAllApprovalLevelsByCompanyId",
                         parameters,
                         commandType: CommandType.StoredProcedure
                     );
@@ -422,18 +445,18 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                     // Deserialize the JSON string for approvalSchemeLevelDepartmentVMs
                     foreach (var level in result)
                     {
-                        if (!string.IsNullOrEmpty(level.approvalSchemeLevelDepartmentVMsJson))
+                        if (!string.IsNullOrEmpty(level.approvalLevelDepartmentVMsJson))
                         {
-                            level.approvalSchemeLevelDepartmentVMs = JsonConvert.DeserializeObject<List<GetApprovalSchemeLevelDepartmentVM>>(level.approvalSchemeLevelDepartmentVMsJson);
+                            level.approvalLevelDepartmentVMs = JsonConvert.DeserializeObject<List<GetApprovalLevelDepartmentVM>>(level.approvalLevelDepartmentVMsJson);
                         }
                         else
                         {
-                            level.approvalSchemeLevelDepartmentVMs = new List<GetApprovalSchemeLevelDepartmentVM>();
+                            level.approvalLevelDepartmentVMs = new List<GetApprovalLevelDepartmentVM>();
                         }
                     }
 
                     response.isSuccess = true;
-                    response.ResponseMessage = "Approval scheme levels fetched successfully.";
+                    response.ResponseMessage = "Approval  levels fetched successfully.";
                     response.Data = result;
                 }
             }
@@ -444,7 +467,7 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
             }
             return response;
         }
-        public async Task<APIResponse> GetAllApprovalSchemeLevelsBySchemeId(int schemeId)
+        public async Task<APIResponse> GetAllApprovalLevelsByApprovalMasterId(int ApprovalMasterId)
         {
             var response = new APIResponse();
             try
@@ -453,10 +476,10 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                 {
                     await con.OpenAsync();
                     var parameters = new DynamicParameters();
-                    parameters.Add("@SchemeId", schemeId, DbType.Int32);
+                    parameters.Add("@ApprovalMasterId", ApprovalMasterId, DbType.Int32);
 
-                    var result = await con.QueryAsync<GetApprovalSchemeLevelVM>(
-                        "usp_GetAllApprovalSchemeLevelsBySchemeId",
+                    var result = await con.QueryAsync<GetApprovalLevelVM>(
+                        "usp_GetAllApprovalLevelsByApprovalMasterId",
                         parameters,
                         commandType: CommandType.StoredProcedure
                     );
@@ -464,13 +487,13 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                     // Deserialize the JSON string for approvalSchemeLevelDepartmentVMs
                     foreach (var level in result)
                     {
-                        if (!string.IsNullOrEmpty(level.approvalSchemeLevelDepartmentVMsJson))
+                        if (!string.IsNullOrEmpty(level.approvalLevelDepartmentVMsJson))
                         {
-                            level.approvalSchemeLevelDepartmentVMs = JsonConvert.DeserializeObject<List<GetApprovalSchemeLevelDepartmentVM>>(level.approvalSchemeLevelDepartmentVMsJson);
+                            level.approvalLevelDepartmentVMs = JsonConvert.DeserializeObject<List<GetApprovalLevelDepartmentVM>>(level.approvalLevelDepartmentVMsJson);
                         }
                         else
                         {
-                            level.approvalSchemeLevelDepartmentVMs = new List<GetApprovalSchemeLevelDepartmentVM>();
+                            level.approvalLevelDepartmentVMs = new List<GetApprovalLevelDepartmentVM>();
                         }
                     }
 
@@ -486,5 +509,224 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
             }
             return response;
         }
+
+
+        // For usp_AutomateProbationEndApprovalRequests
+        public async Task<APIResponse> AutomateProbationEndApprovalRequests(int approvalMasterId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@ApprovalMasterId", approvalMasterId);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 500);
+
+                    await connection.ExecuteAsync(
+                        "usp_AutomateProbationEndApprovalRequests",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    var success = parameters.Get<bool>("@Success");
+                    var responseMessage = parameters.Get<string>("@ResponseMessage");
+
+                    return new APIResponse
+                    {
+                        isSuccess = success,
+                        ResponseMessage = responseMessage
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
+
+        // For usp_EscalatePendingApprovalRequests
+        public async Task<EscalationReturnPara> EscalatePendingApprovalRequests()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var parameters = new DynamicParameters();
+
+                    parameters.Add(
+                        "@Success",
+                        dbType: DbType.Boolean,
+                        direction: ParameterDirection.Output
+                    );
+
+                    parameters.Add(
+                        "@ResponseMessage",
+                        dbType: DbType.String,
+                        size: 1000,
+                        direction: ParameterDirection.Output
+                    );
+
+                    // ⭐ IMPORTANT FIX
+                    parameters.Add(
+                        "@EscalatedData",
+                        dbType: DbType.String,
+                        size: -1, // NVARCHAR(MAX)
+                        direction: ParameterDirection.Output
+                    );
+
+                    await connection.ExecuteAsync(
+                        "usp_EscalatePendingApprovalRequests",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return new EscalationReturnPara
+                    {
+                        IsSuccess = parameters.Get<bool>("@Success"),
+                        ResponseMessage = parameters.Get<string>("@ResponseMessage"),
+                        EscalatedData = parameters.Get<string>("@EscalatedData")
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new EscalationReturnPara
+                {
+                    IsSuccess = false,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
+
+        // For sp_ApprovalRequestLevel_Action
+        public async Task<ApprovalRequestLevelActionVm> ApprovalRequestLevelAction(ApprovalRequestLevelActionPara para)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@ApprovalRequestId", para.ApprovalRequestId);
+                    parameters.Add("@ApprovalRequestLevelId", para.ApprovalRequestLevelId);
+                    parameters.Add("@StatusId", para.StatusId);
+                    parameters.Add("@ActionBy", para.ActionBy);
+                    parameters.Add("@Remarks", para.Remarks);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 500);
+                    parameters.Add("@IsAllLevelsCompleted", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+
+                    await connection.ExecuteAsync(
+                        "sp_ApprovalRequestLevel_Action",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    // Nullable types use karein aur null checks lagayein
+                    var success = parameters.Get<bool?>("@Success") ?? false;
+                    var responseMessage = parameters.Get<string>("@ResponseMessage") ?? "No response message.";
+                    var isAllLevelsCompleted = parameters.Get<bool?>("@IsAllLevelsCompleted") ?? false;
+
+                    return new ApprovalRequestLevelActionVm
+                    {
+                        IsAllLevelsCompleted = isAllLevelsCompleted,
+                        IsSuccess = success,
+                        ResponseMessage = responseMessage
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new ApprovalRequestLevelActionVm
+                {
+                    IsAllLevelsCompleted = false,
+                    IsSuccess = false,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
+
+
+        public async Task<APIResponse> GetPendingApprovalRequests(GetPendingApprovalRequestsPara para)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@ApproverEmployeeId", para.ApproverEmployeeId);
+                    parameters.Add("@StatusId", para.StatusId);
+
+                    var pendingApprovalRequests = await connection.QueryAsync<dynamic>(
+                        "usp_GetPendingApprovalRequests",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        ResponseMessage = "Pending approval requests retrieved successfully.",
+                        Data = pendingApprovalRequests.AsList()
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Error: {ex.Message}",
+                    Data = null
+                };
+            }
+        }
+
+        public async Task<APIResponse> GetUpcomingProbationDetails(GetUpcomingProbationDetailsPara para)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmployeeId", para.EmployeeId);
+
+                    var upcomingProbations = await connection.QueryAsync<dynamic>(
+                        "GetAllUpCommingProbationDetails",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        ResponseMessage = "Upcoming probation details retrieved successfully.",
+                        Data = upcomingProbations.AsList()
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Error: {ex.Message}",
+                    Data = null
+                };
+            }
+        }
+
+        
     }
 }
+

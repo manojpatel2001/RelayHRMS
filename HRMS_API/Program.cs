@@ -1,5 +1,8 @@
+using DinkToPdf;
+using DinkToPdf.Contracts;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using HRMS_API.Midleware;
 using HRMS_API.NotificationService.HubService;
 using HRMS_API.Services;
 using HRMS_Core.DbContext;
@@ -111,6 +114,8 @@ builder.Services.AddHangfireServer();
 //Email Service
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<EmailJobService>();
+builder.Services.AddScoped<AutoJobService>();
+
 
 var app = builder.Build();
 
@@ -127,6 +132,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<DbUserContextMiddleware>();
+
 app.MapHub<NotificationRemainderHub>("/NotificationRemainderHub");
 app.UseHangfireDashboard("/hangfire");
 
@@ -134,6 +141,8 @@ using (var scope = app.Services.CreateScope())
 {
     var emailJobService = scope.ServiceProvider.GetRequiredService<EmailJobService>();
     emailJobService.StartScheduleDailyEmail();
+    var autoJobService = scope.ServiceProvider.GetRequiredService<AutoJobService>();
+    autoJobService.StartAutoJobService();
 }
 
 app.MapControllers();
