@@ -1,0 +1,260 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Scheme Details";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+
+<div class="card">
+    <div class="card-header bg-transparent ml-0 py-0">
+        <div class="row">
+            <div class="col-6">
+                <h6 class="pt-2 mb-0">Approval Details</h6>
+            </div>
+            <div class="col-6 d-flex justify-content-end align-items-center">
+               
+                <button type="button" id="addApproval" class="btn mr-1 rounded-1" style="background-color:#2395c6; color:white;">
+                    Add Approval
+                </button>
+                
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="grid-wrapper" style="position: relative;" id="approvalSchemeGridWrapper">
+
+                    <!-- Loader -->
+                    <div id="approvalSchemeGridLoader"
+                         class="grid-loader d-flex justify-content-center align-items-center flex-column"
+                         style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                            background: rgba(255,255,255,0.6); z-index: 10;">
+                        <img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner"
+                             style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+                        <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+                    </div>
+
+                    <div class="rowCount" id="approvalRowCount"></div>
+                    <div id="ApprovalGridContainer"></div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<script src="~/assets/js/jquery.min.js"></script>
+<script>
+    // Global Variables
+    const companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+    
+
+    $(document).ready(function() {
+        fetchAndLoadApprovalGrid();
+       
+    });
+
+    $("#addApproval").click(()=>{
+        localStorage.removeItem("ApprovalMasterId");
+        window.location.href='/AdminPanel/ManageApproval/AddApprovalLevel';
+    })
+   
+    // Fetch and load approval scheme grid
+    async function fetchAndLoadApprovalGrid() {
+        try {
+            $("#approvalSchemeGridLoader").addClass('d-flex').show();
+            const response = await $.ajax({
+                url: `@baseUrl/ApprovalManagementAPI/GetAllApprovalLevelsByCompanyId/${CompanyId}`,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+            if (response.isSuccess) {
+                loadApprovalGridData(response.data);
+            } else {
+                showNotification(response.ResponseMessage, 'error');
+            }
+            $("#approvalSchemeGridLoader").removeClass('d-flex').hide();
+        } catch (error) {
+            console.error('Error fetching approval scheme levels:', error);
+            showNotification('Error fetching approval scheme levels', 'error');
+        } finally {
+            $("#approvalSchemeGridLoader").removeClass('d-flex').hide();
+        }
+    }
+
+    // Load approval scheme grid data
+    function loadApprovalGridData(data) {
+        debugger;
+        $("#ApprovalGridContainer").dxDataGrid({
+            dataSource: data || [],
+            keyExpr: "approvalLevelId",
+            columns: [
+                { dataField: 'approvalName', caption: 'Approval Name', minWidth: 100 },
+                { dataField: 'approverName', caption: 'Approver Name', minWidth: 100 },
+                { dataField: 'levelNo', caption: 'Level', width: 80 },
+                {
+                    dataField: 'isDepartmentBased',
+                    caption: 'Department Based',
+                    minWidth: 150,
+                    cellTemplate: function(container, options) {
+                        const value = options.value;
+                        const text = value ? "Yes" : "No";
+                        $("<span>")
+                            .text(text)
+                            .appendTo(container);
+                    }
+                },
+                
+
+                { dataField: 'escalationDays', caption: 'Escalation Days', width: 150 },
+                {
+                    dataField: '',
+                    caption: '',
+                    width: '50px',
+                    cellTemplate: function(container, options) {
+                        var buttonElement = $('<div class="d-flex order-actions">' +
+                            '<a href="javascript:;" class="edit-action" title="Edit">' +
+                            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+                            '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+                            '</svg>' +
+                            '</a>' +
+                            '</div>')
+                            .on('dxclick', function() {
+                                openEditModal(options.data.approvalMasterId);
+                            }).appendTo(container);
+                    }
+                },
+                {
+                    dataField: '',
+                    caption: '',
+                    width: '50px',
+                    cellTemplate: function(container, options) {
+                        var buttonElement = $('<div class="d-flex order-actions">' +
+                            '<a href="javascript:;" class="delete-action" title="Delete">' +
+                            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+                            '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+                            '</svg>' +
+                            '</a>' +
+                            '</div>')
+                            .on('dxclick', function() {
+                                deleteApprovalLevel(options.data.approvalMasterId);
+                            }).appendTo(container);
+                    }
+                }
+            ],
+            masterDetail: {
+                enabled: true,
+                template: function(container, options) {
+                    const level = options.data;
+                    const loadingIndicator = $("<div>")
+                        .addClass("dx-loadindicator")
+                        .text("Loading...")
+                        .appendTo(container);
+                    if (level.approvalLevelDepartmentVMs && level.approvalLevelDepartmentVMs.length > 0) {
+                        $("<h6>Department Approvers</h6>").appendTo(container);
+                        const deptApproversGrid = $("<div>").dxDataGrid({
+                            dataSource: level.approvalLevelDepartmentVMs,
+                            columns: [
+                                { dataField: "departmentName", caption: "Department", minidth: 120 },
+                                { dataField: "deptApproverName", caption: "Approver Name", minidth: 150 },
+                                {
+                                    dataField: 'isNotMandatory',
+                                    caption: 'Not Mandatory',
+                                    width: 150,
+                                    cellTemplate: function(container, options) {
+                                        const value = options.value;
+                                        const text = value ? "Yes" : "No";
+                                        $("<span>")
+                                            .text(text)
+                                            .appendTo(container);
+                                    }
+                                }
+                            ],
+                            showBorders: true,
+                            paging: { enabled: false },
+                            scrolling: { mode: "standard" }
+                        }).appendTo(container);
+                    } else {
+                        $("<h6>Department Approvers</h6><p>No department approvers found.</p>").appendTo(container);
+                    }
+                    loadingIndicator.remove();
+                }
+            },
+            showBorders: true,
+            paging: { pageSize: 10 },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 25, 50, 100],
+                showInfo: true
+            },
+            filterRow: { visible: false },
+            searchPanel: { visible: true, width: 200, placeholder: "Search..." },
+            scrolling: { mode: "standard" },
+            headerFilter: { visible: false },
+            groupPanel: { visible: false },
+            allowColumnResizing: false,
+            allowColumnReordering: false,
+            columnAutoWidth: false,
+            onContentReady: function(e) {
+                $("#approvalRowCount").html("Total Records: " + e.component.totalCount());
+            },
+            onRowExpanded: function(e) {
+                console.log("Row expanded:", e.key);
+            },
+            onRowCollapsed: function(e) {
+                console.log("Row collapsed:", e.key);
+            }
+        });
+    }
+
+    // Open edit modal
+    async function openEditModal(approvalMasterId)
+    {
+        localStorage.removeItem("ApprovalMasterId");
+        localStorage.setItem("ApprovalMasterId",approvalMasterId);
+        window.location.href='/AdminPanel/ManageApproval/AddApprovalLevel';
+    }
+
+    
+    // Delete approval scheme level
+    async function deleteApprovalLevel(approvalMasterId) {
+        if (confirm('Are you sure you want to delete this approval level?')) {
+            try {
+                const response = await $.ajax({
+                    url: `@baseUrl/ApprovalManagementAPI/DeleteApprovalLevel`,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'Authorization': 'Bearer ' + Token
+                    },
+                    data: JSON.stringify({
+                        approvalMasterId: approvalMasterId,
+                        approvalLevelId: 0,
+                        deletedBy: EmployeeId
+                    })
+                });
+
+               if (response.isSuccess) {
+                    round_success_noti(response.responseMessage);
+                    fetchAndLoadApprovalGrid();
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+            } catch (error) {
+                console.error('Error deleting approval scheme level:', error);
+                showNotification('Error deleting approval scheme level', 'error');
+            }
+        }
+    }
+</script>

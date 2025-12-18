@@ -87,7 +87,14 @@ namespace HRMS_API.Services
                     foreach (var bcc in request.BccEmails.Distinct())
                         message.Bcc.Add(bcc);
 
-
+                if (request.PdfFile?.Length > 0)
+                {
+                    message.Attachments.Add(new Attachment(
+                          new MemoryStream(request.PdfFile),
+                          "ConfirmationLetter.pdf",
+                          "application/pdf"
+                      ));
+                }
                 await smtp.SendMailAsync(message);
 
                  //✅ Log the email as "Sent"

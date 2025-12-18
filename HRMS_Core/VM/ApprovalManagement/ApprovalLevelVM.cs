@@ -6,35 +6,34 @@ using System.Threading.Tasks;
 
 namespace HRMS_Core.VM.ApprovalManagement
 {
-    public class ApprovalSchemeLevelVM
+    public class ApprovalLevelVM
     {
-        public int? ApprovalSchemeLevelId { get; set; }
-
-        public int SchemeId { get; set; }
-        public int SequenceNo { get; set; }
+        public int? ApprovalLevelId { get; set; }
+        public int ApprovalMasterId { get; set; }
+        public int LevelNo { get; set; }
         public int? ApproverEmployeeId { get; set; }
-        public string? ApproverDesignationName { get; set; }
+        public bool IsReportingPerson { get; set; }
+        public bool IsHR { get; set; }
+        public bool IsNationalManager { get; set; }
+        public bool IsHOD { get; set; }
         public bool IsDepartmentBased { get; set; }
-        public int? EscalationDays { get; set; }
-        public int? SkipDays { get; set; }
-        public bool IsActive { get; set; }
-        public bool IsNotMandatory { get; set; }
-
+        public int EscalationDays { get; set; }
         public int? CreatedBy { get; set; }
         public int? UpdatedBy { get; set; }
         public int? DeletedBy { get; set; }
         public int? CompanyId { get; set; }
-        public List<ApprovalSchemeLevelDepartmentVM>? approvalSchemeLevelDepartmentVMs { get; set; }
-       
+        public List<ApprovalLevelDepartmentVM>? ApprovalLevelDepartments { get; set; }
     }
 
-    public class ApprovalSchemeLevelDepartmentVM
+    public class ApprovalLevelDepartmentVM
     {
-        public int? ApprovalSchemeLevelId { get; set; }
-        public int? DepartmentId { get; set; }
-        public int? DeptApproverEmployeeId { get; set; }
-        public string? DeptApproverDesignationName { get; set; }
+        public int? ApprovalLevelId { get; set; }
+        public int DepartmentId { get; set; }
+        public int? ApproverEmployeeId { get; set; }
+        public bool IsNotMandatory { get; set; }
     }
+
+    
     public class ApprovalRequestVM
     {
         public string Action { get; set; }
@@ -105,44 +104,83 @@ namespace HRMS_Core.VM.ApprovalManagement
 
 
     // Helper class to map the JSON string from SQL
-    public class GetApprovalSchemeLevelVM
+    public class GetApprovalLevelVM
     {
-        public int ApprovalSchemeLevelId { get; set; }
-        public int SchemeId { get; set; }
-        public string? SchemeName { get; set; }
-        public int SequenceNo { get; set; }
+        public int ApprovalLevelId { get; set; }
+        public int ApprovalMasterId { get; set; }
+        public string? ApprovalName { get; set; }
+        public int LevelNo { get; set; }
         public int? ApproverEmployeeId { get; set; }
         public string? ApproverName { get; set; }
-        public string? ApproverDesignationName { get; set; }
+        public bool IsReportingPerson { get; set; }
+        public bool IsHOD { get; set; }
+        public bool IsNationalManager { get; set; }
+        public bool IsHR { get; set; }
         public bool IsDepartmentBased { get; set; }
-        public bool IsNotMandatory { get; set; }
         public int? EscalationDays { get; set; }
-        public int? SkipDays { get; set; }
-        public bool IsActive { get; set; }
         public int CompanyId { get; set; }
-
-        // This property is used to temporarily hold the JSON string from SQL
-        public string? approvalSchemeLevelDepartmentVMsJson { get; set; }
-
-        // This is the actual property used in your application
-        public List<GetApprovalSchemeLevelDepartmentVM>? approvalSchemeLevelDepartmentVMs { get; set; }
+        public string? approvalLevelDepartmentVMsJson { get; set; }
+        public List<GetApprovalLevelDepartmentVM>? approvalLevelDepartmentVMs { get; set; }
     }
 
-    public class GetApprovalSchemeLevelDepartmentVM
+    public class GetApprovalLevelDepartmentVM
     {
-        public int ApprovalSchemeLevelDeptId { get; set; }
+        public int ApprovalLevelDeptId { get; set; }
         public int DepartmentId { get; set; }
         public string? DepartmentName { get; set; }
         public int? DeptApproverEmployeeId { get; set; }
         public string? DeptApproverName { get; set; }
-        public string? DeptApproverDesignationName { get; set; }
+        public bool IsNotMandatory { get; set; }
     }
-    public class ApprovalSchemeLevelPara
+
+    public class ApprovalLevelPara
     {
-        public int SchemeId { get; set; }
-        public int ApprovalSchemeLevelId { get; set; }
+        public int ApprovalMasterId { get; set; }
+        public int ApprovalLevelId { get; set; }
         public int DeletedBy { get; set; }
     }
 
 
+    public class ApprovalRequestLevelActionPara
+    {
+        public int ApprovalRequestId { get; set; }
+        public int ApprovalRequestLevelId { get; set; }
+        public int StatusId { get; set; }
+        public int ActionBy { get; set; }
+        public string Remarks { get; set; }
+    }
+    public class GetPendingApprovalRequestsPara
+    {
+        public int? ApproverEmployeeId { get; set; }
+        public int StatusId { get; set; }
+    }
+
+    public class PendingApprovalRequest
+    {
+        public int ApprovalRequestId { get; set; }
+        public string RequestTitle { get; set; }
+        public string RequestData { get; set; }
+        public string RequestStatus { get; set; }
+        public int ApprovalRequestLevelId { get; set; }
+        public int SequenceNo { get; set; }
+        public string LevelStatus { get; set; }
+        public int ApproverEmployeeId { get; set; }
+        public int RequesterEmployeeId { get; set; }
+        public DateTime? EscalationDueOn { get; set; }
+        public DateTime? AssignedOn { get; set; }
+        public string ApproverName { get; set; }
+        public string RequesterName { get; set; }
+        public int? CurrentLevelSequence { get; set; }
+    }
+
+    public class GetUpcomingProbationDetailsPara
+    {
+        public int? EmployeeId { get; set; }
+    }
+    public class ApprovalRequestLevelActionVm
+    {
+        public bool IsAllLevelsCompleted { get; set; }
+        public bool IsSuccess { get; set; }
+        public string? ResponseMessage { get; set; }
+    }
 }

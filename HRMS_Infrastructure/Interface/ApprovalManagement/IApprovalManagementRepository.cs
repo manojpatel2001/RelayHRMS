@@ -1,5 +1,6 @@
 ﻿using Azure;
 using HRMS_Core.VM.ApprovalManagement;
+using HRMS_Core.VM.Probations;
 using HRMS_Utility;
 using System;
 using System.Collections.Generic;
@@ -11,11 +12,11 @@ namespace HRMS_Infrastructure.Interface.ApprovalManagement
 {
     public interface IApprovalManagementRepository
     {
+        Task<APIResponse> GetApprovalDropdownDetails();
+        Task<APIResponse> GetAllEmployByDepartmentId(int? companyId, int? departmentId);
         // Approval Scheme Level
-        Task<APIResponse> ManageApprovalSchemeLevel(List<ApprovalSchemeLevelVM> model);
+        Task<APIResponse> ManageApprovalLevel(List<ApprovalLevelVM> models);
 
-        // Approval Scheme Level Department (Optional)
-        Task<APIResponse> ManageApprovalSchemeLevelDepartment(ApprovalSchemeLevelDepartmentVM model);
 
         // Approval Request
         Task<APIResponse> ManageApprovalRequest(ApprovalRequestVM model);
@@ -29,14 +30,17 @@ namespace HRMS_Infrastructure.Interface.ApprovalManagement
         // Approve / Reject Request Level
         Task<APIResponse> ActionOnApprovalRequestLevel(ApprovalRequestLevelActionVM model);
 
-        // GET LISTS (If required in UI)
-        Task<IEnumerable<dynamic>> GetApprovalSchemeLevels();
-        Task<IEnumerable<dynamic>> GetApprovalRequests();
-        Task<IEnumerable<dynamic>> GetApprovalRequestLevels(int requestId);
-        Task<IEnumerable<dynamic>> GetApprovalRequestHistory(int requestId);
-        Task<APIResponse> GetAllApprovalSchemeLevelsByCompanyId(int companyId);
-        Task<APIResponse> GetAllApprovalSchemeLevelsBySchemeId(int schemeId);
-        Task<APIResponse> DeleteApprovalSchemeLevel(ApprovalSchemeLevelPara para);
+     
+        Task<APIResponse> GetAllApprovalLevelsByCompanyId(int companyId);
+        Task<APIResponse> GetAllApprovalLevelsByApprovalMasterId(int ApprovalMasterId);
+        Task<APIResponse> DeleteApprovalLevel(ApprovalLevelPara para);
+        Task<APIResponse> AutomateProbationEndApprovalRequests(int approvalMasterId);
+        Task<EscalationReturnPara> EscalatePendingApprovalRequests();
+        Task<ApprovalRequestLevelActionVm> ApprovalRequestLevelAction(ApprovalRequestLevelActionPara para);
+        Task<APIResponse> GetPendingApprovalRequests(GetPendingApprovalRequestsPara para);
+        Task<APIResponse> GetUpcomingProbationDetails(GetUpcomingProbationDetailsPara para);
+       
+
     }
 }
 

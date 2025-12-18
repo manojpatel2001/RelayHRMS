@@ -20,7 +20,6 @@ using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Probations;
 using HRMS_Infrastructure.Interface.Report;
 using HRMS_Infrastructure.Interface.Salary;
-using HRMS_Infrastructure.Interface.Scheme;
 using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.ApprovalManagement;
 using HRMS_Infrastructure.Repository.CompanyInformation;
@@ -41,7 +40,6 @@ using HRMS_Infrastructure.Repository.PrivilegeSetting;
 using HRMS_Infrastructure.Repository.Probations;
 using HRMS_Infrastructure.Repository.Report;
 using HRMS_Infrastructure.Repository.Salary;
-using HRMS_Infrastructure.Repository.Scheme;
 using HRMS_Infrastructure.Repository.SuperAdmin;
 using HRMS_Infrastructure.Repository.TicketManagement;
 using System;
@@ -166,11 +164,14 @@ namespace HRMS_Infrastructure.Repository
             ManpowerAttachmentRepository = new ManpowerAttachmentRepository(_dbContext);
             EmployeeHolidayMarkingRepository = new EmployeeHolidayMarkingRepository(_dbContext);
             AttendanceLockRepository = new AttendanceLockRepository(_dbContext);
-            SchemeReportingManagerRepository = new SchemeReportingManagerRepository(_dbContext);
             EmployeeBankDetailsRepository = new EmployeeBankDetailsRepository(_dbContext);
             ApprovalManagementRepository = new ApprovalManagementRepository(_dbContext);
+
+            ApprovalMasterRepository = new ApprovalMasterRepository(_dbContext);
+
             LeaveCancellationRepository = new LeaveCancellationRepository(_dbContext);
             CommonReasonsRepository = new CommonReasonsRepository(_dbContext);
+
 
         }
 
@@ -296,9 +297,9 @@ namespace HRMS_Infrastructure.Repository
         public IEmployeeHolidayMarkingRepository EmployeeHolidayMarkingRepository { get; set; }
 
         public IAttendanceLockRepository AttendanceLockRepository { get; set; }
-        public ISchemeReportingManagerRepository SchemeReportingManagerRepository { get; set; }
         public IEmployeeBankDetailsRepository EmployeeBankDetailsRepository { get; set; }
         public IApprovalManagementRepository ApprovalManagementRepository { get; set; }
+        public IApprovalMasterRepository ApprovalMasterRepository { get; set; }
 
         public ILeaveCancellationRepository LeaveCancellationRepository { get; set; }
 
