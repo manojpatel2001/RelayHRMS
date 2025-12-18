@@ -69,9 +69,29 @@
         text-align: center !important;
     }
 
-        /* Also center any inner content */
         .text-center-cell > div {
             text-align: center !important;
+        }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
         }
 </style>
 
@@ -99,41 +119,41 @@
             <label for="input1" class="form-label mb-0 me-2" style="width: 120px;">Search For:</label>
             <input type="text" class="form-control form-control-sm" id="input1" placeholder="Search Employee code or Name" disabled>
         </div>
-      </div>
+    </div>
 
-                            <!-- Status & Buttons -->
-        <div class="row justify-content-center mb-3">
-            <div class="col d-flex align-items-center justify-content-center flex-wrap gap-3">
+    <!-- Status & Buttons -->
+    <div class="row justify-content-center mb-3">
+        <div class="col d-flex align-items-center justify-content-center flex-wrap gap-3">
 
             <button type="button" class="search-panel-container  search-heading btn-sm" id="gobutoonid">GO</button>
             <button type="button" class="search-panel-container  search-heading btn-sm" id="clearbuttonid">Clear</button>
-            </div>
-         </div>
+        </div>
+    </div>
 
-         <div class="search-panel-wrapper">
-            <div class="search-panel-container">
-                <div class="search-panel-row">
-                    <div class="search-heading">Leave Application</div>
-                </div>
+    <div class="search-panel-wrapper">
+        <div class="search-panel-container">
+            <div class="search-panel-row">
+                <div class="search-heading">Leave Application</div>
             </div>
         </div>
- </div>
+    </div>
+</div>
 
-    <div class="form-section">
-        <div class="container mt-3">
-            <div class="d-flex justify-content-end mb-2" id="actionButtons" style="display: none;">
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="leaveStatus" id="pendingleaveid" value="Pending" checked>
-                    <label class="form-check-label" for="pendingleaveid">Pending</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="leaveStatus" id="Approveid" value="ApprovedRejected">
-                    <label class="form-check-label" for="Approveid">Approved/Rejected</label>
-                </div>
-
-            </div>          
-            <div id="attendanceGrid">Loading...</div>
-            <div id="recordSummary" class="text-center mt-2 text-muted"></div>
+<div class="form-section">
+    <div class="container mt-3">
+        <div class="d-flex justify-content-end mb-2 align-items-center" id="actionButtons" style="display: none;">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="leaveStatus" id="pendingleaveid" value="Pending" checked>
+                <label class="form-check-label" for="pendingleaveid">Pending</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="leaveStatus" id="Approveid" value="ApprovedRejected">
+                <label class="form-check-label" for="Approveid">Approved/Rejected</label>
+            </div>
+            <button id="btnDelete" class="btn btn-custom">Delete</button>
+        </div>
+        <div id="attendanceGrid">Loading...</div>
+        <div id="recordSummary" class="text-center mt-2 text-muted"></div>
     </div>
 </div>
 
@@ -145,18 +165,22 @@
     const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany || '{}');
     const Compid = parseInt(companyDetails.CompanyId);
+    let selectedKeys = [];
 
 
     $(document).ready(function () {
          fetchLeaveData();
          loadSearchByOptions();
+
         // Trigger on GO button
         $('#gobutoonid').on('click', function () {
             fetchLeaveData();
         });
+
         $('#pendingleaveid').on('click', function () {
             fetchLeaveData();
         });
+
         $('#Approveid').on('click', function () {
             fetchLeaveData();
         });
@@ -172,15 +196,38 @@
 
         // Clear button
         $('#clearbuttonid').on('click', function () {
-            $('#Leavetypeid').val('');
+            $('#Leavetypeid').val('0');
             $('#input1').val('').prop('disabled', true);
-            $('input[name="leaveStatus"]').prop('checked', false);
-            $('#resultBody').empty().append('<tr><td colspan="10" class="text-center">No records found.</td></tr>');
+            $('#pendingleaveid').prop('checked', true);
+            selectedKeys = [];
+            $('#deleteButton').prop('disabled', true);
             fetchLeaveData();
         });
 
+        // Delete button click handler
+        $('#deleteButton').on('click', function () {
+            if (selectedKeys.length === 0) {
+                Swal.fire("Warning", "Please select at least one record to delete", "warning");
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `You are about to delete ${selectedKeys.length} record(s). This action cannot be undone!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deleteSelectedRecords();
+                }
+            });
+        });
+
     function loadSearchByOptions() {
-        debugger;
         $.ajax({
             url: apiBase + '/LeaveMasterAPI/LeaveType?Compid=' + Compid,
             type: "GET",
@@ -190,7 +237,6 @@
 
                 if (res.isSuccess && res.data) {
                     $.each(res.data, function (i, item) {
-                      
                         dropdown.append(`<option value="${item.leavtypeid}">${item.leaveName}</option>`);
                     });
                 }
@@ -205,7 +251,7 @@
         function formatDate(dateString) {
         const date = new Date(dateString);
         const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+        const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
         return `${day}-${month}-${year}`;
        }
@@ -214,9 +260,9 @@
         function fetchLeaveData() {
              if ($("#attendanceGrid").data("dxDataGrid")) {
             $("#attendanceGrid").dxDataGrid("dispose");
-            $("#attendanceGrid").empty(); // Optional: clear DOM
+            $("#attendanceGrid").empty();
              }
-        
+
           const searchFor = $('#input1').val().trim();
            const leaveTypeRaw = $('#Leavetypeid').val();
             let filter = {
@@ -227,47 +273,105 @@
                      CompId:Compid
 
             };
-         
+
             $.ajax({
                 url: apiBase + '/LeaveApplication/GetLeaveApplications',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(filter ),
                      success: function (data) {
-                         
+
                     if (data.isSuccess && data.data && data.data.length > 0) {
                         allData = data.data;
                         currentPage = 1;
                        renderTable(allData);
-                       
+
                     } else {
                         $('#attendanceGrid').html('<div class="text-center text-muted">No records found.</div>');
                         $('#recordSummary').text('');
-                       
+                        $('#actionButtons').hide();
+                        $('#deleteButton').prop('disabled', true);
                     }
                 },
-               
+
                 error: function (xhr) {
                     console.error("AJAX error:", xhr);
                     Swal.fire("❌ Server Error", xhr.responseText || "Something went wrong", "error");
                 }
             });
         }
+
     });
 
 
+    $('#btnDelete').on('click', function () {
+        var grid = $("#attendanceGrid").dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            Swal.fire("Warning", "Please select at least one record to delete.", "warning");
+            return;
+        }
+
+        // Check if any selected record is not Pending
+        const nonPendingRecords = selectedRows.filter(row => row.leaveStatus !== "Pending");
+
+        if (nonPendingRecords.length > 0) {
+            Swal.fire({
+                title: "Cannot Delete",
+                text: "Only pending leave applications can be deleted. Please remove approved/rejected records from selection.",
+                icon: "error"
+            });
+            return;
+        }
+
+        const selectedIds = selectedRows.map(row => row.leaveApplicationId);
+        const deletePayload = {
+            Id: selectedIds,
+            DeletedBy: Empid.toString()
+        };
+
+        $.ajax({
+            url: apiBase + "/LeaveApplication/Delete",
+            type: 'DELETE',
+            contentType: 'application/json',
+            data: JSON.stringify(deletePayload),
+            success: function (res) {
+                if (res.isSuccess) {
+                    Swal.fire({
+                        title: "Success",
+                        text: res.responseMessage || "Records deleted successfully.",
+                        icon: "success",
+                        timer: 2000
+                    }).then(() => {
+                        // Clear selection and refresh
+                        grid.clearSelection();
+                        selectedKeys = [];
+                        $('#actionButtons').hide();
+                        fetchLeaveData();
+                    });
+                } else {
+                    Swal.fire("Error", res.responseMessage || "Deletion failed.", "error");
+                }
+            },
+            error: function (xhr) {
+                Swal.fire("Error", "Something went wrong during deletion.", "error");
+                console.error("Delete error:", xhr);
+            }
+        });
+    });
         function renderTable(data) {
-            
+
             $("#attendanceGrid").dxDataGrid({
                 dataSource: data,
                 keyExpr: "leaveApplicationId",
                 showBorders: true,
                  columnAutoWidth: true,
                  height:400,
-                // selection: {
-                //     mode: "multiple",
-                //     showCheckBoxesMode: "always"
-                // },
+                selection: {
+                    mode: "multiple",
+                    showCheckBoxesMode: "always"
+                },
                       paging: { enabled: false },
                                         scrolling: {
                                             mode: "standard",
@@ -275,7 +379,8 @@
                                             showScrollbar: "always"    },
                 onSelectionChanged: function (e) {
                     selectedKeys = e.selectedRowKeys;
-                    $("#actionButtons").toggle(selectedKeys.length > 0);
+                    $("#actionButtons").show();
+                    $("#deleteButton").prop('disabled', selectedKeys.length === 0);
                 },
                 columns: [
                     { dataField: "leaveApplicationId", caption: "ApplicationId", width: 80,cssClass: "text-center-cell" ,visible: false },
@@ -307,20 +412,17 @@
         calculateCellValue: function(rowData) {
             if (!rowData.approvedDate) return "-";
 
-            // Parse the ISO date string
             const date = new Date(rowData.approvedDate);
 
-            // Extract day, month, and year
             const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+            const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
 
-            // Return formatted date as dd/MM/yyyy
             return `${day}/${month}/${year}`;
         }
     }
 
-                     
+
                 ]
             });
         }
