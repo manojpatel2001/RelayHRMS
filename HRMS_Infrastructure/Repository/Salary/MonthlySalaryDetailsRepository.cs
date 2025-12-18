@@ -90,7 +90,7 @@ namespace HRMS_Infrastructure.Repository.Salary
             try
             {
                 return await _db.Set<SalaryReportDTO>()
-                    .FromSqlInterpolated($@"EXEC [dbo].[USP_CalculateMonthlySalary1]
+                    .FromSqlInterpolated($@"EXEC [dbo].[USP_CalculateMonthlySalary_V2]
                 @StartDate ={vm.StartDate},
                 @EndDate ={vm.EndDate},
                 @EmployeeCodes ={vm.EmployeeCodes},
