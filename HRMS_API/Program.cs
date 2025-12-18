@@ -134,7 +134,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<DbUserContextMiddleware>();
+//app.UseMiddleware<DbUserContextMiddleware>();
 
 app.MapHub<NotificationRemainderHub>("/NotificationRemainderHub");
 app.UseHangfireDashboard("/hangfire");
