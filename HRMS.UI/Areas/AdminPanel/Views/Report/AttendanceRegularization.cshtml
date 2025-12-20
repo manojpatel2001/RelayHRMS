@@ -9,9 +9,11 @@
 
 <title>Search Panel</title>
 
-<!-- jQuery + Bootstrap + SweetAlert -->
+<!-- jQuery + Bootstrap + SweetAlert + ExcelJS + FileSaver -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <style>
     .form-section {
@@ -40,6 +42,8 @@
             outline: none;
             box-shadow: none;
         }
+
+
 
     .search-panel-wrapper {
         max-width: 100%;
@@ -86,8 +90,6 @@
         padding: .25rem .5rem;
     }
 
-
-    /* Action buttons positioning */
     .action-buttons-container {
         width: 100%;
         margin-top: 15px;
@@ -95,22 +97,18 @@
         text-align: right;
     }
 
-    .action-buttons-container .btn-custom {
-        margin-left: 8px;
-        padding: 6px 16px;
-        font-size: 14px;
-    }
+        .action-buttons-container .btn-custom,
+        .action-buttons-container .btn-export {
+            margin-left: 8px;
+            padding: 6px 16px;
+            font-size: 14px;
+        }
 
- 
-
-
-    /* Container adjustments */
     .main-container {
         padding: 0 15px;
         max-width: 100%;
         margin: 0 auto;
     }
-
 
     #attendanceGrid {
         width: 100% !important;
@@ -141,8 +139,35 @@
         margin-top: 20px;
         border: 1px solid #ddd;
         border-radius: 4px;
-        /* Remove any fixed height */
     }
+
+    .action-buttons-container {
+        width: 100%;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        text-align: right;
+    }
+
+        .action-buttons-container .btn-custom,
+        .action-buttons-container .btn-export {
+            margin-left: 8px;
+            padding: 6px 16px;
+            font-size: 14px;
+        }
+
+    .btn-export {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+    }
+
+        .btn-export:hover {
+            background-color: #218838;
+        }
 </style>
 
 <!-- Search Panel Header -->
@@ -228,8 +253,11 @@
 
 <!-- Main Container for Grid and Buttons -->
 <div class="main-container">
-    <!-- Action Buttons Row - Properly positioned outside grid -->
+    <!-- Action Buttons Row -->
     <div id="actionButtons" class="action-buttons-container" style="display: none;">
+        <button id="btnExport" class="btn btn-export">
+            <i class="fas fa-file-excel me-2"></i>Export to Excel
+        </button>
         <button id="btnDelete" class="btn btn-custom">Delete</button>
         <button id="btnApprove" class="btn btn-custom">Approve</button>
         <button id="btnReject" class="btn btn-custom">Reject</button>
@@ -245,7 +273,7 @@
              style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
         <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
     </div>
-    
+
     <!-- Grid Container -->
     <div class="grid-container">
         <div id="attendanceGrid"></div>
@@ -255,9 +283,9 @@
 <script>
     const EmployeeId = localStorage.getItem('EmployeeId');
     $(document).ready(function () {
-        $('#r2').prop('checked', true); 
-        $('#btnGo').click(); 
-        
+        $('#r2').prop('checked', true);
+        $('#btnGo').click();
+
         $("#btnApprove").click(function () {
             updateAttendanceStatus("Approved");
         });
@@ -265,14 +293,19 @@
         $("#btnReject").click(function () {
             updateAttendanceStatus("Rejected");
         });
+
+        // Excel Export Button Click
+        $("#btnExport").click(function () {
+            exportAttendanceToExcel();
+        });
     });
-    
+
     let selectedKeys = [];
 
     function goBack() {
-        window.history.back(); 
+        window.history.back();
     }
-    
+
     function getStatus() {
         if ($('#r2').is(':checked')) return 'Pending';
         if ($('#r3').is(':checked')) return 'Approved';
@@ -293,83 +326,217 @@
     async function showLoder(){
         $('#grid-loader').addClass('d-flex').show();
     }
-    
+
     async function hideLoder(){
         $('#grid-loader').removeClass('d-flex').hide();
     }
 
-      function loadGrid(data) {
-        // Dispose existing grid first to prevent conflicts
+    // Excel Export Function - Unique name to avoid conflicts
+    function exportAttendanceToExcel() {
+        var grid = $("#attendanceGrid").dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            Swal.fire('Warning', 'Please select at least one row to export.', 'warning');
+            return;
+        }
+
+        showLoder();
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Attendance Regularization");
+
+        // Define columns
+        worksheet.columns = [
+            { header: 'Code', key: 'employeeCode', width: 12 },
+            { header: 'Name', key: 'fullName', width: 30 },
+            { header: 'Date', key: 'forDate', width: 15 },
+            { header: 'App Date', key: 'createdDate', width: 15 },
+            { header: 'In Time', key: 'inTime', width: 20 },
+            { header: 'Out Time', key: 'outTime', width: 20 },
+            { header: 'Duration', key: 'duration', width: 12 },
+            { header: 'Day', key: 'day', width: 12 },
+            { header: 'Reason', key: 'reason', width: 25 },
+            { header: 'Status', key: 'status', width: 12 },
+            { header: 'Approved By', key: 'updatedBy', width: 20 },
+            { header: 'Approved Date', key: 'updatedDate', width: 15 }
+        ];
+
+        // Style header row - EXACT SAME AS SALARY REGISTER
+        const headerRow = worksheet.getRow(1);
+        headerRow.eachCell((cell) => {
+            cell.font = {
+                bold: true,
+                color: { argb: 'FFFFFFFF' },
+                size: 11
+            };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF3E4B6D' }
+            };
+            cell.alignment = {
+                vertical: 'middle',
+                horizontal: 'center'
+            };
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FF000000' } },
+                left: { style: 'thin', color: { argb: 'FF000000' } },
+                bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                right: { style: 'thin', color: { argb: 'FF000000' } }
+            };
+        });
+        headerRow.height = 25;
+
+        // Helper function to format date
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        };
+
+        // Helper function to format datetime
+        const formatDateTime = (dateStr) => {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
+        };
+
+        // Add data rows
+        selectedRows.forEach((rowData) => {
+            let statusText = "";
+            if (rowData.isApproved === true) {
+                statusText = "Approved";
+            } else if (rowData.isRejected === true) {
+                statusText = "Rejected";
+            } else if (rowData.isPending === true) {
+                statusText = "Pending";
+            }
+
+            const row = worksheet.addRow({
+                employeeCode: rowData.employeeCode || '',
+                fullName: rowData.fullName || '',
+                forDate: formatDate(rowData.forDate),
+                createdDate: formatDate(rowData.createdDate),
+                inTime: formatDateTime(rowData.inTime),
+                outTime: formatDateTime(rowData.outTime),
+                duration: rowData.duration || '',
+                day: rowData.day || '',
+                reason: rowData.reason || '',
+                status: statusText,
+                updatedBy: rowData.updatedBy || '-',
+                updatedDate: formatDate(rowData.updatedDate)
+            });
+
+            // Apply borders and alignment to data cells
+            row.eachCell((cell, colNumber) => {
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                };
+
+                // Center align for certain columns
+                if (colNumber === 1 || colNumber === 3 || colNumber === 4 || colNumber === 7 || colNumber === 8 || colNumber === 10 || colNumber === 12) {
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                } else {
+                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                }
+            });
+        });
+
+        // Download file
+        const fileName = `Attendance_Regularization_${new Date().getTime()}.xlsx`;
+
+        workbook.xlsx.writeBuffer().then(function(buffer) {
+            saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            hideLoder();
+            Swal.fire('Success', 'Excel file downloaded successfully!', 'success');
+        }).catch(error => {
+            hideLoder();
+            console.error("Excel export error:", error);
+            Swal.fire('Error', 'Error exporting to Excel!', 'error');
+        });
+    }
+
+    function loadGrid(data) {
         try {
             const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
             if (gridInstance) {
                 gridInstance.dispose();
             }
         } catch (e) {
-            // Grid doesn't exist yet, that's okay
         }
 
-        // Clear the container
         $("#attendanceGrid").empty();
 
-    $("#attendanceGrid").dxDataGrid({
-        dataSource: data||[],
-        keyExpr: "attendanceRegularizationId",
-        showBorders: true,
-        width: "100%",
-        height: 250,
-        paging: {
-            enabled: false
-        },
-        scrolling: {
-            mode: "standard",
-            useNative: true,
-            showScrollbar: "always"
-        },
-        columnAutoWidth: false,
-        allowColumnResizing: false,
-        selection: {
-            mode: "multiple",
-            showCheckBoxesMode: "always"
-        },
-        filterRow: { visible: false },
-        searchPanel: { visible: false },
-        onSelectionChanged: function (e) {
-            selectedKeys = e.selectedRowKeys;
-        },
-        columns: [
-            { dataField: "employeeCode", caption: "Code", width: 80 },
-            { dataField: "empId", visible: false },
-            { dataField: "fullName", caption: "Name", width: 240 },
-            { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
-            { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
-            { dataField: "inTime", caption: "In Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
-            { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
-            { dataField: "duration", caption: "Duration", dataType: "string", width: 80 },
-            { dataField: "day", caption: "Day", dataType: "string", width: 80 },
-            { dataField: "reason", caption: "Reason", dataType: "string", width: 150 },
-              {
-                caption: "Status",
-                width: 80,
-                alignment: "center",
-                allowFiltering: false,
-                allowSorting: false,
-                cellTemplate: function(container, options) {
-                    const row = options.data;
-                    let statusText = "";
-
-                    if (row.isApproved === true) {
-                        statusText = "Approved";
-                    } else if (row.isRejected === true) {
-                        statusText = "Rejected";
-                    } else if (row.isPending === true) {
-                        statusText = "Pending";
-                    }
-
-                    $("<div>").text(statusText).appendTo(container);
-                }
+        $("#attendanceGrid").dxDataGrid({
+            dataSource: data||[],
+            keyExpr: "attendanceRegularizationId",
+            showBorders: true,
+            width: "100%",
+            height: 250,
+            paging: {
+                enabled: false
             },
-               {
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
+            columnAutoWidth: false,
+            allowColumnResizing: false,
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
+            },
+            filterRow: { visible: false },
+            searchPanel: { visible: false },
+            onSelectionChanged: function (e) {
+                selectedKeys = e.selectedRowKeys;
+            },
+            columns: [
+                { dataField: "employeeCode", caption: "Code", width: 80 },
+                { dataField: "empId", visible: false },
+                { dataField: "fullName", caption: "Name", width: 240 },
+                { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
+                { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
+                { dataField: "inTime", caption: "In Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
+                { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
+                { dataField: "duration", caption: "Duration", dataType: "string", width: 80 },
+                { dataField: "day", caption: "Day", dataType: "string", width: 80 },
+                { dataField: "reason", caption: "Reason", dataType: "string", width: 150 },
+                {
+                    caption: "Status",
+                    width: 80,
+                    alignment: "center",
+                    allowFiltering: false,
+                    allowSorting: false,
+                    cellTemplate: function(container, options) {
+                        const row = options.data;
+                        let statusText = "";
+
+                        if (row.isApproved === true) {
+                            statusText = "Approved";
+                        } else if (row.isRejected === true) {
+                            statusText = "Rejected";
+                        } else if (row.isPending === true) {
+                            statusText = "Pending";
+                        }
+
+                        $("<div>").text(statusText).appendTo(container);
+                    }
+                },
+                {
                     dataField: "updatedBy",
                     caption: "Approved By",
                     width: 120,
@@ -377,42 +544,34 @@
                         return rowData.updatedBy ? rowData.updatedBy : "-";
                     }
                 },
-              {
-        dataField: "updatedDate",
-        caption: "Approved Date",
-        dataType: "date",
-        format: "dd/MM/yyyy",
-        width: "10%",
-        minWidth: 100,
-        calculateCellValue: function(rowData) {
-            if (!rowData.updatedDate) return "-";
+                {
+                    dataField: "updatedDate",
+                    caption: "Approved Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: "10%",
+                    minWidth: 100,
+                    calculateCellValue: function(rowData) {
+                        if (!rowData.updatedDate) return "-";
 
-            // Parse the ISO date string
-            const date = new Date(rowData.updatedDate);
+                        const date = new Date(rowData.updatedDate);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
 
-            // Extract day, month, and year
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-            const year = date.getFullYear();
-
-            // Return formatted date as dd/MM/yyyy
-            return `${day}/${month}/${year}`;
-        }
-    }
-
-
-
-        ],
-        onContentReady: function(e) {
-            // Auto height
-            $('#attendanceGrid .dx-datagrid').css('height', 'auto');
-            $('#attendanceGrid .dx-scrollable-container').css('height', 'auto');
-        }
-    });
+                        return `${day}/${month}/${year}`;
+                    }
+                }
+            ],
+            onContentReady: function(e) {
+                $('#attendanceGrid .dx-datagrid').css('height', 'auto');
+                $('#attendanceGrid .dx-scrollable-container').css('height', 'auto');
+            }
+        });
 
         $("#actionButtons").show();
     }
-    // Also fix your btnGo click handler
+
     $('#btnGo').on('click', function () {
         showLoder();
 
@@ -436,11 +595,11 @@
                 if (res.isSuccess && res.data && res.data.length > 0) {
                     loadGrid(res.data);
                     $("#actionButtons").show();
+                    $("#btnExport").show();
                     $("#btnDelete").show();
                     $("#btnApprove").show();
                     $("#btnReject").show();
                 } else {
-                    // Clear grid if no data
                     const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
                     if (gridInstance) {
                         gridInstance.dispose();
@@ -448,12 +607,12 @@
                     $("#attendanceGrid").empty();
 
                     $("#actionButtons").hide();
+                    $("#btnExport").hide();
                     $("#btnDelete").hide();
                     $("#btnApprove").hide();
                     $("#btnReject").hide();
                     var emptyData=[];
-                     loadGrid(emptyData);
-                    //round_error_noti(res.responseMessage || 'No Data Found');
+                    loadGrid(emptyData);
                 }
             },
             error: function (xhr, status, error) {
@@ -464,9 +623,7 @@
         });
     });
 
-    // Fix the Clear button too
     $("#btnClear").click(function () {
-        // Reset form
         $('#searchby').val("1");
         $('#searchfor').val('');
         $('#fromdate').val('');
@@ -474,25 +631,24 @@
         $("input[name='type']").prop('checked', false);
         $('#r2').prop('checked', true);
 
-        // Dispose grid safely
         try {
             const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
             if (gridInstance) {
                 gridInstance.dispose();
             }
         } catch (e) {
-            // Grid doesn't exist, ignore
         }
 
         $("#attendanceGrid").empty();
         $("#actionButtons").hide();
+        $("#btnExport").hide();
         $("#btnDelete").hide();
         $("#btnApprove").hide();
         $("#btnReject").hide();
     });
 
     $('#btnDelete').on('click', function () {
-         var grid = $("#attendanceGrid").dxDataGrid("instance");
+        var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
 
         if (selectedRows.length === 0) {
@@ -512,7 +668,6 @@
             return;
         }
 
-        // Check for rejected records
         const rejectedRecords = selectedRows.filter(row => row.isRejected);
         if (rejectedRecords.length > 0) {
             Swal.fire({
@@ -543,13 +698,8 @@
             success: function (res) {
                 hideLoder();
                 if (res.isSuccess) {
-                    //      selectedRowKeys.forEach(function (key) {
-                    //     grid.deleteRow(grid.getRowIndexByKey(key));
-                    // });
-
                     round_success_noti(res.responseMessage || "Deleted successfully.");
-               
-                    $("#btnGo").click(); 
+                    $("#btnGo").click();
                 } else {
                     round_error_noti(res.responseMessage || "Deletion failed.");
                 }
@@ -562,14 +712,13 @@
     });
 
     function updateAttendanceStatus(status) {
-  
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
         if (selectedRows.length === 0) {
             round_error_noti("Please select at least one record.");
             return;
         }
-        
+
         if (status === "Rejected") {
             const approvedRecords = selectedRows.filter(row => row.isApproved);
             if (approvedRecords.length > 0) {
@@ -583,8 +732,8 @@
                 });
                 return;
             }
-        }  
-          
+        }
+
         if (status === "Approved") {
             const approvedRecords = selectedRows.filter(row => row.isApproved);
             if (approvedRecords.length > 0) {
@@ -598,7 +747,7 @@
                 });
                 return;
             }
-        }    
+        }
 
         if (status === "Rejected") {
             const rejectedRecords = selectedRows.filter(row => row.isRejected);
@@ -616,21 +765,21 @@
         }
 
         selectedRows.forEach(function (row) {
-            row.status = status; 
+            row.status = status;
             row.createdBy = EmployeeId;
         });
-        
+
         showLoder();
         $.ajax({
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/UpdateAttendanceRegularization")',
             type: "PUT",
-            data: JSON.stringify(selectedRows), 
+            data: JSON.stringify(selectedRows),
             contentType: "application/json",
             success: function (response) {
                 hideLoder();
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage || "Status updated successfully.");
-                    const selectedKeys = grid.getSelectedRowKeys(); 
+                    const selectedKeys = grid.getSelectedRowKeys();
                     let dataSource = grid.option("dataSource");
                     const updatedData = dataSource.filter(item => {
                         return !selectedKeys.includes(item.attendanceRegularizationId);
@@ -647,6 +796,4 @@
             }
         });
     }
-
-
 </script>
