@@ -27,5 +27,6 @@ namespace HRMS_Core.VM.Employee
         public bool IsRejected { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
+        public string? ReportingManager { get; set; }
     }
 }
