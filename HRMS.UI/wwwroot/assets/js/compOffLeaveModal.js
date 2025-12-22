@@ -156,7 +156,7 @@ async function fetchPendingProbation() {
             url: BaseUrlLayout + '/ApprovalManagementAPI/GetPendingApprovalRequests',
             contentType: 'application/json',
             data: JSON.stringify({
-                ApproverEmployeeId:parseInt(localStorage.getItem("EmployeeId")),
+                ApproverEmployeeId: parseInt(localStorage.getItem("EmployeeId")),
                 StatusId: 1
             }),
             headers: {
@@ -254,15 +254,15 @@ function setupPendingProbationGrid(data) {
     $(".leave-balance-modal-container #pendingProbationRecordsContainer").dxDataGrid({
         dataSource: data || [],
         columns: [
-            { dataField: 'RequesterName', caption: 'Requester', alignment: 'left', width: 200 },
-            { dataField: 'ApproverName', caption: 'Approver', alignment: 'left', width: 200 },
-            { dataField: 'CurrentLevelSequence', caption: 'Level', alignment: 'left', width: 120 },
-            { dataField: 'LevelStatus', caption: 'Status', alignment: 'left', width: 120 },
+            { dataField: 'RequesterName', caption: 'Requester', alignment: 'left', minWidth: 200 },
+            //{ dataField: 'ApproverName', caption: 'Approver', alignment: 'left', width: 200 },
+            { dataField: 'CurrentLevelSequence', caption: 'Level', alignment: 'left', minWidth: 120 },
+            { dataField: 'LevelStatus', caption: 'Status', alignment: 'left', minWidth: 120 },
             {
                 dataField: 'AssignedOn',
                 caption: 'Assigned On',
                 alignment: 'center',
-                width: 150,
+                minWidth: 150,
                 dataType: 'date',
                 format: 'dd-MM-yyyy'
             },
@@ -270,7 +270,7 @@ function setupPendingProbationGrid(data) {
                 dataField: 'EscalationDueOn',
                 caption: 'Escalation Due',
                 alignment: 'center',
-                width: 150,
+                minWidth: 150,
                 dataType: 'date',
                 format: 'dd-MM-yyyy'
             }
@@ -295,9 +295,8 @@ function setupPendingProbationGrid(data) {
         },
         scrolling: {
             mode: "standard",
-            useNative: false,
-            scrollByContent: true,
-            scrollByThumb: true,
+            useNative: true,
+            showScrollbar: "always"
         },
         allowColumnReordering: false,
         columnFixing: { enabled: false }
@@ -308,17 +307,17 @@ function setupUpcomingProbationGrid(data) {
     $(".leave-balance-modal-container #upCommingProbationRecordsContainer").dxDataGrid({
         dataSource: data || [],
         columns: [
-            { dataField: 'EmployeeName', caption: 'Employee Name', alignment: 'left', width: 250 },
-            { dataField: 'DaysRemaining', caption: 'Days Remaining', alignment: 'center', width: 120 },
+            { dataField: 'EmployeeName', caption: 'Employee Name', alignment: 'left', minWidth: 250 },
+            { dataField: 'DaysRemaining', caption: 'Days Remaining', alignment: 'center', minWidth: 120 },
             {
                 dataField: 'ProbationEndDate',
                 caption: 'Probation End Date',
                 alignment: 'center',
-                width: 150,
+                minWidth: 150,
                 dataType: 'date',
                 format: 'dd-MM-yyyy'
-            },
-            { dataField: 'ReportingName', caption: 'Reporting Manager', alignment: 'left', width: 250 }
+            }
+            //{ dataField: 'ReportingName', caption: 'Reporting Manager', alignment: 'left', width: 250 }
         ],
         columnsAutoWidth: true,
         wordWrapEnabled: false,
@@ -340,9 +339,8 @@ function setupUpcomingProbationGrid(data) {
         },
         scrolling: {
             mode: "standard",
-            useNative: false,
-            scrollByContent: true,
-            scrollByThumb: true,
+            useNative: true,
+            showScrollbar: "always"
         },
         allowColumnReordering: false,
         columnFixing: { enabled: false }
