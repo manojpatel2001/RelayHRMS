@@ -465,23 +465,23 @@ namespace HRMS_API.Services
 
         public void StartScheduleDailyEmail()
         {
-            //RecurringJob.AddOrUpdate(
-            //    "reporting-schedule-check",
-            //    () => ScheduleReportingDailyEmail(),
-            //    "*/2 * * * *"
-            //);
+            RecurringJob.AddOrUpdate(
+                "reporting-schedule-check",
+                () => ScheduleReportingDailyEmail(),
+                "*/2 * * * *"
+            );
 
-            //RecurringJob.AddOrUpdate(
-            //    "hr-schedule-check",
-            //    () => ScheduleHrDailyEmail(),
-            //    "*/2 * * * *"
-            //);
+            RecurringJob.AddOrUpdate(
+                "hr-schedule-check",
+                () => ScheduleHrDailyEmail(),
+                "*/2 * * * *"
+            );
 
-            //RecurringJob.AddOrUpdate(
-            //    "left-employee-schedule-check",
-            //    () => ScheduleDailyLeftEmployeeEmail(),
-            //    "*/2 * * * *" // Every 2 minutes
-            //);
+            RecurringJob.AddOrUpdate(
+                "left-employee-schedule-check",
+                () => ScheduleDailyLeftEmployeeEmail(),
+                "*/2 * * * *" // Every 2 minutes
+            );
 
         }
 
