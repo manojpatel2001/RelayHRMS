@@ -99,6 +99,8 @@ namespace HRMS_Core.VM.Probations
         public string? ReportingMangerId { get; set; }
         public string? ReportingManagerCode { get; set; }
         public string? ReportingManagerEmail { get; set; }
+        public int? CurrentLevelNo { get; set; }
+        public string? CurrentApprover { get; set; }
 
     }
     public class ConfirmationProbationDetailsPara
