@@ -368,11 +368,11 @@ namespace HRMS_API.Controllers.Salary
         }
 
         [HttpGet("GetEmployeesForSalary")]
-        public async Task<APIResponse> GetEmployeesForSalary([FromQuery] string? BranchIds, int CompanyId ,int? Month)
+        public async Task<APIResponse> GetEmployeesForSalary([FromQuery] string? BranchIds, int CompanyId, int? Month)
         {
             try
             {
-                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeesForSalary(BranchIds, CompanyId , Month);
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeesForSalary(BranchIds, CompanyId, Month);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
@@ -385,5 +385,111 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
         }
+
+
+        [HttpPost("GetEmployeeSalaryPublish")]
+        public async Task<APIResponse> GetEmployeeSalaryPublish([FromBody] AttendanceLockParamVm model)
+        {
+            try
+            {
+                if (model == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id,Month,Year are required."
+                    };
+                }
+
+
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeeSalaryPublish(model);
+
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
+                };
+            }
+        }
+
+        [HttpPut("UpdateSalaryPublishStatus")]
+        public async Task<APIResponse> UpdateSalaryPublishStatus([FromBody] SalaryPublishFilterViewModel model)
+        {
+            try
+            {
+                if (model == null || string.IsNullOrWhiteSpace(model.EmployeeIds))
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Invalid request data." };
+
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.UpdateSalaryPublishStatus(model);
+
+                return new APIResponse
+                {
+                    isSuccess = result.Success > 0,
+                    ResponseMessage = result.ResponseMessage
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = ex.Message,
+                    ResponseMessage = "Unable to update records. Please try again later."
+                };
+            }
+        }
+        [HttpGet("IsPayslipPublished")]
+        public async Task<APIResponse> IsPayslipPublished([FromQuery] PayslipFilterViewModel model)
+        {
+            try
+            {
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.IsPayslipPublished(model);
+
+                if (result == null)
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No data found"
+                    };
+                }
+
+                return new APIResponse()
+                {
+                    isSuccess = result.Success == 1, // Use Success field
+                    Data = new { Success = result.Success, ResponseMessage = result.ResponseMessage },
+                    ResponseMessage = result.ResponseMessage // Use ResponseMessage
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+
     }
 }
