@@ -304,7 +304,6 @@
     $('#btnGo').off('click').on('click', function () {
         var selectedMonth = $("#month").val();
         var selectedYear = $("#year").val();
-
         var isValid = true;
 
         // Validate Month
@@ -330,46 +329,89 @@
 
         showLoder();
 
-        let model = {
-            Month: parseInt(selectedMonth),
-            Year: parseInt(selectedYear),
-            EmployeeId: [parseInt(EmployeeId)]
+        // First, check if the payslip is published
+        let checkModel = {
+            EmployeeId: parseInt(EmployeeId),
+            Month: selectedMonth,
+            Year: parseInt(selectedYear)
         };
 
         $.ajax({
-            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetSalarySlipReport")',
-            type: 'POST',
-            data: JSON.stringify(model),
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/IsPayslipPublished")',
+            type: 'GET',
+            data: checkModel,
             contentType: 'application/json',
             headers: {
                 'Authorization': 'Bearer ' + Token
             },
-            success: function (res) {
-                console.log("data", res);
-                if (res.isSuccess) {
-                    renderTable(res.data);
+            success: function (checkRes) {
+                // Now using camelCase
+                if (checkRes.isSuccess && checkRes.data && checkRes.data.success === 1) {
+                    // Payslip is published, proceed to fetch salary data
+                    let model = {
+                        Month: parseInt(selectedMonth),
+                        Year: parseInt(selectedYear),
+                        EmployeeId: [parseInt(EmployeeId)]
+                    };
+
+                    $.ajax({
+                        url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetSalarySlipReport")',
+                        type: 'POST',
+                        data: JSON.stringify(model),
+                        contentType: 'application/json',
+                        headers: {
+                            'Authorization': 'Bearer ' + Token
+                        },
+                        success: function (res) {
+                            console.log("API Response:", res);
+                            // Now using camelCase
+                            if (res.isSuccess && res.data) {
+                                renderTable(res.data);
+                            } else {
+                                const message = res.responseMessage || 'No Data';
+                                if (typeof round_error_noti === 'function') {
+                                    round_error_noti(message);
+                                } else {
+                                    alert(message);
+                                }
+                            }
+                        },
+                        error: function (xhr) {
+                            console.error("Error:", xhr);
+                            const message = xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.';
+                            if (typeof round_error_noti === 'function') {
+                                round_error_noti(message);
+                            } else {
+                                alert(message);
+                            }
+                        },
+                        complete: function () {
+                            hideLoder();
+                        }
+                    });
                 } else {
+                    // Payslip is not published, show message
+                    const message = checkRes.data?.responseMessage || checkRes.responseMessage || 'Payslip is not published for the selected month and year.';
                     if (typeof round_error_noti === 'function') {
-                        round_error_noti(res.responseMessage || 'No Data');
+                        round_error_noti(message);
                     } else {
-                        alert(res.responseMessage || 'No Data');
+                        alert(message);
                     }
+                    hideLoder();
                 }
             },
             error: function (xhr) {
                 console.error("Error:", xhr);
+                const message = xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.';
                 if (typeof round_error_noti === 'function') {
-                    round_error_noti(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.');
+                    round_error_noti(message);
                 } else {
-                    alert('An error occurred. Please try again.');
+                    alert(message);
                 }
-            },
-            complete: function () {
                 hideLoder();
             }
         });
     });
-
     $("#btnClear").off('click').on('click', function () {
         // Clear form fields
         $('#month').val('');

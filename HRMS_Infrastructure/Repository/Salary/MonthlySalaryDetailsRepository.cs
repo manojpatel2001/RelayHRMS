@@ -305,5 +305,96 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return new List<EmployeesByBranchId>();
             }
         }
+
+        public async Task<List<EmployeeSalaryPublish>> GetEmployeeSalaryPublish(AttendanceLockParamVm model)
+        {
+            try
+            {
+                var result = await _db.Set<EmployeeSalaryPublish>()
+                    .FromSqlInterpolated($"EXEC GetEmployeeSalaryPublish  @Month = {model.Month}, @Year = {model.Year}, @EmpIds = {model.EmployeeId} ,@StatusFilter={model.Status}")
+                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetEmployeeSalaryPublish Error: " + ex.Message);
+                return new List<EmployeeSalaryPublish>();
+            }
+        }
+
+        public async Task<SP_Response> UpdateSalaryPublishStatus(SalaryPublishFilterViewModel model)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Month", model.Month, DbType.Int32);
+                    parameters.Add("@Year", model.Year, DbType.Int32);
+                    parameters.Add("@EmployeeIds", model.EmployeeIds, DbType.String);
+                    parameters.Add("@SalaryIds", model.SalaryIds, DbType.String);
+                    parameters.Add("@Status", model.Status, DbType.String);
+
+                    var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                        "UpdateSalaryPublishStatus",  // ✅ Corrected SP name
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result ?? new SP_Response
+                    {
+                        Success = 0,
+                        ResponseMessage = "No data returned"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+
+                return new SP_Response
+                {
+                    Success = 0,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<SP_Response> IsPayslipPublished(PayslipFilterViewModel model)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    
+                    parameters.Add("@EmployeeID", model.EmployeeId, DbType.Int32);
+                    parameters.Add("@Month", model.Month, DbType.Int32);
+                    parameters.Add("@Year", model.Year, DbType.Int32);
+
+                    var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                        "IsPayslipPublished",  // ✅ Corrected SP name
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result ?? new SP_Response
+                    {
+                        Success = 0,
+                        ResponseMessage = "No data returned"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+
+                return new SP_Response
+                {
+                    Success = 0,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
     }
-}
+    }

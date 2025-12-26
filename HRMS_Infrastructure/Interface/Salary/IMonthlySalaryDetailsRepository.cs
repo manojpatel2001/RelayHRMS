@@ -1,4 +1,5 @@
-﻿using HRMS_Core.Master.JobMaster;
+﻿using HRMS_Core.Employee;
+using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
@@ -29,6 +30,9 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<List<EmployeeSalaryRegisterViewModel>> GetEmployeeSalaryRegister(SalaryRegisterVM model);
         Task<SalaryDetailForGetById?> GetBySalaryDetailsId(List<int> Ids);
         Task<VMCommonResult> DeleteSalaryDetails(DeleteRecordVModel deleteRecordVM);
+        Task<List<EmployeeSalaryPublish>> GetEmployeeSalaryPublish(AttendanceLockParamVm model);
+        Task<SP_Response> UpdateSalaryPublishStatus(SalaryPublishFilterViewModel model);
+        Task<SP_Response> IsPayslipPublished(PayslipFilterViewModel model);
 
     }
 }
