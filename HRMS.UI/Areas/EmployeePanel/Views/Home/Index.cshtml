@@ -774,8 +774,7 @@ function formatDateToDDMMM(dateString) {
     }
 
 
-
-     function loadBirthday() {
+    function loadBirthday() {
         const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetTodayBirthdaysByCompany?Compid=${Compid}`;
         $.ajax({
             url: apiUrl,
@@ -783,59 +782,136 @@ function formatDateToDDMMM(dateString) {
             success: function (response) {
                 const members = response.data;
                 if (!Array.isArray(members) || members.length === 0) {
-          $('#groupedBirthdayList')
-           .html('<p class="text-muted">No upcoming birthdays found.</p>')
-           .removeClass('has-birthday');                    return;
+                    $('#groupedBirthdayList')
+                        .html('<p class="text-muted">No upcoming birthdays found.</p>')
+                        .removeClass('has-birthday');
+                    return;
                 }
-                const grouped = {};
+
+                // ✅ STEP 1: Get today's date info
+                const today = new Date();
+                const todayDay = today.getDate();
+                const todayMonth = today.getMonth(); // 0-11
+                const todayYear = today.getFullYear();
+
+                // ✅ STEP 2: Categorize birthdays into TODAY and UPCOMING
+                const todayBirthdays = [];
+                const upcomingBirthdays = [];
+
                 members.forEach(member => {
                     const dateObj = new Date(member.date);
-                    // Fix: Use explicit short month format
-                    const key = `${String(dateObj.getDate()).padStart(2, '0')} ${dateObj.toLocaleString('en-US', { month: 'short' })}`;
-                    if (!grouped[key]) grouped[key] = [];
-                    grouped[key].push(member);
+                    const memberDay = dateObj.getDate();
+                    const memberMonth = dateObj.getMonth();
+
+                    // Check if birthday is today
+                    if (memberDay === todayDay && memberMonth === todayMonth) {
+                        todayBirthdays.push(member);
+                    } else {
+                        upcomingBirthdays.push(member);
+                    }
                 });
 
-                // Fix: Generate todayKey in the same format
-                const today = new Date();
-                const todayKey = `${String(today.getDate()).padStart(2, '0')} ${today.toLocaleString('en-US', { month: 'short' })}`;
+                // ✅ STEP 3: Sort upcoming birthdays by actual date (day and month)
+                upcomingBirthdays.sort((a, b) => {
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
 
+                    // Calculate days from today for proper ordering
+                    const getDaysFromToday = (date) => {
+                        const month = date.getMonth();
+                        const day = date.getDate();
+                        const currentMonth = today.getMonth();
+                        const currentDay = today.getDate();
+
+                        let monthDiff = month - currentMonth;
+
+                        // Handle year wrap (e.g., Jan after Dec)
+                        if (monthDiff < 0 || (monthDiff === 0 && day < currentDay)) {
+                            monthDiff += 12;
+                        }
+
+                        return monthDiff * 31 + day;
+                    };
+
+                    return getDaysFromToday(dateA) - getDaysFromToday(dateB);
+                });
+
+                // ✅ STEP 4: Build HTML - TODAY first, then UPCOMING
                 let html = '';
-           for (const date in grouped) {
-                    const isToday = date === todayKey;
+
+                // Display TODAY birthdays first
+                if (todayBirthdays.length > 0) {
                     html += `
                         <div class="group-wrapper">
-                            <div class="group-header">
-                                ${isToday ? 'Today' : date}
-                            </div>
+                            <div class="group-header">TODAY</div>
                         </div>
                     `;
-              
-                    grouped[date].forEach(member => {
+
+                    todayBirthdays.forEach(member => {
                         const imageUrl = member.employeeProfileUrl || `${baseDomain}/default-image/avatar-2.png`;
                         html += `
-
-                                  <div class="birthday-card"  style="font-size: 13px;margin-bottom: 0;">
-                                        <img src="${imageUrl}" alt="Profile" />
-                                        <div>
-                                            <div style="color:#63739c;"><strong>${member.employeeCode} - ${member.fullName}</strong></div>
-                   
-                                            <div>Branch: ${member.branchName ?? ''}</div>
-                                            <div>Designation: ${member.designationName ?? ''}</div>
-                                            <div>Department: ${member.departmentName ?? ''}</div>                                    
-                                     <div>Date of Birth: ${formatDateToDDMMM(member.date) ?? ''}</div>
-                                        </div>
-                                        <div class="date-corner">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <circle cx="12" cy="12" r="10"></circle>
-                                                <polyline points="12 6 12 12 16 14"></polyline>
-                                            </svg>
-                                            <span>${formatDateWithCurrentYear(member.date) ?? ''}</span>
-                                        </div>
-                                    </div>
+                            <div class="birthday-card" style="font-size: 13px; margin-bottom: 10px;">
+                                <img src="${imageUrl}" alt="Profile" />
+                                <div>
+                                    <div style="color:#63739c;"><strong>${member.employeeCode} - ${member.fullName}</strong></div>
+                                    <div>Branch: ${member.branchName ?? ''}</div>
+                                    <div>Designation: ${member.designationName ?? ''}</div>
+                                    <div>Department: ${member.departmentName ?? ''}</div>
+                                    <div>Date of Birth: ${formatDateToDDMMM(member.date) ?? ''}</div>
+                                </div>
+                                <div class="date-corner">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <span>${formatDateWithCurrentYear(member.date) ?? ''}</span>
+                                </div>
+                            </div>
                         `;
                     });
                 }
+
+                // Display UPCOMING birthdays
+                if (upcomingBirthdays.length > 0) {
+                    let currentDateLabel = '';
+
+                    upcomingBirthdays.forEach(member => {
+                        const dateObj = new Date(member.date);
+                        const dateLabel = `${String(dateObj.getDate()).padStart(2, '0')} ${dateObj.toLocaleString('en-US', { month: 'short' })}`;
+
+                        // Add date header if it changes
+                        if (dateLabel !== currentDateLabel) {
+                            currentDateLabel = dateLabel;
+                            html += `
+                                <div class="group-wrapper">
+                                    <div class="group-header">${dateLabel}</div>
+                                </div>
+                            `;
+                        }
+
+                        const imageUrl = member.employeeProfileUrl || `${baseDomain}/default-image/avatar-2.png`;
+                        html += `
+                            <div class="birthday-card" style="font-size: 13px; margin-bottom: 10px;">
+                                <img src="${imageUrl}" alt="Profile" />
+                                <div>
+                                    <div style="color:#63739c;"><strong>${member.employeeCode} - ${member.fullName}</strong></div>
+                                    <div>Branch: ${member.branchName ?? ''}</div>
+                                    <div>Designation: ${member.designationName ?? ''}</div>
+                                    <div>Department: ${member.departmentName ?? ''}</div>
+                                    <div>Date of Birth: ${formatDateToDDMMM(member.date) ?? ''}</div>
+                                </div>
+                                <div class="date-corner">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <span>${formatDateWithCurrentYear(member.date) ?? ''}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
                 $('#groupedBirthdayList').addClass('has-birthday').html(html);
             },
             error: function () {
@@ -843,7 +919,6 @@ function formatDateToDDMMM(dateString) {
             }
         });
     }
-
 
            function loadworkanniversary() {
         const apiUrl = `${apiBase}/EmployeeDashBoardAPI/GetTodayWorkAnniversary?Compid=${Compid}`;
