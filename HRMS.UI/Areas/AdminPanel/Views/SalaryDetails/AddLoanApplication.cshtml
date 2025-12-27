@@ -1,0 +1,819 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Loan Application";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<div class="card">
+    <div class="card-header bg-transparent ml-0 py-0">
+        <div class="row">
+            <div class="col-6">
+                <h6 class="pt-2 mb-0">
+                    Manage Employee Loan Application
+                </h6>
+            </div>
+            <div class="col-6 d-flex justify-content-end align-items-center">
+                <button id="addLoanApplication"
+                        type="button"
+                        class="btn mr-1 rounded-1"
+                        style="background-color:#2395c6; color:white;">
+                    Add
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <div class="grid-wrapper" style="position: relative;">
+                        <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column"
+                             style="display: none; inset: 0; background: rgba(255,255,255,0.6); z-index: 10;">
+                            <img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner"
+                                 style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+                            <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+                        </div>
+                        <div id="gridTag">
+                            <div class="rowCount" id="rowCount1"></div>
+                            <div id="gridContainer"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loan Application Modal -->
+<div class="modal fade" id="addLoanApplicationModal" tabindex="-1" aria-labelledby="addLoanApplicationLabel"
+     aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title btn-heading-title" id="modalTitle">Add Loan Application</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font" style="font-size:12px;">
+                <form id="loanApplicationForm">
+                    <input type="hidden" id="loanApplicationId" value="0">
+
+                    <div class="row">
+                        <!-- Application Date -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="date" class="form-control floating-input" id="applicationDate" placeholder="Application Date">
+                                <label class="floating-label" for="applicationDate">Application Date <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spnapplicationDate" style="color:red; display:none; font-size: 0.85em;">Please Select Application Date</span>
+                        </div>
+
+                        <!-- Branch -->
+                        <div class="col-md-4">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="branchLoanWrapper">
+                                    <label for="branchLoan">Branch <span class="text-danger">*</span></label>
+                                    <input type="text" class="searchable-select-input" id="branchLoan" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search branch..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                                <span id="spnbranchLoan" style="color:red; display:none; font-size: 0.85em;">Please Select Branch</span>
+                            </div>
+                        </div>
+
+                        <!-- Employee -->
+                        <div class="col-md-4">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="employeeLoanWrapper">
+                                    <label for="employeeLoan">Employee <span class="text-danger">*</span></label>
+                                    <input type="text" class="searchable-select-input" id="employeeLoan" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search employee..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                                <span id="spnemployeeLoan" style="color:red; display:none; font-size: 0.85em;">Please Select Employee</span>
+                            </div>
+                        </div>
+
+                        <!-- Contact No -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="text" class="form-control floating-input" id="contactNo" placeholder="Contact No" readonly>
+                                <label class="floating-label" for="contactNo">Contact No</label>
+                            </div>
+                        </div>
+
+                        <!-- Email Id -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="email" class="form-control floating-input" id="emailId" placeholder="Email Id" readonly>
+                                <label class="floating-label" for="emailId">Email Id</label>
+                            </div>
+                        </div>
+
+                        <!-- Loan Name -->
+                        <div class="col-md-4">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="loanNameWrapper">
+                                    <label for="loanName">Loan Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="searchable-select-input" id="loanName" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search loan..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                                <span id="spnloanName" style="color:red; display:none; font-size: 0.85em;">Please Select Loan Name</span>
+                            </div>
+                        </div>
+
+                        <!-- Loan Max Limit -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="number" class="form-control floating-input" id="loanMaxLimit" placeholder="Loan Max Limit" readonly>
+                                <label class="floating-label" for="loanMaxLimit">Loan Max Limit</label>
+                            </div>
+                        </div>
+
+                        <!-- Loan Require Date -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="date" class="form-control floating-input" id="loanRequireDate" placeholder="Loan Require Date">
+                                <label class="floating-label" for="loanRequireDate">Loan Require Date <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spnloanRequireDate" style="color:red; display:none; font-size: 0.85em;">Please Select Loan Require Date</span>
+                        </div>
+
+                        <!-- Loan Amount -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="number" class="form-control floating-input" id="loanAmount" placeholder="Loan Amount">
+                                <label class="floating-label" for="loanAmount">Loan Amount <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spnloanAmount" style="color:red; display:none; font-size: 0.85em;">Please Enter Loan Amount</span>
+                        </div>
+
+                        <!-- Interest Type -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="text" class="form-control floating-input" id="interestType" placeholder="Interest Type" readonly>
+                                <label class="floating-label" for="interestType">Interest Type</label>
+                            </div>
+                        </div>
+
+                        <!-- Interest % (Yearly) -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="number" step="0.01" class="form-control floating-input" id="interestRate" placeholder="Interest Rate" readonly>
+                                <label class="floating-label" for="interestRate">Interest (%) (Yearly)</label>
+                            </div>
+                        </div>
+
+                        <!-- No of Installment -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="number" class="form-control floating-input" id="noOfInstallment" placeholder="No of Installment">
+                                <label class="floating-label" for="noOfInstallment">No of Installment <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spnnoOfInstallment" style="color:red; display:none; font-size: 0.85em;">Please Enter No of Installment</span>
+                        </div>
+
+                        <!-- Installment Amount -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="number" step="0.01" class="form-control floating-input" id="installmentAmount" placeholder="Installment Amount" readonly>
+                                <label class="floating-label" for="installmentAmount">Installment Amount <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spninstallmentAmount" style="color:red; display:none; font-size: 0.85em;">Installment Amount Required</span>
+                        </div>
+
+                        <!-- Installment Start Date -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="date" class="form-control floating-input" id="installmentStartDate" placeholder="Installment Start Date">
+                                <label class="floating-label" for="installmentStartDate">Installment Start Date <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spninstallmentStartDate" style="color:red; display:none; font-size: 0.85em;">Please Select Installment Start Date</span>
+                        </div>
+
+                        <!-- Remark -->
+                        <div class="col-md-12">
+                            <div class="form-group mt-3 position-relative">
+                                <textarea class="form-control floating-input" id="remark" placeholder="Remark" rows="3"></textarea>
+                                <label class="floating-label" for="remark">Remark</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer btn-heading-title">
+                <button type="button" class="btn btn-primary" id="btnSaveLoanApplication"
+                        style="background-color:#2395c6; color:white;">
+                    Save
+                </button>
+                <button type="button" class="btn btn-primary" id="btnSavingLoanApplication"
+                        style="background-color:#2395c6; color:white;display:none;" disabled>
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span> Saving..
+                </button>
+                <button type="button" class="btn btn-secondary" id="btnClearLoanApplication">Clear</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/assets/js/jquery.min.js"></script>
+
+<script>
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails?.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    $(document).ready(function(){
+        // Set default application date to today
+        var today = new Date().toISOString().split('T')[0];
+        $('#applicationDate').val(today);
+
+        loadLoanApplications();
+
+        // Initialize dropdowns
+        $('#employeeLoan').searchableSelect({
+            data: [],
+            valueKey: 'employeeId',
+            textKey: 'employeeName',
+            placeholder: 'Employee',
+            searchPlaceholder: 'Search employee...'
+        });
+
+        $('#loanName').searchableSelect({
+            data: [],
+            valueKey: 'loanId',
+            textKey: 'loanName',
+            placeholder: 'Loan Name',
+            searchPlaceholder: 'Search loan...',
+            onChange: function(item) {
+                onLoanSelected(item);
+            }
+        });
+
+        BindBranchDropdownForLoan();
+        BindLoanMasterDropdown();
+    });
+
+    $("#addLoanApplication").click(() => {
+        resetLoanApplicationForm();
+        $('#modalTitle').text('Add Loan Application');
+        $("#addLoanApplicationModal").modal('show');
+    });
+
+    $("#btnClearLoanApplication").click(() => {
+        resetLoanApplicationForm();
+    });
+
+    function showbtnLoder(isUpdate){
+        $('#btnSaveLoanApplication').hide();
+        if(isUpdate) {
+            $('#btnSavingLoanApplication').html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Updating..');
+        } else {
+            $('#btnSavingLoanApplication').html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Saving..');
+        }
+        $('#btnSavingLoanApplication').show();
+    }
+
+    function hidebtnLoder(){
+        $('#btnSaveLoanApplication').show();
+        $('#btnSavingLoanApplication').hide();
+    }
+
+    async function BindBranchDropdownForLoan() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (data) {
+                    if (data.isSuccess) {
+                        $('#branchLoan').searchableSelect({
+                            data: data.data || [],
+                            valueKey: 'branchId',
+                            textKey: 'branchName',
+                            placeholder: 'Branch',
+                            searchPlaceholder: 'Search branch...',
+                            onChange: function(item) {
+                                BindEmployeeByBranchIdForLoan(item.branchId);
+                            }
+                        });
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch branches');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    async function BindEmployeeByBranchIdForLoan() {
+        var branchId = $('#branchLoan').data('searchableSelect').getValue();
+        if (!branchId) {
+            return Promise.resolve();
+        }
+        var payLoad = {
+            BranchId: branchId,
+            CompanyId: CompanyId
+        }
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/EmployeeMasterAPI/GetEmployeeListByBranchId',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                data: JSON.stringify(payLoad),
+                success: function (data) {
+                    if (data.isSuccess) {
+                        const dropdownEmployee = $('#employeeLoan').data('searchableSelect');
+                        if (dropdownEmployee) {
+                            dropdownEmployee.setData(data.data);
+                            dropdownEmployee.options.onChange = function(item) {
+                                onEmployeeSelected(item);
+                            };
+                        }
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch employees');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    async function BindLoanMasterDropdown() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/LoanMasterAPI/GetAllLoansByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (data) {
+                    if (data.isSuccess) {
+                        const dropdownLoan = $('#loanName').data('searchableSelect');
+                        if (dropdownLoan) {
+                            dropdownLoan.setData(data.data || []);
+                        }
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch loans');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    function onEmployeeSelected(employee) {
+        $('#contactNo').val(employee.contactNo || '');
+        $('#emailId').val(employee.emailId || '');
+    }
+
+    function onLoanSelected(loan) {
+        $('#loanMaxLimit').val(loan.maxLimit || 0);
+        $('#interestType').val(loan.interestType || '');
+        $('#interestRate').val(loan.interestRate || 0);
+        calculateInstallmentAmount();
+    }
+
+    $('#loanAmount, #noOfInstallment').on('input', function() {
+        calculateInstallmentAmount();
+    });
+
+    function calculateInstallmentAmount() {
+        var loanAmount = parseFloat($('#loanAmount').val()) || 0;
+        var noOfInstallment = parseInt($('#noOfInstallment').val()) || 0;
+        var interestRate = parseFloat($('#interestRate').val()) || 0;
+
+        if (loanAmount > 0 && noOfInstallment > 0) {
+            var totalInterest = (loanAmount * interestRate * (noOfInstallment / 12)) / 100;
+            var totalAmount = loanAmount + totalInterest;
+            var installmentAmount = totalAmount / noOfInstallment;
+            $('#installmentAmount').val(installmentAmount.toFixed(2));
+        } else {
+            $('#installmentAmount').val('');
+        }
+    }
+
+    async function loadLoanApplications() {
+        $('#grid-loader').addClass('d-flex').show();
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/LoanApplicationAPI/GetAllLoanApplications',
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    var gridInstance = $("#gridContainer").dxDataGrid({
+                        dataSource: response.data || [],
+                        columns: [
+                            {
+                                dataField: 'applicationDate',
+                                caption: 'Application Date',
+                                dataType: 'date',
+                                format: 'dd-MM-yyyy'
+                            },
+                            { dataField: 'branchName', caption: 'Branch' },
+                            { dataField: 'employeeCode', caption: 'Employee Code' },
+                            { dataField: 'employeeName', caption: 'Employee Name' },
+                            { dataField: 'loanName', caption: 'Loan Name' },
+                            {
+                                dataField: 'loanAmount',
+                                caption: 'Loan Amount',
+                                dataType: 'number',
+                                format: '#,##0.00'
+                            },
+                            {
+                                dataField: 'noOfInstallment',
+                                caption: 'Installments'
+                            },
+                            {
+                                dataField: 'installmentAmount',
+                                caption: 'Installment Amount',
+                                dataType: 'number',
+                                format: '#,##0.00'
+                            },
+                            {
+                                dataField: 'loanRequireDate',
+                                caption: 'Require Date',
+                                dataType: 'date',
+                                format: 'dd-MM-yyyy'
+                            },
+                            { dataField: 'status', caption: 'Status' },
+                            { dataField: 'branchId', visible: false },
+                            { dataField: 'employeeId', visible: false },
+                            { dataField: 'loanId', visible: false },
+                            {
+                                dataField: '',
+                                caption: 'Actions',
+                                width: '100px',
+                                cellTemplate: function (container, options) {
+                                    var buttonElement = $('<div class="d-flex order-actions">' +
+                                        '<a href="javascript:;" class="edit-action me-2" title="Edit Loan Application">' +
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">' +
+                                        '<path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>' +
+                                        '<path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>' +
+                                        '</svg>' +
+                                        '</a>' +
+                                        '<a href="javascript:;" class="delete-action" title="Delete Loan Application">' +
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">' +
+                                        '<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>' +
+                                        '<path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>' +
+                                        '</svg>' +
+                                        '</a>' +
+                                        '</div>');
+
+                                    buttonElement.find('.edit-action').on('click', function () {
+                                        UpdateLoanApplicationData(options.data);
+                                    });
+
+                                    buttonElement.find('.delete-action').on('click', function () {
+                                        DeleteLoanApplication(options.data);
+                                    });
+
+                                    buttonElement.appendTo(container);
+                                }
+                            }
+                        ],
+                        columnAutoWidth: true,
+                        allowColumnResizing: true,
+                        columnResizingMode: "widget",
+                        wordWrapEnabled: false,
+                        showBorders: true,
+                        scrolling: {
+                            mode: "standard",
+                            useNative: true,
+                            scrollByContent: true,
+                            scrollByThumb: true,
+                            showScrollbar: "always"
+                        },
+                        rowAlternationEnabled: false,
+                        grouping: { autoExpandAll: false },
+                        paging: { pageSize: 10 },
+                        pager: {
+                            showPageSizeSelector: true,
+                            allowedPageSizes: [10, 25, 50, 100]
+                        },
+                        headerFilter: { visible: false },
+                        filterRow: { visible: false, applyFilter: "auto" },
+                        groupPanel: { visible: false },
+                        searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+                        allowColumnReordering: false,
+                        onContentReady(e) {
+                            $('.rowCount').html('Total Records: ' + e.component.totalCount());
+                            e.component.updateDimensions();
+                            $('#grid-loader').removeClass('d-flex').hide();
+                        }
+                    }).dxDataGrid('instance');
+
+                    $('#grid-loader').removeClass('d-flex').hide();
+                    resolve(response.data);
+                },
+                error: function (error) {
+                    $('#grid-loader').removeClass('d-flex').hide();
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    $('#btnSaveLoanApplication').click(function () {
+        var loanApplicationId = $('#loanApplicationId').val();
+        var isUpdate = loanApplicationId > 0;
+
+        showbtnLoder(isUpdate);
+
+        var applicationDate = $('#applicationDate').val();
+        var branch = $('#branchLoan').data('searchableSelect').getValue();
+        var employee = $('#employeeLoan').data('searchableSelect').getValue();
+        var loanName = $('#loanName').data('searchableSelect').getValue();
+        var loanRequireDate = $('#loanRequireDate').val();
+        var loanAmount = $('#loanAmount').val();
+        var noOfInstallment = $('#noOfInstallment').val();
+        var installmentAmount = $('#installmentAmount').val();
+        var installmentStartDate = $('#installmentStartDate').val();
+
+        var isValid = true;
+
+        // Validation
+        if (!applicationDate) {
+            $('#spnapplicationDate').show();
+            isValid = false;
+        } else {
+            $('#spnapplicationDate').hide();
+        }
+
+        if (!branch) {
+            $('#spnbranchLoan').show();
+            isValid = false;
+        } else {
+            $('#spnbranchLoan').hide();
+        }
+
+        if (!employee) {
+            $('#spnemployeeLoan').show();
+            isValid = false;
+        } else {
+            $('#spnemployeeLoan').hide();
+        }
+
+        if (!loanName) {
+            $('#spnloanName').show();
+            isValid = false;
+        } else {
+            $('#spnloanName').hide();
+        }
+
+        if (!loanRequireDate) {
+            $('#spnloanRequireDate').show();
+            isValid = false;
+        } else {
+            $('#spnloanRequireDate').hide();
+        }
+
+        if (!loanAmount || parseFloat(loanAmount) <= 0) {
+            $('#spnloanAmount').show();
+            isValid = false;
+        } else {
+            $('#spnloanAmount').hide();
+        }
+
+        if (!noOfInstallment || parseInt(noOfInstallment) <= 0) {
+            $('#spnnoOfInstallment').show();
+            isValid = false;
+        } else {
+            $('#spnnoOfInstallment').hide();
+        }
+
+        if (!installmentAmount || parseFloat(installmentAmount) <= 0) {
+            $('#spninstallmentAmount').show();
+            isValid = false;
+        } else {
+            $('#spninstallmentAmount').hide();
+        }
+
+        if (!installmentStartDate) {
+            $('#spninstallmentStartDate').show();
+            isValid = false;
+        } else {
+            $('#spninstallmentStartDate').hide();
+        }
+
+        if (!isValid) {
+            hidebtnLoder();
+            return;
+        }
+
+        var loanApplicationData = {
+            LoanApplicationId: parseInt(loanApplicationId),
+            EmployeeId: parseInt(employee),
+            LoanId: parseInt(loanName),
+            ApplicationDate: applicationDate,
+            LoanRequireDate: loanRequireDate,
+            LoanAmount: parseFloat(loanAmount),
+            NoOfInstallment: parseInt(noOfInstallment),
+            InstallmentAmount: parseFloat(installmentAmount),
+            InstallmentStartDate: installmentStartDate,
+            Remark: $('#remark').val().trim(),
+            CreatedBy: parseInt(EmployeeId),
+            UpdatedBy: parseInt(EmployeeId)
+        };
+
+        var apiUrl = isUpdate
+            ? "@baseUrl/LoanApplicationAPI/UpdateLoanApplication"
+            : "@baseUrl/LoanApplicationAPI/CreateLoanApplication";
+
+        var httpMethod = isUpdate ? "PUT" : "POST";
+
+        $.ajax({
+            url: apiUrl,
+            type: httpMethod,
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            data: JSON.stringify(loanApplicationData),
+            success: function (response) {
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage);
+                    $("#addLoanApplicationModal").modal('hide');
+                    loadLoanApplications();
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+                hidebtnLoder();
+            },
+            error: function (xhr) {
+                hidebtnLoder();
+                console.error('Error:', xhr);
+                round_error_noti('Unable to save loan application');
+            }
+        });
+    });
+
+    async function resetLoanApplicationForm() {
+        $('#loanApplicationId').val('0');
+
+        var today = new Date().toISOString().split('T')[0];
+        $('#applicationDate').val(today);
+
+        $('#branchLoan').data('searchableSelect').clear();
+        $('#employeeLoan').data('searchableSelect').clear();
+        $('#loanName').data('searchableSelect').clear();
+
+        $('#contactNo').val('');
+        $('#emailId').val('');
+        $('#loanMaxLimit').val('');
+        $('#loanRequireDate').val('');
+        $('#loanAmount').val('');
+        $('#interestType').val('');
+        $('#interestRate').val('');
+        $('#noOfInstallment').val('');
+        $('#installmentAmount').val('');
+        $('#installmentStartDate').val('');
+        $('#remark').val('');
+
+        hidebtnLoder();
+        $('#btnSaveLoanApplication').text('Save');
+
+        $('span[id^="spn"]').hide();
+    }
+
+    async function UpdateLoanApplicationData(data) {
+        await resetLoanApplicationForm();
+        $('#modalTitle').text('Update Loan Application');
+        $('#btnSaveLoanApplication').text('Update');
+
+        $('#loanApplicationId').val(data.loanApplicationId || data.LoanApplicationId || 0);
+
+        // Set dates
+        var appDateStr = data.applicationDate || data.ApplicationDate;
+        if (appDateStr) {
+            if (appDateStr.includes('T')) {
+                appDateStr = appDateStr.split('T')[0];
+            } else if (appDateStr.includes(' ')) {
+                appDateStr = appDateStr.split(' ')[0];
+            }
+            $('#applicationDate').val(appDateStr);
+        }
+
+        // Set branch and load employees
+        const branchId = data.branchId || data.BranchId;
+        $('#branchLoan').data('searchableSelect').setValue(branchId);
+        await BindEmployeeByBranchIdForLoan();
+
+        // Set employee and populate contact details
+        const employeeId = data.employeeId || data.EmployeeId;
+        $('#employeeLoan').data('searchableSelect').setValue(employeeId);
+        $('#contactNo').val(data.contactNo || data.ContactNo || '');
+        $('#emailId').val(data.emailId || data.EmailId || '');
+
+        // Set loan and populate loan details
+        const loanId = data.loanId || data.LoanId;
+        $('#loanName').data('searchableSelect').setValue(loanId);
+        $('#loanMaxLimit').val(data.loanMaxLimit || data.LoanMaxLimit || 0);
+        $('#interestType').val(data.interestType || data.InterestType || '');
+        $('#interestRate').val(data.interestRate || data.InterestRate || 0);
+
+        // Set loan require date
+        var loanReqDateStr = data.loanRequireDate || data.LoanRequireDate;
+        if (loanReqDateStr) {
+            if (loanReqDateStr.includes('T')) {
+                loanReqDateStr = loanReqDateStr.split('T')[0];
+            } else if (loanReqDateStr.includes(' ')) {
+                loanReqDateStr = loanReqDateStr.split(' ')[0];
+            }
+            $('#loanRequireDate').val(loanReqDateStr);
+        }
+
+        // Set loan details
+        $('#loanAmount').val(data.loanAmount || data.LoanAmount || '');
+        $('#noOfInstallment').val(data.noOfInstallment || data.NoOfInstallment || '');
+        $('#installmentAmount').val(data.installmentAmount || data.InstallmentAmount || '');
+
+        // Set installment start date
+        var instStartDateStr = data.installmentStartDate || data.InstallmentStartDate;
+        if (instStartDateStr) {
+            if (instStartDateStr.includes('T')) {
+                instStartDateStr = instStartDateStr.split('T')[0];
+            } else if (instStartDateStr.includes(' ')) {
+                instStartDateStr = instStartDateStr.split(' ')[0];
+            }
+            $('#installmentStartDate').val(instStartDateStr);
+        }
+
+        $('#remark').val(data.remark || data.Remark || '');
+
+        $("#addLoanApplicationModal").modal('show');
+    }
+
+    function DeleteLoanApplication(data) {
+        const loanAppId = data.loanApplicationId || data.LoanApplicationId;
+        if (confirm('Are you sure you want to delete this loan application?')) {
+            $.ajax({
+                url: `@baseUrl/LoanApplicationAPI/Delete?Id=${loanAppId}&DeletedBy=${EmployeeId}`,
+                type: "DELETE",
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    if (response.isSuccess) {
+                        round_success_noti(response.responseMessage);
+                        loadLoanApplications();
+                    } else {
+                        round_error_noti(response.responseMessage);
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error:', xhr);
+                    round_error_noti('Unable to delete loan application');
+                }
+            });
+        }
+    }
+</script>
