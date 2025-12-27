@@ -2,6 +2,7 @@
 using HRMS_Core.Employee;
 using HRMS_Core.EmployeeMaster;
 using HRMS_Core.Leave;
+using HRMS_Core.Loan;
 using HRMS_Core.ManagePermission;
 using HRMS_Core.Master.CompanyStructure;
 using HRMS_Core.Master.JobMaster;
@@ -341,6 +342,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<EmployeeSalaryPublish>().HasNoKey().ToView(null);
              modelBuilder.Entity<SalaryPublishFilterViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<PayslipFilterViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LoanApplicationViewModel>().HasNoKey().ToView(null);
 
 
 
