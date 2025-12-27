@@ -2094,43 +2094,51 @@
             });
         }
 
-        function displayBirthdayData(data) {
-            const today = new Date();
-            const todayBirthdays = [];
-            const upcomingBirthdays = [];
+      function displayBirthdayData(data) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-            data.forEach(person => {
-                const birthDate = new Date(person.date);
-                const birthMonth = birthDate.getMonth();
-                const birthDay = birthDate.getDate();
-                const todayMonth = today.getMonth();
-                const todayDay = today.getDate();
+        const todayBirthdays = [];
+        const upcomingBirthdays = [];
 
-                if (birthMonth === todayMonth && birthDay === todayDay) {
-                    todayBirthdays.push(person);
-                } else {
-                    // Only show upcoming birthdays within next 30 days
-                    const thisYear = today.getFullYear();
-                    const nextBirthday = new Date(thisYear, birthMonth, birthDay);
-                    if (nextBirthday < today) {
-                        nextBirthday.setFullYear(thisYear + 1);
-                    }
-                    const daysDiff = Math.ceil((nextBirthday - today) / (1000 * 60 * 60 * 24));
-                    if (daysDiff <= 30) {
-                        person.daysDiff = daysDiff;
-                        person.nextBirthdayDate = nextBirthday;
-                        upcomingBirthdays.push(person);
-                    }
+        data.forEach(person => {
+            const birthDate = new Date(person.date);
+            const birthMonth = birthDate.getMonth();
+            const birthDay = birthDate.getDate();
+            const todayMonth = today.getMonth();
+            const todayDay = today.getDate();
+
+            if (birthMonth === todayMonth && birthDay === todayDay) {
+                todayBirthdays.push(person);
+            } else {
+                // Calculate next birthday
+                const thisYear = today.getFullYear();
+                const nextBirthday = new Date(thisYear, birthMonth, birthDay);
+
+                if (nextBirthday < today) {
+                    nextBirthday.setFullYear(thisYear + 1);
                 }
-            });
 
-            // Display today's birthdays
-            displayTodaysBirthdays(todayBirthdays);
+                const daysDiff = Math.ceil((nextBirthday - today) / (1000 * 60 * 60 * 24));
 
-            // Display upcoming birthdays grouped by date
-            displayUpcomingBirthdays(upcomingBirthdays);
-        }
+                // Only show upcoming birthdays within next 30 days
+                if (daysDiff > 0 && daysDiff <= 30) {
+                    person.daysDiff = daysDiff;
+                    person.nextBirthdayDate = nextBirthday;
+                    upcomingBirthdays.push(person);
+                }
+            }
+        });
 
+        // Display today's birthdays
+        displayTodaysBirthdays(todayBirthdays);
+
+        // Sort upcoming birthdays by date
+        upcomingBirthdays.sort((a, b) => a.nextBirthdayDate - b.nextBirthdayDate);
+
+        // Display upcoming birthdays grouped by date
+        displayUpcomingBirthdays(upcomingBirthdays);
+    }
         function displayAnniversaryData(data) {
             const today = new Date();
             const todayAnniversaries = [];
@@ -4064,8 +4072,6 @@
     }
 
 
-
-    // Function to display events categorized by Today's and Upcoming
     function displayEventsByCategory(events) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -4085,20 +4091,27 @@
             }
         });
 
+        // SORT UPCOMING EVENTS BY DATE (ASCENDING)
+        upcomingEvents.sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateA - dateB;
+        });
+
         let eventsHtml = '';
 
         // Display Today's Events
         if (todaysEvents.length > 0) {
             eventsHtml += '<div style="background: #5a6b7d; color: white; padding: 8px 12px; font-weight: bold; font-size: 13px; margin-bottom: 8px;">Today\'s Event</div>';
-            eventsHtml += groupEventsByType(todaysEvents);
+            eventsHtml += groupEventsByDateAndType(todaysEvents);
         } else {
             eventsHtml += '<div class="no-events">No Event Today</div>';
         }
 
-        // Display Upcoming Events
+        // Display Upcoming Events (DATE-WISE)
         if (upcomingEvents.length > 0) {
             eventsHtml += '<div style="background: #5a6b7d; color: white; padding: 8px 12px; font-weight: bold; font-size: 13px; margin: 12px 0 8px 0;">Upcoming Event</div>';
-            eventsHtml += groupEventsByType(upcomingEvents);
+            eventsHtml += groupEventsByDateAndType(upcomingEvents);
         } else {
             eventsHtml += '<div class="no-events" style="margin-top: 12px;">No Upcoming Event</div>';
         }
@@ -4106,43 +4119,70 @@
         $('#eventsList').html(eventsHtml);
     }
 
-    // Function to group events by Event Type
-    function groupEventsByType(events) {
-        // Group events by eventType
-        const groupedEvents = {};
+     // Group events by DATE first, then by TYPE
+    function groupEventsByDateAndType(events) {
+        // Group by date first
+        const groupedByDate = {};
 
         events.forEach(event => {
-            if (!groupedEvents[event.eventType]) {
-                groupedEvents[event.eventType] = [];
+            const eventDate = new Date(event.date);
+            const dateKey = `${eventDate.getDate().toString().padStart(2, '0')}-${(eventDate.getMonth() + 1).toString().padStart(2, '0')}-${eventDate.getFullYear()}`;
+
+            if (!groupedByDate[dateKey]) {
+                groupedByDate[dateKey] = {
+                    date: eventDate,
+                    events: []
+                };
             }
-            groupedEvents[event.eventType].push(event);
+            groupedByDate[dateKey].events.push(event);
         });
 
         let html = '';
 
-        // Display events grouped by type
-        Object.keys(groupedEvents).forEach(eventType => {
-            // Event Type Heading
-            html += `<div style="background: #E0E5E5; color: #333; padding: 6px 10px; font-weight: 600; font-size: 12px; margin: 8px 0 4px 0; text-transform: capitalize;">${eventType}</div>`;
+        // Sort dates
+        const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+            return groupedByDate[a].date - groupedByDate[b].date;
+        });
 
-            // Events under this type
-            groupedEvents[eventType].forEach(event => {
-                const eventDate = new Date(event.date);
-                const formattedDate = `${eventDate.getDate().toString().padStart(2, '0')}/${(eventDate.getMonth() + 1).toString().padStart(2, '0')}/${eventDate.getFullYear()}`;
+        // Display events date-wise
+        sortedDates.forEach(dateKey => {
+            const dateGroup = groupedByDate[dateKey];
+            const eventDate = dateGroup.date;
+            const day = eventDate.getDate().toString().padStart(2, '0');
+            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const month = monthNames[eventDate.getMonth()];
 
-                html += `
-                    <div class="event-item" style="background: white; margin: 4px 0; padding: 8px 10px; border-radius: 4px; border-left: 4px solid #ff9933; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                        <div style="font-weight: 500; color: #333; font-size: 12px; margin-bottom: 3px;">${event.eventName}</div>
-                        <div style="color: #666; font-size: 11px;">${formattedDate}</div>
-                    </div>
-                `;
+            // Date Header
+            html += `<div style="background: #E0E5E5; color: #333; padding: 6px 10px; font-weight: 600; font-size: 12px; margin: 8px 0 4px 0;">Date: ${day}-${month}</div>`;
+
+            // Group events by type within this date
+            const groupedByType = {};
+            dateGroup.events.forEach(event => {
+                if (!groupedByType[event.eventType]) {
+                    groupedByType[event.eventType] = [];
+                }
+                groupedByType[event.eventType].push(event);
+            });
+
+            // Display events by type
+            Object.keys(groupedByType).forEach(eventType => {
+                html += `<div style="background: #f8f9fa; padding: 4px 10px; font-weight: 500; font-size: 11px; margin: 4px 0; text-transform: capitalize;">${eventType}</div>`;
+
+                groupedByType[eventType].forEach(event => {
+                    const fullDate = `${day}/${(eventDate.getMonth() + 1).toString().padStart(2, '0')}/${eventDate.getFullYear()}`;
+
+                    html += `
+                        <div class="event-item" style="background: white; margin: 4px 0; padding: 8px 10px; border-radius: 4px; border-left: 4px solid #ff9933; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div style="font-weight: 500; color: #333; font-size: 12px; margin-bottom: 3px;">${event.eventName}</div>
+                            <div style="color: #666; font-size: 11px;">${fullDate}</div>
+                        </div>
+                    `;
+                });
             });
         });
 
         return html;
     }
-
-
 
     // Holiday Modal Variables
     let currentHolidayYear = new Date().getFullYear();
