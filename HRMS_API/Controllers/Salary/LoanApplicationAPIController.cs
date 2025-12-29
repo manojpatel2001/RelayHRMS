@@ -39,6 +39,7 @@ namespace HRMS_API.Controllers.Salary
         }
         [HttpGet("GetLoanApplication")]
         public async Task<APIResponse> GetLoanApplication(int CompanyId)
+        
         {
             try
             {
