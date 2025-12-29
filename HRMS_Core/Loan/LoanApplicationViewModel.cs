@@ -14,7 +14,7 @@ namespace HRMS_Core.Loan
         public int EmployeeId { get; set; }
         public string ContactNo { get; set; }
         public string EmailId { get; set; }
-        public string LoanName { get; set; }
+        public int LoanId { get; set; }
         public DateTime LoanRequireDate { get; set; }
         public decimal LoanMaxLimit { get; set; }
         public decimal LoanAmount { get; set; }

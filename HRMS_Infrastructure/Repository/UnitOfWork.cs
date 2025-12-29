@@ -171,6 +171,7 @@ namespace HRMS_Infrastructure.Repository
 
             LeaveCancellationRepository = new LeaveCancellationRepository(_dbContext);
             CommonReasonsRepository = new CommonReasonsRepository(_dbContext);
+            LoanApplicationRepository = new LoanApplicationRepository(_dbContext);
 
 
         }
@@ -304,6 +305,8 @@ namespace HRMS_Infrastructure.Repository
         public ILeaveCancellationRepository LeaveCancellationRepository { get; set; }
 
         public ICommonReasonsRepository CommonReasonsRepository { get; set; }
+
+        public ILoanApplicationRepository LoanApplicationRepository { get; set; }
 
         public void Commit()
         {
