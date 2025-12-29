@@ -48,6 +48,7 @@ namespace HRMS_Core.VM.ExportData
         public string? EmergencyContact { get; set; }
         public string? RelationName { get; set; }
         public string? Relation { get; set; }
+        public string? IsPermissionPunchInOut { get; set; }
 
     }
 }
