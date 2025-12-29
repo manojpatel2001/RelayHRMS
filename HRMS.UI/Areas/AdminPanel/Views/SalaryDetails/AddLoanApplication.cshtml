@@ -248,9 +248,8 @@
 </div>
 
 <script src="~/assets/js/jquery.min.js"></script>
-
 <script>
-    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+        var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
     const CompanyId = companyDetails?.CompanyId;
     const EmployeeId = localStorage.getItem('EmployeeId');
     const Token = localStorage.getItem("authToken");
@@ -262,28 +261,73 @@
 
         loadLoanApplications();
 
-        // Initialize dropdowns
+        // Initialize dropdowns with onChange handlers
         $('#employeeLoan').searchableSelect({
             data: [],
             valueKey: 'employeeId',
             textKey: 'employeeName',
             placeholder: 'Employee',
-            searchPlaceholder: 'Search employee...'
+            searchPlaceholder: 'Search employee...',
+            onChange: function(item) {
+                if (item) {
+                    onEmployeeSelected(item);
+                }
+            }
         });
 
         $('#loanName').searchableSelect({
             data: [],
-            valueKey: 'loanId',
+            valueKey: 'loanid',
             textKey: 'loanName',
             placeholder: 'Loan Name',
             searchPlaceholder: 'Search loan...',
-            onChange: function(item) {
-                onLoanSelected(item);
+            onChange: function(value, item) {
+                console.log('Loan onChange - value:', value, 'item:', item);
+
+                // Try to get the selected item in multiple ways
+                let selectedLoan = item;
+
+                // If item is not provided, try to find it by value (loanid)
+                if (!selectedLoan && value) {
+                    selectedLoan = loanMasterData.find(l => l.loanid == value);
+                }
+
+                // If still not found, try to get it from the instance
+                if (!selectedLoan) {
+                    const instance = $('#loanName').data('searchableSelect');
+                    if (instance && instance.getSelectedItem) {
+                        selectedLoan = instance.getSelectedItem();
+                    }
+                }
+
+                console.log('Selected loan:', selectedLoan);
+
+                if (selectedLoan) {
+                    onLoanSelected(selectedLoan);
+                }
             }
         });
 
         BindBranchDropdownForLoan();
         BindLoanMasterDropdown();
+
+        // Backup: Listen for manual changes on loan selection
+        $('#loanName').on('change', function() {
+            const instance = $(this).data('searchableSelect');
+            if (instance) {
+                const selectedValue = instance.getValue();
+                console.log('Manual change detected, value:', selectedValue);
+
+                if (selectedValue) {
+                    const selectedLoan = loanMasterData.find(l => l.loanid == selectedValue);
+
+                    if (selectedLoan) {
+                        console.log('Found loan from manual change:', selectedLoan);
+                        onLoanSelected(selectedLoan);
+                    }
+                }
+            }
+        });
     });
 
     $("#addLoanApplication").click(() => {
@@ -328,7 +372,9 @@
                             placeholder: 'Branch',
                             searchPlaceholder: 'Search branch...',
                             onChange: function(item) {
-                                BindEmployeeByBranchIdForLoan(item.branchId);
+                                if (item && item.branchId) {
+                                    BindEmployeeByBranchIdForLoan(item.branchId);
+                                }
                             }
                         });
                         resolve(data.data);
@@ -344,14 +390,21 @@
     }
 
     async function BindEmployeeByBranchIdForLoan() {
-        var branchId = $('#branchLoan').data('searchableSelect').getValue();
+        var branchInstance = $('#branchLoan').data('searchableSelect');
+        if (!branchInstance) {
+            return Promise.resolve();
+        }
+
+        var branchId = branchInstance.getValue();
         if (!branchId) {
             return Promise.resolve();
         }
+
         var payLoad = {
             BranchId: branchId,
             CompanyId: CompanyId
         }
+
         return new Promise((resolve, reject) => {
             $.ajax({
                 url: '@baseUrl/EmployeeMasterAPI/GetEmployeeListByBranchId',
@@ -365,10 +418,8 @@
                     if (data.isSuccess) {
                         const dropdownEmployee = $('#employeeLoan').data('searchableSelect');
                         if (dropdownEmployee) {
-                            dropdownEmployee.setData(data.data);
-                            dropdownEmployee.options.onChange = function(item) {
-                                onEmployeeSelected(item);
-                            };
+                            dropdownEmployee.clear();
+                            dropdownEmployee.setData(data.data || []);
                         }
                         resolve(data.data);
                     } else {
@@ -382,21 +433,36 @@
         });
     }
 
+    // Store loan data globally for reference
+    var loanMasterData = [];
+
     async function BindLoanMasterDropdown() {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: '@baseUrl/LoanMasterAPI/GetAllLoansByCompanyId/' + CompanyId,
+                url: '@baseUrl/LoanApplicationAPI/GetLoanNamesForDropdown',
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + Token
                 },
                 success: function (data) {
+                    console.log('API Response:', data);
                     if (data.isSuccess) {
+                        // Normalize the data structure
+                        loanMasterData = (data.data || []).map(loan => ({
+                            loanid: loan.loanid || loan.Loanid || loan.LoanId,
+                            loanName: loan.loanName || loan.LoanName,
+                            maxLimit: loan.maxLimit || loan.MaxLimit || 0,
+                            interestType: loan.interestType || loan.InterestType || '',
+                            interestRate: loan.interestRate || loan.InterestRate || 0
+                        }));
+
+                        console.log('Loaded loan master data:', loanMasterData);
+
                         const dropdownLoan = $('#loanName').data('searchableSelect');
                         if (dropdownLoan) {
-                            dropdownLoan.setData(data.data || []);
+                            dropdownLoan.setData(loanMasterData);
                         }
-                        resolve(data.data);
+                        resolve(loanMasterData);
                     } else {
                         reject('Failed to fetch loans');
                     }
@@ -409,14 +475,39 @@
     }
 
     function onEmployeeSelected(employee) {
-        $('#contactNo').val(employee.contactNo || '');
-        $('#emailId').val(employee.emailId || '');
+        if (!employee) return;
+        $('#contactNo').val(employee.contactNo || employee.ContactNo || '');
+        $('#emailId').val(employee.emailId || employee.EmailId || '');
     }
 
     function onLoanSelected(loan) {
-        $('#loanMaxLimit').val(loan.maxLimit || 0);
-        $('#interestType').val(loan.interestType || '');
-        $('#interestRate').val(loan.interestRate || 0);
+        if (!loan) return;
+
+        console.log('Loan selected:', loan);
+
+        // First try to use the passed loan object
+        let selectedLoan = loan;
+
+        // If the loan object doesn't have the required properties, find it from the stored data
+        if (!loan.hasOwnProperty('maxLimit') && !loan.hasOwnProperty('MaxLimit')) {
+            const loanid = loan.loanid || loan.Loanid || loan.LoanId;
+            selectedLoan = loanMasterData.find(l => l.loanid == loanid);
+
+            if (!selectedLoan) {
+                console.warn('Loan details not found in master data');
+                return;
+            }
+        }
+
+        // Handle different property name cases
+        const maxLimit = selectedLoan.maxLimit || selectedLoan.MaxLimit || 0;
+        const interestType = selectedLoan.interestType || selectedLoan.InterestType || '';
+        const interestRate = selectedLoan.interestRate || selectedLoan.InterestRate || 0;
+
+        $('#loanMaxLimit').val(maxLimit);
+        $('#interestType').val(interestType);
+        $('#interestRate').val(interestRate);
+
         calculateInstallmentAmount();
     }
 
@@ -437,13 +528,13 @@
         } else {
             $('#installmentAmount').val('');
         }
-    }
+    } 
 
     async function loadLoanApplications() {
         $('#grid-loader').addClass('d-flex').show();
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: '@baseUrl/LoanApplicationAPI/GetAllLoanApplications',
+                url: '@baseUrl/LoanApplicationAPI/GetLoanApplication?CompanyId=' + CompanyId,
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + Token
@@ -453,14 +544,14 @@
                         dataSource: response.data || [],
                         columns: [
                             {
-                                dataField: 'applicationDate',
+                                dataField: 'applicationdate',
                                 caption: 'Application Date',
                                 dataType: 'date',
                                 format: 'dd-MM-yyyy'
                             },
                             { dataField: 'branchName', caption: 'Branch' },
-                            { dataField: 'employeeCode', caption: 'Employee Code' },
-                            { dataField: 'employeeName', caption: 'Employee Name' },
+                            { dataField: 'employeecode', caption: 'Employee Code' },
+                            { dataField: 'fullName', caption: 'Employee Name' },
                             { dataField: 'loanName', caption: 'Loan Name' },
                             {
                                 dataField: 'loanAmount',
@@ -469,14 +560,15 @@
                                 format: '#,##0.00'
                             },
                             {
-                                dataField: 'noOfInstallment',
+                                dataField: 'noOfinstallment',
                                 caption: 'Installments'
                             },
                             {
                                 dataField: 'installmentAmount',
                                 caption: 'Installment Amount',
                                 dataType: 'number',
-                                format: '#,##0.00'
+                                format: '#,##0.00',
+                                visible: false
                             },
                             {
                                 dataField: 'loanRequireDate',
@@ -484,10 +576,14 @@
                                 dataType: 'date',
                                 format: 'dd-MM-yyyy'
                             },
-                            { dataField: 'status', caption: 'Status' },
-                            { dataField: 'branchId', visible: false },
-                            { dataField: 'employeeId', visible: false },
-                            { dataField: 'loanId', visible: false },
+                            {
+                                dataField: 'installmentstartDate',
+                                caption: 'Installment Start Date',
+                                dataType: 'date',
+                                format: 'dd-MM-yyyy'
+                            },
+                            { dataField: 'remark', caption: 'Remark', visible: false },
+                            { dataField: 'loanApplicationId', visible: false },
                             {
                                 dataField: '',
                                 caption: 'Actions',
@@ -556,6 +652,8 @@
                 },
                 error: function (error) {
                     $('#grid-loader').removeClass('d-flex').hide();
+                    console.error('Error loading loan applications:', error);
+                    round_error_noti('Unable to load loan applications');
                     reject(error);
                 }
             });
@@ -563,15 +661,19 @@
     }
 
     $('#btnSaveLoanApplication').click(function () {
-        var loanApplicationId = $('#loanApplicationId').val();
+        var loanApplicationId = parseInt($('#loanApplicationId').val()) || 0;
         var isUpdate = loanApplicationId > 0;
 
         showbtnLoder(isUpdate);
 
+        // Get form values
         var applicationDate = $('#applicationDate').val();
-        var branch = $('#branchLoan').data('searchableSelect').getValue();
-        var employee = $('#employeeLoan').data('searchableSelect').getValue();
-        var loanName = $('#loanName').data('searchableSelect').getValue();
+        var branchInstance = $('#branchLoan').data('searchableSelect');
+        var branch = branchInstance ? branchInstance.getValue() : null;
+        var employeeInstance = $('#employeeLoan').data('searchableSelect');
+        var employee = employeeInstance ? employeeInstance.getValue() : null;
+        var loanInstance = $('#loanName').data('searchableSelect');
+        var loanIdValue = loanInstance ? loanInstance.getValue() : null;
         var loanRequireDate = $('#loanRequireDate').val();
         var loanAmount = $('#loanAmount').val();
         var noOfInstallment = $('#noOfInstallment').val();
@@ -602,7 +704,7 @@
             $('#spnemployeeLoan').hide();
         }
 
-        if (!loanName) {
+        if (!loanIdValue) {
             $('#spnloanName').show();
             isValid = false;
         } else {
@@ -621,6 +723,12 @@
             isValid = false;
         } else {
             $('#spnloanAmount').hide();
+        }
+
+        var loanMaxLimit = parseFloat($('#loanMaxLimit').val()) || 0;
+        if (loanMaxLimit > 0 && parseFloat(loanAmount) > loanMaxLimit) {
+            round_error_noti('Loan amount cannot exceed maximum limit of ' + loanMaxLimit);
+            isValid = false;
         }
 
         if (!noOfInstallment || parseInt(noOfInstallment) <= 0) {
@@ -649,20 +757,34 @@
             return;
         }
 
+        // Prepare data with ALL required fields
         var loanApplicationData = {
-            LoanApplicationId: parseInt(loanApplicationId),
-            EmployeeId: parseInt(employee),
-            LoanId: parseInt(loanName),
+            LoanApplicationID: loanApplicationId,
             ApplicationDate: applicationDate,
+            EmployeeId: parseInt(employee),
+            ContactNo: $('#contactNo').val() || '',
+            EmailId: $('#emailId').val() || '',
+            LoanId: parseInt(loanIdValue),
             LoanRequireDate: loanRequireDate,
+            LoanMaxLimit: loanMaxLimit,
             LoanAmount: parseFloat(loanAmount),
+            InterestType: $('#interestType').val() || '',
+            InterestPercentage: parseFloat($('#interestRate').val()) || 0,
             NoOfInstallment: parseInt(noOfInstallment),
             InstallmentAmount: parseFloat(installmentAmount),
             InstallmentStartDate: installmentStartDate,
-            Remark: $('#remark').val().trim(),
+            Remark: $('#remark').val().trim() || '',
+            IsEnabled: true,
+            IsDeleted: false,
             CreatedBy: parseInt(EmployeeId),
-            UpdatedBy: parseInt(EmployeeId)
+            UpdatedBy: isUpdate ? parseInt(EmployeeId) : null,
+            CreatedDate: new Date().toISOString(),
+            UpdatedDate: isUpdate ? new Date().toISOString() : null,
+            DeletedDate: null,
+            DeletedBy: null
         };
+
+        console.log('Saving loan application data:', loanApplicationData);
 
         var apiUrl = isUpdate
             ? "@baseUrl/LoanApplicationAPI/UpdateLoanApplication"
@@ -682,6 +804,7 @@
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage);
                     $("#addLoanApplicationModal").modal('hide');
+                    resetLoanApplicationForm();
                     loadLoanApplications();
                 } else {
                     round_error_noti(response.responseMessage);
@@ -690,21 +813,63 @@
             },
             error: function (xhr) {
                 hidebtnLoder();
-                console.error('Error:', xhr);
-                round_error_noti('Unable to save loan application');
+                console.error('Error Details:', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    responseJSON: xhr.responseJSON
+                });
+
+                var errorMessage = 'Unable to save loan application';
+
+                if (xhr.responseJSON) {
+                    if (xhr.responseJSON.responseMessage) {
+                        errorMessage = xhr.responseJSON.responseMessage;
+                    } else if (xhr.responseJSON.errors) {
+                        // Handle validation errors
+                        var errors = xhr.responseJSON.errors;
+                        var errorList = [];
+                        for (var key in errors) {
+                            if (errors.hasOwnProperty(key)) {
+                                errorList.push(errors[key].join(', '));
+                            }
+                        }
+                        errorMessage = errorList.join('; ');
+                    } else if (xhr.responseJSON.title) {
+                        errorMessage = xhr.responseJSON.title;
+                    }
+                } else if (xhr.responseText) {
+                    try {
+                        var errorResponse = JSON.parse(xhr.responseText);
+                        errorMessage = errorResponse.responseMessage || errorResponse.message || errorMessage;
+                    } catch (e) {
+                        // If response is not JSON, show first 200 characters
+                        errorMessage = xhr.responseText.substring(0, 200);
+                    }
+                }
+
+                round_error_noti(errorMessage);
+
+                // Show detailed error in console for debugging
+                console.error('API Error:', errorMessage);
             }
         });
     });
-
     async function resetLoanApplicationForm() {
         $('#loanApplicationId').val('0');
 
         var today = new Date().toISOString().split('T')[0];
         $('#applicationDate').val(today);
 
-        $('#branchLoan').data('searchableSelect').clear();
-        $('#employeeLoan').data('searchableSelect').clear();
-        $('#loanName').data('searchableSelect').clear();
+        // Safe clear for dropdowns
+        const branchInstance = $('#branchLoan').data('searchableSelect');
+        if (branchInstance) branchInstance.clear();
+
+        const employeeInstance = $('#employeeLoan').data('searchableSelect');
+        if (employeeInstance) employeeInstance.clear();
+
+        const loanInstance = $('#loanName').data('searchableSelect');
+        if (loanInstance) loanInstance.clear();
 
         $('#contactNo').val('');
         $('#emailId').val('');
@@ -744,18 +909,50 @@
 
         // Set branch and load employees
         const branchId = data.branchId || data.BranchId;
-        $('#branchLoan').data('searchableSelect').setValue(branchId);
-        await BindEmployeeByBranchIdForLoan();
+        if (branchId) {
+            const branchInstance = $('#branchLoan').data('searchableSelect');
+            if (branchInstance) {
+                // Wait a bit for the dropdown to be ready, then set value
+                setTimeout(() => {
+                    branchInstance.setValue(branchId);
+                }, 100);
 
-        // Set employee and populate contact details
-        const employeeId = data.employeeId || data.EmployeeId;
-        $('#employeeLoan').data('searchableSelect').setValue(employeeId);
+                // Load employees for this branch
+                await BindEmployeeByBranchIdForLoan();
+
+                // Set employee after employees are loaded
+                const employeeId = data.employeeId || data.EmployeeId;
+                if (employeeId) {
+                    setTimeout(() => {
+                        const employeeInstance = $('#employeeLoan').data('searchableSelect');
+                        if (employeeInstance) {
+                            employeeInstance.setValue(employeeId);
+                        }
+                    }, 200);
+                }
+            }
+        }
+
         $('#contactNo').val(data.contactNo || data.ContactNo || '');
         $('#emailId').val(data.emailId || data.EmailId || '');
 
-        // Set loan and populate loan details
-        const loanId = data.loanId || data.LoanId;
-        $('#loanName').data('searchableSelect').setValue(loanId);
+        // Set loan details
+        const loanId = data.loanid || data.loanId || data.Loanid || data.LoanId;
+        if (loanId) {
+            setTimeout(() => {
+                const loanInstance = $('#loanName').data('searchableSelect');
+                if (loanInstance) {
+                    loanInstance.setValue(loanId);
+
+                    // Manually trigger loan selection to populate related fields
+                    const selectedLoan = loanMasterData.find(l => l.loanid == loanId);
+                    if (selectedLoan) {
+                        onLoanSelected(selectedLoan);
+                    }
+                }
+            }, 100);
+        }
+
         $('#loanMaxLimit').val(data.loanMaxLimit || data.LoanMaxLimit || 0);
         $('#interestType').val(data.interestType || data.InterestType || '');
         $('#interestRate').val(data.interestRate || data.InterestRate || 0);
@@ -792,28 +989,37 @@
         $("#addLoanApplicationModal").modal('show');
     }
 
-    function DeleteLoanApplication(data) {
-        const loanAppId = data.loanApplicationId || data.LoanApplicationId;
-        if (confirm('Are you sure you want to delete this loan application?')) {
-            $.ajax({
-                url: `@baseUrl/LoanApplicationAPI/Delete?Id=${loanAppId}&DeletedBy=${EmployeeId}`,
-                type: "DELETE",
-                headers: {
-                    'Authorization': 'Bearer ' + Token
-                },
-                success: function (response) {
-                    if (response.isSuccess) {
-                        round_success_noti(response.responseMessage);
-                        loadLoanApplications();
-                    } else {
-                        round_error_noti(response.responseMessage);
-                    }
-                },
-                error: function (xhr) {
-                    console.error('Error:', xhr);
-                    round_error_noti('Unable to delete loan application');
-                }
-            });
+ 
+        function DeleteLoanApplication(data) {
+        if (!confirm("Are you sure you want to delete this left employee record?")) {
+            return;
         }
+
+        var deleteObj = {
+            id: data.loanApplicationId,
+             deletedBy: EmployeeId.toString()
+        };
+
+        $.ajax({
+            url: '@baseUrl/LoanApplicationAPI/Delete',
+            type: "DELETE",
+            data: JSON.stringify(deleteObj),
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage);
+                    loadDataTable();
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+            },
+            error: function (xhr, status, error) {
+                round_error_noti('An error occurred while deleting the record. Please try again');
+            }
+        });
     }
+
 </script>

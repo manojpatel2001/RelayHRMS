@@ -343,6 +343,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<SalaryPublishFilterViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<PayslipFilterViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<LoanApplicationViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LoanMaster>().HasNoKey().ToView(null);
+             modelBuilder.Entity<GetLoanApplicationViewModel>().HasNoKey().ToView(null);
 
 
 
