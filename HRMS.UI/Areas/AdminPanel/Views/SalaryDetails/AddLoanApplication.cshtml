@@ -70,28 +70,6 @@
                             <span id="spnapplicationDate" style="color:red; display:none; font-size: 0.85em;">Please Select Application Date</span>
                         </div>
 
-                        <!-- Branch -->
-                        <div class="col-md-4">
-                            <div class="mt-3 form-floating-custom">
-                                <div class="searchable-select-wrapper" id="branchLoanWrapper">
-                                    <label for="branchLoan">Branch <span class="text-danger">*</span></label>
-                                    <input type="text" class="searchable-select-input" id="branchLoan" readonly>
-                                    <span class="searchable-select-arrow">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
-                                        </svg>
-                                    </span>
-                                    <div class="searchable-select-dropdown">
-                                        <div class="searchable-select-search">
-                                            <input type="text" placeholder="Search branch..." class="search-input">
-                                        </div>
-                                        <div class="searchable-select-options"></div>
-                                    </div>
-                                </div>
-                                <span id="spnbranchLoan" style="color:red; display:none; font-size: 0.85em;">Please Select Branch</span>
-                            </div>
-                        </div>
-
                         <!-- Employee -->
                         <div class="col-md-4">
                             <div class="mt-3 form-floating-custom">
@@ -249,32 +227,35 @@
 
 <script src="~/assets/js/jquery.min.js"></script>
 <script>
-        var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
     const CompanyId = companyDetails?.CompanyId;
     const EmployeeId = localStorage.getItem('EmployeeId');
     const Token = localStorage.getItem("authToken");
+
+    // Store loan and employee data globally
+    var loanMasterData = [];
+    var employeeData = [];
 
     $(document).ready(function(){
         // Set default application date to today
         var today = new Date().toISOString().split('T')[0];
         $('#applicationDate').val(today);
 
-        loadLoanApplications();
-
-        // Initialize dropdowns with onChange handlers
+        // Initialize employee dropdown
         $('#employeeLoan').searchableSelect({
             data: [],
-            valueKey: 'employeeId',
-            textKey: 'employeeName',
+            valueKey: 'id',
+            textKey: 'fullName',
             placeholder: 'Employee',
             searchPlaceholder: 'Search employee...',
-            onChange: function(item) {
+            onChange: function(value, item) {
                 if (item) {
                     onEmployeeSelected(item);
                 }
             }
         });
 
+        // Initialize loan dropdown
         $('#loanName').searchableSelect({
             data: [],
             valueKey: 'loanid',
@@ -283,16 +264,12 @@
             searchPlaceholder: 'Search loan...',
             onChange: function(value, item) {
                 console.log('Loan onChange - value:', value, 'item:', item);
-
-                // Try to get the selected item in multiple ways
                 let selectedLoan = item;
 
-                // If item is not provided, try to find it by value (loanid)
                 if (!selectedLoan && value) {
                     selectedLoan = loanMasterData.find(l => l.loanid == value);
                 }
 
-                // If still not found, try to get it from the instance
                 if (!selectedLoan) {
                     const instance = $('#loanName').data('searchableSelect');
                     if (instance && instance.getSelectedItem) {
@@ -308,7 +285,9 @@
             }
         });
 
-        BindBranchDropdownForLoan();
+        // Load initial data
+        loadLoanApplications();
+        BindAllEmployees();
         BindLoanMasterDropdown();
 
         // Backup: Listen for manual changes on loan selection
@@ -320,7 +299,6 @@
 
                 if (selectedValue) {
                     const selectedLoan = loanMasterData.find(l => l.loanid == selectedValue);
-
                     if (selectedLoan) {
                         console.log('Found loan from manual change:', selectedLoan);
                         onLoanSelected(selectedLoan);
@@ -355,86 +333,36 @@
         $('#btnSavingLoanApplication').hide();
     }
 
-    async function BindBranchDropdownForLoan() {
+    // Bind All Employees (Removed Branch Filter)
+    async function BindAllEmployees() {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                url: '@baseUrl/EmployeeMasterAPI/GetAllEmployee?companyId=' + CompanyId,
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + Token
                 },
                 success: function (data) {
+                    console.log('Employee API Response:', data);
                     if (data.isSuccess) {
-                        $('#branchLoan').searchableSelect({
-                            data: data.data || [],
-                            valueKey: 'branchId',
-                            textKey: 'branchName',
-                            placeholder: 'Branch',
-                            searchPlaceholder: 'Search branch...',
-                            onChange: function(item) {
-                                if (item && item.branchId) {
-                                    BindEmployeeByBranchIdForLoan(item.branchId);
-                                }
-                            }
-                        });
-                        resolve(data.data);
-                    } else {
-                        reject('Failed to fetch branches');
-                    }
-                },
-                error: function (error) {
-                    reject(error);
-                }
-            });
-        });
-    }
-
-    async function BindEmployeeByBranchIdForLoan() {
-        var branchInstance = $('#branchLoan').data('searchableSelect');
-        if (!branchInstance) {
-            return Promise.resolve();
-        }
-
-        var branchId = branchInstance.getValue();
-        if (!branchId) {
-            return Promise.resolve();
-        }
-
-        var payLoad = {
-            BranchId: branchId,
-            CompanyId: CompanyId
-        }
-
-        return new Promise((resolve, reject) => {
-            $.ajax({
-                url: '@baseUrl/EmployeeMasterAPI/GetEmployeeListByBranchId',
-                method: 'POST',
-                contentType: 'application/json',
-                headers: {
-                    'Authorization': 'Bearer ' + Token
-                },
-                data: JSON.stringify(payLoad),
-                success: function (data) {
-                    if (data.isSuccess) {
+                        employeeData = data.data || [];
                         const dropdownEmployee = $('#employeeLoan').data('searchableSelect');
                         if (dropdownEmployee) {
-                            dropdownEmployee.clear();
-                            dropdownEmployee.setData(data.data || []);
+                            dropdownEmployee.setData(employeeData);
                         }
-                        resolve(data.data);
+                        resolve(employeeData);
                     } else {
+                        console.error('Failed to fetch employees:', data.responseMessage);
                         reject('Failed to fetch employees');
                     }
                 },
                 error: function (error) {
+                    console.error('Error fetching employees:', error);
                     reject(error);
                 }
             });
         });
     }
-
-    // Store loan data globally for reference
-    var loanMasterData = [];
 
     async function BindLoanMasterDropdown() {
         return new Promise((resolve, reject) => {
@@ -445,9 +373,8 @@
                     'Authorization': 'Bearer ' + Token
                 },
                 success: function (data) {
-                    console.log('API Response:', data);
+                    console.log('Loan API Response:', data);
                     if (data.isSuccess) {
-                        // Normalize the data structure
                         loanMasterData = (data.data || []).map(loan => ({
                             loanid: loan.loanid || loan.Loanid || loan.LoanId,
                             loanName: loan.loanName || loan.LoanName,
@@ -476,6 +403,7 @@
 
     function onEmployeeSelected(employee) {
         if (!employee) return;
+        console.log('Employee selected:', employee);
         $('#contactNo').val(employee.contactNo || employee.ContactNo || '');
         $('#emailId').val(employee.emailId || employee.EmailId || '');
     }
@@ -483,12 +411,8 @@
     function onLoanSelected(loan) {
         if (!loan) return;
 
-        console.log('Loan selected:', loan);
-
-        // First try to use the passed loan object
         let selectedLoan = loan;
 
-        // If the loan object doesn't have the required properties, find it from the stored data
         if (!loan.hasOwnProperty('maxLimit') && !loan.hasOwnProperty('MaxLimit')) {
             const loanid = loan.loanid || loan.Loanid || loan.LoanId;
             selectedLoan = loanMasterData.find(l => l.loanid == loanid);
@@ -499,7 +423,6 @@
             }
         }
 
-        // Handle different property name cases
         const maxLimit = selectedLoan.maxLimit || selectedLoan.MaxLimit || 0;
         const interestType = selectedLoan.interestType || selectedLoan.InterestType || '';
         const interestRate = selectedLoan.interestRate || selectedLoan.InterestRate || 0;
@@ -528,7 +451,7 @@
         } else {
             $('#installmentAmount').val('');
         }
-    } 
+    }
 
     async function loadLoanApplications() {
         $('#grid-loader').addClass('d-flex').show();
@@ -549,7 +472,6 @@
                                 dataType: 'date',
                                 format: 'dd-MM-yyyy'
                             },
-                            { dataField: 'branchName', caption: 'Branch' },
                             { dataField: 'employeecode', caption: 'Employee Code' },
                             { dataField: 'fullName', caption: 'Employee Name' },
                             { dataField: 'loanName', caption: 'Loan Name' },
@@ -668,8 +590,6 @@
 
         // Get form values
         var applicationDate = $('#applicationDate').val();
-        var branchInstance = $('#branchLoan').data('searchableSelect');
-        var branch = branchInstance ? branchInstance.getValue() : null;
         var employeeInstance = $('#employeeLoan').data('searchableSelect');
         var employee = employeeInstance ? employeeInstance.getValue() : null;
         var loanInstance = $('#loanName').data('searchableSelect');
@@ -688,13 +608,6 @@
             isValid = false;
         } else {
             $('#spnapplicationDate').hide();
-        }
-
-        if (!branch) {
-            $('#spnbranchLoan').show();
-            isValid = false;
-        } else {
-            $('#spnbranchLoan').hide();
         }
 
         if (!employee) {
@@ -757,7 +670,7 @@
             return;
         }
 
-        // Prepare data with ALL required fields
+        // Prepare data
         var loanApplicationData = {
             LoanApplicationID: loanApplicationId,
             ApplicationDate: applicationDate,
@@ -826,7 +739,6 @@
                     if (xhr.responseJSON.responseMessage) {
                         errorMessage = xhr.responseJSON.responseMessage;
                     } else if (xhr.responseJSON.errors) {
-                        // Handle validation errors
                         var errors = xhr.responseJSON.errors;
                         var errorList = [];
                         for (var key in errors) {
@@ -843,27 +755,21 @@
                         var errorResponse = JSON.parse(xhr.responseText);
                         errorMessage = errorResponse.responseMessage || errorResponse.message || errorMessage;
                     } catch (e) {
-                        // If response is not JSON, show first 200 characters
                         errorMessage = xhr.responseText.substring(0, 200);
                     }
                 }
 
                 round_error_noti(errorMessage);
-
-                // Show detailed error in console for debugging
                 console.error('API Error:', errorMessage);
             }
         });
     });
+
     async function resetLoanApplicationForm() {
         $('#loanApplicationId').val('0');
 
         var today = new Date().toISOString().split('T')[0];
         $('#applicationDate').val(today);
-
-        // Safe clear for dropdowns
-        const branchInstance = $('#branchLoan').data('searchableSelect');
-        if (branchInstance) branchInstance.clear();
 
         const employeeInstance = $('#employeeLoan').data('searchableSelect');
         if (employeeInstance) employeeInstance.clear();
@@ -890,114 +796,151 @@
     }
 
     async function UpdateLoanApplicationData(data) {
+        console.log('Update function called with data:', data);
+
         await resetLoanApplicationForm();
+
         $('#modalTitle').text('Update Loan Application');
         $('#btnSaveLoanApplication').text('Update');
 
-        $('#loanApplicationId').val(data.loanApplicationId || data.LoanApplicationId || 0);
+        // Set loan application ID
+        var loanAppId = data.loanApplicationId || data.LoanApplicationId || 0;
+        console.log('Setting loanApplicationId:', loanAppId);
+        $('#loanApplicationId').val(loanAppId);
 
-        // Set dates
-        var appDateStr = data.applicationDate || data.ApplicationDate;
+        // Set application date
+        var appDateStr = data.applicationDate || data.ApplicationDate || data.applicationdate;
+        console.log('Application date from data:', appDateStr);
         if (appDateStr) {
-            if (appDateStr.includes('T')) {
-                appDateStr = appDateStr.split('T')[0];
-            } else if (appDateStr.includes(' ')) {
-                appDateStr = appDateStr.split(' ')[0];
-            }
-            $('#applicationDate').val(appDateStr);
+            var formattedDate = formatDateForInput(appDateStr);
+            console.log('Formatted application date:', formattedDate);
+            $('#applicationDate').val(formattedDate);
         }
 
-        // Set branch and load employees
-        const branchId = data.branchId || data.BranchId;
-        if (branchId) {
-            const branchInstance = $('#branchLoan').data('searchableSelect');
-            if (branchInstance) {
-                // Wait a bit for the dropdown to be ready, then set value
-                setTimeout(() => {
-                    branchInstance.setValue(branchId);
-                }, 100);
+        // Set employee
+        var employeeId = data.employeeId || data.EmployeeId;
+        console.log('Employee ID:', employeeId);
+        if (employeeId) {
+            setTimeout(() => {
+                const employeeInstance = $('#employeeLoan').data('searchableSelect');
+                if (employeeInstance) {
+                    employeeInstance.setValue(employeeId);
 
-                // Load employees for this branch
-                await BindEmployeeByBranchIdForLoan();
+                    // Find employee data and populate contact info
+                    var selectedEmployee = employeeData.find(e =>
+                        (e.employeeId || e.EmployeeId) == employeeId
+                    );
 
-                // Set employee after employees are loaded
-                const employeeId = data.employeeId || data.EmployeeId;
-                if (employeeId) {
-                    setTimeout(() => {
-                        const employeeInstance = $('#employeeLoan').data('searchableSelect');
-                        if (employeeInstance) {
-                            employeeInstance.setValue(employeeId);
-                        }
-                    }, 200);
+                    if (selectedEmployee) {
+                        console.log('Found employee data:', selectedEmployee);
+                        onEmployeeSelected(selectedEmployee);
+                    } else {
+                        // Manually set contact info from grid data
+                        $('#contactNo').val(data.contactNo || data.ContactNo || '');
+                        $('#emailId').val(data.emailId || data.EmailId || '');
+                    }
                 }
-            }
+            }, 200);
         }
 
-        $('#contactNo').val(data.contactNo || data.ContactNo || '');
-        $('#emailId').val(data.emailId || data.EmailId || '');
-
-        // Set loan details
-        const loanId = data.loanid || data.loanId || data.Loanid || data.LoanId;
+        // Set loan
+        var loanId = data.loanid || data.loanId || data.Loanid || data.LoanId;
+        console.log('Loan ID:', loanId);
         if (loanId) {
             setTimeout(() => {
                 const loanInstance = $('#loanName').data('searchableSelect');
                 if (loanInstance) {
                     loanInstance.setValue(loanId);
 
-                    // Manually trigger loan selection to populate related fields
-                    const selectedLoan = loanMasterData.find(l => l.loanid == loanId);
+                    // Find loan data and populate fields
+                    var selectedLoan = loanMasterData.find(l => l.loanid == loanId);
                     if (selectedLoan) {
+                        console.log('Found loan data:', selectedLoan);
                         onLoanSelected(selectedLoan);
+                    } else {
+                        // Manually set loan info from grid data
+                        $('#loanMaxLimit').val(data.loanMaxLimit || data.LoanMaxLimit || 0);
+                        $('#interestType').val(data.interestType || data.InterestType || '');
+                        $('#interestRate').val(data.interestRate || data.InterestRate || 0);
                     }
                 }
-            }, 100);
+            }, 300);
         }
-
-        $('#loanMaxLimit').val(data.loanMaxLimit || data.LoanMaxLimit || 0);
-        $('#interestType').val(data.interestType || data.InterestType || '');
-        $('#interestRate').val(data.interestRate || data.InterestRate || 0);
 
         // Set loan require date
         var loanReqDateStr = data.loanRequireDate || data.LoanRequireDate;
+        console.log('Loan require date from data:', loanReqDateStr);
         if (loanReqDateStr) {
-            if (loanReqDateStr.includes('T')) {
-                loanReqDateStr = loanReqDateStr.split('T')[0];
-            } else if (loanReqDateStr.includes(' ')) {
-                loanReqDateStr = loanReqDateStr.split(' ')[0];
-            }
-            $('#loanRequireDate').val(loanReqDateStr);
+            var formattedLoanReqDate = formatDateForInput(loanReqDateStr);
+            console.log('Formatted loan require date:', formattedLoanReqDate);
+            $('#loanRequireDate').val(formattedLoanReqDate);
         }
 
-        // Set loan details
-        $('#loanAmount').val(data.loanAmount || data.LoanAmount || '');
-        $('#noOfInstallment').val(data.noOfInstallment || data.NoOfInstallment || '');
-        $('#installmentAmount').val(data.installmentAmount || data.InstallmentAmount || '');
+        // Set loan amount and installments
+        var loanAmt = data.loanAmount || data.LoanAmount || '';
+        var numInstallments = data.noOfinstallment || data.noOfInstallment || data.NoOfInstallment || '';
+        var instAmt = data.installmentAmount || data.InstallmentAmount || '';
+
+        console.log('Loan amount:', loanAmt);
+        console.log('No of installments:', numInstallments);
+        console.log('Installment amount:', instAmt);
+
+        $('#loanAmount').val(loanAmt);
+        $('#noOfInstallment').val(numInstallments);
+        $('#installmentAmount').val(instAmt);
 
         // Set installment start date
-        var instStartDateStr = data.installmentStartDate || data.InstallmentStartDate;
+        var instStartDateStr = data.installmentStartDate || data.InstallmentStartDate || data.installmentstartDate;
+        console.log('Installment start date from data:', instStartDateStr);
         if (instStartDateStr) {
-            if (instStartDateStr.includes('T')) {
-                instStartDateStr = instStartDateStr.split('T')[0];
-            } else if (instStartDateStr.includes(' ')) {
-                instStartDateStr = instStartDateStr.split(' ')[0];
-            }
-            $('#installmentStartDate').val(instStartDateStr);
+            var formattedInstStartDate = formatDateForInput(instStartDateStr);
+            console.log('Formatted installment start date:', formattedInstStartDate);
+            $('#installmentStartDate').val(formattedInstStartDate);
         }
 
-        $('#remark').val(data.remark || data.Remark || '');
+        // Set remark
+        var remarkText = data.remark || data.Remark || '';
+        console.log('Remark:', remarkText);
+        $('#remark').val(remarkText);
 
         $("#addLoanApplicationModal").modal('show');
     }
 
- 
-        function DeleteLoanApplication(data) {
-        if (!confirm("Are you sure you want to delete this left employee record?")) {
+    // Helper function to format date for input
+    function formatDateForInput(dateStr) {
+        if (!dateStr) return '';
+
+        try {
+            // Handle different date formats
+            if (dateStr.includes('T')) {
+                return dateStr.split('T')[0];
+            } else if (dateStr.includes(' ')) {
+                return dateStr.split(' ')[0];
+            } else if (dateStr.includes('-')) {
+                // Check if it's already in YYYY-MM-DD format
+                var parts = dateStr.split('-');
+                if (parts[0].length === 4) {
+                    return dateStr; // Already in correct format
+                } else if (parts[2].length === 4) {
+                    // DD-MM-YYYY format, convert to YYYY-MM-DD
+                    return parts[2] + '-' + parts[1] + '-' + parts[0];
+                }
+            }
+            return dateStr;
+        } catch (e) {
+            console.error('Error formatting date:', e);
+            return '';
+        }
+    }
+
+    function DeleteLoanApplication(data) {
+        if (!confirm("Are you sure you want to delete this loan application record?")) {
             return;
         }
 
         var deleteObj = {
-            id: data.loanApplicationId,
-             deletedBy: EmployeeId.toString()
+            id: data.loanApplicationId || data.LoanApplicationId,
+            deletedBy: EmployeeId.toString()
         };
 
         $.ajax({
@@ -1011,7 +954,7 @@
             success: function (response) {
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage);
-                    loadDataTable();
+                    loadLoanApplications();
                 } else {
                     round_error_noti(response.responseMessage);
                 }
