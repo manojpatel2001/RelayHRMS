@@ -1,8 +1,10 @@
-﻿@{
+﻿@inject IConfiguration Configuration
+@{
     ViewData["Title"] = "Employee Panel";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
-    string apiBase = ViewBag.BaseUrlAPI;
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 
 <!-- Dependencies -->
@@ -247,36 +249,42 @@
     </form>
 </div>
 
-<!-- JavaScript Logic -->
-<script>
-    const apiBase = '@apiBase';
-    const baseUrl = '@baseUrl';
-    const Token = localStorage.getItem('token');
-    const savedCompany = localStorage.getItem('selectedCompany');
-    const companyDetails = JSON.parse(savedCompany);
-    const Compid = parseInt(companyDetails.CompanyId);
-    const Empid = parseInt(localStorage.getItem("EmployeeId"));
-    const EmployeeName = localStorage.getItem("EmployeeName");
-    const EmployeeEmail = localStorage.getItem("EmployeeEmail");
-    const EmployeeContact = localStorage.getItem("EmployeeContact");
-    let loanMasterData = [];
+<script type="text/javascript">
+        @* Complete JavaScript with Validation - Using @: to escape Razor parsing *@
+
+    var baseUrl = '@baseUrl';
+    var Token = localStorage.getItem('token');
+    var savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    var Compid = parseInt(companyDetails.CompanyId);
+    var Empid = parseInt(localStorage.getItem("EmployeeId"));
+    var EmployeeName = localStorage.getItem("EmployeeName");
+    var EmployeeEmail = localStorage.getItem("EmployeeEmail");
+    var EmployeeContact = localStorage.getItem("EmployeeContact");
+    var loanMasterData = @Html.Raw("[]");
 
     $(document).ready(function () {
         // Initialize form fields
-        const today = new Date().toISOString().split('T')[0];
+        var today = new Date().toISOString().split('T')@Html.Raw("[0]");
         $('#dateid').val(today);
         $('#employeeid').val(EmployeeName);
-        $('#emailid').val(EmployeeEmail);
-        $('#contactid').val(EmployeeContact);
+        $('#emailid').val(EmployeeEmail || '');
+        $('#contactid').val(EmployeeContact || '');
 
         // Load loan types
         BindLoanMasterDropdown();
 
         // Handle loan selection change
         $('#loannameid').on('change', function() {
-            const selectedLoanId = parseInt($(this).val());
+            var selectedLoanId = parseInt($(this).val());
             if (selectedLoanId) {
-                const selectedLoan = loanMasterData.find(loan => loan.loanid === selectedLoanId);
+                var selectedLoan = null;
+                for (var i = 0; i < loanMasterData.length; i++) {
+                    if (loanMasterData@Html.Raw("[i]").loanid === selectedLoanId) {
+                        selectedLoan = loanMasterData@Html.Raw("[i]");
+                        break;
+                    }
+                }
                 if (selectedLoan) {
                     $('#loanmaxlimitid').val(selectedLoan.maxLimit || '');
                     $('#interesttypeid').val(selectedLoan.interestType || '');
@@ -296,36 +304,105 @@
             calculateInstallmentAmount();
         });
 
-        // Handle form submission
+        // Contact number validation - only numbers and max 10 digits
+        $('#contactid').on('input', function() {
+            var value = $(this).val().replace(/\D/g, ''); // Remove non-digits
+            if (value.length > 10) {
+                value = value.slice(0, 10);
+            }
+            $(this).val(value);
+        });
+
+        // Handle form submission with validation
         $('#loanForm').on('submit', function (e) {
             e.preventDefault();
 
-            // Validate form fields
-            let isValid = true;
+            var isValid = true;
             $('.error-msg').hide();
 
+            // Email validation
+            var email = $('#emailid').val().trim();
+            var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+            if (!email) {
+                $('#emailid-error').text('Email is required').show();
+                isValid = false;
+            } else if (!emailRegex.test(email)) {
+                $('#emailid-error').text('Please enter a valid email').show();
+                isValid = false;
+            }
+
+            // Contact validation
+            var contact = $('#contactid').val().trim();
+            if (!contact) {
+                $('#contactid-error').text('Contact number is required').show();
+                isValid = false;
+            } else if (contact.length !== 10) {
+                $('#contactid-error').text('Contact must be 10 digits').show();
+                isValid = false;
+            }
+
+            // Loan name validation
             if (!$('#loannameid').val()) {
                 $('#loannameid-error').show();
                 isValid = false;
             }
-            if (!$('#loanrequiredateid').val()) {
+
+            // Loan require date validation
+            var loanRequireDate = $('#loanrequiredateid').val();
+            if (!loanRequireDate) {
                 $('#loanrequiredateid-error').show();
                 isValid = false;
+            } else {
+                var today = new Date().toISOString().split('T')@Html.Raw("[0]");
+                if (loanRequireDate < today) {
+                    $('#loanrequiredateid-error').text('Date cannot be in the past').show();
+                    isValid = false;
+                }
             }
+
+            // Amount validation
+            var amount = parseFloat($('#amountid').val());
+            var maxLimit = parseFloat($('#loanmaxlimitid').val()) || 0;
             if (!$('#amountid').val()) {
-                $('#amountid-error').show();
+                $('#amountid-error').text('Amount is required').show();
                 isValid = false;
-            }
-            if (!$('#installmentid').val()) {
-                $('#installmentid-error').show();
+            } else if (amount <= 0) {
+                $('#amountid-error').text('Amount must be greater than 0').show();
                 isValid = false;
-            }
-            if (!$('#installmentstartdateid').val()) {
-                $('#installmentstartdateid-error').show();
+            } else if (maxLimit > 0 && amount > maxLimit) {
+                $('#amountid-error').text('Amount exceeds maximum limit of ' + maxLimit).show();
                 isValid = false;
             }
 
-            // If validation fails, scroll to the first error and return
+            // Installment validation
+            var installments = parseInt($('#installmentid').val());
+            if (!$('#installmentid').val()) {
+                $('#installmentid-error').text('Installment is required').show();
+                isValid = false;
+            } else if (installments <= 0) {
+                $('#installmentid-error').text('Installment must be greater than 0').show();
+                isValid = false;
+            }
+
+            // Installment start date validation
+            var installmentStartDate = $('#installmentstartdateid').val();
+            if (!installmentStartDate) {
+                $('#installmentstartdateid-error').show();
+                isValid = false;
+            } else {
+                var today = new Date().toISOString().split('T')@Html.Raw("[0]");
+                if (installmentStartDate < today) {
+                    $('#installmentstartdateid-error').text('Date cannot be in the past').show();
+                    isValid = false;
+                }
+                // Check if installment start date is after loan require date
+                if (loanRequireDate && installmentStartDate < loanRequireDate) {
+                    $('#installmentstartdateid-error').text('Must be after loan require date').show();
+                    isValid = false;
+                }
+            }
+
+            // If validation fails, scroll to the first error
             if (!isValid) {
                 $('html, body').animate({
                     scrollTop: $(".error-msg:visible:first").offset().top - 100
@@ -333,8 +410,8 @@
                 return;
             }
 
-
-            const payload = {
+            // Prepare payload for API
+            var payload = {
                 ApplicationDate: $('#dateid').val(),
                 EmployeeId: Empid,
                 ContactNo: $('#contactid').val(),
@@ -354,35 +431,31 @@
                 CreatedBy: Empid
             };
 
- 
+            // AJAX call to submit the form
             $.ajax({
-                url: apiBase + '/LoanApplicationAPI/CreateLoanApplication',
+                url: baseUrl + '/LoanApplicationAPI/CreateLoanApplication',
                 type: 'POST',
                 contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
                 data: JSON.stringify(payload),
                 success: function (res) {
-                    if (res.isSuccess === true) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: res.responseMessage || '✅ Loan application submitted successfully.',
-                            confirmButtonText: 'OK',
-                            timer: 2000
-                        });
-                        $('#loanForm')[0].reset();
+                    if (res.isSuccess) {
+                        round_success_noti(res.responseMessage);
+                       $('#loanForm')[0].reset();
+                        var today = new Date().toISOString().split('T')@Html.Raw("[0]");
                         $('#dateid').val(today);
                         $('#employeeid').val(EmployeeName);
-                        $('#emailid').val(EmployeeEmail);
-                        $('#contactid').val(EmployeeContact);
+                        $('#emailid').val(EmployeeEmail || '');
+                        $('#contactid').val(EmployeeContact || '');
+                        $('#loannameid').val('');
                     } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: res.responseMessage || '❌ Application failed. Please try again.',
-                            confirmButtonText: 'OK'
-                        });
+                        round_error_noti(res.responseMessage);
                     }
                 },
                 error: function (xhr, status, error) {
-                    let errorMessage = '❌ Error submitting application.';
+                    var errorMessage = '❌ Error submitting application.';
                     if (xhr.responseJSON && xhr.responseJSON.responseMessage) {
                         errorMessage = xhr.responseJSON.responseMessage;
                     } else if (error) {
@@ -403,20 +476,24 @@
         });
     });
 
+    // Reset button handler
     $('#resetid').on('click', function (e) {
         e.preventDefault();
         $('#loanForm')[0].reset();
-        const today = new Date().toISOString().split('T')[0];
+        $('.error-msg').hide();
+        var today = new Date().toISOString().split('T')@Html.Raw("[0]");
         $('#dateid').val(today);
         $('#employeeid').val(EmployeeName);
-        $('#emailid').val(EmployeeEmail);
-        $('#contactid').val(EmployeeContact);
+        $('#emailid').val(EmployeeEmail || '');
+        $('#contactid').val(EmployeeContact || '');
+        $('#loannameid').val('');
     });
 
+    // Load loan types from API
     function loadLoanTypes() {
-        return new Promise((resolve, reject) => {
+        return new Promise(function(resolve, reject) {
             $.ajax({
-                url: apiBase + '/LoanApplicationAPI/GetLoanNamesForDropdown',
+                url: baseUrl + '/LoanApplicationAPI/GetLoanNamesForDropdown',
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + Token
@@ -424,63 +501,75 @@
                 success: function (data) {
                     console.log('Loan API Response:', data);
                     if (data.isSuccess) {
-                        loanMasterData = (data.data || []).map(loan => ({
-                            loanid: loan.loanid || loan.Loanid || loan.LoanId,
-                            loanName: loan.loanName || loan.LoanName,
-                            maxLimit: loan.maxLimit || loan.MaxLimit || 0,
-                            interestType: loan.interestType || loan.InterestType || '',
-                            interestRate: loan.interestRate || loan.InterestRate || 0
-                        }));
+                        var dataArray = data.data || @Html.Raw("[]");
+                        loanMasterData = @Html.Raw("[]");
+
+                        for (var i = 0; i < dataArray.length; i++) {
+                            var loan = dataArray@Html.Raw("[i]");
+                            loanMasterData.push({
+                                loanid: loan.loanid || loan.Loanid || loan.LoanId,
+                                loanName: loan.loanName || loan.LoanName,
+                                maxLimit: loan.maxLimit || loan.MaxLimit || 0,
+                                interestType: loan.interestType || loan.InterestType || '',
+                                interestRate: loan.interestRate || loan.InterestRate || 0
+                            });
+                        }
+
                         console.log('Loaded loan master data:', loanMasterData);
 
-                        // Populate dropdown
-                        const $select = $('#loannameid');
-                        $select.empty().append('<option value="">--Select Loan--</option>');
+                        // Clear existing options except the first one
+                        $('#loannameid').find('option:not(:first)').remove();
 
-                        loanMasterData.forEach(function(loan) {
-                            $select.append(
+                        // Populate dropdown with loan data
+                        for (var i = 0; i < loanMasterData.length; i++) {
+                            var loan = loanMasterData@Html.Raw("[i]");
+                            $('#loannameid').append(
                                 $('<option></option>')
                                     .val(loan.loanid)
                                     .text(loan.loanName)
                             );
-                        });
+                        }
 
+                        console.log('Dropdown populated with', loanMasterData.length, 'loans');
                         resolve(loanMasterData);
                     } else {
+                        console.error('API returned isSuccess: false');
                         reject('Failed to fetch loans');
                     }
                 },
-                error: function (error) {
-                    console.error('Error loading loans:', error);
+                error: function (xhr, status, error) {
+                    console.error('API Error:', error);
+                    console.error('XHR:', xhr);
                     reject(error);
                 }
             });
         });
     }
 
-    async function BindLoanMasterDropdown() {
-        try {
-            await loadLoanTypes();
-        } catch (error) {
+    function BindLoanMasterDropdown() {
+        loadLoanTypes().then(function(data) {
+            // Success
+        }).catch(function(error) {
             console.error('Error binding loan dropdown:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Failed to load loan types',
+                text: error.toString(),
                 confirmButtonText: 'OK'
             });
-        }
+        });
     }
 
     function calculateInstallmentAmount() {
-        const amount = parseFloat($('#amountid').val()) || 0;
-        const installments = parseInt($('#installmentid').val()) || 0;
-        const interest = parseFloat($('#interestid').val()) || 0;
+        var amount = parseFloat($('#amountid').val()) || 0;
+        var installments = parseInt($('#installmentid').val()) || 0;
+        var interest = parseFloat($('#interestid').val()) || 0;
 
         if (amount > 0 && installments > 0) {
-            // Simple calculation: (Amount + Interest Amount) / Installments
-            const totalInterest = (amount * interest) / 100;
-            const totalAmount = amount + totalInterest;
-            const installmentAmount = totalAmount / installments;
+            // Calculate total amount with interest
+            var totalInterest = (amount * interest) / 100;
+            var totalAmount = amount + totalInterest;
+            var installmentAmount = totalAmount / installments;
             $('#installmentamountid').val(installmentAmount.toFixed(2));
         } else {
             $('#installmentamountid').val('');
