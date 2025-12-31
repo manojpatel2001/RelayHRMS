@@ -45,6 +45,6 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
         Task<APIResponse> GetGradeBySalaryRange(vmEmployeeSalary salaryPara);
         Task<APIResponse> GetEmplyeeDetailsById(int EmployeeId);
         Task<APIResponse> GetAllEmployeeList(int CompanyId);
-
+        Task<APIResponse> AddProbationEndDate(vmAddProbationEndDate model);
     }
 }

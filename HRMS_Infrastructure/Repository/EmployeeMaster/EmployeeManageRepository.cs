@@ -321,6 +321,39 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             return response;
         }
 
+        public async Task<APIResponse> AddProbationEndDate(vmAddProbationEndDate model)
+        {
+            var response = new APIResponse();
+
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Id", model.Id);
+                    parameters.Add("@GradeId", model.GradeId);
+                    parameters.Add("@DateOfJoining", model.DateOfJoining);
+
+                    await connection.ExecuteAsync(
+                        "sp_AddProbationEndDate",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Probation end date updated successfully.";
+                    response.Data = model.Id;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+            }
+
+            return response;
+        }
+
         public async Task<APIResponse> UpdateBasicInfo(vmUpdateEmployee employee)
         {
             var response = new APIResponse();
