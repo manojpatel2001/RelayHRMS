@@ -163,4 +163,11 @@ namespace HRMS_Core.VM.EmployeeMaster
         public int AttendanceLimit { get; set; }
 
     }
+
+    public class vmAddProbationEndDate
+    {
+        public int? Id { get; set; }
+        public int? GradeId { get; set; }
+        public DateTime? DateOfJoining { get; set; }
+    }
 }

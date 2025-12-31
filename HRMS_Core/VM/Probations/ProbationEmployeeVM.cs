@@ -77,7 +77,7 @@ namespace HRMS_Core.VM.Probations
     public class GetAllConfirmationProbationDetailsPara
     {
         public int CompanyId { get; set; }
-        public int StatusId { get; set; }
+        public int? StatusId { get; set; }
         public int? EmployeeId { get; set; }
 
     }

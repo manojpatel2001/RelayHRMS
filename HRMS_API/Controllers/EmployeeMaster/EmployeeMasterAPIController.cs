@@ -258,7 +258,10 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     var CreateHistory = await _unitOfWork.PasswordHistory.CreateHistoryPassword(history);
 
                     var reporting = await _unitOfWork.ReportingManagerDetailsRepository.CreateReportingManagerDetail(new ReportingManagerDetails { EffectedDate=DateTime.UtcNow,EmployeeId= employee .Id,ReportingManagerId=(int) employee.ReportingManagerId,MethodName= "In Person" });
-                 
+                    if (employee.Probation!=null && employee.Probation==true)
+                    {
+                        var addprobationEndDate = await _unitOfWork.EmployeeManageRepository.AddProbationEndDate(new vmAddProbationEndDate { Id = employee.Id, GradeId = employee.GradeId, DateOfJoining = employee.DateOfJoining });
+                    }
                     return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
 
                 }
