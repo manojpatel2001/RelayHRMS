@@ -182,6 +182,25 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return null;
             }
         }
+        public async Task<List<LoanApplicationResult>> GetLoanApprovalEss(LoanApprovalSearchViewModel model)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                var parameters = new DynamicParameters();
+                parameters.Add("@EmpId", model.EmpId);
+                parameters.Add("@CompanyId", model.CompanyId);
+                parameters.Add("@SearchType", model.SearchType);
+                parameters.Add("@SearchFor", model.SearchFor);
+                parameters.Add("@LoanStatus", model.LoanStatus);
 
+                var results = await db.QueryAsync<LoanApplicationResult>(
+                    "[dbo].[GetLoanApprovalEss]",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return results.AsList();
+            }
+        }
     }
 }
