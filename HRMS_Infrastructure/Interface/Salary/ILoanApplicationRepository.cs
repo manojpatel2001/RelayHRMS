@@ -19,6 +19,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<SP_Response> DeleteLoanApplication(DeleteRecordVM deleteRecord);
         Task<List<LoanMaster>> GetLoanNamesForDropdown();
         Task<List<GetLoanApplicationViewModel>> GetLoanApplication(int CompanyId);
+        Task<List<LoanApplicationResult>> GetLoanApprovalEss(LoanApprovalSearchViewModel model);
         Task<LoanApplicationViewModel> GetLoanDetailsById(int LoanId);
     }
 }

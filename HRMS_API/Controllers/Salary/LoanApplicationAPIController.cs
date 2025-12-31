@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.Loan;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -25,6 +26,25 @@ namespace HRMS_API.Controllers.Salary
             try
             {
                 var data = await _unitOfWork.LoanApplicationRepository.GetLoanNamesForDropdown();
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+        [HttpPost("GetLoanApprovalEss")]
+        public async Task<APIResponse> GetLoanApprovalEss(LoanApprovalSearchViewModel model)
+        
+        {
+            try
+            {
+                var data = await _unitOfWork.LoanApplicationRepository.GetLoanApprovalEss(model);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)

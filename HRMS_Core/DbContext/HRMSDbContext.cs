@@ -345,6 +345,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<LoanApplicationViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<LoanMaster>().HasNoKey().ToView(null);
              modelBuilder.Entity<GetLoanApplicationViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LoanApprovalSearchViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LoanApplicationResult>().HasNoKey().ToView(null);
 
 
 

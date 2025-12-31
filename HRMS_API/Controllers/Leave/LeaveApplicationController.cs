@@ -38,7 +38,7 @@ namespace HRMS_API.Controllers.Leave
                 Leave.CreatedDate = DateTime.Now;
                 Leave.LeaveStatus = "Pending";
 
-                var isexist = await _unitOfWork.LeaveApplicationRepository.GetAsync(asp => asp.EmplooyeId == Leave.EmplooyeId && asp.FromDate == Leave.FromDate && asp.Todate == Leave.Todate);
+                var isexist = await _unitOfWork.LeaveApplicationRepository.GetAsync(asp => asp.EmplooyeId == Leave.EmplooyeId && asp.FromDate == Leave.FromDate && asp.Todate == Leave.Todate && asp.LeaveStatus != "Cancelled");
 
                 if (isexist != null)
                 {

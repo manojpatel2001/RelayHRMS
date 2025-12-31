@@ -24,6 +24,9 @@ namespace HRMS_Core.Loan
         public decimal InstallmentAmount { get; set; }
         public DateTime InstallmentStartDate { get; set; }
         public string Remark { get; set; }
+        public bool IsPending { get; set; }
+        public bool IsApproved { get; set; }
+        public bool IsRejected { get; set; }
         public bool IsEnabled { get; set; }
         public bool IsDeleted { get; set; }
         public DateTime CreatedDate { get; set; }

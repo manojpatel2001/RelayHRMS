@@ -1,1 +1,390 @@
-﻿
+﻿@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = ViewBag.BaseUrl;
+    string apiBase = ViewBag.BaseUrlAPI;
+}
+
+<title>Loan Search Panel</title>
+<!-- jQuery + Bootstrap + SweetAlert -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #ffffff;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        font-weight: 600;
+        padding: 4px 12px;
+        border: none;
+        border-radius: 4px;
+    }
+
+        .btn-custom:hover {
+            background-color: #2c3a57;
+        }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+
+    .text-center-cell {
+        text-align: center !important;
+    }
+
+        .text-center-cell > div {
+            text-align: center !important;
+        }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+</style>
+
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Loan Search Panel</div>
+            <div class="ms-auto">
+                <a href="@Url.Action("AddLoan", "Loan", new { area = "EmployeePanel" })" class="btn btn-primary btn-sm">Add</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="form-section">
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-4 d-flex align-items-center">
+            <label for="Loantypeid" class="form-label mb-0 me-2" style="width: 120px;">Loan Type:</label>
+            <select class="form-control form-control-sm" id="Loantypeid">
+                <option value="0">-- Select --</option>
+            </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-center">
+            <label for="input1" class="form-label mb-0 me-2" style="width: 120px;">Search For:</label>
+            <input type="text" class="form-control form-control-sm" id="input1" placeholder="Search Employee code or Name" disabled>
+        </div>
+    </div>
+
+    <!-- Status & Buttons -->
+    <div class="row justify-content-center mb-3">
+        <div class="col d-flex align-items-center justify-content-center flex-wrap gap-3">
+            <button type="button" class="search-panel-container search-heading btn-sm" id="gobutoonid">GO</button>
+            <button type="button" class="search-panel-container search-heading btn-sm" id="clearbuttonid">Clear</button>
+        </div>
+    </div>
+
+    <div class="search-panel-wrapper">
+        <div class="search-panel-container">
+            <div class="search-panel-row">
+                <div class="search-heading">Loan Application</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="form-section">
+    <div class="container mt-3">
+        <div class="d-flex justify-content-end mb-2 align-items-center" id="actionButtons" style="display: none;">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="loanStatus" id="pendingloanid" value="Pending" checked>
+                <label class="form-check-label" for="pendingloanid">Pending</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="loanStatus" id="Approveid" value="ApprovedRejected">
+                <label class="form-check-label" for="Approveid">Approved/Rejected</label>
+            </div>
+            <button id="btnDelete" class="btn btn-custom">Delete</button>
+        </div>
+        <div id="loanGrid">Loading...</div>
+        <div id="recordSummary" class="text-center mt-2 text-muted"></div>
+    </div>
+</div>
+
+<!-- Script -->
+<script>
+    const apiBase = '@apiBase';
+    const Empid = parseInt(localStorage.getItem("EmployeeId"));
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany || '{}');
+    const Compid = parseInt(companyDetails.CompanyId);
+    let selectedKeys = [];
+
+    $(document).ready(function () {
+        fetchLoanData();
+        loadLoanTypeOptions();
+
+        // Trigger on GO button
+        $('#gobutoonid').on('click', function () {
+            fetchLoanData();
+        });
+
+        $('#pendingloanid').on('click', function () {
+            fetchLoanData();
+        });
+
+        $('#Approveid').on('click', function () {
+            fetchLoanData();
+        });
+
+        // Trigger on radio button change
+        $('input[name="loanStatus"]').on('change', function () {
+            fetchLoanData();
+        });
+
+        $('#Loantypeid').change(function () {
+            $('#input1').prop('disabled', $(this).val() === '0');
+        });
+
+        // Clear button
+        $('#clearbuttonid').on('click', function () {
+            $('#Loantypeid').val('0');
+            $('#input1').val('').prop('disabled', true);
+            $('#pendingloanid').prop('checked', true);
+            selectedKeys = [];
+            $('#deleteButton').prop('disabled', true);
+            fetchLoanData();
+        });
+    });
+
+    function loadLoanTypeOptions() {
+        $.ajax({
+            url: apiBase + '/LoanApplicationAPI/GetLoanNamesForDropdown',
+            type: "GET",
+            success: function (res) {
+                const dropdown = $('#Loantypeid');
+                dropdown.empty().append(`<option value="0">-- Select --</option>`);
+
+                if (res.isSuccess && res.data) {
+                    $.each(res.data, function (i, item) {
+                        dropdown.append(`<option value="${item.loantypeid}">${item.loanName}</option>`);
+                    });
+                }
+            },
+            error: function () {
+                console.error("Failed to load loan type options.");
+            }
+        });
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+    }
+
+    // Main AJAX function
+    function fetchLoanData() {
+        if ($("#loanGrid").data("dxDataGrid")) {
+            $("#loanGrid").dxDataGrid("dispose");
+            $("#loanGrid").empty();
+        }
+
+        const searchFor = $('#input1').val().trim();
+        const loanTypeRaw = $('#Loantypeid').val();
+        let filter = {
+            LoanType: loanTypeRaw === "0" || !loanTypeRaw ? 0 : parseInt(loanTypeRaw),
+            Status: $('input[name="loanStatus"]:checked').val() || null,
+            SearchFor: searchFor,
+            Emplooyeid: Empid,
+            CompId: Compid
+        };
+
+        $.ajax({
+            url: apiBase + '/LoanApplicationAPI/GetLoanApprovalEss',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(filter),
+            success: function (data) {
+                if (data.isSuccess && data.data && data.data.length > 0) {
+                    allData = data.data;
+                    currentPage = 1;
+                    renderTable(allData);
+                } else {
+                    $('#loanGrid').html('<div class="text-center text-muted">No records found.</div>');
+                    $('#recordSummary').text('');
+                    $('#actionButtons').hide();
+                    $('#deleteButton').prop('disabled', true);
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX error:", xhr);
+                Swal.fire("❌ Server Error", xhr.responseText || "Something went wrong", "error");
+            }
+        });
+    }
+
+    $('#btnDelete').on('click', function () {
+        var grid = $("#loanGrid").dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            Swal.fire("Warning", "Please select at least one record to delete.", "warning");
+            return;
+        }
+
+        // Check if any selected record is not Pending
+        const nonPendingRecords = selectedRows.filter(row => row.loanStatus !== "Pending");
+
+        if (nonPendingRecords.length > 0) {
+            Swal.fire({
+                title: "Cannot Delete",
+                text: "Only pending loan applications can be deleted. Please remove approved/rejected records from selection.",
+                icon: "error"
+            });
+            return;
+        }
+
+        const selectedIds = selectedRows.map(row => row.loanApplicationId);
+        const deletePayload = {
+            Id: selectedIds,
+            DeletedBy: Empid.toString()
+        };
+
+        $.ajax({
+            url: apiBase + "/LoanApplicationAPI/Delete",
+            type: 'DELETE',
+            contentType: 'application/json',
+            data: JSON.stringify(deletePayload),
+            success: function (res) {
+                if (res.isSuccess) {
+                    Swal.fire({
+                        title: "Success",
+                        text: res.responseMessage || "Records deleted successfully.",
+                        icon: "success",
+                        timer: 2000
+                    }).then(() => {
+                        // Clear selection and refresh
+                        grid.clearSelection();
+                        selectedKeys = [];
+                        $('#actionButtons').hide();
+                        fetchLoanData();
+                    });
+                } else {
+                    Swal.fire("Error", res.responseMessage || "Deletion failed.", "error");
+                }
+            },
+            error: function (xhr) {
+                Swal.fire("Error", "Something went wrong during deletion.", "error");
+                console.error("Delete error:", xhr);
+            }
+        });
+    });
+
+    function renderTable(data) {
+        $("#loanGrid").dxDataGrid({
+            dataSource: data,
+            keyExpr: "loanApplicationId",
+            showBorders: true,
+            columnAutoWidth: true,
+            height: 400,
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
+            },
+            paging: { enabled: false },
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
+            onSelectionChanged: function (e) {
+                selectedKeys = e.selectedRowKeys;
+                $("#actionButtons").show();
+                $("#deleteButton").prop('disabled', selectedKeys.length === 0);
+            },
+            columns: [
+                { dataField: "loanApplicationId", caption: "Application Id", width: 80, cssClass: "text-center-cell", visible: false },
+                { dataField: "employeeName", caption: "Employee Name", cssClass: "text-center-cell" },
+                { dataField: "loanTypeName", caption: "Loan Type", cssClass: "text-center-cell" },
+                { dataField: "loanAmount", caption: "Loan Amount", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "installmentAmount", caption: "Installment Amount", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
+                { dataField: "numberOfInstallments", caption: "Installments", cssClass: "text-center-cell" },
+                { dataField: "applicationDate", caption: "Application Date", dataType: "date", format: "dd/MM/yyyy", cssClass: "text-center-cell" },
+                { dataField: "reason", caption: "Reason", cssClass: "text-center-cell" },
+                { dataField: "loanStatus", caption: "Status", cssClass: "text-center-cell" },
+                {
+                    dataField: "approvedBy",
+                    caption: "Approved By",
+                    width: 120,
+                    cssClass: "text-center-cell",
+                    calculateCellValue: function (rowData) {
+                        return rowData.approvedBy ? rowData.approvedBy : "-";
+                    }
+                },
+                {
+                    dataField: "approvedDate",
+                    caption: "Approved Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: "10%",
+                    minWidth: 100,
+                    cssClass: "text-center-cell",
+                    calculateCellValue: function (rowData) {
+                        if (!rowData.approvedDate) return "-";
+                        const date = new Date(rowData.approvedDate);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        return `${day}/${month}/${year}`;
+                    }
+                }
+            ]
+        });
+    }
+</script>
