@@ -1,10 +1,11 @@
-﻿@{
-    ViewData["Title"] = "Employee Panel";
-    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
-    string apiBase = ViewBag.BaseUrlAPI;
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Loan Application";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
-
 <title>Loan Search Panel</title>
 <!-- jQuery + Bootstrap + SweetAlert -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -110,7 +111,7 @@
         <div class="col-md-4 d-flex align-items-center">
             <label for="Loantypeid" class="form-label mb-0 me-2" style="width: 120px;">Loan Type:</label>
             <select class="form-control form-control-sm" id="Loantypeid">
-                <option value="0">-- Select --</option>
+                <option value="0">-- Select --</option>           
             </select>
         </div>
         <div class="col-md-4 d-flex align-items-center">
@@ -156,7 +157,6 @@
 
 <!-- Script -->
 <script>
-    const apiBase = '@apiBase';
     const Empid = parseInt(localStorage.getItem("EmployeeId"));
     const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany || '{}');
@@ -204,22 +204,40 @@
         $.ajax({
             url: apiBase + '/LoanApplicationAPI/GetLoanNamesForDropdown',
             type: "GET",
+            headers: {
+                'Content-Type': 'application/json'
+            },
             success: function (res) {
+                console.log('Loan Type API Response:', res);
                 const dropdown = $('#Loantypeid');
                 dropdown.empty().append(`<option value="0">-- Select --</option>`);
 
-                if (res.isSuccess && res.data) {
-                    $.each(res.data, function (i, item) {
-                        dropdown.append(`<option value="${item.loantypeid}">${item.loanName}</option>`);
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    $.each(res.data, function (i, item) {           
+                        const loanTypeId = item.loantypeid || item.loanTypeId || item.LoanTypeId || item.loanid || item.Loanid || item.LoanId;
+                        const loanName = item.loanName || item.LoanName;
+                        dropdown.append(`<option value="${loanTypeId}">${loanName}</option>`);
                     });
+                    console.log('Loaded', res.data.length, 'loan types');
+                } else {
+                    console.warn('No loan types found in API response');
                 }
             },
-            error: function () {
+            error: function (xhr, status, error) {
                 console.error("Failed to load loan type options.");
+                console.error("Status:", status);
+                console.error("Error:", error);
+                console.error("Response:", xhr.responseText);
+
+                // Show user-friendly error
+                Swal.fire({
+                    title: "Error",
+                    text: "Failed to load loan types. Please refresh the page.",
+                    icon: "error"
+                });
             }
         });
     }
-
     function formatDate(dateString) {
         const date = new Date(dateString);
         const day = String(date.getDate()).padStart(2, '0');

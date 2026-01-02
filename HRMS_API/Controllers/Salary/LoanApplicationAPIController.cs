@@ -40,7 +40,7 @@ namespace HRMS_API.Controllers.Salary
         }
         [HttpPost("GetLoanApprovalEss")]
         public async Task<APIResponse> GetLoanApprovalEss(LoanApprovalSearchViewModel model)
-        
+
         {
             try
             {
@@ -59,11 +59,29 @@ namespace HRMS_API.Controllers.Salary
         }
         [HttpGet("GetLoanApplication")]
         public async Task<APIResponse> GetLoanApplication(int CompanyId)
-        
+
         {
             try
             {
                 var data = await _unitOfWork.LoanApplicationRepository.GetLoanApplication(CompanyId);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+        [HttpGet("GetEmployeeDetailsByEmpId")]
+        public async Task<APIResponse> GetEmployeeDetailsByEmpId(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.LoanApplicationRepository.GetEmployeeDetailsByEmpId(EmployeeId);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
@@ -148,8 +166,10 @@ namespace HRMS_API.Controllers.Salary
         }
 
 
+   
+
         [HttpDelete("Delete")]
-        public async Task<APIResponse> Delete(DeleteRecordVM DeleteRecord)
+        public async Task<APIResponse> Delete([FromBody] DeleteRecordVModel DeleteRecord)
         {
             try
             {
@@ -158,13 +178,10 @@ namespace HRMS_API.Controllers.Salary
                     return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
                 }
 
-                var result = await _unitOfWork.LoanApplicationRepository.DeleteLoanApplication(DeleteRecord);
-                if (result.Success > 0)
-                {
-                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
-                }
+                var data = await _unitOfWork.LoanApplicationRepository.Delete(DeleteRecord);
+                await _unitOfWork.CommitAsync();
 
-                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+                return new APIResponse() { isSuccess = true, Data = DeleteRecord, ResponseMessage = "The record has been deleted successfully" };
             }
             catch (Exception err)
             {
@@ -176,5 +193,7 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
         }
+
+
     }
 }

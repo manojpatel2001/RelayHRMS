@@ -202,5 +202,54 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return results.AsList();
             }
         }
+
+        public async Task<EmployeeDetailsloanViewModel> GetEmployeeDetailsByEmpId(int EmployeeId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmployeeId", EmployeeId, DbType.Int32);
+
+                    var result = await connection.QueryAsync<EmployeeDetailsloanViewModel>(
+                        "GetEmployeeDetailsByEmpId",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result.FirstOrDefault();
+                }
+            }
+            catch (Exception ex)
+            {
+
+                return null;
+            }
+        }
+
+        public async Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord)
+        {
+            try
+            {
+                VMCommonResult finalResult = new VMCommonResult();
+
+                foreach (int id in deleteRecord.Id)
+                {
+                    var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                      EXEC sp_DeleteLoanApplication
+                          @LoanApplicationid = {id},
+                          @DeletedBy = {deleteRecord.DeletedBy}").ToListAsync();
+
+                    finalResult = result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                }
+
+                return finalResult;
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
     }
 }
