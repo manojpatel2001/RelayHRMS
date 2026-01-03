@@ -5,6 +5,7 @@ using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.Report;
+using HRMS_Utility;
 using Microsoft.SqlServer.Server;
 using System;
 using System.Collections.Generic;
@@ -26,9 +27,9 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<EmpInOutVM>> GetEmployeeInOut( int? EmpId , DateTime? ForDate);
         Task<List<EMpDetails>> GetEmployeeDetails( int? EmpId );
         Task<List<AttendanceCount>> GetEmployeeAttendanceRequestsCountForCurrentMonth( int? EmpId ,int Month ,int year);
-        Task<VMCommonResult> Create(AttendanceRegularization model);
-        Task<VMCommonResult> Update(AttendanceRegularization model);
-        Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord);
+        Task<APIResponse> Create(AttendanceRegularization model);
+        Task<APIResponse> Update(AttendanceRegularization model);
+        Task<APIResponse> Delete(DeleteRecordVModel deleteRecord);
         Task<List<AttendanceDetails>>  GetAttendanceDetails(EmployeeInOutFilterVM outFilterVM);
     }
 }

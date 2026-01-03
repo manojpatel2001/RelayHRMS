@@ -99,6 +99,8 @@ namespace HRMS_API.Controllers.Employee
 
                 string CreatedBy = "0";
                 var attdenceDateList = new List<DateTime>();
+                bool finalSuccess = true;
+                string finalMessage = string.Empty;
 
                 foreach (var attendance in attendances)
                 {
@@ -118,17 +120,32 @@ namespace HRMS_API.Controllers.Employee
                             isSuccess = false,
                             ResponseMessage = $"Request already exists for EmpId {attendance.EmpId} on {attendance.ForDate:yyyy-MM-dd}"
                         };
-                    }                   
-                    await _unitOfWork.AttendanceRegularizationRepository.Create(attendance);
+                    }
+
+                    // Create attendance and get result from stored procedure
+                    var result = await _unitOfWork.AttendanceRegularizationRepository.Create(attendance);
+
+                    // Check if create failed (attendance locked or salary generated)
+                    if (!result.isSuccess)
+                    {
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = result.ResponseMessage
+                        };
+                    }
+
+                    // Store success message from repository
+                    finalSuccess = result.isSuccess;
+                    finalMessage = result.ResponseMessage;
 
                     attdenceDateList.Add((DateTime)attendance.ForDate);
                     CreatedBy = attendance.CreatedBy;
-
                 }
 
-                //Notification send to reporting persion
+                //Notification send to reporting person
                 var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(Convert.ToInt32(CreatedBy));
-                if (employeeDetails != null )
+                if (employeeDetails != null)
                 {
                     var attdenceDate = string.Join(", ", attdenceDateList.Select(date => date.ToString("dd-MM-yyyy")));
                     var notification = new NotificationRemainders()
@@ -151,11 +168,12 @@ namespace HRMS_API.Controllers.Employee
                         }
                     }
                 }
+
                 return new APIResponse
                 {
-                    isSuccess = true,
+                    isSuccess = finalSuccess,
                     Data = attendances,
-                    ResponseMessage = "Records have been saved successfully"
+                    ResponseMessage = !string.IsNullOrEmpty(finalMessage) ? finalMessage : "Records have been saved successfully"
                 };
             }
             catch (Exception err)
@@ -164,11 +182,10 @@ namespace HRMS_API.Controllers.Employee
                 {
                     isSuccess = false,
                     Data = err.Message,
-                    ResponseMessage = "Unable to add records, please try again later!"
+                    ResponseMessage = err.Message
                 };
             }
         }
-
         //[HttpPut("UpdateAttendanceRegularization")]
         //public async Task<APIResponse> UpdateAttendanceRegularization(List<AttendanceRegularization> attendances)
         //{
@@ -225,6 +242,9 @@ namespace HRMS_API.Controllers.Employee
                     };
                 }
 
+                bool finalSuccess = true;
+                string finalMessage = string.Empty;
+
                 foreach (var attendance in attendances)
                 {
                     var record = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(
@@ -240,12 +260,25 @@ namespace HRMS_API.Controllers.Employee
                     record.IsRejected = attendance.Status == "Rejected";
                     record.IsPending = attendance.Status == "Pending";
 
-                
-                    record.UpdatedBy = attendance.CreatedBy;  
+                    record.UpdatedBy = attendance.CreatedBy;
                     record.UpdatedDate = DateTime.UtcNow;
 
-                    // Save changes
-                    await _unitOfWork.AttendanceRegularizationRepository.Update(record);
+                    // Save changes and get result from stored procedure
+                    var result = await _unitOfWork.AttendanceRegularizationRepository.Update(record);
+
+                    // Check if update failed (attendance locked or salary generated)
+                    if (!result.isSuccess)
+                    {
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = result.ResponseMessage
+                        };
+                    }
+
+                    // Store success message from repository
+                    finalSuccess = result.isSuccess;
+                    finalMessage = result.ResponseMessage;
 
                     // If approved, update or create InOut records
                     if (record.IsApproved)
@@ -319,8 +352,8 @@ namespace HRMS_API.Controllers.Employee
 
                 return new APIResponse
                 {
-                    isSuccess = true,
-                    ResponseMessage = "Attendance and In/Out records processed successfully."
+                    isSuccess = finalSuccess,
+                    ResponseMessage = !string.IsNullOrEmpty(finalMessage) ? finalMessage : "Attendance and In/Out records processed successfully."
                 };
             }
             catch (Exception ex)
@@ -328,13 +361,10 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = "Something went wrong.",
-                    Data = ex.Message
+                    ResponseMessage = ex.Message
                 };
             }
         }
-
-
         [HttpDelete("Delete")]
         public async Task<APIResponse> Delete([FromBody] DeleteRecordVModel DeleteRecord)
         {
@@ -342,13 +372,34 @@ namespace HRMS_API.Controllers.Employee
             {
                 if (DeleteRecord == null)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Delete details cannot be null"
+                    };
                 }
 
-                var data = await _unitOfWork.AttendanceRegularizationRepository.Delete(DeleteRecord);
+                // Delete and get result from stored procedure
+                var result = await _unitOfWork.AttendanceRegularizationRepository.Delete(DeleteRecord);
+
+                // Check if delete failed (attendance locked or salary generated)
+                if (!result.isSuccess)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+
                 await _unitOfWork.CommitAsync();
 
-                return new APIResponse() { isSuccess = true, Data = DeleteRecord, ResponseMessage = "The record has been deleted successfully" };
+                return new APIResponse()
+                {
+                    isSuccess = result.isSuccess,
+                    Data = DeleteRecord,
+                    ResponseMessage = !string.IsNullOrEmpty(result.ResponseMessage) ? result.ResponseMessage : "The record has been deleted successfully"
+                };
             }
             catch (Exception err)
             {
@@ -356,11 +407,10 @@ namespace HRMS_API.Controllers.Employee
                 {
                     isSuccess = false,
                     Data = err.Message,
-                    ResponseMessage = "Unable to delete records, Please try again later!"
+                    ResponseMessage = err.Message
                 };
             }
         }
-
 
         [HttpPost("GetAttendanceRegularization")]
         public async Task<APIResponse> GetAttendanceRegularization([FromBody] AttendanceRegularizationSearchFilterVM attendance)

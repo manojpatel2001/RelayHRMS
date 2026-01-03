@@ -1,14 +1,17 @@
-﻿using HRMS_Core.DbContext;
+﻿using Dapper;
+using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface.Employee;
+using HRMS_Utility;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.SqlServer.Server;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,10 +22,13 @@ namespace HRMS_Infrastructure.Repository.Employee
     public class AttendanceRegularizationRepository : Repository<AttendanceRegularization>, IAttendanceRegularizationRepository
     {
         private readonly HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public AttendanceRegularizationRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
+
         }
 
         public async Task<List<AttendanceRegularizationVM>> GetAttendanceRegularization(AttendanceRegularizationSearchFilterVM attendance)
@@ -142,89 +148,133 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<VMCommonResult> Create(AttendanceRegularization model)
+        public async Task<APIResponse> Create(AttendanceRegularization model)
         {
+            var response = new APIResponse();
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC SP_AttendanceRegularization
-                    @Action = {"INSERT"},
-                    @EmpId = {model.EmpId},
-                    @FullName = {model.FullName},
-                    @BranchName = {model.BranchName},
-                    @ForDate = {model.ForDate},
-                    @ShiftTime = {model.ShiftTime},
-                    @InTime = {model.InTime},
-                    @OutTime = {model.OutTime},
-                    @Day = {model.Day},
-                    @Reason = {model.Reason},
-                    @Status = {model.Status},
-                    @CreatedBy = {model.CreatedBy}
-            ").ToListAsync();
-
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
-            }
-            catch
-            {
-                return new VMCommonResult { Id = 0 };
-            }
-        }
-
-        public async Task<VMCommonResult> Update(AttendanceRegularization model)
-        {
-            try
-            {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC SP_AttendanceRegularization
-                    @Action = {"UPDATE"},
-                    @Id ={model.AttendanceRegularizationId}, 
-                    @EmpId = {model.EmpId},
-                    @FullName = {model.FullName},
-                    @BranchName = {model.BranchName},
-                    @ForDate = {model.ForDate},
-                    @ShiftTime = {model.ShiftTime},
-                    @InTime = {model.InTime},
-                    @OutTime = {model.OutTime},
-                    @Day = {model.Day},
-                    @Reason = {model.Reason},
-                    @Status = {model.Status},
-                    @CreatedBy = {model.UpdatedBy}
-            ").ToListAsync();
-
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
-            }
-            catch
-            {
-                return new VMCommonResult { Id = 0 };
-            }
-        }
-
-        public async Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord)
-        {
-            try
-            {
-                VMCommonResult finalResult = new VMCommonResult();
-
-                foreach (int id in deleteRecord.Id)
+                using (var connection = new SqlConnection(_connectionString))
                 {
-                    var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC SP_AttendanceRegularization
-                    @Action = {"DELETE"},
-                    @Id = {id},
-                    @CreatedBy = {deleteRecord.DeletedBy}
-            ").ToListAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Action", "INSERT");
+                    parameters.Add("@EmpId", model.EmpId);
+                    parameters.Add("@FullName", model.FullName);
+                    parameters.Add("@BranchName", model.BranchName);
+                    parameters.Add("@ForDate", model.ForDate);
+                    parameters.Add("@ShiftTime", model.ShiftTime);
+                    parameters.Add("@InTime", model.InTime);
+                    parameters.Add("@OutTime", model.OutTime);
+                    parameters.Add("@Day", model.Day);
+                    parameters.Add("@Reason", model.Reason);
+                    parameters.Add("@Status", model.Status);
+                    parameters.Add("@CreatedBy", model.CreatedBy);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
 
-                    finalResult = result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                    await connection.ExecuteAsync(
+                        "SP_AttendanceRegularization",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                    response.Data = null;
                 }
-
-                return finalResult;
             }
-            catch
+            catch (Exception ex)
             {
-                return new VMCommonResult { Id = 0 };
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
             }
+            return response;
         }
 
+        public async Task<APIResponse> Update(AttendanceRegularization model)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Action", "UPDATE");
+                    parameters.Add("@Id", model.AttendanceRegularizationId);
+                    parameters.Add("@EmpId", model.EmpId);
+                    parameters.Add("@FullName", model.FullName);
+                    parameters.Add("@BranchName", model.BranchName);
+                    parameters.Add("@ForDate", model.ForDate);
+                    parameters.Add("@ShiftTime", model.ShiftTime);
+                    parameters.Add("@InTime", model.InTime);
+                    parameters.Add("@OutTime", model.OutTime);
+                    parameters.Add("@Day", model.Day);
+                    parameters.Add("@Reason", model.Reason);
+                    parameters.Add("@Status", model.Status);
+                    parameters.Add("@CreatedBy", model.UpdatedBy);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
+
+                    await connection.ExecuteAsync(
+                        "SP_AttendanceRegularization",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                    response.Data = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
+            }
+            return response;
+        }
+
+        public async Task<APIResponse> Delete(DeleteRecordVModel deleteRecord)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    foreach (int id in deleteRecord.Id)
+                    {
+                        var parameters = new DynamicParameters();
+                        parameters.Add("@Action", "DELETE");
+                        parameters.Add("@Id", id);
+                        parameters.Add("@CreatedBy", deleteRecord.DeletedBy);
+                        parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                        parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
+
+                        await connection.ExecuteAsync(
+                            "SP_AttendanceRegularization",
+                            parameters,
+                            commandType: CommandType.StoredProcedure
+                        );
+
+                        response.isSuccess = parameters.Get<bool>("@Success");
+                        response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+
+                        // If any delete fails, stop processing
+                        if (!response.isSuccess)
+                            break;
+                    }
+                    response.Data = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
+            }
+            return response;
+        }
         public async Task<List<AttendanceDetails>> GetAttendanceDetails(EmployeeInOutFilterVM outFilterVM)
         {
             try
