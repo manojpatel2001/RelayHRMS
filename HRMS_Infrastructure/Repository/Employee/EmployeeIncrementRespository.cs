@@ -1,13 +1,16 @@
 ﻿using Azure;
+using Dapper;
 using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
 using HRMS_Core.VM;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Utility;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,11 +20,13 @@ namespace HRMS_Infrastructure.Repository.Employee
 {
     public class EmployeeIncrementRespository: IEmployeeIncrementRespository
     {
-        private readonly HRMSDbContext _db;
+        private HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public EmployeeIncrementRespository(HRMSDbContext db) 
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
         public async Task<List<IncrementReason>> GetAllIncrementReason()
         {
@@ -38,116 +43,164 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return new List<IncrementReason>();
             }
         }
-        public async Task<APIResponse> CreateEmployeeIncrementSalary(vmEmployeeIncrementSalary vmEmployeeSalary)
-        {
-            try
-            {
-                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
-                EXEC SP_EmployeeIncrementSalary
-                    @Action = {"CREATE"},
-                    @EmployeeId = {vmEmployeeSalary.EmployeeId},
-                    @CompanyId = {vmEmployeeSalary.CompanyId},
-                    @GrossSalary = {vmEmployeeSalary.GrossSalary},
-                    @BasicSalary = {vmEmployeeSalary.BasicSalary},
-                    @IsPFApplicable = {vmEmployeeSalary.IsPFApplicable},
-                    @ReasonId = {vmEmployeeSalary.ReasonId},
-                    @EffectedDate = {vmEmployeeSalary.EffectedDate}
-                     
-                    
-            ").ToListAsync();
-
-                var data = result.FirstOrDefault();
-                if(data!=null && data.Success>0)
-                {
-                    return new APIResponse { isSuccess = true, ResponseMessage = data.ResponseMessage };
-                }
-                else
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = data.ResponseMessage };
-
-                }
-            }
-            catch
-            {
-                return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong!" };
-            }
-        }
 
         public async Task<APIResponse> GetAllIncrementEmployees(int companyId)
         {
+            var response = new APIResponse();
+
             try
             {
-                
-                var result = await _db.Set<vmGetAllIncrementEmployees>()
-                    .FromSqlInterpolated($@"EXEC [dbo].[GetAllIncrementEmployees] @CompanyId={companyId}")
-                    .ToListAsync();
+                using var connection = new SqlConnection(_connectionString);
 
-                if (result == null || !result.Any())
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = "No increment records found",
-                        Data = new List<vmGetAllIncrementEmployees>() // Return empty list instead of null
-                    };
+                var result = await connection.QueryAsync<vmGetAllIncrementEmployees>(
+                    "GetAllIncrementEmployees",
+                    new { CompanyId = companyId },
+                    commandType: CommandType.StoredProcedure
+                );
 
-                return new APIResponse
+                var list = result?.ToList() ?? new List<vmGetAllIncrementEmployees>();
+
+                if (!list.Any())
                 {
-                    isSuccess = true,
-                    Data = result,
-                    ResponseMessage = $"{result.Count} records fetched successfully"
-                };
-            }
-            catch (Exception ex)
-            {
-              
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    ResponseMessage = $"Error: {ex.Message}",
-                    Data = null
-                };
-            }
-        }
-
-
-        public async Task<APIResponse> DeleteIncrement(int EmployeeId)
-        {
-            try
-            {
-                var result = await _db.Set<SP_Response>()
-                    .FromSqlInterpolated($@"EXEC SP_EmployeeIncrementSalary
-                @Action={"DELETE"},
-                @EmployeeId={EmployeeId}")
-                    .ToListAsync();
-
-                var data = result.FirstOrDefault();
-
-                if (data != null && data.Success > 0)
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = true,
-                        ResponseMessage = data.ResponseMessage
-                    };
+                    response.isSuccess = false;
+                    response.ResponseMessage = "No increment records found";
+                    response.Data = list;
                 }
                 else
                 {
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = data?.ResponseMessage ?? "No response from database"
-                    };
+                    response.isSuccess = true;
+                    response.ResponseMessage = $"{list.Count} records fetched successfully";
+                    response.Data = list;
                 }
             }
             catch (Exception ex)
             {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    ResponseMessage = "Something went wrong: " + ex.Message
-                };
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+                response.Data = null;
             }
+
+            return response;
+        }
+
+
+        public async Task<APIResponse> DeleteIncrement(int employeeId)
+        {
+            var response = new APIResponse();
+
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@Action", "DELETE");
+                parameters.Add("@EmployeeId", employeeId);
+
+                var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                    "SP_EmployeeIncrementSalary",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                if (result != null && result.Success > 0)
+                {
+                    response.isSuccess = true;
+                    response.ResponseMessage = result.ResponseMessage;
+                }
+                else
+                {
+                    response.isSuccess = false;
+                    response.ResponseMessage = result?.ResponseMessage ?? "Delete failed";
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+            }
+
+            return response;
+        }
+
+        public async Task<APIResponse> GetEmployeeSalaryInfo(int employeeId)
+        {
+            var response = new APIResponse();
+
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var result = await connection.QueryFirstOrDefaultAsync<EmployeeSalaryInfoVM>(
+                        "GetEmployeeSalaryInfo",
+                        new { EmployeeId = employeeId },
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (result == null)
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "Employee salary info not found.";
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+            }
+
+            return response;
+        }
+
+        public async Task<APIResponse> InsertEmployeeSalaryHistory(InsertEmployeeSalaryHistoryVM model)
+        {
+            var response = new APIResponse();
+
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+
+                    parameters.Add("@EmployeeId", model.EmployeeId);
+                    parameters.Add("@OldGrossSalary", model.OldGrossSalary);
+                    parameters.Add("@NewGrossSalary", model.NewGrossSalary);
+                    parameters.Add("@OldBasicSalary", model.OldBasicSalary);
+                    parameters.Add("@NewBasicSalary", model.NewBasicSalary);
+                    parameters.Add("@EffectiveFromDate", model.EffectiveFromDate);
+                    parameters.Add("@EffectiveToDate", model.EffectiveToDate);
+                    parameters.Add("@ReasonId", model.ReasonId);
+                    parameters.Add("@IsActive", model.IsActive);
+                    parameters.Add("@CreatedBy", model.CreatedBy);
+
+                    // 🔹 OUTPUT parameters
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, size: 500, direction: ParameterDirection.Output);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+
+                    await connection.ExecuteAsync(
+                        "USP_InsertEmployeeSalaryHistory",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+            }
+
+            return response;
         }
 
     }
 }
+

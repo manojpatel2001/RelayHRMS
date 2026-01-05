@@ -12,4 +12,5 @@ namespace HRMS_Core.Employee
         public string? ReasonName { get; set; }
         public bool? IsActive { get; set; }
     }
+
 }
