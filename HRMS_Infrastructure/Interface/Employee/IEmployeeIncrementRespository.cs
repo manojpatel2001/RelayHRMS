@@ -13,7 +13,9 @@ namespace HRMS_Infrastructure.Interface.Employee
     public interface IEmployeeIncrementRespository
     {
         Task<List<IncrementReason>> GetAllIncrementReason();
-        Task<APIResponse> CreateEmployeeIncrementSalary(vmEmployeeIncrementSalary vmEmployeeSalary);
+        Task<APIResponse> InsertEmployeeSalaryHistory(InsertEmployeeSalaryHistoryVM model);
+        Task<APIResponse> GetEmployeeSalaryInfo(int employeeId);
+
         Task<APIResponse> GetAllIncrementEmployees(int companyId);
         Task<APIResponse> DeleteIncrement(int EmployeeId);
     }

@@ -1,4 +1,5 @@
-﻿using HRMS_Core.VM;
+﻿using HRMS_Core.Employee;
+using HRMS_Core.VM;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
@@ -36,12 +37,12 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
-        [HttpPost("CreateEmployeeIncrementSalary")]
-        public async Task<APIResponse> CreateEmployeeIncrementSalary(vmEmployeeIncrementSalary salaryPara)
+        [HttpPost("InsertEmployeeSalaryHistory")]
+        public async Task<APIResponse> InsertEmployeeSalaryHistory(InsertEmployeeSalaryHistoryVM salaryPara)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeIncrementRespository.CreateEmployeeIncrementSalary(salaryPara);
+                var data = await _unitOfWork.EmployeeIncrementRespository.InsertEmployeeSalaryHistory(salaryPara);
 
                 return data;
             }
@@ -58,6 +59,24 @@ namespace HRMS_API.Controllers.Employee
             {
              
                 var result = await _unitOfWork.EmployeeIncrementRespository.GetAllIncrementEmployees(companyId);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Failed to fetch increment records"
+                };
+            }
+        }
+        [HttpGet("GetEmployeeSalaryInfo/{EmployeeId}")]
+        public async Task<APIResponse> GetEmployeeSalaryInfo(int EmployeeId)
+        {
+            try
+            {
+             
+                var result = await _unitOfWork.EmployeeIncrementRespository.GetEmployeeSalaryInfo(EmployeeId);
                 return result;
             }
             catch (Exception ex)
