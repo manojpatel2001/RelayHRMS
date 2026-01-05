@@ -313,6 +313,7 @@ namespace HRMS_Infrastructure.Repository.Probations
                     dynamicParameters.Add("@CompanyId", parameters.CompanyId, DbType.Int32);
                     dynamicParameters.Add("@EmployeeId", parameters.EmployeeId, DbType.Int32);
                     dynamicParameters.Add("@StatusId", parameters.StatusId, DbType.Int32);
+                    dynamicParameters.Add("@ApprovalMasterId", parameters.ApprovalMasterId, DbType.Int32);
 
                     var results = await connection.QueryAsync<ConfirmationProbationDetails>(
                         sql: "GetAllConfirmationProbationDetails",

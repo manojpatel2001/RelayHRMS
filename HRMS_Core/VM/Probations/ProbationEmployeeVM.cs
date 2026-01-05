@@ -79,6 +79,7 @@ namespace HRMS_Core.VM.Probations
         public int CompanyId { get; set; }
         public int? StatusId { get; set; }
         public int? EmployeeId { get; set; }
+        public int ApprovalMasterId { get; set; }
 
     }
 
@@ -93,6 +94,7 @@ namespace HRMS_Core.VM.Probations
         public int? StatusId { get; set; }
         public string? StatusName { get; set; }
         public DateTime? ActionDate { get; set; }
+        public DateTime? ProbationEndDate { get; set; }
         public string? Location { get; set; }
         public bool IsMailSent { get; set; } = false;
         public string? ReportingManagerName { get; set; }
