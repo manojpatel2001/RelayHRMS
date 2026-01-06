@@ -25,6 +25,12 @@ namespace HRMS_Core.VM.Probations
         public int? ApproverEmployeeId { get; set; }
         public int StatusId { get; set; } = 1;
     }
+    public class GetPendingApprovalRequestsWithHistoryPara1
+    {
+        public int? ApproverEmployeeId { get; set; }
+        public int StatusId { get; set; } = 1;
+        public int ApprovalMasterId { get; set; }
+    }
 
 
     public class PendingApprovalRequestwithHistrory
@@ -51,6 +57,38 @@ namespace HRMS_Core.VM.Probations
         public int ApproverEmployeeId { get; set; }
         public string ApproverName { get; set; }
 
+        public string PreviousApprovalLevelsJson { get; set; }
+        public List<ApprovalLevelHistory> PreviousApprovalLevels { get; set; }
+    }
+    public class PendingApprovalRequestwithHistrory1
+    {
+        public int ApprovalRequestId { get; set; }
+        public string RequestTitle { get; set; }
+
+        public int RequestStatusId { get; set; }
+        public string RequestStatus { get; set; }
+
+        public int CurrentApprovalRequestLevelId { get; set; }
+        public int CurrentLevelNo { get; set; }
+
+        public int CurrentLevelStatusId { get; set; }
+        public string CurrentLevelStatus { get; set; }
+
+        public DateTime AssignedOn { get; set; }
+        public DateTime? EscalationDueOn { get; set; }
+
+        public int RequesterEmployeeId { get; set; }
+        public string RequesterName { get; set; }
+
+      
+        public int ApproverEmployeeId { get; set; }
+        public string ApproverName { get; set; }
+        public int NoOfInstallment { get; set; }
+        public decimal InstallmentAmount { get; set; }
+        public DateTime LoanRequireDate { get; set; }
+        public decimal LoanAmount { get; set; }
+        public string LoanName { get; set; }
+        public int LoanApplicationID { get; set; }
         public string PreviousApprovalLevelsJson { get; set; }
         public List<ApprovalLevelHistory> PreviousApprovalLevels { get; set; }
     }

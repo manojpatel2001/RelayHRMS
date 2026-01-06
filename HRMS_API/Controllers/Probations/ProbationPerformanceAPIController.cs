@@ -223,6 +223,25 @@ namespace HRMS_API.Controllers.Probations
 
        
 
+        //[HttpPost("GetPendingApprovalRequestsWithHistory1")]
+        //public async Task<APIResponse> GetPendingApprovalRequestsWithHistory1(GetPendingApprovalRequestsWithHistoryPara1 model)
+        //{
+        //    try
+        //    {
+        //        var result = await _unitOfWork.ProbationPerformanceRepository.GetPendingApprovalRequestsWithHistory1(model);
+
+        //        return result;
+        //    }
+        //    catch (Exception)
+        //    {
+        //        return new APIResponse
+        //        {
+        //            isSuccess = false,
+        //            ResponseMessage = "Unable to fetch up comming probation ."
+        //        };
+        //    }
+        //}
+
         [HttpPost("GetPendingApprovalRequestsWithHistory")]
         public async Task<APIResponse> GetPendingApprovalRequestsWithHistory(GetPendingApprovalRequestsWithHistoryPara model)
         {

@@ -549,6 +549,43 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                 };
             }
         }
+        public async Task<APIResponse> AutomateLoanEndApprovalRequests(int approvalMasterId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@ApprovalMasterId", approvalMasterId);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 500);
+
+                    await connection.ExecuteAsync(
+                        "usp_AutomateLoanApprovalRequests",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    var success = parameters.Get<bool>("@Success");
+                    var responseMessage = parameters.Get<string>("@ResponseMessage");
+
+                    return new APIResponse
+                    {
+                        isSuccess = success,
+                        ResponseMessage = responseMessage
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
 
         // For usp_EscalatePendingApprovalRequests
         public async Task<EscalationReturnPara> EscalatePendingApprovalRequests()

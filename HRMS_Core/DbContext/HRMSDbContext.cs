@@ -348,6 +348,9 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<LoanApprovalSearchViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<LoanApplicationResult>().HasNoKey().ToView(null);
              modelBuilder.Entity<EmployeeDetailsloanViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<GetPendingApprovalRequestsWithHistoryPara1>().HasNoKey().ToView(null);
+             modelBuilder.Entity<PendingApprovalRequestwithHistrory1>().HasNoKey().ToView(null);
+             modelBuilder.Entity<LoanApplicationStatusUpdateModel>().HasNoKey().ToView(null);
 
 
 

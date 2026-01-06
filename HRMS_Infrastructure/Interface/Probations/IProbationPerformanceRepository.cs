@@ -17,6 +17,7 @@ namespace HRMS_Infrastructure.Interface.Probations
         Task<APIResponse> GetAllProbationEvaluationPeriods(int? probationStatusId = null);
         Task<List<ProbationEmployeeVM>> GetAllProbationEmployees(int ProbationManagerId);
         Task<APIResponse> GetPendingApprovalRequestsWithHistory(GetPendingApprovalRequestsWithHistoryPara parameters);
+        Task<APIResponse> GetPendingApprovalRequestsWithHistory1(GetPendingApprovalRequestsWithHistoryPara1 parameters);
         Task<EmployeeProbationDetailVM?> GetEmployeeForProbationByEmployeeId(int EmployeeId);
         Task<APIResponse> CreateProbationPerformance(ProbationPerformance probationPerformance);
         Task<ApproverDetailsViewModel?> GetApproverDetails(int ApprovalRequestId);

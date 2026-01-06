@@ -251,5 +251,24 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return new VMCommonResult { Id = 0 };
             }
         }
+
+        public async Task<SP_Response> ApprovalLoan(LoanApplicationStatusUpdateModel model)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+                EXEC usp_UpdateLoanApplication
+                 @LoanApplicationId ={model.LoanApplicationId},
+                    @UpdatedBy = {model.@UpdatedBy},
+                    @Status = {model.Status}
+            ").ToListAsync();
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
+            }
+        }
     }
 }
