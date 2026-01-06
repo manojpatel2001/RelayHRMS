@@ -1220,7 +1220,12 @@
                 } else {
                     $('#lockGridContainer').hide().empty();
                     $('#gridActionButtons').hide();
-                    Swal.fire('Info', response?.responseMessage || 'No lock records found.', 'info');
+                      const message = 'No Attendance records found for the selected filters.';
+                    if (typeof round_error_noti === 'function') {
+                        round_error_noti(message);
+                    } else {
+                        alert(message);
+                    }
                 }
             },
             error: function(xhr, status, error) {
@@ -1287,7 +1292,12 @@
                 } else {
                     $('#salaryGridContainer').hide().empty();
                     $('#salaryActionButtons').hide();
-                    Swal.fire('Info', response?.responseMessage || 'No salary records found.', 'info');
+                     const message = 'No salary records found for the selected filters.';
+                    if (typeof round_error_noti === 'function') {
+                        round_error_noti(message);
+                    } else {
+                        alert(message);
+                    }
                 }
             },
             error: function(xhr, status, error) {
@@ -1482,24 +1492,21 @@
     }
 
     // Refresh grid data for Salary View
-    function refreshSalaryGridData() {
+     function refreshSalaryGridData() {
         if (!currentSalaryFilters.month || !currentSalaryFilters.year) {
             return;
         }
-
         showLoader();
         const gridInstance = $("#salaryGridContainer").dxDataGrid("instance");
         gridInstance.clearSelection();
         const employeeIds = salaryEmployeeMultiSelect.getSelectedValues();
         const status = $('input[name="salaryStatus"]:checked').val() || null;
-
         const requestData = {
             Month: currentSalaryFilters.month,
             Year: currentSalaryFilters.year,
             EmployeeId: employeeIds.join(','),
             Status: status
         };
-
         $.ajax({
             url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeeSalaryPublish")',
             method: 'POST',
@@ -1508,30 +1515,35 @@
             data: JSON.stringify(requestData),
             success: function(response) {
                 hideLoader();
-                if (response?.isSuccess && response?.data?.length > 0) {
+                if (response && response.isSuccess && response.data && response.data.length > 0) {
                     currentSalaryGridData = response.data;
                     renderSalaryGrid(response.data);
                     $('#salaryActionButtons').css('display', 'flex');
                 } else {
                     $('#salaryGridContainer').hide().empty();
                     $('#salaryActionButtons').hide();
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'No Data Found',
-                        text: 'No salary records found for the selected filters.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
+                    const message = response?.responseMessage || 'No salary records found for the selected filters.';
+                    if (typeof round_error_noti === 'function') {
+                        round_error_noti(message);
+                    } else {
+                        alert(message);
+                    }
                 }
             },
             error: function(xhr, status, error) {
                 hideLoader();
                 console.error('Error refreshing salary grid data:', error);
+                const message = xhr.responseJSON?.responseMessage || 'An error occurred while fetching salary data.';
+                if (typeof round_error_noti === 'function') {
+                    round_error_noti(message);
+                } else {
+                    alert(message);
+                }
             }
         });
     }
-
     // Lock Attendance Button Click
+     // Unified Lock Attendance Button Click
     $('#btnLockAttendance').click(function() {
         const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
         const selectedRows = gridInstance.getSelectedRowsData();
@@ -1563,11 +1575,12 @@
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                lockAttendance(selectedRows);
+                manageAttendanceLock(selectedRows, true); // true = Lock
             }
         });
     });
 
+    // Unified Unlock Attendance Button Click
     $('#btnUnlockAttendance').click(function() {
         const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
         const selectedRows = gridInstance.getSelectedRowsData();
@@ -1588,15 +1601,6 @@
             return;
         }
 
-        if (alreadyUnlocked.length === selectedRows.length) {
-            Swal.fire({
-                icon: 'info',
-                title: 'No Action Needed',
-                text: 'All selected employees are already unlocked.',
-            });
-            return;
-        }
-
         Swal.fire({
             title: 'Confirm Unlock',
             text: `Are you sure you want to unlock attendance for ${selectedRows.length} employee(s)?`,
@@ -1608,154 +1612,115 @@
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                unlockAttendance(selectedRows);
+                manageAttendanceLock(selectedRows, false); // false = Unlock
             }
         });
     });
 
-    // Lock Attendance Function (Insert)
-    function lockAttendance(selectedRows) {
-        $('#btnLockingAttendance').show();
-        $('#btnLockAttendance').hide();
+    // ✅ UNIFIED FUNCTION - Automatically decides CREATE or UPDATE
+    function manageAttendanceLock(selectedRows, isLocking) {
+        
+        const actionText = isLocking ? 'Locking' : 'Unlocking';
+        const actionBtnId = isLocking ? 'Lock' : 'Unlock';
+
+        $(`#btn${actionText}Attendance`).show();
+        $(`#btn${actionBtnId}Attendance`).hide();
         showLoader();
 
-        const lockRecords = selectedRows.map(row => ({
-            EmpId: row.employeeId,
-            Month: currentFilters.month,
-            Year: currentFilters.year,
-            IsLocked: true,
-            IsEnabled: true,
-            IsDeleted: false,
-            CreatedBy: Empid
-        }));
+        // Separate records based on attendanceLockId
+        const recordsToCreate = [];
+        const recordsToUpdate = [];
 
-        const demoApiUrl = '@(baseDomainUrl + "/api/AttendanceLockAPI/CreateAttendanceLockEmp")';
+        selectedRows.forEach(row => {
+            const attendanceLockId = row.attendanceLockId;
 
-        $.ajax({
-            url: demoApiUrl,
-            method: 'POST',
-            contentType: 'application/json',
-            headers: { 'Authorization': 'Bearer ' + Token },
-            data: JSON.stringify(lockRecords),
-            success: function(response) {
-                hideLoader();
-                $('#btnLockingAttendance').hide();
-                $('#btnLockAttendance').show();
-
-                if (response?.isSuccess) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: `Attendance locked successfully for ${selectedRows.length} employee(s).`,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        // ✅ YE LINE ADD KAREIN - Grid ko fresh data se update kare
-                        const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
-                        gridInstance.clearSelection();
-
-                        // Data ko update karein
-                        selectedRows.forEach(row => {
-                            const index = currentGridData.findIndex(item => item.employeeId === row.employeeId);
-                            if (index !== -1) {
-                                currentGridData[index].status = 'Locked';
-                            }
-                        });
-
-                        // Grid ko re-render karein
-                        renderLockGrid(currentGridData);
-                    });
-                } else {
-                    Swal.fire('Error', response?.responseMessage || 'Failed to lock attendance.', 'error');
-                }
-            },
-            error: function(xhr, status, error) {
-                hideLoader();
-                $('#btnLockingAttendance').hide();
-                $('#btnLockAttendance').show();
-                console.error('Error locking attendance:', error);
-                Swal.fire('Error', 'Failed to lock attendance. Please try again.', 'error');
+            // ✅ Check if attendanceLockId is NULL, 0, undefined, or empty
+            if (!attendanceLockId || attendanceLockId === 0 || attendanceLockId === null) {
+                // CREATE - No attendanceLockId exists
+                recordsToCreate.push({
+                    EmpId: row.employeeId,
+                    Month: currentFilters.month,
+                    Year: currentFilters.year,
+                    IsLocked: isLocking,
+                    IsEnabled: true,
+                    IsDeleted: false,
+                    CreatedBy: Empid
+                });
+            } else {
+                // UPDATE - attendanceLockId exists
+                recordsToUpdate.push({
+                    EmpId: row.employeeId,
+                    AttendanceLockId: attendanceLockId,
+                    Month: currentFilters.month,
+                    Year: currentFilters.year,
+                    IsLocked: isLocking,
+                    IsEnabled: true,
+                    IsDeleted: false,
+                    UpdatedBy: Empid
+                });
             }
         });
-    }
 
-    function unlockAttendance(selectedRows) {
-        const lockedRecords = selectedRows.filter(row => row.status === 'Locked');
+        // ✅ Execute API calls based on what's needed
+        let createPromise = Promise.resolve({ isSuccess: true });
+        let updatePromise = Promise.resolve({ isSuccess: true });
 
-        if (lockedRecords.length === 0) {
-            Swal.fire({
-                icon: 'info',
-                title: 'No Records to Unlock',
-                text: 'No locked records found in the selection.',
+        // Call CREATE API if there are records to create
+        if (recordsToCreate.length > 0) {
+            createPromise = $.ajax({
+                url: '@(baseDomainUrl + "/api/AttendanceLockAPI/CreateAttendanceLockEmp")',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify(recordsToCreate)
             });
-            return;
         }
 
-        $('#btnUnlockingAttendance').show();
-        $('#btnUnlockAttendance').hide();
-        showLoader();
+        // Call UPDATE API if there are records to update
+        if (recordsToUpdate.length > 0) {
+            updatePromise = $.ajax({
+                url: '@(baseDomainUrl + "/api/AttendanceLockAPI/UpdateAttendanceLock")',
+                method: 'PUT',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify(recordsToUpdate)
+            });
+        }
 
-        const unlockRecords = lockedRecords.map(row => ({
-            EmpId: row.employeeId,
-            AttendanceLockId: row.attendanceLockId,
-            Month: currentFilters.month,
-            Year: currentFilters.year,
-            IsLocked: false,
-            IsEnabled: true,
-            IsDeleted: false,
-            UpdatedBy: Empid
-        }));
-
-        const demoApiUrl = '@(baseDomainUrl + "/api/AttendanceLockAPI/UpdateAttendanceLock")';
-
-        $.ajax({
-            url: demoApiUrl,
-            method: 'PUT',
-            contentType: 'application/json',
-            headers: { 'Authorization': 'Bearer ' + Token },
-            data: JSON.stringify(unlockRecords),
-            success: function(response) {
+        // ✅ Wait for both operations to complete
+        Promise.all([createPromise, updatePromise])
+            .then(([createResponse, updateResponse]) => {
                 hideLoader();
-                $('#btnUnlockingAttendance').hide();
-                $('#btnUnlockAttendance').show();
+                $(`#btn${actionText}Attendance`).hide();
+                $(`#btn${actionBtnId}Attendance`).show();
 
-                if (response?.isSuccess) {
+                // Check if both operations succeeded
+                const createSuccess = !recordsToCreate.length || createResponse?.isSuccess;
+                const updateSuccess = !recordsToUpdate.length || updateResponse?.isSuccess;
+
+                if (createSuccess && updateSuccess) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success!',
-                        text: `Attendance unlocked successfully for ${lockedRecords.length} employee(s).`,
+                        text: `Attendance ${isLocking ? 'locked' : 'unlocked'} successfully for ${selectedRows.length} employee(s).`,
                         timer: 2000,
                         showConfirmButton: false
                     }).then(() => {
-                        // ✅ YE LINES ADD KAREIN
-                        const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
-                        gridInstance.clearSelection();
-
-                        // Data ko update karein
-                        lockedRecords.forEach(row => {
-                            const index = currentGridData.findIndex(item => item.employeeId === row.employeeId);
-                            if (index !== -1) {
-                                currentGridData[index].status = 'UnLocked';
-                            }
-                        });
-
-                        // Grid ko re-render karein
-                        renderLockGrid(currentGridData);
+                        location.reload();
                     });
                 } else {
-                    Swal.fire('Error', response?.responseMessage || 'Failed to unlock attendance.', 'error');
+                    const errorMsg = !createSuccess ? createResponse?.responseMessage : updateResponse?.responseMessage;
+                    Swal.fire('Error', errorMsg || `Failed to ${actionText.toLowerCase()} attendance.`, 'error');
                 }
-            },
-            error: function(xhr, status, error) {
+            })
+            .catch((error) => {
                 hideLoader();
-                $('#btnUnlockingAttendance').hide();
-                $('#btnUnlockAttendance').show();
-                console.error('Error unlocking attendance:', error);
-                Swal.fire('Error', 'Failed to unlock attendance. Please try again.', 'error');
-            }
-        });
+                $(`#btn${actionText}Attendance`).hide();
+                $(`#btn${actionBtnId}Attendance`).show();
+                console.error(`Error ${actionText.toLowerCase()} attendance:`, error);
+                Swal.fire('Error', `Failed to ${actionText.toLowerCase()} attendance. Please try again.`, 'error');
+            });
     }
-
     $('#btnPublishSalary').click(function() {
         const gridInstance = $("#salaryGridContainer").dxDataGrid("instance");
         const selectedRows = gridInstance.getSelectedRowsData();
@@ -1866,20 +1831,7 @@
                         timer: 2000,
                         showConfirmButton: false
                     }).then(() => {
-                        // ✅ YE LINES ADD KAREIN
-                        const gridInstance = $("#salaryGridContainer").dxDataGrid("instance");
-                        gridInstance.clearSelection();
-
-                        // Data ko update karein
-                        selectedRows.forEach(row => {
-                            const index = currentSalaryGridData.findIndex(item => item.employeeId === row.employeeId);
-                            if (index !== -1) {
-                                currentSalaryGridData[index].status = status;
-                            }
-                        });
-
-                        // Grid ko re-render karein
-                        renderSalaryGrid(currentSalaryGridData);
+                       location.reload();
                     });
                 } else {
                     Swal.fire('Error', response?.responseMessage || `Failed to ${status.toLowerCase()} salary.`, 'error');
