@@ -35,6 +35,7 @@ namespace HRMS_Infrastructure.Interface.ApprovalManagement
         Task<APIResponse> GetAllApprovalLevelsByApprovalMasterId(int ApprovalMasterId);
         Task<APIResponse> DeleteApprovalLevel(ApprovalLevelPara para);
         Task<APIResponse> AutomateProbationEndApprovalRequests(int approvalMasterId);
+        Task<APIResponse> AutomateLoanEndApprovalRequests(int approvalMasterId);
         Task<EscalationReturnPara> EscalatePendingApprovalRequests();
         Task<ApprovalRequestLevelActionVm> ApprovalRequestLevelAction(ApprovalRequestLevelActionPara para);
         Task<APIResponse> GetPendingApprovalRequests(GetPendingApprovalRequestsPara para);

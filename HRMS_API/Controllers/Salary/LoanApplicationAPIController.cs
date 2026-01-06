@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.Loan;
 using HRMS_Core.VM;
+using HRMS_Core.VM.ApprovalManagement;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface;
@@ -64,6 +65,26 @@ namespace HRMS_API.Controllers.Salary
             try
             {
                 var data = await _unitOfWork.LoanApplicationRepository.GetLoanApplication(CompanyId);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+        [HttpGet("AutomateLoanEndApprovalRequests")]
+        public async Task<APIResponse> AutomateLoanEndApprovalRequests(int approvalMasterId)
+
+        {
+            try
+            {
+                var data = await _unitOfWork.ApprovalManagementRepository.AutomateLoanEndApprovalRequests(approvalMasterId);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
@@ -164,6 +185,48 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
         }
+
+        //[HttpPut("LoanApproval")]
+        //public async Task<APIResponse> LoanApproval([FromBody] LoanApplicationStatusUpdateModel model)
+        //{
+        //    try
+        //    {
+        //        if (model == null)
+        //        {
+        //            return new APIResponse() { isSuccess = false, ResponseMessage = "Loan details cannot be null" };
+        //        }
+
+
+        //        var result = await _unitOfWork.LoanApplicationRepository.ApprovalLoan(model);
+        //        if (result.isSuccess)
+        //        {
+        //            var approval = new ApprovalRequestLevelActionPara
+        //            {
+        //                ApprovalRequestLevelId = model.ApprovalRequestLevelId,
+        //                ApprovalRequestId = model.ApprovalRequestId,
+        //                StatusId = model.ProbationStatusId,
+        //                Remarks = model.RemarksOfApprover == null ? "N/A" : model.RemarksOfApprover,
+        //                ActionBy = Convert.ToInt32(model.CreatedBy)
+        //            };
+
+        //            var checkApproval = await _unitOfWork.ApprovalManagementRepository.ApprovalRequestLevelAction(approval);
+        //            if (result.Success > 0)
+        //        {
+        //            return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+        //        }
+
+        //        return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+        //    }
+        //    catch (Exception err)
+        //    {
+        //        return new APIResponse
+        //        {
+        //            isSuccess = false,
+        //            Data = err.Message,
+        //            ResponseMessage = "Unable to update record, Please try again later!"
+        //        };
+        //    }
+        //}
 
 
    
