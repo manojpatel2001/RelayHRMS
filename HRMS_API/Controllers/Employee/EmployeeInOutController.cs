@@ -24,30 +24,21 @@ namespace HRMS_API.Controllers.Employee
         {
             _unitOfWork = unitOfWork;
         }
-
         [HttpPost("CreateEmpINOut")]
         public async Task<APIResponse> CreateEmpINOut([FromBody] vmInOut model)
         {
             try
             {
-
-                var data = await _unitOfWork.EmployeeInOutRepository.CreateEmpInOut(model);
-                if (data == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Unable to punch for now. Please try again later." };
-
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Punch have been added successfully."
-                };
+                var response = await _unitOfWork.EmployeeInOutRepository.CreateEmpInOut(model);
+                return response;
             }
             catch (Exception ex)
             {
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = "Unable to punch for now. Please try again later."
+                    ResponseMessage = $"An error occurred: {ex.Message}",
+                    Data = null
                 };
             }
         }
