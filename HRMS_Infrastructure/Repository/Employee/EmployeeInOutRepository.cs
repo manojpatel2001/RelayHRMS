@@ -80,28 +80,41 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<VMCommonResult> CreateEmpInOut(vmInOut Record)
+        public async Task<APIResponse> CreateEmpInOut(vmInOut Record)
         {
+            var response = new APIResponse();
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                    EXEC USP_InsertAttendanceLog
-                        @EmployeeId = {Record.EmployeeId},
-                        @CompanyId = {Record.CompanyId},
-                        @Mode = {Record.Mode},
-                        @PunchDateTime = {Record.PunchDateTime},
-                        @CreatedBy = {Record.CreatedBy}
-                    
-                ").ToListAsync();
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmployeeId", Record.EmployeeId);
+                    parameters.Add("@CompanyId", Record.CompanyId);
+                    parameters.Add("@Mode", Record.Mode);
+                    parameters.Add("@PunchDateTime", Record.PunchDateTime);
+                    parameters.Add("@CreatedBy", Record.CreatedBy);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
 
-                return result.FirstOrDefault() ?? new VMCommonResult { Id = null };
+                    await connection.ExecuteAsync(
+                        "USP_InsertAttendanceLog",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                    response.Data = null; // Insert operation mein data return nahi hota
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new VMCommonResult { Id = null };
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
             }
+            return response;
         }
-
         public async Task<APIResponse> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM)
         {
             var response = new APIResponse();
