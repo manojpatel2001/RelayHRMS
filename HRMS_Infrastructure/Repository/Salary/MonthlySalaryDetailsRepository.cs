@@ -44,7 +44,7 @@ namespace HRMS_Infrastructure.Repository.Salary
             try
             {
                 var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
-            EXEC [USP_CalculateMonthlySalary1] 
+            EXEC [USP_CalculateMonthlySalary_V2] 
             @StartDate = {vm.StartDate:yyyy-MM-dd}, 
             @EndDate = {vm.EndDate:yyyy-MM-dd}, 
             @EmployeeCodes = {vm.EmployeeCodes}, 
