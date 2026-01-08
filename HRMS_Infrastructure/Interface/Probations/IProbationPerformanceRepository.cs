@@ -21,8 +21,7 @@ namespace HRMS_Infrastructure.Interface.Probations
         Task<EmployeeProbationDetailVM?> GetEmployeeForProbationByEmployeeId(int EmployeeId);
         Task<APIResponse> CreateProbationPerformance(ProbationPerformance probationPerformance);
         Task<ApproverDetailsViewModel?> GetApproverDetails(int ApprovalRequestId);
-        Task<List<ConfirmationProbationDetails>> GetAllConfirmationProbationDetails(GetAllConfirmationProbationDetailsPara parameters);
-
+        Task<APIResponse> GetAllConfirmationProbationDetails(GetAllConfirmationProbationDetailsPara parameters);
         Task<APIResponse> UpdateMailRequest(int approvalRequestId, bool isMailSent);
     }
 }

@@ -267,7 +267,8 @@ namespace HRMS_API.Controllers.Probations
             try
             {
                 var result = await _unitOfWork.ProbationPerformanceRepository.GetAllConfirmationProbationDetails(model);
-                return new APIResponse { Data = result, isSuccess = true, ResponseMessage = "Successfully fetched!" };
+                return result;
+                //return new APIResponse { Data = result, isSuccess = true, ResponseMessage = "Successfully fetched!" };
             }
             catch (Exception)
             {
