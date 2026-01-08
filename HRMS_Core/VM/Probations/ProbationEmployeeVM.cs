@@ -116,6 +116,7 @@ namespace HRMS_Core.VM.Probations
     {
         public int CompanyId { get; set; }
         public int? StatusId { get; set; }
+        public int? Year { get; set; }
         public int? EmployeeId { get; set; }
         public int ApprovalMasterId { get; set; }
 
@@ -133,6 +134,7 @@ namespace HRMS_Core.VM.Probations
         public string? StatusName { get; set; }
         public DateTime? ActionDate { get; set; }
         public DateTime? ProbationEndDate { get; set; }
+        public DateTime? DateOfJoining { get; set; }
         public string? Location { get; set; }
         public bool IsMailSent { get; set; } = false;
         public string? ReportingManagerName { get; set; }
@@ -141,8 +143,32 @@ namespace HRMS_Core.VM.Probations
         public string? ReportingManagerEmail { get; set; }
         public int? CurrentLevelNo { get; set; }
         public string? CurrentApprover { get; set; }
+        public string? ApprovalHistoryJson { get; set; }
+        public List<ApprovalHistoryVM>? ApprovalHistory { get; set; }
 
     }
+
+
+    public class ApprovalHistoryVM
+    {
+        public int HistoryApprovalRequestLevelId { get; set; }
+        public int HistoryLevelNo { get; set; }
+
+        public int HistoryStatusId { get; set; }
+        public string HistoryStatus { get; set; }
+
+        public int? HistoryApproverEmployeeId { get; set; }
+        public string HistoryApproverName { get; set; }
+
+        public DateTime? HistoryAssignedOn { get; set; }
+        public DateTime? HistoryEscalatedOn { get; set; }
+        public DateTime? HistoryActionOn { get; set; }
+
+
+        public DateTime? HistoryCreatedDate { get; set; }
+        public DateTime? HistoryUpdatedDate { get; set; }
+    }
+
     public class ConfirmationProbationDetailsPara
     {
         public int? EmployeeId { get; set; }

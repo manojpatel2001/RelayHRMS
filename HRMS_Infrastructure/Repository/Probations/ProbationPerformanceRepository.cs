@@ -364,8 +364,7 @@ namespace HRMS_Infrastructure.Repository.Probations
             }
         }
 
-
-        public async Task<List<ConfirmationProbationDetails>> GetAllConfirmationProbationDetails(GetAllConfirmationProbationDetailsPara parameters)
+        public async Task<APIResponse> GetAllConfirmationProbationDetails(GetAllConfirmationProbationDetailsPara parameters)
         {
             try
             {
@@ -377,31 +376,62 @@ namespace HRMS_Infrastructure.Repository.Probations
                     dynamicParameters.Add("@CompanyId", parameters.CompanyId, DbType.Int32);
                     dynamicParameters.Add("@EmployeeId", parameters.EmployeeId, DbType.Int32);
                     dynamicParameters.Add("@StatusId", parameters.StatusId, DbType.Int32);
+                    dynamicParameters.Add("@Year", parameters.Year, DbType.Int32);
                     dynamicParameters.Add("@ApprovalMasterId", parameters.ApprovalMasterId, DbType.Int32);
 
-                    var results = await connection.QueryAsync<ConfirmationProbationDetails>(
-                        sql: "GetAllConfirmationProbationDetails",
+                    var results = await connection.QueryAsync<ConfirmationProbationDetails>(sql: "GetAllConfirmationProbationDetails_new",
                         param: dynamicParameters,
                         commandType: CommandType.StoredProcedure);
 
-                    return results.ToList(); // ← Missing semicolon fixed
+                    // Parse JSON fields if needed
+                    foreach (var result in results)
+                    {
+                        if (!string.IsNullOrEmpty(result.ApprovalHistoryJson))
+                        {
+                            result.ApprovalHistory = JsonConvert.DeserializeObject<List<ApprovalHistoryVM>>(result.ApprovalHistoryJson);
+                        }
+
+                       
+                    }
+
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        ResponseMessage = "Pending approval requests retrieved successfully",
+                        Data = results
+                    };
                 }
             }
             catch (SqlException sqlEx)
             {
-                // Log error if needed
-                Console.WriteLine($"SQL Error: {sqlEx.Message}");
-                return new List<ConfirmationProbationDetails>(); // return empty list
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Database error: {sqlEx.Message}",
+                    Data = null
+                };
+            }
+            catch (JsonException jsonEx)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"JSON parsing error: {jsonEx.Message}",
+                    Data = null
+                };
             }
             catch (Exception ex)
             {
-                // Log error
-                Console.WriteLine($"Error: {ex.Message}");
-                return new List<ConfirmationProbationDetails>(); // return empty list
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Error retrieving pending approval requests: {ex.Message}",
+                    Data = null
+                };
             }
         }
 
-
+      
         public async Task<APIResponse> UpdateMailRequest(int approvalRequestId, bool isMailSent)
         {
             try
