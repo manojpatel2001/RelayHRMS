@@ -166,6 +166,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                     parameters.Add("@OutTime", model.OutTime);
                     parameters.Add("@Day", model.Day);
                     parameters.Add("@Reason", model.Reason);
+                    parameters.Add("@Remark", model.Remark);
                     parameters.Add("@Status", model.Status);
                     parameters.Add("@CreatedBy", model.CreatedBy);
                     parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
@@ -210,6 +211,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                     parameters.Add("@OutTime", model.OutTime);
                     parameters.Add("@Day", model.Day);
                     parameters.Add("@Reason", model.Reason);
+                    parameters.Add("@Remark", model.Remark);
                     parameters.Add("@Status", model.Status);
                     parameters.Add("@CreatedBy", model.UpdatedBy);
                     parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
@@ -304,10 +306,11 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var fromdateParam = new SqlParameter("@FromDate", (object?)attendance.FromDate ?? DBNull.Value);
                 var todateParam = new SqlParameter("@ToDate", (object?)attendance.ToDate ?? DBNull.Value);
                 var statustypeParam = new SqlParameter("@Status", (object?)attendance.Status ?? DBNull.Value);
+                var companyidParam = new SqlParameter("@CompanyId", (object?)attendance.CompanyId ?? DBNull.Value);
 
                 return await _db.Set<AttendanceRegularizationAdmin>()
-              .FromSqlRaw("EXEC [dbo].[GetAttendanceRegularizationSearchForAdmin] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status",
-                  searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam)
+              .FromSqlRaw("EXEC [dbo].[GetAttendanceRegularizationSearchForAdmin] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status,@CompanyId",
+                  searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam, companyidParam)
               .ToListAsync();
             }
             catch (Exception ex)

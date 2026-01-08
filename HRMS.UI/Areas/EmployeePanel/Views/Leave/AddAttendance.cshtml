@@ -782,12 +782,15 @@
     const EmployeeName = localStorage.getItem("EmployeeName");
 
         var approvalReasons = [];
+            var limitedReasonIds = []; 
+          var unlimitedReasonIds = [];
     $(document).ready(function () {
         bindEmployee();
         populateYearDropdown();
         initializeDatePickers();
         setupDateRangeToggle();
         LoadApprovalReasons();
+         LoadReasonConfiguration();
         $("#attendanceSummary").hide();
 
         // Set default values
@@ -1070,9 +1073,8 @@
               success: function (response) {
                   if (response.isSuccess && response.data) {
                       approvalReasons = response.data;
-                      console.log('Approval reasons loaded:', approvalReasons);
+                
                   } else {
-                      console.log("No approval reasons found");
                       approvalReasons = [];
                   }
               },
@@ -1083,15 +1085,72 @@
           });
       }
 
+          function LoadReasonConfiguration() {
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/GetAttendanceReasonConfiguration',
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    // Separate limited and unlimited reasons
+                    limitedReasonIds = response.data
+                        .filter(r => r.isCountedInLimit === true)
+                        .map(r => r.reasonId.toString());
+
+                    unlimitedReasonIds = response.data
+                        .filter(r => r.isCountedInLimit === false)
+                        .map(r => r.reasonId.toString());
+
+                    console.log("✅ Limited Reasons (Counted in Limit):", limitedReasonIds);
+                    console.log("✅ Unlimited Reasons (NOT Counted):", unlimitedReasonIds);
+                } else {
+                    // Fallback to hardcoded values if API fails
+                    console.warn("⚠️ Using fallback reason configuration");
+                    setFallbackReasons();
+                }
+            },
+            error: function (error) {
+                console.error('❌ Failed to load reason configuration:', error);
+                setFallbackReasons();
+            }
+        });
+    }
+
+    // Fallback function
+    function setFallbackReasons() {
+           limitedReasonIds = ["14", "17" ,"18","10"];
+       unlimitedReasonIds = ["12", "19", "11", "16" ,"13" ,"15"];  // WFH, Client Visit, Training, Travel
+    }
+
 
     // Go Button Click Event
     $('#btnGo').on('click', async function () {
         await GetAttendanceRegularizationAlerts();
-        getEmployeeReport();
+          if (!validateForm()) {
+        return;
+    }
 
+    const empId = $('#employeeDropdown').val();  // ✅ Define empId here
+    const record = $('#recordtype').val();
+    const dateRange = getDateRange();
+
+    if (!dateRange) {
+        Swal.fire({
+            text: "Please provide valid date range.",
+            icon: "warning",
+            confirmButtonText: "OK",
+            width: "300px",
+            customClass: {
+                popup: 'swal-small'
+            }
+        });
+        return;
+    }
         showLoder(); // Show loader before AJAX call
         const formData = new FormData();
-        formData.append("EmpId", emp);
+        formData.append("EmpId", empId);
         formData.append("StartDate", dateRange.startDate);
         formData.append("EndDate", dateRange.endDate);
         formData.append("RecordType", record);
@@ -1150,15 +1209,15 @@
     });
 
 
-
-    async function getEmployeeReport()
-    {
+    async function getEmployeeReport() {
         if (!validateForm()) {
             return;
         }
-        const emp = $('#employeeDropdown').val();
+
+        const empId = $('#employeeDropdown').val();
         const record = $('#recordtype').val();
         const dateRange = getDateRange();
+
         if (!dateRange) {
             Swal.fire({
                 text: "Please provide valid date range.",
@@ -1171,13 +1230,15 @@
             });
             return;
         }
+
         // Proceed with AJAX
         showLoder();
         const formData = new FormData();
-        formData.append("EmpId", emp);
+        formData.append("EmpId", empId);
         formData.append("StartDate", dateRange.startDate);
         formData.append("EndDate", dateRange.endDate);
         formData.append("RecordType", record);
+
         $.ajax({
             url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
             type: 'POST',
@@ -1185,17 +1246,15 @@
             contentType: false,
             processData: false,
             success: function (response) {
-				console.log(response);
+                console.log(response);
                 if (response?.isSuccess) {
                     if (response.data && response.data.length > 0) {
-         
                         const allSameStatus = response.data.every(record => {
                             const status = record.attendanceStatus || record.AttendanceStatus || '-';
                             return status === '-' || status === '' || status === null;
                         });
 
                         if (allSameStatus) {
-             
                             $("#attendanceSummary").hide();
                             $("#saveButtonContainer").hide();
                             $("#attendanceSection").hide();
@@ -1211,7 +1270,6 @@
                             return;
                         }
 
-                 
                         $("#attendanceSummary").show();
                         showAttendanceSummary(response.data);
                         LoadAttendanceGrid(response.data);
@@ -1262,6 +1320,7 @@
             }
         });
     }
+
       // Clear Button Click Event
       $('#btnClear').on('click', function () {
           // Reset form fields
@@ -1332,19 +1391,57 @@
         const date = new Date(dateStr);
         return !isNaN(date) ? date.toISOString() : null;
     }
-    async function validateAttendanceRequestLimit(EmployeeId, newRequestCount, selectedMonth, selectedYear, selectedRows) {
-        debugger;
+
+        async function validateAttendanceRequestLimit(EmployeeId, selectedRows, selectedMonth, selectedYear) {
         try {
-         
+            // Wait for reason configuration to load if not loaded yet
+            if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
+                console.warn("⚠️ Reason configuration not loaded, using fallback...");
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                if (limitedReasonIds.length === 0) {
+                    setFallbackReasons();
+                }
+            }
 
-        const allTOD = selectedRows.every(row => {
-            return row.Reason === "11" || row.Reason == 11; // Allow both string and number comparison
-        });
+            // Count limited and unlimited requests from current selection
+            const limitedRowCount = selectedRows.filter(row => {
+                const reasonStr = row.Reason?.toString() || "";
+                return limitedReasonIds.includes(reasonStr);
+            }).length;
 
-        if (allTOD) {
-            console.log("All rows are TOD. Skipping limit validation.");
-            return true;
-        }
+            const unlimitedRowCount = selectedRows.filter(row => {
+                const reasonStr = row.Reason?.toString() || "";
+                return unlimitedReasonIds.includes(reasonStr);
+            }).length;
+
+            console.log(`📊 Request Breakdown:
+                - Limited (counted): ${limitedRowCount}
+                - Unlimited (not counted): ${unlimitedRowCount}
+                - Total selected: ${selectedRows.length}
+            `);
+
+            // 🔥 If all selected rows have unlimited reasons, bypass limit check
+            if (limitedRowCount === 0 && unlimitedRowCount > 0) {
+                console.log("✅ All requests are unlimited. Bypassing limit check.");
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Limit Applied',
+                    text: 'Selected reasons are not counted against monthly limit.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return true;
+            }
+
+            // If no valid reasons selected
+            if (limitedRowCount === 0 && unlimitedRowCount === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Validation',
+                    text: 'Please select valid reasons for all selected rows.'
+                });
+                return false;
+            }
 
             // Get employee monthly limit
             const employeeDetails = await $.ajax({
@@ -1375,64 +1472,125 @@
                 return false;
             }
 
-            // Use correct property names
+            // ✅ FIX 3: Use correct field name 'totalRequests' from SP
             const monthlyLimit = employeeDetails.data?.[0]?.attendanceLimit || 0;
-            const currentRequests = currentMonthCount.data?.[0]?.totalRequests || 0;
-            const totalRequests = currentRequests + newRequestCount;
+            const currentRequests = currentMonthCount.data?.[0]?.totalRequests || 0;  // ✅ Correct field
+            const totalRequests = currentRequests + limitedRowCount;
 
-            // If no limit is set, block submission
+            console.log(`📊 Limit Check:
+                - Monthly Limit: ${monthlyLimit}
+                - Already Submitted: ${currentRequests}
+                - Attempting (counted): ${limitedRowCount}
+                - Attempting (not counted): ${unlimitedRowCount}
+                - Total After: ${totalRequests}
+            `);
+
+            // If no limit is set, block submission for limited reasons
             if (monthlyLimit === 0) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Request Blocked',
-                    text: 'No monthly limit is set. Request cannot be submitted.',
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-large'
-                    }
+                    html: '<p>No monthly limit is set.</p><p style="font-size:12px; color:#666;">Please contact HR to configure your attendance limit.</p>',
+                    confirmButtonText: 'OK'
                 });
                 return false;
             }
 
-            // Check if limit exceeded
+            // 🔥 Check if limit exceeded (only for limited reasons)
             if (totalRequests > monthlyLimit) {
-                const remaining = monthlyLimit - currentRequests;
-                const exceededBy = Math.abs(remaining);
+                const exceededBy = totalRequests - monthlyLimit;
+                const remainingLimit = Math.max(0, monthlyLimit - currentRequests);
+
+                // Get reason names for better display
+                const limitedReasonNames = selectedRows
+                    .filter(row => limitedReasonIds.includes(row.Reason?.toString() || ""))
+                    .map(row => {
+                        const reasonId = row.Reason?.toString();
+                        const reason = approvalReasons.find(r => r.reasonId.toString() === reasonId);
+                        const date = new Date(row.ForDate).toLocaleDateString('en-GB');
+                        return `${date} - ${reason ? reason.reason : 'Unknown'}`;
+                    });
 
                 let message = `
-                    <div style="text-align: left; padding: 10px;">
-                        <p><strong>Monthly Limit:</strong> ${monthlyLimit} requests</p>
-                        <p><strong>Already Submitted:</strong> ${currentRequests} requests</p>
-                        <p><strong>Attempting to Submit:</strong> ${newRequestCount} request(s)</p>
-                        <hr style="margin: 10px 0;">
-                        <p style="color: #d33; font-weight: bold;">
-                            ❌ You have exceeded the limit by <strong>${exceededBy}</strong> request(s) this month.
-                        </p>
+                    <div style="text-align: left; padding: 15px; font-size: 13px;">
+                        <div style="background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 15px;">
+                            <h4 style="color: #dc2626; margin: 0 0 10px 0;">⚠️ Monthly Limit Exceeded</h4>
+                            <p style="margin: 5px 0;">You have exceeded your monthly limit by <strong style="color: #dc2626;">${exceededBy}</strong> request(s).</p>
+                        </div>
+
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
+                            <tr style="background: #f9fafb;">
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Monthly Limit</td>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${monthlyLimit} requests</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Already Submitted</td>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${currentRequests} requests</td>
+                            </tr>
+                            <tr style="background: #fff3cd;">
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Attempting (Counted)</td>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; font-weight: bold;">${limitedRowCount} requests</td>
+                            </tr>
+                            ${unlimitedRowCount > 0 ? `
+                            <tr style="background: #d1fae5;">
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Attempting (Not Counted) ✓</td>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; color: #059669;">${unlimitedRowCount} requests</td>
+                            </tr>
+                            ` : ''}
+                            <tr style="background: #fee2e2;">
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Remaining</td>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; color: #dc2626; font-weight: bold;">${remainingLimit} requests</td>
+                            </tr>
+                        </table>
+
+                        ${limitedReasonNames.length > 0 ? `
+                        <div style="background: #fffbeb; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                            <strong style="color: #92400e;">📋 Counted Requests:</strong>
+                            <ul style="margin: 8px 0; padding-left: 20px; color: #78350f;">
+                                ${limitedReasonNames.map(name => `<li style="margin: 3px 0;">${name}</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+
+                        <div style="background: #f0f9ff; padding: 10px; border-radius: 6px; font-size: 11px; color: #0c4a6e;">
+                            <strong>ℹ️ Note:</strong> Only <strong>Forgot to Punch</strong> and <strong>Other</strong> count toward your limit.
+                        </div>
                     </div>
                 `;
 
                 Swal.fire({
-                    icon: 'warning',
-                    title: 'Attendance Regularization Request Limit Exceeded',
+                    icon: 'error',
+                    title: 'Cannot Submit Request',
                     html: message,
                     confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-large'
-                    }
+                    width: '600px'
                 });
                 return false;
             }
 
+            // ✅ Success
+            const remainingRequests = monthlyLimit - totalRequests;
+            console.log(`✅ Validation Passed! ${remainingRequests} request(s) remaining.`);
+
             return true;
+
         } catch (error) {
-            console.error("Error validating request limit:", error);
+            console.error("❌ Error validating request limit:", error);
             Swal.fire({
                 icon: 'error',
-                title: 'Error',
-                text: 'An error occurred while validating request limit.'
+                title: 'Validation Error',
+                text: 'An error occurred: ' + error.message
             });
             return false;
         }
+    }
+
+        function debugReasonConfiguration() {
+        console.log("=== Reason Configuration Debug ===");
+        console.log("Limited Reasons:", limitedReasonIds);
+        console.log("Unlimited Reasons:", unlimitedReasonIds);
+        console.log("Total Approval Reasons:", approvalReasons.length);
+        console.log("==================================");
     }
 
 
@@ -1440,6 +1598,7 @@
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
         gridInstance.saveEditData();
         const selectedRows = gridInstance.getSelectedRowsData();
+
         if (selectedRows.length === 0) {
             Swal.fire({
                 icon: 'warning',
@@ -1448,6 +1607,7 @@
             });
             return;
         }
+
         const empId = $('#employeeDropdown').val();
         if (!empId) {
             Swal.fire({
@@ -1459,39 +1619,89 @@
         }
 
         const validRows = [];
+        const missingReasonRows = [];
+        const missingDayTypeRows = [];
+        const missingRemarkRows = [];
+
         selectedRows.forEach(row => {
+            debugger;
             const reasonId = row.reasonId;
             const dayType = row.dayType?.trim();
-            if (reasonId && dayType) {
-                validRows.push({
-                    EmpId: empId,
-                    FullName: row.fullName || "",
-                    BranchName: row.branchName || "",
-                    ForDate: row.shiftDate,
-                    ShiftTime: row.shiftTime || "",
-                    InTime: (row.inTime && row.inTime !== "-") ? formatToISOString(row.inTime) : null,
-                    OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
-                    Day: dayType,
-                    Status: row.attendanceStatus || "",
-                    Reason: reasonId.toString(),
-                    IsApproved: false,
-                    IsPending: true,
-                    IsRejected: false,
-                    IsLocked: false
-                });
+            const dateStr = new Date(row.shiftDate).toLocaleDateString('en-GB');
+
+            if (!reasonId) {
+                missingReasonRows.push(dateStr);
+                return;
             }
+
+            if (!dayType) {
+                missingDayTypeRows.push(dateStr);
+                return;
+            }
+
+            // Check if "Other" reason requires remark
+            const selectedReason = approvalReasons.find(r => r.reasonId === reasonId);
+            if (selectedReason && selectedReason.reason.toLowerCase() === "other" && !row.remark) {
+                missingRemarkRows.push(dateStr);
+            }
+
+            validRows.push({
+                EmpId: empId,
+                FullName: row.fullName || "",
+                BranchName: row.branchName || "",
+                ForDate: row.shiftDate,
+                ShiftTime: row.shiftTime || "",
+                InTime: (row.inTime && row.inTime !== "-") ? formatToISOString(row.inTime) : null,
+                OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
+                Day: dayType,
+                Status: row.attendanceStatus || "",
+                Reason: reasonId.toString(),
+                Remark: row.remark || null,
+                IsApproved: false,
+                IsPending: true,
+                IsRejected: false,
+                IsLocked: false
+            });
         });
+
+        // Validation checks
+        if (missingReasonRows.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Reason Required',
+                html: `Please select reason for:<br><strong>${missingReasonRows.join(', ')}</strong>`
+            });
+            return;
+        }
+
+        if (missingDayTypeRows.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Day Type Required',
+                html: `Please select day type for:<br><strong>${missingDayTypeRows.join(', ')}</strong>`
+            });
+            return;
+        }
+
+        if (missingRemarkRows.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Remark Required',
+                html: `Please enter remark for "Other" on:<br><strong>${missingRemarkRows.join(', ')}</strong>`
+            });
+            return;
+        }
 
         if (validRows.length === 0) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Validation',
-                text: 'Please select reason and day type for selected row(s).'
+                text: 'Please complete all required fields.'
             });
             return;
         }
 
-        // Get the selected month and year from the form
+        // Get month/year
         const monthYearData = await getYearMonth();
         if (!monthYearData) {
             Swal.fire({
@@ -1501,37 +1711,57 @@
             });
             return;
         }
+
         const selectedMonth = monthYearData.month;
         const selectedYear = monthYearData.year;
 
-        // Validate request limit, passing selected rows
-        const isLimitValid = await validateAttendanceRequestLimit(empId, validRows.length, selectedMonth, selectedYear, validRows);
+        // ✅ CORRECT CALL: 4 parameters (not 5)
+        const isLimitValid = await validateAttendanceRequestLimit(
+            empId,
+            validRows,        // Parameter 2: selectedRows
+            selectedMonth,    // Parameter 3
+            selectedYear      // Parameter 4
+        );
+
         if (!isLimitValid) {
-            return; // Stop if limit exceeded
+            return;
         }
 
         showLoder();
+
         // Save via AJAX
         $.ajax({
-            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/CreateAttendanceRegularization")',
+            url: apiBase + '/AttendanceRegularizationAPI/CreateAttendanceRegularization',
             type: "POST",
             contentType: "application/json",
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
             data: JSON.stringify(validRows),
             success: function (response) {
                 hideLoder();
                 if (response?.isSuccess) {
-                    round_success_noti(response.responseMessage || "Saved successfully.");
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: response.responseMessage || "Saved successfully.",
+                        timer: 2000
+                    });
+
+                    // Refresh grid
                     const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
                     const selectedRowsData = gridInstance.getSelectedRowsData();
                     let currentData = gridInstance.option("dataSource");
                     const updatedData = currentData.filter(item => {
                         return !selectedRowsData.some(sel =>
-                            sel.empId === item.empId && new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
+                            sel.empId === item.empId &&
+                            new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
                         );
                     });
                     gridInstance.option("dataSource", updatedData);
                     gridInstance.refresh();
                     gridInstance.clearSelection();
+
                     $("#btnGo").trigger("click");
                 } else {
                     Swal.fire({
@@ -1548,10 +1778,9 @@
                     title: 'Server Error',
                     text: xhr.status + " - " + xhr.statusText
                 });
-            },
+            }
         });
     });
-
     function LoadAttendanceGrid(data) {
             const filteredData = data.filter(item => item.attendanceStatus !== "-");
         $("#attendanceGrid").dxDataGrid({
@@ -1730,23 +1959,89 @@
                             .appendTo(container);
                     }
                 },
-             {
-                    dataField: "reasonId",
-                    caption: "Reason",
-                    width: 180,
-                    minWidth: 180,
-                    lookup: {
-                        dataSource: approvalReasons,
-                        valueExpr: "reasonId",
-                        displayExpr: "reason"
-                    },
-                    calculateDisplayValue: function (rowData) {
-                        if (rowData.reasonId) {
-                            const foundReason = approvalReasons.find(r => r.reasonId === rowData.reasonId);
-                            return foundReason ? foundReason.reason : "--Select--";
+                {
+                            dataField: "reasonId",
+                            caption: "Reason",
+                            width: 180,
+                            minWidth: 180,
+                            lookup: {
+                                dataSource: approvalReasons,
+                                valueExpr: "reasonId",
+                                displayExpr: "reason"
+                            },
+                            calculateDisplayValue: function (rowData) {
+                                if (rowData.reasonId) {
+                                    const foundReason = approvalReasons.find(r => r.reasonId === rowData.reasonId);
+                                    return foundReason ? foundReason.reason : "--Select--";
+                                }
+                                return "--Select--";
+                            },
+                            setCellValue: function(rowData, value) {
+                                rowData.reasonId = value;
+                                // Check if "Other" is selected
+                                const selectedReason = approvalReasons.find(r => r.reasonId === value);
+                                if (selectedReason && selectedReason.reason.toLowerCase() === "other") {
+                                    rowData.showRemarkBox = true;
+                                } else {
+                                    rowData.showRemarkBox = false;
+                                    rowData.remark = null; // Clear remark if not "Other"
+                                }
+                            }
+                        },
+                                            {
+                        dataField: "remark",
+                        caption: "Remark",
+                        width: 200,
+                        minWidth: 200,
+                        visible: true,
+                        allowEditing: true,
+                        editCellTemplate: function(container, options) {
+                            const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
+                            const isOther = selectedReason && selectedReason.reason.toLowerCase() === "other";
+        
+                            if (isOther) {
+                                $("<input>")
+                                    .addClass("dx-texteditor-input")
+                                    .attr("placeholder", "Enter remark...")
+                                    .val(options.value || "")
+                                    .on("change", function(e) {
+                                        options.setValue(e.target.value);
+                                    })
+                                    .appendTo(container);
+                            } else {
+                                $("<div>")
+                                    .text("--")
+                                    .css({
+                                        textAlign: "center",
+                                        color: "#999",
+                                        padding: "6px"
+                                    })
+                                    .appendTo(container);
+                            }
+                        },
+                        cellTemplate: function(container, options) {
+                            const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
+                            const isOther = selectedReason && selectedReason.reason.toLowerCase() === "other";
+        
+                            if (isOther && options.data.remark) {
+                                $("<div>")
+                                    .text(options.data.remark)
+                                    .css({
+                                        padding: "6px",
+                                        fontSize: "12px"
+                                    })
+                                    .appendTo(container);
+                            } else {
+                                $("<div>")
+                                    .text("--")
+                                    .css({
+                                        textAlign: "center",
+                                        color: "#999",
+                                        padding: "6px"
+                                    })
+                                    .appendTo(container);
+                            }
                         }
-                        return "--Select--";
-                    }
                     },
                 {
                     dataField: "workingHours",

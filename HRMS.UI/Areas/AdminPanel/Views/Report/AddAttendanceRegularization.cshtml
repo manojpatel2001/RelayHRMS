@@ -302,94 +302,135 @@
 <script>
 
     const savedCompany = localStorage.getItem('selectedCompany');
-      var companyDetails = JSON.parse(savedCompany);
-      const CompanyId = companyDetails.CompanyId;
-      const EmployeeId = localStorage.getItem('EmployeeId');
-      const Token = localStorage.getItem("authToken");
-      var approvalReasons = [];
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+    var approvalReasons = [];
+    var limitedReasonIds = [];
+    var unlimitedReasonIds = [];
 
-      $(document).ready(function () {
-           $('#employeeDropdown').searchableSelect({
-                    data: [],
-                    valueKey: 'employeeId',
-                    textKey: 'employeeName',
-                    placeholder:'Employee',
-                    searchPlaceholder: 'Search employee...',
-                    onChange: function(item) {
-                    }
-            });
-           BindBranchDropdown();
-          populateYearDropdown();
-          initializeDatePickers();
-          setupDateRangeToggle();
-          LoadApprovalReasons();
+    $(document).ready(function () {
+        $('#employeeDropdown').searchableSelect({
+            data: [],
+            valueKey: 'employeeId',
+            textKey: 'employeeName',
+            placeholder:'Employee',
+            searchPlaceholder: 'Search employee...',
+            onChange: function(item) {
+            }
+        });
+        BindBranchDropdown();
+        populateYearDropdown();
+        initializeDatePickers();
+        setupDateRangeToggle();
+        LoadApprovalReasons();
+        LoadReasonConfiguration();
 
         $("#attendanceSummary").hide();
 
-          // Set default values
-          const currentYear = new Date().getFullYear();
-          const currentMonth = new Date().getMonth() + 1;
-          $('#year').val(currentYear);
-          $('#month').val(currentMonth);
+        // Set default values
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+        $('#year').val(currentYear);
+        $('#month').val(currentMonth);
 
-          // Remove future months
-          removeFutureMonths();
-      });
+        // Remove future months
+        removeFutureMonths();
+    });
 
-      function LoadApprovalReasons() {
-          $.ajax({
-              url: '@(baseDomainUrl + "/api/CommonReasonsAPI/GetcancellationReasons")',
-              method: 'GET',
-              headers: {
-                  'Authorization': 'Bearer ' + Token
-              },
-              success: function (response) {
-                  if (response.isSuccess && response.data) {
-                      approvalReasons = response.data;
-                      console.log('Approval reasons loaded:', approvalReasons);
-                  } else {
-                      console.log("No approval reasons found");
-                      approvalReasons = [];
-                  }
-              },
-              error: function (error) {
-                  console.error('Failed to load approval reasons:', error);
-                  approvalReasons = [];
-              }
-          });
-      }
+    function LoadApprovalReasons() {
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/CommonReasonsAPI/GetcancellationReasons")',
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess && response.data) {
+                    approvalReasons = response.data;
+                    console.log('Approval reasons loaded:', approvalReasons);
+                } else {
+                    console.log("No approval reasons found");
+                    approvalReasons = [];
+                }
+            },
+            error: function (error) {
+                console.error('Failed to load approval reasons:', error);
+                approvalReasons = [];
+            }
+        });
+    }
 
-      function initializeDatePickers() {
-          flatpickr("#startDate", {
-              dateFormat: "d/m/Y",
-              maxDate: "today"
-          });
+    function LoadReasonConfiguration() {
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetAttendanceReasonConfiguration")',
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    // Separate limited and unlimited reasons
+                    limitedReasonIds = response.data
+                        .filter(r => r.isCountedInLimit === true)
+                        .map(r => r.reasonId.toString());
 
-          flatpickr("#endDate", {
-              dateFormat: "d/m/Y",
-              maxDate: "today"
-          });
-      }
+                    unlimitedReasonIds = response.data
+                        .filter(r => r.isCountedInLimit === false)
+                        .map(r => r.reasonId.toString());
 
-      function setupDateRangeToggle() {
-          $('#chkBetween').on('change', function () {
-              if ($(this).is(':checked')) {
-                  // Hide Month/Year, Show Date Range
-                  $('#monthField, #yearField').addClass('d-none');
-                  $('#startDateField, #endDateField').removeClass('d-none');
+                    console.log("✅ Limited Reasons (Counted in Limit):", limitedReasonIds);
+                    console.log("✅ Unlimited Reasons (NOT Counted):", unlimitedReasonIds);
+                } else {
+                    console.warn("⚠️ Using fallback reason configuration");
+                    setFallbackReasons();
+                }
+            },
+            error: function (error) {
+                console.error('❌ Failed to load reason configuration:', error);
+                setFallbackReasons();
+            }
+        });
+    }
 
-                  // Clear Month/Year errors
-                  $('#monthError, #yearError').text('');
-              } else {
-                  // Hide Date Range, Show Month/Year
-                  $('#startDateField, #endDateField').addClass('d-none');
-                  $('#monthField, #yearField').removeClass('d-none');
+    // Fallback function
+    function setFallbackReasons() {
+       limitedReasonIds = ["14", "17" ,"18","10"];
+       unlimitedReasonIds = ["12", "19", "11", "16" ,"13" ,"15"];
+    }
 
-                  // Clear Date Range errors
-                  $('#startDateError, #endDateError').text('');
-              }
-          });
-      }
+    function initializeDatePickers() {
+        flatpickr("#startDate", {
+            dateFormat: "d/m/Y",
+            maxDate: "today"
+        });
+
+        flatpickr("#endDate", {
+            dateFormat: "d/m/Y",
+            maxDate: "today"
+        });
+    }
+
+    function setupDateRangeToggle() {
+        $('#chkBetween').on('change', function () {
+            if ($(this).is(':checked')) {
+                // Hide Month/Year, Show Date Range
+                $('#monthField, #yearField').addClass('d-none');
+                $('#startDateField, #endDateField').removeClass('d-none');
+
+                // Clear Month/Year errors
+                $('#monthError, #yearError').text('');
+            } else {
+                // Hide Date Range, Show Month/Year
+                $('#startDateField, #endDateField').addClass('d-none');
+                $('#monthField, #yearField').removeClass('d-none');
+
+                // Clear Date Range errors
+                $('#startDateError, #endDateError').text('');
+            }
+        });
+    }
 
     function removeFutureMonths() {
         const currentMonth = new Date().getMonth() + 1; // 1 for January
@@ -415,7 +456,7 @@
         });
     }
 
-        // Handle year change to refresh month options
+    // Handle year change to refresh month options
     $('#year').on('change', function() {
         const currentYear = new Date().getFullYear();
         const selectedYear = parseInt($(this).val());
@@ -444,27 +485,26 @@
         // If previous year is selected, all months remain visible
     });
 
-
-     async  function BindBranchDropdown() {
+    async function BindBranchDropdown() {
         return new Promise((resolve, reject) => {
             $.ajax({
                 url: '@(baseDomainUrl + "/api/BranchAPI/GetAllBranchesListByCompanyId/")' + CompanyId,
                 method: 'GET',
                 headers: {
-                        'Authorization': 'Bearer ' + Token
+                    'Authorization': 'Bearer ' + Token
                 },
                 success: function (data) {
                     if (data.isSuccess) {
-                           $('#branch').searchableSelect({
-                                data: data.data||[],
-                                valueKey: 'branchId',
-                                textKey: 'branchName',
-                                placeholder:'Branch',
-                                searchPlaceholder: 'Search branch...',
-                                onChange: function(item) {
-                                      GetEmployeeByBranchId(item.branchId);
-                                }
-                            });
+                        $('#branch').searchableSelect({
+                            data: data.data||[],
+                            valueKey: 'branchId',
+                            textKey: 'branchName',
+                            placeholder:'Branch',
+                            searchPlaceholder: 'Search branch...',
+                            onChange: function(item) {
+                                GetEmployeeByBranchId(item.branchId);
+                            }
+                        });
 
                         resolve(data.data);
                     } else {
@@ -480,14 +520,13 @@
         });
     }
 
-        async function GetEmployeeByBranchId(branchId) {
-                if(!branchId)
-                {
-                    return Promise.resolve([]);
-                }
-           var payLoad={
-            BranchId:branchId,
-            CompanyId:CompanyId
+    async function GetEmployeeByBranchId(branchId) {
+        if(!branchId) {
+            return Promise.resolve([]);
+        }
+        var payLoad = {
+            BranchId: branchId,
+            CompanyId: CompanyId
         }
         return new Promise((resolve, reject) => {
             $.ajax({
@@ -500,11 +539,10 @@
                 data: JSON.stringify(payLoad),
                 success: function (data) {
                     if (data.isSuccess) {
-
-                            const dropdownddlEmployee = $('#employeeDropdown').data('searchableSelect');
-                                if(dropdownddlEmployee){
-                                        dropdownddlEmployee.setData(data.data);
-                                }
+                        const dropdownddlEmployee = $('#employeeDropdown').data('searchableSelect');
+                        if(dropdownddlEmployee){
+                            dropdownddlEmployee.setData(data.data);
+                        }
                         resolve(data.data);
                     } else {
                         console.error('Employee API returned error:', data);
@@ -519,163 +557,157 @@
         });
     }
 
-
-
-          function goBack() {
+    function goBack() {
         window.history.back();
     }
 
-      function populateYearDropdown() {
-          const startYear = 2024;
-          const currentYear = new Date().getFullYear();
-          const yearDropdown = $("#year");
-          yearDropdown.empty();
-          yearDropdown.append('<option value="">--Select--</option>');
-          for (let year = currentYear; year >= startYear; year--) {
-              yearDropdown.append(`<option value="${year}">${year}</option>`);
-          }
-      }
+    function populateYearDropdown() {
+        const startYear = 2024;
+        const currentYear = new Date().getFullYear();
+        const yearDropdown = $("#year");
+        yearDropdown.empty();
+        yearDropdown.append('<option value="">--Select--</option>');
+        for (let year = currentYear; year >= startYear; year--) {
+            yearDropdown.append(`<option value="${year}">${year}</option>`);
+        }
+    }
 
+    function GetEmployeeById() {
+        var empId = $("#employeeDropdown").data('searchableSelect').getValue();
+        return $.ajax({
+            type: "GET",
+            url: '@baseDomainUrl/api/EmployeeMasterAPI/GetEmployeeById/' + empId,
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (data) {
+                if (data.isSuccess && data.data) {
+                    // Employee data loaded
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error: " + status + " - " + error);
+            }
+        });
+    }
 
+    async function showLoder() {
+        $('#grid-loader').addClass('d-flex').show();
+    }
 
-      function GetEmployeeById() {
-          var empId = $("#employeeDropdown").data('searchableSelect').getValue();
-          return $.ajax({
-              type: "GET",
-              url: '@baseDomainUrl/api/EmployeeMasterAPI/GetEmployeeById/' + empId,
-              headers: {
-                  'Authorization': 'Bearer ' + Token
-              },
-              success: function (data) {
-                  if (data.isSuccess && data.data) {
-                      // Employee data loaded
-                  }
-              },
-              error: function (xhr, status, error) {
-                  console.error("AJAX Error: " + status + " - " + error);
-              }
-          });
-      }
+    async function hideLoder() {
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
 
-      async function showLoder() {
-          $('#grid-loader').addClass('d-flex').show();
-      }
+    function clearValidationErrors() {
+        $('.field-error').text('');
+        $('#validationMsg').text('');
+    }
 
-      async function hideLoder() {
-          $('#grid-loader').removeClass('d-flex').hide();
-      }
+    function getDateRange() {
+        const isDateRange = $('#chkBetween').is(':checked');
 
-      function clearValidationErrors() {
-          $('.field-error').text('');
-          $('#validationMsg').text('');
-      }
+        if (isDateRange) {
+            // Use Start Date and End Date
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
 
-      function getDateRange() {
-          const isDateRange = $('#chkBetween').is(':checked');
+            if (startDate && endDate) {
+                // Convert dd/mm/yyyy to yyyy-mm-dd
+                const startParts = startDate.split('/');
+                const endParts = endDate.split('/');
 
-          if (isDateRange) {
-              // Use Start Date and End Date
-              const startDate = $('#startDate').val();
-              const endDate = $('#endDate').val();
+                return {
+                    startDate: `${startParts[2]}-${startParts[1].padStart(2, '0')}-${startParts[0].padStart(2, '0')}`,
+                    endDate: `${endParts[2]}-${endParts[1].padStart(2, '0')}-${endParts[0].padStart(2, '0')}`
+                };
+            }
+        } else {
+            // Use Month and Year
+            const month = $('#month').val();
+            const year = $('#year').val();
 
-              if (startDate && endDate) {
-                  // Convert dd/mm/yyyy to yyyy-mm-dd
-                  const startParts = startDate.split('/');
-                  const endParts = endDate.split('/');
+            if (month && year) {
+                const monthStr = month.padStart(2, '0');
+                const startDate = `${year}-${monthStr}-01`;
+                const lastDay = new Date(year, month, 0).getDate();
+                const endDate = `${year}-${monthStr}-${lastDay.toString().padStart(2, '0')}`;
 
-                  return {
-                      startDate: `${startParts[2]}-${startParts[1].padStart(2, '0')}-${startParts[0].padStart(2, '0')}`,
-                      endDate: `${endParts[2]}-${endParts[1].padStart(2, '0')}-${endParts[0].padStart(2, '0')}`
-                  };
-              }
-          } else {
-              // Use Month and Year
-              const month = $('#month').val();
-              const year = $('#year').val();
+                return { startDate, endDate };
+            }
+        }
 
-              if (month && year) {
-                  const monthStr = month.padStart(2, '0');
-                  const startDate = `${year}-${monthStr}-01`;
-                  const lastDay = new Date(year, month, 0).getDate();
-                  const endDate = `${year}-${monthStr}-${lastDay.toString().padStart(2, '0')}`;
+        return null;
+    }
 
-                  return { startDate, endDate };
-              }
-          }
+    function validateForm() {
+        clearValidationErrors();
+        let hasError = false;
 
-          return null;
-      }
+        const branch = $('#branch').data('searchableSelect').getValue();
+        const emp = $('#employeeDropdown').data('searchableSelect').getValue();
+        const record = $('#recordtype').val();
+        const isDateRange = $('#chkBetween').is(':checked');
 
-      function validateForm() {
-          clearValidationErrors();
-          let hasError = false;
+        if (!branch) {
+            $('#branchError').text("Please select Branch.");
+            hasError = true;
+        }
+        // Employee validation
+        if (!emp) {
+            $('#employeeError').text("Please select Employee.");
+            hasError = true;
+        }
 
-          const branch = $('#branch').data('searchableSelect').getValue();;
-          const emp = $('#employeeDropdown').data('searchableSelect').getValue();;
-          const record = $('#recordtype').val();
-          const isDateRange = $('#chkBetween').is(':checked');
+        // Record type validation
+        if (!record) {
+            $('#recordTypeError').text("Please select Record Type.");
+            hasError = true;
+        }
 
+        if (isDateRange) {
+            // Date range validation
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
 
-           if (!branch) {
-              $('#branchError').text("Please select Branch.");
-              hasError = true;
-          }
-          // Employee validation
-          if (!emp) {
-              $('#employeeError').text("Please select Employee.");
-              hasError = true;
-          }
+            if (!startDate) {
+                $('#startDateError').text("Please select Start Date.");
+                hasError = true;
+            }
+            if (!endDate) {
+                $('#endDateError').text("Please select End Date.");
+                hasError = true;
+            }
 
-          // Record type validation
-          if (!record) {
-              $('#recordTypeError').text("Please select Record Type.");
-              hasError = true;
-          }
+            if (startDate && endDate) {
+                const start = new Date(startDate.split('/').reverse().join('-'));
+                const end = new Date(endDate.split('/').reverse().join('-'));
 
-          if (isDateRange) {
-              // Date range validation
-              const startDate = $('#startDate').val();
-              const endDate = $('#endDate').val();
+                if (start > end) {
+                    $('#endDateError').text("End Date must be greater than or equal to Start Date.");
+                    hasError = true;
+                }
+            }
+        } else {
+            // Month/Year validation
+            const year = $('#year').val();
+            const month = $('#month').val();
 
-              if (!startDate) {
-                  $('#startDateError').text("Please select Start Date.");
-                  hasError = true;
-              }
-              if (!endDate) {
-                  $('#endDateError').text("Please select End Date.");
-                  hasError = true;
-              }
+            if (!year) {
+                $('#yearError').text("Please select Year.");
+                hasError = true;
+            }
+            if (!month) {
+                $('#monthError').text("Please select Month.");
+                hasError = true;
+            }
+        }
 
-              if (startDate && endDate) {
-                  const start = new Date(startDate.split('/').reverse().join('-'));
-                  const end = new Date(endDate.split('/').reverse().join('-'));
+        return !hasError;
+    }
 
-                  if (start > end) {
-                      $('#endDateError').text("End Date must be greater than or equal to Start Date.");
-                      hasError = true;
-                  }
-              }
-          } else {
-              // Month/Year validation
-              const year = $('#year').val();
-              const month = $('#month').val();
-
-              if (!year) {
-                  $('#yearError').text("Please select Year.");
-                  hasError = true;
-              }
-              if (!month) {
-                  $('#monthError').text("Please select Month.");
-                  hasError = true;
-              }
-          }
-
-          return !hasError;
-      }
-
-      // Go Button Click Event
+    // Go Button Click Event
     $('#btnGo').on('click', function () {
-  
         if (!validateForm()) {
             return;
         }
@@ -739,26 +771,15 @@
                                 $("#saveButtonContainer").show();
                                 $("#attendanceSection").show();
                             } else {
-                                // // Show no data popup
-                                // Swal.fire({
-                                //      text: response.responseMessage ,
-                                //     icon: "info",
-                                //     confirmButtonText: "OK",
-                                //     width: "300px",
-                                //     customClass: {
-                                //         popup: 'swal-small'
-                                //     }
-                                // });
-                                var emptyData=[];
+                                var emptyData = [];
                                 LoadAttendanceGrid(emptyData);
                                 $("#attendanceSummary").hide();
                                 $("#saveButtonContainer").hide();
                                 $("#attendanceSection").hide();
                             }
                         } else {
-                            // Show API error message
                             Swal.fire({
-                                text: response.responseMessage ,
+                                text: response.responseMessage,
                                 icon: "info",
                                 confirmButtonText: "OK",
                                 width: "300px",
@@ -772,7 +793,6 @@
                         }
                     },
                     error: function (xhr, status, error) {
-                        // Show error popup
                         Swal.fire({
                             text: "Something went wrong while fetching data. Error: " + error,
                             icon: "error",
@@ -791,52 +811,47 @@
         });
     });
 
-      // Clear Button Click Event
-      $('#btnClear').on('click', function () {
-          // Reset form fields
-          $('#month').val('');
-          $('#year').val('');
-          $('#startDate').val('');
-          $('#endDate').val('');
-          $('#recordtype').val('All');
-          $('#branch').data('searchableSelect').clear();
-          $('#employeeDropdown').data('searchableSelect').clear();
-          $('#chkBetween').prop('checked', false);
+    // Clear Button Click Event
+    $('#btnClear').on('click', function () {
+        // Reset form fields
+        $('#month').val('');
+        $('#year').val('');
+        $('#startDate').val('');
+        $('#endDate').val('');
+        $('#recordtype').val('All');
+        $('#branch').data('searchableSelect').clear();
+        $('#employeeDropdown').data('searchableSelect').clear();
+        $('#chkBetween').prop('checked', false);
 
-          // Reset visibility
-          $('#startDateField, #endDateField').addClass('d-none');
-          $('#monthField, #yearField').removeClass('d-none');
+        // Reset visibility
+        $('#startDateField, #endDateField').addClass('d-none');
+        $('#monthField, #yearField').removeClass('d-none');
 
-          clearValidationErrors();
+        clearValidationErrors();
 
-          $("#saveButtonContainer").hide();
-          $("#attendanceSection").hide();
-          $("#attendanceSummary").hide();
+        $("#saveButtonContainer").hide();
+        $("#attendanceSection").hide();
+        $("#attendanceSummary").hide();
 
-          const grid = $("#attendanceGrid").dxDataGrid("instance");
-          if (grid) {
-              grid.option("dataSource", []);
-              grid.refresh();
-          }
-      });
+        const grid = $("#attendanceGrid").dxDataGrid("instance");
+        if (grid) {
+            grid.option("dataSource", []);
+            grid.refresh();
+        }
+    });
 
-
-
-            function showAttendanceSummary(data) {
+    function showAttendanceSummary(data) {
         let counts = {
             P: 0, // Present
             A: 0, // Absent
-            // L: 0, // Leave
             W: 0, // Week-off
             H: 0   // Holiday
-            // Late: 0
         };
 
         data.forEach(row => {
             const status = row.attendanceStatus?.trim().toUpperCase();
             if (status === "P") counts.P++;
             else if (status === "A") counts.A++;
-            // else if (status === "L") counts.L++;
             else if (status === "W") counts.W++;
             else if (status === "H") counts.H++;
 
@@ -856,19 +871,231 @@
         `);
     }
 
-
-
-       function formatToISOString(dateStr) {
+    function formatToISOString(dateStr) {
         const date = new Date(dateStr);
         return !isNaN(date) ? date.toISOString() : null;
     }
 
+    async function getYearMonth() {
+        const isDateRange = $('#chkBetween').is(':checked');
 
-     $('#btnSaveGridData').on('click', function () {
+        if (isDateRange) {
+            const startDate = $('#startDate').val();
+            if (startDate) {
+                const startParts = startDate.split('/');
+                return {
+                    year: startParts[2],
+                    month: startParts[1].padStart(2, '0')
+                };
+            }
+        } else {
+            const month = $('#month').val();
+            const year = $('#year').val();
+            if (month && year) {
+                return {
+                    year: year,
+                    month: month.padStart(2, '0')
+                };
+            }
+        }
+        return null;
+    }
 
+    async function validateAttendanceRequestLimit(EmployeeId, selectedRows, selectedMonth, selectedYear) {
+        debugger;
+        try {
+            // Wait for reason configuration to load if not loaded yet
+            if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
+                console.warn("⚠️ Reason configuration not loaded, using fallback...");
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                if (limitedReasonIds.length === 0) {
+                    setFallbackReasons();
+                }
+            }
+
+            // Count limited and unlimited requests from current selection
+            const limitedRowCount = selectedRows.filter(row => {
+                const reasonStr = row.Reason?.toString() || "";
+                return limitedReasonIds.includes(reasonStr);
+            }).length;
+
+            const unlimitedRowCount = selectedRows.filter(row => {
+                const reasonStr = row.Reason?.toString() || "";
+                return unlimitedReasonIds.includes(reasonStr);
+            }).length;
+
+            console.log(`📊 Request Breakdown:
+                - Limited (counted): ${limitedRowCount}
+                - Unlimited (not counted): ${unlimitedRowCount}
+                - Total selected: ${selectedRows.length}
+            `);
+
+            // If all selected rows have unlimited reasons, bypass limit check
+            if (limitedRowCount === 0 && unlimitedRowCount > 0) {
+                console.log("✅ All requests are unlimited. Bypassing limit check.");
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Limit Applied',
+                    text: 'Selected reasons are not counted against monthly limit.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return true;
+            }
+
+            // If no valid reasons selected
+            if (limitedRowCount === 0 && unlimitedRowCount === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Validation',
+                    text: 'Please select valid reasons for all selected rows.'
+                });
+                return false;
+            }
+
+            // Get employee monthly limit
+            const employeeDetails = await $.ajax({
+                type: "GET",
+                url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetEmployeeDetails?EmpId=")' + EmployeeId,
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+
+            // Get request count for the selected month/year
+            const currentMonthCount = await $.ajax({
+                type: "GET",
+                url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetEmployeeAttendanceRequestsCountForCurrentMonth?")' +
+                     `EmpId=${EmployeeId}&month=${selectedMonth}&year=${selectedYear}`,
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+
+            if (!employeeDetails?.isSuccess || !currentMonthCount?.isSuccess) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Unable to fetch employee request limit details.'
+                });
+                return false;
+            }
+
+            const monthlyLimit = employeeDetails.data?.[0]?.attendanceLimit || 0;
+            const currentRequests = currentMonthCount.data?.[0]?.totalRequests || 0;
+            const totalRequests = currentRequests + limitedRowCount;
+
+            console.log(`📊 Limit Check:
+                - Monthly Limit: ${monthlyLimit}
+                - Already Submitted: ${currentRequests}
+                - Attempting (counted): ${limitedRowCount}
+                - Attempting (not counted): ${unlimitedRowCount}
+                - Total After: ${totalRequests}
+            `);
+
+            // If no limit is set, block submission for limited reasons
+            if (monthlyLimit === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Request Blocked',
+                    html: '<p>No monthly limit is set for this employee.</p><p style="font-size:12px; color:#666;">Please contact HR to configure attendance limit.</p>',
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            }
+
+            // Check if limit exceeded (only for limited reasons)
+            if (totalRequests > monthlyLimit) {
+                const exceededBy = totalRequests - monthlyLimit;
+                const remainingLimit = Math.max(0, monthlyLimit - currentRequests);
+
+                // Get reason names for better display
+                const limitedReasonNames = selectedRows
+                    .filter(row => limitedReasonIds.includes(row.Reason?.toString() || ""))
+                    .map(row => {
+                        const reasonId = row.Reason?.toString();
+                        const reason = approvalReasons.find(r => r.reasonId.toString() === reasonId);
+                        const date = new Date(row.ForDate).toLocaleDateString('en-GB');
+                        return `${date} - ${reason ? reason.reason : 'Unknown'}`;
+                    });
+
+                let message = `
+                    <div style="text-align: left; padding: 15px; font-size: 13px;">
+                        <div style="background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 15px;">
+                            <h4 style="color: #dc2626; margin: 0 0 10px 0;">⚠️ Monthly Limit Exceeded</h4>
+                            <p style="margin: 5px 0;">Employee has exceeded monthly limit by <strong style="color: #dc2626;">${exceededBy}</strong> request(s).</p>
+                        </div>
+
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
+                            <tr style="background: #f9fafb;">
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Monthly Limit</td>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${monthlyLimit} requests</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Already Submitted</td>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${currentRequests} requests</td>
+                            </tr>
+                            <tr style="background: #fff3cd;">
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Attempting (Counted)</td>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; font-weight: bold;">${limitedRowCount} requests</td>
+                            </tr>
+                            ${unlimitedRowCount > 0 ? `
+                            <tr style="background: #d1fae5;">
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Attempting (Not Counted) ✓</td>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; color: #059669;">${unlimitedRowCount} requests</td>
+                            </tr>
+                            ` : ''}
+                            <tr style="background: #fee2e2;">
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Remaining</td>
+                                <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; color: #dc2626; font-weight: bold;">${remainingLimit} requests</td>
+                            </tr>
+                        </table>
+
+                        ${limitedReasonNames.length > 0 ? `
+                        <div style="background: #fffbeb; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                            <strong style="color: #92400e;">📋 Counted Requests:</strong>
+                            <ul style="margin: 8px 0; padding-left: 20px; color: #78350f;">
+                                ${limitedReasonNames.map(name => `<li style="margin: 3px 0;">${name}</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+
+                        <div style="background: #f0f9ff; padding: 10px; border-radius: 6px; font-size: 11px; color: #0c4a6e;">
+                            <strong>ℹ️ Note:</strong> Only <strong>Forgot to Punch</strong> and <strong>Other</strong> count toward limit.
+                        </div>
+                    </div>
+                `;
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Cannot Submit Request',
+                    html: message,
+                    confirmButtonText: 'OK',
+                    width: '600px'
+                });
+                return false;
+            }
+
+            // Success
+            const remainingRequests = monthlyLimit - totalRequests;
+            console.log(`✅ Validation Passed! ${remainingRequests} request(s) remaining.`);
+
+            return true;
+
+        } catch (error) {
+            console.error("❌ Error validating request limit:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Validation Error',
+                text: 'An error occurred: ' + error.message
+            });
+            return false;
+        }
+    }
+
+    $('#btnSaveGridData').on('click', async function () {
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
         gridInstance.saveEditData();
-
         const selectedRows = gridInstance.getSelectedRowsData();
 
         if (selectedRows.length === 0) {
@@ -880,7 +1107,7 @@
             return;
         }
 
-        const empId =  $('#employeeDropdown').data('searchableSelect').getValue();
+        const empId = $('#employeeDropdown').data('searchableSelect').getValue();
         if (!empId) {
             Swal.fire({
                 icon: 'warning',
@@ -891,65 +1118,146 @@
         }
 
         const validRows = [];
+        const missingReasonRows = [];
+        const missingDayTypeRows = [];
+        const missingRemarkRows = [];
+
         selectedRows.forEach(row => {
             const reasonId = row.reasonId;
             const dayType = row.dayType?.trim();
-            if (reasonId && dayType) {
+            const dateStr = new Date(row.shiftDate).toLocaleDateString('en-GB');
 
-                 validRows.push({
-        EmpId: empId,
-        FullName: row.fullName || "",
-        BranchName: row.branchName || "",
-        ForDate: row.shiftDate,
-        ShiftTime: row.shiftTime || "",
-            InTime: (row.inTime && row.inTime !== "-") ? formatToISOString(row.inTime) : null,
-            OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
-        Day: dayType,
-        Status: row.attendanceStatus || "",
-        Reason: reasonId.toString(),
-        IsApproved: false,
-        IsPending: true,
-        IsRejected: false,
-        IsLocked: false,
-        CreatedBy:EmployeeId
-    });
+            if (!reasonId) {
+                missingReasonRows.push(dateStr);
+                return;
             }
+
+            if (!dayType) {
+                missingDayTypeRows.push(dateStr);
+                return;
+            }
+
+            // Check if "Other" reason requires remark
+            const selectedReason = approvalReasons.find(r => r.reasonId === reasonId);
+            if (selectedReason && selectedReason.reason.toLowerCase() === "other" && !row.remark) {
+                missingRemarkRows.push(dateStr);
+            }
+
+            validRows.push({
+                EmpId: empId,
+                FullName: row.fullName || "",
+                BranchName: row.branchName || "",
+                ForDate: row.shiftDate,
+                ShiftTime: row.shiftTime || "",
+                InTime: (row.inTime && row.inTime !== "-") ? formatToISOString(row.inTime) : null,
+                OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
+                Day: dayType,
+                Status: row.attendanceStatus || "",
+                Reason: reasonId.toString(),
+                Remark: row.remark || null,
+                IsApproved: false,
+                IsPending: true,
+                IsRejected: false,
+                IsLocked: false,
+                CreatedBy: EmployeeId
+            });
         });
+
+        // Validation checks
+        if (missingReasonRows.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Reason Required',
+                html: `Please select reason for:<br><strong>${missingReasonRows.join(', ')}</strong>`
+            });
+            return;
+        }
+
+        if (missingDayTypeRows.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Day Type Required',
+                html: `Please select day type for:<br><strong>${missingDayTypeRows.join(', ')}</strong>`
+            });
+            return;
+        }
+
+        if (missingRemarkRows.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Remark Required',
+                html: `Please enter remark for "Other" on:<br><strong>${missingRemarkRows.join(', ')}</strong>`
+            });
+            return;
+        }
+
         if (validRows.length === 0) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Validation',
-                text: 'Please select reason and day type for selected row(s).'
+                text: 'Please complete all required fields.'
             });
             return;
         }
-                     showLoder();
-     
+
+        // Get month/year
+        const monthYearData = await getYearMonth();
+        if (!monthYearData) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select a valid month and year.'
+            });
+            return;
+        }
+
+        const selectedMonth = monthYearData.month;
+        const selectedYear = monthYearData.year;
+
+        // Validate attendance limit
+        const isLimitValid = await validateAttendanceRequestLimit(
+            empId,
+            validRows,
+            selectedMonth,
+            selectedYear
+        );
+
+        if (!isLimitValid) {
+            return;
+        }
+
+        showLoder();
+
         // Save via AJAX
         $.ajax({
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/CreateAttendanceRegularization")',
             type: "POST",
             contentType: "application/json",
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
             data: JSON.stringify(validRows),
             success: function (response) {
-                      hideLoder();
+                hideLoder();
                 if (response?.isSuccess) {
                     round_success_noti(response.responseMessage || "Saved successfully.");
-              const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
-    const selectedRowsData = gridInstance.getSelectedRowsData();
-    let currentData = gridInstance.option("dataSource");
 
-    const updatedData = currentData.filter(item => {
-        return !selectedRowsData.some(sel =>
-            sel.empId === item.empId && new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
-        );
-    });
+                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+                    const selectedRowsData = gridInstance.getSelectedRowsData();
+                    let currentData = gridInstance.option("dataSource");
 
-    gridInstance.option("dataSource", updatedData);
-    gridInstance.refresh();
-    gridInstance.clearSelection(); // optional
+                    const updatedData = currentData.filter(item => {
+                        return !selectedRowsData.some(sel =>
+                            sel.empId === item.empId &&
+                            new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
+                        );
+                    });
 
-    $("#btnGo").trigger("click");
+                    gridInstance.option("dataSource", updatedData);
+                    gridInstance.refresh();
+                    gridInstance.clearSelection();
+
+                    $("#btnGo").trigger("click");
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -959,18 +1267,15 @@
                 }
             },
             error: function (xhr) {
-                    hideLoder();
+                hideLoder();
                 Swal.fire({
                     icon: 'error',
                     title: 'Server Error',
                     text: xhr.status + " - " + xhr.statusText
                 });
-            },
-
+            }
         });
     });
-
-
 
     function LoadAttendanceGrid(data) {
         $("#attendanceGrid").dxDataGrid({
@@ -981,8 +1286,8 @@
             columnAutoWidth: true,
             allowColumnResizing: true,
             paging: { enabled: false },
-            height: 250, // fixed height for scroll
-            autoHeight: false, // ensure scroll can appear
+            height: 250,
+            autoHeight: false,
             scrolling: {
                 mode: "standard",
                 useNative: true,
@@ -1012,7 +1317,6 @@
             onEditingStart: function (e) {
                 const status = e.data.attendanceStatus?.trim().toUpperCase();
 
-                // Check if trying to edit Present, Week Off, or Holiday records
                 if (status === "P" || status === "W" || status === "H") {
                     e.cancel = true;
                     let msg =
@@ -1025,7 +1329,6 @@
 
                 const recordDate = new Date(e.data.shiftDate);
                 const currentDate = new Date();
-
                 recordDate.setHours(0, 0, 0, 0);
                 currentDate.setHours(0, 0, 0, 0);
 
@@ -1072,7 +1375,7 @@
                     dataField: "inTime",
                     caption: "In Time",
                     minWidth: 80,
-                    allowEditing: false, // ✅ Read-only
+                    allowEditing: false,
                     cellTemplate: function (container, options) {
                         const value = options.data.inTime && options.data.inTime !== "-"
                             ? new Date(options.data.inTime).toLocaleTimeString('en-GB', {
@@ -1097,7 +1400,7 @@
                     dataField: "outTime",
                     caption: "Out Time",
                     minWidth: 80,
-                    allowEditing: false, // ✅ Read-only
+                    allowEditing: false,
                     cellTemplate: function (container, options) {
                         const value = options.data.outTime && options.data.outTime !== "-"
                             ? new Date(options.data.outTime).toLocaleTimeString('en-GB', {
@@ -1163,40 +1466,83 @@
                         }
                         return "--Select--";
                     },
+                    setCellValue: function(rowData, value) {
+                        rowData.reasonId = value;
+                        const selectedReason = approvalReasons.find(r => r.reasonId === value);
+                        if (selectedReason && selectedReason.reason.toLowerCase() === "other") {
+                            rowData.showRemarkBox = true;
+                        } else {
+                            rowData.showRemarkBox = false;
+                            rowData.remark = null;
+                        }
+                    },
                     allowEditing: function (rowData) {
                         const status = rowData.attendanceStatus?.trim().toLowerCase();
-
-                        // Check if current date
                         const recordDate = new Date(rowData.shiftDate);
                         const currentDate = new Date();
                         recordDate.setHours(0, 0, 0, 0);
                         currentDate.setHours(0, 0, 0, 0);
 
                         if (recordDate.getTime() === currentDate.getTime()) {
-                            return false; // Disable editing for current date
+                            return false;
                         }
 
                         return status === "a" || status === "hf";
+                    }
+                },
+                {
+                    dataField: "remark",
+                    caption: "Remark",
+                    width: 200,
+                    minWidth: 200,
+                    visible: true,
+                    allowEditing: true,
+                    editCellTemplate: function(container, options) {
+                        const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
+                        const isOther = selectedReason && selectedReason.reason.toLowerCase() === "other";
+
+                        if (isOther) {
+                            $("<input>")
+                                .addClass("dx-texteditor-input")
+                                .attr("placeholder", "Enter remark...")
+                                .val(options.value || "")
+                                .on("change", function(e) {
+                                    options.setValue(e.target.value);
+                                })
+                                .appendTo(container);
+                        } else {
+                            $("<div>")
+                                .text("--")
+                                .css({
+                                    textAlign: "center",
+                                    color: "#999",
+                                    padding: "6px"
+                                })
+                                .appendTo(container);
+                        }
                     },
-                    editorOptions: function (rowData) {
-                        const status = rowData.attendanceStatus?.trim().toLowerCase();
+                    cellTemplate: function(container, options) {
+                        const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
+                        const isOther = selectedReason && selectedReason.reason.toLowerCase() === "other";
 
-                        // Check if current date
-                        const recordDate = new Date(rowData.shiftDate);
-                        const currentDate = new Date();
-                        recordDate.setHours(0, 0, 0, 0);
-                        currentDate.setHours(0, 0, 0, 0);
-
-                        const isCurrentDate = recordDate.getTime() === currentDate.getTime();
-                        const isEditable = status === "a" || status === "hf";
-
-                        return {
-                            showClearButton: true,
-                            disabled: isCurrentDate || !isEditable
-                        };
-                    },
-                    editing: {
-                        allowUpdating: true
+                        if (isOther && options.data.remark) {
+                            $("<div>")
+                                .text(options.data.remark)
+                                .css({
+                                    padding: "6px",
+                                    fontSize: "12px"
+                                })
+                                .appendTo(container);
+                        } else {
+                            $("<div>")
+                                .text("--")
+                                .css({
+                                    textAlign: "center",
+                                    color: "#999",
+                                    padding: "6px"
+                                })
+                                .appendTo(container);
+                        }
                     }
                 },
                 {
@@ -1224,38 +1570,16 @@
                     },
                     allowEditing: function (rowData) {
                         const status = rowData.attendanceStatus?.trim().toLowerCase();
-
-                        // Check if current date
                         const recordDate = new Date(rowData.shiftDate);
                         const currentDate = new Date();
                         recordDate.setHours(0, 0, 0, 0);
                         currentDate.setHours(0, 0, 0, 0);
 
                         if (recordDate.getTime() === currentDate.getTime()) {
-                            return false; // Disable editing for current date
+                            return false;
                         }
 
                         return status === "a" || status === "hf";
-                    },
-                    editorOptions: function (rowData) {
-                        const status = rowData.attendanceStatus?.trim().toLowerCase();
-
-                        // Check if current date
-                        const recordDate = new Date(rowData.shiftDate);
-                        const currentDate = new Date();
-                        recordDate.setHours(0, 0, 0, 0);
-                        currentDate.setHours(0, 0, 0, 0);
-
-                        const isCurrentDate = recordDate.getTime() === currentDate.getTime();
-                        const isEditable = status === "a" || status === "hf";
-
-                        return {
-                            showClearButton: true,
-                            disabled: isCurrentDate || !isEditable
-                        };
-                    },
-                    editing: {
-                        allowUpdating: true
                     }
                 }
             ]
