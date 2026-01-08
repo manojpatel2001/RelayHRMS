@@ -13,6 +13,7 @@ namespace HRMS_Core.VM.Employee
         public string? SearchValue { get; set; }    
         public DateTime? FromDate { get; set; }   
         public DateTime? ToDate { get; set; }     
-        public string? Status { get; set; }
+        public string? Status { get; set; } 
+        public int? CompanyId { get; set; } 
     }
 }
