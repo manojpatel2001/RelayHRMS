@@ -52,6 +52,79 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
+        [HttpPost("InsertBulkEmployeeSalaryHistory")]
+        public async Task<APIResponse> InsertBulkEmployeeSalaryHistory(List<InsertEmployeeSalaryHistoryVM> salaryPara)
+        {
+            try
+            {
+                if (salaryPara == null || salaryPara.Count == 0)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No data received."
+                    };
+                }
+
+                foreach (var item in salaryPara)
+                {
+                    if (item.NewBasicSalary < item.OldBasicSalary)
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = "New Basic Salary cannot be less than Old Basic Salary"
+                        };
+
+                    if (item.NewGrossSalary < item.OldGrossSalary)
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = "New Gross Salary cannot be less than Old Gross Salary"
+                        };
+
+                    if (item.NewGrossSalary < item.NewBasicSalary)
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = "Gross Salary cannot be less than Basic Salary"
+                        };
+
+                    if (item.EffectiveFromDate==null)
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = "Effective Date is required"
+                        };
+                    if (item.ReasonId <= 0|| item.ReasonId==null)
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = "Reason is required"
+                        };
+                }
+
+                foreach (var item in salaryPara)
+                {
+                    var result = await _unitOfWork.EmployeeIncrementRespository.InsertEmployeeSalaryHistory(item);
+                }
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    ResponseMessage = "Salary increment saved successfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                // 🔥 LOG ex here
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = ex.Message,
+                    ResponseMessage = "Unable to add. Please try again later."
+                };
+            }
+        }
+
         [HttpGet("GetAllIncrementEmployees/{companyId}")]
         public async Task<APIResponse> GetAllIncrementEmployees(int companyId)
         {
@@ -77,6 +150,24 @@ namespace HRMS_API.Controllers.Employee
             {
              
                 var result = await _unitOfWork.EmployeeIncrementRespository.GetEmployeeSalaryInfo(EmployeeId);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Failed to fetch increment records"
+                };
+            }
+        }
+        [HttpGet("GetEmployeeSalaryInfoByCompnayId/{companyId}")]
+        public async Task<APIResponse> GetEmployeeSalaryInfoByCompnayId(int companyId)
+        {
+            try
+            {
+             
+                var result = await _unitOfWork.EmployeeIncrementRespository.GetEmployeeSalaryInfoByCompnayId(companyId);
                 return result;
             }
             catch (Exception ex)

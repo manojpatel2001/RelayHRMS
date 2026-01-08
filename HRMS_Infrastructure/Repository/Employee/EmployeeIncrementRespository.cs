@@ -156,6 +156,40 @@ namespace HRMS_Infrastructure.Repository.Employee
 
             return response;
         }
+        public async Task<APIResponse> GetEmployeeSalaryInfoByCompnayId(int companyId)
+        {
+            var response = new APIResponse();
+
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var result = await connection.QueryAsync<dynamic>(
+                        "GetEmployeeSalaryInfoByCompnayId",
+                        new { CompanyId = companyId },
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (result == null)
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "Employee salary info not found.";
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+            }
+
+            return response;
+        }
 
         public async Task<APIResponse> InsertEmployeeSalaryHistory(InsertEmployeeSalaryHistoryVM model)
         {
@@ -173,7 +207,6 @@ namespace HRMS_Infrastructure.Repository.Employee
                     parameters.Add("@OldBasicSalary", model.OldBasicSalary);
                     parameters.Add("@NewBasicSalary", model.NewBasicSalary);
                     parameters.Add("@EffectiveFromDate", model.EffectiveFromDate);
-                    parameters.Add("@EffectiveToDate", model.EffectiveToDate);
                     parameters.Add("@ReasonId", model.ReasonId);
                     parameters.Add("@IsActive", model.IsActive);
                     parameters.Add("@CreatedBy", model.CreatedBy);

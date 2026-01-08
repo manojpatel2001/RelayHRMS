@@ -13,8 +13,7 @@
         public decimal NewGrossSalary { get; set; }
         public decimal OldBasicSalary { get; set; }
         public decimal NewBasicSalary { get; set; }
-        public DateTime EffectiveFromDate { get; set; }
-        public DateTime? EffectiveToDate { get; set; }
+        public DateTime? EffectiveFromDate { get; set; }
         public int? ReasonId { get; set; }
         public bool IsActive { get; set; } = true;
         public int CreatedBy { get; set; }
