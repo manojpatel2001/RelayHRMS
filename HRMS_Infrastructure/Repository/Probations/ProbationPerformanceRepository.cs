@@ -379,7 +379,7 @@ namespace HRMS_Infrastructure.Repository.Probations
                     dynamicParameters.Add("@Year", parameters.Year, DbType.Int32);
                     dynamicParameters.Add("@ApprovalMasterId", parameters.ApprovalMasterId, DbType.Int32);
 
-                    var results = await connection.QueryAsync<ConfirmationProbationDetails>(sql: "GetAllConfirmationProbationDetails",
+                    var results = await connection.QueryAsync<ConfirmationProbationDetails>(sql: "GetAllConfirmationProbationDetails_new",
                         param: dynamicParameters,
                         commandType: CommandType.StoredProcedure);
 
