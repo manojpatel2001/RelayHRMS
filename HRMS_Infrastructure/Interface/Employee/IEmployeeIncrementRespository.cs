@@ -15,6 +15,7 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<IncrementReason>> GetAllIncrementReason();
         Task<APIResponse> InsertEmployeeSalaryHistory(InsertEmployeeSalaryHistoryVM model);
         Task<APIResponse> GetEmployeeSalaryInfo(int employeeId);
+        Task<APIResponse>GetEmployeeSalaryInfoByCompnayId (int companyId);
 
         Task<APIResponse> GetAllIncrementEmployees(int companyId);
         Task<APIResponse> DeleteIncrement(int EmployeeId);
