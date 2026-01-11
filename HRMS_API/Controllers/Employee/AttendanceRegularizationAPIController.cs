@@ -48,6 +48,24 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+        [HttpGet("GetAttendanceReasonsByLimitType")]
+        public async Task<APIResponse> GetAttendanceReasonsByLimitType()
+        {
+            try
+            {
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetAttendanceReasonsByLimitType();
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
 
 
         [HttpGet("GetById/{id}")]

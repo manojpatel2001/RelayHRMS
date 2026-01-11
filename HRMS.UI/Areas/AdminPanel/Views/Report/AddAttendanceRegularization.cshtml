@@ -323,6 +323,7 @@
         BindBranchDropdown();
         populateYearDropdown();
         initializeDatePickers();
+        LoadReasonConfiguration();
         setupDateRangeToggle();
         LoadApprovalReasons();
         LoadReasonConfiguration();
@@ -1093,7 +1094,7 @@
         }
     }
 
-    $('#btnSaveGridData').on('click', async function () {
+     $('#btnSaveGridData').on('click', async function () {
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
         gridInstance.saveEditData();
         const selectedRows = gridInstance.getSelectedRowsData();
@@ -1121,26 +1122,99 @@
         const missingReasonRows = [];
         const missingDayTypeRows = [];
         const missingRemarkRows = [];
+        const timeWindowErrorRows = [];
+        const remarksRequiredReasons = ['client visit', 'travel on duty', 'official od', 'other'];
 
-        selectedRows.forEach(row => {
+        for (let row of selectedRows) {
             const reasonId = row.reasonId;
             const dayType = row.dayType?.trim();
             const dateStr = new Date(row.shiftDate).toLocaleDateString('en-GB');
 
+            // Validate reason
             if (!reasonId) {
                 missingReasonRows.push(dateStr);
-                return;
+                continue;
             }
 
+            // Validate day type
             if (!dayType) {
                 missingDayTypeRows.push(dateStr);
-                return;
+                continue;
             }
 
-            // Check if "Other" reason requires remark
             const selectedReason = approvalReasons.find(r => r.reasonId === reasonId);
-            if (selectedReason && selectedReason.reason.toLowerCase() === "other" && !row.remark) {
-                missingRemarkRows.push(dateStr);
+
+            // Validate remark for specific reasons
+            if (selectedReason) {
+                const reasonText = selectedReason.reason.toLowerCase();
+
+                // Check if remark is required and missing
+                if (remarksRequiredReasons.includes(reasonText)) {
+                    if (!row.remark || row.remark.trim() === "") {
+                        missingRemarkRows.push(dateStr);
+                        continue;
+                    }
+                }
+
+                // Check Travel on Duty time window for current date
+                if (reasonText === "travel on duty") {
+                    const recordDate = new Date(row.shiftDate);
+                    const currentDate = new Date();
+                    recordDate.setHours(0, 0, 0, 0);
+                    currentDate.setHours(0, 0, 0, 0);
+
+                    // If it's current date, validate time window
+                    if (recordDate.getTime() === currentDate.getTime()) {
+                        const now = new Date();
+                        const currentTime = now.getHours() * 60 + now.getMinutes();
+
+                        let shiftStartTime = null;
+                        let shiftEndTime = null;
+
+                        if (row.shiftTime) {
+                            const shiftParts = row.shiftTime.split('-');
+                            if (shiftParts.length === 2) {
+                                // Parse start time
+                                const startStr = shiftParts[0].trim();
+                                const startMatch = startStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                                if (startMatch) {
+                                    let hours = parseInt(startMatch[1]);
+                                    const minutes = parseInt(startMatch[2]);
+                                    const period = startMatch[3].toUpperCase();
+
+                                    if (period === 'PM' && hours !== 12) hours += 12;
+                                    if (period === 'AM' && hours === 12) hours = 0;
+
+                                    shiftStartTime = hours * 60 + minutes;
+                                }
+
+                                // Parse end time
+                                const endStr = shiftParts[1].trim();
+                                const endMatch = endStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                                if (endMatch) {
+                                    let hours = parseInt(endMatch[1]);
+                                    const minutes = parseInt(endMatch[2]);
+                                    const period = endMatch[3].toUpperCase();
+
+                                    if (period === 'PM' && hours !== 12) hours += 12;
+                                    if (period === 'AM' && hours === 12) hours = 0;
+
+                                    shiftEndTime = hours * 60 + minutes;
+                                }
+                            }
+                        }
+
+                        if (shiftStartTime !== null && shiftEndTime !== null) {
+                            const allowedStartTime = shiftStartTime - 15;
+                            const allowedEndTime = shiftEndTime;
+
+                            if (currentTime < allowedStartTime || currentTime > allowedEndTime) {
+                                timeWindowErrorRows.push(dateStr);
+                                continue;
+                            }
+                        }
+                    }
+                }
             }
 
             validRows.push({
@@ -1161,9 +1235,9 @@
                 IsLocked: false,
                 CreatedBy: EmployeeId
             });
-        });
+        }
 
-        // Validation checks
+        // Show validation errors
         if (missingReasonRows.length > 0) {
             Swal.fire({
                 icon: 'warning',
@@ -1186,7 +1260,17 @@
             Swal.fire({
                 icon: 'warning',
                 title: 'Remark Required',
-                html: `Please enter remark for "Other" on:<br><strong>${missingRemarkRows.join(', ')}</strong>`
+                html: `Please enter remark for:<br><strong>${missingRemarkRows.join(', ')}</strong>`
+            });
+            return;
+        }
+
+        if (timeWindowErrorRows.length > 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Time Window Restriction',
+                html: `Travel on Duty request for today can only be submitted from 15 minutes before shift start till shift end time.<br><br>Dates: <strong>${timeWindowErrorRows.join(', ')}</strong>`,
+                confirmButtonText: 'OK'
             });
             return;
         }
@@ -1214,7 +1298,7 @@
         const selectedMonth = monthYearData.month;
         const selectedYear = monthYearData.year;
 
-        // Validate attendance limit
+        // Validate attendance request limit
         const isLimitValid = await validateAttendanceRequestLimit(
             empId,
             validRows,
@@ -1226,11 +1310,11 @@
             return;
         }
 
-        showLoder();
+        showLoder();    
 
         // Save via AJAX
         $.ajax({
-            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/CreateAttendanceRegularization")',
+             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/CreateAttendanceRegularization")',
             type: "POST",
             contentType: "application/json",
             headers: {
@@ -1240,19 +1324,23 @@
             success: function (response) {
                 hideLoder();
                 if (response?.isSuccess) {
-                    round_success_noti(response.responseMessage || "Saved successfully.");
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: response.responseMessage || "Saved successfully.",
+                        timer: 2000
+                    });
 
+                    // Refresh grid
                     const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
                     const selectedRowsData = gridInstance.getSelectedRowsData();
                     let currentData = gridInstance.option("dataSource");
-
                     const updatedData = currentData.filter(item => {
                         return !selectedRowsData.some(sel =>
                             sel.empId === item.empId &&
                             new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
                         );
                     });
-
                     gridInstance.option("dataSource", updatedData);
                     gridInstance.refresh();
                     gridInstance.clearSelection();
@@ -1277,16 +1365,296 @@
         });
     });
 
+
+        function LoadReasonConfiguration() {
+        $.ajax({
+             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetAttendanceReasonsByLimitType")',
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+
+                    limitedReasonIds = response.data
+                        .filter(r => r.reasonType === "Limited")
+                        .map(r => r.reasonId.toString());
+
+                    unlimitedReasonIds = response.data
+                        .filter(r => r.reasonType === "Unlimited")
+                        .map(r => r.reasonId.toString());
+
+
+                } else {
+                    console.warn("⚠️ No reason configuration found from API");
+                    limitedReasonIds = [];
+                    unlimitedReasonIds = [];
+                }
+            },
+            error: function (error) {
+                console.error('❌ Failed to load reason configuration:', error);
+                limitedReasonIds = [];
+                unlimitedReasonIds = [];
+            }
+        });
+    }
+
+        async function validateAttendanceRequestLimit(EmployeeId, selectedRows, selectedMonth, selectedYear) {
+        try {
+            // CRITICAL: Wait for reason configuration to load
+            if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
+
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Configuration Error',
+                        text: 'Reason configuration not loaded. Please refresh the page and try again.'
+                    });
+                    return false;
+                }
+            }
+
+            // Debug each row
+            selectedRows.forEach((row, index) => {
+                console.log(`Row ${index}:`, {
+                    Reason: row.Reason,
+                    reasonId: row.reasonId,
+                    ForDate: row.ForDate,
+                    availableFields: Object.keys(row)
+                });
+            });
+
+            const limitedRowCount = selectedRows.filter(row => {
+                const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                const isLimited = limitedReasonIds.includes(reasonStr);
+
+                return isLimited;
+            }).length;
+
+            const unlimitedRowCount = selectedRows.filter(row => {
+                const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                const isUnlimited = unlimitedReasonIds.includes(reasonStr);
+                return isUnlimited;
+            }).length;
+
+            // Calculate unmatched (reasons not in either array)
+            const unmatchedCount = selectedRows.length - (limitedRowCount + unlimitedRowCount);
+
+            // 🔥 If there are unmatched reasons, show error
+            if (unmatchedCount > 0) {
+                // Get unmatched reason details for better error message
+                const unmatchedReasons = selectedRows.filter(row => {
+                    const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                    return !limitedReasonIds.includes(reasonStr) && !unlimitedReasonIds.includes(reasonStr);
+                }).map(row => {
+                    const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                    const reasonName = approvalReasons.find(r => r.reasonId.toString() === reasonStr);
+                    return reasonName ? reasonName.reason : `Unknown (ID: ${reasonStr})`;
+                });
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Configuration Error',
+                    html: `
+                        <p>Some selected reasons are not properly configured.</p>
+                        <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                            Unmatched reasons: <strong>${[...new Set(unmatchedReasons)].join(', ')}</strong>
+                        </p>
+                        <p style="font-size: 11px; color: #999; margin-top: 10px;">
+                            Please contact administrator to configure these reasons.
+                        </p>
+                    `,
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            }
+
+            // 🔥 If all selected rows have unlimited reasons, bypass limit check
+            if (limitedRowCount === 0 && unlimitedRowCount > 0) {
+
+                return true;
+            }
+
+            // If no valid reasons selected
+            if (limitedRowCount === 0 && unlimitedRowCount === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Validation',
+                    text: 'Please select valid reasons for all selected rows.'
+                });
+                return false;
+            }
+
+            // Only proceed with limit check if there are LIMITED reasons
+            if (limitedRowCount > 0) {
+
+
+                // Get employee monthly limit
+                const employeeDetails = await $.ajax({
+                    type: "GET",
+                    url: "@baseDomainUrl/api/AttendanceRegularizationAPI/GetEmployeeDetails?EmpId=" + EmployeeId,
+                    headers: {
+                        'Authorization': 'Bearer ' + Token
+                    }
+                });
+
+                // Get request count for the selected month/year
+                const currentMonthCount = await $.ajax({
+                    type: "GET",
+                    url:  "@baseDomainUrl/api/AttendanceRegularizationAPI/GetEmployeeDetails?" +
+                         `EmpId=${EmployeeId}&month=${selectedMonth}&year=${selectedYear}`,
+                    headers: {
+                        'Authorization': 'Bearer ' + Token
+                    }
+                });
+
+                if (!employeeDetails?.isSuccess || !currentMonthCount?.isSuccess) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Unable to fetch employee request limit details.'
+                    });
+                    return false;
+                }
+
+                const monthlyLimit = employeeDetails.data?.[0]?.attendanceLimit || 0;
+                const currentRequests = currentMonthCount.data?.[0]?.totalRequests || 0;
+                const totalRequests = currentRequests + limitedRowCount;
+
+
+                // If no limit is set, block submission for limited reasons
+                if (monthlyLimit === 0) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Request Blocked',
+                        html: '<p>No monthly limit is set for your account.</p><p style="font-size:12px; color:#666;">Please contact HR to configure your attendance limit.</p>',
+                        confirmButtonText: 'OK'
+                    });
+                    return false;
+                }
+
+                // 🔥 Check if limit exceeded (only for limited reasons)
+                if (totalRequests > monthlyLimit) {
+                    const exceededBy = totalRequests - monthlyLimit;
+                    const remainingLimit = Math.max(0, monthlyLimit - currentRequests);
+
+                    // Get reason names for better display
+                    const limitedReasonNames = selectedRows
+                        .filter(row => {
+                            const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                            return limitedReasonIds.includes(reasonStr);
+                        })
+                        .map(row => {
+                            const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                            const reason = approvalReasons.find(r => r.reasonId.toString() === reasonStr);
+                            const date = new Date(row.ForDate).toLocaleDateString('en-GB');
+                            return `${date} - ${reason ? reason.reason : 'Unknown'}`;
+                        });
+
+                    // Get unlimited reason names
+                    const unlimitedReasonNames = selectedRows
+                        .filter(row => {
+                            const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                            return unlimitedReasonIds.includes(reasonStr);
+                        })
+                        .map(row => {
+                            const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                            const reason = approvalReasons.find(r => r.reasonId.toString() === reasonStr);
+                            return reason ? reason.reason : 'Unknown';
+                        });
+
+                    let message = `
+                        <div style="text-align: left; padding: 15px; font-size: 13px;">
+                            <div style="background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 15px;">
+                                <h4 style="color: #dc2626; margin: 0 0 10px 0;">⚠️ Monthly Limit Exceeded</h4>
+                                <p style="margin: 5px 0;">You have exceeded your monthly limit by <strong style="color: #dc2626;">${exceededBy}</strong> request(s).</p>
+                            </div>
+
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
+                                <tr style="background: #f9fafb;">
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Monthly Limit</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${monthlyLimit} requests</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Already Submitted</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${currentRequests} requests</td>
+                                </tr>
+                                <tr style="background: #fff3cd;">
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Attempting (Counted)</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; font-weight: bold;">${limitedRowCount} requests</td>
+                                </tr>
+                                ${unlimitedRowCount > 0 ? `
+                                <tr style="background: #d1fae5;">
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Attempting (Not Counted) ✓</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; color: #059669;">${unlimitedRowCount} requests</td>
+                                </tr>
+                                ` : ''}
+                                <tr style="background: #fee2e2;">
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Remaining</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; color: #dc2626; font-weight: bold;">${remainingLimit} requests</td>
+                                </tr>
+                            </table>
+
+                            ${limitedReasonNames.length > 0 ? `
+                            <div style="background: #fffbeb; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                                <strong style="color: #92400e;">📋 Counted Requests:</strong>
+                                <ul style="margin: 8px 0; padding-left: 20px; color: #78350f;">
+                                    ${limitedReasonNames.map(name => `<li style="margin: 3px 0;">${name}</li>`).join('')}
+                                </ul>
+                            </div>
+                            ` : ''}
+
+                            ${unlimitedReasonNames.length > 0 ? `
+                            <div style="background: #f0f9ff; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                                <strong style="color: #0c4a6e;">✓ Not Counted (Unlimited):</strong>
+                                <p style="margin: 5px 0; color: #0c4a6e;">${[...new Set(unlimitedReasonNames)].join(', ')}</p>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Cannot Submit Request',
+                        html: message,
+                        confirmButtonText: 'OK',
+                        width: '650px'
+                    });
+                    return false;
+                }
+
+                // ✅ Success with limit check
+                const remainingRequests = monthlyLimit - totalRequests;
+
+            }
+
+            return true;
+
+        } catch (error) {
+            console.error("❌ Error validating request limit:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Validation Error',
+                text: 'An error occurred: ' + error.message
+            });
+            return false;
+        }
+    }
+
     function LoadAttendanceGrid(data) {
+        const filteredData = data.filter(item => item.attendanceStatus !== "-");
+
         $("#attendanceGrid").dxDataGrid({
-            dataSource: data,
+            dataSource: filteredData,
             showBorders: true,
             keyExpr: "shiftDate",
             width: "100%",
             columnAutoWidth: true,
             allowColumnResizing: true,
             paging: { enabled: false },
-            height: 250,
+            height: 200,
             autoHeight: false,
             scrolling: {
                 mode: "standard",
@@ -1317,12 +1685,13 @@
             onEditingStart: function (e) {
                 const status = e.data.attendanceStatus?.trim().toUpperCase();
 
+                // Check attendance status (P, W, H not allowed)
                 if (status === "P" || status === "W" || status === "H") {
                     e.cancel = true;
                     let msg =
                         status === "P" ? "Editing not allowed for Present records." :
-                            status === "W" ? "Editing not allowed for Week Off records." :
-                                "Editing not allowed for Holiday records.";
+                        status === "W" ? "Editing not allowed for Week Off records." :
+                        "Editing not allowed for Holiday records.";
                     DevExpress.ui.notify(msg, "warning", 2000);
                     return;
                 }
@@ -1332,10 +1701,76 @@
                 recordDate.setHours(0, 0, 0, 0);
                 currentDate.setHours(0, 0, 0, 0);
 
+                // Check if it's Travel on Duty reason
+                const selectedReason = approvalReasons.find(r => r.reasonId === e.data.reasonId);
+                const isTravelOnDuty = selectedReason && selectedReason.reason.toLowerCase() === "travel on duty";
+
+                // For current date: Allow editing ONLY for reason column OR if Travel on Duty is already selected
                 if (recordDate.getTime() === currentDate.getTime()) {
-                    e.cancel = true;
-                    DevExpress.ui.notify("Attendance regularization request cannot be submitted for current date.", "warning", 3000);
-                    return;
+                    // Allow editing reason column for current date
+                    if (e.column.dataField === "reasonId") {
+                        return; // Allow reason selection
+                    }
+
+                    // For other columns, check if Travel on Duty is selected
+                    if (!isTravelOnDuty) {
+                        e.cancel = true;
+                        DevExpress.ui.notify("For current date, please select 'Travel on Duty' reason first.", "warning", 3000);
+                        return;
+                    }
+
+                    // For Travel on Duty on current date, check time constraints
+                    const now = new Date();
+                    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+                    let shiftStartTime = null;
+                    let shiftEndTime = null;
+
+                    if (e.data.shiftTime) {
+                        const shiftParts = e.data.shiftTime.split('-');
+                        if (shiftParts.length === 2) {
+                            const startStr = shiftParts[0].trim();
+                            const startMatch = startStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                            if (startMatch) {
+                                let hours = parseInt(startMatch[1]);
+                                const minutes = parseInt(startMatch[2]);
+                                const period = startMatch[3].toUpperCase();
+
+                                if (period === 'PM' && hours !== 12) hours += 12;
+                                if (period === 'AM' && hours === 12) hours = 0;
+
+                                shiftStartTime = hours * 60 + minutes;
+                            }
+
+                            const endStr = shiftParts[1].trim();
+                            const endMatch = endStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                            if (endMatch) {
+                                let hours = parseInt(endMatch[1]);
+                                const minutes = parseInt(endMatch[2]);
+                                const period = endMatch[3].toUpperCase();
+
+                                if (period === 'PM' && hours !== 12) hours += 12;
+                                if (period === 'AM' && hours === 12) hours = 0;
+
+                                shiftEndTime = hours * 60 + minutes;
+                            }
+                        }
+                    }
+
+                    if (shiftStartTime !== null && shiftEndTime !== null) {
+                        const allowedStartTime = shiftStartTime - 15;
+                        const allowedEndTime = shiftEndTime;
+
+                        if (currentTime < allowedStartTime || currentTime > allowedEndTime) {
+                            e.cancel = true;
+                            DevExpress.ui.notify(
+                                "Travel on Duty request for today can only be submitted from 15 minutes before shift start till shift end time.",
+                                "warning",
+                                4000
+                            );
+                            return;
+                        }
+                    }
                 }
             },
             columns: [
@@ -1429,8 +1864,7 @@
                     allowEditing: false,
                     cellTemplate: function (container, options) {
                         const status = options.data.attendanceStatus?.trim();
-                        let color;
-                        let text;
+                        let color, text;
 
                         if (status === "P") { color = "green"; text = "P"; }
                         else if (status === "HF") { color = "orange"; text = "HF"; }
@@ -1469,63 +1903,76 @@
                     setCellValue: function(rowData, value) {
                         rowData.reasonId = value;
                         const selectedReason = approvalReasons.find(r => r.reasonId === value);
-                        if (selectedReason && selectedReason.reason.toLowerCase() === "other") {
-                            rowData.showRemarkBox = true;
-                        } else {
-                            rowData.showRemarkBox = false;
-                            rowData.remark = null;
-                        }
-                    },
-                    allowEditing: function (rowData) {
-                        const status = rowData.attendanceStatus?.trim().toLowerCase();
-                        const recordDate = new Date(rowData.shiftDate);
-                        const currentDate = new Date();
-                        recordDate.setHours(0, 0, 0, 0);
-                        currentDate.setHours(0, 0, 0, 0);
 
-                        if (recordDate.getTime() === currentDate.getTime()) {
-                            return false;
-                        }
+                        if (selectedReason) {
+                            const reasonText = selectedReason.reason.toLowerCase();
 
-                        return status === "a" || status === "hf";
+                            // If Travel on Duty is selected, auto-set Day Type to Full Day
+                            if (reasonText === "travel on duty") {
+                                rowData.dayType = "Full Day";
+                            }
+                        }
                     }
                 },
                 {
                     dataField: "remark",
                     caption: "Remark",
-                    width: 200,
-                    minWidth: 200,
+                    width: 250,
+                    minWidth: 250,
                     visible: true,
-                    allowEditing: true,
+                    allowEditing: true, // Hamesha editable rakha hai
+
                     editCellTemplate: function(container, options) {
                         const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
-                        const isOther = selectedReason && selectedReason.reason.toLowerCase() === "other";
+                        let placeholder = "Enter remark...";
 
-                        if (isOther) {
-                            $("<input>")
-                                .addClass("dx-texteditor-input")
-                                .attr("placeholder", "Enter remark...")
-                                .val(options.value || "")
-                                .on("change", function(e) {
-                                    options.setValue(e.target.value);
-                                })
-                                .appendTo(container);
-                        } else {
-                            $("<div>")
-                                .text("--")
-                                .css({
-                                    textAlign: "center",
-                                    color: "#999",
-                                    padding: "6px"
-                                })
-                                .appendTo(container);
+                        if (selectedReason) {
+                            const reasonText = selectedReason.reason.toLowerCase();
+
+                            // Placeholder set karen reason ke hisab se
+                            if (reasonText === "client visit") {
+                                placeholder = "Mention the Client Name";
+                            } else if (reasonText === "travel on duty") {
+                                placeholder = "Mention the Travel Location";
+                            } else if (reasonText === "official od") {
+                                placeholder = "Mention the On Duty Purpose (Local)";
+                            } else if (reasonText === "other") {
+                                placeholder = "Mention the Proper Reason";
+                            } else if (reasonText === "training") {
+                                placeholder = "Mention the Training Name";
+                            } else if (reasonText === "working from home/late coming/early going") {
+                                placeholder = "Mention the Approver Name";
+                            } else if (reasonText === "declared customer holiday") {
+                                placeholder = "Mention the Customer Name";
+                            }
                         }
-                    },
-                    cellTemplate: function(container, options) {
-                        const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
-                        const isOther = selectedReason && selectedReason.reason.toLowerCase() === "other";
 
-                        if (isOther && options.data.remark) {
+                        // Input field create karen
+                        const wrapper = $("<div>").css({
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "4px"
+                        });
+
+                        $("<input>")
+                            .addClass("dx-texteditor-input")
+                            .attr("placeholder", placeholder)
+                            .val(options.value || "")
+                            .css({
+                                width: "100%",
+                                padding: "6px",
+                                fontSize: "12px"
+                            })
+                            .on("change", function(e) {
+                                options.setValue(e.target.value);
+                            })
+                            .appendTo(wrapper);
+
+                        wrapper.appendTo(container);
+                    },
+
+                    cellTemplate: function(container, options) {
+                        if (options.data.remark) {
                             $("<div>")
                                 .text(options.data.remark)
                                 .css({
@@ -1568,18 +2015,48 @@
                     calculateDisplayValue: function (rowData) {
                         return rowData.dayType || "--Select--";
                     },
-                    allowEditing: function (rowData) {
-                        const status = rowData.attendanceStatus?.trim().toLowerCase();
-                        const recordDate = new Date(rowData.shiftDate);
+                    allowEditing: function (options) {
+                        const recordDate = new Date(options.data.shiftDate);
                         const currentDate = new Date();
                         recordDate.setHours(0, 0, 0, 0);
                         currentDate.setHours(0, 0, 0, 0);
 
+                        const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
+                        const isTravelOnDuty = selectedReason && selectedReason.reason.toLowerCase() === "travel on duty";
+
+                        // For Travel on Duty, Day Type is not editable (auto-set to Full Day)
+                        if (isTravelOnDuty) {
+                            return false;
+                        }
+
+                        // Current date editing not allowed for Day Type
                         if (recordDate.getTime() === currentDate.getTime()) {
                             return false;
                         }
 
+                        const status = options.data.attendanceStatus?.trim().toLowerCase();
                         return status === "a" || status === "hf";
+                    },
+                    editorOptions: function (options) {
+                        const recordDate = new Date(options.data.shiftDate);
+                        const currentDate = new Date();
+                        recordDate.setHours(0, 0, 0, 0);
+                        currentDate.setHours(0, 0, 0, 0);
+
+                        const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
+                        const isTravelOnDuty = selectedReason && selectedReason.reason.toLowerCase() === "travel on duty";
+
+                        const isCurrentDate = recordDate.getTime() === currentDate.getTime();
+                        const status = options.data.attendanceStatus?.trim().toLowerCase();
+                        const isEditable = status === "a" || status === "hf";
+
+                        return {
+                            showClearButton: true,
+                            disabled: isTravelOnDuty || isCurrentDate || !isEditable
+                        };
+                    },
+                    editing: {
+                        allowUpdating: true
                     }
                 }
             ]
