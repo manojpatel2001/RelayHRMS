@@ -4,6 +4,7 @@ using HRMS_Core.Employee;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Report;
+using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Utility;
 using Microsoft.Data.SqlClient;
@@ -61,7 +62,7 @@ namespace HRMS_Infrastructure.Repository.Employee
             foreach (var id in DeleteRecord.Id)
             {
                 var attendance = await _db.AttendanceRegularization
-                    .FirstOrDefaultAsync(x => x.AttendanceRegularizationId == id );
+                    .FirstOrDefaultAsync(x => x.AttendanceRegularizationId == id);
 
                 if (attendance != null)
                 {
@@ -109,9 +110,9 @@ namespace HRMS_Infrastructure.Repository.Employee
         }
 
 
-        public async Task<bool> Update(AttendanceRegularization Record , int empInOutId)
+        public async Task<bool> Update(AttendanceRegularization Record, int empInOutId)
         {
-            var existingRecord = await _db.EmployeeInOutRecord.SingleOrDefaultAsync(asd => asd.Emp_IO_Id==empInOutId  && asd.Emp_Id == Record.EmpId && asd.For_Date == Record.ForDate);
+            var existingRecord = await _db.EmployeeInOutRecord.SingleOrDefaultAsync(asd => asd.Emp_IO_Id == empInOutId && asd.Emp_Id == Record.EmpId && asd.For_Date == Record.ForDate);
             if (existingRecord == null)
             {
                 return false;
@@ -133,7 +134,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var parameters = new[]
                 {
                     new SqlParameter("@EmpId", EmpId),
-                    new SqlParameter("@ForDate", ForDate),              
+                    new SqlParameter("@ForDate", ForDate),
                 };
 
                 var result = await _db.Set<EmpInOutVM>()
@@ -280,7 +281,7 @@ namespace HRMS_Infrastructure.Repository.Employee
         public async Task<List<AttendanceDetails>> GetAttendanceDetails(EmployeeInOutFilterVM outFilterVM)
         {
             try
-            {          
+            {
                 var monthParam = new SqlParameter("@StartDate", (object?)outFilterVM.StartDate ?? DBNull.Value);
                 var yearParam = new SqlParameter("@EndDate", (object?)outFilterVM.EndDate ?? DBNull.Value);
                 var empCodeParam = new SqlParameter("@EmpId", (object?)outFilterVM.EmpId ?? DBNull.Value);
@@ -373,7 +374,7 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var parameters = new[]
                 {
                     new SqlParameter("@EmpId", EmpId),
-                
+
                 };
 
                 var result = await _db.Set<EMpDetails>()
@@ -388,7 +389,7 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<List<AttendanceCount>> GetEmployeeAttendanceRequestsCountForCurrentMonth(int? EmpId ,int Month ,int Year )
+        public async Task<List<AttendanceCount>> GetEmployeeAttendanceRequestsCountForCurrentMonth(int? EmpId, int Month, int Year)
         {
             try
             {
@@ -409,6 +410,20 @@ namespace HRMS_Infrastructure.Repository.Employee
             catch (Exception)
             {
                 return new List<AttendanceCount>();
+            }
+        }
+
+
+        public async Task<List<LimitedReasonvm>> GetAttendanceReasonsByLimitType()
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                var result = await connection.QueryAsync<LimitedReasonvm>(
+                    "GetAttendanceReasonsByLimitType",
+                    commandType: CommandType.StoredProcedure
+                );
+                return result.AsList();
             }
         }
     }

@@ -5,6 +5,7 @@ using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.Report;
+using HRMS_Core.VM.Salary;
 using HRMS_Utility;
 using Microsoft.SqlServer.Server;
 using System;
@@ -30,6 +31,7 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<APIResponse> Create(AttendanceRegularization model);
         Task<APIResponse> Update(AttendanceRegularization model);
         Task<APIResponse> Delete(DeleteRecordVModel deleteRecord);
-        Task<List<AttendanceDetails>>  GetAttendanceDetails(EmployeeInOutFilterVM outFilterVM);
+        Task<List<AttendanceDetails>> GetAttendanceDetails(EmployeeInOutFilterVM outFilterVM);
+        Task<List<LimitedReasonvm>> GetAttendanceReasonsByLimitType();
     }
 }
