@@ -22,6 +22,7 @@ namespace HRMS_Core.VM.Employee
         public decimal? Duration { get; set; }
         public string? Day { get; set; }
         public string? Reason { get; set; }
+        public string? Remark { get; set; }
         public bool IsApproved { get; set; }
         public bool IsPending { get; set; }
         public bool IsRejected { get; set; }
