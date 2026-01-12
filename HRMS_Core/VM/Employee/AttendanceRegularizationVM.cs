@@ -24,6 +24,7 @@ namespace HRMS_Core.VM.Employee
         public string? Day { get; set; }
      
         public string? Reason { get; set; }
+        public string? Remark { get; set; }
 
         public bool IsApproved { get; set; }
         public bool IsPending { get; set; }
