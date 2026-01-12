@@ -198,25 +198,25 @@ namespace HRMS_API.Controllers.Salary
 
 
         //        var result = await _unitOfWork.LoanApplicationRepository.ApprovalLoan(model);
-        //        if (result.isSuccess)
+        //        if (isSuccess ==!true)
         //        {
         //            var approval = new ApprovalRequestLevelActionPara
         //            {
         //                ApprovalRequestLevelId = model.ApprovalRequestLevelId,
         //                ApprovalRequestId = model.ApprovalRequestId,
         //                StatusId = model.ProbationStatusId,
-        //                Remarks = model.RemarksOfApprover == null ? "N/A" : model.RemarksOfApprover,
-        //                ActionBy = Convert.ToInt32(model.CreatedBy)
+        //                //Remarks = model.RemarksOfApprover == null ? "N/A" : model.RemarksOfApprover,
+        //                ActionBy = Convert.ToInt32(model.UpdatedBy)
         //            };
 
         //            var checkApproval = await _unitOfWork.ApprovalManagementRepository.ApprovalRequestLevelAction(approval);
         //            if (result.Success > 0)
-        //        {
-        //            return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
-        //        }
+        //            {
+        //                return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+        //            }
 
-        //        return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
-        //    }
+        //            return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+        //        }
         //    catch (Exception err)
         //    {
         //        return new APIResponse
@@ -229,7 +229,7 @@ namespace HRMS_API.Controllers.Salary
         //}
 
 
-   
+
 
         [HttpDelete("Delete")]
         public async Task<APIResponse> Delete([FromBody] DeleteRecordVModel DeleteRecord)
