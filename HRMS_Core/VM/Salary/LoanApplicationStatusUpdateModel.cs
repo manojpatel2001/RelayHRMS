@@ -17,9 +17,10 @@ namespace HRMS_Core.VM.Salary
 
         public int ApproverEmployeeId { get; set; }
 
-        public string Status { get; set; } // e.g., "Approved", "Rejected", "Pending"
-
+        public int StatusId { get; set; }
+        public string? Status { get; set; } // e.g., "Approved", "Rejected", "Pending"
         public int LevelNo { get; set; }
+        public string? Remarks { get; set; }
 
         public int UpdatedBy { get; set; }
 

@@ -4,6 +4,7 @@ using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.Salary;
+using HRMS_Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,5 +25,6 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<LoanApplicationViewModel> GetLoanDetailsById(int LoanId);
         Task<EmployeeDetailsloanViewModel> GetEmployeeDetailsByEmpId(int EmployeeId);
         Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord);
+        Task<APIResponse> GetAllLoanStatus();
     }
 }

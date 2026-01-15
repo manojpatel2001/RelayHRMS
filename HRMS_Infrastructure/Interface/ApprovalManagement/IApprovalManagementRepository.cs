@@ -38,6 +38,7 @@ namespace HRMS_Infrastructure.Interface.ApprovalManagement
         Task<APIResponse> AutomateLoanEndApprovalRequests(int approvalMasterId);
         Task<EscalationReturnPara> EscalatePendingApprovalRequests();
         Task<ApprovalRequestLevelActionVm> ApprovalRequestLevelAction(ApprovalRequestLevelActionPara para);
+        Task<ApprovalRequestLevelActionVm> LoanApprovalRequestLevelAction(ApprovalRequestLevelActionPara para);
         Task<APIResponse> GetPendingApprovalRequests(GetPendingApprovalRequestsPara para);
         Task<APIResponse> GetUpcomingProbationDetails(GetUpcomingProbationDetailsPara para);
        

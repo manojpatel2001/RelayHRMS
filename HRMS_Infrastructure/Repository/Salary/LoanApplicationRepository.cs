@@ -5,6 +5,7 @@ using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Salary;
+using HRMS_Utility;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -251,6 +252,47 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return new VMCommonResult { Id = 0 };
             }
         }
+
+
+        public async Task<APIResponse> GetAllLoanStatus()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var result = await connection.QueryAsync<dynamic>(
+                        sql: "GetAllLoanStatus",
+                        commandType: CommandType.StoredProcedure);
+
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        ResponseMessage = "Probation statuses retrieved successfully.",
+                        Data = result
+                    };
+                }
+            }
+            catch (SqlException sqlEx)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Database error: {sqlEx.Message}",
+                    Data = null
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"Error retrieving probation statuses: {ex.Message}",
+                    Data = null
+                };
+            }
+        }
+
 
         public async Task<SP_Response> ApprovalLoan(LoanApplicationStatusUpdateModel model)
         {
