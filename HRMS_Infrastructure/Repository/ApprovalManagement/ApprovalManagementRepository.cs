@@ -690,6 +690,52 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                 };
             }
         }
+        public async Task<ApprovalRequestLevelActionVm> LoanApprovalRequestLevelAction(ApprovalRequestLevelActionPara para)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@ApprovalRequestId", para.ApprovalRequestId);
+                    parameters.Add("@ApprovalRequestLevelId", para.ApprovalRequestLevelId);
+                    parameters.Add("@StatusId", para.StatusId);
+                    parameters.Add("@ActionBy", para.ActionBy);
+                    parameters.Add("@Remarks", para.Remarks);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 500);
+                    parameters.Add("@IsAllLevelsCompleted", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+
+                    await connection.ExecuteAsync(
+                        "sp_LoanApprovalRequestLevel_Action",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    // Nullable types use karein aur null checks lagayein
+                    var success = parameters.Get<bool?>("@Success") ?? false;
+                    var responseMessage = parameters.Get<string>("@ResponseMessage") ?? "No response message.";
+                    var isAllLevelsCompleted = parameters.Get<bool?>("@IsAllLevelsCompleted") ?? false;
+
+                    return new ApprovalRequestLevelActionVm
+                    {
+                        IsAllLevelsCompleted = isAllLevelsCompleted,
+                        IsSuccess = success,
+                        ResponseMessage = responseMessage
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new ApprovalRequestLevelActionVm
+                {
+                    IsAllLevelsCompleted = false,
+                    IsSuccess = false,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
 
 
         public async Task<APIResponse> GetPendingApprovalRequests(GetPendingApprovalRequestsPara para)

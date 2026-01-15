@@ -145,7 +145,10 @@ namespace HRMS_API.Controllers.Salary
                 var result = await _unitOfWork.LoanApplicationRepository.CreateLoanApplication(model);
                 if (result.Success > 0)
                 {
+                    var check = await _unitOfWork.ApprovalManagementRepository
+                       .AutomateLoanEndApprovalRequests(4);
                     return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+           
                 }
 
                 return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
@@ -186,50 +189,66 @@ namespace HRMS_API.Controllers.Salary
             }
         }
 
-        //[HttpPut("LoanApproval")]
-        //public async Task<APIResponse> LoanApproval([FromBody] LoanApplicationStatusUpdateModel model)
-        //{
-        //    try
-        //    {
-        //        if (model == null)
-        //        {
-        //            return new APIResponse() { isSuccess = false, ResponseMessage = "Loan details cannot be null" };
-        //        }
+        [HttpPut("LoanApproval")]
+        public async Task<APIResponse> LoanApproval([FromBody] LoanApplicationStatusUpdateModel model)
+        {
+            try
+            {
+                // Validate input
+                if (model == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Loan details cannot be null"
+                    };
+                }
 
+                // Step 1: Update loan approval status
+                var loanApprovalResult = await _unitOfWork.LoanApplicationRepository.ApprovalLoan(model);
 
-        //        var result = await _unitOfWork.LoanApplicationRepository.ApprovalLoan(model);
-        //        if (isSuccess ==!true)
-        //        {
-        //            var approval = new ApprovalRequestLevelActionPara
-        //            {
-        //                ApprovalRequestLevelId = model.ApprovalRequestLevelId,
-        //                ApprovalRequestId = model.ApprovalRequestId,
-        //                StatusId = model.ProbationStatusId,
-        //                //Remarks = model.RemarksOfApprover == null ? "N/A" : model.RemarksOfApprover,
-        //                ActionBy = Convert.ToInt32(model.UpdatedBy)
-        //            };
+                // Step 2: Prepare approval request action (regardless of loan approval result)
+                var approvalAction = new ApprovalRequestLevelActionPara
+                {
+                    ApprovalRequestLevelId = model.ApprovalRequestLevelId,
+                    ApprovalRequestId = model.ApprovalRequestId,
+                    StatusId = model.StatusId,
+                    Remarks = model.Remarks ?? "N/A",
+                    ActionBy = Convert.ToInt32(model.UpdatedBy)
+                };
 
-        //            var checkApproval = await _unitOfWork.ApprovalManagementRepository.ApprovalRequestLevelAction(approval);
-        //            if (result.Success > 0)
-        //            {
-        //                return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
-        //            }
+                // Step 3: Log approval action
+                var approvalActionResult = await _unitOfWork.ApprovalManagementRepository.LoanApprovalRequestLevelAction(approvalAction);
 
-        //            return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
-        //        }
-        //    catch (Exception err)
-        //    {
-        //        return new APIResponse
-        //        {
-        //            isSuccess = false,
-        //            Data = err.Message,
-        //            ResponseMessage = "Unable to update record, Please try again later!"
-        //        };
-        //    }
-        //}
+                // Step 4: Check if loan approval was successful
+                if (loanApprovalResult.Success <= 0)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = loanApprovalResult?.ResponseMessage ?? "Failed to update loan approval status"
+                    };
+                }
 
-
-
+                // Step 5: Return success response
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    ResponseMessage = loanApprovalResult.ResponseMessage
+                };
+            }
+            catch (Exception err)
+            {
+                // Log the error (if logging is available)
+                // Example: _logger.LogError(err, "Error in LoanApproval");
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to update record. Please try again later!"
+                };
+            }
+        }
 
         [HttpDelete("Delete")]
         public async Task<APIResponse> Delete([FromBody] DeleteRecordVModel DeleteRecord)
@@ -257,6 +276,24 @@ namespace HRMS_API.Controllers.Salary
             }
         }
 
+
+        [HttpGet("GetAllLoanStatus")]
+        public async Task<APIResponse> GetAllLoanStatus()
+        {
+            try
+            {
+                var result = await _unitOfWork.LoanApplicationRepository.GetAllLoanStatus();
+                return result;
+            }
+            catch (Exception)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to fetch probation status ."
+                };
+            }
+        }
 
     }
 }

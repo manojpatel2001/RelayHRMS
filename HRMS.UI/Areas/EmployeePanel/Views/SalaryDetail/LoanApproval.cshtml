@@ -37,15 +37,147 @@
     </div>
 </div>
 
+<!-- Modal for Loan Status Update -->
+<div class="modal fade" id="loanStatusModal" tabindex="-1" role="dialog" aria-labelledby="loanStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loanStatusModalLabel">Update Loan Status</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="loanStatusForm">
+                    <div class="form-group">
+                        <label for="loanStatus">Loan Status <span class="text-danger">*</span></label>
+                        <select class="form-control" id="loanStatus" required>
+                            <option value="">Select Status</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="remarks">Remarks <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="remarks" rows="3" placeholder="Enter your remarks" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="confirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Bootstrap Icons CDN in head section if not already included -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script>
     const EmployeeId = localStorage.getItem("EmployeeId");
     var Token = localStorage.getItem("authToken");
     var gridInstance;
+    var currentLoanData = null;
+    var loanStatusList = [];
 
     $(() => {
-        PendingLoanApplicationsDataTable();
+        // Load loan statuses first, then load the grid
+        loadLoanStatuses();
+
+        // Confirm button click handler
+        $('#confirmBtn').on('click', function() {
+            const statusId = $('#loanStatus').val();
+            const remarks = $('#remarks').val().trim();
+
+            if (!statusId) {
+                alert('Please select a loan status');
+                return;
+            }
+
+            if (!remarks) {
+                alert('Please enter remarks');
+                return;
+            }
+
+            if (currentLoanData) {
+                // Find the selected status object
+                const selectedStatus = loanStatusList.find(s => {
+                    const id = s.probationStatusId || s.ProbationStatusId ||
+                              s.statusId || s.StatusId ||
+                              s.id || s.Id;
+                    return id == statusId;
+                });
+
+                let statusName = '';
+                if (selectedStatus) {
+                    statusName = selectedStatus.probationStatusName || selectedStatus.ProbationStatusName ||
+                                selectedStatus.statusName || selectedStatus.StatusName ||
+                                selectedStatus.name || selectedStatus.Name || '';
+                }
+
+                updateLoanApplication(currentLoanData, statusId, statusName, remarks);
+            }
+        });
+
+        // Reset form when modal is closed
+        $('#loanStatusModal').on('hidden.bs.modal', function () {
+            $('#loanStatusForm')[0].reset();
+            currentLoanData = null;
+        });
     });
+
+    function loadLoanStatuses() {
+        $.ajax({
+            type: "GET",
+            url: '@baseUrl/LoanApplicationAPI/GetAllLoanStatus',
+            headers: {
+                'Authorization': 'Bearer ' + Token,
+                'Content-Type': 'application/json'
+            },
+            success: function (response) {
+                console.log("Loan Status API Response:", response);
+
+                if (response.isSuccess && response.data) {
+                    loanStatusList = response.data;
+
+                    // Log first item to check property names
+                    if (loanStatusList.length > 0) {
+                        console.log("First status object:", loanStatusList[0]);
+                        console.log("Available properties:", Object.keys(loanStatusList[0]));
+                    }
+
+                    // Populate dropdown
+                    const dropdown = $('#loanStatus');
+                    dropdown.empty();
+                    dropdown.append('<option value="">Select Status</option>');
+
+                    loanStatusList.forEach(function(status) {
+                        // Try different possible property name combinations
+                        const statusId = status.probationStatusId || status.ProbationStatusId ||
+                                       status.statusId || status.StatusId ||
+                                       status.id || status.Id;
+                        const statusName = status.probationStatusName || status.ProbationStatusName ||
+                                         status.statusName || status.StatusName ||
+                                         status.name || status.Name;
+
+                        console.log(`Adding status - ID: ${statusId}, Name: ${statusName}`);
+                        dropdown.append(`<option value="${statusId}">${statusName}</option>`);
+                    });
+
+                    // Load grid after statuses are loaded
+                    PendingLoanApplicationsDataTable();
+                } else {
+                    console.error("Failed to load loan statuses");
+                    alert("Failed to load loan statuses. Please refresh the page.");
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error loading loan statuses:", error);
+                console.error("Response:", xhr.responseText);
+                alert("Error loading loan statuses. Please refresh the page.");
+            }
+        });
+    }
 
     function PendingLoanApplicationsDataTable() {
         try {
@@ -103,7 +235,7 @@
                             {
                                 dataField: "loanApplicationID",
                                 caption: "loanApplicationID",
-								visible: false
+                                visible: false
                             },
                             {
                                 dataField: "assignedOn",
@@ -125,25 +257,17 @@
                                 alignment: 'center',
                                 dataType: 'string',
                                 type: 'buttons',
-                                width: '200px',
+                                width: '100px',
                                 cellTemplate: function (container, options) {
-                                    var actionContainer = $('<div/>').addClass('d-flex gap-2 justify-content-center').appendTo(container);
+                                    var actionContainer = $('<div/>').addClass('d-flex justify-content-center').appendTo(container);
 
-                                    // Approve Button
+                                    // Edit Icon Button with Bootstrap Icons
                                     $('<button/>')
-                                        .addClass('btn btn-success btn-sm')
-                                        .html('<i class="bi bi-check-circle"></i> Approve')
+                                        .addClass('btn btn-primary btn-sm')
+                                        .attr('title', 'Update Status')
+                                        .html('<i class="bi bi-pencil-square"></i>')
                                         .on('click', function () {
-                                            updateLoanApplication(options.data, 'Approved');
-                                        })
-                                        .appendTo(actionContainer);
-
-                                    // Reject Button
-                                    $('<button/>')
-                                        .addClass('btn btn-danger btn-sm')
-                                        .html('<i class="bi bi-x-circle"></i> Reject')
-                                        .on('click', function () {
-                                            updateLoanApplication(options.data, 'Rejected');
+                                            openStatusModal(options.data);
                                         })
                                         .appendTo(actionContainer);
                                 }
@@ -301,15 +425,14 @@
         }
     }
 
-    function updateLoanApplication(data, action) {
-        // Confirm action
-        const confirmMessage = action === 'Approved'
-            ? 'Are you sure you want to approve this loan application?'
-            : 'Are you sure you want to reject this loan application?';
+    function openStatusModal(data) {
+        currentLoanData = data;
+        $('#loanStatusModal').modal('show');
+    }
 
-        if (!confirm(confirmMessage)) {
-            return;
-        }
+    function updateLoanApplication(data, statusId, statusName, remarks) {
+        // Close modal
+        $('#loanStatusModal').modal('hide');
 
         // Show loader
         $('#grid-loader').addClass('d-flex').show();
@@ -319,14 +442,18 @@
             LoanApplicationId: data.loanApplicationID,
             ApprovalRequestLevelId: data.currentApprovalRequestLevelId,
             ApprovalRequestId: data.approvalRequestId,
-            ApproverEmployeeId: EmployeeId,
-            Status: action,
+            ApproverEmployeeId: parseInt(EmployeeId),
+            StatusId: parseInt(statusId),
+            Status: statusName,
             LevelNo: data.currentLevelNo,
-            UpdatedBy:EmployeeId
+            UpdatedBy: parseInt(EmployeeId),
+            Remarks: remarks
         };
 
+        console.log("Update data being sent:", updateData);
+
         $.ajax({
-            type: "POST",
+            type: "PUT",
             url: '@baseUrl/LoanApplicationAPI/LoanApproval',
             headers: {
                 'Authorization': 'Bearer ' + Token,
@@ -336,17 +463,18 @@
             success: function (response) {
                 $('#grid-loader').removeClass('d-flex').hide();
 
-                if (response.success) {
-                    alert(`Loan application ${action.toLowerCase()} successfully!`);
+                if (response.isSuccess) {
+                    alert(`Loan application ${statusName.toLowerCase()} successfully!`);
                     // Refresh the grid
                     PendingLoanApplicationsDataTable();
                 } else {
-                    alert('Error: ' + (response.message || 'Failed to update loan application'));
+                    alert('Error: ' + (response.responseMessage || 'Failed to update loan application'));
                 }
             },
             error: function (xhr, status, error) {
                 $('#grid-loader').removeClass('d-flex').hide();
                 console.error("Error updating loan application:", error);
+                console.error("Response:", xhr.responseText);
                 alert("Error updating loan application. Please try again.");
             }
         });
@@ -383,5 +511,35 @@
     .btn-sm {
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
+    }
+
+    .modal-header {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .modal-title {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .text-danger {
+        color: #dc3545;
+    }
+
+    .modal-footer {
+        border-top: 2px solid #dee2e6;
+    }
+
+    /* Ensure Bootstrap Icons are properly styled */
+    .btn i.bi {
+        font-size: 1rem;
+        line-height: 1;
     }
 </style>
