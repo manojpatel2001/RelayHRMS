@@ -93,5 +93,23 @@ namespace HRMS_API.Controllers.ApprovalManagement
                 };
             }
         }
+       
+        [HttpGet("GetEscalationDueList/{EmployeeId}")]
+        public async Task<APIResponse> GetEscalationDueList(int EmployeeId)
+        {
+            try
+            {
+                var result = await _unitOfWork.ApprovalMasterRepository.GetEscalationDueList(EmployeeId);
+                return result;
+            }
+            catch (Exception)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to fetch escalation."
+                };
+            }
+        }
     }
 }
