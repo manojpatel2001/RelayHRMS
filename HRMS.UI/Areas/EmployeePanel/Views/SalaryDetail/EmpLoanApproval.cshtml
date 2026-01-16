@@ -1,7 +1,7 @@
 ﻿@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Employee Loan Application";
-    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
     var uri = new Uri(baseUrl);
     string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
@@ -93,14 +93,34 @@
             outline: none;
             box-shadow: none;
         }
+
+    #loanGrid {
+        width: 100% !important;
+        max-width: 100%;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+        overflow-x: hidden;
+    }
+
+    .container {
+        max-width: 100% !important;
+        padding: 0 15px;
+    }
+
+    .dx-datagrid {
+        width: 100% !important;
+    }
 </style>
 
 <div class="search-panel-wrapper">
     <div class="search-panel-container">
         <div class="search-panel-row">
-            <div class="search-heading">Loan Search Panel</div>
+            <div class="search-heading">Loan Status Search Panel</div>
             <div class="ms-auto">
-                <a href="@Url.Action("AddLoan", "Loan", new { area = "EmployeePanel" })" class="btn btn-primary btn-sm">Add</a>
+                <a href="@Url.Action("EmpLoanApplication", "SalaryDetail", new { area = "EmployeePanel" })" class="btn btn-primary btn-sm">Add</a>
             </div>
         </div>
     </div>
@@ -111,16 +131,15 @@
         <div class="col-md-4 d-flex align-items-center">
             <label for="Loantypeid" class="form-label mb-0 me-2" style="width: 120px;">Loan Type:</label>
             <select class="form-control form-control-sm" id="Loantypeid">
-                <option value="0">-- Select --</option>           
+                <option value="0">-- Select --</option>
             </select>
         </div>
         <div class="col-md-4 d-flex align-items-center">
             <label for="input1" class="form-label mb-0 me-2" style="width: 120px;">Search For:</label>
-            <input type="text" class="form-control form-control-sm" id="input1" placeholder="Search Employee code or Name" disabled>
+            <input type="text" class="form-control form-control-sm" id="input1" placeholder="Search Employee Code or Name">
         </div>
     </div>
 
-    <!-- Status & Buttons -->
     <div class="row justify-content-center mb-3">
         <div class="col d-flex align-items-center justify-content-center flex-wrap gap-3">
             <button type="button" class="search-panel-container search-heading btn-sm" id="gobutoonid">GO</button>
@@ -139,7 +158,7 @@
 
 <div class="form-section">
     <div class="container mt-3">
-        <div class="d-flex justify-content-end mb-2 align-items-center" id="actionButtons" style="display: none;">
+        <div class="d-flex justify-content-end mb-2 align-items-center gap-3" id="actionButtons" style="display: none;">
             <div class="form-check form-check-inline">
                 <input class="form-check-input" type="radio" name="loanStatus" id="pendingloanid" value="Pending" checked>
                 <label class="form-check-label" for="pendingloanid">Pending</label>
@@ -155,19 +174,18 @@
     </div>
 </div>
 
-<!-- Script -->
 <script>
     const Empid = parseInt(localStorage.getItem("EmployeeId"));
     const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany || '{}');
     const Compid = parseInt(companyDetails.CompanyId);
     let selectedKeys = [];
+    var baseUrl = '@baseUrl';
 
     $(document).ready(function () {
-        fetchLoanData();
         loadLoanTypeOptions();
+        fetchLoanData();
 
-        // Trigger on GO button
         $('#gobutoonid').on('click', function () {
             fetchLoanData();
         });
@@ -180,56 +198,44 @@
             fetchLoanData();
         });
 
-        // Trigger on radio button change
         $('input[name="loanStatus"]').on('change', function () {
             fetchLoanData();
         });
 
         $('#Loantypeid').change(function () {
-            $('#input1').prop('disabled', $(this).val() === '0');
+            // No auto-fill needed, SearchFor is independent
         });
 
-        // Clear button
         $('#clearbuttonid').on('click', function () {
             $('#Loantypeid').val('0');
-            $('#input1').val('').prop('disabled', true);
+            $('#input1').val('');
             $('#pendingloanid').prop('checked', true);
             selectedKeys = [];
-            $('#deleteButton').prop('disabled', true);
+            $('#actionButtons').hide();
             fetchLoanData();
         });
     });
 
     function loadLoanTypeOptions() {
         $.ajax({
-            url: apiBase + '/LoanApplicationAPI/GetLoanNamesForDropdown',
+            url: baseUrl + '/LoanApplicationAPI/GetLoanNamesForDropdown',
             type: "GET",
             headers: {
                 'Content-Type': 'application/json'
             },
             success: function (res) {
-                console.log('Loan Type API Response:', res);
                 const dropdown = $('#Loantypeid');
                 dropdown.empty().append(`<option value="0">-- Select --</option>`);
 
                 if (res.isSuccess && res.data && res.data.length > 0) {
-                    $.each(res.data, function (i, item) {           
+                    $.each(res.data, function (i, item) {
                         const loanTypeId = item.loantypeid || item.loanTypeId || item.LoanTypeId || item.loanid || item.Loanid || item.LoanId;
                         const loanName = item.loanName || item.LoanName;
                         dropdown.append(`<option value="${loanTypeId}">${loanName}</option>`);
                     });
-                    console.log('Loaded', res.data.length, 'loan types');
-                } else {
-                    console.warn('No loan types found in API response');
                 }
             },
             error: function (xhr, status, error) {
-                console.error("Failed to load loan type options.");
-                console.error("Status:", status);
-                console.error("Error:", error);
-                console.error("Response:", xhr.responseText);
-
-                // Show user-friendly error
                 Swal.fire({
                     title: "Error",
                     text: "Failed to load loan types. Please refresh the page.",
@@ -238,53 +244,13 @@
             }
         });
     }
+
     function formatDate(dateString) {
         const date = new Date(dateString);
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
         return `${day}-${month}-${year}`;
-    }
-
-    // Main AJAX function
-    function fetchLoanData() {
-        if ($("#loanGrid").data("dxDataGrid")) {
-            $("#loanGrid").dxDataGrid("dispose");
-            $("#loanGrid").empty();
-        }
-
-        const searchFor = $('#input1').val().trim();
-        const loanTypeRaw = $('#Loantypeid').val();
-        let filter = {
-            LoanType: loanTypeRaw === "0" || !loanTypeRaw ? 0 : parseInt(loanTypeRaw),
-            Status: $('input[name="loanStatus"]:checked').val() || null,
-            SearchFor: searchFor,
-            Emplooyeid: Empid,
-            CompId: Compid
-        };
-
-        $.ajax({
-            url: apiBase + '/LoanApplicationAPI/GetLoanApprovalEss',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(filter),
-            success: function (data) {
-                if (data.isSuccess && data.data && data.data.length > 0) {
-                    allData = data.data;
-                    currentPage = 1;
-                    renderTable(allData);
-                } else {
-                    $('#loanGrid').html('<div class="text-center text-muted">No records found.</div>');
-                    $('#recordSummary').text('');
-                    $('#actionButtons').hide();
-                    $('#deleteButton').prop('disabled', true);
-                }
-            },
-            error: function (xhr) {
-                console.error("AJAX error:", xhr);
-                Swal.fire("❌ Server Error", xhr.responseText || "Something went wrong", "error");
-            }
-        });
     }
 
     $('#btnDelete').on('click', function () {
@@ -296,7 +262,6 @@
             return;
         }
 
-        // Check if any selected record is not Pending
         const nonPendingRecords = selectedRows.filter(row => row.loanStatus !== "Pending");
 
         if (nonPendingRecords.length > 0) {
@@ -315,7 +280,7 @@
         };
 
         $.ajax({
-            url: apiBase + "/LoanApplicationAPI/Delete",
+            url: baseUrl + "/LoanApplicationAPI/Delete",
             type: 'DELETE',
             contentType: 'application/json',
             data: JSON.stringify(deletePayload),
@@ -327,10 +292,8 @@
                         icon: "success",
                         timer: 2000
                     }).then(() => {
-                        // Clear selection and refresh
                         grid.clearSelection();
                         selectedKeys = [];
-                        $('#actionButtons').hide();
                         fetchLoanData();
                     });
                 } else {
@@ -339,60 +302,215 @@
             },
             error: function (xhr) {
                 Swal.fire("Error", "Something went wrong during deletion.", "error");
-                console.error("Delete error:", xhr);
             }
         });
     });
+
+    function fetchLoanData() {
+        const searchFor = $('#input1').val().trim();
+        const selectedLoanType = $('#Loantypeid option:selected').text();
+        const loanTypeValue = $('#Loantypeid').val();
+        const selectedStatus = $('input[name="loanStatus"]:checked').val();
+
+        let loanType = null;
+        if (loanTypeValue && loanTypeValue !== "0") {
+            loanType = selectedLoanType;
+        }
+
+        let status = null;
+        if (selectedStatus === "Pending") {
+            status = "isPending";
+        } else if (selectedStatus === "ApprovedRejected") {
+            status = "isApprovedReject";
+        }
+
+        let filter = {
+            LoanType: loanType,
+            Status: status,
+            SearchFor: searchFor || null,
+            Emplooyeid: Empid,
+            CompId: Compid
+        };
+
+        $.ajax({
+            url: baseUrl + '/LoanApplicationAPI/GetLoanApprovalEss',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(filter),
+            success: function (response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    let filteredData = response.data;
+
+                    if (selectedStatus === "Pending") {
+                        filteredData = response.data.filter(item =>
+                            item.loanStatus === "Pending" || item.isPending === true
+                        );
+                    } else if (selectedStatus === "ApprovedRejected") {
+                        filteredData = response.data.filter(item =>
+                            item.loanStatus === "Approved" ||
+                            item.loanStatus === "Rejected" ||
+                            item.isApproved === true ||
+                            item.isRejected === true
+                        );
+                    }
+
+                    if (filteredData.length > 0) {
+                        if ($("#loanGrid").data("dxDataGrid")) {
+                            $("#loanGrid").dxDataGrid("dispose");
+                            $("#loanGrid").empty();
+                        }
+
+                        renderTable(filteredData);
+                        $('#actionButtons').show();
+                        $('#recordSummary').text(`Total Records: ${filteredData.length}`);
+                    } else {
+                        if ($("#loanGrid").data("dxDataGrid")) {
+                            $("#loanGrid").dxDataGrid("dispose");
+                        }
+
+                        $('#loanGrid').html('<div class="text-center text-muted p-3">No records found for selected status.</div>');
+                        $('#recordSummary').text('');
+                        $('#actionButtons').hide();
+                    }
+                } else {
+                    if ($("#loanGrid").data("dxDataGrid")) {
+                        $("#loanGrid").dxDataGrid("dispose");
+                    }
+
+                    $('#loanGrid').html('<div class="text-center text-muted p-3">No records found.</div>');
+                    $('#recordSummary').text('');
+                    $('#actionButtons').hide();
+                }
+            },
+            error: function (xhr, status, error) {
+                Swal.fire({
+                    title: "❌ Server Error",
+                    text: xhr.responseText || "Something went wrong",
+                    icon: "error"
+                });
+            }
+        });
+    }
 
     function renderTable(data) {
         $("#loanGrid").dxDataGrid({
             dataSource: data,
             keyExpr: "loanApplicationId",
             showBorders: true,
-            columnAutoWidth: true,
-            height: 400,
+            columnAutoWidth: false,
+            wordWrapEnabled: true,
+            showColumnLines: true,
+            showRowLines: true,
+            rowAlternationEnabled: true,
+            hoverStateEnabled: true,
+            width: '100%',
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
-            paging: { enabled: false },
+            paging: {
+                enabled: true,
+                pageSize: 10
+            },
+            pager: {
+                visible: true,
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 20, 50],
+                showInfo: true
+            },
             scrolling: {
                 mode: "standard",
-                useNative: true,
-                showScrollbar: "always"
+                useNative: false,
+                showScrollbar: "onHover",
+                columnRenderingMode: "standard"
             },
             onSelectionChanged: function (e) {
                 selectedKeys = e.selectedRowKeys;
-                $("#actionButtons").show();
-                $("#deleteButton").prop('disabled', selectedKeys.length === 0);
             },
             columns: [
-                { dataField: "loanApplicationId", caption: "Application Id", width: 80, cssClass: "text-center-cell", visible: false },
-                { dataField: "employeeName", caption: "Employee Name", cssClass: "text-center-cell" },
-                { dataField: "loanTypeName", caption: "Loan Type", cssClass: "text-center-cell" },
-                { dataField: "loanAmount", caption: "Loan Amount", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
-                { dataField: "installmentAmount", caption: "Installment Amount", cssClass: "text-center-cell", format: { type: "fixedPoint", precision: 2 } },
-                { dataField: "numberOfInstallments", caption: "Installments", cssClass: "text-center-cell" },
-                { dataField: "applicationDate", caption: "Application Date", dataType: "date", format: "dd/MM/yyyy", cssClass: "text-center-cell" },
-                { dataField: "reason", caption: "Reason", cssClass: "text-center-cell" },
-                { dataField: "loanStatus", caption: "Status", cssClass: "text-center-cell" },
                 {
-                    dataField: "approvedBy",
+                    dataField: "loanApplicationId",
+                    caption: "Application Id",
+                    width: 100,
+                    alignment: "center",
+                    visible: false
+                },
+                {
+                    dataField: "employeeName",
+                    caption: "Employee Name",
+                    alignment: "left",
+                    width: 180
+                },
+                {
+                    dataField: "loanTypeName",
+                    caption: "Loan Type",
+                    alignment: "left",
+                    width: 150
+                },
+                {
+                    dataField: "loanAmount",
+                    caption: "Loan Amount",
+                    alignment: "right",
+                    dataType: "number",
+                    format: { type: "fixedPoint", precision: 2 },
+                    width: 130
+                },
+                {
+                    dataField: "installmentAmount",
+                    caption: "Installment Amount",
+                    alignment: "right",
+                    dataType: "number",
+                    format: { type: "fixedPoint", precision: 2 },
+                    width: 160
+                },
+                {
+                    dataField: "numberOfInstallments",
+                    caption: "Installments",
+                    alignment: "center",
+                    width: 120
+                },
+                {
+                    dataField: "applicationDate",
+                    caption: "Application Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    alignment: "center",
+                    width: 150
+                },
+                {
+                    dataField: "loanRequireDate",
+                    caption: "Loan Require Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    alignment: "center",
+                    width: 150
+                },
+                {
+                    dataField: "reason",
+                    caption: "Reason",
+                    alignment: "left",
+                    width: 200
+                },
+                {
+                    dataField: "loanStatus",
+                    caption: "Status",
+                    alignment: "center",
+                    width: 120
+                },
+                {
+                    dataField: "UpdatedBy",
                     caption: "Approved By",
-                    width: 120,
-                    cssClass: "text-center-cell",
+                    width: 150,
+                    alignment: "center",
                     calculateCellValue: function (rowData) {
-                        return rowData.approvedBy ? rowData.approvedBy : "-";
+                        return rowData.approvedBy || "-";
                     }
                 },
                 {
-                    dataField: "approvedDate",
+                    dataField: "UpdatedDate",
                     caption: "Approved Date",
-                    dataType: "date",
-                    format: "dd/MM/yyyy",
-                    width: "10%",
-                    minWidth: 100,
-                    cssClass: "text-center-cell",
+                    width: 150,
+                    alignment: "center",
                     calculateCellValue: function (rowData) {
                         if (!rowData.approvedDate) return "-";
                         const date = new Date(rowData.approvedDate);
