@@ -8,10 +8,10 @@ namespace HRMS_Core.VM.Salary
 {
     public class LoanApprovalSearchViewModel
     {
-        public int EmpId { get; set; }
-        public int CompanyId { get; set; }
-        public string? SearchType { get; set; } // 'LoanName', 'LoanStatus'
-        public string? SearchFor { get; set; }  // e.g., 'Home Loan'
-        public string? LoanStatus { get; set; }
+        public string? LoanType { get; set; }      // Loan Name for filtering
+        public string? Status { get; set; }        // 'isPending' or 'isApprovedReject'
+        public string? SearchFor { get; set; }     // Employee Code or Employee Name
+        public int Emplooyeid { get; set; }        // Employee ID
+        public int CompId { get; set; }
     }
 }

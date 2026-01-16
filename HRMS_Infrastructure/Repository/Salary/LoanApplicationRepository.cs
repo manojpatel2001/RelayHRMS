@@ -188,12 +188,12 @@ namespace HRMS_Infrastructure.Repository.Salary
             using (IDbConnection db = new SqlConnection(_connectionString))
             {
                 var parameters = new DynamicParameters();
-                parameters.Add("@EmpId", model.EmpId);
-                parameters.Add("@CompanyId", model.CompanyId);
-                parameters.Add("@SearchType", model.SearchType);
+          
+                parameters.Add("@LoanType", model.LoanType);
+                parameters.Add("@Status", model.Status);
                 parameters.Add("@SearchFor", model.SearchFor);
-                parameters.Add("@LoanStatus", model.LoanStatus);
-
+                parameters.Add("@Emplooyeid", model.Emplooyeid);
+                parameters.Add("@CompId", model.CompId);
                 var results = await db.QueryAsync<LoanApplicationResult>(
                     "[dbo].[GetLoanApprovalEss]",
                     parameters,

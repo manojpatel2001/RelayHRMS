@@ -145,8 +145,8 @@ namespace HRMS_API.Controllers.Salary
                 var result = await _unitOfWork.LoanApplicationRepository.CreateLoanApplication(model);
                 if (result.Success > 0)
                 {
-                    var check = await _unitOfWork.ApprovalManagementRepository
-                       .AutomateLoanEndApprovalRequests(4);
+                    //var check = await _unitOfWork.ApprovalManagementRepository
+                    //   .AutomateLoanEndApprovalRequests(4);
                     return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
            
                 }
