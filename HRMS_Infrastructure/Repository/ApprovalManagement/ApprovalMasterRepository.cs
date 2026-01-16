@@ -205,5 +205,49 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
             }
         }
 
+        public async Task<APIResponse> GetEscalationDueList(int EmployeeId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var parameters = new DynamicParameters();
+
+                    parameters.Add("@EmployeeId", EmployeeId);
+                    var result = await connection.QueryAsync<dynamic>(
+                        sql: "GetEscalationDueList",
+                        parameters,
+                        commandType: CommandType.StoredProcedure);
+
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        ResponseMessage = "Escalation List retrieved successfully.",
+                        Data = result
+                    };
+                }
+            }
+            catch (SqlException sqlEx)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Database error: " + sqlEx.Message,
+                    Data = null
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Error retrieving ApprovalMasters: " + ex.Message,
+                    Data = null
+                };
+            }
+        }
+
     }
 }
