@@ -15,5 +15,6 @@ namespace HRMS_Core.VM.Employee
         public DateTime? ToDate { get; set; }     
         public string? Status { get; set; } 
         public int? CompanyId { get; set; } 
+        public int? EmployeeId { get; set; } 
     }
 }
