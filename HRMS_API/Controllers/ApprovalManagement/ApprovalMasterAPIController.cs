@@ -94,12 +94,12 @@ namespace HRMS_API.Controllers.ApprovalManagement
             }
         }
        
-        [HttpGet("GetEscalationDueList/{EmployeeId}")]
-        public async Task<APIResponse> GetEscalationDueList(int EmployeeId)
+        [HttpGet("GetEscalationDueList/{CompanyId}")]
+        public async Task<APIResponse> GetEscalationDueList(int CompanyId)
         {
             try
             {
-                var result = await _unitOfWork.ApprovalMasterRepository.GetEscalationDueList(EmployeeId);
+                var result = await _unitOfWork.ApprovalMasterRepository.GetEscalationDueList(CompanyId);
                 return result;
             }
             catch (Exception)

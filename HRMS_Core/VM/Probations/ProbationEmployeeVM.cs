@@ -143,6 +143,8 @@ namespace HRMS_Core.VM.Probations
         public string? ReportingManagerEmail { get; set; }
         public int? CurrentLevelNo { get; set; }
         public string? CurrentApprover { get; set; }
+        public string? RemarksOfApprover { get; set; }
+        public string? ProbationEvaluationDays { get; set; }
         public string? ApprovalHistoryJson { get; set; }
         public List<ApprovalHistoryVM>? ApprovalHistory { get; set; }
 
@@ -159,6 +161,7 @@ namespace HRMS_Core.VM.Probations
 
         public int? HistoryApproverEmployeeId { get; set; }
         public string HistoryApproverName { get; set; }
+        public string HistoryRemarksOfApprover { get; set; }
 
         public DateTime? HistoryAssignedOn { get; set; }
         public DateTime? HistoryEscalatedOn { get; set; }

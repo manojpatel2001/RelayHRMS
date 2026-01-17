@@ -1,12 +1,26 @@
 ﻿
 $(document).ready(async function () {
     var notiEsc = localStorage.getItem('EscalationSummary');
-    if (notiEsc == 'true') {
-        debugger;
+    if (notiEsc == 'true' && localStorage.getItem("EmployeeId")=='14' ) {
         await fetchUpcomingEscalaionProbation();
         
     }
 });
+var companyDetailsESc = JSON.parse(localStorage.getItem('selectedCompany'));
+var CompanyIdEsc = companyDetailsESc.CompanyId;
+
+$("#btnExportEscalation").click(function () {
+    downloadPendingProbationGridExcel();
+})
+
+$("#btnfetchUpcomingEscalaionProbation").click(async function () {
+    if (localStorage.getItem("EmployeeId") === '14') {
+        await fetchUpcomingEscalaionProbation();
+    } else {
+        round_error_noti("You are not authorized to access this report.");
+    }
+});
+
 
 
 async function fetchUpcomingEscalaionProbation() {
@@ -14,14 +28,13 @@ async function fetchUpcomingEscalaionProbation() {
 
         $.ajax({
             type: "GET",
-            url: BaseUrlLayout + '/ApprovalMasterAPI/GetEscalationDueList/' + localStorage.getItem("EmployeeId"),
+            url: BaseUrlLayout + '/ApprovalMasterAPI/GetEscalationDueList/' + CompanyIdEsc,
             contentType: 'application/json',
             
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem("authToken")
             },
             success: function (data) {
-                debugger;
                 if (data.isSuccess) {
                     $('#escalatioModel').modal('show');
                     $("#upEscalationContainer").dxDataGrid({
@@ -53,27 +66,29 @@ async function fetchUpcomingEscalaionProbation() {
                         wordWrapEnabled: false,
                         rowAlternationEnabled: true,
                         showBorders: true,
-                        paging: { pageSize: 10 },
-                        pager: {
-                            showPageSizeSelector: true,
-                            allowedPageSizes: [10, 25, 50, 100]
-                        },
+                        height: 300,
+                        paging: { enabled: false },
                         headerFilter: { visible: false },
                         filterRow: { visible: false, applyFilter: "auto" },
                         allowColumnResizing: false,
                         groupPanel: { visible: false },
                         searchPanel: {
-                            visible: false,
+                            visible: true,
                             width: 200,
                             placeholder: "Search..."
                         },
                         scrolling: {
                             mode: "standard",
-                            useNative: true,
+                            useNative: false,
+                            scrollByContent: true,
+                            scrollByThumb: true,
                             showScrollbar: "always"
                         },
                         allowColumnReordering: false,
-                        columnFixing: { enabled: false }
+                        columnFixing: { enabled: false },
+                        onContentReady: function (e) {
+                            $("#upEscalationRecord").html("Total Records: " + e.component.totalCount());
+                        }
                     });
                     localStorage.removeItem('EscalationSummary');
                 }
@@ -93,6 +108,46 @@ async function fetchUpcomingEscalaionProbation() {
         console.error("Error in escalation:", e);
       
     }
+}
+
+
+function downloadPendingProbationGridExcel() {
+
+    const grid = $("#upEscalationContainer").dxDataGrid("instance");
+
+    if (!grid) {
+        round_error_noti("Grid not loaded");
+        return;
+    }
+
+    if (grid.totalCount() === 0) {
+        round_error_noti("No data available to export");
+        return;
+    }
+
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Pending Probation Data");
+
+    DevExpress.excelExporter.exportDataGrid({
+        component: grid,
+        worksheet: worksheet,
+        autoFilterEnabled: true
+
+    })
+        .then(() => {
+            return workbook.xlsx.writeBuffer();
+        })
+        .then((buffer) => {
+            saveAs(
+                new Blob([buffer], { type: "application/octet-stream" }),
+                `PendingProbation.xlsx`
+            );
+        })
+        .catch((error) => {
+            console.error("Excel export failed:", error);
+            round_error_noti("Failed to export Excel");
+        });
 }
 
 
