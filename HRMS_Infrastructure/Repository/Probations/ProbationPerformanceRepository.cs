@@ -164,6 +164,8 @@ namespace HRMS_Infrastructure.Repository.Probations
                     parameters.Add("@ProbationEvaluationDate", probationPerformance.ProbationEvaluationDate);
                     parameters.Add("@RemarksOfApprover", probationPerformance.RemarksOfApprover);
                     parameters.Add("@EmployeeTypeId", probationPerformance.EmployeeTypeId);
+                    parameters.Add("@ApprovalRequestLevelId", probationPerformance.ApprovalRequestLevelId);
+                    parameters.Add("@ApprovalRequestId", probationPerformance.ApprovalRequestId);
                     parameters.Add("@CreatedBy", probationPerformance.CreatedBy);
                     parameters.Add("@Level", probationPerformance.Level);
 

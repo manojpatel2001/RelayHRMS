@@ -128,85 +128,85 @@ namespace HRMS_API.Controllers.Probations
 
                     var checkApproval = await _unitOfWork.ApprovalManagementRepository.ApprovalRequestLevelAction(approval);
 
-                    if (checkApproval.IsSuccess)
-                    {
-                        if (model.ProbationStatusId == 3 || model.ProbationStatusId == 4)
-                        {
-                            var EvaluationTitle = model.ProbationStatusId == 3 ? "Hold" : "Extension";
-                            var EvaluationActivity = model.ProbationStatusId == 3 ? "Hold" : "Extended";
-                            var EvaluationStatus = model.ProbationStatusId == 3 ? "Hold" : "Extend";
+                    //if (checkApproval.IsSuccess)
+                    //{
+                    //    if (model.ProbationStatusId == 3 || model.ProbationStatusId == 4)
+                    //    {
+                    //        var EvaluationTitle = model.ProbationStatusId == 3 ? "Hold" : "Extension";
+                    //        var EvaluationActivity = model.ProbationStatusId == 3 ? "Hold" : "Extended";
+                    //        var EvaluationStatus = model.ProbationStatusId == 3 ? "Hold" : "Extend";
 
 
-                            var placeholders = new Dictionary<string, string>
-                            {
-                                { "EmployeeName", model.EmployeeName??"N/A" },
-                                { "EmployeeCode", model.EmployeeCode??"N/A" },
+                    //        var placeholders = new Dictionary<string, string>
+                    //        {
+                    //            { "EmployeeName", model.EmployeeName??"N/A" },
+                    //            { "EmployeeCode", model.EmployeeCode??"N/A" },
 
-                                { "EvaluationTitle", EvaluationTitle },
-                                { "EvaluationActivity", EvaluationActivity },
-                                { "EvaluationStatus", EvaluationStatus },
-                                { "EvaluationDuration", $"{model.EvaluationDays} days " },
-                                { "EvaluationRemarks", model.RemarksOfApprover ?? "N/A" },
-                                { "StarRating", Helper.GenerateStarRating(model.Rating)},
+                    //            { "EvaluationTitle", EvaluationTitle },
+                    //            { "EvaluationActivity", EvaluationActivity },
+                    //            { "EvaluationStatus", EvaluationStatus },
+                    //            { "EvaluationDuration", $"{model.EvaluationDays} days " },
+                    //            { "EvaluationRemarks", model.RemarksOfApprover ?? "N/A" },
+                    //            { "StarRating", Helper.GenerateStarRating(model.Rating)},
 
-                                { "ApprovingManagerName", model.ApproverName??"N/A" },
-                                { "ApprovingManagerEmployeeCode", model.ApproverCode??"N/A" },
+                    //            { "ApprovingManagerName", model.ApproverName??"N/A" },
+                    //            { "ApprovingManagerEmployeeCode", model.ApproverCode??"N/A" },
 
-                                { "PreviousProbationEndDate",
-                                    model.ProbationEndDate.HasValue
-                                        ? model.ProbationEndDate.Value.ToString("dd-MM-yyyy")
-                                        : "N/A"
-                                },
-                                { "NewProbationEndDate",
-                                    model.ProbationEvaluationDate.HasValue
-                                        ? model.ProbationEvaluationDate.Value.ToString("dd-MM-yyyy")
-                                        : "N/A"
-                                },
+                    //            { "PreviousProbationEndDate",
+                    //                model.ProbationEndDate.HasValue
+                    //                    ? model.ProbationEndDate.Value.ToString("dd-MM-yyyy")
+                    //                    : "N/A"
+                    //            },
+                    //            { "NewProbationEndDate",
+                    //                model.ProbationEvaluationDate.HasValue
+                    //                    ? model.ProbationEvaluationDate.Value.ToString("dd-MM-yyyy")
+                    //                    : "N/A"
+                    //            },
 
-                                { "CompanyName", model.CompanyName?? "N/A" },
-                                { "Year", DateTime.Now.Year.ToString() }
-                            };
+                    //            { "CompanyName", model.CompanyName?? "N/A" },
+                    //            { "Year", DateTime.Now.Year.ToString() }
+                    //        };
 
-                            var emailReport = await _unitOfWork.EmailReportRepository.GetEmailSendTime(EmailReportType.HoldAndExtendReport.ToString());
-                            if (emailReport == null|| string.IsNullOrEmpty(emailReport.ToEmails))
-                            {
-                                return new APIResponse { isSuccess = result.isSuccess, ResponseMessage = result.ResponseMessage };
-                            }
+                    //        var emailReport = await _unitOfWork.EmailReportRepository.GetEmailSendTime(EmailReportType.HoldAndExtendReport.ToString());
+                    //        if (emailReport == null|| string.IsNullOrEmpty(emailReport.ToEmails))
+                    //        {
+                    //            return new APIResponse { isSuccess = result.isSuccess, ResponseMessage = result.ResponseMessage };
+                    //        }
 
-                            var Subject = $"Probation {EvaluationTitle} Notification";
-                            var TemplateName = "ProbationEvaluationEmailTemplate.html";
+                    //        var Subject = $"Probation {EvaluationTitle} Notification";
+                    //        var TemplateName = "ProbationEvaluationEmailTemplate.html";
 
-                            var emailRequest = new EmailRequest
-                            {
-                                ToEmails = emailReport.ToEmails.Split(',').ToList(),
-                                BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
-                                CcEmails = emailReport?.CcEmails?.Split(',').ToList(),
-                                Subject = Subject,
-                                TemplateName = TemplateName,
-                                Placeholders = placeholders
-                            };
-
-
-                            var reportingEmailLogger = new EmailLogger
-                            {
-                                ToEmail = emailReport.ToEmails,
-                                BCCEmail = emailReport?.BccEmails,
-                                CCEmail = emailReport?.CcEmails,
-                                Subject = emailRequest.Subject,
-                                Body = emailRequest.TemplateName,
-                                Status = EmailStatus.Pending,
-                                SentAt = DateTime.UtcNow,
-                                Comments = "Email ready for sent"
-
-                            };
+                    //        var emailRequest = new EmailRequest
+                    //        {
+                    //            ToEmails = emailReport.ToEmails.Split(',').ToList(),
+                    //            BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
+                    //            CcEmails = emailReport?.CcEmails?.Split(',').ToList(),
+                    //            Subject = Subject,
+                    //            TemplateName = TemplateName,
+                    //            Placeholders = placeholders
+                    //        };
 
 
-                            await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(reportingEmailLogger, "CREATE");
+                    //        var reportingEmailLogger = new EmailLogger
+                    //        {
+                    //            ToEmail = emailReport.ToEmails,
+                    //            BCCEmail = emailReport?.BccEmails,
+                    //            CCEmail = emailReport?.CcEmails,
+                    //            Subject = emailRequest.Subject,
+                    //            Body = emailRequest.TemplateName,
+                    //            Status = EmailStatus.Pending,
+                    //            SentAt = DateTime.UtcNow,
+                    //            Comments = "Email ready for sent"
 
-                            //Send the email
-                            bool checkStatus = await _emailService.SendEmailAsync(emailRequest);
-                        }
-                    }
+                    //        };
+
+
+                    //        await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(reportingEmailLogger, "CREATE");
+
+                    //        //Send the email
+                    //        bool checkStatus = await _emailService.SendEmailAsync(emailRequest);
+                    //    }
+                    //}
 
                     //Add notification Logic
 
@@ -268,7 +268,6 @@ namespace HRMS_API.Controllers.Probations
             {
                 var result = await _unitOfWork.ProbationPerformanceRepository.GetAllConfirmationProbationDetails(model);
                 return result;
-                //return new APIResponse { Data = result, isSuccess = true, ResponseMessage = "Successfully fetched!" };
             }
             catch (Exception)
             {
