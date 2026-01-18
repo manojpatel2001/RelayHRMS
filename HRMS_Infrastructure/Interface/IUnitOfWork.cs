@@ -147,7 +147,7 @@ namespace HRMS_Infrastructure.Interface
         ILeaveCancellationRepository LeaveCancellationRepository { get; }
         ICommonReasonsRepository CommonReasonsRepository { get; }
         ILoanApplicationRepository LoanApplicationRepository { get; }
-
+        IEmployeeTransferRepository EmployeeTransferRepository { get; }
         void Commit();
         Task CommitAsync();
     }
