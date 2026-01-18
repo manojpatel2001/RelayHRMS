@@ -24,6 +24,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<List<LoanApplicationResult>> GetLoanApprovalEss(LoanApprovalSearchViewModel model);
         Task<LoanApplicationViewModel> GetLoanDetailsById(int LoanId);
         Task<EmployeeDetailsloanViewModel> GetEmployeeDetailsByEmpId(int EmployeeId);
+        Task<PendingLoanApprovalRequestModel> GetPendingLoanApprovalRequests(int ApproverEmployeeId ,int ApproverMatserid ,int StatusId);
         Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord);
         Task<APIResponse> GetAllLoanStatus();
     }

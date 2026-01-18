@@ -312,5 +312,32 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
         }
+
+        public async Task<PendingLoanApprovalRequestModel> GetPendingLoanApprovalRequests(int ApproverEmployeeId, int ApproverMatserid, int StatusId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@ApproverEmployeeId", ApproverEmployeeId, DbType.Int32);
+                    parameters.Add("@ApproverMatserid", ApproverMatserid, DbType.Int32);
+                    parameters.Add("@StatusId", StatusId, DbType.Int32);
+
+                    var result = await connection.QueryAsync<PendingLoanApprovalRequestModel>(
+                        "usp_GetPendingLoanApprovalRequests",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result.FirstOrDefault();
+                }
+            }
+            catch (Exception ex)
+            {
+
+                return null;
+            }
+        }
     }
 }
