@@ -353,6 +353,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<LoanApplicationStatusUpdateModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<LimitedReasonvm>().HasNoKey().ToView(null);
              modelBuilder.Entity<PendingLoanApprovalRequestModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EmployeeTransfer>().HasNoKey().ToView(null);
+             modelBuilder.Entity<GetEmployeeTransfervm>().HasNoKey().ToView(null);
 
 
 
