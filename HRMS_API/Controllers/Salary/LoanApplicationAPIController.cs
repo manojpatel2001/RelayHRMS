@@ -133,6 +133,24 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
         }
+        [HttpGet("GetPendingLoanApprovalRequests")]
+        public async Task<APIResponse> GetPendingLoanApprovalRequests(int ApproverEmployeeId, int ApproverMatserid ,int StatusId)
+        {
+            try
+            {
+                var data = await _unitOfWork.LoanApplicationRepository.GetPendingLoanApprovalRequests(ApproverEmployeeId, ApproverMatserid, StatusId);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
 
         [HttpPost("CreateLoanApplication")]
         public async Task<APIResponse> CreateLoanApplication([FromBody] LoanApplicationViewModel model)

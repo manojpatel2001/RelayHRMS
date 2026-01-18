@@ -2,11 +2,13 @@
 let compOffLoaded = false;
 let upcomingProbationLoaded = false;
 let pendingProbationLoaded = false;
+let loanLoaded = false;
 
 // Global variables to track if tabs have data
 let hasCompOffData = false;
 let hasUpcomingProbationData = false;
 let hasPendingProbationData = false;
+let hasLoanData = false;
 
 // Show loading indicators for all tabs initially
 function showLoadingIndicators() {
@@ -33,13 +35,18 @@ function hideLoadingIndicators(tabId) {
             $('.leave-balance-modal-container #pendingProbationLoading').hide();
             $('.leave-balance-modal-container #pendingProbationContent').show();
             break;
+        case 'loan':
+            $('.leave-balance-modal-container #loanLoader').hide();
+            $('.leave-balance-modal-container #loanLoading').hide();
+            $('.leave-balance-modal-container #loanContent').show();
+            break;
     }
 }
 
 // Check if all data is loaded and set active tab
 function checkAllDataLoaded() {
     // Wait until all APIs finish
-    if (!(compOffLoaded && upcomingProbationLoaded && pendingProbationLoaded)) {
+    if (!(compOffLoaded && upcomingProbationLoaded && pendingProbationLoaded && loanLoaded)) {
         return;
     }
 
@@ -63,6 +70,11 @@ function checkAllDataLoaded() {
         container.find('#pendingProbation').removeClass('active show');
     }
 
+    if (!hasLoanData) {
+        container.find('#loanTab').closest('li').hide();
+        container.find('#loan').removeClass('active show');
+    }
+
     // ----------------------------
     // Decide active tab (PRIORITY)
     // ----------------------------
@@ -80,6 +92,10 @@ function checkAllDataLoaded() {
     else if (hasPendingProbationData) {
         activeTabId = '#pendingProbationTab';
         activePaneId = '#pendingProbation';
+    }
+    else if (hasLoanData) {
+        activeTabId = '#loanTab';
+        activePaneId = '#loan';
     }
 
     // ----------------------------
@@ -110,7 +126,6 @@ function checkAllDataLoaded() {
     modal.show();
     localStorage.setItem('NotificationSummary', 'false');
 }
-
 
 // Fetch Comp-Off Leave Data
 async function fetchCompOffLeave() {
@@ -249,13 +264,280 @@ async function fetchUpcomingProbation() {
     }
 }
 
-// Setup functions for grids
+
+// Fetch Loan Data
+async function fetchLoanData() {
+    try {
+        $('.leave-balance-modal-container #loanLoader').show();
+        const requestUrl = BaseUrlLayout + '/LoanApplicationAPI/GetPendingLoanApprovalRequests';
+        const requestData = {
+            ApproverEmployeeId: parseInt(localStorage.getItem("EmployeeId")),
+            ApproverMatserid: 4,
+            StatusId: 7
+        };
+
+        $.ajax({
+            type: "GET",
+            url: requestUrl,
+            data: requestData,
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem("authToken")
+            },
+            success: function (response) {
+                console.log("Loan API Response:", response);
+
+                if (response.isSuccess && response.data) {
+                    // Convert single object to array if needed
+                    let loanData = Array.isArray(response.data) ? response.data : [response.data];
+
+                    if (loanData.length > 0) {
+                        hasLoanData = true;
+                        $(".leave-balance-modal-container #loanTotal").text(loanData.length);
+
+                        loanLoaded = true;
+                        hideLoadingIndicators('loan');
+
+                        // Call grid setup after showing content
+                        setTimeout(() => {
+                            setupLoanGrid(loanData);
+                        }, 200);
+
+                        checkAllDataLoaded();
+                    } else {
+                        hasLoanData = false;
+                        loanLoaded = true;
+                        hideLoadingIndicators('loan');
+                        $(".leave-balance-modal-container #loanRecordsContainer").empty();
+                        $(".leave-balance-modal-container #loanRecordsContainer").append(
+                            '<div class="text-center py-3">No loan records found</div>'
+                        );
+                        checkAllDataLoaded();
+                    }
+                } else {
+                    hasLoanData = false;
+                    loanLoaded = true;
+                    hideLoadingIndicators('loan');
+                    $(".leave-balance-modal-container #loanRecordsContainer").empty();
+                    $(".leave-balance-modal-container #loanRecordsContainer").append(
+                        '<div class="text-center py-3">No loan records found</div>'
+                    );
+                    checkAllDataLoaded();
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Loan API Error:", status, error);
+                hasLoanData = false;
+                loanLoaded = true;
+                hideLoadingIndicators('loan');
+                $(".leave-balance-modal-container #loanRecordsContainer").empty();
+                $(".leave-balance-modal-container #loanRecordsContainer").append(
+                    '<div class="text-center py-3 text-danger">Error loading loan records</div>'
+                );
+                checkAllDataLoaded();
+            }
+        });
+    } catch (e) {
+        console.error("Loan Fetch Exception:", e);
+        hasLoanData = false;
+        loanLoaded = true;
+        hideLoadingIndicators('loan');
+        $(".leave-balance-modal-container #loanRecordsContainer").empty();
+        $(".leave-balance-modal-container #loanRecordsContainer").append(
+            '<div class="text-center py-3 text-danger">Error loading loan records</div>'
+        );
+        checkAllDataLoaded();
+    }
+}
+
+function setupLoanGrid(data) {
+    console.log("Setting up loan grid with data:", data);
+
+    const container = $(".leave-balance-modal-container #loanRecordsContainer");
+
+    if (container.length === 0) {
+        console.error("Loan container not found!");
+        return;
+    }
+
+    // Check if container is visible
+    if (!container.is(':visible')) {
+        console.warn("Container not visible, waiting...");
+        setTimeout(() => setupLoanGrid(data), 300);
+        return;
+    }
+
+    // Clear container completely
+    container.empty();
+
+    try {
+        // Initialize fresh grid
+        const gridInstance = container.dxDataGrid({
+            dataSource: data,
+            keyExpr: 'approvalRequestId', // Important: unique key
+            columns: [
+                {
+                    dataField: 'requesterName',
+                    caption: 'Requester',
+                    alignment: 'left',
+                    width: 200
+                },
+                {
+                    dataField: 'requestTitle',
+                    caption: 'Request Title',
+                    alignment: 'left',
+                    width: 250
+                },
+                {
+                    dataField: 'levelNo',
+                    caption: 'Level',
+                    alignment: 'center',
+                    width: 80
+                },
+                {
+                    dataField: 'levelStatus',
+                    caption: 'Status',
+                    alignment: 'center',
+                    width: 100
+                },
+                {
+                    dataField: 'assignedOn',
+                    caption: 'Assigned On',
+                    alignment: 'center',
+                    width: 120,
+                    dataType: 'date',
+                    format: 'dd-MM-yyyy'
+                },
+                {
+                    dataField: 'escalationDueOn',
+                    caption: 'Escalation Due',
+                    alignment: 'center',
+                    width: 150,
+                    dataType: 'date',
+                    format: 'dd-MM-yyyy'
+                }
+            ],
+            showBorders: true,
+            showRowLines: true,
+            showColumnLines: true,
+            rowAlternationEnabled: true,
+            hoverStateEnabled: true,
+            columnAutoWidth: false,
+            wordWrapEnabled: false,
+            paging: {
+                enabled: true,
+                pageSize: 10
+            },
+            pager: {
+                visible: true,
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 25, 50, 100],
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            headerFilter: {
+                visible: false
+            },
+            filterRow: {
+                visible: false
+            },
+            searchPanel: {
+                visible: false
+            },
+            groupPanel: {
+                visible: false
+            },
+            scrolling: {
+                mode: "standard"
+            },
+            loadPanel: {
+                enabled: true
+            },
+            noDataText: "No loan records available",
+            onContentReady: function (e) {
+                const rowCount = e.component.totalCount();
+                console.log("Loan grid ready - Total rows:", rowCount);
+
+                if (rowCount === 0) {
+                    console.warn("Grid initialized but no rows displayed!");
+                }
+            },
+            onInitialized: function (e) {
+                console.log("Grid initialized");
+            }
+        }).dxDataGrid("instance");
+
+        // Force refresh
+        gridInstance.refresh();
+
+        console.log("Loan grid setup complete");
+
+    } catch (error) {
+        console.error("Error initializing loan grid:", error);
+        container.empty();
+        container.append(
+            '<div class="text-center py-3 text-danger">Error displaying loan records: ' + error.message + '</div>'
+        );
+    }
+}
+
+function setupLoanGrid(data) {
+    $(".leave-balance-modal-container #loanRecordsContainer").dxDataGrid({
+        dataSource: data || [],
+        columns: [
+            { dataField: 'requesterName', caption: 'Requester', alignment: 'left', minWidth: 200 },
+            { dataField: 'levelNo', caption: 'Level', alignment: 'left', minWidth: 120 },
+            { dataField: 'levelStatus', caption: 'Status', alignment: 'left', minWidth: 120 },
+            {
+                dataField: 'assignedOn',
+                caption: 'Assigned On',
+                alignment: 'center',
+                minWidth: 150,
+                dataType: 'date',
+                format: 'dd-MM-yyyy'
+            },
+            {
+                dataField: 'escalationDueOn',
+                caption: 'Escalation Due',
+                alignment: 'center',
+                minWidth: 150,
+                dataType: 'date',
+                format: 'dd-MM-yyyy'
+            }
+        ],
+        columnsAutoWidth: true,
+        wordWrapEnabled: false,
+        rowAlternationEnabled: true,
+        showBorders: true,
+        paging: { pageSize: 10 },
+        pager: {
+            showPageSizeSelector: true,
+            allowedPageSizes: [10, 25, 50, 100]
+        },
+        headerFilter: { visible: false },
+        filterRow: { visible: false, applyFilter: "auto" },
+        allowColumnResizing: false,
+        groupPanel: { visible: false },
+        searchPanel: {
+            visible: false,
+            width: 200,
+            placeholder: "Search..."
+        },
+        scrolling: {
+            mode: "standard",
+            useNative: true,
+            showScrollbar: "always"
+        },
+        allowColumnReordering: false,
+        columnFixing: { enabled: false }
+    });
+}
+
+// Setup Pending Probation Grid
 function setupPendingProbationGrid(data) {
     $(".leave-balance-modal-container #pendingProbationRecordsContainer").dxDataGrid({
         dataSource: data || [],
         columns: [
             { dataField: 'RequesterName', caption: 'Requester', alignment: 'left', minWidth: 200 },
-            //{ dataField: 'ApproverName', caption: 'Approver', alignment: 'left', width: 200 },
             { dataField: 'CurrentLevelSequence', caption: 'Level', alignment: 'left', minWidth: 120 },
             { dataField: 'LevelStatus', caption: 'Status', alignment: 'left', minWidth: 120 },
             {
@@ -317,7 +599,6 @@ function setupUpcomingProbationGrid(data) {
                 dataType: 'date',
                 format: 'dd-MM-yyyy'
             }
-            //{ dataField: 'ReportingName', caption: 'Reporting Manager', alignment: 'left', width: 250 }
         ],
         columnsAutoWidth: true,
         wordWrapEnabled: false,
@@ -431,13 +712,14 @@ function getTotalBalance(data) {
     return data.reduce((sum, item) => sum + item.RemainingBalance, 0);
 }
 
-
 // Initialize everything when document is ready
 $(document).ready(async function () {
+
     var noti = localStorage.getItem('NotificationSummary');
     if (noti == 'true') {
         await fetchCompOffLeave();
         await fetchPendingProbation();
         await fetchUpcomingProbation();
+        await  fetchLoanData();
     }
 });
