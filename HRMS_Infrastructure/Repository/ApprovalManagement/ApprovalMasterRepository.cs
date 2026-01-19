@@ -7,6 +7,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Data;
 using System.Linq;
 using System.Text;
@@ -205,7 +206,7 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
             }
         }
 
-        public async Task<APIResponse> GetEscalationDueList(int EmployeeId)
+        public async Task<APIResponse> GetEscalationDueList(int CompanyId)
         {
             try
             {
@@ -215,7 +216,7 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
 
                     var parameters = new DynamicParameters();
 
-                    parameters.Add("@EmployeeId", EmployeeId);
+                    parameters.Add("@CompanyId", CompanyId);
                     var result = await connection.QueryAsync<dynamic>(
                         sql: "GetEscalationDueList",
                         parameters,

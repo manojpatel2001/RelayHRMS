@@ -14,6 +14,6 @@ namespace HRMS_Infrastructure.Interface.ApprovalManagement
         Task<APIResponse> GetAllApprovalMasters();
         Task<APIResponse> GetAllApprovalMasterList(int? approvalTypeId);
         Task<APIResponse> GetAllApprovalMasterType();
-        Task<APIResponse> GetEscalationDueList(int EmployeeId);
+        Task<APIResponse> GetEscalationDueList(int CompanyId);
     }
 }
