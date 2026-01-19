@@ -40,7 +40,6 @@
            
         }
         else if ($el.is('[data-decimal-two]')) {
-            debugger
              val = $el.val();
             const maxDigits = 2; // Enforce 2 digits before and after decimal
 
