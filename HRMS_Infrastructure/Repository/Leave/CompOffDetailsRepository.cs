@@ -287,5 +287,30 @@ namespace HRMS_Infrastructure.Repository.Leave
                 return new List<CompOffDetailsReportViewModelAdmin>();
             }
         }
+
+        public async Task<List<Comp_Off_Details>> GetApprovedCompOffDetails(Comp_offpara model)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+            new SqlParameter("@EmpId", model.EmpId),
+            new SqlParameter("@StartDate", model.StartDate),
+            new SqlParameter("@EndDate", model.EndDate)
+        };
+
+                var result = await _db.Set<Comp_Off_Details>()
+                    .FromSqlRaw("EXEC GetApprovedCompOffDetails @EmpId, @StartDate, @EndDate", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetApprovedCompOffDetails Error: " + ex.Message);
+                return new List<Comp_Off_Details>();
+            }
+        }
+
     }
 }
