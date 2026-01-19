@@ -314,7 +314,7 @@ namespace HRMS_API.Controllers.Leave
         }
 
 
-        [HttpGet("GetApprovedCompOffDetails")]
+        [HttpPost("GetApprovedCompOffDetails")]
         public async Task<APIResponse> GetApprovedCompOffDetails(Comp_offpara model)
         {
             try
