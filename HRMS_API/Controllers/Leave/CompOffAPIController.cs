@@ -314,5 +314,33 @@ namespace HRMS_API.Controllers.Leave
         }
 
 
+        [HttpGet("GetApprovedCompOffDetails")]
+        public async Task<APIResponse> GetApprovedCompOffDetails(Comp_offpara model)
+        {
+            try
+            {
+                var data = await _unitOfWork.CompOffDetailsRepository.GetApprovedCompOffDetails(model);
+
+                if (data == null )
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No approved comp-off records found." };
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Approved comp-off records fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (use ILogger in real applications)
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to retrieve comp-off records. Please try again later."
+                };
+            }
+        }
+
     }
 }

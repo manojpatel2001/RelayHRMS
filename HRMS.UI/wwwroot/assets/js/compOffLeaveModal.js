@@ -284,7 +284,7 @@ async function fetchLoanData() {
                 'Authorization': 'Bearer ' + localStorage.getItem("authToken")
             },
             success: function (response) {
-                console.log("Loan API Response:", response);
+         
 
                 if (response.isSuccess && response.data) {
                     // Convert single object to array if needed
