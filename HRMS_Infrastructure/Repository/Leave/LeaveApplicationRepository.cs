@@ -1,7 +1,6 @@
 ﻿using Azure.Core;
 using HRMS_Core.DbContext;
 using HRMS_Core.Leave;
-using HRMS_Core.Migrations;
 using HRMS_Core.Notifications;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
@@ -17,16 +16,14 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Repository.Leave
 {
-    public class LeaveApplicationRepository: Repository<LeaveApplication>, ILeaveApplicationRepository
+    public class LeaveApplicationRepository : Repository<HRMS_Core.Leave.LeaveApplication>, ILeaveApplicationRepository
     {
-
         private HRMSDbContext _db;
 
         public LeaveApplicationRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
         }
-
         public async Task<List<VMLeaveApplicationSearchResult>> GetLeaveApplicationsAsync(SearchVmCompOff filter)
         {
             try
@@ -181,7 +178,7 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<SP_Response> InsertLeaveApplicationAsync(LeaveApplication model)
+        public async Task<SP_Response> InsertLeaveApplicationAsync(HRMS_Core.Leave.LeaveApplication model)
         {
             try
             {
@@ -216,8 +213,9 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
-        public async Task<bool> softdelete(LeaveApplication Leave)
-        {
+        public async Task<bool> softdelete(HRMS_Core.Leave.LeaveApplication Leave)
+        
+            {
             var leave = await _db.LeaveApplication.FirstOrDefaultAsync(asd => asd.FromDate == Leave.FromDate);
             if (leave == null)
             {
@@ -260,7 +258,7 @@ namespace HRMS_Infrastructure.Repository.Leave
         }
 
 
-        public async Task<LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId)
+        public async Task<HRMS_Core.Leave.LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId)
         {
             try
             {
