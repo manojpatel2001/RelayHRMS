@@ -528,6 +528,22 @@ namespace HRMS_API.Controllers.Leave
             }
         }
 
+        [HttpGet("GetLastLeaveBalanceDate/{Emp_Id}")]
+        public async Task<APIResponse> GetLastLeaveBalanceDate(int Emp_Id)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveApplicationRepository.GetLastLeaveBalanceDate(Emp_Id);
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve record. Please try again later." };
+            }
+        }
 
     }
 }
