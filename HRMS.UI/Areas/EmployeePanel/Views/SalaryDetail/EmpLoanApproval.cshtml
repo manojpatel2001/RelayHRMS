@@ -113,6 +113,31 @@
     .dx-datagrid {
         width: 100% !important;
     }
+
+    /* Loading spinner */
+    .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3e4b6d;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-right: 10px;
+    }
+
+    @@keyframes spin {
+        0%
+
+    {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+
+    }
 </style>
 
 <div class="search-panel-wrapper">
@@ -182,12 +207,18 @@
     let selectedKeys = [];
     var baseUrl = '@baseUrl';
 
+    // Debug: Check if values are loaded correctly
+    console.log("Initialized - Empid:", Empid, "Compid:", Compid, "baseUrl:", baseUrl);
+
     $(document).ready(function () {
         loadLoanTypeOptions();
         fetchLoanData();
 
         $('#gobutoonid').on('click', function () {
-            fetchLoanData();
+            if (!$(this).prop('disabled')) {
+                console.log("GO button clicked");
+                fetchLoanData();
+            }
         });
 
         $('#pendingloanid').on('click', function () {
@@ -236,6 +267,7 @@
                 }
             },
             error: function (xhr, status, error) {
+                console.error("Error loading loan types:", xhr, status, error);
                 Swal.fire({
                     title: "Error",
                     text: "Failed to load loan types. Please refresh the page.",
@@ -301,12 +333,20 @@
                 }
             },
             error: function (xhr) {
+                console.error("Delete error:", xhr);
                 Swal.fire("Error", "Something went wrong during deletion.", "error");
             }
         });
     });
 
     function fetchLoanData() {
+        console.log("fetchLoanData called");
+
+        // Show loading indicator
+        $('#loanGrid').html('<div class="text-center p-3"><div class="spinner"></div>Loading data...</div>');
+        $('#recordSummary').text('');
+        $('#actionButtons').hide();
+
         const searchFor = $('#input1').val().trim();
         const selectedLoanType = $('#Loantypeid option:selected').text();
         const loanTypeValue = $('#Loantypeid').val();
@@ -332,12 +372,21 @@
             CompId: Compid
         };
 
+        console.log("Sending filter:", filter);
+        console.log("API URL:", baseUrl + '/LoanApplicationAPI/GetLoanApprovalEss');
+
         $.ajax({
             url: baseUrl + '/LoanApplicationAPI/GetLoanApprovalEss',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(filter),
+            beforeSend: function() {
+                // Disable GO button during request
+                $('#gobutoonid').prop('disabled', true).html('<div class="spinner" style="width: 15px; height: 15px; border-width: 2px; margin-right: 5px;"></div>Loading...');
+            },
             success: function (response) {
+                console.log("API Response:", response);
+
                 if (response.isSuccess && response.data && response.data.length > 0) {
                     let filteredData = response.data;
 
@@ -353,6 +402,8 @@
                             item.isRejected === true
                         );
                     }
+
+                    console.log("Filtered data count:", filteredData.length);
 
                     if (filteredData.length > 0) {
                         if ($("#loanGrid").data("dxDataGrid")) {
@@ -373,6 +424,8 @@
                         $('#actionButtons').hide();
                     }
                 } else {
+                    console.log("No data or unsuccessful response");
+
                     if ($("#loanGrid").data("dxDataGrid")) {
                         $("#loanGrid").dxDataGrid("dispose");
                     }
@@ -383,16 +436,32 @@
                 }
             },
             error: function (xhr, status, error) {
+                console.error("AJAX Error:", {
+                    xhr: xhr,
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText
+                });
+
+                $('#loanGrid').html('<div class="text-center text-danger p-3">Error loading data. Please try again.</div>');
+
                 Swal.fire({
                     title: "❌ Server Error",
-                    text: xhr.responseText || "Something went wrong",
+                    text: xhr.responseText || "Something went wrong while fetching data",
                     icon: "error"
                 });
+            },
+            complete: function() {
+                // Re-enable GO button
+                $('#gobutoonid').prop('disabled', false).text('GO');
+                console.log("AJAX request completed");
             }
         });
     }
 
     function renderTable(data) {
+        console.log("Rendering table with data:", data);
+
         $("#loanGrid").dxDataGrid({
             dataSource: data,
             keyExpr: "loanApplicationId",
@@ -426,6 +495,7 @@
             },
             onSelectionChanged: function (e) {
                 selectedKeys = e.selectedRowKeys;
+                console.log("Selected keys:", selectedKeys);
             },
             columns: [
                 {
@@ -522,5 +592,7 @@
                 }
             ]
         });
+
+        console.log("Table rendered successfully");
     }
 </script>

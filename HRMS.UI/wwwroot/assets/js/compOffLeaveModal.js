@@ -272,7 +272,7 @@ async function fetchLoanData() {
         const requestUrl = BaseUrlLayout + '/LoanApplicationAPI/GetPendingLoanApprovalRequests';
         const requestData = {
             ApproverEmployeeId: parseInt(localStorage.getItem("EmployeeId")),
-            ApproverMatserid: 4,
+            ApproverMatserid: 2,
             StatusId: 7
         };
 

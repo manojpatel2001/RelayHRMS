@@ -24,6 +24,7 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<bool> softdelete(LeaveApplication Leave);
         Task<VMCommonResult> Delete(DeleteRecordVModel deleteRecord);
         Task<LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId);
+        Task<CompoffLeaveBalanceViewModel?> GetLastLeaveBalanceDate(int Emp_Id);
         Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(GetYearlyLeaveReportRequest request);
         Task<List<LeaveApplicationReportModel>> GetLeaveApplicationsReport(GetYearlyLeaveReportRequest request);
 
