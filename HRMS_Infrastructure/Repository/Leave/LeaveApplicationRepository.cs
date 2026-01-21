@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using HRMS_Core.DbContext;
 using HRMS_Core.Leave;
+using HRMS_Core.Migrations;
 using HRMS_Core.Notifications;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
@@ -327,6 +328,21 @@ namespace HRMS_Infrastructure.Repository.Leave
             catch
             {
                 return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<CompoffLeaveBalanceViewModel?> GetLastLeaveBalanceDate(int Emp_Id)
+        {
+            try
+            {
+                var result = await _db.Set<CompoffLeaveBalanceViewModel>()
+                    .FromSqlInterpolated($"EXEC SP_GetLastLeaveBalanceDate @Emp_Id= {Emp_Id}")
+                    .ToListAsync();
+                return result.FirstOrDefault() ?? null;
+            }
+            catch
+            {
+                return null;
             }
         }
     }
