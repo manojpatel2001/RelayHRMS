@@ -743,7 +743,9 @@
                 handleShortLeaveFromDate(fromDate);
                 break;
             case 'Comp-Off Leave':
-                handleCompOffFromDate(fromDate);
+           handleCompOffFromDate(fromDate);
+    
+            validateCompOffDateRange(fromDate);
                 break;
             default:
                 handleRegularFromDate(fromDate, leaveTypeName);
@@ -1208,25 +1210,71 @@
             updateHalfDayOptions(['first', 'second'], "Error checking attendance. You can apply for either half.");
         });
     }
+
+        // Add this function after getApprovedCompOffDetails function (around line 900)
+
+    function getLastCompOffBalanceDate(empId) {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: `${apiBase}/LeaveApplication/GetLastLeaveBalanceDate/${empId}`,
+                type: 'GET',
+                success: function (response) {
+                    if (response.isSuccess && response.data) {
+                        console.log('response' ,response);
+                        resolve({
+                            hasBalance: true,
+                            totalBalance: response.data.totalBalance || 0,
+                            pendingLeaves: response.data.pendingLeaves || 0,
+                            availableBalance: response.data.availableBalance || 0,
+                            lastBalanceDate: response.data.lastBalanceDate,
+                            statusMessage: response.data.statusMessage
+                        });
+                    } else {
+                        resolve({
+                            hasBalance: false,
+                            totalBalance: 0,
+                            pendingLeaves: 0,
+                            availableBalance: 0,
+                            lastBalanceDate: null,
+                            statusMessage: "No comp-off balance found"
+                        });
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error fetching comp-off balance date:', error);
+                    reject(error);
+                }
+            });
+        });
+    }
+
     function validateCompOffLeave(selectedDate) {
-        // Calculate date range: current month
-        const selectedDateObj = new Date(selectedDate);
-        const currentMonth = selectedDateObj.getMonth();
-        const currentYear = selectedDateObj.getFullYear();
-
-        // Get first and last day of the selected month
-        const startDate = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
-        const endDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0];
-
         // Clear previous messages
         $('#compOffInfoMessage').remove();
 
         // Show loading state
         $('#nodaysid').after('<div id="compOffInfoMessage" style="color: #17a2b8; font-size: 12px; margin-top: 5px;">Checking comp-off balance...</div>');
 
-        getApprovedCompOffDetails(Empid, startDate, endDate).then(result => {
-            if (!result.hasApprovedCompOff || result.totalCompOffDays === 0) {
-                showCompOffError("No approved comp-off available for this month. You need approved overtime work to apply for comp-off.");
+        getLastCompOffBalanceDate(Empid).then(result => {
+            if (!result.hasBalance || result.availableBalance === 0) {
+                showCompOffError("No comp-off balance available. Please contact HR.");
+                $('#formdateid').val('').addClass('is-invalid');
+                $('#todateid').val('').prop('readonly', true);
+                $('#nodaysid').val('').prop('readonly', true);
+                return;
+            }
+
+            // Validation 1: Check if selected date is >= LastBalanceDate
+            const selectedDateObj = new Date(selectedDate);
+            const lastBalanceDate = new Date(result.lastBalanceDate);
+
+            // Set time to 00:00:00 for proper date comparison
+            selectedDateObj.setHours(0, 0, 0, 0);
+            lastBalanceDate.setHours(0, 0, 0, 0);
+
+            if (selectedDateObj < lastBalanceDate) {
+                const formattedLastDate = lastBalanceDate.toLocaleDateString('en-IN');
+                showCompOffError(`Comp-off can only be applied from ${formattedLastDate} onwards. Selected date is before available balance date.`);
                 $('#formdateid').val('').addClass('is-invalid');
                 $('#todateid').val('').prop('readonly', true);
                 $('#nodaysid').val('').prop('readonly', true);
@@ -1237,18 +1285,87 @@
             $('#compOffInfoMessage').remove();
             $('#formdateid').removeClass('is-invalid');
 
-            const balanceMessage = `Comp-Off Available: ${result.totalCompOffDays} days (Based on ${result.compOffData.length} approved overtime record${result.compOffData.length > 1 ? 's' : ''})`;
+            const balanceMessage = `Comp-Off Available: ${result.availableBalance} days (Available from: ${new Date(result.lastBalanceDate).toLocaleDateString('en-IN')})`;
             $('#nodaysid').after(`<div id="compOffInfoMessage" style="color: #28a745; font-size: 12px; margin-top: 5px;">${balanceMessage}</div>`);
 
             // Store available balance for validation
-            $('#nodaysid').data('compOffBalance', result.totalCompOffDays);
+            $('#nodaysid').data('compOffBalance', result.availableBalance);
+            $('#nodaysid').data('lastBalanceDate', result.lastBalanceDate);
 
         }).catch(error => {
             console.error('Error validating comp-off:', error);
             showCompOffError("Error checking comp-off balance. Please try again.");
         });
-    }  
+    }
 
+        // Add this function after validateCompOffLeave function (around line 760)
+
+    function validateCompOffDateRange(fromDate) {
+        const toDate = $('#todateid').val();
+
+        if (!fromDate || !toDate) return;
+
+        const lastBalanceDate = $('#nodaysid').data('lastBalanceDate');
+        const availableBalance = $('#nodaysid').data('compOffBalance') || 0;
+
+        if (!lastBalanceDate) return;
+
+        // Check if from date is valid
+        const fromDateObj = new Date(fromDate);
+        const toDateObj = new Date(toDate);
+        const lastBalanceDateObj = new Date(lastBalanceDate);
+
+        fromDateObj.setHours(0, 0, 0, 0);
+        toDateObj.setHours(0, 0, 0, 0);
+        lastBalanceDateObj.setHours(0, 0, 0, 0);
+
+ 
+        if (fromDateObj < lastBalanceDateObj) {
+            const formattedLastDate = lastBalanceDateObj.toLocaleDateString('en-IN');
+            $('#formdateid').addClass('is-invalid');
+            $('#compOffInfoMessage').remove();
+            $('#formdateid').after(`<div id="compOffInfoMessage" class="error-message" style="display: block; color: #dc3545;">Comp-off can only be applied from ${formattedLastDate} onwards.</div>`);
+            $('#nodaysid').val('').prop('readonly', true);
+            return;
+        }
+
+
+        const timeDiff = toDateObj.getTime() - fromDateObj.getTime();
+        const requestedDays = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+
+
+        if (requestedDays > availableBalance) {
+            $('#nodaysid').addClass('is-invalid');
+            $('#compOffInfoMessage').remove();
+            $('#nodaysid').after(`<div id="compOffInfoMessage" class="error-message" style="display: block; color: #dc3545;">Insufficient comp-off balance! Available: ${availableBalance} days, Requested: ${requestedDays} days</div>`);
+            return;
+        }
+
+
+        $('#formdateid, #todateid, #nodaysid').removeClass('is-invalid');
+        $('#compOffInfoMessage').remove();
+        $('#nodaysid').after(`<div id="compOffInfoMessage" style="color: #28a745; font-size: 12px; margin-top: 5px;">Valid: ${requestedDays} days will be deducted from ${availableBalance} available days</div>`);
+    }
+
+        function handleToDateChange() {
+        const leaveTypeId = $('#Leavetypeid').val();
+        const leaveTypeName = leaveTypeMapping[leaveTypeId];
+
+        if (leaveTypeId === "0") {
+            $('#todateid').val('');
+            return;
+        }
+
+        calculateDaysFromDates();
+
+        // Add comp-off validation when to date changes
+        if (leaveTypeName === 'Comp-Off Leave') {
+            const fromDate = $('#formdateid').val();
+            if (fromDate) {
+                validateCompOffDateRange(fromDate);
+            }
+        }
+    }
 
     function checkCompOffEligibility(attendanceData, selectedDate) {
         const eligibleDays = attendanceData.filter(record => {
@@ -2223,7 +2340,7 @@
         const fromDate = $('#formdateid').val();
         const toDate = $('#todateid').val();
         const reason = $('#resonid').val().trim();
-        const responsible =  $('#responsibleid').data('searchableSelect').getValue();
+        const responsible = $('#responsibleid').data('searchableSelect').getValue();
         const halfDayType = $('#halfDayType').val();
         const daysHoursValue = $('#nodaysid').val();
         let noOfDaysOrHours = parseFloat(daysHoursValue);
@@ -2232,7 +2349,6 @@
         if (leaveTypeName === 'Short Leave') {
             fromHour = $('#fromHour').val();
             toHour = $('#toHour').val();
-            // Keep the actual hours for validation, don't convert to days yet
         }
 
         // Basic field validations
@@ -2265,26 +2381,7 @@
             }
         }
 
-        // // Short Leave specific validations
-        // if (leaveTypeName === 'Short Leave') {
-        //     if (!validateShortLeaveFields()) {
-        //         hasError = true;
-        //     }
-
-        //     if (!fromHour) {
-        //         $('#fromHour').addClass('is-invalid');
-        //         $('#fromHourError').show();
-        //         hasError = true;
-        //     }
-
-        //     if (!toHour) {
-        //         $('#toHour').addClass('is-invalid');
-        //         $('#toHourError').show();
-        //         hasError = true;
-        //     }
-        // }
-
-        // Days/Hours validation - Fixed Logic
+        // Days/Hours validation
         if (!daysHoursValue || daysHoursValue.trim() === '' || isNaN(noOfDaysOrHours) || noOfDaysOrHours <= 0) {
             $('#nodaysid').addClass('is-invalid');
             if (leaveTypeName === 'Short Leave') {
@@ -2322,48 +2419,59 @@
             }
         }
 
-        // Leave balance validation
+        // Leave balance validation - Updated Section
         if (leaveType !== "0" && !isNaN(noOfDaysOrHours) && noOfDaysOrHours > 0) {
-            const balanceValidation = validateLeaveBalance(leaveType, noOfDaysOrHours);
-            if (!balanceValidation.isValid) {
-                $('#nodaysid').addClass('is-invalid');
-                $('#insufficientBalanceError').text(balanceValidation.message).show();
-                hasError = true;
-            }
-        }
+            if (leaveTypeName === 'Comp-Off Leave') {
+                // Comp-Off specific validations
+                const availableCompOffBalance = $('#nodaysid').data('compOffBalance') || 0;
+                const lastBalanceDate = $('#nodaysid').data('lastBalanceDate');
 
-            // Leave balance validation
-            if (leaveType !== "0" && !isNaN(noOfDaysOrHours) && noOfDaysOrHours > 0) {
-                // Special validation for Comp-Off
-                if (leaveTypeName === 'Comp-Off Leave') {
-                    const availableCompOffBalance = $('#nodaysid').data('compOffBalance') || 0;
-                    if (noOfDaysOrHours > availableCompOffBalance) {
-                        $('#nodaysid').addClass('is-invalid');
-                        $('#insufficientBalanceError').text(`Insufficient comp-off balance! Available: ${availableCompOffBalance} days, Requested: ${noOfDaysOrHours} days`).show();
-                        hasError = true;
-                    }
-                } else {
-                    // Regular leave balance validation for other leave types
-                    const balanceValidation = validateLeaveBalance(leaveType, noOfDaysOrHours);
-                    if (!balanceValidation.isValid) {
-                        $('#nodaysid').addClass('is-invalid');
-                        $('#insufficientBalanceError').text(balanceValidation.message).show();
+                // Validation 1: Check available balance
+                if (noOfDaysOrHours > availableCompOffBalance) {
+                    $('#nodaysid').addClass('is-invalid');
+                    $('#insufficientBalanceError').text(`Insufficient comp-off balance! Available: ${availableCompOffBalance} days, Requested: ${noOfDaysOrHours} days`).show();
+                    hasError = true;
+                }
+
+                // Validation 2: Check if from date is >= LastBalanceDate
+                if (lastBalanceDate && fromDate) {
+                    const fromDateObj = new Date(fromDate);
+                    const lastBalanceDateObj = new Date(lastBalanceDate);
+                    fromDateObj.setHours(0, 0, 0, 0);
+                    lastBalanceDateObj.setHours(0, 0, 0, 0);
+
+                    if (fromDateObj < lastBalanceDateObj) {
+                        const formattedLastDate = lastBalanceDateObj.toLocaleDateString('en-IN');
+                        $('#formdateid').addClass('is-invalid');
+                        $('#pastDateError').text(`Comp-off can only be applied from ${formattedLastDate} onwards`).show();
                         hasError = true;
                     }
                 }
+            } else {
+                // Regular leave balance validation for other leave types
+                const balanceValidation = validateLeaveBalance(leaveType, noOfDaysOrHours);
+                if (!balanceValidation.isValid) {
+                    $('#nodaysid').addClass('is-invalid');
+                    $('#insufficientBalanceError').text(balanceValidation.message).show();
+                    hasError = true;
+                }
             }
-        // Date validations
-        const inputDate = new Date(fromDate);
-        const currentDate = new Date();
-        currentDate.setHours(0, 0, 0, 0);
-        inputDate.setHours(0, 0, 0, 0);
+        }
 
-        const daysDifference = Math.ceil((currentDate.getTime() - inputDate.getTime()) / (1000 * 3600 * 24));
+        // Date validations - Only for non Comp-Off leaves
+        if (leaveTypeName !== 'Comp-Off Leave') {
+            const inputDate = new Date(fromDate);
+            const currentDate = new Date();
+            currentDate.setHours(0, 0, 0, 0);
+            inputDate.setHours(0, 0, 0, 0);
 
-        if (daysDifference > 30) {
-            $('#formdateid').addClass('is-invalid');
-            $('#pastDateError').text('Cannot apply leave more than 30 days in the past').show();
-            hasError = true;
+            const daysDifference = Math.ceil((currentDate.getTime() - inputDate.getTime()) / (1000 * 3600 * 24));
+
+            if (daysDifference > 30) {
+                $('#formdateid').addClass('is-invalid');
+                $('#pastDateError').text('Cannot apply leave more than 30 days in the past').show();
+                hasError = true;
+            }
         }
 
         if (hasError) {
@@ -2383,7 +2491,6 @@
             );
 
             if (!attendanceValidation.isValid) {
-                // Show the validation error
                 if (attendanceValidation.errorField) {
                     $(attendanceValidation.errorField).addClass('is-invalid');
                 }
@@ -2401,8 +2508,6 @@
             // Check for duplicate applications
             const duplicateResult = await checkDuplicateLeaveApplication(fromDate, toDate);
             if (duplicateResult.hasDuplicate) {
-                const duplicate = duplicateResult.duplicateLeaves[0];
-                const statusText = duplicate.status === 'Pending' ? 'Pending' : 'Approved';
                 Swal.fire({
                     title: "Leave Already Applied",
                     text: `You have already applied for leave on these dates`,
@@ -2413,20 +2518,27 @@
                 return;
             }
 
-            // Check salary processing for past months
-            if (inputDate < currentDate) {
-                const inputMonth = inputDate.getMonth();
-                const currentMonth = currentDate.getMonth();
-                const inputYear = inputDate.getFullYear();
-                const currentYear = currentDate.getFullYear();
+            // Check salary processing for past months - Only for non Comp-Off leaves
+            if (leaveTypeName !== 'Comp-Off Leave') {
+                const inputDate = new Date(fromDate);
+                const currentDate = new Date();
+                currentDate.setHours(0, 0, 0, 0);
+                inputDate.setHours(0, 0, 0, 0);
 
-                if (inputYear < currentYear || (inputYear === currentYear && inputMonth < currentMonth)) {
-                    const salaryResult = await checkSalaryProcessed(fromDate);
-                    if (salaryResult.isProcessed) {
-                        $('#formdateid').addClass('is-invalid');
-                        $('#salaryError').text(`Leave applications not allowed for periods where the previous month’s salary has already been processed. Please contact HR for assistance if needed.`).show();
-                       hideBtnLoder();
-                        return;
+                if (inputDate < currentDate) {
+                    const inputMonth = inputDate.getMonth();
+                    const currentMonth = currentDate.getMonth();
+                    const inputYear = inputDate.getFullYear();
+                    const currentYear = currentDate.getFullYear();
+
+                    if (inputYear < currentYear || (inputYear === currentYear && inputMonth < currentMonth)) {
+                        const salaryResult = await checkSalaryProcessed(fromDate);
+                        if (salaryResult.isProcessed) {
+                            $('#formdateid').addClass('is-invalid');
+                            $('#salaryError').text(`Leave applications not allowed for periods where the previous month's salary has already been processed. Please contact HR for assistance if needed.`).show();
+                            hideBtnLoder();
+                            return;
+                        }
                     }
                 }
             }
@@ -2448,19 +2560,16 @@
                 Cancel_Weekoff: false,
                 Send_Intimate: "false",
                 LeaveStatus: "Pending",
-                CreatedBy: Empid.toString()    
-     
-    };
+                CreatedBy: Empid.toString()
+            };
 
-    if (leaveTypeName === 'Short Leave') {
-        const hoursValue = parseFloat($('#nodaysid').val());
-        payload.No_Of_Date = hoursValue; // Store as days equivalent
+            if (leaveTypeName === 'Short Leave') {
+                const hoursValue = parseFloat($('#nodaysid').val());
+                payload.No_Of_Date = hoursValue;
+                payload.FromHour = fromHour ? fromHour + ":00" : null;
+                payload.ToHour = toHour ? toHour + ":00" : null;
+            }
 
-        // Add time fields only for short leave
-        payload.FromHour = fromHour ? fromHour + ":00" : null;
-        payload.ToHour = toHour ? toHour + ":00" : null;
-    }
-    
             $.ajax({
                 url: apiBase + '/LeaveApplication/AddLeaveapplication',
                 method: 'POST',
@@ -2475,7 +2584,7 @@
                             customClass: { popup: 'swal2-small' }
                         });
                         clearForm();
-                        loadLeaveBalance(); 
+                        loadLeaveBalance();
                     } else {
                         Swal.fire({
                             title: "Error",
