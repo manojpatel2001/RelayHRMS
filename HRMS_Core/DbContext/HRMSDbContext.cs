@@ -20,6 +20,7 @@ using HRMS_Core.VM.EmailService;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.Ess.InOut;
+using HRMS_Core.VM.ExitApplication;
 using HRMS_Core.VM.ExportData;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.JobMaster;
@@ -357,6 +358,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<GetEmployeeTransfervm>().HasNoKey().ToView(null);
              modelBuilder.Entity<Comp_offpara>().HasNoKey().ToView(null);
              modelBuilder.Entity<CompoffLeaveBalanceViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ExitApplicationVm>().HasNoKey().ToView(null);
 
 
 
