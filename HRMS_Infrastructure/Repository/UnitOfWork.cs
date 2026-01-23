@@ -8,6 +8,7 @@ using HRMS_Infrastructure.Interface.EmailService;
 using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
+using HRMS_Infrastructure.Interface.ExitApplication;
 using HRMS_Infrastructure.Interface.ExportData;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
@@ -28,6 +29,7 @@ using HRMS_Infrastructure.Repository.EmailService;
 using HRMS_Infrastructure.Repository.EmergencyContacts;
 using HRMS_Infrastructure.Repository.Employee;
 using HRMS_Infrastructure.Repository.EmployeeMaster;
+using HRMS_Infrastructure.Repository.ExitApplicationRepo;
 using HRMS_Infrastructure.Repository.ExportData;
 using HRMS_Infrastructure.Repository.JobMaster;
 using HRMS_Infrastructure.Repository.Leave;
@@ -173,6 +175,7 @@ namespace HRMS_Infrastructure.Repository
             CommonReasonsRepository = new CommonReasonsRepository(_dbContext);
             LoanApplicationRepository = new LoanApplicationRepository(_dbContext);
             EmployeeTransferRepository = new EmployeeTransferRepository(_dbContext);
+            ExitApplicationRepository = new ExitApplicationRepository(_dbContext);
 
         }
 
@@ -309,6 +312,7 @@ namespace HRMS_Infrastructure.Repository
         public ILoanApplicationRepository LoanApplicationRepository { get; set; }
 
         public IEmployeeTransferRepository EmployeeTransferRepository { get; set; }
+        public IExitApplicationRepository ExitApplicationRepository { get; set; }
 
         public void Commit()
         {

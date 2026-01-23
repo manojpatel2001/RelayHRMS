@@ -6,6 +6,7 @@ using HRMS_Infrastructure.Interface.EmailService;
 using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
+using HRMS_Infrastructure.Interface.ExitApplication;
 using HRMS_Infrastructure.Interface.ExportData;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
@@ -148,6 +149,7 @@ namespace HRMS_Infrastructure.Interface
         ICommonReasonsRepository CommonReasonsRepository { get; }
         ILoanApplicationRepository LoanApplicationRepository { get; }
         IEmployeeTransferRepository EmployeeTransferRepository { get; }
+        IExitApplicationRepository ExitApplicationRepository { get; }
         void Commit();
         Task CommitAsync();
     }
