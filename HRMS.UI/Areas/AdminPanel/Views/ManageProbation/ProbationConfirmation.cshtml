@@ -21,11 +21,13 @@
 
 			<!-- Export Button (Right) -->
 			<div class="col-6 text-end">
-				<button type="button"
-						class="btn btn-success btn-sm px-2 py-1"
-						onclick="downloadGridExcel()">
-					<i class="bx bx-file-excel fs-6"></i>Export Excel
+				<button type="button" id="exportExcelButton" class="btn btn-success btn-sm px-2 py-1" onclick="downloadGridExcel()">
+					<span id="exportButtonText">
+						<i class="bx bx-file-excel fs-6"></i> Export Excel
+					</span>
+					<span id="exportButtonLoader" style="display: none;" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Exporting..
 				</button>
+
 			</div>
 
 
@@ -275,7 +277,6 @@
 						ApprovalMasterId: 1
 					})
 				});
-
 				$("#GridContainer").dxDataGrid({
 					dataSource: response.data || [],
 
@@ -772,46 +773,100 @@
 			return pdf.output('datauristring').split(',')[1]; // Extract the Base64 part
 		}
 
-		function downloadGridExcel()
-		{
+			async function downloadGridExcel() {
+		$("#exportButtonText").hide();
+		$("#exportButtonLoader").show();
 
+		try {
 			const grid = $("#GridContainer").dxDataGrid("instance");
-
-			if (!grid) {
-				round_error_noti("Grid not loaded");
+			if (!grid || grid.totalCount() === 0) {
+				round_error_noti("No data to export");
 				return;
 			}
-
-			if (grid.totalCount() === 0) {
-				round_error_noti("No data available to export");
-				return;
-			}
-
-			 let statusText = $("#ddlStatus option:selected").text();
 
 			const workbook = new ExcelJS.Workbook();
-			const worksheet = workbook.addWorksheet("Probation Data");
+			const mainWorksheet = workbook.addWorksheet("Probation Data");
 
-			DevExpress.excelExporter.exportDataGrid({
+			// Export main grid
+			await DevExpress.excelExporter.exportDataGrid({
 				component: grid,
-				worksheet: worksheet,
-				autoFilterEnabled: true
-
-			})
-			.then(() => {
-				return workbook.xlsx.writeBuffer();
-			})
-			.then((buffer) => {
-				saveAs(
-					new Blob([buffer], { type: "application/octet-stream" }),
-					`Probation_${statusText}.xlsx`
-				);
-			})
-			.catch((error) => {
-				console.error("Excel export failed:", error);
-				round_error_noti("Failed to export Excel");
+				worksheet: mainWorksheet,
+				autoFilterEnabled: true,
 			});
-		}
 
+			// Track used worksheet names
+			const usedWorksheetNames = new Set();
+			usedWorksheetNames.add("Probation Data");
+
+			// Loop through each row to create separate history worksheets
+			const rows = grid.getVisibleRows();
+			rows.forEach(row => {
+				const approvalHistory = row.data.approvalHistory;
+				if (approvalHistory && approvalHistory.length > 0) {
+					// Generate a unique worksheet name
+					let worksheetName = `History_${row.data.employeeCode}`;
+					let counter = 1;
+
+					// Ensure the worksheet name is unique
+					while (usedWorksheetNames.has(worksheetName)) {
+						worksheetName = `History_${row.data.employeeCode}_${counter}`;
+						counter++;
+					}
+
+					// Add the worksheet name to the set
+					usedWorksheetNames.add(worksheetName);
+
+					// Create a new worksheet for this employee's history
+					const employeeHistoryWorksheet = workbook.addWorksheet(worksheetName);
+
+					// Define columns for the history worksheet
+					employeeHistoryWorksheet.columns = [
+						{ header: "Level", key: "Level", width: 10 },
+						{ header: "Status", key: "Status", width: 15 },
+						{ header: "Approver", key: "Approver", width: 25 },
+						{ header: "Remarks", key: "Remarks", width: 30 },
+						{ header: "Assigned On", key: "AssignedOn", width: 15 },
+						{ header: "Action On", key: "ActionOn", width: 15 },
+						{ header: "Escalated On", key: "EscalatedOn", width: 15 },
+					];
+
+					// Add history data to the employee's worksheet
+					const historyRows = approvalHistory.map(history => {
+						// Convert dates to UTC and format as DD-MM-YY
+						const formatDate = (date) => {
+							if (!date) return "";
+							const utcDate = new Date(date);
+							const day = String(utcDate.getUTCDate()).padStart(2, '0');
+							const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+							const year = String(utcDate.getUTCFullYear()).slice(-2);
+							return `${day}-${month}-${year}`;
+						};
+
+						return {
+							Level: history.historyLevelNo,
+							Status: history.historyStatus,
+							Approver: history.historyApproverName,
+							Remarks: history.historyRemarksOfApprover,
+							AssignedOn: formatDate(history.historyAssignedOn),
+							ActionOn: formatDate(history.historyActionOn),
+							EscalatedOn: formatDate(history.historyEscalatedOn),
+						};
+					});
+
+					employeeHistoryWorksheet.addRows(historyRows);
+				}
+			});
+
+			// Generate and save the Excel file
+			const buffer = await workbook.xlsx.writeBuffer();
+			saveAs(new Blob([buffer]), "Probation_Data_With_History.xlsx");
+		} catch (error) {
+			console.error("Export error:", error);
+			round_error_noti("Export failed. Check console for details.");
+		} finally {
+			$("#exportButtonLoader").hide();
+			$("#exportButtonText").show();
+		}
+	}
 
 </script>
