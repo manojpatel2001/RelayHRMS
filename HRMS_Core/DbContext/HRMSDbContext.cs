@@ -359,6 +359,10 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<Comp_offpara>().HasNoKey().ToView(null);
              modelBuilder.Entity<CompoffLeaveBalanceViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<ExitApplicationVm>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ExitApplicationReportVm>().HasNoKey().ToView(null);
+             modelBuilder.Entity<GetExitApproval>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ExitApprovalParam>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ExitApplicationUpdateparam>().HasNoKey().ToView(null);
 
 
 
