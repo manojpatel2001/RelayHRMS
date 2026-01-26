@@ -212,7 +212,7 @@ namespace HRMS_API.Controllers.Salary
         {
             try
             {
-                // Validate input
+
                 if (model == null)
                 {
                     return new APIResponse
@@ -222,10 +222,8 @@ namespace HRMS_API.Controllers.Salary
                     };
                 }
 
-                // Step 1: Update loan approval status
                 var loanApprovalResult = await _unitOfWork.LoanApplicationRepository.ApprovalLoan(model);
 
-                // Step 2: Prepare approval request action (regardless of loan approval result)
                 var approvalAction = new ApprovalRequestLevelActionPara
                 {
                     ApprovalRequestLevelId = model.ApprovalRequestLevelId,
@@ -235,10 +233,7 @@ namespace HRMS_API.Controllers.Salary
                     ActionBy = Convert.ToInt32(model.UpdatedBy)
                 };
 
-                // Step 3: Log approval action
                 var approvalActionResult = await _unitOfWork.ApprovalManagementRepository.LoanApprovalRequestLevelAction(approvalAction);
-
-                // Step 4: Check if loan approval was successful
                 if (loanApprovalResult.Success <= 0)
                 {
                     return new APIResponse
@@ -247,8 +242,6 @@ namespace HRMS_API.Controllers.Salary
                         ResponseMessage = loanApprovalResult?.ResponseMessage ?? "Failed to update loan approval status"
                     };
                 }
-
-                // Step 5: Return success response
                 return new APIResponse
                 {
                     isSuccess = true,
@@ -257,8 +250,7 @@ namespace HRMS_API.Controllers.Salary
             }
             catch (Exception err)
             {
-                // Log the error (if logging is available)
-                // Example: _logger.LogError(err, "Error in LoanApproval");
+
                 return new APIResponse
                 {
                     isSuccess = false,
