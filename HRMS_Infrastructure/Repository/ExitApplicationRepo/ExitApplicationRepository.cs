@@ -1,7 +1,11 @@
 ﻿using Dapper;
 using HRMS_Core.DbContext;
+using HRMS_Core.EmployeeMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.ExitApplication;
+using HRMS_Core.VM.Leave;
+using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface.ExitApplication;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -71,7 +75,7 @@ namespace HRMS_Infrastructure.Repository.ExitApplicationRepo
         }
 
 
-        public async Task<SP_Response> DeleteExitApplication(DeleteRecordVM deleteRecord)
+        public async Task<SP_Response> DeleteExitApplication(DeleteRecordVModel deleteRecord)
         {
             var response = new SP_Response();
             try
@@ -80,18 +84,32 @@ namespace HRMS_Infrastructure.Repository.ExitApplicationRepo
                 {
                     await connection.OpenAsync();
 
-                    var parameters = new DynamicParameters();
-                    parameters.Add("@Operation", "DELETE");
-                    parameters.Add("@ExitApplicationID", deleteRecord.Id);
-                    parameters.Add("@DeletedBy", deleteRecord.DeletedBy);
+                    foreach (int id in deleteRecord.Id)
+                    {
+                        var parameters = new DynamicParameters();
+                        parameters.Add("@Operation", "DELETE");
+                        parameters.Add("@ExitApplicationID", id);
+                        parameters.Add("@DeletedBy", deleteRecord.DeletedBy);
 
-                    var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
-                        "sp_ExitApplication_CRUD",
-                        parameters,
-                        commandType: CommandType.StoredProcedure);
+                        // Query the stored procedure and get the first row of the result
+                        var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                            "sp_ExitApplication_CRUD",
+                            parameters,
+                            commandType: CommandType.StoredProcedure
+                        );
 
-                    response.Success = result.Success;
-                    response.ResponseMessage = result.ResponseMessage;
+                        // If the stored procedure returns null or indicates failure, stop processing
+                        if (result == null || result.Success != 1)
+                        {
+                            response.Success = result?.Success ?? -1;
+                            response.ResponseMessage = result?.ResponseMessage ?? "Deletion failed for ID: " + id;
+                            break;
+                        }
+
+                        // If successful, continue to the next ID
+                        response.Success = result.Success;
+                        response.ResponseMessage = result.ResponseMessage;
+                    }
                 }
             }
             catch (Exception ex)
@@ -102,6 +120,49 @@ namespace HRMS_Infrastructure.Repository.ExitApplicationRepo
             return response;
         }
 
+        public async Task<ExitApplicationReportVm?> GetExitApplicationById(int Employeeid)
+        {
+            try
+            {
+                var result = await _db.Set<ExitApplicationReportVm?>().FromSqlInterpolated($@"
+                    EXEC sp_GetExitApplicationByEmployeeId
+                        @Employeeid = {Employeeid}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task<List<GetExitApproval?>> GetExitApproval(ExitApprovalParam model)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+               
+                          new SqlParameter("@EmployeeId", (object?)model.EmployeeID ?? DBNull.Value),
+                          new SqlParameter("@SearchBy", (object?)model.SearchBy ?? DBNull.Value),
+                          new SqlParameter("@SearchFor", (object?)model.SearchFor ?? DBNull.Value),
+                          new SqlParameter("@Status", (object?)model.Status ?? DBNull.Value),
+
+                };
+
+                var result = await _db.Set<GetExitApproval>()
+                    .FromSqlRaw("EXEC SP_GetExitApproval @EmployeeId, @SearchBy,@SearchFor ,@Status", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SP_GetExitApproval Error: " + ex.Message);
+                return new List<GetExitApproval>();
+            }
+        }
 
         public async Task<SP_Response> UpdateExitApplication(ExitApplicationVm model)
         {
@@ -147,5 +208,28 @@ namespace HRMS_Infrastructure.Repository.ExitApplicationRepo
             return response;
         }
 
+        public async Task<SP_Response> UpdateExitApproval(ExitApplicationUpdateparam model)
+        {
+            try
+            {
+                string idsString = string.Join(",", model.ExitApplicationID);
+
+                var result = await _db.Set<SP_Response>()
+                    .FromSqlInterpolated($@"
+                       EXEC UpdateExitApplicationStatus
+                        @ExitApplicationID = {idsString},
+                        @Status = {model.Status},
+                        @UpdatedBy = {model.UpdatedBy}
+                       ")
+                    .ToListAsync();
+
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong" };
+            }
+            catch (Exception ex)
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
     }
 }
