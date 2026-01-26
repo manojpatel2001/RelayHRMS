@@ -189,11 +189,11 @@ namespace HRMS_Infrastructure.Repository.Salary
             {
                 var parameters = new DynamicParameters();
           
-                parameters.Add("@LoanType", model.LoanType);
-                parameters.Add("@Status", model.Status);
-                parameters.Add("@SearchFor", model.SearchFor);
-                parameters.Add("@Emplooyeid", model.Emplooyeid);
-                parameters.Add("@CompId", model.CompId);
+                //parameters.Add("@LoanType", model.LoanType);
+                //parameters.Add("@Status", model.Status);
+                //parameters.Add("@SearchFor", model.SearchFor);
+                parameters.Add("@Employeeid", model.Employeeid);
+                //parameters.Add("@CompId", model.CompId);
                 var results = await db.QueryAsync<LoanApplicationResult>(
                     "[dbo].[GetLoanApprovalEss]",
                     parameters,
