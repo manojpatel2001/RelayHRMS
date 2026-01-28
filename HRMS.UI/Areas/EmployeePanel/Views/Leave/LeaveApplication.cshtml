@@ -304,7 +304,8 @@
     });
 
 
-    $('#btnDelete').on('click', function () {
+
+        $('#btnDelete').on('click', function () {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
 
@@ -313,53 +314,91 @@
             return;
         }
 
-        // Check if any selected record is not Pending
-        const nonPendingRecords = selectedRows.filter(row => row.leaveStatus !== "Pending");
+        const nonPendingRecords = selectedRows.filter(row => {
+            const status = row.leaveStatus;
+            // Check if status exists and is NOT "Pending" (case-insensitive)
+            return status && status.trim().toLowerCase() !== "pending";
+        });
 
         if (nonPendingRecords.length > 0) {
+            // Count approved and rejected separately
+            const approvedCount = nonPendingRecords.filter(row =>
+                row.leaveStatus.trim().toLowerCase() === "approved"
+            ).length;
+
+            const rejectedCount = nonPendingRecords.filter(row =>
+                row.leaveStatus.trim().toLowerCase() === "rejected"
+            ).length;
+
+            let message = `Cannot delete records: `;
+            let parts = [];
+
+            if (approvedCount > 0) {
+                parts.push(`${approvedCount} approved`);
+            }
+            if (rejectedCount > 0) {
+                parts.push(`${rejectedCount} rejected`);
+            }
+
+            message += parts.join(' and ') + ". Only pending records can be deleted.";
+
             Swal.fire({
                 title: "Cannot Delete",
-                text: "Only pending leave applications can be deleted. Please remove approved/rejected records from selection.",
-                icon: "error"
+                text: message,
+                icon: "error",
+                confirmButtonText: "OK"
             });
             return;
         }
 
+        // ✅ Proceed with deletion (only pending records)
         const selectedIds = selectedRows.map(row => row.leaveApplicationId);
         const deletePayload = {
             Id: selectedIds,
             DeletedBy: Empid.toString()
         };
 
-        $.ajax({
-            url: apiBase + "/LeaveApplication/Delete",
-            type: 'DELETE',
-            contentType: 'application/json',
-            data: JSON.stringify(deletePayload),
-            success: function (res) {
-                if (res.isSuccess) {
-                    Swal.fire({
-                        title: "Success",
-                        text: res.responseMessage || "Records deleted successfully.",
-                        icon: "success",
-                        timer: 2000
-                    }).then(() => {
-                        // Clear selection and refresh
-                        grid.clearSelection();
-                        selectedKeys = [];
-                        $('#actionButtons').hide();
-                        fetchLeaveData();
-                    });
-                } else {
-                    Swal.fire("Error", res.responseMessage || "Deletion failed.", "error");
-                }
-            },
-            error: function (xhr) {
-                Swal.fire("Error", "Something went wrong during deletion.", "error");
-                console.error("Delete error:", xhr);
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `Delete ${selectedRows.length} pending record(s)?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: apiBase + "/LeaveApplication/Delete",
+                    type: 'DELETE',
+                    contentType: 'application/json',
+                    data: JSON.stringify(deletePayload),
+                    success: function (res) {
+                        if (res.isSuccess) {
+                            Swal.fire({
+                                title: "Success",
+                                text: res.responseMessage || "Records deleted successfully.",
+                                icon: "success",
+                                timer: 2000
+                            }).then(() => {
+                                grid.clearSelection();
+                                selectedKeys = [];
+                                $('#actionButtons').hide();
+                                fetchLeaveData();
+                            });
+                        } else {
+                            Swal.fire("Error", res.responseMessage || "Deletion failed.", "error");
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire("Error", "Something went wrong during deletion.", "error");
+                        console.error("Delete error:", xhr);
+                    }
+                });
             }
         });
     });
+
+
         function renderTable(data) {
 
             $("#attendanceGrid").dxDataGrid({
