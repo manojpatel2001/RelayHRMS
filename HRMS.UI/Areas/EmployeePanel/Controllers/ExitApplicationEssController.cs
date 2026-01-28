@@ -20,5 +20,10 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
             return View();
          
         }
+        public IActionResult ExitClearanceApproval()
+        {
+            return View();
+         
+        }
     }
 }

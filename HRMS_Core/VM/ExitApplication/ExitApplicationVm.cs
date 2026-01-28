@@ -34,6 +34,8 @@ namespace HRMS_Core.VM.ExitApplication
         public bool IsPending { get; set; } = true;
         public bool IsApproved { get; set; } = false;
         public bool IsRejected { get; set; } = false;
+        public bool IsApprovedBYHR { get; set; } = false;
+        public bool IsNOCFormFilled { get; set; } = false;
 
         // Audit fields
         public bool IsDeleted { get; set; } = false;

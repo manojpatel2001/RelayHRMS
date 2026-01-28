@@ -8,8 +8,9 @@ namespace HRMS_Core.VM.ExitApplication
 {
     public class ExitApplicationUpdateparam
     {
-        public int ExitApplicationID { get; set; }
+        public List<int> ExitApplicationID { get; set; }
         public string Status { get; set; }
         public int UpdatedBy { get; set; }
+        public int EmployeeId { get; set; }
     }
 }

@@ -150,6 +150,7 @@ namespace HRMS_Infrastructure.Interface
         ILoanApplicationRepository LoanApplicationRepository { get; }
         IEmployeeTransferRepository EmployeeTransferRepository { get; }
         IExitApplicationRepository ExitApplicationRepository { get; }
+        INOCRepository NOCRepository { get; }
         void Commit();
         Task CommitAsync();
     }

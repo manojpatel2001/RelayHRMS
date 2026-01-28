@@ -363,6 +363,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<GetExitApproval>().HasNoKey().ToView(null);
              modelBuilder.Entity<ExitApprovalParam>().HasNoKey().ToView(null);
              modelBuilder.Entity<ExitApplicationUpdateparam>().HasNoKey().ToView(null);
+             modelBuilder.Entity<NOSForm>().HasNoKey().ToView(null);
 
 
 
