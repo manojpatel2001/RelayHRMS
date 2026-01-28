@@ -164,6 +164,34 @@ namespace HRMS_Infrastructure.Repository.ExitApplicationRepo
             }
         }
 
+        public async Task<List<ExitClearanceApprovalVM?>> GetExitClearanceApproval(ExitApplicationFilterModel model)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+
+                          new SqlParameter("@Employeeid", (object?)model.EmployeeId ?? DBNull.Value),
+                          new SqlParameter("@Status", (object?)model.Status ?? DBNull.Value),
+                          new SqlParameter("@SearchBy", (object?)model.SearchBy ?? DBNull.Value),
+                          new SqlParameter("@SearchValue", (object?)model.SearchValue ?? DBNull.Value)
+                 
+
+                };
+
+                var result = await _db.Set<ExitClearanceApprovalVM>()
+                    .FromSqlRaw("EXEC GetExitClearanceApprovalByHR @Employeeid, @Status,@SearchBy ,@SearchValue", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetExitClearanceApprovalByHR Error: " + ex.Message);
+                return new List<ExitClearanceApprovalVM>();
+            }
+        }
+
         public async Task<SP_Response> UpdateExitApplication(ExitApplicationVm model)
         {
             var response = new SP_Response();
@@ -218,7 +246,8 @@ namespace HRMS_Infrastructure.Repository.ExitApplicationRepo
                     .FromSqlInterpolated($@"
                        EXEC UpdateExitApplicationStatus
                         @ExitApplicationID = {idsString},
-                        @Status = {model.Status},
+                        @IsApproved ={model.IsApproved},
+                        @IsRejected ={model.IsRejected},
                         @UpdatedBy = {model.UpdatedBy}
                        ")
                     .ToListAsync();
