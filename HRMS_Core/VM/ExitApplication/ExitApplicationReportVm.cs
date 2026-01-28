@@ -9,6 +9,7 @@ namespace HRMS_Core.VM.ExitApplication
     public class ExitApplicationReportVm
     {
         public int ExitApplicationID { get; set; }
+        public int Employeeid { get; set; }
 
         public string? EmployeeCode { get; set; }
 
@@ -23,5 +24,7 @@ namespace HRMS_Core.VM.ExitApplication
         public bool IsApproved { get; set; }
 
         public bool IsRejected { get; set; }
+        public bool IsNOCFormFilled { get; set; }
+        public bool IsApprovedBYHR { get; set; }
     }
 }

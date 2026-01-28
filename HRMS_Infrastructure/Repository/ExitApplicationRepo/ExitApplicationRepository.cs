@@ -231,5 +231,33 @@ namespace HRMS_Infrastructure.Repository.ExitApplicationRepo
                 return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
+
+        public async Task<SP_Response> UpdateNOCFormFlag(int exitApplicationId)
+        {
+            var response = new SP_Response();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@ExitApplicationID", exitApplicationId);
+                    parameters.Add("@IsNOCFormFilled", true);
+
+                    var result = await connection.ExecuteAsync(
+                        "UPDATE ExitApplications SET IsNOCFormFilled = 1 WHERE ExitApplicationID = @ExitApplicationID",
+                        parameters);
+
+                    response.Success = result > 0 ? 1 : 0;
+                    response.ResponseMessage = result > 0 ? "NOC Form flag updated successfully." : "Failed to update NOC form flag.";
+                }
+            }
+            catch (Exception ex)
+            {
+                response.Success = -1;
+                response.ResponseMessage = $"Error: {ex.Message}";
+            }
+            return response;
+        }
     }
 }
