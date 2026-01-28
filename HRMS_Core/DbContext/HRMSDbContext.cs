@@ -364,6 +364,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<ExitApprovalParam>().HasNoKey().ToView(null);
              modelBuilder.Entity<ExitApplicationUpdateparam>().HasNoKey().ToView(null);
              modelBuilder.Entity<NOSForm>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ExitClearanceApprovalVM>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ExitApplicationFilterModel>().HasNoKey().ToView(null);
 
 
 

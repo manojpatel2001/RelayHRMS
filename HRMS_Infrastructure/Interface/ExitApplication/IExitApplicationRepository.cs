@@ -20,6 +20,7 @@ namespace HRMS_Infrastructure.Interface.ExitApplication
         Task<SP_Response> DeleteExitApplication(DeleteRecordVModel deleteRecord);
         Task<ExitApplicationReportVm?> GetExitApplicationById(int Employeeid);
         Task<List<GetExitApproval?>> GetExitApproval(ExitApprovalParam model);
+        Task<List<ExitClearanceApprovalVM?>> GetExitClearanceApproval(ExitApplicationFilterModel model);
 
         Task<SP_Response> UpdateNOCFormFlag(int exitApplicationId);
     }

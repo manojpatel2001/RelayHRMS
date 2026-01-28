@@ -144,6 +144,25 @@ namespace HRMS_API.Controllers.ExitApplicationAPI
             }
         }
 
+        [HttpPost("GetExitClearanceApproval")]
+        public async Task<APIResponse> GetExitClearanceApproval(ExitApplicationFilterModel model)
+
+        {
+            try
+            {
+                var data = await _unitOfWork.ExitApplicationRepository.GetExitClearanceApproval(model);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
         [HttpPost("GetExitApproval")]
         public async Task<APIResponse> GetExitApproval(ExitApprovalParam model)
 
@@ -164,11 +183,12 @@ namespace HRMS_API.Controllers.ExitApplicationAPI
             }
         }
         [HttpPut("UpdateExitApproval")]
-        public async Task<APIResponse> UpdateExitApproval(ExitApplicationUpdateparam model)
+        public async Task<APIResponse> UpdateExitApproval(List<ExitApplicationUpdateparam> requests)
         {
             try
             {
-                if (model.ExitApplicationID == null || model.ExitApplicationID.Count == 0)
+                // Check if requests are null or empty
+                if (requests == null || requests.Count == 0)
                 {
                     return new APIResponse
                     {
@@ -177,39 +197,55 @@ namespace HRMS_API.Controllers.ExitApplicationAPI
                     };
                 }
 
-                var data = await _unitOfWork.ExitApplicationRepository.UpdateExitApproval(model);
-                if (data.Success != 1)
+                // Process each request in the list
+                foreach (var request in requests)
                 {
-                    return new APIResponse
+                    var result = await _unitOfWork.ExitApplicationRepository.UpdateExitApproval(request);
+                    if (result.Success <= 0)
                     {
-                        isSuccess = false,
-                        Data = data,
-                        ResponseMessage = data.ResponseMessage
-                    };
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = result.ResponseMessage
+                        };
+                    }
                 }
 
-                foreach (var applicationId in model.ExitApplicationID)
+                // Send notifications for each request
+                foreach (var request in requests)
                 {
-                    var applicationDetails = await _unitOfWork.ExitApplicationRepository.GetExitApplicationById(applicationId);
+                    var applicationDetails = await _unitOfWork.ExitApplicationRepository.GetExitApplicationById(request.ExitApplicationID);
                     if (applicationDetails == null)
                     {
                         return new APIResponse
                         {
                             isSuccess = false,
-                            ResponseMessage = $"Exit application with ID {applicationId} not found."
+                            ResponseMessage = $"Exit application with ID {request.ExitApplicationID} not found."
                         };
                     }
 
                     // Fetch reporting manager details
-                    var reportingDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)model.EmployeeId);
+                    var reportingDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(request.EmployeeId);
+                    if (reportingDetails == null)
+                    {
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = $"Reporting manager details not found for Employee ID {request.EmployeeId}."
+                        };
+                    }
+
+                    // Convert boolean to proper status text
+                    string statusText = request.IsApproved ? "approved" : "rejected";
+
                     var notification = new NotificationRemainders()
                     {
-                        NotificationMessage = $"{reportingDetails?.FullName} has {model.Status} your exit application (Application ID: {applicationId}).",
+                        NotificationMessage = $"{reportingDetails.FullName} has {statusText} your exit application (Application ID: {request.ExitApplicationID}).",
                         NotificationTime = DateTime.UtcNow,
-                        SenderId = reportingDetails?.Id.ToString(),
+                        SenderId = reportingDetails.Id.ToString(),
                         ReceiverIds = applicationDetails.Employeeid.ToString(),
                         NotificationType = NotificationType.ExitApproval,
-                        NotificationAffectedId = applicationId
+                        NotificationAffectedId = request.ExitApplicationID
                     };
 
                     var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
@@ -234,8 +270,7 @@ namespace HRMS_API.Controllers.ExitApplicationAPI
                 return new APIResponse
                 {
                     isSuccess = true,
-                    Data = data,
-                    ResponseMessage = data.ResponseMessage
+                    ResponseMessage = $"{requests.Count} exit application(s) updated successfully."
                 };
             }
             catch (Exception err)
@@ -243,8 +278,8 @@ namespace HRMS_API.Controllers.ExitApplicationAPI
                 return new APIResponse
                 {
                     isSuccess = false,
-                    Data = null,
-                    ResponseMessage = $"Error occurred: {err.Message}"
+                    Data = err.Message,
+                    ResponseMessage = "Unable to update records. Please try again later."
                 };
             }
         }
