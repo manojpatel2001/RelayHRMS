@@ -214,13 +214,114 @@ namespace HRMS_API.Controllers.ExitApplicationAPI
                 // Send notifications for each request
                 foreach (var request in requests)
                 {
-                    var applicationDetails = await _unitOfWork.ExitApplicationRepository.GetExitApplicationById(request.ExitApplicationID);
+                    var applicationDetails = await _unitOfWork.ExitApplicationRepository.GetExitApplicationById(request.EmployeeId);
                     if (applicationDetails == null)
                     {
                         return new APIResponse
                         {
                             isSuccess = false,
-                            ResponseMessage = $"Exit application with ID {request.ExitApplicationID} not found."
+                            ResponseMessage = $"Exit application with ID {request.EmployeeId} not found."
+                        };
+                    }
+
+                    // Fetch reporting manager details
+                    var reportingDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(request.EmployeeId);
+                    if (reportingDetails == null)
+                    {
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = $"Reporting manager details not found for Employee ID {request.EmployeeId}."
+                        };
+                    }
+
+                    // Convert boolean to proper status text
+                    string statusText = request.IsApproved ? "approved" : "rejected";
+
+                    var notification = new NotificationRemainders()
+                    {
+                        NotificationMessage = $"{reportingDetails.FullName} has {statusText} your exit application (Application ID: {request.ExitApplicationID}).",
+                        NotificationTime = DateTime.UtcNow,
+                        SenderId = reportingDetails.Id.ToString(),
+                        ReceiverIds = applicationDetails.Employeeid.ToString(),
+                        NotificationType = NotificationType.ExitApproval,
+                        NotificationAffectedId = request.ExitApplicationID
+                    };
+
+                    var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                    if (savedNotification.Success <= 0)
+                    {
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = "Failed to create notification."
+                        };
+                    }
+
+                    // Send real-time notification if employee is online
+                    var employeeConnection = NotificationRemainderConnectionManager.GetConnections(applicationDetails.Employeeid.ToString());
+                    if (employeeConnection.Any())
+                    {
+                        await _hubContext.Clients.Clients(employeeConnection)
+                            .SendAsync("ReceiveNotificationRemainder", notification);
+                    }
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    ResponseMessage = $"{requests.Count} exit application(s) updated successfully."
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to update records. Please try again later."
+                };
+            }
+        }
+        [HttpPut("UpdateExitApprovalBYHR")]
+        public async Task<APIResponse> UpdateExitApprovalBYHR(List<ExitApplicationUpdateparam> requests)
+        {
+            try
+            {
+                // Check if requests are null or empty
+                if (requests == null || requests.Count == 0)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No exit applications selected for update."
+                    };
+                }
+
+                // Process each request in the list
+                foreach (var request in requests)
+                {
+                    var result = await _unitOfWork.ExitApplicationRepository.UpdateExitApprovalBYHR(request);
+                    if (result.Success <= 0)
+                    {
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = result.ResponseMessage
+                        };
+                    }
+                }
+
+                // Send notifications for each request
+                foreach (var request in requests)
+                {
+                    var applicationDetails = await _unitOfWork.ExitApplicationRepository.GetExitApplicationById(request.EmployeeId);
+                    if (applicationDetails == null)
+                    {
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = $"Exit application with ID {request.EmployeeId} not found."
                         };
                     }
 

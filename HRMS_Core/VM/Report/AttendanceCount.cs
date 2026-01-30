@@ -10,5 +10,7 @@ namespace HRMS_Core.VM.Report
     {
         public int EmpId { get; set; }
         public int TotalRequests { get; set; }
+        public int LimitedRequestsCount { get; set; }
+        public int UnlimitedRequestsCount { get; set; }
     }
 }

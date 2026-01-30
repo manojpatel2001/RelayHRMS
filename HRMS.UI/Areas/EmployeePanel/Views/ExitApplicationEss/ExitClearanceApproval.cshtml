@@ -10,6 +10,8 @@
 
 <title>Exit Approval Panel</title>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
 <style>
@@ -587,6 +589,7 @@
 
     function loadGrid(data) {
         // Dispose existing grid first to prevent conflicts
+        console.log('data' ,data);
         try {
             const gridInstance = $("#exitGrid").dxDataGrid("instance");
             if (gridInstance) {
@@ -720,7 +723,7 @@
                                 .css("font-size", "18px")
                                 .attr("title", "Preview NOC Form")
                                 .on("click", function() {
-                                    previewNOCForm(row.exitApplicationID);
+                                    previewNOCForm(row.employeeId);
                                 });
 
                             container.append(previewIcon);
@@ -747,7 +750,7 @@
                                 .css("font-size", "18px")
                                 .attr("title", "Download NOC PDF")
                                 .on("click", function() {
-                                    downloadNOCFormDirect(row.exitApplicationID, 'pdf');
+                                    downloadNOCFormDirect(row.employeeId, 'pdf');
                                 });
 
                             container.append(downloadIcon);
@@ -763,20 +766,27 @@
     }
 
     // Function to preview NOC Form
-    function previewNOCForm(exitApplicationID) {
-        currentExitApplicationID = exitApplicationID;
+    function previewNOCForm(employeeId) {
+        currentExitApplicationID = employeeId;
         showLoder();
 
         $.ajax({
-            url: "@baseUrls/ExitApplicationAPI/GetNOCFormData",
-            type: 'POST',
-            data: JSON.stringify({ ExitApplicationID: exitApplicationID }),
-            contentType: 'application/json',
+            url: "@baseUrls/NOCAPI/GetNOCByGetEmployeeExitDetails",
+            type: 'GET',
+            data: { EmployeeId: employeeId },
             success: function (res) {
                 hideLoder();
                 if (res.isSuccess && res.data) {
-                    currentNOCData = res.data;
-                    displayNOCForm(res.data);
+                    // Check if data is array or single object
+                    const nocData = Array.isArray(res.data) ? res.data[0] : res.data;
+
+                    if (!nocData) {
+                        round_error_noti('No NOC form data found');
+                        return;
+                    }
+
+                    currentNOCData = nocData;
+                    displayNOCForm(nocData);
                     $("#nocModal").show();
                 } else {
                     round_error_noti(res.responseMessage || 'Failed to load NOC form data');
@@ -792,20 +802,25 @@
 
     // Function to display NOC Form in modal
     function displayNOCForm(data) {
+        // Company logo path
+        const logoUrl = '/assets/images/relaylogo.jpeg';
+
         const nocItems = data.nocItems || [];
 
         let itemsHtml = '';
         nocItems.forEach(function(item) {
             const yesCheck = item.isHandedOver ? '✓' : '';
             const noCheck = !item.isHandedOver ? '✓' : '';
+            const handoverTo = item.handoverTo && item.handoverTo !== 'NULL' ? item.handoverTo : '-';
+            const remarks = item.remarks && item.remarks !== 'NULL' ? item.remarks : '-';
 
             itemsHtml += `
                 <tr>
                     <td>${item.itemName}</td>
                     <td style="text-align: center;">${yesCheck ? '<span class="checkmark">✓</span>' : ''}</td>
                     <td style="text-align: center;">${noCheck ? '<span class="crossmark">✗</span>' : ''}</td>
-                    <td>${item.handoverTo || '-'}</td>
-                    <td>${item.remarks || '-'}</td>
+                    <td>${handoverTo}</td>
+                    <td>${remarks}</td>
                 </tr>
             `;
         });
@@ -815,7 +830,7 @@
                 <!-- Header -->
                 <div class="noc-form-header">
                     <div class="noc-logo-section">
-                        <strong>RELAY EXPRESS</strong>
+                        <img src="${logoUrl}" alt="Company Logo" style="max-width: 130px; max-height: 60px; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<strong>RELAY EXPRESS</strong>';" />
                     </div>
                     <div class="noc-title-section">
                         <h2>Title- No Dues Claim/F & F Settlement Form</h2>
@@ -850,16 +865,22 @@
                         <td>${data.branch || '-'}</td>
                     </tr>
                     <tr>
-                        <td>Date of Joining</td>
+                        <td>Department</td>
+                        <td>${data.department || '-'}</td>
+                        <td><strong>Date of Joining</strong></td>
                         <td>${formatDate(data.dateOfJoining)}</td>
-                        <td><strong>Resignation Date (Mandatory)</strong></td>
-                        <td>${formatDate(data.resignationDate)}</td>
                     </tr>
                     <tr>
-                        <td>Date of Leaving</td>
+                        <td>Resignation Date (Mandatory)</td>
+                        <td>${formatDate(data.resignationDate)}</td>
+                        <td><strong>Date of Leaving</strong></td>
                         <td>${formatDate(data.lastWorkingDate)}</td>
-                        <td><strong>Notice Period as per Policy</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Notice Period as per Policy</td>
                         <td>${data.noticePeriodDays || '0'} days</td>
+                        <td><strong>Short Fall Days</strong></td>
+                        <td>${data.shortFallDays || '0'} days</td>
                     </tr>
                     <tr>
                         <td>Reason of Leaving</td>
@@ -876,7 +897,7 @@
                     <thead>
                         <tr>
                             <th style="width: 30%;">Dept. / Section</th>
-                            <th style="width: 10%;">Please<br>Yes</th>
+                            <th style="width: 10%;">Yes</th>
                             <th style="width: 10%;">No</th>
                             <th style="width: 25%;">Handover to</th>
                             <th style="width: 25%;">Remarks</th>
@@ -949,50 +970,236 @@
         downloadNOCFormDirect(currentExitApplicationID, format);
     }
 
-    // Function to download NOC Form PDF directly
-    function downloadNOCFormDirect(exitApplicationID, format) {
+    // ============ FIXED PDF GENERATION FUNCTION WITH LOGO AND SINGLE PAGE ============
+    function downloadNOCFormDirect(employeeId, format) {
         showLoder();
 
         $.ajax({
-            url: "@baseUrls/ExitApplicationAPI/DownloadNOCFormPDF",
-            type: 'POST',
-            data: JSON.stringify({ ExitApplicationID: exitApplicationID }),
-            contentType: 'application/json',
-            xhrFields: {
-                responseType: 'blob'
-            },
-            success: function (blob, status, xhr) {
+            url: "@baseUrls/NOCAPI/GetNOCByGetEmployeeExitDetails",
+            type: 'GET',
+            data: { EmployeeId: employeeId },
+            success: function (res) {
                 hideLoder();
+                if (res.isSuccess && res.data) {
+                    const nocData = Array.isArray(res.data) ? res.data[0] : res.data;
 
-                // Get filename from Content-Disposition header or use default
-                const disposition = xhr.getResponseHeader('Content-Disposition');
-                let filename = 'NOC_Form.pdf';
-
-                if (disposition && disposition.indexOf('filename=') !== -1) {
-                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                    const matches = filenameRegex.exec(disposition);
-                    if (matches != null && matches[1]) {
-                        filename = matches[1].replace(/['"]/g, '');
+                    if (!nocData) {
+                        round_error_noti('No NOC form data found');
+                        return;
                     }
+
+                    generateNOCPDF(nocData);
+                } else {
+                    round_error_noti(res.responseMessage || 'Failed to load NOC form data');
                 }
-
-                // Create download link
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-
-                round_success_noti('NOC PDF downloaded successfully');
             },
             error: function (xhr, status, error) {
                 hideLoder();
-                console.error('Error downloading NOC PDF:', error);
-                round_error_noti('Error downloading NOC PDF: ' + error);
+                console.error('Error loading NOC form:', error);
+                round_error_noti('Error loading NOC form: ' + error);
             }
+        });
+    }
+
+    // Function to generate PDF from NOC data - OPTIMIZED FOR SINGLE PAGE WITH LOGO
+    function generateNOCPDF(data) {
+        showLoder();
+
+        // Company logo path
+        const logoUrl = '/assets/images/relaylogo.jpeg';
+
+        // Create temporary container with reduced size to fit on one page
+        const tempContainer = $('<div>').css({
+            'position': 'absolute',
+            'left': '-9999px',
+            'width': '750px',
+            'background': 'white',
+            'padding': '10px'
+        }).appendTo('body');
+
+        const nocItems = data.nocItems || [];
+        let itemsHtml = '';
+
+        nocItems.forEach(function(item) {
+            const yesCheck = item.isHandedOver ? '✓' : '';
+            const noCheck = !item.isHandedOver ? '✓' : '';
+            const handoverTo = item.handoverTo && item.handoverTo !== 'NULL' ? item.handoverTo : '-';
+            const remarks = item.remarks && item.remarks !== 'NULL' ? item.remarks : '-';
+
+            itemsHtml += `
+                <tr>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 9px;">${item.itemName}</td>
+                    <td style="border: 1px solid #000; padding: 3px; text-align: center; font-size: 9px;">${yesCheck ? '<span style="color: green;">✓</span>' : ''}</td>
+                    <td style="border: 1px solid #000; padding: 3px; text-align: center; font-size: 9px;">${noCheck ? '<span style="color: red;">✗</span>' : ''}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 9px;">${handoverTo}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 9px;">${remarks}</td>
+                </tr>
+            `;
+        });
+
+        const nocFormHtml = `
+            <div style="border: 2px solid #333; padding: 10px; background-color: white; font-family: Arial, sans-serif;">
+                <!-- Header -->
+                <div style="display: flex; border: 1px solid #000; margin-bottom: 6px;">
+                    <div style="border-right: 1px solid #000; padding: 6px; width: 120px; display: flex; align-items: center; justify-content: center;">
+                        <img src="${logoUrl}" alt="Company Logo" style="max-width: 100px; max-height: 45px; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<strong>RELAY EXPRESS</strong>';" />
+                    </div>
+                    <div style="flex: 1; padding: 6px; text-align: center; border-right: 1px solid #000;">
+                        <h2 style="margin: 0; font-size: 13px; font-weight: bold;">Title- No Dues Claim/F & F Settlement Form</h2>
+                    </div>
+                    <div style="padding: 6px; width: 100px; font-size: 8px;">
+                        <strong>Document No-8</strong><br>
+                        <strong>Issue No: 1</strong><br>
+                        <strong>Page:1 of 1</strong><br>
+                        <strong>w.e.f :01.06.2017</strong>
+                    </div>
+                </div>
+
+                <!-- Approval Section -->
+                <div style="display: flex; border: 1px solid #000; margin-bottom: 5px;">
+                    <div style="padding: 4px; border-right: 1px solid #000; font-size: 9px; width: 33.33%;"><strong>Prepared By:</strong> HRD</div>
+                    <div style="padding: 4px; border-right: 1px solid #000; font-size: 9px; width: 33.33%;"><strong>Approved By:</strong> Management</div>
+                    <div style="padding: 4px; font-size: 9px; width: 33.33%;"><strong>Issued By:</strong> MR</div>
+                </div>
+
+                <!-- Employee Information Table -->
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px;">
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold; width: 25%;">Employee Name</td>
+                        <td style="border: 1px solid #000; padding: 4px; width: 25%;">${data.employeeName || '-'}</td>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold; width: 25%;">Employee Code</td>
+                        <td style="border: 1px solid #000; padding: 4px; width: 25%;">${data.employeeCode || '-'}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">Designation</td>
+                        <td style="border: 1px solid #000; padding: 4px;">${data.designation || '-'}</td>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">Branch</td>
+                        <td style="border: 1px solid #000; padding: 4px;">${data.branch || '-'}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">Department</td>
+                        <td style="border: 1px solid #000; padding: 4px;">${data.department || '-'}</td>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">Date of Joining</td>
+                        <td style="border: 1px solid #000; padding: 4px;">${formatDate(data.dateOfJoining)}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">Resignation Date</td>
+                        <td style="border: 1px solid #000; padding: 4px;">${formatDate(data.resignationDate)}</td>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">Date of Leaving</td>
+                        <td style="border: 1px solid #000; padding: 4px;">${formatDate(data.lastWorkingDate)}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">Notice Period</td>
+                        <td style="border: 1px solid #000; padding: 4px;">${data.noticePeriodDays || '0'} days</td>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">Short Fall Days</td>
+                        <td style="border: 1px solid #000; padding: 4px;">${data.shortFallDays || '0'} days</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">Reason of Leaving</td>
+                        <td colspan="3" style="border: 1px solid #000; padding: 4px;">${data.reasonForResignation || '-'}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 4px;"></td>
+                        <td colspan="3" style="border: 1px solid #000; padding: 4px;"><strong>Notice Period actual served: ${data.noticePeriodDays || '0'} days</strong></td>
+                    </tr>
+                </table>
+
+                <!-- Items Handover Table -->
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #000; padding: 3px; background-color: #f0f0f0; font-weight: bold; text-align: center; width: 30%;">Dept. / Section</th>
+                            <th style="border: 1px solid #000; padding: 3px; background-color: #f0f0f0; font-weight: bold; text-align: center; width: 10%;">Yes</th>
+                            <th style="border: 1px solid #000; padding: 3px; background-color: #f0f0f0; font-weight: bold; text-align: center; width: 10%;">No</th>
+                            <th style="border: 1px solid #000; padding: 3px; background-color: #f0f0f0; font-weight: bold; text-align: center; width: 25%;">Handover to</th>
+                            <th style="border: 1px solid #000; padding: 3px; background-color: #f0f0f0; font-weight: bold; text-align: center; width: 25%;">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+
+                <!-- Signature Section -->
+                <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 5px;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #000; padding: 4px; background-color: #f0f0f0; font-weight: bold; text-align: center;">Employee</th>
+                            <th style="border: 1px solid #000; padding: 4px; background-color: #f0f0f0; font-weight: bold; text-align: center;">Approved By (Dept. Mgr.)</th>
+                            <th style="border: 1px solid #000; padding: 4px; background-color: #f0f0f0; font-weight: bold; text-align: center;">Charge to be given to</th>
+                            <th style="border: 1px solid #000; padding: 4px; background-color: #f0f0f0; font-weight: bold; text-align: center;">Received By (HRD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 4px; height: 35px;"><strong>Signature</strong></td>
+                            <td style="border: 1px solid #000; padding: 4px;"></td>
+                            <td style="border: 1px solid #000; padding: 4px;"></td>
+                            <td style="border: 1px solid #000; padding: 4px;"></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Note -->
+                <div style="font-size: 8px; margin-top: 5px; padding: 5px; background-color: #f9f9f9; border: 1px solid #ddd;">
+                    <strong>Note:</strong> Settlement will have to be made to the employee only after obtaining this form duly approved by all concerned and Full & final settlement will be done after 45 days from the last working day and if, employee will not serve notice as per the HQO then HRD will adjust notice period amount against F & F settlement amount.
+                </div>
+
+                <!-- Employee's Declaration -->
+                <div style="font-size: 8px; margin-top: 5px; padding: 5px; border: 1px solid #000;">
+                    <strong style="text-decoration: underline;">Employee's Self Declaration on his Personal Liabilities / A Guarantor:</strong>
+                    <p style="margin: 3px 0;">For any kind of loan (Home Loan/Personal Loan/ Vehicle Loan etc.) taken by me from third party, in that case Relay Express Pvt Ltd. will nowhere liable for its repayment. I will solely and exclusively liable to repay my loan or any kind financial liability to the lender. Even if I have availed any kind of loan /financial facility by making Relay Express as a guarantor and not repaid that liability. I shall be exclusively responsible for that loan repayment, Relay Express will nowhere liable for its repayment.</p>
+                    <div style="margin-top: 30px; text-align: right;">
+                        <strong>Employee's Signature</strong>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        tempContainer.html(nocFormHtml);
+
+        // Generate PDF using html2canvas and jsPDF
+        html2canvas(tempContainer[0], {
+            scale: 2.5,
+            useCORS: true,
+            logging: false,
+            allowTaint: true
+        }).then(function(canvas) {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = 210; // A4 width in mm
+            const pageHeight = 297; // A4 height in mm
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            // Check if content fits on one page
+            if (imgHeight <= pageHeight) {
+                // Content fits on one page
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+            } else {
+                // Content is too tall, scale it down to fit on one page
+                const scaledHeight = pageHeight - 10; // Leave small margin
+                const scaledWidth = (canvas.width * scaledHeight) / canvas.height;
+                const xOffset = (imgWidth - scaledWidth) / 2; // Center horizontally
+
+                pdf.addImage(imgData, 'PNG', xOffset, 5, scaledWidth, scaledHeight);
+            }
+
+            // Download the PDF
+            const fileName = `NOC_Form_${data.employeeCode || 'Employee'}_${new Date().toISOString().split('T')[0]}.pdf`;
+            pdf.save(fileName);
+
+            // Clean up
+            tempContainer.remove();
+            hideLoder();
+
+            round_success_noti('NOC PDF downloaded successfully');
+        }).catch(function(error) {
+            console.error('Error generating PDF:', error);
+            tempContainer.remove();
+            hideLoder();
+            round_error_noti('Error generating PDF: ' + error.message);
         });
     }
 
@@ -1027,7 +1234,6 @@
                     if (res.data && res.data.length > 0) {
                         loadGrid(res.data);
                     } else {
-                        // No data - hide everything
                         $("#actionButtons").hide();
                         $(".search-panel-wrapper").last().hide();
                         safeDisposeGrid();
@@ -1057,19 +1263,18 @@
     });
 
     $("#btnClear").click(function () {
-        // Reset form
         $('#searchby').val("1");
         $('#searchfor').val('');
         $("input[name='type']").prop('checked', false);
         $('#r2').prop('checked', true);
 
-        // Safe grid disposal and hide everything
         safeDisposeGrid();
         $("#actionButtons").hide();
         $(".search-panel-wrapper").last().hide();
     });
 
-    function updateExitStatus(status) {
+         function updateExitStatus(status) {
+        debugger;
         var grid = $("#exitGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
 
@@ -1078,80 +1283,63 @@
             return;
         }
 
-        if (status === "Rejected") {
-            const approvedRecords = selectedRows.filter(row => row.isApproved);
-            if (approvedRecords.length > 0) {
-                Swal.fire({
-                    title: "Not Allowed",
-                    text: "Approved records cannot be rejected.",
-                    icon: "error",
-                    customClass: {
-                        popup: 'swal-small'
-                    }
-                });
-                return;
-            }
-        }
+ 
 
-        if (status === "Approved") {
-            const approvedRecords = selectedRows.filter(row => row.isApproved);
-            if (approvedRecords.length > 0) {
-                Swal.fire({
-                    title: "Not Allowed",
-                    text: "Already Approved.",
-                    icon: "error",
-                    customClass: {
-                        popup: 'swal-small'
-                    }
-                });
-                return;
-            }
-        }
-
-        if (status === "Rejected") {
-            const rejectedRecords = selectedRows.filter(row => row.isRejected);
-            if (rejectedRecords.length > 0) {
-                Swal.fire({
-                    title: "Not Allowed",
-                    text: "Already Rejected.",
-                    icon: "error",
-                    customClass: {
-                        popup: 'swal-small'
-                    }
-                });
-                return;
-            }
-        }
-
-        selectedRows.forEach(function (row) {
-            row.status = status;
-            row.updatedBy = EmployeeId;
+        var rowsToUpdate = selectedRows.map(function(row) {
+            return {
+                ExitApplicationID: row.exitApplicationID,
+                IsApproved: (status === "Approved"),  // Send true/false
+                IsRejected: (status === "Rejected"),
+                UpdatedBy: EmpId,
+                EmployeeId: row.employeeId,
+            };
         });
 
         showLoder();
-        $.ajax({
-            url: apiBase + "/ExitApplicationAPI/UpdateExitApplicationStatus",
-            type: "PUT",
-            data: JSON.stringify(selectedRows),
-            contentType: "application/json",
-            success: function (response) {
-                hideLoder();
-                if (response.isSuccess) {
-                    round_success_noti(response.responseMessage || "Status updated successfully.");
 
-                    // Reload the grid with current search criteria
+        // Create array of promises for each update request
+        var updatePromises = rowsToUpdate.map(function(row) {
+            return $.ajax({
+                url: "@baseUrls/ExitApplicationAPI/UpdateExitApprovalBYHR",
+                type: "PUT",
+                data: JSON.stringify([row]),
+                contentType: "application/json"
+            });
+        });
+
+        // Wait for all requests to complete
+        Promise.all(updatePromises)
+            .then(function(responses) {
+                hideLoder();
+
+                // Check if all updates were successful
+                var allSuccess = responses.every(function(response) {
+                    return response.isSuccess;
+                });
+
+                if (allSuccess) {
+                    round_success_noti("Status updated successfully.");
                     $('#btnGo').click();
                 } else {
-                    round_error_noti(response.responseMessage || "Update failed.");
+                    // Find failed responses
+                    var failedResponses = responses.filter(function(response) {
+                        return !response.isSuccess;
+                    });
+
+                    if (failedResponses.length > 0) {
+                        round_error_noti(failedResponses[0].responseMessage || "Some updates failed.");
+                    } else {
+                        round_error_noti("Update failed.");
+                    }
                 }
-            },
-            error: function (xhr, status, error) {
+            })
+            .catch(function(error) {
                 hideLoder();
-                console.error("AJAX Error:", error);
+                console.error("Error details:", error);
                 round_error_noti("Something went wrong during update.");
-            }
-        });
+            });
     }
+
 
     // Handle window resize
     $(window).on('resize', function() {

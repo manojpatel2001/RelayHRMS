@@ -385,21 +385,21 @@
                     console.log("✅ Unlimited Reasons (NOT Counted):", unlimitedReasonIds);
                 } else {
                     console.warn("⚠️ Using fallback reason configuration");
-                    setFallbackReasons();
+                
                 }
             },
             error: function (error) {
                 console.error('❌ Failed to load reason configuration:', error);
-                setFallbackReasons();
+     
             }
         });
     }
 
-    // Fallback function
-    function setFallbackReasons() {
-       limitedReasonIds = ["14", "17" ,"18","10"];
-       unlimitedReasonIds = ["12", "19", "11", "16" ,"13" ,"15"];
-    }
+    // // Fallback function
+    // function setFallbackReasons() {
+    //    limitedReasonIds = ["14", "17" ,"18","10"];
+    //    unlimitedReasonIds = ["12", "19", "11", "16" ,"13" ,"15"];
+    // }
 
     function initializeDatePickers() {
         flatpickr("#startDate", {
@@ -903,14 +903,15 @@
     }
 
     async function validateAttendanceRequestLimit(EmployeeId, selectedRows, selectedMonth, selectedYear) {
+        debugger;
         try {
             // Wait for reason configuration to load if not loaded yet
             if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
                 console.warn("⚠️ Reason configuration not loaded, using fallback...");
                 await new Promise(resolve => setTimeout(resolve, 1000));
-                if (limitedReasonIds.length === 0) {
-                    setFallbackReasons();
-                }
+                // if (limitedReasonIds.length === 0) {
+                //     setFallbackReasons();
+                // }
             }
 
             // Count limited and unlimited requests from current selection
@@ -1094,6 +1095,7 @@
     }
 
      $('#btnSaveGridData').on('click', async function () {
+         debugger;
         const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
         gridInstance.saveEditData();
         const selectedRows = gridInstance.getSelectedRowsData();
@@ -1399,11 +1401,10 @@
         });
     }
 
-        async function validateAttendanceRequestLimit(EmployeeId, selectedRows, selectedMonth, selectedYear) {
+       async function validateAttendanceRequestLimit(EmployeeId, selectedRows, selectedMonth, selectedYear) {
         try {
             // CRITICAL: Wait for reason configuration to load
             if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
-
                 await new Promise(resolve => setTimeout(resolve, 1500));
 
                 if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
@@ -1429,7 +1430,6 @@
             const limitedRowCount = selectedRows.filter(row => {
                 const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
                 const isLimited = limitedReasonIds.includes(reasonStr);
-
                 return isLimited;
             }).length;
 
@@ -1444,7 +1444,6 @@
 
             // 🔥 If there are unmatched reasons, show error
             if (unmatchedCount > 0) {
-                // Get unmatched reason details for better error message
                 const unmatchedReasons = selectedRows.filter(row => {
                     const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
                     return !limitedReasonIds.includes(reasonStr) && !unlimitedReasonIds.includes(reasonStr);
@@ -1473,7 +1472,7 @@
 
             // 🔥 If all selected rows have unlimited reasons, bypass limit check
             if (limitedRowCount === 0 && unlimitedRowCount > 0) {
-
+                console.log('✅ All selected requests are UNLIMITED - Bypassing limit check');
                 return true;
             }
 
@@ -1489,12 +1488,10 @@
 
             // Only proceed with limit check if there are LIMITED reasons
             if (limitedRowCount > 0) {
-
-
                 // Get employee monthly limit
                 const employeeDetails = await $.ajax({
                     type: "GET",
-                    url: "@baseDomainUrl/api/AttendanceRegularizationAPI/GetEmployeeDetails?EmpId=" + EmployeeId,
+                    url:   "@baseDomainUrl/api/AttendanceRegularizationAPI/GetEmployeeDetails?EmpId=" + EmployeeId,
                     headers: {
                         'Authorization': 'Bearer ' + Token
                     }
@@ -1503,7 +1500,7 @@
                 // Get request count for the selected month/year
                 const currentMonthCount = await $.ajax({
                     type: "GET",
-                    url:  "@baseDomainUrl/api/AttendanceRegularizationAPI/GetEmployeeDetails?" +
+                    url:  "@baseDomainUrl/api/AttendanceRegularizationAPI/GetEmployeeAttendanceRequestsCountForCurrentMonth?" +
                          `EmpId=${EmployeeId}&month=${selectedMonth}&year=${selectedYear}`,
                     headers: {
                         'Authorization': 'Bearer ' + Token
@@ -1520,10 +1517,14 @@
                 }
 
                 const monthlyLimit = employeeDetails.data?.[0]?.attendanceLimit || 0;
-                const currentRequests = currentMonthCount.data?.[0]?.totalRequests || 0;
-                const totalRequests = currentRequests + limitedRowCount;
 
+                // ✅ CHANGED: Use exact property names from backend response
+                const currentLimitedRequests = currentMonthCount.data?.[0]?.limitedRequestsCount || 0;
+                const currentUnlimitedRequests = currentMonthCount.data?.[0]?.unlimitedRequestsCount || 0;
 
+                const totalLimitedRequests = currentLimitedRequests + limitedRowCount;
+
+  
                 // If no limit is set, block submission for limited reasons
                 if (monthlyLimit === 0) {
                     Swal.fire({
@@ -1536,9 +1537,9 @@
                 }
 
                 // 🔥 Check if limit exceeded (only for limited reasons)
-                if (totalRequests > monthlyLimit) {
-                    const exceededBy = totalRequests - monthlyLimit;
-                    const remainingLimit = Math.max(0, monthlyLimit - currentRequests);
+                if (totalLimitedRequests > monthlyLimit) {
+                    const exceededBy = totalLimitedRequests - monthlyLimit;
+                    const remainingLimit = Math.max(0, monthlyLimit - currentLimitedRequests);
 
                     // Get reason names for better display
                     const limitedReasonNames = selectedRows
@@ -1578,9 +1579,15 @@
                                     <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${monthlyLimit} requests</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Already Submitted</td>
-                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${currentRequests} requests</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Already Submitted (Limited Only)</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${currentLimitedRequests} requests</td>
                                 </tr>
+                                ${currentUnlimitedRequests > 0 ? `
+                                <tr style="background: #d1fae5;">
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Already Submitted (Unlimited) ✓</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; color: #059669;">${currentUnlimitedRequests} requests</td>
+                                </tr>
+                                ` : ''}
                                 <tr style="background: #fff3cd;">
                                     <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Attempting (Counted)</td>
                                     <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; font-weight: bold;">${limitedRowCount} requests</td>
@@ -1625,9 +1632,8 @@
                     return false;
                 }
 
-                // ✅ Success with limit check
-                const remainingRequests = monthlyLimit - totalRequests;
-
+                const remainingRequests = monthlyLimit - totalLimitedRequests;
+                console.log('✅ Validation Passed! Remaining LIMITED requests:', remainingRequests);
             }
 
             return true;
@@ -1642,7 +1648,6 @@
             return false;
         }
     }
-
     function LoadAttendanceGrid(data) {
         const filteredData = data.filter(item => item.attendanceStatus !== "-");
 

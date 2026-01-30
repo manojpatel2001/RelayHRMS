@@ -1392,11 +1392,12 @@
         const date = new Date(dateStr);
         return !isNaN(date) ? date.toISOString() : null;
     }
-    async function validateAttendanceRequestLimit(EmployeeId, selectedRows, selectedMonth, selectedYear) {
+
+
+        async function validateAttendanceRequestLimit(EmployeeId, selectedRows, selectedMonth, selectedYear) {
         try {
             // CRITICAL: Wait for reason configuration to load
             if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
-           
                 await new Promise(resolve => setTimeout(resolve, 1500));
 
                 if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
@@ -1422,7 +1423,6 @@
             const limitedRowCount = selectedRows.filter(row => {
                 const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
                 const isLimited = limitedReasonIds.includes(reasonStr);
-
                 return isLimited;
             }).length;
 
@@ -1437,7 +1437,6 @@
 
             // 🔥 If there are unmatched reasons, show error
             if (unmatchedCount > 0) {
-                // Get unmatched reason details for better error message
                 const unmatchedReasons = selectedRows.filter(row => {
                     const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
                     return !limitedReasonIds.includes(reasonStr) && !unlimitedReasonIds.includes(reasonStr);
@@ -1466,7 +1465,7 @@
 
             // 🔥 If all selected rows have unlimited reasons, bypass limit check
             if (limitedRowCount === 0 && unlimitedRowCount > 0) {
-       
+                console.log('✅ All selected requests are UNLIMITED - Bypassing limit check');
                 return true;
             }
 
@@ -1482,8 +1481,6 @@
 
             // Only proceed with limit check if there are LIMITED reasons
             if (limitedRowCount > 0) {
-     
-
                 // Get employee monthly limit
                 const employeeDetails = await $.ajax({
                     type: "GET",
@@ -1514,9 +1511,19 @@
                 }
 
                 const monthlyLimit = employeeDetails.data?.[0]?.attendanceLimit || 0;
-                const currentRequests = currentMonthCount.data?.[0]?.totalRequests || 0;
-                const totalRequests = currentRequests + limitedRowCount;
 
+                // ✅ CHANGED: Use exact property names from backend response
+                const currentLimitedRequests = currentMonthCount.data?.[0]?.limitedRequestsCount || 0;
+                const currentUnlimitedRequests = currentMonthCount.data?.[0]?.unlimitedRequestsCount || 0;
+
+                const totalLimitedRequests = currentLimitedRequests + limitedRowCount;
+
+                console.log('📊 Existing UNLIMITED requests:', currentUnlimitedRequests);
+                console.log('📊 Existing LIMITED requests:', currentLimitedRequests);
+                console.log('📊 New LIMITED requests:', limitedRowCount);
+                console.log('📊 New UNLIMITED requests:', unlimitedRowCount);
+                console.log('📊 Total LIMITED requests:', totalLimitedRequests);
+                console.log('📊 Monthly Limit:', monthlyLimit);
 
                 // If no limit is set, block submission for limited reasons
                 if (monthlyLimit === 0) {
@@ -1530,9 +1537,9 @@
                 }
 
                 // 🔥 Check if limit exceeded (only for limited reasons)
-                if (totalRequests > monthlyLimit) {
-                    const exceededBy = totalRequests - monthlyLimit;
-                    const remainingLimit = Math.max(0, monthlyLimit - currentRequests);
+                if (totalLimitedRequests > monthlyLimit) {
+                    const exceededBy = totalLimitedRequests - monthlyLimit;
+                    const remainingLimit = Math.max(0, monthlyLimit - currentLimitedRequests);
 
                     // Get reason names for better display
                     const limitedReasonNames = selectedRows
@@ -1572,9 +1579,15 @@
                                     <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${monthlyLimit} requests</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Already Submitted</td>
-                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${currentRequests} requests</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Already Submitted (Limited Only)</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${currentLimitedRequests} requests</td>
                                 </tr>
+                                ${currentUnlimitedRequests > 0 ? `
+                                <tr style="background: #d1fae5;">
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Already Submitted (Unlimited) ✓</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; color: #059669;">${currentUnlimitedRequests} requests</td>
+                                </tr>
+                                ` : ''}
                                 <tr style="background: #fff3cd;">
                                     <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Attempting (Counted)</td>
                                     <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; font-weight: bold;">${limitedRowCount} requests</td>
@@ -1619,9 +1632,8 @@
                     return false;
                 }
 
-                // ✅ Success with limit check
-                const remainingRequests = monthlyLimit - totalRequests;
-     
+                const remainingRequests = monthlyLimit - totalLimitedRequests;
+                console.log('✅ Validation Passed! Remaining LIMITED requests:', remainingRequests);
             }
 
             return true;

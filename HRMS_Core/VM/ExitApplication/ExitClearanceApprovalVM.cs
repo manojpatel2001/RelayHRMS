@@ -27,5 +27,7 @@ namespace HRMS_Core.VM.ExitApplication
         public bool IsApproved { get; set; }
         public bool IsNOCFormFilled { get; set; }
         public DateTime? UpdatedDate { get; set; }
+        public bool IsApprovedBYHR { get; set; }
+        public bool IsRejectedBYHR { get; set; }
     }
 }

@@ -82,6 +82,34 @@ namespace HRMS_API.Controllers.ExitApplicationAPI
             }
         }
 
+        [HttpGet("GetNOCByGetEmployeeExitDetails")]
+        public async Task<APIResponse> GetNOCByGetEmployeeExitDetails(int EmployeeId)
+        {
+            try
+            {
+                if (EmployeeId <= 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Invalid Exit Application ID." };
+
+                var result = await _unitOfWork.NOCRepository.GetNOCByGetEmployeeExitDetails(EmployeeId);
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = result,
+                    ResponseMessage = "NOC data retrieved successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
+
         [HttpGet("GetNOCByExitApplicationId")]
         public async Task<APIResponse> GetNOCByExitApplicationId(int exitApplicationId)
         {

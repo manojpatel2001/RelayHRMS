@@ -261,6 +261,32 @@ namespace HRMS_Infrastructure.Repository.ExitApplicationRepo
             }
         }
 
+        public async Task<SP_Response> UpdateExitApprovalBYHR(ExitApplicationUpdateparam model)
+        {
+
+            try
+            {
+                string idsString = string.Join(",", model.ExitApplicationID);
+
+                var result = await _db.Set<SP_Response>()
+                    .FromSqlInterpolated($@"
+                       EXEC UpdateExitApplicationForHRStatus
+                        @ExitApplicationID = {idsString},
+                        @IsApproved ={model.IsApproved},
+                        @IsRejected ={model.IsRejected},
+                        @UpdatedBy = {model.UpdatedBy}
+                       ")
+                    .ToListAsync();
+
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong" };
+            }
+            catch (Exception ex)
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
+
         public async Task<SP_Response> UpdateNOCFormFlag(int exitApplicationId)
         {
             var response = new SP_Response();
