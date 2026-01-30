@@ -14,42 +14,29 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Configure Git
+      - name: Rewrite Commit Authors
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
+          # Specific author set karo
+          export GIT_AUTHOR_NAME="HRMS Development Team"
+          export GIT_AUTHOR_EMAIL="manoj.patel@relayexpress.in"
+          export GIT_COMMITTER_NAME="HRMS Development Team"
+          export GIT_COMMITTER_EMAIL="manoj.patel@relayexpress.in"
           
-      - name: Sync to Azure DevOps
+          # Sabhi commits ko rewrite karo with new author
+          git filter-branch -f --env-filter '
+            export GIT_AUTHOR_NAME="HRMS Development Team"
+            export GIT_AUTHOR_EMAIL="manoj.patel@relayexpress.in"
+            export GIT_COMMITTER_NAME="HRMS Development Team"
+            export GIT_COMMITTER_EMAIL="manoj.patel@relayexpress.in"
+          ' --tag-name-filter cat -- --branches --tags
+          
+      - name: Push to Azure DevOps
         env:
           AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
         run: |
-          # Add Azure remote
           git remote add azure https://${AZURE_DEVOPS_PAT}@dev.azure.com/hemabadgali0673/HRMS/_git/HRMS
-          
-          # Simple mirror push (ye sirf GitHub changes ko push karega)
-          git push azure master:master 2>&1 | tee push_output.txt || {
-            # Agar fail ho to check karo kya error hai
-            if grep -q "non-fast-forward" push_output.txt || grep -q "fetch first" push_output.txt; then
-              echo "Diverged branches detected, attempting merge strategy..."
-              
-              # Fetch Azure branch
-              git fetch azure master
-              
-              # Create merge commit
-              git merge azure/master --allow-unrelated-histories -m "Sync: Merged Azure DevOps changes" || {
-                # Agar conflict ho to GitHub ka version use karo
-                git merge --abort || true
-                echo "Manual merge needed, but continuing with GitHub version as primary"
-              }
-              
-              # Ab push karo (ab fast-forward hoga)
-              git push azure master:master
-            else
-              exit 1
-            fi
-          }
+          git push azure master:master --force
           
       - name: Cleanup
         if: always()
