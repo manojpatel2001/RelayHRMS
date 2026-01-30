@@ -20,7 +20,7 @@ jobs:
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
           
-      - name: Push to Azure DevOps
+      - name: Sync to Azure DevOps
         env:
           AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
         run: |
@@ -30,14 +30,14 @@ jobs:
           # Add Azure DevOps remote
           git remote add azure https://${AZURE_DEVOPS_PAT}@dev.azure.com/hemabadgali0673/HRMS/_git/HRMS
           
-          # Fetch from Azure to see what's there
-          git fetch azure master
+          # Fetch Azure DevOps branch
+          git fetch azure master:azure-master || true
           
-          # Try to pull and merge (if there are conflicts, it will use GitHub's version)
-          git pull azure master --allow-unrelated-histories --no-edit || true
+          # Rebase strategy - GitHub code ko priority
+          git rebase azure-master || git rebase --abort
           
-          # Push to Azure DevOps
-          git push azure master:master
+          # Push to Azure (force with lease for safety)
+          git push azure HEAD:master --force-with-lease || git push azure HEAD:master --force
           
       - name: Cleanup
         if: always()
