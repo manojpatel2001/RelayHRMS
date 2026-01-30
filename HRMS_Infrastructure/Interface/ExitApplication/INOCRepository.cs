@@ -13,5 +13,6 @@ namespace HRMS_Infrastructure.Interface.ExitApplication
         Task<SP_Response> CreateNOC(NOSForm model);
         Task<SP_Response> UpdateNOC(NOSForm model);
         Task<List<NOSForm>> GetNOCByExitApplicationId(int exitApplicationId);
+        Task<List<NOCFormDataResponse>> GetNOCByGetEmployeeExitDetails(int EmployeeId);
     }
 }

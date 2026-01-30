@@ -88,6 +88,66 @@ namespace HRMS_Infrastructure.Repository.ExitApplicationRepo
                 throw new Exception($"Error fetching NOC data: {ex.Message}");
             }
         }
+        public async Task<List<NOCFormDataResponse>> GetNOCByGetEmployeeExitDetails(int EmployeeId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var results = await connection.QueryAsync<dynamic>(
+                        "usp_GetEmployeeExitDetails",
+                        new { EmployeeID = EmployeeId },
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (results == null || !results.Any())
+                    {
+                        return new List<NOCFormDataResponse>();
+                    }
+
+                    var groupedResults = results
+                        .GroupBy(r => (int)r.EmpId)
+                        .Select(g =>
+                        {
+                            var first = g.First();
+                            return new NOCFormDataResponse
+                            {                                
+                                EmployeeName = first.FullName,
+                                EmployeeCode = first.EmployeeCode,
+                                Branch = first.BranchName,
+                                Department = first.DepartmentName,
+                                Designation = first.DesignationName,                     
+                                ResignationDate = first.ResignationDate,
+                                ReasonForResignation = first.ReasonForResignation,
+                                LastWorkingDate = first.LastWorkingDate,
+                                NoticePeriodDays = first.NoticePeriodDays,
+                                ShortFallDays = first.ShortFallDays,
+                                NocItems = g.Select(item => new NOCItem
+                                {
+                                    ItemName = item.ItemName,
+                                    IsHandedOver = Convert.ToBoolean(item.IsHandedOver),
+                                    HandoverTo = string.IsNullOrEmpty(item.HandoverTo) || item.HandoverTo == "NULL"
+                                        ? null
+                                        : item.HandoverTo,
+                                    Remarks = string.IsNullOrEmpty(item.Remarks) || item.Remarks == "NULL"
+                                        ? null
+                                        : item.Remarks
+                                }).ToList()
+                            };
+                        })
+                        .ToList();
+
+                    return groupedResults;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log exception
+                throw new Exception($"Error fetching NOC form data for EmployeeId: {EmployeeId}", ex);
+            }
+        }
 
         public async Task<SP_Response> UpdateNOC(NOSForm model)
         {
