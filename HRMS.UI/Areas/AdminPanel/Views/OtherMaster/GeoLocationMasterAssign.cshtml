@@ -3,6 +3,9 @@
 	ViewData["Title"] = "Geo Location Master";
 	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
 	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+	string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
+	var uriAPI = new Uri(baseUrl);
+	string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
 }
 <style>
 	.nav-tabs {
@@ -27,6 +30,188 @@
 		border: 1px solid #ccc;
 	}
 </style>
+<style>
+
+	.grid-container {
+		display: flex;
+		min-height: 300px;
+	}
+
+	.grid-section {
+		flex: 1;
+		border-right: 1px solid #e0e0e0;
+		display: flex;
+		flex-direction: column;
+	}
+
+		.grid-section:last-child {
+			border-right: none;
+		}
+
+	.grid-header {
+		background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+		padding: 12px 16px;
+		border-bottom: 1px solid #dee2e6;
+		font-weight: 600;
+		color: #495057;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 50px;
+		margin-top:2px;
+	}
+
+	.select-all-checkbox {
+		margin: 0;
+		cursor: pointer;
+	}
+
+	.search-container {
+		position: relative;
+		padding: 12px 16px;
+		background: #ffffff;
+		border-bottom: 2px solid #e0e0e0;
+	}
+
+	.search-input {
+		width: 100%;
+		padding: 7px 40px 10px 15px;
+		border: 2px solid #ddd;
+		border-radius: 6px;
+		font-size: 14px;
+		background: #fafafa;
+		transition: all 0.3s ease;
+		outline: none;
+	}
+
+		.search-input:focus {
+			border-color: #007bff;
+			background: #ffffff;
+			box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+		}
+
+		.search-input::placeholder {
+			color: #999;
+			font-style: italic;
+		}
+
+	.search-icon {
+		position: absolute;
+		right: 28px;
+		top: 50%;
+		transform: translateY(-50%);
+		color: #666;
+		pointer-events: none;
+		font-size: 16px;
+	}
+
+	.grid-content {
+		flex: 1;
+		max-height: 350px;
+		overflow-y: auto;
+		border: 1px solid #e0e0e0;
+		margin: 2px;
+
+	}
+
+	.grid-row {
+		display: flex;
+		flex-direction: column;
+		padding: 10px 16px;
+		border-bottom: 1px solid #f1f3f4;
+		cursor: pointer;
+		transition: background-color 0.2s;
+		min-height: 37px;
+	}
+
+		.grid-row:hover {
+			background-color: #f8f9fa;
+		}
+
+		.grid-row:nth-child(even) {
+			background-color: #fafafa;
+		}
+
+			.grid-row:nth-child(even):hover {
+				background-color: #f0f0f0;
+			}
+
+	.row-main {
+		display: flex;
+		align-items: center;
+	}
+
+	.row-checkbox {
+		margin: 0 12px 0 0;
+		cursor: pointer;
+		width: 16px;
+		height: 16px;
+	}
+
+	.row-text {
+		flex: 1;
+		font-size: 14px;
+		color: #333;
+		font-weight: 500;
+	}
+
+	.branch-text {
+		font-size: 12px;
+		color: #666;
+		margin-top: 4px;
+		margin-left: 28px;
+		font-style: italic;
+	}
+
+	.no-results {
+		padding: 20px;
+		text-align: center;
+		color: #999;
+		font-style: italic;
+	}
+
+	
+	
+
+	/* Custom scrollbar */
+	.grid-content::-webkit-scrollbar {
+		width: 10px;
+	}
+
+	.grid-content::-webkit-scrollbar-track {
+		background: #f1f1f1;
+		border-radius: 5px;
+	}
+
+	.grid-content::-webkit-scrollbar-thumb {
+		background: #c1c1c1;
+		border-radius: 5px;
+	}
+
+		.grid-content::-webkit-scrollbar-thumb:hover {
+			background: #a8a8a8;
+		}
+
+	/* Responsive */
+	@@media (max-width: 768px) {
+		.grid-container
+
+	{
+		flex-direction: column;
+	}
+
+	.grid-section {
+		border-right: none;
+		border-bottom: 1px solid #e0e0e0;
+	}
+
+	.button-container {
+		flex-direction: column;
+	}
+
+	}
+
+</style>
 
 <div class="card">
 	<div class="card-header bg-transparent ml-0 py-0">
@@ -39,7 +224,21 @@
 
 			<div class="col-6 d-flex justify-content-end align-items-center">
 				<div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
-					<i class="fadeIn animated bx bx-refresh" id="refreshData" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Refresh Data"></i>
+					<div class="input-group mb-2">
+						<button id="addGeoLocationBtn"
+								type="button"
+								class="btn mr-1 rounded-1"
+								style="background-color:#2395c6; color:white;">
+							Add Geo Location
+						</button>
+
+						<button id="locationAssignBtn"
+								type="button"
+								class="btn mr-1 rounded-1 d-none"
+								style="background-color:#2395c6; color:white;">
+							Location Assign
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -59,53 +258,38 @@
 	</ul>
 
 	<div class="card-body">
-		<div class="row me-3">
-			<div class="col-md-12 btn-heading-title">
-				<div class="input-group mb-2">
-					<button id="addGeoLocationBtn"
-							type="button"
-							class="btn mr-1 rounded-1"
-							style="background-color:#2395c6; color:white;">
-						Add Geo Location
-					</button>
-
-					<button id="locationAssignBtn"
-							type="button"
-							class="btn mr-1 rounded-1 d-none"
-							style="background-color:#2395c6; color:white;">
-						Location Assign 
-					</button>
-				</div>
-			</div>
-		</div>
-
+	
 		<div class="row">
 			<div class="col-md-12">
 				<div class="form-group">
 					<div id="geoLocationGrid" class="grid-section">
-						<div class="rowCount" id="rowCount1"></div>
-						<div id="geoLocationGridContainer">
-							<!-- Your grid content for Type -->
-							<div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
-								<div class="spinner-border text-primary" role="status">
-									<span class="visually-hidden">Loading...</span>
-								</div>
-							</div>
 
+						<div class="grid-wrapper " style="position: relative; ">
+							<div id="location-loder" class="grid-loader justify-content-center align-items-center flex-column "
+								 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+								<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+								<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+							</div>
+							<div id="rowCountLocation"></div>
+							<div id="geoLocationGridContainer"></div>
 						</div>
+
+						
 					</div>
 
 					<div id="locationAssignGrid" class="grid-section d-none">
-						<div class="rowCount" id="rowCount2"></div>
-						<div id="locationAssignContainer">
-							<!-- Your grid content for Priority -->
-							<div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
-								<div class="spinner-border text-primary" role="status">
-									<span class="visually-hidden">Loading...</span>
-								</div>
-							</div>
+						<div class="grid-wrapper " style="position: relative; ">
+							<div id="assignLocation-loder" class="grid-loader justify-content-center align-items-center flex-column "
+								 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+								<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+								<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
 
+							</div>
+							<div id="rowCountAssignLocation"></div>
+							<div id="locationAssignContainer"></div>
 						</div>
+
 					</div>
 				</div>
 			</div>
@@ -122,59 +306,72 @@
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body modal-body-font">
-				<div class="row">
-					<div class="col-md-12">
+				<div class="row gx-2">
+					<div class="col-md-3">
 						<div class="form-group mt-3 position-relative">
-							<input type="text"
-								   class="form-control floating-input"
-								   placeholder="Enter a query"
-								   id="txtGeoLocation" />
-							<label class="floating-label" for="txtGeoLocation">Geo Location</label>
-							<span id="spnGeoLocation" style="color:red; display:none;">Please Enter Geo Location</span>
-
+							<select class="form-select floating-input" id="ddlGeoLocation">
+								<option selected value="">Select</option>
+								
+							</select>
+							<label class="floating-label" for="ddlGeoLocation">Geo Location</label>
 						</div>
+						<span id="spnGeoLocation" style="color:red; display:none;">Please Select Geo Location</span>
 					</div>
-				</div>
-				<div class="row">
-					<div class="col-md-4">
+
+				
+					<div class="col-md-3">
 						<div class="form-group mt-3 position-relative">
 							<input type="text"
 								   class="form-control floating-input"
 								   placeholder="Latitude"
+								   data-decimal
 								   id="txtLatitude" />
-							<label class="floating-label" for="txtLatitude">Latitude</label>
+							<label class="floating-label" for="txtLatitude">Latitude<span class="text-danger">*</span></label>
 						</div>
+						<span id="spnLatitude" style="color:red; display:none;">Please Enter Latitude</span>
+
 					</div>
 
-					<div class="col-md-4">
+					<div class="col-md-3">
 						<div class="form-group mt-3 position-relative">
 							<input type="text"
 								   class="form-control floating-input"
 								   placeholder="Longitude"
+								   data-decimal
 								   id="txtLongitude" />
-							<label class="floating-label" for="txtGeoLocation">Longitude</label>
+							<label class="floating-label" for="txtLongitude">Longitude<span class="text-danger">*</span></label>
 						</div>
+						<span id="spnLongitude" style="color:red; display:none;">Please Enter Longitude</span>
+
 					</div>
 
-					<div class="col-md-4">
+					<div class="col-md-3">
 						<div class="form-group mt-3 position-relative">
 							<input type="text"
 								   class="form-control floating-input"
+								   data-integer-only
 								   placeholder="Meter"
 								   id="txtMeter" />
-							<label class="floating-label" for="txtMeter">Meter</label>
+							<label class="floating-label" for="txtMeter">Meter<span class="text-danger">*</span></label>
 
 						</div>
+						<span id="spnMeter" style="color:red; display:none;">Please Enter Meter</span>
+
 					</div>
 
-				</div>
-
+			    </div>
 			</div>
 			<div class="modal-footer btn-heading-title">
-				<button type="button" class="btn btn-primary" id="btnCreateGeoLocation" style="background-color:#2395c6; color:white;">Create</button>
+				<button type="button" id="btnSaveLocation" class="btn px-3" style="background-color:#2395c6 !important; color:white !important;">
+					Save
+				</button>
+				<button type="button" class="btn px-3" style="background-color:#2395c6 !important; color:white !important;display:none;" disabled id="btnSavingLocation">
+					<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+					Saving...
+				</button>
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 			</div>
-
+			<hr/>
 			<div class="m-3 position-relative">
 				
 
@@ -191,51 +388,72 @@
 	<div class="modal-dialog modal-xl">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Create</span> Location Assign to Employee</h5>
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"> Location Assign to Employee</h5>
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body modal-body-font">
 				<div class="row">
 					<div class="col-md-12">
-						<div class="form-group mt-3 position-relative">
-							<input type="text"
-								   class="form-control floating-input"
-								   placeholder="Ticket Priority"
-								   id="txtTicketPriority" />
-							<label class="floating-label" for="txtTicketPriority">Ticket Priority</label>
-							<span id="spnTicketPriority" style="color:red; display:none;">Please Enter Ticket Priority</span>
 
+						@* <div class="title-header">
+							Employee & Location Selection Grid
+						</div> *@
+
+						<div class="grid-container">
+							<!-- Employee Section -->
+							<div class="grid-section">
+								<div class="grid-header">
+									<input type="checkbox" class="select-all-checkbox" id="selectAllEmployees">
+									<label for="selectAllEmployees">Employee Name</label>
+								</div>
+								<div class="search-container">
+									<input type="text" class="search-input" id="employeeSearch" placeholder="Search by Employee Name or Employee Code...">
+									<span class="search-icon">🔍</span>
+								</div>
+								<div class="grid-content" id="employeeGrid">
+									<!-- Employee data will be populated here -->
+								</div>
+							</div>
+
+							<!-- Location Section -->
+							<div class="grid-section">
+								<div class="grid-header">
+									<input type="checkbox" class="select-all-checkbox" id="selectAllLocations">
+									<label for="selectAllLocations">Location Name</label>
+								</div>
+								<div class="search-container">
+									<input type="text" class="search-input" id="locationSearch" placeholder="Search by Location Name or Branch Name...">
+									<span class="search-icon">🔍</span>
+								</div>
+								<div class="grid-content" id="locationGrid">
+									<!-- Location data will be populated here -->
+								</div>
+							</div>
 						</div>
-					</div>
+
+					
+				
 				</div>
-				<div class="row">
-					<div class="col-md-12">
-						<div class="form-group mt-3 position-relative">
-							<input type="number"
-								   class="form-control floating-input"
-								   placeholder="Escalation Hours"
-								   id="txtEscalationHours"
-								   step="1"
-								   min="0"
-								   oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
-							<label class="floating-label" for="txtEscalationHours">Escalation Hours</label>
-							<span id="spnEscalationHours" style="color:red; display:none;">Please Enter Escalation Hours</span>
-
-						</div>
-					</div>
-
-				</div>
-
 			</div>
+
+
+
 			<div class="modal-footer btn-heading-title">
-				<button type="button" class="btn btn-primary" id="btnCreateTicketPriority" style="background-color:#2395c6; color:white;">Create</button>
+					<button type="button" id="btnAssignLocation" class="btn px-3" style="background-color:#2395c6 !important; color:white !important;">
+						Assign
+					</button>
+					<button type="button" class="btn px-3" style="background-color:#2395c6 !important; color:white !important;display:none;" disabled id="btnAssigningLocation">
+						<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+						Assigning...
+					</button>
+				<button type="button" class="btn btn-dark	" id="assignClear">Clear</button>
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 			</div>
 		</div>
 	</div>
 </div>
 
-
+</div>
 
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
@@ -243,8 +461,14 @@
 
 
 <script>
-
+		var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+	  const CompanyId=companyDetails.CompanyId;
+	  const EmployeeId=localStorage.getItem('EmployeeId');
+	  const Token=localStorage.getItem("authToken");
+		let geoLocationId=0;
 	$(document).ready(function () {
+		  geoLocationDataTable();
+		  bindBranch();
 
 		$('#geoLocationMasterTabs .nav-link').on('click', function () {
 			const selectedTabName = $(this).data('tabname');
@@ -271,20 +495,12 @@
 	});
 
 	$("#addGeoLocationBtn").click( () => {
-		//  clearTicketTypeForm();
-		//  $('.formType').text('Create');
-		// $('#btnCreateTicketType').text('Create');
+		  resetLocationform();
 	  $("#addGeoLocationModel").modal('show');
 
 	})
 
-	$("#locationAssignBtn").click( () => {
-		// 	clearTicketPriorityForm();
-		// $('.formType').text('Create');
-		//  $('#btnCreateTicketPriority').text('Create');
-	  $("#locationAssignModel").modal('show');
-
-	})
+	
 	$(document).ready(function () {
 			let typingTimer;
 			let doneTypingInterval = 500;
@@ -320,42 +536,39 @@
 				return R * c;
 			}
 
-			$('#txtGeoLocation').on('input', function () {
-				clearTimeout(typingTimer);
-				typingTimer = setTimeout(function () {
-					let location = $('#txtGeoLocation').val().trim();
+			$('#ddlGeoLocation').on('change', function () {
+				  let location = $('#ddlGeoLocation option:selected').text();
 
-					if (location !== '') {
-						$('#spnGeoLocation').hide();
-						let encodedLocation = encodeURIComponent(location);
-						let mapUrl = "https://www.google.com/maps?q=" + encodedLocation + "&output=embed";
-						$('#map').attr('src', mapUrl);
+					  if (location !== '') {
+						  $('#spnGeoLocation').hide();
+						  let encodedLocation = encodeURIComponent(location);
+						  let mapUrl = "https://www.google.com/maps?q=" + encodedLocation + "&output=embed";
+						  $('#map').attr('src', mapUrl);
 
-						$.getJSON('https://nominatim.openstreetmap.org/search?format=json&q=' + encodedLocation, function (data) {
-							if (data && data.length > 0) {
-								let lat = parseFloat(data[0].lat);
-								let lon = parseFloat(data[0].lon);
-								$('#txtLatitude').val(lat);
-								$('#txtLongitude').val(lon);
+						  $.getJSON('https://nominatim.openstreetmap.org/search?format=json&q=' + encodedLocation, function (data) {
+							  if (data && data.length > 0) {
+								  let lat = parseFloat(data[0].lat);
+								  let lon = parseFloat(data[0].lon);
+								  $('#txtLatitude').val(lat);
+								  $('#txtLongitude').val(lon);
 
-								if (userLat !== null && userLng !== null) {
-									let distance = haversineDistance(userLat, userLng, lat, lon);
-									$('#txtMeter').val(Math.round(distance));
-								}
-							} else {
-								$('#txtLatitude').val('');
-								$('#txtLongitude').val('');
-								$('#txtMeter').val('');
-							}
-						});
-					} else {
-						$('#spnGeoLocation').show();
-						$('#map').attr('src', '');
-						$('#txtLatitude').val('');
-						$('#txtLongitude').val('');
-						$('#txtMeter').val('');
-					}
-				}, doneTypingInterval);
+								  // if (userLat !== null && userLng !== null) {
+								  // 	let distance = haversineDistance(userLat, userLng, lat, lon);
+								  // 	$('#txtMeter').val(Math.round(distance));
+								  // }
+							  } else {
+								  $('#txtLatitude').val('');
+								  $('#txtLongitude').val('');
+								  $('#txtMeter').val('');
+							  }
+						  });
+					  } else {
+						  $('#spnGeoLocation').show();
+						  $('#map').attr('src', '');
+						  $('#txtLatitude').val('');
+						  $('#txtLongitude').val('');
+						  $('#txtMeter').val('');
+					  }
 			});
 
 			$('#txtGeoLocation').on('keydown', function () {
@@ -363,5 +576,862 @@
 			});
 		});
 	
+  function bindBranch(){
 
+	   $.ajax({
+			url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+			method: 'GET',
+				headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+			success: function(data) {
+				if(data.isSuccess){
+					var dropdown = $('#ddlGeoLocation');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.branchId,
+							text: company.branchName
+						}));
+					});
+
+
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching branch data:', error);
+			}
+		});
+
+	}
+
+	    function showBtnLoderLocation()
+		{
+			    $('#btnSaveLocation').hide();
+				  $('#btnSavingLocation').show();
+		}
+        function hideBtnLoderLocation()
+        {
+			  $('#btnSaveLocation').show();
+				  $('#btnSavingLocation').hide();
+        }
+
+	function geoLocationDataTable() {
+		   try {
+				$('#location-loder').addClass('d-flex').show();
+			   $.ajax({
+				  type: "GET",
+				  url: '@baseUrl/GeoLocationAPI/GetAllGeoLocations/'+CompanyId,  // Update the URL based on the API you're using
+				  headers: {
+						  'Authorization': 'Bearer ' + Token
+					  },
+				   success: function (data) {
+							$("#geoLocationGridContainer").dxDataGrid({
+							  dataSource: data.data||[],  // Use the 'data' field from the API response
+
+							  columns: [
+
+								 { dataField: 'geoLocationName', caption: 'Geo Location Name' },
+								  { dataField: 'latitude', caption: 'Latitude', format: { type: 'fixedPoint', precision: 6 } },
+								  { dataField: 'longitude', caption: 'Longitude',  format: { type: 'fixedPoint', precision: 6 } },
+								  { dataField: 'meter', caption: 'Meter' },
+								  
+										   {
+										 dataField: '',
+										 caption: '',
+										 alignment: 'center',
+										 dataType: 'string',
+										 format: '',
+										 type: 'buttons',
+										 width: '50px',
+										 cellTemplate: function (container, options) {
+
+														 var buttonElement = $('<div class="d-flex order-actions">' +
+															 '<a href="javascript:;" class="edit-action" title="Update Geo Location">' +
+															 '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+															 '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+															 '</svg>' +
+															 '</a>' +
+															 '</div>')
+															 .on('dxclick', function () {
+																	updateGeoLocation(options.data);
+															 }).appendTo(container);
+
+														 // Optional: update title attribute on SVG as well (for tooltip consistency)
+															  buttonElement.find('svg').attr('title', 'Update Geo Location');
+										 }
+									 },
+
+
+									 {
+										 dataField: '',
+										 caption: '',
+										 alignment: 'center',
+										 dataType: 'string',
+										 format: '',
+										 type: 'buttons',
+										 width: '50px',
+										 cellTemplate: function (container, options) {
+											 var buttonElement = $('<div class="d-flex order-actions">' +
+												   '<a href="javascript:;" class="delete-action" title="Delete Geo Location">' +
+												 '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+												 '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+												 '</svg>' +
+												 '</a>' +
+												 '</div>')
+												 .on('dxclick', function () {
+													   deleteGeoLocation(options.data);
+												 }).appendTo(container);
+
+											 var svgElement = buttonElement.find('svg');  // Accessing the svg element directly
+											   svgElement.attr('title', 'Delete Geo Location');
+										 }
+									 }
+
+
+
+								],
+							  columnsAutoWidth: true,
+							  wordWrapEnabled: true,
+							  rowAlternationEnabled: false,
+							  showBorders: true,
+							  grouping: { autoExpandAll: false },
+							  paging: { pageSize: 10 },
+							  pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+							  headerFilter: { visible: false },
+							  //filterRow: { visible: true, applyFilter: "auto" },
+							  allowColumnResizing: false,
+							  groupPanel: { visible: false },
+							  searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+							  allowColumnReordering: false,
+							  columnFixing: { enabled: false },
+
+							  onContentReady(e) {
+								   $('#rowCountLocation').html('Total Records: ' + $("#geoLocationGridContainer").dxDataGrid('instance').totalCount());
+							  }
+						  }).dxDataGrid('instance');
+
+							  $('#location-loder').removeClass('d-flex').hide();
+
+				  },
+				  error: function (xhr, status, error) {
+						  $('#location-loder').removeClass('d-flex').hide();
+
+					  // Handle any errors that occurred during the AJAX request
+					  console.error("AJAX Error: " + status + " - " + error);
+
+				  }
+			  });
+
+			} catch (e)
+			{
+				 console.error("Error in probation:", e);
+				 $('#grid-loader').removeClass('d-flex').hide();
+			}
+	  }
+
+    $("#btnSaveLocation").click(function() {
+		  showBtnLoderLocation();
+		// Get values from the form
+		const branchId = $("#ddlGeoLocation").val();
+		const latitude = $("#txtLatitude").val();
+		const longitude = $("#txtLongitude").val();
+		const meter = $("#txtMeter").val();
+
+		// Reset error messages
+		$("#spnGeoLocation").hide();
+		$("#spnLatitude").hide();
+		$("#spnLongitude").hide();
+		$("#spnMeter").hide();
+
+		// Validate inputs
+		let isValid = true;
+		  if (!branchId) {
+			$("#spnGeoLocation").show();
+			isValid = false;
+		}
+		if (!latitude) {
+			$("#spnLatitude").show();
+			isValid = false;
+		}
+		if (!longitude) {
+			$("#spnLongitude").show();
+			isValid = false;
+		}
+		if (!meter) {
+			$("#spnMeter").show();
+			isValid = false;
+		}
+
+		// If validation fails, re-enable the button and exit
+		if (!isValid) {
+			  hideBtnLoderLocation();
+			return;
+		}
+
+		// Prepare the data object to send to the API
+		const data = {
+			  GeoLocationId:geoLocationId,
+			  branchId: branchId, 
+			latitude: parseFloat(latitude),
+			longitude: parseFloat(longitude),
+			meter: parseInt(meter),
+			companyId: CompanyId, 
+			
+			createdBy: EmployeeId 
+		};
+
+		// Determine the API URL and method (CREATE or UPDATE)
+			const geoApiUrl = geoLocationId==0?"@baseUrl/GeoLocationAPI/CreateGeoLocation":"@baseUrl/GeoLocationAPI/UpdateGeoLocation"; // Replace with your actual API URL
+		  const geoMethod = geoLocationId==0?"POST":"PUT"; // Use "PUT" for updates if needed
+
+		// Send the data to the API
+		$.ajax({
+			  url: geoApiUrl,
+			  type: geoMethod,
+			contentType: "application/json",
+			headers: {
+				"Authorization": "Bearer " + Token
+			},
+			data: JSON.stringify(data),
+			success: function(response) {
+				if (response.isSuccess) {
+					round_success_noti(response.responseMessage);
+					  resetLocationform();
+						geoLocationDataTable();
+							$("#addGeoLocationModel").modal('hide');
+				} else {
+					round_error_noti(response.responseMessage);
+				}
+				  hideBtnLoderLocation();
+			},
+			error: function(xhr, status, error) {
+				  hideBtnLoderLocation();
+				console.error("AJAX Error:", error);
+			}
+			
+		});
+	});
+
+	function resetLocationform()
+	{
+		  geoLocationId=0;
+		$("#ddlGeoLocation").val("");
+		$("#txtLatitude").val("");
+		$("#txtLongitude").val("");
+		$("#txtMeter").val("");
+		  $("#spnGeoLocation").hide();
+		  $("#spnLatitude").hide();
+		  $("#spnLongitude").hide();
+		  $("#spnMeter").hide();
+		$(".formType").text('Add');
+		 $("#btnSaveLocation").val('Save');
+	}
+
+		function updateGeoLocation(data) 
+		{
+					resetLocationform();
+				   geoLocationId=data.geoLocationId;
+					$("#ddlGeoLocation").val(data.branchId||"");
+					$("#txtLatitude").val(data.latitude||"");
+				  $("#txtLongitude").val(data.longitude||"");
+				  $("#txtMeter").val(data.meter||"");
+					$(".formType").text('Update');
+		   $("#btnSaveLocation").text('Update');
+			  // Show the modal
+				  $('#addGeoLocationModel').modal('show');
+		  }
+
+			 function deleteGeoLocation(data)
+			 {
+				if (!confirm("Are you sure you want to delete this ?"))
+				{
+					 return; // Cancel the delete operation
+				 }
+
+				 var deleteObj = {
+					 id: data.geoLocationId,
+					 deletedBy: EmployeeId // Set this if you have a logged-in user ID
+				 };
+
+				 $.ajax({
+					 url: '@baseUrl/GeoLocationAPI/DeleteGeoLocation',
+					 type: 'DELETE',
+					 contentType: 'application/json',
+					 headers: {
+						 'Authorization': 'Bearer ' + Token
+					 },
+					 data: JSON.stringify(deleteObj),
+					 success: function (response) {
+						 if(response.isSuccess)
+						 {
+						   round_success_noti(response.responseMessage);
+							 geoLocationDataTable();
+						 }
+						 else
+						 {
+							 round_error_noti(response.responseMessage)
+						 }
+					 },
+					 error: function (error) {
+							console.log(error);
+					 }
+				 });
+			 }
+
+			 
+</script>
+
+	<script>
+		let employeeData = [];
+
+		let locationData =[];
+
+		$(document).ready( async function(){
+			GetAssignLocationDataTable();
+			await GetAllEmployeeAndLocation();
+			
+		});
+
+		$("#locationAssignBtn").click( () => {
+
+			clearSelection();
+				$("#btnAssignLocation").text('Assign');
+	          $("#btnAssigningLocation").text('Assigning...');
+			$("#locationAssignModel").modal('show');
+
+		})
+
+
+		function showBtnLoderAssignLocation()
+		{
+				$('#btnAssignLocation').hide();
+				  $('#btnAssigningLocation').show();
+		}
+		function hideBtnLoderAssignLocation()
+		{
+			  $('#btnAssignLocation').show();
+				  $('#btnAssigningLocation').hide();
+		}
+
+
+	 function GetAllEmployeeAndLocation() {
+		
+		// Return a Promise that wraps the AJAX call
+		return new Promise((resolve, reject) => {
+			$.ajax({
+				type: "POST",
+				url: "@baseUrl/GeoLocationAPI/GetAllEmployeeAndLocation",
+				contentType: 'application/json',
+				headers: {
+					'Authorization': 'Bearer ' + Token
+				},
+				data: JSON.stringify({ CompanyId: CompanyId}),
+				success: function(data) {
+					if (data.isSuccess) {
+						 employeeData = data.data.employees;
+
+						 locationData =data.data.locations;
+						resolve(); // Resolve the promise if success
+					} else {
+						employeeData=[];
+						locationData=[];
+						reject("Failed: Data indicates failure");
+					}
+					initializeGrids();
+			        setupSearchHandlers();
+				},
+				error: function(xhr, status, error) {
+					console.error("AJAX Error: " + status + " - " + error);
+					reject(error); // Reject the promise if there's an error
+				}
+			});
+		});
+	}
+
+		
+
+		function initializeGrids() {
+			populateEmployeeGrid();
+			populateLocationGrid();
+			setupSelectAllHandlers();
+		}
+
+		function setupSearchHandlers() {
+			// Employee search with debounce
+			let employeeSearchTimeout;
+			$('#employeeSearch').on('input', function() {
+				const searchTerm = $(this).val().toLowerCase().trim();
+				clearTimeout(employeeSearchTimeout);
+				employeeSearchTimeout = setTimeout(() => {
+					filterEmployeeGrid(searchTerm);
+				}, 300);
+			});
+
+			// Location search with debounce
+			let locationSearchTimeout;
+			$('#locationSearch').on('input', function() {
+				const searchTerm = $(this).val().toLowerCase().trim();
+				clearTimeout(locationSearchTimeout);
+				locationSearchTimeout = setTimeout(() => {
+					filterLocationGrid(searchTerm);
+				}, 300);
+			});
+		}
+
+		function filterEmployeeGrid(searchTerm) {
+			if (searchTerm === '') {
+				populateEmployeeGrid();
+				return;
+			}
+			const lowerSearchTerm = searchTerm.toLowerCase();
+			const filteredData = employeeData.filter(employee =>
+				  (employee.fullName?.toLowerCase() || '').includes(lowerSearchTerm) ||
+				  (employee.employeeCode?.toLowerCase() || '').includes(lowerSearchTerm)
+				);
+
+			populateEmployeeGridWithData(filteredData);
+		}
+
+		function filterLocationGrid(searchTerm) {
+			if (searchTerm === '') {
+				populateLocationGrid();
+				return;
+			}
+			const lowerSearchTerm = searchTerm.toLowerCase();
+			const filteredData = locationData.filter(location =>
+				(location.geoLocationName?.toLowerCase()||'').includes(lowerSearchTerm) 
+			);
+
+			populateLocationGridWithData(filteredData);
+		}
+
+		function populateEmployeeGrid() {
+			populateEmployeeGridWithData(employeeData);
+		}
+
+		function populateEmployeeGridWithData(data) {
+			const $grid = $('#employeeGrid');
+			$grid.empty();
+
+			if (data.length === 0) {
+				$grid.html('<div class="no-results">No employees found</div>');
+				updateSelectAllState('employee');
+				return;
+			}
+
+			$.each(data, function(index, employee) {
+				const displayText = `${employee.fullName} - ${employee.employeeCode}`;
+				const rowHtml = `
+					<div class="grid-row">
+						<div class="row-main">
+							<input type="checkbox" class="row-checkbox employee-checkbox" value="${employee.id}">
+							<span class="row-text">${displayText}</span>
+						</div>
+					</div>
+				`;
+
+				const $row = $(rowHtml);
+
+				// Add click handler for row using jQuery
+				$row.on('click', function(e) {
+					if (e.target.type !== 'checkbox') {
+						const $checkbox = $row.find('.row-checkbox');
+						$checkbox.prop('checked', !$checkbox.prop('checked'));
+						updateSelectAllState('employee');
+					}
+				});
+
+				// Add checkbox change handler using jQuery
+				$row.find('.row-checkbox').on('change', function() {
+					updateSelectAllState('employee');
+				});
+
+				$grid.append($row);
+			});
+		}
+
+		function populateLocationGrid() {
+			populateLocationGridWithData(locationData);
+		}
+
+		function populateLocationGridWithData(data) {
+			const $grid = $('#locationGrid');
+			$grid.empty();
+
+			if (data.length === 0) {
+				$grid.html('<div class="no-results">No locations found</div>');
+				updateSelectAllState('location');
+				return;
+			}
+
+			$.each(data, function(index, location) {
+				const rowHtml = `
+					<div class="grid-row">
+						<div class="row-main">
+							<input type="checkbox" class="row-checkbox location-checkbox" value="${location.geoLocationId}">
+							<span class="row-text">${location.geoLocationName}</span>
+						</div>
+						
+					</div>
+				`;
+
+				const $row = $(rowHtml);
+
+				// Add click handler for row using jQuery
+				$row.on('click', function(e) {
+					if (e.target.type !== 'checkbox') {
+						const $checkbox = $row.find('.row-checkbox');
+						$checkbox.prop('checked', !$checkbox.prop('checked'));
+						updateSelectAllState('location');
+					}
+				});
+
+				// Add checkbox change handler using jQuery
+				$row.find('.row-checkbox').on('change', function() {
+					updateSelectAllState('location');
+				});
+
+				$grid.append($row);
+			});
+		}
+
+		function setupSelectAllHandlers() {
+			// Employee select all using jQuery
+			$('#selectAllEmployees').on('change', function() {
+				const isChecked = $(this).prop('checked');
+				$('.employee-checkbox').prop('checked', isChecked);
+			});
+
+			// Location select all using jQuery
+			$('#selectAllLocations').on('change', function() {
+				const isChecked = $(this).prop('checked');
+				$('.location-checkbox').prop('checked', isChecked);
+			});
+		}
+
+		function updateSelectAllState(type) {
+			if (type === 'employee') {
+				const $checkboxes = $('.employee-checkbox');
+				const $selectAll = $('#selectAllEmployees');
+				const checkedCount = $checkboxes.filter(':checked').length;
+				const totalCount = $checkboxes.length;
+
+				if (checkedCount === 0) {
+					$selectAll.prop('indeterminate', false).prop('checked', false);
+				} else if (checkedCount === totalCount) {
+					$selectAll.prop('indeterminate', false).prop('checked', true);
+				} else {
+					$selectAll.prop('indeterminate', true).prop('checked', false);
+				}
+			} else if (type === 'location') {
+				const $checkboxes = $('.location-checkbox');
+				const $selectAll = $('#selectAllLocations');
+				const checkedCount = $checkboxes.filter(':checked').length;
+				const totalCount = $checkboxes.length;
+
+				if (checkedCount === 0) {
+					$selectAll.prop('indeterminate', false).prop('checked', false);
+				} else if (checkedCount === totalCount) {
+					$selectAll.prop('indeterminate', false).prop('checked', true);
+				} else {
+					$selectAll.prop('indeterminate', true).prop('checked', false);
+				}
+			}
+		}
+
+		function saveSelection() {
+			showBtnLoderAssignLocation();
+			// Get selected employee IDs using jQuery
+			const selectedEmployees = $('.employee-checkbox:checked').map(function() {
+				return $(this).val();
+			}).get();
+
+			// Get selected location IDs using jQuery
+			const selectedLocations = $('.location-checkbox:checked').map(function() {
+				return $(this).val();
+			}).get();
+
+			// Validation: Check if at least one item is selected from both grids
+			const empCount = selectedEmployees.length;
+			const locCount = selectedLocations.length;
+			if(empCount<=0)
+			{
+				round_error_noti('Please select atleast one employee');
+				hideBtnLoderAssignLocation();
+				return;
+			}
+	
+			if(locCount<=0)
+			{
+				hideBtnLoderAssignLocation();
+				round_error_noti('Please select atleast one location');
+				return;
+			}
+	
+			// Convert to comma-separated strings
+			const employeeIdsString = selectedEmployees.join(',');
+			const locationIdsString = selectedLocations.join(',');
+
+			// Display results using jQuery
+			$('#employeeIds').text(employeeIdsString);
+			$('#locationIds').text(locationIdsString);
+			$('#resultContainer').show();
+
+			
+				var assigData={
+					EmployeeIds:employeeIdsString,
+					GeoLocationIds:locationIdsString,
+					CreatedBy:EmployeeId
+				};
+				// Send the data to the API
+		$.ajax({
+			  url: '@baseUrl/GeoLocationAPI/CreateAssignGeoLocation',
+			  type: 'POST',
+			contentType: "application/json",
+			headers: {
+				"Authorization": "Bearer " + Token
+			},
+			data: JSON.stringify(assigData),
+			success: function(response) {
+				if (response.isSuccess) {
+					round_success_noti(response.responseMessage);
+					  clearSelection();
+					  GetAssignLocationDataTable();
+						$("#locationAssignModel").modal('hide');
+				} else {
+					round_error_noti(response.responseMessage);
+				}
+				  hideBtnLoderAssignLocation();
+			},
+			error: function(xhr, status, error) {
+				hideBtnLoderAssignLocation();
+				console.error("AJAX Error:", error);
+			}
+
+		});
+
+	}
+
+		function clearSelection() {
+			// Clear all checkboxes using jQuery
+			$('.row-checkbox').prop('checked', false);
+
+			// Clear select all checkboxes using jQuery
+			$('#selectAllEmployees').prop('checked', false).prop('indeterminate', false);
+			$('#selectAllLocations').prop('checked', false).prop('indeterminate', false);
+
+			// Clear search boxes
+			$('#employeeSearch').val('');
+			$('#locationSearch').val('');
+
+			// Reload full grids
+			populateEmployeeGrid();
+			populateLocationGrid();
+
+			// Hide results using jQuery
+			$('#resultContainer').hide();
+
+			
+		}
+
+		function updateAssignGeoLocation(data) {
+			clearSelection();
+			// Clear search boxes and reload
+			$('#employeeSearch').val('');
+			$('#locationSearch').val('');
+
+			// Re-populate grids with updated data
+			populateEmployeeGrid();
+			populateLocationGrid();
+
+			const employeeId = data.employeeId;
+			const geoLocationIds = data.geoLocationIds.split(',').map(Number);
+
+			// Restore previously checked items
+			restoreCheckedState(employeeId, geoLocationIds);
+			$("#btnAssignLocation").text('Update');
+			$("#btnAssigningLocation").text('Updating...');
+			$("#locationAssignModel").modal('show');
+		}
+
+		function restoreCheckedState(employeeId, checkedLocations) {
+			// Small delay to ensure DOM is updated
+			setTimeout(() => {
+				// Restore employee checkboxes
+				// checkedEmployees.forEach(function(employeeId) {
+				// 	$(`.employee-checkbox[value="${employeeId}"]`).prop('checked', true);
+				// });
+						$(`.employee-checkbox[value="${employeeId}"]`).prop('checked', true);
+
+
+				// Restore location checkboxes
+				checkedLocations.forEach(function(geoLocationId) {
+					$(`.location-checkbox[value="${geoLocationId}"]`).prop('checked', true);
+				});
+
+				// Update select all states
+				updateSelectAllState('employee');
+				updateSelectAllState('location');
+			}, 100);
+		}
+
+
+	$("#btnAssignLocation").click(function(){
+		saveSelection();
+	})
+	$("#assignClear").click(function(){
+		clearSelection();
+	})
+	
+
+	function GetAssignLocationDataTable() {
+		   try {
+				$('#assignLocation-loder').addClass('d-flex').show();
+			   $.ajax({
+				  type: "GET",
+				  url: '@baseUrl/GeoLocationAPI/GetAssignGeoLocationsWithLocation/'+CompanyId,  // Update the URL based on the API you're using
+				  headers: {
+						  'Authorization': 'Bearer ' + Token
+					  },
+				   success: function (data) {
+							$("#locationAssignContainer").dxDataGrid({
+							  dataSource: data.data||[],  // Use the 'data' field from the API response
+
+							  columns: [
+
+								 { dataField: 'employeeCode', caption: 'Employee Name' },
+								 { dataField: 'fullName', caption: 'Employee Name' },
+								 { dataField: 'geoLocationNames', caption: 'Geo Location Name' },
+								 
+										   {
+										 dataField: '',
+										 caption: '',
+										 alignment: 'center',
+										 dataType: 'string',
+										 format: '',
+										 type: 'buttons',
+										 width: '50px',
+										 cellTemplate: function (container, options) {
+
+														 var buttonElement = $('<div class="d-flex order-actions">' +
+															 '<a href="javascript:;" class="edit-action" title="Update Geo Location">' +
+															 '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+															 '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+															 '</svg>' +
+															 '</a>' +
+															 '</div>')
+															 .on('dxclick', function () {
+																	updateAssignGeoLocation(options.data);
+															 }).appendTo(container);
+
+														 // Optional: update title attribute on SVG as well (for tooltip consistency)
+															  buttonElement.find('svg').attr('title', 'Update Geo Location');
+										 }
+									 },
+
+
+									 {
+										 dataField: '',
+										 caption: '',
+										 alignment: 'center',
+										 dataType: 'string',
+										 format: '',
+										 type: 'buttons',
+										 width: '50px',
+										 cellTemplate: function (container, options) {
+											 var buttonElement = $('<div class="d-flex order-actions">' +
+												   '<a href="javascript:;" class="delete-action" title="Delete Assign Geo Location">' +
+												 '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+												 '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+												 '</svg>' +
+												 '</a>' +
+												 '</div>')
+												 .on('dxclick', function () {
+													   deleteAssignGeoLocation(options.data);
+												 }).appendTo(container);
+
+											 var svgElement = buttonElement.find('svg');  // Accessing the svg element directly
+											   svgElement.attr('title', 'Delete Assign Geo Location');
+										 }
+									 }
+
+
+
+								],
+							  columnsAutoWidth: true,
+							  wordWrapEnabled: true,
+							  rowAlternationEnabled: false,
+							  showBorders: true,
+							  grouping: { autoExpandAll: false },
+							  paging: { pageSize: 10 },
+							  pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+							  headerFilter: { visible: false },
+							  //filterRow: { visible: true, applyFilter: "auto" },
+							  allowColumnResizing: false,
+							  groupPanel: { visible: false },
+							  searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+							  allowColumnReordering: false,
+							  columnFixing: { enabled: false },
+
+							  onContentReady(e) {
+								   $('#rowCountAssignLocation').html('Total Records: ' + $("#locationAssignContainer").dxDataGrid('instance').totalCount());
+							  }
+						  }).dxDataGrid('instance');
+
+							  $('#assignLocation-loder').removeClass('d-flex').hide();
+
+				  },
+				  error: function (xhr, status, error) {
+						  $('#assignLocation-loder').removeClass('d-flex').hide();
+
+					  // Handle any errors that occurred during the AJAX request
+					  console.error("AJAX Error: " + status + " - " + error);
+
+				  }
+			  });
+
+			} catch (e)
+			{
+				 console.error("Error in probation:", e);
+				 $('#assignLocation-loder').removeClass('d-flex').hide();
+			}
+	  }
+	   function deleteAssignGeoLocation(data)
+			 {
+				if (!confirm("Are you sure you want to delete this ?"))
+				{
+					 return; // Cancel the delete operation
+				 }
+
+				 var deleteObj = {
+					 EmployeeIds: `${data.employeeId}`,
+					 CreatedBy: EmployeeId // Set this if you have a logged-in user ID
+				 };
+
+				 $.ajax({
+					 url: '@baseUrl/GeoLocationAPI/DeleteAssignGeoLocation',
+					 type: 'DELETE',
+					 contentType: 'application/json',
+					 headers: {
+						 'Authorization': 'Bearer ' + Token
+					 },
+					 data: JSON.stringify(deleteObj),
+					 success: function (response) {
+						 if(response.isSuccess)
+						 {
+						   round_success_noti(response.responseMessage);
+	                         GetAssignLocationDataTable();
+						 }
+						 else
+						 {
+							 round_error_noti(response.responseMessage)
+						 }
+					 },
+					 error: function (error) {
+							console.log(error);
+					 }
+				 });
+			 }
 </script>

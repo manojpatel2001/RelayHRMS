@@ -10,7 +10,6 @@
 <!-- jQuery + Bootstrap + SweetAlert -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -73,15 +72,62 @@
         .text-center-cell > div {
             text-align: center !important;
         }
+
+    .radio-section {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 6px;
+        margin: 10px 0;
+    }
 </style>
+
+<style>
+    /* Additional styles for better UI */
+    .table-hover-row {
+        background-color: #f8f9fa !important;
+    }
+
+    .badge {
+        font-size: 0.75em;
+        padding: 0.35em 0.65em;
+    }
+
+    .dx-datagrid-headers .dx-datagrid-table .dx-row > td {
+        background-color: #3e4b6d;
+        color: white;
+        font-weight: 600;
+    }
+
+    .dx-datagrid .dx-row-alt > td {
+        background-color: #f8f9fa;
+    }
+
+    .dx-datagrid .dx-row:hover > td {
+        background-color: #e3f2fd !important;
+    }
+
+    .dx-datagrid .dx-selection.dx-row > td {
+        background-color: #bbdefb !important;
+    }
+
+    #actionButtons button {
+        margin: 0 5px;
+    }
+
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+</style>
+
 <div class="search-panel-wrapper">
     <div class="search-panel-container">
         <div class="search-panel-row">
             <div class="search-heading">Search Panel</div>
-            
         </div>
     </div>
 </div>
+
 <div class="form-section">
     <div class="row justify-content-center mb-3">
         <div class="col-md-4 d-flex align-items-center">
@@ -96,11 +142,11 @@
             <label for="searchforid" class="form-label mb-0 me-2" style="width: 120px;">Search For:</label>
             <input type="text" class="form-control form-control-sm" id="searchforid" />
         </div>
-     </div>
+    </div>
 
-
-    @* <div class="row justify-content-center mb-3">
-        <div class="col d-flex align-items-center justify-content-center flex-wrap gap-3">
+    <!-- Status Radio Buttons -->
+    <div class="row justify-content-center mb-3">
+        <div class="col d-flex align-items-center justify-content-center flex-wrap gap-3 radio-section">
             <div class="form-check form-check-inline">
                 <input class="form-check-input" type="radio" name="Status" id="pendingid" value="Pending" checked>
                 <label class="form-check-label" for="pendingid">Pending</label>
@@ -114,12 +160,12 @@
                 <label class="form-check-label" for="rejectedid">Rejected</label>
             </div>
         </div>
-    </div> *@
+    </div>
+
     <div class="row justify-content-center mb-3">
         <div class="col d-flex align-items-center justify-content-center flex-wrap gap-3">
-
-            <button type="button" class="search-panel-container  search-heading btn-sm" id="goid">GO</button>
-            <button type="button" class="search-panel-container  search-heading btn-sm" id="clearid">Clear</button>
+            <button type="button" class="search-panel-container search-heading btn-sm" id="goid">GO</button>
+            <button type="button" class="search-panel-container search-heading btn-sm" id="clearid">Clear</button>
         </div>
     </div>
 
@@ -130,133 +176,349 @@
             </div>
         </div>
     </div>
- </div>
+</div>
 
-    <div class="form-section">
-        <div class="container mt-3">
-            <div class="d-flex justify-content-end mb-2" id="actionButtons" style="display: none;">
-
-
-            <button type="button" id="approveid" class="search-panel-container  search-heading btn-sm me-2">Approve</button>
-            <button type="button" id="rejectid" class="search-panel-container  search-heading btn-sm">Reject</button>
-            </div>
-
-            <div id="attendanceGrid">Loading...</div>
-            <div id="recordSummary" class="text-center mt-2 text-muted"></div>
+<div class="form-section">
+    <div class="container mt-3">
+        <div class="d-flex justify-content-end mb-2" id="actionButtons" style="display: none;">
+            <button type="button" id="approveid" class="search-panel-container search-heading btn-sm form-label me-2" value="Approved">
+                <i class="fas fa-sign-in-alt me-2"></i>Approved
+            </button>
+            <button type="button" class="btn-punching search-panel-container search-heading btn-sm form-label me-2" disabled id="btnAproving" style="display:none;">
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Approving...
+            </button>
+            <button type="button" id="rejectid" class="search-panel-container search-heading btn-sm form-label me-2" value="Rejected">
+                <i class="fas fa-sign-in-alt me-2"></i>Rejected
+            </button>
+            <button type="button" class="btn-punching search-panel-container search-heading btn-sm form-label me-2" disabled id="btnRejecting" style="display:none;">
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Rejecting...
+            </button>
         </div>
+
+        <div id="attendanceGrid">Loading...</div>
+        <div id="recordSummary" class="text-center mt-2 text-muted"></div>
     </div>
-
-
-
-
+</div>
 
 <script>
     const apiBase = '@apiBase';
     const Empid = parseInt(localStorage.getItem("EmployeeId"));
-        const savedCompany = localStorage.getItem('selectedCompany');
+    var token = localStorage.getItem("authToken");
+    const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany || '{}');
     const Compid = parseInt(companyDetails.CompanyId);
     let selectedKeys = [];
 
-
-
     $(document).ready(function () {
-        handleUIVisibility();
-        loadAllApplications("0", "");
+        // Load data on page load with default "Pending" status
+        loadAllApplications($('#searchtypeid').val(), $('#searchforid').val());
 
+        // Handle status radio button change
         $('input[name="Status"]').on('change', function () {
+            const selectedStatus = $(this).val();
+            console.log('Status changed to:', selectedStatus);
             handleUIVisibility();
             loadAllApplications($('#searchtypeid').val(), $('#searchforid').val());
         });
 
+        // Handle GO button click
         $('#goid').on('click', function () {
-           
             loadAllApplications($('#searchtypeid').val(), $('#searchforid').val());
         });
 
+        // Handle Clear button click
         $('#clearid').on('click', function () {
             $('#searchtypeid').val("0");
             $('#searchforid').val("");
-            $('input[name="Status"]').prop('checked', false);
-            $('#resultBody').html('<tr><td colspan="9">No records found.</td></tr>');
-            $('#actionButtonsWrapper').hide();
-            $('.action-col').hide();
+            // Reset to Pending status
+            $('#pendingid').prop('checked', true);
+
+            // Clear grid and hide buttons
+            $('#attendanceGrid').html('<div class="text-center text-muted">No records found.</div>');
+            $('#recordSummary').text('');
+            $('#actionButtons').hide();
+            selectedKeys = [];
+
+            // Load data with cleared filters
+            loadAllApplications("0", "");
         });
 
+        // Handle Approve button click
         $('#approveid').on('click', function () {
             handleApprovalOrRejection("Approved");
         });
 
+        // Handle Reject button click
         $('#rejectid').on('click', function () {
             handleApprovalOrRejection("Rejected");
         });
+
+        // Initial UI setup
+        handleUIVisibility();
     });
 
     function handleUIVisibility() {
         const status = $('input[name="Status"]:checked').val();
+        console.log('Current status for UI visibility:', status);
+
         if (status === "Pending") {
-            $('#actionButtonsWrapper').show();
+            // Show action buttons only for pending records
             $('.action-col').show();
         } else {
-            $('#actionButtonsWrapper').hide();
+            // Hide action buttons for approved/rejected records
+            $('#actionButtons').hide();
             $('.action-col').hide();
         }
     }
 
     function loadAllApplications(searchtype, searchfor) {
+        const selectedStatus = $('input[name="Status"]:checked').val();
+        console.log('Loading applications with status:', selectedStatus);
+
         const payload = {
-           SearchType :$('#searchtypeid').val(),
-            SearchFor: searchfor,
-            
-             CompId:Compid,
-              Emplooyeid: Empid
+            SearchType: searchtype || "0",
+            SearchFor: searchfor || "",
+            Status: selectedStatus, // Add status to payload
+            CompId: Compid,
+            Emplooyeid: Empid
         };
+
+        console.log('API Payload:', payload);
+
+        // Show loading
+        $('#attendanceGrid').html('<div class="text-center text-muted">Loading...</div>');
 
         $.ajax({
             url: apiBase + '/CompOffAPI/GetCompOffApplicationsAdmin',
             method: 'POST',
             contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+            },
             data: JSON.stringify(payload),
-             success: function (data) {
+            success: function (data) {
+                console.log('API Response:', data);
+
                 if (data.isSuccess && data.data && data.data.length > 0) {
                     renderTable(data.data);
                     $('#recordSummary').text(`${data.data.length} records found.`);
+
+                    // Show action buttons only for pending status
+                    if (selectedStatus === "Pending") {
+                        $('#actionButtons').show();
+                    } else {
+                        $('#actionButtons').hide();
+                    }
                 } else {
                     $('#attendanceGrid').html('<div class="text-center text-muted">No records found.</div>');
-                    $('#recordSummary').text('');
+                    $('#recordSummary').text('No records found.');
+                    $('#actionButtons').hide();
                 }
+
+                // Clear selection when new data loads
+                selectedKeys = [];
             },
-           
             error: function (xhr) {
+                console.error('API Error:', xhr);
+                $('#attendanceGrid').html('<div class="text-center text-danger">Error loading data.</div>');
+                $('#recordSummary').text('');
+                $('#actionButtons').hide();
                 Swal.fire("❌ Server error", xhr.responseText, "error");
             }
         });
     }
 
     function renderTable(data) {
+        const selectedStatus = $('input[name="Status"]:checked').val();
+
         $("#attendanceGrid").dxDataGrid({
             dataSource: data,
             keyExpr: "comp_Off_Detailsid",
             showBorders: true,
             columnAutoWidth: true,
             selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "always"
+                mode: selectedStatus === "Pending" ? "multiple" : "none",
+                showCheckBoxesMode: selectedStatus === "Pending" ? "always" : "none"
             },
             onSelectionChanged: function (e) {
                 selectedKeys = e.selectedRowKeys;
-                $("#actionButtons").toggle(selectedKeys.length > 0);
+                console.log('Selected keys:', selectedKeys);
+
+                // Show/hide action buttons based on selection and status
+                if (selectedStatus === "Pending") {
+                    $("#actionButtons").toggle(selectedKeys.length > 0);
+                }
             },
             columns: [
-                { dataField: "comp_Off_Detailsid", caption: "ComoffApplicationId", width: 80, cssClass: "text-center-cell" },
-                { dataField: "emp_Code", caption: "Employee Code", cssClass: "text-center-cell" },
-                { dataField: "fullName", caption: "Employee Name", cssClass: "text-center-cell" },
-                { dataField: "branchName", caption: "Branch name", cssClass: "text-center-cell" },
-                { dataField: "extra_Work_Day", caption: "Extra Work Day", dataType: "date", format: "dd/MM/yyyy", cssClass: "text-center-cell" },
-                { dataField: "extra_Work_Hours", caption: "Extra Hour", dataType: "number", format: { type: "fixedPoint", precision: 2 }, cssClass: "text-center-cell" },
-                { dataField: "comoffReason", caption: "Reason", cssClass: "text-center-cell" },
-                { dataField: "application_Status", caption: "Application Status", cssClass: "text-center-cell" }
-            ]
+                {
+                    dataField: "comp_Off_Detailsid",
+                    caption: "Application ID",
+                    width: 120,
+                    cssClass: "text-center-cell"
+                },
+                {
+                    dataField: "emp_Code",
+                    caption: "Employee Code",
+                    width: 120,
+                    cssClass: "text-center-cell"
+                },
+                {
+                    dataField: "fullName",
+                    caption: "Employee Name",
+                    width: 150,
+                    cssClass: "text-center-cell"
+                },
+                {
+                    dataField: "branchName",
+                    caption: "Branch Name",
+                    width: 120,
+                    cssClass: "text-center-cell"
+                },
+                {
+                    dataField: "extra_Work_Day",
+                    caption: "Extra Work Day",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: 130,
+                    cssClass: "text-center-cell"
+                },
+                {
+                    dataField: "extra_Work_Hours",
+                    caption: "Extra Hours",
+                    dataType: "number",
+                    format: { type: "fixedPoint", precision: 2 },
+                    width: 100,
+                    cssClass: "text-center-cell"
+                },
+                {
+                    dataField: "comoffReason",
+                    caption: "Reason",
+                    width: 150,
+                    cssClass: "text-center-cell"
+                },
+                {
+                    dataField: "application_Status",
+                    caption: "Status",
+                    width: 100,
+                    cssClass: "text-center-cell",
+                    cellTemplate: function(container, options) {
+                        const status = options.value;
+                        let badgeClass = 'badge ';
+
+                        switch(status) {
+                            case 'Pending':
+                                badgeClass += 'bg-warning text-dark';
+                                break;
+                            case 'Approved':
+                                badgeClass += 'bg-success';
+                                break;
+                            case 'Rejected':
+                                badgeClass += 'bg-danger';
+                                break;
+                            default:
+                                badgeClass += 'bg-secondary';
+                        }
+
+                        $('<span>').addClass(badgeClass).text(status).appendTo(container);
+                    }
+                }
+            ],
+            onRowPrepared: function(e) {
+                if (e.rowType === "data") {
+                    // Add hover effect
+                    e.rowElement.on('mouseenter', function() {
+                        $(this).addClass('table-hover-row');
+                    }).on('mouseleave', function() {
+                        $(this).removeClass('table-hover-row');
+                    });
+                }
+            }
+        });
+    }
+
+    function handleApprovalOrRejection(status) {
+        if (!selectedKeys || selectedKeys.length === 0) {
+            Swal.fire('Warning', 'Please select at least one application.', 'warning');
+            return;
+        }
+
+        // Show confirmation dialog
+        const actionText = status === "Approved" ? "approve" : "reject";
+        const confirmText = `Are you sure you want to ${actionText} ${selectedKeys.length} application(s)?`;
+
+        Swal.fire({
+            title: 'Confirm Action',
+            text: confirmText,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: status === "Approved" ? '#28a745' : '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: `Yes, ${actionText}!`,
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performApprovalOrRejection(status);
+            }
+        });
+    }
+
+    function performApprovalOrRejection(status) {
+        // Show loading spinner
+        if (status === "Approved") {
+            $('#approveid').hide();
+            $('#btnAproving').show();
+        } else {
+            $('#rejectid').hide();
+            $('#btnRejecting').show();
+        }
+
+        const payload = {
+            CompoffIds: selectedKeys,
+            status: status,
+            EmployeeId: Empid
+        };
+
+        console.log('Approval/Rejection payload:', payload);
+
+        $.ajax({
+            url: apiBase + '/CompOffAPI/CompOffDetailsApproveorReject',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+            },
+            data: JSON.stringify(payload),
+            success: function (res) {
+                console.log('Approval/Rejection response:', res);
+
+                if (res.isSuccess) {
+                    Swal.fire("✅ Success", res.responseMessage, "success");
+
+                    // Reload data with current filters
+                    loadAllApplications($('#searchtypeid').val(), $('#searchforid').val());
+
+                    // Clear selection
+                    selectedKeys = [];
+                } else {
+                    Swal.fire("❌ Failed", res.responseMessage, "error");
+                }
+            },
+            error: function (xhr) {
+                console.error('Approval/Rejection error:', xhr);
+                Swal.fire("❌ Server error", xhr.responseText, "error");
+            },
+            complete: function() {
+                // Hide loading spinners and show buttons
+                if (status === "Approved") {
+                    $('#approveid').show();
+                    $('#btnAproving').hide();
+                } else {
+                    $('#rejectid').show();
+                    $('#btnRejecting').hide();
+                }
+            }
         });
     }
 
@@ -265,36 +527,5 @@
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-GB');
     }
-
-    function handleApprovalOrRejection(status) {
-        debugger;
-         if (!selectedKeys || selectedKeys.length === 0) {
-            Swal.fire('Warning', 'Please select at least one application.', 'warning');
-            return;
-        }
-
-        const payload = {
-            CompoffIds: selectedKeys,
-            status: status
-        };
-
-        $.ajax({
-            url: apiBase + '/CompOffAPI/CompOffDetailsApproveorReject',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(payload),
-            success: function (res) {
-                if (res.isSuccess) {
-                    Swal.fire("✅ Success", res.responseMessage, "success");
-                    const selectedStatus = $('input[name="Status"]:checked').val();
-                    loadAllApplications($('#searchtypeid').val(), $('#searchforid').val(), selectedStatus);
-                } else {
-                    Swal.fire("❌ Failed", res.responseMessage, "error");
-                }
-            },
-            error: function (xhr) {
-                Swal.fire("❌ Server error", xhr.responseText, "error");
-            }
-        });
-    }
 </script>
+

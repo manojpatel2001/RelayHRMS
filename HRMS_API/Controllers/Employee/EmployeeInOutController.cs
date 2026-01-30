@@ -1,10 +1,15 @@
-﻿using HRMS_Core.Employee;
+﻿using Dapper;
+using HRMS_Core.Employee;
+using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Ess.InOut;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace HRMS_API.Controllers.Employee
 {
@@ -19,30 +24,21 @@ namespace HRMS_API.Controllers.Employee
         {
             _unitOfWork = unitOfWork;
         }
-
         [HttpPost("CreateEmpINOut")]
         public async Task<APIResponse> CreateEmpINOut([FromBody] vmInOut model)
         {
             try
             {
-               
-                var data = await _unitOfWork.EmployeeInOutRepository.CreateEmpInOut(model);
-                if (data == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
-
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Records have been added successfully."
-                };
+                var response = await _unitOfWork.EmployeeInOutRepository.CreateEmpInOut(model);
+                return response;
             }
             catch (Exception ex)
             {
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = "Unable to add records. Please try again later."
+                    ResponseMessage = $"An error occurred: {ex.Message}",
+                    Data = null
                 };
             }
         }
@@ -115,6 +111,40 @@ namespace HRMS_API.Controllers.Employee
             try
             {
                 var data = await _unitOfWork.EmployeeInOutRepository.GetMonthlyAttendanceLog(vmInOutParameter);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        [HttpPost("GetDateWiseAttendanceDetails")]
+        public async Task<APIResponse> GetDateWiseAttendanceDetails(vmInOutParameter vmInOutParameter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetDateWiseAttendanceDetails(vmInOutParameter);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetEmployeesByReportingManager/{EmployeeId}")]
+        public async Task<APIResponse> GetEmployeesByReportingManager(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetEmployeesByReportingManager(EmployeeId);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -297,8 +327,6 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
-
-
         [HttpPost("GetEmployeeInOutReport")]
         public async Task<APIResponse> GetEmployeeInOutReport([FromForm] EmployeeInOutFilterVM outFilterVM)
         {
@@ -314,45 +342,21 @@ namespace HRMS_API.Controllers.Employee
                 }
                 var data = await _unitOfWork.EmployeeInOutRepository.GetEmployeeInOutReport(outFilterVM);
 
-                if (data == null || !data.Any())
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = "No matching IN record found or update failed."
-                    };
-                }
-
-                //// Step 2: Get regularization data
-                //var regData = await _unitOfWork.AttendanceRegularizationRepository
-                //    .GetAllAsync(x => x.IsEnabled== true && x.IsDeleted==false);
-
-                //// Step 3: Filter records
-                //var data = getdata.Where(d =>
+                return data;
+                //if (data == null || !data.Any())
                 //{
-                //    if (d.Status == "Absent")
+                //    return new APIResponse
                 //    {
-                //        // Check if any pending/rejected regularization exists
-                //        var hasPendingOrRejected = regData.Any(r =>
-                //            r.EmpId == d.Id &&
-                //            r.ForDate == d.For_Date &&
-                //            (r.IsPending || r.IsRejected)
-                //        );
-
-                //        // If pending or rejected record exists, exclude it
-                //        return !hasPendingOrRejected;
-                //    }
-
-                //    // If not absent, include
-                //    return true;
-                //}).ToList();
-
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Data fetched successfully."
-                };
+                //        isSuccess = false,
+                //        ResponseMessage = "No matching IN record found or update failed."
+                //    };
+                //}
+                //return new APIResponse
+                //{
+                //    isSuccess = true,
+                //    Data = data,
+                //    ResponseMessage = "Data fetched successfully."
+                //};
             }
             catch (Exception ex)
             {
@@ -363,6 +367,39 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+
+        [HttpPost("GetEmpInOutReportForAdmin")]
+        public async Task<APIResponse> GetEmpInOutReportForAdmin(EmpInOutReportFilter fiter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetEmpInOutReportForAdmin(fiter);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        [HttpPost("GetAttendanceRegularizationAlerts")]
+        public async Task<APIResponse> GetAttendanceRegularizationAlerts(CommonParameter model)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeInOutRepository.GetAttendanceRegularizationAlerts(model);
+
+                return data;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to fetch data. Please try again later." };
+            }
+        }
+
 
     }
 }

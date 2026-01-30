@@ -1,0 +1,303 @@
+﻿@{
+    ViewData["Title"] = "IT Form 16";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string apiBase = ViewBag.BaseUrlAPI;
+}
+
+<title>IT Form 16</title>
+
+<!-- jQuery + Bootstrap + SweetAlert -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #ffffff;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        font-weight: 600;
+        padding: 4px 12px;
+        border: none;
+        border-radius: 4px;
+    }
+
+        .btn-custom:hover {
+            background-color: #2c3a57;
+        }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+
+    .text-center-cell {
+        text-align: center !important;
+    }
+
+        .text-center-cell > div {
+            text-align: center !important;
+        }
+
+    .date-input-wrapper {
+        position: relative;
+    }
+
+        .date-input-wrapper input[type="date"] {
+            cursor: pointer;
+        }
+</style>
+
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">IT FORM 16</div>
+        </div>
+    </div>
+</div>
+
+<div class="form-section">
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-4 d-flex align-items-center">
+            <label for="fromDate" class="form-label me-2" style="white-space: nowrap;">From Date<span style="color: red;">*</span>:</label>
+            <input type="date" class="form-control form-control-sm" id="fromDate" />
+        </div>
+        <div class="col-md-4 d-flex align-items-center">
+            <label for="toDate" class="form-label me-2" style="white-space: nowrap;">To Date<span style="color: red;">*</span>:</label>
+            <input type="date" class="form-control form-control-sm" id="toDate" />
+        </div>
+    </div>
+
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-4 d-flex align-items-center">
+            <label for="formatType" class="form-label me-2">Format:</label>
+            <select class="form-control form-control-sm" id="formatType">
+                <option value="PART-A">PART-A</option>
+                <option value="PART-B">PART-B</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-4 d-flex align-items-center gap-2">
+            <button type="button" class="search-panel-container search-heading btn-sm form-label me-2" id="viewButton">View</button>
+            <button type="button" class="search-panel-container search-heading btn-sm form-label me-2" id="backButton">Back</button>
+        </div>
+    </div>
+
+    <div class="search-panel-wrapper">
+        <div class="search-panel-container">
+            <div class="search-panel-row">
+                <div class="search-heading">Form 16 Details</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-3">
+        <div id="form16Grid">No records to display. Please select date range and click View.</div>
+        <div id="recordSummary" class="text-center mt-2 text-muted"></div>
+    </div>
+</div>
+
+<script>
+    const apiBase = '@apiBase';
+    const Empid = parseInt(localStorage.getItem("EmployeeId"));
+    var token = localStorage.getItem("authToken");
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany || '{}');
+    const Compid = parseInt(companyDetails.CompanyId);
+    let gridInstance;
+
+    $(document).ready(function () {
+        // Set default dates (current financial year)
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth();
+
+        // Financial year starts from April
+        let fromYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+        let toYear = fromYear + 1;
+
+        $('#fromDate').val(`${fromYear}-04-01`);
+        $('#toDate').val(`${toYear}-03-31`);
+
+        $('#viewButton').click(function () {
+            loadForm16Data();
+        });
+
+        $('#backButton').click(function () {
+            window.history.back();
+        });
+    });
+
+    function loadForm16Data() {
+        const fromDate = $('#fromDate').val();
+        const toDate = $('#toDate').val();
+        const format = $('#formatType').val();
+
+        if (!fromDate || !toDate) {
+            Swal.fire('Warning', 'Please select both From Date and To Date.', 'warning');
+            return;
+        }
+
+        if (new Date(fromDate) > new Date(toDate)) {
+            Swal.fire('Warning', 'From Date cannot be greater than To Date.', 'warning');
+            return;
+        }
+
+        if ($("#form16Grid").data("dxDataGrid")) {
+            $("#form16Grid").dxDataGrid("dispose");
+            $("#form16Grid").empty();
+        }
+
+        $('#form16Grid').html('<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>');
+
+        const payload = {
+            FromDate: fromDate,
+            ToDate: toDate,
+            Format: format,
+            EmployeeId: Empid,
+            CompanyId: Compid
+        };
+
+        $.ajax({
+            url: apiBase + '/ITForm16/GetForm16Data',
+            type: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+            },
+            data: JSON.stringify(payload),
+            success: function (data) {
+                if (data.isSuccess && data.data && data.data.length > 0) {
+                    renderTable(data.data);
+                    $('#recordSummary').text(`Total Records: ${data.data.length}`);
+                } else {
+                    $('#form16Grid').html('<div class="text-center text-muted">No records found for the selected period.</div>');
+                    $('#recordSummary').text('');
+                }
+            },
+            error: function () {
+                $('#form16Grid').html('<div class="text-center text-danger">Error fetching data. Please try again.</div>');
+                $('#recordSummary').text('');
+            }
+        });
+    }
+
+    function renderTable(data) {
+        gridInstance = $("#form16Grid").dxDataGrid({
+            dataSource: data,
+            keyExpr: "form16Id",
+            showBorders: true,
+            columnAutoWidth: true,
+            paging: {
+                pageSize: 10
+            },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 25, 50, 100],
+                showInfo: true
+            },
+            columns: [
+                { dataField: "form16Id", caption: "Form ID", width: 80, visible: false },
+                { dataField: "financialYear", caption: "Financial Year", cssClass: "text-center-cell" },
+                { dataField: "employeeName", caption: "Employee Name", cssClass: "text-center-cell" },
+                { dataField: "employeeCode", caption: "Employee Code", cssClass: "text-center-cell" },
+                { dataField: "panNumber", caption: "PAN Number", cssClass: "text-center-cell" },
+                { dataField: "grossSalary", caption: "Gross Salary", dataType: "number", format: "#,##0.00", cssClass: "text-center-cell" },
+                { dataField: "taxDeducted", caption: "Tax Deducted", dataType: "number", format: "#,##0.00", cssClass: "text-center-cell" },
+                { dataField: "generatedDate", caption: "Generated Date", dataType: "date", format: "dd/MM/yyyy", cssClass: "text-center-cell" },
+                {
+                    caption: "Actions",
+                    cssClass: "text-center-cell",
+                    cellTemplate: function (container, options) {
+                        $('<button>')
+                            .addClass('btn btn-sm btn-custom')
+                            .text('Download')
+                            .on('click', function () {
+                                downloadForm16(options.data.form16Id);
+                            })
+                            .appendTo(container);
+                    }
+                }
+            ]
+        }).dxDataGrid("instance");
+    }
+
+    function downloadForm16(form16Id) {
+        const format = $('#formatType').val();
+
+        Swal.fire({
+            title: 'Downloading...',
+            text: 'Please wait while we generate your Form 16',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: apiBase + '/ITForm16/DownloadForm16',
+            type: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+            },
+            data: JSON.stringify({
+                Form16Id: form16Id,
+                Format: format
+            }),
+            xhrFields: {
+                responseType: 'blob'
+            },
+            success: function (blob) {
+                Swal.close();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Form16_${format}_${form16Id}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                Swal.fire('Success', 'Form 16 downloaded successfully!', 'success');
+            },
+            error: function () {
+                Swal.fire('Error', 'Failed to download Form 16. Please try again.', 'error');
+            }
+        });
+    }
+</script>

@@ -1,44 +1,22 @@
 ﻿@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Shift Changes Details";
+    ViewData["Title"] = "Attendance Regularisation";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-   string baseUrl = ViewBag.BaseUrl;
-  string apiBase = ViewBag.BaseUrlAPI;
+    string baseUrl = ViewBag.BaseUrl;
+    string apiBase = ViewBag.BaseUrlAPI;
     string baseUrls = Configuration["BaseUrlSettings:baseUrl"];
     string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
     var uri = new Uri(baseUrls);
     string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <style>
     body {
         background-color: #ffffff !important;
-    }
-
-    .section-header {
-        background-color: #3e4b6d;
-        color: #fff;
-        font-weight: bold;
-        padding: 10px 20px;
-        border-top-left-radius: 6px;
-        border-top-right-radius: 6px;
-        margin: 0 auto;
-        max-width: 1200px;
-        font-size: 18px;
-    }
-
-    .form-section {
-        max-width: 1200px;
-        margin: 0 auto;
-        margin-top: 0;
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        background-color: #fff;
     }
 
     .form-label {
@@ -86,7 +64,6 @@
             box-shadow: none;
         }
 
-
     .back-btn {
         float: right;
         margin-top: 20px;
@@ -119,78 +96,652 @@
         margin-top: 2px;
     }
 
-    .dx-cell-truncate {
-        max-width: 150px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: inline-block;
+    .swal-small {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .myGrid, .myCard {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto;
+    }
+
+    #attendanceGrid {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-y: hidden !important;
+        overflow-x: auto !important;
+    }
+
+    .form-section {
+        max-width: 100% !important;
+        margin-top: 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background-color: #fff;
+    }
+
+    .section-header {
+        background-color: #3e4b6d;
+        color: #fff;
+        font-weight: bold;
+        padding: 10px 20px;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        margin: 0 auto;
+        max-width: 100%;
+    }
+
+    #attendanceGrid .dx-scrollbar-vertical {
+        display: none !important;
+    }
+
+    #attendanceGrid .dx-scrollbar-horizontal {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    #attendanceGrid:hover .dx-scrollbar-horizontal {
+        opacity: 1;
+    }
+
+    #attendanceGrid .dx-scrollable-scroll,
+    #attendanceGrid ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    #attendanceGrid ::-webkit-scrollbar-thumb {
+        background-color: #999;
+        border-radius: 3px;
+    }
+
+    #attendanceGrid ::-webkit-scrollbar-track {
+        background-color: #f0f0f0;
+    }
+
+    #attendanceGrid {
+        scrollbar-width: thin;
+        scrollbar-color: #999 #f0f0f0;
+    }
+
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+        .checkbox-container input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+
+    .date-field {
+        width: 150px !important;
     }
 </style>
+<style>
+    :root {
+        --ar-primary: #667eea;
+        --ar-secondary: #764ba2;
+        --ar-danger: #ef4444;
+        --ar-warning: #f59e0b;
+        --ar-info: #3b82f6;
+        --ar-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        --ar-border-radius: 12px;
+        --ar-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
 
+    .ar-wrapper {
+        font-family: var(--ar-font-family);
+    }
+
+        .ar-wrapper .ar-demo-container {
+            max-width: 1200px;
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin: 0 auto;
+        }
+
+        .ar-wrapper .ar-filter-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .ar-wrapper .ar-filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+            .ar-wrapper .ar-filter-group label {
+                font-size: 12px;
+                font-weight: 600;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .ar-wrapper .ar-filter-group select {
+                padding: 10px 15px;
+                border: 2px solid #e2e8f0;
+                border-radius: 8px;
+                font-size: 14px;
+                min-width: 150px;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+
+        .ar-wrapper .ar-btn-group {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .ar-wrapper .ar-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ar-wrapper .ar-btn-primary {
+            background: var(--ar-primary);
+            color: white;
+        }
+
+            .ar-wrapper .ar-btn-primary:hover {
+                background: #5568d3;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            }
+
+        .ar-wrapper .ar-btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+
+        .ar-wrapper .ar-btn-back {
+            background: #334155;
+            color: white;
+        }
+
+        /* Modal Overlay */
+        .ar-wrapper .ar-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            animation: ar-fadeIn 0.3s ease;
+        }
+
+            .ar-wrapper .ar-modal-overlay.active {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                margin-top:30px;
+            }
+
+    @@keyframes ar-fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    /* Modal Container */
+    .ar-wrapper .ar-modal {
+        background: white;
+        border-radius: 16px;
+        max-width: 700px;
+        width: 100%;
+        max-height: 85vh;
+        overflow: hidden;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        animation: ar-slideUp 0.3s ease;
+    }
+
+    @@keyframes ar-slideUp {
+        from {
+            transform: translateY(50px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* Modal Header */
+    .ar-wrapper .ar-modal-header {
+        background: linear-gradient(135deg, var(--ar-primary) 0%, var(--ar-secondary) 100%);
+        color: white;
+        padding: 20px 25px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .ar-wrapper .ar-modal-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+    .ar-wrapper .ar-modal-badge {
+        background: rgba(255, 255, 255, 0.3);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .ar-wrapper .ar-modal-close {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        font-size: 24px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .ar-wrapper .ar-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+    /* Modal Body */
+    .ar-wrapper .ar-modal-body {
+        padding: 25px;
+        max-height: calc(85vh - 180px);
+        overflow-y: auto;
+    }
+
+        .ar-wrapper .ar-modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .ar-wrapper .ar-modal-body::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .ar-wrapper .ar-modal-body::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+    /* Alert Summary */
+    .ar-wrapper .ar-alert-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .ar-wrapper .ar-summary-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 20px 15px;
+        border-radius: var(--ar-border-radius);
+        text-align: center;
+        border: 2px solid #e2e8f0;
+        min-height: 110px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+        .ar-wrapper .ar-summary-card.danger {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-color: var(--ar-danger);
+        }
+
+    .ar-wrapper .ar-summary-number {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .ar-wrapper .ar-summary-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Alert Items */
+    .ar-wrapper .ar-alerts-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .ar-wrapper .ar-alert-item {
+        border-radius: var(--ar-border-radius);
+        padding: 20px;
+        border-left: 5px solid;
+        box-shadow: var(--ar-shadow);
+        transition: all 0.3s;
+        animation: ar-slideIn 0.3s ease;
+    }
+
+    @@keyframes ar-slideIn {
+        from {
+            transform: translateX(-20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .ar-wrapper .ar-alert-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .ar-wrapper .ar-alert-item.danger {
+        background: #fef2f2;
+        border-left-color: var(--ar-danger);
+    }
+
+    .ar-wrapper .ar-alert-item.warning {
+        background: #fffbeb;
+        border-left-color: var(--ar-warning);
+    }
+
+    .ar-wrapper .ar-alert-item.info {
+        background: #eff6ff;
+        border-left-color: var(--ar-info);
+    }
+
+    .ar-wrapper .ar-alert-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+    .ar-wrapper .ar-alert-date {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        font-weight: 700;
+    }
+
+    .ar-wrapper .ar-status-badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+        .ar-wrapper .ar-status-badge.rejected {
+            background: var(--ar-danger);
+            color: white;
+        }
+
+        .ar-wrapper .ar-status-badge.pending {
+            background: var(--ar-warning);
+            color: white;
+        }
+
+    .ar-wrapper .ar-alert-message {
+        font-size: 14px;
+        color: #334155;
+        line-height: 1.6;
+        margin-bottom: 12px;
+    }
+
+    .ar-wrapper .ar-alert-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        font-size: 13px;
+        color: #64748b;
+        padding-top: 12px;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .ar-wrapper .ar-alert-detail {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+        .ar-wrapper .ar-alert-detail strong {
+            color: #334155;
+        }
+
+    /* Empty State */
+    .ar-wrapper .ar-empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .ar-wrapper .ar-empty-icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+
+    .ar-wrapper .ar-empty-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 10px;
+    }
+
+    .ar-wrapper .ar-empty-text {
+        font-size: 14px;
+        color: #64748b;
+    }
+
+    /* Modal Footer */
+    .ar-wrapper .ar-modal-footer {
+        padding: 25px 30px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .ar-wrapper .ar-btn-got-it {
+        width: 100%;
+        max-width: 400px;
+        padding: 16px 24px;
+        background: linear-gradient(135deg, var(--ar-primary) 0%, var(--ar-secondary) 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+        .ar-wrapper .ar-btn-got-it:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+    /* Loading State */
+    .ar-wrapper .ar-loading {
+        text-align: center;
+        padding: 40px;
+    }
+
+    .ar-wrapper .ar-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #e2e8f0;
+        border-top-color: var(--ar-primary);
+        border-radius: 50%;
+        animation: ar-spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    @@keyframes ar-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .ar-wrapper .ar-loading-text {
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .ar-wrapper .ar-filter-section {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .ar-wrapper .ar-btn-group {
+            margin-left: 0;
+            width: 100%;
+        }
+
+        .ar-wrapper .ar-btn {
+            flex: 1;
+        }
+
+        .ar-wrapper .ar-alert-summary {
+            grid-template-columns: 1fr;
+        }
+
+        .ar-wrapper .ar-alert-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+    }
+</style>
 <div class="section-header">
     EMPLOYEE ATTENDANCE REGULARIZATION REQUEST
 </div>
 
 <div class="form-section">
     <div class="container mt-2">
+        <!-- Checkbox for Date Range Toggle -->
+        @* <div class="checkbox-container">
+            <input type="checkbox" id="chkBetween" />
+            <label for="chkBetween">Between Date Range</label>
+        </div> *@
+
         <div class="row gutter-tight justify-content-center flex-wrap">
-            <div class="col-md-auto">
+            <!-- Year Field (Default Visible) -->
+            <div class="col-md-auto" id="yearField">
                 <label class="form-label">Year :</label>
                 <select class="form-select form-select-sm short-field" id="year"></select>
                 <div class="text-danger field-error" id="yearError"></div>
             </div>
-            <div class="col-md-auto">
+
+            <!-- Month Field (Default Visible) -->
+            <div class="col-md-auto" id="monthField">
                 <label class="form-label">Month :</label>
                 <select class="form-select form-select-sm short-field" id="month">
-                    <option>January</option>
-                    <option>February</option>
-                    <option>March</option>
-                    <option>April</option>
-                    <option>May</option>
-                    <option>June</option>
-                    <option>July</option>
-                    <option>August</option>
-                    <option>September</option>
-                    <option>October</option>
-                    <option>November</option>
-                    <option>December</option>
+                    <option value="">--Select--</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
                 </select>
                 <div class="text-danger field-error" id="monthError"></div>
             </div>
-            <div class="col-md-auto">
-                <label class="form-label">Branch :</label>
-                <select class="form-select form-select-sm medium-field" id="branch">
-                    <option>--Select--</option>
 
-                </select>
-                <div class="text-danger field-error" id="branchError"></div>
-
+            <!-- Start Date Field (Hidden by Default) -->
+            <div class="col-md-auto d-none" id="startDateField">
+                <label class="form-label">Start Date :</label>
+                <input type="text" class="form-control form-control-sm date-field" id="startDate" placeholder="Select Date" />
+                <div class="text-danger field-error" id="startDateError"></div>
             </div>
+
+            <!-- End Date Field (Hidden by Default) -->
+            <div class="col-md-auto d-none" id="endDateField">
+                <label class="form-label">End Date :</label>
+                <input type="text" class="form-control form-control-sm date-field" id="endDate" placeholder="Select Date" />
+                <div class="text-danger field-error" id="endDateError"></div>
+            </div>
+
             <div class="col-md-auto">
                 <label class="form-label">Employee <span class="text-danger">*</span> :</label>
                 <select class="form-select form-select-sm medium-field" id="employeeDropdown">
-                    <option value="">--Select Employee--</option>
-
+                   
                 </select>
                 <div class="text-danger field-error" id="employeeError"></div>
             </div>
+
             <div class="col-md-auto">
                 <label class="form-label">Record Type :</label>
                 <select class="form-select form-select-sm medium-field" id="recordtype">
-                    <option>All</option>
-                    <option>Present</option>
-                    <option>Absent</option>
+                    <option value="All">All</option>
+                    <option value="P">Present</option>
+                    <option value="A">Absent</option>
+        @*             <option value="H">Holiday</option>
+                    <option value="W">Week Off</option>
+                    <option value="HF">Half Day</option> *@
                 </select>
                 <div class="text-danger field-error" id="recordTypeError"></div>
             </div>
         </div>
 
         <div class="action-buttons d-flex justify-content-center gap-3 mt-2">
-            <button class="btn btn-custom">Go</button>
-            <button class="btn btn-custom">Clear</button>
-            <button class="btn btn-custom"  onclick="goBack()">Back</button>
-
+            <button class="btn btn-custom" id="btnGo">Go</button>
+            <button class="btn btn-custom" id="btnClear">Clear</button>
+            <button class="btn btn-custom" onclick="goBack()">Back</button>
         </div>
     </div>
 </div>
@@ -199,15 +750,16 @@
      class="grid-loader justify-content-center align-items-center flex-column"
      style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
-
     <img src="@baseDomainUrl/loders/loder.png"
          class="grid-logo-spinner"
          style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
-
     <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
 </div>
 
-<!-- ✅ Save + Grid Section -->
+<div id="attendanceSummary"
+     style="background-color:#d7f3f4; padding:5px; font-size:14px; font-weight:600; margin-top:10px;">
+</div>
+
 <div class="form-section" id="attendanceSection" style="margin-top: 30px; display: none;">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
         <h6 class="mb-0">Attendance Details</h6>
@@ -219,215 +771,1272 @@
 </div>
 
 
-
 <script>
 
+    const savedCompany = localStorage.getItem('selectedCompany');
+      var companyDetails = JSON.parse(savedCompany);
+      const CompanyId = companyDetails.CompanyId;
+      const EmployeeId = localStorage.getItem('EmployeeId');
+      const Token = localStorage.getItem("authToken");
+      const apiBase = '@apiBase';
+    const EmployeeName = localStorage.getItem("EmployeeName");
 
-           const savedCompany = localStorage.getItem('selectedCompany');
-       var companyDetails = JSON.parse(savedCompany);
-       const CompanyId=companyDetails.CompanyId;
-       const EmployeeId=localStorage.getItem('EmployeeId');
-       const Token=localStorage.getItem("authToken");
-     const apiBase = '@apiBase';
+        var approvalReasons = [];
+            var limitedReasonIds = []; 
+          var unlimitedReasonIds = [];
 
     $(document).ready(function () {
-        BindBranchDropdown();
+        bindEmployee();
         populateYearDropdown();
+        initializeDatePickers();
+          LoadReasonConfiguration();
+        setupDateRangeToggle();
+        LoadApprovalReasons();
+         LoadReasonConfiguration();
+        $("#attendanceSummary").hide();
 
-        $('#branch').on('change', function () {
-            let branchId = $(this).val();
-            if (branchId) {
-                GetEmployeeByBranchId(branchId);
-            } else {
-                $('#employeeDropdown').empty().append('<option value="">--Select Employee--</option>');
-            }
-        });
+        // Set default values
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+        $('#year').val(currentYear);
+        $('#month').val(currentMonth);
 
-      
-
+        // Remove future months for current year
+        removeFutureMonths();
     });
 
-        const currentMonthIndex = new Date().getMonth();
+      function bindEmployee(){
+          const dropdown = document.getElementById('employeeDropdown');
+          const option = document.createElement('option');
+            option.value = EmployeeId;
+            option.textContent = EmployeeName;
+            dropdown.appendChild(option);
+      }
+      function initializeDatePickers() {
+          flatpickr("#startDate", {
+              dateFormat: "d/m/Y",
+              maxDate: "today"
+          });
 
-       $('#month option').each(function (index) {
-        if (index > currentMonthIndex) {
-            $(this).remove(); // remove future months
+          flatpickr("#endDate", {
+              dateFormat: "d/m/Y",
+              maxDate: "today"
+          });
+      }
+
+          // Handle year change to refresh month options
+    $('#year').on('change', function() {
+        const currentYear = new Date().getFullYear();
+        const selectedYear = parseInt($(this).val());
+
+        // Reset month dropdown to show all months
+        $('#month').html(`
+            <option value="">--Select--</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+        `);
+
+        // If current year is selected, remove future months
+        if (selectedYear === currentYear) {
+            removeFutureMonths();
         }
+        // If previous year is selected, all months remain visible
     });
 
+      function setupDateRangeToggle() {
+          $('#chkBetween').on('change', function () {
+              if ($(this).is(':checked')) {
+                  // Hide Month/Year, Show Date Range
+                  $('#monthField, #yearField').addClass('d-none');
+                  $('#startDateField, #endDateField').removeClass('d-none');
 
-        function goBack() {
-           window.location.href  ='@UIBaseUrl/EmployeePanel/Home/index';
+                  // Clear Month/Year errors
+                  $('#monthError, #yearError').text('');
+              } else {
+                  // Hide Date Range, Show Month/Year
+                  $('#startDateField, #endDateField').addClass('d-none');
+                  $('#monthField, #yearField').removeClass('d-none');
+
+                  // Clear Date Range errors
+                  $('#startDateError, #endDateError').text('');
+              }
+          });
+      }
+    function removeFutureMonths() {
+        const currentMonth = new Date().getMonth() + 1; // 1 for January
+        const currentYear = new Date().getFullYear();
+        const selectedYear = parseInt($('#year').val());
+
+        $('#month option').each(function () {
+            const monthValue = parseInt($(this).val());
+
+            // Skip the default "--Select--" option
+            if ($(this).val() === "") {
+                return;
+            }
+
+            // If selected year is current year
+            if (selectedYear === currentYear) {
+                // Remove months greater than current month
+                if (monthValue > currentMonth) {
+                    $(this).remove();
                 }
+            }
+            // If selected year is previous year, keep all months
+        });
+    }
 
+      function goBack() {
+          window.location.href = '@UIBaseUrl/EmployeePanel/Home/index';
+      }
 
-        function     BindBranchDropdown(){
-       $.ajax({
-            url: apiBase + '/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+      function populateYearDropdown() {
+          const startYear = 2024;
+          const currentYear = new Date().getFullYear();
+          const yearDropdown = $("#year");
+          yearDropdown.empty();
+          yearDropdown.append('<option value="">--Select--</option>');
+          for (let year = currentYear; year >= startYear; year--) {
+              yearDropdown.append(`<option value="${year}">${year}</option>`);
+          }
+      }
+
+      // function GetEmployeesByBranchAndUser() {
+      //     $.ajax({
+      //         type: "GET",
+      //         url: apiBase + "/BranchAPI/GetEmployeesByBranchAndUser?EmpId=" + EmployeeId + "&CompId=" + CompanyId,
+      //         headers: {
+      //             'Authorization': 'Bearer ' + Token
+      //         },
+      //         success: function (response) {
+      //             const $emp = $('#employeeDropdown');
+      //             $emp.empty().append('<option value="">--Select Employee--</option>');
+
+      //             if (response?.isSuccess && response?.data) {
+      //                 $.each(response.data, function (i, item) {
+      //                     $emp.append('<option value="' + item.id + '">' + item.fullName + '</option>');
+      //                 });
+      //             } else {
+      //                 console.warn(response?.responseMessage || 'No employees found.');
+      //             }
+      //         },
+      //         error: function (err) {
+      //             console.error("Error fetching employees:", err);
+      //         }
+      //     });
+      // }
+
+      function GetEmployeeById() {
+          var empId = $("#employeeDropdown").val();
+          return $.ajax({
+              type: "GET",
+              url: '@baseDomainUrl/api/EmployeeMasterAPI/GetEmployeeById/' + empId,
+              headers: {
+                  'Authorization': 'Bearer ' + Token
+              },
+              success: function (data) {
+                  if (data.isSuccess && data.data) {
+                      // Employee data loaded
+                  }
+              },
+              error: function (xhr, status, error) {
+                  console.error("AJAX Error: " + status + " - " + error);
+              }
+          });
+      }
+
+      async function showLoder() {
+          $('#grid-loader').addClass('d-flex').show();
+      }
+
+      async function hideLoder() {
+          $('#grid-loader').removeClass('d-flex').hide();
+      }
+
+      function clearValidationErrors() {
+          $('.field-error').text('');
+          $('#validationMsg').text('');
+      }
+
+      function getDateRange() {
+          const isDateRange = $('#chkBetween').is(':checked');
+
+          if (isDateRange) {
+              // Use Start Date and End Date
+              const startDate = $('#startDate').val();
+              const endDate = $('#endDate').val();
+
+              if (startDate && endDate) {
+                  // Convert dd/mm/yyyy to yyyy-mm-dd
+                  const startParts = startDate.split('/');
+                  const endParts = endDate.split('/');
+
+                  return {
+                      startDate: `${startParts[2]}-${startParts[1].padStart(2, '0')}-${startParts[0].padStart(2, '0')}`,
+                      endDate: `${endParts[2]}-${endParts[1].padStart(2, '0')}-${endParts[0].padStart(2, '0')}`
+                  };
+              }
+          } else {
+              // Use Month and Year
+              const month = $('#month').val();
+              const year = $('#year').val();
+
+              if (month && year) {
+                  const monthStr = month.padStart(2, '0');
+                  const startDate = `${year}-${monthStr}-01`;
+                  const lastDay = new Date(year, month, 0).getDate();
+                  const endDate = `${year}-${monthStr}-${lastDay.toString().padStart(2, '0')}`;
+
+                  return { startDate, endDate };
+              }
+          }
+
+          return null;
+      }
+
+      function validateForm() {
+          clearValidationErrors();
+          let hasError = false;
+
+          const emp = $('#employeeDropdown').val();
+          const record = $('#recordtype').val();
+          const isDateRange = $('#chkBetween').is(':checked');
+
+          // Employee validation
+          if (!emp) {
+              $('#employeeError').text("Please select Employee.");
+              hasError = true;
+          }
+
+          // Record type validation
+          if (!record) {
+              $('#recordTypeError').text("Please select Record Type.");
+              hasError = true;
+          }
+
+          if (isDateRange) {
+              // Date range validation
+              const startDate = $('#startDate').val();
+              const endDate = $('#endDate').val();
+
+              if (!startDate) {
+                  $('#startDateError').text("Please select Start Date.");
+                  hasError = true;
+              }
+              if (!endDate) {
+                  $('#endDateError').text("Please select End Date.");
+                  hasError = true;
+              }
+
+              if (startDate && endDate) {
+                  const start = new Date(startDate.split('/').reverse().join('-'));
+                  const end = new Date(endDate.split('/').reverse().join('-'));
+
+                  if (start > end) {
+                      $('#endDateError').text("End Date must be greater than or equal to Start Date.");
+                      hasError = true;
+                  }
+              }
+          } else {
+              // Month/Year validation
+              const year = $('#year').val();
+              const month = $('#month').val();
+
+              if (!year) {
+                  $('#yearError').text("Please select Year.");
+                  hasError = true;
+              }
+              if (!month) {
+                  $('#monthError').text("Please select Month.");
+                  hasError = true;
+              }
+          }
+
+          return !hasError;
+      }
+
+            function LoadApprovalReasons() {
+          $.ajax({
+              url: '@(baseDomainUrl + "/api/CommonReasonsAPI/GetcancellationReasons")',
+              method: 'GET',
+              headers: {
+                  'Authorization': 'Bearer ' + Token
+              },
+              success: function (response) {
+                  if (response.isSuccess && response.data) {
+                      approvalReasons = response.data;
+                
+                  } else {
+                      approvalReasons = [];
+                  }
+              },
+              error: function (error) {
+                  console.error('Failed to load approval reasons:', error);
+                  approvalReasons = [];
+              }
+          });
+      }
+
+    function LoadReasonConfiguration() {
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/GetAttendanceReasonsByLimitType',
             method: 'GET',
-                headers: {
-                        'Authorization': 'Bearer ' + Token
-                    },
-            success: function(data) {
-                if(data.isSuccess){
-                        var dropdown = $('#branch');
-                    dropdown.empty();
-                    dropdown.append('<option disabled selected value="">Select</option>');
-                    $.each(data.data, function(index, company) {
-                        dropdown.append($('<option>', {
-                            value: company.branchId,
-                            text: company.branchName
-                        }));
-                    });
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+              
+                    limitedReasonIds = response.data
+                        .filter(r => r.reasonType === "Limited")
+                        .map(r => r.reasonId.toString());
 
+                    unlimitedReasonIds = response.data
+                        .filter(r => r.reasonType === "Unlimited")
+                        .map(r => r.reasonId.toString());
 
+     
+                } else {
+                    console.warn("⚠️ No reason configuration found from API");
+                    limitedReasonIds = [];
+                    unlimitedReasonIds = [];
                 }
             },
-            error: function(error) {
-                console.error('Error fetching branch data:', error);
-            }
-        });
-
-    }
-
-    function populateYearDropdown() {
-        const startYear = 2024;
-        const currentYear = new Date().getFullYear();
-        const yearDropdown = $("#year");
-        yearDropdown.empty();
-        for (let year = currentYear; year >= startYear; year--) {
-    yearDropdown.append(`<option value="${year}">${year}</option>`);        }
-        yearDropdown.val(currentYear);
-    }
-
-    function GetEmployeeByBranchId(branchId) {
-        $.ajax({
-            type: "GET",
-            url: apiBase + "/EmployeeMasterAPI/GetEmployeeByBranchId/" + branchId,
-            success: function (response) {
-                if (response?.isSuccess && response?.data) {
-                    const $emp = $('#employeeDropdown');
-                    $emp.empty().append('<option value="">--Select Employee--</option>');
-                    $.each(response.data, function (i, item) {
-                        $emp.append('<option value="' + item.id + '">' + item.fullName + '</option>');
-                    });
-                }
+            error: function (error) {
+                console.error('❌ Failed to load reason configuration:', error);
+                limitedReasonIds = [];
+                unlimitedReasonIds = [];
             }
         });
     }
 
-
-      async function showLoder(){
-          $('#grid-loader').addClass('d-flex').show();
-        }
-        async function hideLoder(){
-                $('#grid-loader').removeClass('d-flex').hide();
-        }
+    // // Fallback function
+    // function setFallbackReasons() {
+    //        limitedReasonIds = ["14", "17" ,"18","10"];
+    //    unlimitedReasonIds = ["12", "19", "11", "16" ,"13" ,"15"];  // WFH, Client Visit, Training, Travel
+    // }
 
 
-
-         function clearValidationErrors() {
-        $('.field-error').text('');
-        $('#validationMsg').text('');
+    // Go Button Click Event
+    $('#btnGo').on('click', async function () {
+        await GetAttendanceRegularizationAlerts();
+          if (!validateForm()) {
+        return;
     }
 
- 
-        $('.btn-custom:contains("Go")').on('click', function () {
-    clearValidationErrors();
-    const branch = $('#branch').val();
-    const emp = $('#employeeDropdown').val();
-      const month = $('#month').val();
-    const year = $('#year').val();
+    const empId = $('#employeeDropdown').val();  // ✅ Define empId here
     const record = $('#recordtype').val();
+    const dateRange = getDateRange();
 
-
-        const monthIndex = $('#month').prop('selectedIndex'); // Get the zero-based index of the selected month
-    const monthStr = (monthIndex + 1).toString().padStart(2, '0'); // Convert to one-based index and pad with zero
-    const startDate = `${year}-${monthStr}-01`;
-    const lastDay = new Date(year, monthIndex + 1, 0).getDate(); // Increment month index by 1
-    const endDate = `${year}-${monthStr}-${lastDay}`;
-
-    if (!year) {
-        $('#yearError').text("Please select Year.");
-        hasError = true;
+    if (!dateRange) {
+        Swal.fire({
+            text: "Please provide valid date range.",
+            icon: "warning",
+            confirmButtonText: "OK",
+            width: "300px",
+            customClass: {
+                popup: 'swal-small'
+            }
+        });
+        return;
     }
-    if (!month || month < 1 || month > 12) {
-        $('#monthError').text("Please select Month.");
-        hasError = true;
-    }
-    if (!branch) {
-        $('#branchError').text("Please select Branch.");
-        hasError = true;
-    }
-    if (!emp) {
-        $('#employeeError').text("Please select Employee.");
-        hasError = true;
-    }
-    if (!record) {
-        $('#recordTypeError').text("Please select Record Type.");
-        hasError = true;
-    }
-      showLoder();
-        // Valid: proceed
-    const formData = new FormData();
-     formData.append("BranchId", branch);
-     formData.append("EmpId", emp);
-     formData.append("StartDate", startDate);
-     formData.append("EndDate", endDate);
-     formData.append("RecordType", record);
+        showLoder(); // Show loader before AJAX call
+        const formData = new FormData();
+        formData.append("EmpId", empId);
+        formData.append("StartDate", dateRange.startDate);
+        formData.append("EndDate", dateRange.endDate);
+        formData.append("RecordType", record);
 
         $.ajax({
-            url: apiBase + "/EmployeeInOut/GetEmployeeInOutReport",
+            url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
             type: 'POST',
             data: formData,
             contentType: false,
             processData: false,
-              success: function (response) {
-            if (response?.isSuccess) {
-                $('#validationMsg').text("");
-                LoadAttendanceGrid(response.data);
-                if (response.data && response.data.length > 0) {
-                    $("#saveButtonContainer").show();
-                    $("#attendanceSection").show();
+            success: function (response) {
+                if (response?.isSuccess) {
+                    if (response.data && response.data.length > 0) {
+                        $("#attendanceSummary").show();
+                        showAttendanceSummary(response.data);
+                        LoadAttendanceGrid(response.data);
+                        $("#saveButtonContainer").show();
+                        $("#attendanceSection").show();
+                    } else {
+                        $("#attendanceSummary").hide();
+                        $("#saveButtonContainer").hide();
+                        $("#attendanceSection").hide();
+                        var emptyData = [];
+                        LoadAttendanceGrid(emptyData);
+                    }
                 } else {
+                    Swal.fire({
+                        text: "No Record Found.",
+                        icon: "info",
+                        confirmButtonText: "OK",
+                        width: "300px",
+                        customClass: {
+                            popup: 'swal-small'
+                        }
+                    });
+                    $("#attendanceSummary").hide();
                     $("#saveButtonContainer").hide();
                     $("#attendanceSection").hide();
                 }
-            } else {
-                $('#validationMsg').text("No records found.");
-                $("#saveButtonContainer").hide();
-                $("#attendanceSection").hide();
-            }
-        },
-            error: function () {
-                $('#validationMsg').text("Something went wrong while fetching data.");
             },
-                complete: function () {
-                    hideLoder(); // Always hide loader after completion
-                }
+            error: function () {
+                Swal.fire({
+                    text: "Something went wrong while fetching data.",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                    width: "300px",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+            },
+            complete: function () {
+                hideLoder(); // Hide loader after AJAX completes
+            }
         });
     });
 
 
-     function LoadAttendanceGrid(data) {
+    // async function getEmployeeReport() {
+    //     if (!validateForm()) {
+    //         return;
+    //     }
+
+    //     const empId = $('#employeeDropdown').val();
+    //     const record = $('#recordtype').val();
+    //     const dateRange = getDateRange();
+
+    //     if (!dateRange) {
+    //         Swal.fire({
+    //             text: "Please provide valid date range.",
+    //             icon: "warning",
+    //             confirmButtonText: "OK",
+    //             width: "300px",
+    //             customClass: {
+    //                 popup: 'swal-small'
+    //             }
+    //         });
+    //         return;
+    //     }
+
+    //     // Proceed with AJAX
+    //     showLoder();
+    //     const formData = new FormData();
+    //     formData.append("EmpId", empId);
+    //     formData.append("StartDate", dateRange.startDate);
+    //     formData.append("EndDate", dateRange.endDate);
+    //     formData.append("RecordType", record);
+
+    //     $.ajax({
+    //         url: '@(baseDomainUrl + "/api/EmployeeInOut/GetEmployeeInOutReport")',
+    //         type: 'POST',
+    //         data: formData,
+    //         contentType: false,
+    //         processData: false,
+    //         success: function (response) {
+    //             if (response?.isSuccess) {
+    //                 if (response.data && response.data.length > 0) {
+    //                     const allSameStatus = response.data.every(record => {
+    //                         const status = record.attendanceStatus || record.AttendanceStatus || '-';
+    //                         return status === '-' || status === '' || status === null;
+    //                     });
+
+    //                     if (allSameStatus) {
+    //                         $("#attendanceSummary").hide();
+    //                         $("#saveButtonContainer").hide();
+    //                         $("#attendanceSection").hide();
+    //                         Swal.fire({
+    //                              text: response.responseMessage,
+    //                             icon: "info",
+    //                             confirmButtonText: "OK",
+    //                             width: "300px",
+    //                             customClass: {
+    //                                 popup: 'swal-small'
+    //                             }
+    //                         });
+    //                         return;
+    //                     }
+
+    //                     $("#attendanceSummary").show();
+    //                     showAttendanceSummary(response.data);
+    //                     LoadAttendanceGrid(response.data);
+    //                     $("#saveButtonContainer").show();
+    //                     $("#attendanceSection").show();
+    //                 } else {
+    //                     $("#attendanceSummary").hide();
+    //                     $("#saveButtonContainer").hide();
+    //                     $("#attendanceSection").hide();
+    //                     Swal.fire({
+    //                         text: response.responseMessage,
+    //                         icon: "info",
+    //                         confirmButtonText: "OK",
+    //                         width: "300px",
+    //                         customClass: {
+    //                             popup: 'swal-small'
+    //                         }
+    //                     });
+    //                 }
+    //             } else {
+    //                 Swal.fire({
+    //                     text: response.responseMessage,
+    //                     icon: "info",
+    //                     confirmButtonText: "OK",
+    //                     width: "300px",
+    //                     customClass: {
+    //                         popup: 'swal-small'
+    //                     }
+    //                 });
+    //                 $("#attendanceSummary").hide();
+    //                 $("#saveButtonContainer").hide();
+    //                 $("#attendanceSection").hide();
+    //             }
+    //         },
+    //         error: function () {
+    //             Swal.fire({
+    //                 text: "Something went wrong while fetching data.",
+    //                 icon: "error",
+    //                 confirmButtonText: "OK",
+    //                 width: "300px",
+    //                 customClass: {
+    //                     popup: 'swal-small'
+    //                 }
+    //             });
+    //         },
+    //         complete: function () {
+    //             hideLoder();
+    //         }
+    //     });
+    // }
+
+      // Clear Button Click Event
+      $('#btnClear').on('click', function () {
+          // Reset form fields
+          $('#month').val('');
+          $('#year').val('');
+          $('#startDate').val('');
+          $('#endDate').val('');
+          $('#recordtype').val('All');
+          $('#employeeDropdown').val('');
+          $('#chkBetween').prop('checked', false);
+
+          // Reset visibility
+          $('#startDateField, #endDateField').addClass('d-none');
+          $('#monthField, #yearField').removeClass('d-none');
+
+          clearValidationErrors();
+
+          $("#saveButtonContainer").hide();
+          $("#attendanceSection").hide();
+          $("#attendanceSummary").hide();
+
+          const grid = $("#attendanceGrid").dxDataGrid("instance");
+          if (grid) {
+              grid.option("dataSource", []);
+              grid.refresh();
+          }
+      });
+
+
+
+            function showAttendanceSummary(data) {
+        let counts = {
+            P: 0, // Present
+            A: 0, // Absent
+            // L: 0, // Leave
+            W: 0, // Week-off
+            H: 0   // Holiday
+            // Late: 0
+        };
+
+        data.forEach(row => {
+            const status = row.attendanceStatus?.trim().toUpperCase();
+            if (status === "P") counts.P++;
+            else if (status === "A") counts.A++;
+            // else if (status === "L") counts.L++;
+            else if (status === "W") counts.W++;
+            else if (status === "H") counts.H++;
+
+            if (row.lateDeductionDays && row.lateDeductionDays > 0) {
+                counts.Late += row.lateDeductionDays;
+            }
+        });
+
+        const total = data.length;
+
+        $("#attendanceSummary").html(`
+            <span style="color:green;">Present : ${counts.P}</span> &nbsp;&nbsp;
+            <span style="color:red;">Absent : ${counts.A}</span> &nbsp;&nbsp;
+            <span style="color:purple;">Week-off : ${counts.W}</span> &nbsp;&nbsp;
+            <span style="color:blue;">Holiday : ${counts.H}</span> &nbsp;&nbsp;
+            <span>Total : ${total}</span>
+        `);
+    }
+
+
+
+       function formatToISOString(dateStr) {
+        const date = new Date(dateStr);
+        return !isNaN(date) ? date.toISOString() : null;
+    }
+    async function validateAttendanceRequestLimit(EmployeeId, selectedRows, selectedMonth, selectedYear) {
+        try {
+            // CRITICAL: Wait for reason configuration to load
+            if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
+           
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Configuration Error',
+                        text: 'Reason configuration not loaded. Please refresh the page and try again.'
+                    });
+                    return false;
+                }
+            }
+
+            // Debug each row
+            selectedRows.forEach((row, index) => {
+                console.log(`Row ${index}:`, {
+                    Reason: row.Reason,
+                    reasonId: row.reasonId,
+                    ForDate: row.ForDate,
+                    availableFields: Object.keys(row)
+                });
+            });
+
+            const limitedRowCount = selectedRows.filter(row => {
+                const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                const isLimited = limitedReasonIds.includes(reasonStr);
+
+                return isLimited;
+            }).length;
+
+            const unlimitedRowCount = selectedRows.filter(row => {
+                const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                const isUnlimited = unlimitedReasonIds.includes(reasonStr);
+                return isUnlimited;
+            }).length;
+
+            // Calculate unmatched (reasons not in either array)
+            const unmatchedCount = selectedRows.length - (limitedRowCount + unlimitedRowCount);
+
+            // 🔥 If there are unmatched reasons, show error
+            if (unmatchedCount > 0) {
+                // Get unmatched reason details for better error message
+                const unmatchedReasons = selectedRows.filter(row => {
+                    const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                    return !limitedReasonIds.includes(reasonStr) && !unlimitedReasonIds.includes(reasonStr);
+                }).map(row => {
+                    const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                    const reasonName = approvalReasons.find(r => r.reasonId.toString() === reasonStr);
+                    return reasonName ? reasonName.reason : `Unknown (ID: ${reasonStr})`;
+                });
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Configuration Error',
+                    html: `
+                        <p>Some selected reasons are not properly configured.</p>
+                        <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                            Unmatched reasons: <strong>${[...new Set(unmatchedReasons)].join(', ')}</strong>
+                        </p>
+                        <p style="font-size: 11px; color: #999; margin-top: 10px;">
+                            Please contact administrator to configure these reasons.
+                        </p>
+                    `,
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            }
+
+            // 🔥 If all selected rows have unlimited reasons, bypass limit check
+            if (limitedRowCount === 0 && unlimitedRowCount > 0) {
+       
+                return true;
+            }
+
+            // If no valid reasons selected
+            if (limitedRowCount === 0 && unlimitedRowCount === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Validation',
+                    text: 'Please select valid reasons for all selected rows.'
+                });
+                return false;
+            }
+
+            // Only proceed with limit check if there are LIMITED reasons
+            if (limitedRowCount > 0) {
+     
+
+                // Get employee monthly limit
+                const employeeDetails = await $.ajax({
+                    type: "GET",
+                    url: apiBase + "/AttendanceRegularizationAPI/GetEmployeeDetails?EmpId=" + EmployeeId,
+                    headers: {
+                        'Authorization': 'Bearer ' + Token
+                    }
+                });
+
+                // Get request count for the selected month/year
+                const currentMonthCount = await $.ajax({
+                    type: "GET",
+                    url: apiBase +
+                         "/AttendanceRegularizationAPI/GetEmployeeAttendanceRequestsCountForCurrentMonth?" +
+                         `EmpId=${EmployeeId}&month=${selectedMonth}&year=${selectedYear}`,
+                    headers: {
+                        'Authorization': 'Bearer ' + Token
+                    }
+                });
+
+                if (!employeeDetails?.isSuccess || !currentMonthCount?.isSuccess) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Unable to fetch employee request limit details.'
+                    });
+                    return false;
+                }
+
+                const monthlyLimit = employeeDetails.data?.[0]?.attendanceLimit || 0;
+                const currentRequests = currentMonthCount.data?.[0]?.totalRequests || 0;
+                const totalRequests = currentRequests + limitedRowCount;
+
+
+                // If no limit is set, block submission for limited reasons
+                if (monthlyLimit === 0) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Request Blocked',
+                        html: '<p>No monthly limit is set for your account.</p><p style="font-size:12px; color:#666;">Please contact HR to configure your attendance limit.</p>',
+                        confirmButtonText: 'OK'
+                    });
+                    return false;
+                }
+
+                // 🔥 Check if limit exceeded (only for limited reasons)
+                if (totalRequests > monthlyLimit) {
+                    const exceededBy = totalRequests - monthlyLimit;
+                    const remainingLimit = Math.max(0, monthlyLimit - currentRequests);
+
+                    // Get reason names for better display
+                    const limitedReasonNames = selectedRows
+                        .filter(row => {
+                            const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                            return limitedReasonIds.includes(reasonStr);
+                        })
+                        .map(row => {
+                            const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                            const reason = approvalReasons.find(r => r.reasonId.toString() === reasonStr);
+                            const date = new Date(row.ForDate).toLocaleDateString('en-GB');
+                            return `${date} - ${reason ? reason.reason : 'Unknown'}`;
+                        });
+
+                    // Get unlimited reason names
+                    const unlimitedReasonNames = selectedRows
+                        .filter(row => {
+                            const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                            return unlimitedReasonIds.includes(reasonStr);
+                        })
+                        .map(row => {
+                            const reasonStr = (row.Reason || row.reasonId)?.toString() || "";
+                            const reason = approvalReasons.find(r => r.reasonId.toString() === reasonStr);
+                            return reason ? reason.reason : 'Unknown';
+                        });
+
+                    let message = `
+                        <div style="text-align: left; padding: 15px; font-size: 13px;">
+                            <div style="background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 15px;">
+                                <h4 style="color: #dc2626; margin: 0 0 10px 0;">⚠️ Monthly Limit Exceeded</h4>
+                                <p style="margin: 5px 0;">You have exceeded your monthly limit by <strong style="color: #dc2626;">${exceededBy}</strong> request(s).</p>
+                            </div>
+
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
+                                <tr style="background: #f9fafb;">
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Monthly Limit</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${monthlyLimit} requests</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Already Submitted</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">${currentRequests} requests</td>
+                                </tr>
+                                <tr style="background: #fff3cd;">
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Attempting (Counted)</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; font-weight: bold;">${limitedRowCount} requests</td>
+                                </tr>
+                                ${unlimitedRowCount > 0 ? `
+                                <tr style="background: #d1fae5;">
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Attempting (Not Counted) ✓</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; color: #059669;">${unlimitedRowCount} requests</td>
+                                </tr>
+                                ` : ''}
+                                <tr style="background: #fee2e2;">
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Remaining</td>
+                                    <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right; color: #dc2626; font-weight: bold;">${remainingLimit} requests</td>
+                                </tr>
+                            </table>
+
+                            ${limitedReasonNames.length > 0 ? `
+                            <div style="background: #fffbeb; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                                <strong style="color: #92400e;">📋 Counted Requests:</strong>
+                                <ul style="margin: 8px 0; padding-left: 20px; color: #78350f;">
+                                    ${limitedReasonNames.map(name => `<li style="margin: 3px 0;">${name}</li>`).join('')}
+                                </ul>
+                            </div>
+                            ` : ''}
+
+                            ${unlimitedReasonNames.length > 0 ? `
+                            <div style="background: #f0f9ff; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                                <strong style="color: #0c4a6e;">✓ Not Counted (Unlimited):</strong>
+                                <p style="margin: 5px 0; color: #0c4a6e;">${[...new Set(unlimitedReasonNames)].join(', ')}</p>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Cannot Submit Request',
+                        html: message,
+                        confirmButtonText: 'OK',
+                        width: '650px'
+                    });
+                    return false;
+                }
+
+                // ✅ Success with limit check
+                const remainingRequests = monthlyLimit - totalRequests;
+     
+            }
+
+            return true;
+
+        } catch (error) {
+            console.error("❌ Error validating request limit:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Validation Error',
+                text: 'An error occurred: ' + error.message
+            });
+            return false;
+        }
+    }
+
+
+    $('#btnSaveGridData').on('click', async function () {
+        const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+        gridInstance.saveEditData();
+        const selectedRows = gridInstance.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select at least one row to save.'
+            });
+            return;
+        }
+
+        const empId = $('#employeeDropdown').val();
+        if (!empId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select an employee.'
+            });
+            return;
+        }
+
+        const validRows = [];
+        const missingReasonRows = [];
+        const missingDayTypeRows = [];
+        const missingRemarkRows = [];
+        const timeWindowErrorRows = [];
+         const remarksRequiredReasons = ['client visit', 'travel on duty', 'official od', 'other' ,'forgot to punch/sign' ,'working from home' ,'declared customer holiday','training',
+     'late coming','early leaving'];
+
+        for (let row of selectedRows) {
+            const reasonId = row.reasonId;
+            const dayType = row.dayType?.trim();
+            const dateStr = new Date(row.shiftDate).toLocaleDateString('en-GB');
+
+            // Validate reason
+            if (!reasonId) {
+                missingReasonRows.push(dateStr);
+                continue;
+            }
+
+            // Validate day type
+            if (!dayType) {
+                missingDayTypeRows.push(dateStr);
+                continue;
+            }
+
+            const selectedReason = approvalReasons.find(r => r.reasonId === reasonId);
+
+            // Validate remark for specific reasons
+            if (selectedReason) {
+                const reasonText = selectedReason.reason.toLowerCase();
+
+                // Check if remark is required and missing
+                if (remarksRequiredReasons.includes(reasonText)) {
+                    if (!row.remark || row.remark.trim() === "") {
+                        missingRemarkRows.push(dateStr);
+                        continue;
+                    }
+                }
+
+                // Check Travel on Duty time window for current date
+                if (reasonText === "travel on duty") {
+                    const recordDate = new Date(row.shiftDate);
+                    const currentDate = new Date();
+                    recordDate.setHours(0, 0, 0, 0);
+                    currentDate.setHours(0, 0, 0, 0);
+
+                    // If it's current date, validate time window
+                    if (recordDate.getTime() === currentDate.getTime()) {
+                        const now = new Date();
+                        const currentTime = now.getHours() * 60 + now.getMinutes();
+
+                        let shiftStartTime = null;
+                        let shiftEndTime = null;
+
+                        if (row.shiftTime) {
+                            const shiftParts = row.shiftTime.split('-');
+                            if (shiftParts.length === 2) {
+                                // Parse start time
+                                const startStr = shiftParts[0].trim();
+                                const startMatch = startStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                                if (startMatch) {
+                                    let hours = parseInt(startMatch[1]);
+                                    const minutes = parseInt(startMatch[2]);
+                                    const period = startMatch[3].toUpperCase();
+
+                                    if (period === 'PM' && hours !== 12) hours += 12;
+                                    if (period === 'AM' && hours === 12) hours = 0;
+
+                                    shiftStartTime = hours * 60 + minutes;
+                                }
+
+                                // Parse end time
+                                const endStr = shiftParts[1].trim();
+                                const endMatch = endStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                                if (endMatch) {
+                                    let hours = parseInt(endMatch[1]);
+                                    const minutes = parseInt(endMatch[2]);
+                                    const period = endMatch[3].toUpperCase();
+
+                                    if (period === 'PM' && hours !== 12) hours += 12;
+                                    if (period === 'AM' && hours === 12) hours = 0;
+
+                                    shiftEndTime = hours * 60 + minutes;
+                                }
+                            }
+                        }
+
+                        if (shiftStartTime !== null && shiftEndTime !== null) {
+                            const allowedStartTime = shiftStartTime - 15;
+                            const allowedEndTime = shiftEndTime;
+
+                            if (currentTime < allowedStartTime || currentTime > allowedEndTime) {
+                                timeWindowErrorRows.push(dateStr);
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+
+            validRows.push({
+                EmpId: empId,
+                FullName: row.fullName || "",
+                BranchName: row.branchName || "",
+                ForDate: row.shiftDate,
+                ShiftTime: row.shiftTime || "",
+                InTime: (row.inTime && row.inTime !== "-") ? formatToISOString(row.inTime) : null,
+                OutTime: (row.outTime && row.outTime !== "-") ? formatToISOString(row.outTime) : null,
+                Day: dayType,
+                Status: row.attendanceStatus || "",
+                Reason: reasonId.toString(),
+                Remark: row.remark || null,
+                IsApproved: false,
+                IsPending: true,
+                IsRejected: false,
+                IsLocked: false,
+                CreatedBy: empId
+            });
+        }
+
+        // Show validation errors
+        if (missingReasonRows.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Reason Required',
+                html: `Please select reason for:<br><strong>${missingReasonRows.join(', ')}</strong>`
+            });
+            return;
+        }
+
+        if (missingDayTypeRows.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Day Type Required',
+                html: `Please select day type for:<br><strong>${missingDayTypeRows.join(', ')}</strong>`
+            });
+            return;
+        }
+
+        if (missingRemarkRows.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Remark Required',
+                html: `Please enter remark for:<br><strong>${missingRemarkRows.join(', ')}</strong>`
+            });
+            return;
+        }
+
+        if (timeWindowErrorRows.length > 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Time Window Restriction',
+                html: `Travel on Duty request for today can only be submitted from 15 minutes before shift start till shift end time.<br><br>Dates: <strong>${timeWindowErrorRows.join(', ')}</strong>`,
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        if (validRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please complete all required fields.'
+            });
+            return;
+        }
+
+        // Get month/year
+        const monthYearData = await getYearMonth();
+        if (!monthYearData) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Please select a valid month and year.'
+            });
+            return;
+        }
+
+        const selectedMonth = monthYearData.month;
+        const selectedYear = monthYearData.year;
+
+        // Validate attendance request limit
+        const isLimitValid = await validateAttendanceRequestLimit(
+            empId,
+            validRows,
+            selectedMonth,
+            selectedYear
+        );
+
+        if (!isLimitValid) {
+            return;
+        }
+
+        showLoder();
+
+        // Save via AJAX
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/CreateAttendanceRegularization',
+            type: "POST",
+            contentType: "application/json",
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            data: JSON.stringify(validRows),
+            success: function (response) {
+                hideLoder();
+                if (response?.isSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: response.responseMessage || "Saved successfully.",
+                        timer: 2000
+                    });
+
+                    // Refresh grid
+                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+                    const selectedRowsData = gridInstance.getSelectedRowsData();
+                    let currentData = gridInstance.option("dataSource");
+                    const updatedData = currentData.filter(item => {
+                        return !selectedRowsData.some(sel =>
+                            sel.empId === item.empId &&
+                            new Date(sel.shiftDate).toISOString() === new Date(item.shiftDate).toISOString()
+                        );
+                    });
+                    gridInstance.option("dataSource", updatedData);
+                    gridInstance.refresh();
+                    gridInstance.clearSelection();
+
+                    $("#btnGo").trigger("click");
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Save Failed',
+                        text: response?.responseMessage || "Unknown error"
+                    });
+                }
+            },
+            error: function (xhr) {
+                hideLoder();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: xhr.status + " - " + xhr.statusText
+                });
+            }
+        });
+    });
+    function LoadAttendanceGrid(data) {
+        const filteredData = data.filter(item => item.attendanceStatus !== "-");
+
         $("#attendanceGrid").dxDataGrid({
-            dataSource: data,
+            dataSource: filteredData,
             showBorders: true,
             keyExpr: "shiftDate",
+            width: "100%",
+            columnAutoWidth: true,
+            allowColumnResizing: true,
+            paging: { enabled: false },
+            height: 200,
+            autoHeight: false,
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
-            height: "auto",
             editing: {
                 mode: "cell",
                 allowUpdating: true
             },
-            onEditingStart: function(e) {
-                const status = e.data.attendanceStatus?.trim().toLowerCase();
-                if (status === "p") {
+            onContentReady: function (e) {
+                e.component.option("width", "100%");
+            },
+            onCellPrepared: function (e) {
+                if (e.rowType === "data") {
+                    e.cellElement.css({
+                        'padding-top': '2px',
+                        'padding-bottom': '2px',
+                        'font-size': '12px',
+                        'line-height': '16px'
+                    });
+                }
+            },
+            onEditingStart: function (e) {
+                const status = e.data.attendanceStatus?.trim().toUpperCase();
+
+                // Check attendance status (P, W, H not allowed)
+                if (status === "P" || status === "W" || status === "H") {
                     e.cancel = true;
-                    DevExpress.ui.notify("Editing not allowed for Present records.", "warning", 2000);
+                    let msg =
+                        status === "P" ? "Editing not allowed for Present records." :
+                        status === "W" ? "Editing not allowed for Week Off records." :
+                        "Editing not allowed for Holiday records.";
+                    DevExpress.ui.notify(msg, "warning", 2000);
+                    return;
+                }
+
+                const recordDate = new Date(e.data.shiftDate);
+                const currentDate = new Date();
+                recordDate.setHours(0, 0, 0, 0);
+                currentDate.setHours(0, 0, 0, 0);
+
+                // Check if it's Travel on Duty reason
+                const selectedReason = approvalReasons.find(r => r.reasonId === e.data.reasonId);
+                const isTravelOnDuty = selectedReason && selectedReason.reason.toLowerCase() === "travel on duty";
+
+                // For current date: Allow editing ONLY for reason column OR if Travel on Duty is already selected
+                if (recordDate.getTime() === currentDate.getTime()) {
+                    // Allow editing reason column for current date
+                    if (e.column.dataField === "reasonId") {
+                        return; // Allow reason selection
+                    }
+
+                    // For other columns, check if Travel on Duty is selected
+                    if (!isTravelOnDuty) {
+                        e.cancel = true;
+                        DevExpress.ui.notify("For current date, please select 'Travel on Duty' reason first.", "warning", 3000);
+                        return;
+                    }
+
+                    // For Travel on Duty on current date, check time constraints
+                    const now = new Date();
+                    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+                    let shiftStartTime = null;
+                    let shiftEndTime = null;
+
+                    if (e.data.shiftTime) {
+                        const shiftParts = e.data.shiftTime.split('-');
+                        if (shiftParts.length === 2) {
+                            const startStr = shiftParts[0].trim();
+                            const startMatch = startStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                            if (startMatch) {
+                                let hours = parseInt(startMatch[1]);
+                                const minutes = parseInt(startMatch[2]);
+                                const period = startMatch[3].toUpperCase();
+
+                                if (period === 'PM' && hours !== 12) hours += 12;
+                                if (period === 'AM' && hours === 12) hours = 0;
+
+                                shiftStartTime = hours * 60 + minutes;
+                            }
+
+                            const endStr = shiftParts[1].trim();
+                            const endMatch = endStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                            if (endMatch) {
+                                let hours = parseInt(endMatch[1]);
+                                const minutes = parseInt(endMatch[2]);
+                                const period = endMatch[3].toUpperCase();
+
+                                if (period === 'PM' && hours !== 12) hours += 12;
+                                if (period === 'AM' && hours === 12) hours = 0;
+
+                                shiftEndTime = hours * 60 + minutes;
+                            }
+                        }
+                    }
+
+                    if (shiftStartTime !== null && shiftEndTime !== null) {
+                        const allowedStartTime = shiftStartTime - 15;
+                        const allowedEndTime = shiftEndTime;
+
+                        if (currentTime < allowedStartTime || currentTime > allowedEndTime) {
+                            e.cancel = true;
+                            DevExpress.ui.notify(
+                                "Travel on Duty request for today can only be submitted from 15 minutes before shift start till shift end time.",
+                                "warning",
+                                4000
+                            );
+                            return;
+                        }
+                    }
                 }
             },
             columns: [
@@ -436,27 +2045,39 @@
                     caption: "Date",
                     dataType: "date",
                     format: "dd/MM/yyyy",
-                    width: 100
+                    width: 100,
+                    minWidth: 100
+                },
+                {
+                    dataField: "monthDay",
+                    caption: "Day",
+                    allowEditing: false,
+                    width: 50
                 },
                 {
                     dataField: "fullName",
                     caption: "Employee",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 120
                 },
                 {
                     dataField: "branchName",
                     caption: "Branch",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 100
                 },
                 {
                     dataField: "shiftTime",
                     caption: "Shift Time",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 120
                 },
                 {
                     dataField: "inTime",
                     caption: "In Time",
-                    cellTemplate: function(container, options) {
+                    minWidth: 80,
+                    allowEditing: false,
+                    cellTemplate: function (container, options) {
                         const value = options.data.inTime && options.data.inTime !== "-"
                             ? new Date(options.data.inTime).toLocaleTimeString('en-GB', {
                                 hour: '2-digit',
@@ -479,7 +2100,9 @@
                 {
                     dataField: "outTime",
                     caption: "Out Time",
-                    cellTemplate: function(container, options) {
+                    minWidth: 80,
+                    allowEditing: false,
+                    cellTemplate: function (container, options) {
                         const value = options.data.outTime && options.data.outTime !== "-"
                             ? new Date(options.data.outTime).toLocaleTimeString('en-GB', {
                                 hour: '2-digit',
@@ -503,22 +2126,18 @@
                     dataField: "attendanceStatus",
                     caption: "Present Day",
                     width: 100,
+                    minWidth: 100,
                     allowEditing: false,
-                    cellTemplate: function(container, options) {
+                    cellTemplate: function (container, options) {
                         const status = options.data.attendanceStatus?.trim();
-                        let color;
-                        let text;
+                        let color, text;
 
-                        if (status === "P") {
-                            color = "green";
-                            text = "P";
-                        } else if (status === "HF") {
-                            color = "orange";
-                            text = "HF";
-                        } else if (status === "A") {
-                            color = "red";
-                            text = "A";
-                        }
+                        if (status === "P") { color = "green"; text = "P"; }
+                        else if (status === "HF") { color = "orange"; text = "HF"; }
+                        else if (status === "A") { color = "red"; text = "A"; }
+                        else if (status === "H") { color = "blue"; text = "H"; }
+                        else if (status === "W") { color = "purple"; text = "W"; }
+                        else { color = "gray"; text = status; }
 
                         $("<div>")
                             .text(text)
@@ -531,47 +2150,129 @@
                     }
                 },
                 {
-                    dataField: "reason",
+                    dataField: "reasonId",
                     caption: "Reason",
                     width: 180,
+                    minWidth: 180,
                     lookup: {
-                        dataSource: [
-                            { ID: "Forgot To Punch/Sign", Name: "Forgot To Punch/Sign" },
-                            { ID: "Working from Home", Name: "Working from Home" },
-                            { ID: "Client Visit", Name: "Client Visit" },
-                            { ID: "Training", Name: "Training" },
-                            { ID: "Other", Name: "Other" }
-                        ],
-                        valueExpr: "ID",
-                        displayExpr: "Name"
+                        dataSource: approvalReasons,
+                        valueExpr: "reasonId",
+                        displayExpr: "reason"
                     },
-                    calculateDisplayValue: function(rowData) {
-                        return rowData.reason || "--Select--";
+                    calculateDisplayValue: function (rowData) {
+                        if (rowData.reasonId) {
+                            const foundReason = approvalReasons.find(r => r.reasonId === rowData.reasonId);
+                            return foundReason ? foundReason.reason : "--Select--";
+                        }
+                        return "--Select--";
                     },
-                    allowEditing: function(rowData) {
-                        const status = rowData.attendanceStatus?.trim().toLowerCase();
-                        return status === "absent" || status === "half day";
+                    setCellValue: function(rowData, value) {
+                        rowData.reasonId = value;
+                        const selectedReason = approvalReasons.find(r => r.reasonId === value);
+
+                        if (selectedReason) {
+                            const reasonText = selectedReason.reason.toLowerCase();
+
+                            // If Travel on Duty is selected, auto-set Day Type to Full Day
+                            if (reasonText === "travel on duty") {
+                                rowData.dayType = "Full Day";
+                            }
+                        }
+                    }
+                },
+                {
+                    dataField: "remark",
+                    caption: "Remark",
+                    width: 250,
+                    minWidth: 250,
+                    visible: true,
+                    allowEditing: true, // Hamesha editable rakha hai
+
+                    editCellTemplate: function(container, options) {
+                        const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
+                        let placeholder = "Enter remark...";
+
+                        if (selectedReason) {
+                            const reasonText = selectedReason.reason.toLowerCase();
+
+                            // Placeholder set karen reason ke hisab se
+                            if (reasonText === "client visit") {
+                                placeholder = "Mention the Client Name";
+                            } else if (reasonText === "travel on duty") {
+                                placeholder = "Mention the Travel Location";
+                            } else if (reasonText === "official od") {
+                                placeholder = "Mention the On Duty Purpose (Local)";
+                            } else if (reasonText === "other") {
+                                placeholder = "Mention the Proper Reason";
+                            } else if (reasonText === "training") {
+                                placeholder = "Mention the Training Name";
+                            } else if (reasonText === "working from Home") {
+                                placeholder = "Mention the Approver Name"; 
+                            }  else if (reasonText === "late coming") {
+                                placeholder = "Mention the Approver Name";
+                            }  else if (reasonText === "early leaving") {
+                                placeholder = "Mention the Approver Name";
+                            } else if (reasonText === "declared customer holiday") {
+                                placeholder = "Mention the Customer Name";
+                            }
+                        }
+
+                        // Input field create karen
+                        const wrapper = $("<div>").css({
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "4px"
+                        });
+
+                        $("<input>")
+                            .addClass("dx-texteditor-input")
+                            .attr("placeholder", placeholder)
+                            .val(options.value || "")
+                            .css({
+                                width: "100%",
+                                padding: "6px",
+                                fontSize: "12px"
+                            })
+                            .on("change", function(e) {
+                                options.setValue(e.target.value);
+                            })
+                            .appendTo(wrapper);
+
+                        wrapper.appendTo(container);
                     },
-                    editorOptions: function(rowData) {
-                        const status = rowData.attendanceStatus?.trim().toLowerCase();
-                        return {
-                            showClearButton: true,
-                            disabled: !(status === "absent" || status === "half day")
-                        };
-                    },
-                    editing: {
-                        allowUpdating: true
+
+                    cellTemplate: function(container, options) {
+                        if (options.data.remark) {
+                            $("<div>")
+                                .text(options.data.remark)
+                                .css({
+                                    padding: "6px",
+                                    fontSize: "12px"
+                                })
+                                .appendTo(container);
+                        } else {
+                            $("<div>")
+                                .text("--")
+                                .css({
+                                    textAlign: "center",
+                                    color: "#999",
+                                    padding: "6px"
+                                })
+                                .appendTo(container);
+                        }
                     }
                 },
                 {
                     dataField: "workingHours",
                     caption: "Working Hours",
-                    allowEditing: false
+                    allowEditing: false,
+                    minWidth: 120
                 },
                 {
                     dataField: "dayType",
                     caption: "Day Type",
                     width: 140,
+                    minWidth: 140,
                     lookup: {
                         dataSource: [
                             { id: "Full Day", name: "Full Day" },
@@ -581,18 +2282,47 @@
                         valueExpr: "id",
                         displayExpr: "name"
                     },
-                    calculateDisplayValue: function(rowData) {
+                    calculateDisplayValue: function (rowData) {
                         return rowData.dayType || "--Select--";
                     },
-                    allowEditing: function(rowData) {
-                        const status = rowData.attendanceStatus?.trim().toLowerCase();
-                        return status === "absent" || status === "half day";
+                    allowEditing: function (options) {
+                        const recordDate = new Date(options.data.shiftDate);
+                        const currentDate = new Date();
+                        recordDate.setHours(0, 0, 0, 0);
+                        currentDate.setHours(0, 0, 0, 0);
+
+                        const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
+                        const isTravelOnDuty = selectedReason && selectedReason.reason.toLowerCase() === "travel on duty";
+
+                        // For Travel on Duty, Day Type is not editable (auto-set to Full Day)
+                        if (isTravelOnDuty) {
+                            return false;
+                        }
+
+                        // Current date editing not allowed for Day Type
+                        if (recordDate.getTime() === currentDate.getTime()) {
+                            return false;
+                        }
+
+                        const status = options.data.attendanceStatus?.trim().toLowerCase();
+                        return status === "a" || status === "hf";
                     },
-                    editorOptions: function(rowData) {
-                        const status = rowData.attendanceStatus?.trim().toLowerCase();
+                    editorOptions: function (options) {
+                        const recordDate = new Date(options.data.shiftDate);
+                        const currentDate = new Date();
+                        recordDate.setHours(0, 0, 0, 0);
+                        currentDate.setHours(0, 0, 0, 0);
+
+                        const selectedReason = approvalReasons.find(r => r.reasonId === options.data.reasonId);
+                        const isTravelOnDuty = selectedReason && selectedReason.reason.toLowerCase() === "travel on duty";
+
+                        const isCurrentDate = recordDate.getTime() === currentDate.getTime();
+                        const status = options.data.attendanceStatus?.trim().toLowerCase();
+                        const isEditable = status === "a" || status === "hf";
+
                         return {
                             showClearButton: true,
-                            disabled: !(status === "absent" || status === "half day")
+                            disabled: isTravelOnDuty || isCurrentDate || !isEditable
                         };
                     },
                     editing: {
@@ -603,126 +2333,244 @@
         });
     }
 
+</script>
 
 
+    <div class="ar-wrapper">
+      
+        <!-- Alert Modal -->
+        <div class="ar-modal-overlay" id="alertModal">
+            <div class="ar-modal">
+                <div class="ar-modal-header">
+                    <div class="ar-modal-title">
+                        <span>⚠️</span>
+                        <span>Attendance Alerts</span>
+                        <span class="ar-modal-badge" id="modalBadge">0</span>
+                    </div>
+                    <button class="ar-modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="ar-modal-body" id="modalBody">
+                    <!-- Content will be dynamically loaded here -->
+                </div>
+                <div class="ar-modal-footer">
+                    <button class="ar-btn-got-it" onclick="closeModal()">
+                        <span>✓</span>
+                        <span>Got it, Thanks!</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-     $('#btnSaveGridData').on('click', function () {
-        const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
-        gridInstance.saveEditData();
+    <script>
+    async function getYearMonth() {
+        const isDateRange = $('#chkBetween').is(':checked');
 
-        const selectedRows = gridInstance.getSelectedRowsData();
+        if (isDateRange) {
+            // Extract year and month from start date
+            const startDate = $('#startDate').val();
+            if (startDate) {
+                const startParts = startDate.split('/');
+                return {
+                    year: startParts[2],
+                    month: startParts[1].padStart(2, '0')
+                };
+            }
+        } else {
+            // Use Month and Year directly
+            const month = $('#month').val();
+            const year = $('#year').val();
+            if (month && year) {
+                return {
+                    year: year,
+                    month: month.padStart(2, '0')
+                };
+            }
+        }
+        return null;
+    }
 
-        if (selectedRows.length === 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Validation',
-                text: 'Please select at least one row to save.'
-            });
+
+     async function GetAttendanceRegularizationAlerts() {
+        if (!validateForm()) {
             return;
         }
-
-        const empId = $('#employeeDropdown').val();
-        if (!empId) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Validation',
-                text: 'Please select an employee.'
-            });
+        const monthYearData = await getYearMonth();
+        if (!monthYearData) {
             return;
         }
-         
-        const validRows = [];
-        selectedRows.forEach(row => {
-            const reason = row.reason?.trim();
-            const dayType = row.dayType?.trim();
-
-            if (reason && dayType) {
-                validRows.push({
-                    EmpId: empId,
-                    FullName: row.fullName || "",
-                    BranchName: row.branchName || "",
-                    ForDate: row.for_Date || row.forDate,
-                    ShiftTime: row.shiftTime || "",
-                    InTime: row.in_Time,
-                    OutTime: row.out_Time,
-                    Duration: row.workingHours || "00:00:00",
-                    Day: dayType,
-                    Status: row.status || "",
-                    Reason: reason,
-                    IsApproved: false,
-                    IsPending: true,
-                    IsRejected: false,
-                    IsLocked: false
+        var payLoad = {
+            EmployeeId: $('#employeeDropdown').val(),
+            Month: monthYearData.month,
+            Year: monthYearData.year
+        };
+        try {
+            const response = await new Promise((resolve, reject) => {
+                $.ajax({
+                    url: '@baseUrls/EmployeeInOut/GetAttendanceRegularizationAlerts',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payLoad),
+                    success: function(response) {
+                        resolve(response);
+                    },
+                    error: function(xhr, status, error) {
+                        reject(error);
+                    }
                 });
+            });
+            // Check if data exists
+            if (response && response.data && response.data.attendanceDetails && response.data.attendanceDetails.length > 0) {
+                // Show modal and load alerts
+                showModal(response.data);
+            } else {
+                // Optionally show a message or empty state
+                console.log("No alerts found.");
+            }
+        } catch (error) {
+            console.log('Error fetching data: ' + error);
+        }
+    }
+
+    function showModal(response) {
+        const modal = document.getElementById('alertModal');
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        loadAlerts(response);
+    }
+        
+        function closeModal() {
+            const modal = document.getElementById('alertModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function loadAlerts(data) {
+            const modalBody = document.getElementById('modalBody');
+            const modalBadge = document.getElementById('modalBadge');
+
+            modalBody.innerHTML = `
+                <div class="ar-loading">
+                    <div class="ar-spinner"></div>
+                    <div class="ar-loading-text">Loading alerts...</div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                if (data.attendanceDetails.length === 0) {
+                    modalBody.innerHTML = renderEmptyState();
+                    modalBadge.textContent = '0';
+                } else {
+                    modalBody.innerHTML = renderAlerts(data);
+                    modalBadge.textContent = data.summary[0].TotalAlerts;
+                }
+            }, 800);
+        }
+
+        function renderAlerts(data) {
+                const summary = data.summary[0];
+               const sampleAlerts = data.attendanceDetails;
+
+            return `
+                <div class="ar-alert-summary">
+                    <div class="ar-summary-card">
+                        <div class="ar-summary-number">${summary.TotalAlerts}</div>
+                        <div class="ar-summary-label">Total Alerts</div>
+                    </div>
+                    <div class="ar-summary-card danger">
+                        <div class="ar-summary-number">${summary.RejectedCount}</div>
+                        <div class="ar-summary-label">Rejected</div>
+                    </div>
+                    <div class="ar-summary-card warning">
+                        <div class="ar-summary-number">${summary.PendingCount}</div>
+                        <div class="ar-summary-label">Pending</div>
+                    </div>
+                </div>
+                <div class="ar-alerts-list">
+                    ${sampleAlerts.map((alert, index) => `
+                        <div class="ar-alert-item ${alert.AlertType}" style="animation-delay: ${index * 0.1}s">
+                            <div class="ar-alert-header">
+                                <div class="ar-alert-date">
+                                    <span>📅</span>
+                                    <span>${formatDate(alert.ForDate)} (${alert.Day})</span>
+                                </div>
+                                <span class="ar-status-badge ${alert.Status.toLowerCase()}">
+                                    ${alert.Status === 'Rejected' ? '❌' : '⏳'} ${alert.Status}
+                                </span>
+                            </div>
+                            <div class="ar-alert-message">
+                                ${alert.AlertMessage}
+                            </div>
+                            <div class="ar-alert-details">
+                                <div class="ar-alert-detail">
+                                    <strong>Reason:</strong> ${alert.Reason}
+                                </div>
+                                <div class="ar-alert-detail">
+                                    <strong>Applied:</strong> ${formatDate(alert.CreatedDate)}
+                                </div>
+                                ${alert.RejectedByName ? `
+                                    <div class="ar-alert-detail">
+                                        <strong>Action by:</strong> ${alert.RejectedByName}
+                                    </div>
+                                ` : ''}
+                                <div class="ar-alert-detail">
+                                    <strong>Days:</strong> ${alert.DaysPending} days
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderEmptyState() {
+            return `
+                <div class="ar-empty-state">
+                    <div class="ar-empty-icon">🎉</div>
+                    <div class="ar-empty-title">No Alerts Found</div>
+                    <div class="ar-empty-text">
+                        All your attendance regularization requests are approved!<br>
+                        You have no pending or rejected requests for this period.
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const options = { day: '2-digit', month: 'short', year: 'numeric' };
+            return date.toLocaleDateString('en-GB', options);
+        }
+
+        function loadData() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const empId = document.getElementById('employeeSelect').value;
+            console.log('Loading data for:', { year, month, empId });
+            if (sampleAlerts.length > 0) {
+                showModal();
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('yearSelect').value = '2025';
+            document.getElementById('monthSelect').value = '11';
+            document.getElementById('employeeSelect').selectedIndex = 0;
+        }
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
             }
         });
 
-        if (validRows.length === 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Validation',
-                text: 'Please select reason and day type for selected row(s).'
-            });
-            return;
-        }
-            showLoder();
-        // Save via AJAX
-        $.ajax({
-             url: apiBase + "/AttendanceRegularizationAPI/CreateAttendanceRegularization",
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify(validRows),
-            success: function (response) {
-                      hideLoder();
-                if (response?.isSuccess) {               
-                    round_success_noti(response.responseMessage || "Saved successfully.");
-                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
-        const selectedKeys = gridInstance.getSelectedRowKeys();
-        let currentData = gridInstance.option("dataSource");
-        const updatedData = currentData.filter(item => {
-            return !selectedKeys.includes(item.for_Date);
+        // Close modal on overlay click
+        document.getElementById('alertModal').addEventListener('click', (e) => {
+            if (e.target.id === 'alertModal') {
+                closeModal();
+            }
         });
-        gridInstance.option("dataSource", updatedData);
-        gridInstance.refresh();
-                    $("#btnGo").trigger("click");
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Save Failed',
-                        text: response?.responseMessage || "Unknown error"
-                    });
-                }
-            },
-            error: function (xhr) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Server Error',
-                    text: xhr.status + " - " + xhr.statusText
-                });
-            },
-
-        });
-    });
+    </script>
 
 
-      $('.btn-custom:contains("Clear")').on('click', function () {
-        $('#branch').val('');
-        $('#month').val('January');
-        $('#year').val(new Date().getFullYear());
-        $('#recordtype').val('All');
-        $('#employeeDropdown').val('');
-        clearValidationErrors();
-
-           $("#saveButtonContainer").hide();
-        $("#attendanceSection").hide();
-
-    const grid = $("#attendanceGrid").dxDataGrid("instance");
-    if (grid) {
-        grid.option("dataSource", []);
-        grid.refresh();
-    }
-    });
-
-
-
-</script>

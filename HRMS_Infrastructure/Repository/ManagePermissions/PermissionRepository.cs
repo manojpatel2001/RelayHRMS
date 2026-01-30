@@ -16,11 +16,11 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Repository.ManagePermissions
 {
-    public class PermissionRepository : Repository<Permission>, IPermissionRepository
+    public class PermissionRepository : IPermissionRepository
     {
         private readonly HRMSDbContext _db;
 
-        public PermissionRepository(HRMSDbContext db) : base(db)
+        public PermissionRepository(HRMSDbContext db)
         {
             _db = db;
         }
@@ -52,11 +52,11 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
             }
         }
 
-        public async Task<VMCommonResult> CreatePermission(Permission permission)
+        public async Task<SP_Response> CreatePermission(Permission permission)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                 EXEC ManagePermission
                     @Action = {"CREATE"},
                     @PermissionName = {permission.PermissionName},
@@ -64,23 +64,24 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                     @Description = {permission.Description},
                     @PermissionUrl = {permission.PermissionUrl},
                     @GroupName = {permission.GroupName},
-                    @CreatedDate = {permission.CreatedDate},
-                    @CreatedBy = {permission.CreatedBy}
+                    @PermissionType = {permission.PermissionType},
+                    @PermissionRoleType = {permission.PermissionRoleType},
+                    @IsActive = {permission.IsActive}
             ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
             }
             catch
             {
-                return new VMCommonResult { Id = 0 };
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
         }
 
-        public async Task<VMCommonResult> UpdatePermission(Permission permission)
+        public async Task<SP_Response> UpdatePermission(Permission permission)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                 EXEC ManagePermission
                     @Action = {"UPDATE"},
                     @PermissionId = {permission.PermissionId},
@@ -89,46 +90,46 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                     @Description = {permission.Description},
                     @PermissionUrl = {permission.PermissionUrl},
                     @GroupName = {permission.GroupName},
-                    @UpdatedDate = {permission.UpdatedDate},
-                    @UpdatedBy = {permission.UpdatedBy}
+                    @PermissionType = {permission.PermissionType},
+                    @PermissionRoleType = {permission.PermissionRoleType},
+                    @IsActive = {permission.IsActive}
             ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                return result.FirstOrDefault()?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" }; 
             }
             catch
             {
-                return new VMCommonResult { Id = 0 };
+                return new SP_Response { Success = -1,ResponseMessage="Some thing went wrong!" };
             }
         }
 
-        public async Task<VMCommonResult> DeletePermission(DeleteRecordVM deleteRecord)
+        public async Task<SP_Response> DeletePermission(DeleteRecordVM deleteRecord)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                 EXEC ManagePermission
                     @Action = {"DELETE"},
-                    @PermissionId = {deleteRecord.Id},
-                    @DeletedDate = {deleteRecord.DeletedDate},
-                    @DeletedBy = {deleteRecord.DeletedBy}
+                    @PermissionId = {deleteRecord.Id}
+                    
             ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
             }
             catch
             {
-                return new VMCommonResult { Id = 0 };
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
         }
 
 
 
 
-        public async Task<List<PermissionDto>> GetAllGroupPermissionList()
+        public async Task<List<PermissionDto>> GetAllGroupPermissionList( string PermissionType)
         {
             try
             {
-                return await _db.Set<PermissionDto>().FromSqlInterpolated($"EXEC GetAllGroupPermissionList").ToListAsync();
+                return await _db.Set<PermissionDto>().FromSqlInterpolated($"EXEC GetAllGroupPermissionList @PermissionType={PermissionType}").ToListAsync();
             }
             catch
             {

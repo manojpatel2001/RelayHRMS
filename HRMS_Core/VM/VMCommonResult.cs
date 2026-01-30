@@ -10,5 +10,4 @@ namespace HRMS_Core.VM
     {
         public int? Id { get; set; } 
     }
-
 }

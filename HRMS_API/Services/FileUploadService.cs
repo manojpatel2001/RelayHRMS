@@ -1,5 +1,6 @@
 ﻿
 using HRMS_Utility;
+using System.Configuration;
 
 namespace HRMS_API.Services
 {
@@ -7,11 +8,13 @@ namespace HRMS_API.Services
     {
         private readonly IWebHostEnvironment _env;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IConfiguration _configuration;
 
-        public FileUploadService(IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
+        public FileUploadService(IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
         {
             _env = env;
             _httpContextAccessor = httpContextAccessor;
+            _configuration = configuration;
         }
 
         public async Task<string?> UploadAndReplaceDocumentAsync(IFormFile document, string folderName, string? existingFileUrl = null)
@@ -70,7 +73,10 @@ namespace HRMS_API.Services
                 // Build dynamic base URL
                 var request = _httpContextAccessor.HttpContext?.Request;
                 var baseUrl = $"{request?.Scheme}://{request?.Host}";
-
+                if (request==null||baseUrl == null)
+                {
+                    baseUrl = _configuration["BaseUrlSettings:baseUrl"];
+                }
                 var fileUrl = $"{baseUrl}/{folderName.Replace("\\", "/")}/{newFileName}";
                 Log.LogToFile($"File uploaded successfully. URL: {fileUrl}");
 

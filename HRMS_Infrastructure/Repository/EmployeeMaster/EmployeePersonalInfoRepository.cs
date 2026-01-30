@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.EmployeeMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -225,6 +226,20 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             }
         }
 
-        
+        public async Task<List<vmGetAllEmployee>> GetAllReportingPersons()
+        {
+            try
+            {
+                var result = await _db.Set<vmGetAllEmployee>()
+                    .FromSqlInterpolated($"EXEC GetAllReportingPersons")
+                    .ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }

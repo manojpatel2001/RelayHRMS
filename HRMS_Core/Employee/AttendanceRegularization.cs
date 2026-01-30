@@ -21,10 +21,11 @@ namespace HRMS_Core.Employee
         public string? ShiftTime { get; set; }
         public DateTime? InTime { get; set; }
         public DateTime? OutTime { get; set; }
-        public TimeSpan? Duration { get; set; }
+        public decimal? Duration { get; set; }
         public string? Day { get; set; }
         public string? Status { get; set; }
         public string? Reason { get; set; }
+        public string? Remark { get; set; }
         public bool IsApproved { get; set; } = false;
         public bool IsPending { get; set; } = true;  // Default to pending
         public bool IsRejected { get; set; } = false;

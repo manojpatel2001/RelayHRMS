@@ -16,8 +16,13 @@ namespace HRMS_Core.VM.Employee
         public string? GradeName { get; set; }
         public DateTime? DateOfJoining { get; set; }
         public string? ShiftName { get; set; }
+        public int? ShiftId { get; set; }
+
         public string? DesignationName { get; set; }
+        public int? DesignationId{ get; set; }
         public string? DepartmentName { get; set; }
+        public int? DepartmentId { get; set; }
+
         public string? EnrollNo { get; set; }
         public string? EmployeeTypeName { get; set; }
         public string? Email { get; set; }
@@ -29,6 +34,8 @@ namespace HRMS_Core.VM.Employee
         public decimal? MonthlyBasic { get; set; }
 
         // Uncomment if Reporting Manager is required
-        // public string ReportingManagerName { get; set; }
+       public string? ReportingManagerName { get; set; }
+        public bool? IsPFApplicable { get; set; }
+        public bool? Pt { get; set; }
     }
 }

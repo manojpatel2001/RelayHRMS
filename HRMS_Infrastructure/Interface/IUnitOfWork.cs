@@ -1,13 +1,23 @@
-﻿using HRMS_Infrastructure.Interface.CompanyInformation;
+﻿using HRMS_Infrastructure.Interface.ApprovalManagement;
+using HRMS_Infrastructure.Interface.CommanReason;
+using HRMS_Infrastructure.Interface.CompanyInformation;
 using HRMS_Infrastructure.Interface.CompanyStructure;
+using HRMS_Infrastructure.Interface.EmailService;
 using HRMS_Infrastructure.Interface.EmegencyContacts;
 using HRMS_Infrastructure.Interface.Employee;
 using HRMS_Infrastructure.Interface.EmployeeMaster;
+using HRMS_Infrastructure.Interface.ExitApplication;
+using HRMS_Infrastructure.Interface.ExportData;
 using HRMS_Infrastructure.Interface.JobMaster;
 using HRMS_Infrastructure.Interface.Leave;
 using HRMS_Infrastructure.Interface.ManagePermissions;
+using HRMS_Infrastructure.Interface.ManageProfile;
+using HRMS_Infrastructure.Interface.NewFolder;
+using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
+using HRMS_Infrastructure.Interface.Probations;
+using HRMS_Infrastructure.Interface.Report;
 using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.SuperAdmin;
 using HRMS_Infrastructure.Repository.ManagePermissions;
@@ -93,6 +103,54 @@ namespace HRMS_Infrastructure.Interface
         IMonthlySalaryDetailsRepository MonthlySalaryDetailsRepository { get; }
         IMyProfileRepository myProfileRepository { get; }
         IEmployeeDirectory employeeDirectory { get; }
+        ILeftEmployeeRepository leftEmployeeRepository { get; }
+        IUserPermissionRepository UserPermissionRepository { get; }
+        INotificationRemainderRepository NotificationRemainderRepository { get; }
+
+
+        IEmployeeProfileSkillRepository employeeProfileSkillRepository { get; }
+        IEmployeeProfileEducationRepository employeeProfileEducationRepository { get; }
+        IEmployeeProfileExperienceRepository employeeProfileExperienceRepository { get; }
+        IEmployeeProfileLanguageRepository employeeProfileLanguageRepository { get; }
+
+        ITicketStatusRepository TicketStatusRepository { get; }
+
+        ITicketApplicationRepository TicketApplicationRepository { get; }
+        ITicketFollowUpRepository TicketFollowUpRepository { get; }
+        IManageProfileRepository ManageProfileRepository { get; }
+        ISkillMasterRepository SkillMasterRepository { get; }
+        IProbationPerformanceRepository ProbationPerformanceRepository { get; }
+        IGeoLocationRepository GeoLocationRepository { get; }
+        IEmployeeIncrementRespository EmployeeIncrementRespository { get; }
+        IExportDataRepository ExportDataRepository { get; }
+        IAddeventRepository AddeventRepository { get; }
+        ISchemeMasterRepository SchemeMasterRepository { get; }
+        ISchemeTypeRepository SchemeTypeRepository { get; }
+
+        IManpowerRequisitionRepository ManpowerRequisitionRepository { get; }
+
+
+        IImportDataRepository importDataRepository { get; }
+        IReportRepository ReportRepository { get; }
+        IEmailReportRepository EmailReportRepository { get; }
+        IEmailLoggerRepository EmailLoggerRepository { get; }
+        ILeaveTransactionRepository LeaveTransactionRepository { get; }
+        IManpowerRelationRepository ManpowerRelationRepository { get; }
+        IManpowerAttachmentRepository ManpowerAttachmentRepository { get; }
+
+        IEmployeeHolidayMarkingRepository EmployeeHolidayMarkingRepository { get; }
+        IAttendanceLockRepository AttendanceLockRepository { get; }
+        IEmployeeBankDetailsRepository EmployeeBankDetailsRepository { get; }
+        IApprovalManagementRepository ApprovalManagementRepository { get; }
+
+        IApprovalMasterRepository ApprovalMasterRepository { get; }
+
+        ILeaveCancellationRepository LeaveCancellationRepository { get; }
+        ICommonReasonsRepository CommonReasonsRepository { get; }
+        ILoanApplicationRepository LoanApplicationRepository { get; }
+        IEmployeeTransferRepository EmployeeTransferRepository { get; }
+        IExitApplicationRepository ExitApplicationRepository { get; }
+        INOCRepository NOCRepository { get; }
         void Commit();
         Task CommitAsync();
     }

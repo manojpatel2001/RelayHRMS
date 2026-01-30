@@ -1,0 +1,1400 @@
+﻿@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "Ticket Status";
+	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+	string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
+	var uriAPI = new Uri(baseUrl);
+	string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
+}
+<style>
+  .error-message {
+        font-size: 0.875em;
+        display: block;
+        margin-top: 0.25rem;
+    }
+    .is-invalid {
+        border-color: #dc3545 !important;
+    }
+   
+
+    .dx-selectbox-arrow {
+        display: block !important;
+        opacity: 1 !important;
+    }
+
+    .responsive-logo {
+        max-width: 100%;
+        transition: max-width 0.3s ease;
+    }
+
+    @@media (min-width: 768px) {
+        /* Desktop mode: 170% width */
+        .responsive-logo
+
+    {
+        max-width: 170%;
+    }
+
+    }
+</style>
+
+<div class="card ">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row">
+			<div class="col-6">
+				<h6 class="pt-2 mb-0">
+					Manpower Details
+				</h6>
+			</div>
+
+			<div class="col-6 d-flex justify-content-end align-items-center">
+				<div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
+
+					<button id="addManpower"
+							type="button"
+							class="btn mr-1 rounded-1"
+							style="background-color:#2395c6; color:white;">
+						Add Manpower
+					</button>
+
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+
+            </div>
+            <div class="col-md-4">
+                <div class="mt-3 form-floating-custom">
+                    <div class="searchable-select-wrapper" id="branchWrapper">
+                        <label for="ddlBranch">Branch <span class="text-danger">*</span></label>
+                        <input type="text" class="searchable-select-input" id="ddlBranch" readonly>
+                        <span class="searchable-select-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                            </svg>
+                        </span>
+                        <div class="searchable-select-dropdown">
+                            <div class="searchable-select-search">
+                                <input type="text" placeholder="Search branch..." class="search-input">
+                            </div>
+                            <div class="searchable-select-options"></div>
+                        </div>
+                    </div>
+                    <span id="spnBranch" style="color:red; display:none;">Please Select Branch</span>
+                </div>
+            </div>
+
+        </div>
+		<div class="row">
+			<div class="col-md-12">
+
+				<div class="grid-wrapper " style="position: relative; " id="gridTag">
+					<div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+						 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+						<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+						<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+					</div>
+                    <div class="row">
+                        
+                            <div  id="rowCount1"></div>
+
+					    <div id="GridContainer"></div>
+				    </div>
+				
+			</div>
+		</div>
+	</div>
+</div>
+</div>
+
+<div class="modal fade" id="addManpowerModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Add</span> Manpower Requisition</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <!-- First Row -->
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <select class="form-select floating-input" id="ddlDepartment">
+                                <option value="">Select</option>
+                            </select>
+                            <label class="floating-label">Department<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorDepartment"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <select class="form-select floating-input" id="ddlRequirementType">
+                                <option selected disabled value="">Select</option>
+                                <option value="1">New Position</option>
+                                <option value="2">Replacement</option>
+                            </select>
+                            <label class="floating-label">Requirement Type<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorRequirementType"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="text" class="form-control floating-input" data-trim-input id="txtEmployeeName" placeholder="Name of Employee" />
+                            <label class="floating-label">Name of Employee<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorEmployeeName"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="email" class="form-control floating-input" data-trim-input placeholder="Personal Email Id" id="txtPersonalEmail" />
+                            <label class="floating-label">Personal Email Id<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorPersonalEmail"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="text" class="form-control floating-input" data-integer-only placeholder="Personal Contact Number" id="txtContactNumber" />
+                            <label class="floating-label">Personal Contact Number<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorContactNumber"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="text" class="form-control floating-input" data-trim-input placeholder="Closure by Branch/HR/Reference/Recommendation" id="txtClosureBy" />
+                            <label class="floating-label">Closure by Branch/HR/Reference/Recommendation<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorClosureBy"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <select class="form-select floating-input" id="ddlDesignation">
+                                <option value="">Select</option>
+                            </select>
+                            <label class="floating-label">Designation<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorDesignation"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="text" class="form-control floating-input" data-trim-input id="txtExperienceRange" placeholder="Experience Range" />
+                            <label class="floating-label">Experience Range<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorExperienceRange"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <select class="form-select floating-input" id="ddlEducationalQualification">
+                                <option selected disabled value="">Select</option>
+                                <option value="1">Post Graduate</option>
+                                <option value="2">Graduate</option>
+                                <option value="3">10th Passed</option>
+                                <option value="4">12th Passed</option>
+                                <option value="5">Below 10th</option>
+                                <option value="6">Diploma</option>
+                            </select>
+                            <label class="floating-label">Educational Qualification<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorEducationalQualification"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="text" class="form-control floating-input" data-trim-input id="txtComputerSkills" placeholder="Specific Computer Skills/Technology" />
+                            <label class="floating-label">Specific Computer Skills/Technology<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorComputerSkills"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <textarea class="form-control floating-input" id="txtJobResponsibility" placeholder="Job Responsibility (in Brief)"></textarea>
+                            <label class="floating-label">Job Responsibility (in Brief)<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorJobResponsibility"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="text" class="form-control floating-input" id="txtAge" placeholder="Age" />
+                            <label class="floating-label">Age<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorAge"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group mt-3">
+                            <label><b>Gender<span class="text-danger">*</span>:&nbsp;&nbsp;</b></label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="gender" id="maleGender" value="Male">
+                                <label class="form-check-label" for="maleGender">Male</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="gender" id="femaleGender" value="Female">
+                                <label class="form-check-label" for="femaleGender">Female</label>
+                            </div>
+                        </div>
+                        <span class="text-danger error-message" id="errorGender"></span>
+
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <div id="otherBenefitsSelectBox"></div>
+                        </div>
+                        <span class="text-danger error-message" id="errorOtherBenfit"></span>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="chkSystemRequire">
+                            <label class="form-check-label">System Require</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="chkEmailIdRequire">
+                            <label class="form-check-label">Email Id Require</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="chkSIMRequire">
+                            <label class="form-check-label">SIM Require</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="chkMobileHandsetRequire" placeholder="Mobile Handset Require">
+                            <label class="form-check-label">Mobile Handset Require</label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <select class="form-select floating-input" id="ddlReportingTo">
+                                <option selected value="">Select</option>
+                            </select>
+                            <label class="floating-label">Reporting To<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorReportingTo"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="date" class="form-control floating-input" id="txtDateOfJoining" />
+                            <label class="floating-label">Date of Joining<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorDateOfJoining"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <select class="form-select floating-input" id="ddlCategoryOfEmployment">
+                                <option value="">Select</option>
+                                <option >On Roll</option>
+                                <option >Off Roll</option>
+                            </select>
+                            <label class="floating-label">Category of Employment<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorCategoryOfEmployment"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="text" class="form-control floating-input" data-decimal id="txtGrossSalary" placeholder="Take Home Salary" />
+                            <label class="floating-label">Gross Salary</label>
+                        </div>
+                        <span class="text-danger error-message" id=""></span>
+
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="text" class="form-control floating-input" data-decimal id="txtCTC_Monthly" placeholder="Take Home Salary" />
+                            <label class="floating-label">CTC Monthly Salary</label>
+                        </div>
+                        <span class="text-danger error-message" id=""></span>
+
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mt-3 position-relative">
+                            <input type="text" class="form-control floating-input" data-decimal id="txtTakeHomeSalary" placeholder="Take Home Salary" />
+                            <label class="floating-label">Take Home Salary<span class="text-danger">*</span></label>
+                        </div>
+                        <span class="text-danger error-message" id="errorTakeHomeSalary"></span>
+
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer btn-heading-title">
+                <button type="button" class="btn btn-primary" id="btnSubmitManpower" style="background-color:#2395c6; color:white;">Save</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="showMawnpowerDetailsModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title btn-heading-title" id="exampleModalLabel">
+                    <span class="formType">Manpower Requisition Form</span>
+                </h5>
+                <div class="d-flex align-items-center">
+                    <button type="button" class="btn btn-info me-2" id="downloadPDF">Download as PDF</button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body modal-body-font" id="pdfContent">
+                <!-- Logo and Header -->
+                <div class="row mb-3">
+                    <div class="col-md-2">
+                        <img src="@baseAPIDomainUrl/default-image/relaylogo.jpeg" alt="Relay Express Logo" class="responsive-logo">
+                    </div>
+                    <div class="col-md-7 text-center">
+                        <h4>RELAY EXPRESS</h4>
+                        <p>Express Distribution</p>
+                        <p>AN ISO 9001:2015 CERTIFIED COMPANY</p>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <p><strong>Sr. No.:</strong> <span id="serialNo"></span></p>
+                        <p><strong>Date:</strong> <span id="date"></span></p>
+                    </div>
+                </div>
+
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <td><strong>Location:</strong></td>
+                            <td id="location"></td>
+                            <td><strong>Department:</strong></td>
+                            <td id="departmentName"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Requirement:</strong></td>
+                            <td id="requirementType"></td>
+                            <td><strong>Name of Employee:</strong></td>
+                            <td id="employeeName"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Personal Email:</strong></td>
+                            <td id="personalEmail"></td>
+                            <td><strong>Personal Contact No:</strong></td>
+                            <td id="contactNumber"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Closure by Branch/HR:</strong></td>
+                            <td id="closureBy"></td>
+                            <td><strong>Designation:</strong></td>
+                            <td id="designationName"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Experience Range:</strong></td>
+                            <td id="experienceRange"></td>
+                            <td><strong>Minimum Qualification:</strong></td>
+                            <td id="educationalQualensification"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Specific Computer Skills:</strong></td>
+                            <td id="computerSkills"></td>
+                            <td><strong>Job Responsibility:</strong></td>
+                            <td id="jobResponsibility"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Age:</strong></td>
+                            <td id="age"></td>
+                            <td><strong>Gender:</strong></td>
+                            <td id="gender"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Reporting To:</strong></td>
+                            <td id="reportingName"></td>
+                            <td><strong>Date of Joining:</strong></td>
+                            <td id="dateOfJoining"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Category of Employment:</strong></td>
+                            <td id="categoryOfEmployment"></td>
+                            <td><strong>Take Home Salary:</strong></td>
+                            <td id="takeHomeSalary"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Other Benefits:</strong></td>
+                            <td id="otherBenefits"></td>
+                            <td><strong>System Require:</strong></td>
+                            <td id="systemRequire"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email ID Require:</strong></td>
+                            <td id="emailIdRequire"></td>
+                            <td><strong>SIM Require:</strong></td>
+                            <td id="simRequire"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mobile Handset Require:</strong></td>
+                            <td id="mobileHandsetRequire"></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Approval Section -->
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Authorised</th>
+                            <th>Requested By</th>
+                            <th>Approved By</th>
+                            <th>Received By (HRD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="authorisedName"></td>
+                            <td id="requestedBy"></td>
+                            <td id="approvedBy"></td>
+                            <td id="receivedBy"></td>
+                        </tr>
+                        <tr>
+                            <td id="authorisedDesignation"></td>
+                            <td id="requestedByDesignation"></td>
+                            <td id="approvedByDesignation"></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td id="authorisedDate"></td>
+                            <td id="requestedByDate"></td>
+                            <td id="approvedByDate"></td>
+                            <td id="receivedByDate"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer btn-heading-title">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="~/assets/js/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+			const EmployeeId = localStorage.getItem("EmployeeId");
+			  var Token=localStorage.getItem("authToken");
+                var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+            const CompanyId=companyDetails.CompanyId;
+            let manpowerRequisitionId=0;
+		$("#addManpower").click( () => 
+        {
+              resetFormAndValidation();
+		  $("#addManpowerModal").modal('show');
+
+		})
+
+
+		
+
+
+        $(document).ready(function(){
+             loadDropDownForManpower();
+               
+        });
+
+       
+	function manpowerDataTable() {
+            var branchId = $("#ddlBranch").data('searchableSelect').getValue();;
+            if(!branchId){
+                return;
+            }
+                var data={CompanyId:CompanyId,BranchId:branchId};
+		 try {
+			$('#grid-loader').addClass('d-flex').show();
+			 $.ajax({
+				type: 'POST',
+                 url: '@baseUrl/ManpowerRequisitionAPI/GetAllManpowerRequisitions',
+                  data: JSON.stringify(data),
+                   contentType: 'application/json',
+				headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+				 success: function (data) {
+					
+						$("#GridContainer").dxDataGrid({
+							dataSource: data.data||[],  
+
+							columns: [
+                                    {
+                                      dataField: 'SerialNo',
+                                      caption: 'Serial No',
+                                      width: 150,
+                                      cellTemplate: function (container, options) {
+                                        const link = $('<a>')
+                                          .attr('href', '#')
+                                          .text(options.value)
+                                          .on('click', function (e) {
+                                            e.preventDefault();
+                                                populateManpowerModal(options.data);
+                                              });
+                                        container.append(link);
+                                      }
+                                    },
+
+                                {
+                                    dataField: 'DepartmentName',
+                                    caption: 'Department',
+                                    width: 150
+                                },
+                                {
+                                    dataField: 'DesignationName',
+                                    caption: 'Designation',
+                                    width: 150
+                                },
+                                {
+                                    dataField: 'RequirementType',
+                                    caption: 'Requirement Type',
+                                    width: 130
+                                },
+                                {
+                                    dataField: 'EmployeeName',
+                                    caption: 'Employee Name',
+                                    width: 150
+                                },
+                                {
+                                    dataField: 'PersonalEmail',
+                                    caption: 'Personal Email',
+                                    width: 180
+                                },
+                                {
+                                    dataField: 'ContactNumber',
+                                    caption: 'Contact Number',
+                                    width: 120
+                                },
+                                {
+                                    dataField: 'ClosureBy',
+                                    caption: 'Closure By',
+                                    width: 100
+                                },
+                                {
+                                    dataField: 'ExperienceRange',
+                                    caption: 'Experience (Years)',
+                                    width: 120
+                                },
+                                {
+                                    dataField: 'EducationalQualification',
+                                    caption: 'Education',
+                                    width: 150
+                                },
+                                {
+                                    dataField: 'ComputerSkills',
+                                    caption: 'Computer Skills',
+                                    width: 150
+                                },
+                                {
+                                    dataField: 'JobResponsibility',
+                                    caption: 'Job Responsibility',
+                                    width: 200
+                                },
+                                {
+                                    dataField: 'Age',
+                                    caption: 'Age',
+                                    width: 60,
+                                    alignment: 'center'
+                                },
+                                {
+                                    dataField: 'Gender',
+                                    caption: 'Gender',
+                                    width: 80
+                                },
+                                {
+                                    dataField: 'OtherBenefits',
+                                    caption: 'Other Benefits',
+                                    width: 180
+                                },
+                                {
+                                    dataField: 'SystemRequire',
+                                    caption: 'System Required',
+                                    width: 120
+                                },
+                                {
+                                    dataField: 'EmailIdRequire',
+                                    caption: 'Email ID Required',
+                                    width: 130
+                                },
+                                {
+                                    dataField: 'SimRequire',
+                                    caption: 'SIM Required',
+                                    width: 110
+                                },
+                                {
+                                    dataField: 'MobileHandsetRequire',
+                                    caption: 'Mobile Handset Required',
+                                    width: 150
+                                },
+                                {
+                                    dataField: 'ReportingName',
+                                    caption: 'Reporting To',
+                                    width: 200
+                                },
+                                {
+                                    dataField: 'reportingCode',
+                                    caption: 'Reporting Code',
+                                    width: 100
+                                },
+                                {
+                                    dataField: 'DateOfJoining',
+                                    caption: 'Date of Joining',
+                                    width: 120,
+                                    dataType: 'date',
+                                    format: 'dd-MM-yyyy'
+                                },
+                                {
+                                    dataField: 'CategoryOfEmployment',
+                                    caption: 'Employment Category',
+                                    width: 150
+                                },
+                                {
+                                    dataField: 'CTC_Monthly',
+                                    caption: 'CTC (Monthly)',
+                                    width: 120,
+                                    dataType: 'number',
+                                    format: {
+                                        type: 'fixedPoint',
+                                        precision: 2
+                                    }
+                                },
+                                {
+                                    dataField: 'GrossSalary',
+                                    caption: 'Gross Salary',
+                                    width: 120,
+                                    dataType: 'number',
+                                    format: {
+                                        type: 'fixedPoint',
+                                        precision: 2
+                                    }
+                                },
+                                {
+                                    dataField: 'TakeHomeSalary',
+                                    caption: 'Take Home Salary',
+                                    width: 130,
+                                    dataType: 'number',
+                                    format: {
+                                        type: 'fixedPoint',
+                                        precision: 2
+                                    }
+                                },
+                                {
+                                    dataField: 'CreatedDate',
+                                    caption: 'Created Date',
+                                    width: 120,
+                                    dataType: 'datetime',
+                                    format: 'dd-MM-yyyy'
+                                },
+                                {
+                                    dataField: 'RequestedBy',
+                                    caption: 'Requested By',
+                                    width: 150
+                                },
+                                {
+                                   dataField: 'HR_Approved',
+                                    caption: 'HR Approved',
+                                    width: 150
+                                },
+                                 
+                                {
+                                        dataField: 'NM_Approved',
+                                    caption: 'NM Approved',
+                                    width: 150
+                                },
+                                {
+                                        dataField: 'RM_Approved',
+                                    caption: 'RM Approved',
+                                    width: 150
+                                },
+                                {
+                                    dataField: '',
+                                    caption: 'Edit',
+                                    alignment: 'center',
+                                    dataType: 'string',
+                                    type: 'buttons',
+                                    width: 60,
+                                    cellTemplate: function(container, options) {
+                                        $('<div class="d-flex order-actions">')
+                                            .append('<a href="javascript:;" class="edit-action" title="Update">'+
+                                                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">'+
+                                                '<path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>'+
+                                                '<path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11zm1.5-1a.5.5 0 0 0 .5.5v2a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-2l6.97-6.97a.5.5 0 0 0-.316-.316l-6.97 6.97H1.5z"/>'+
+                                                '</svg>'+
+                                                '</a>')
+                                            .on('dxclick', function() {
+                                                    updateManpower(options.data);
+                                            })
+                                            .appendTo(container);
+                                    }
+                                },
+                                {
+                                    dataField: '',
+                                    caption: 'Delete',
+                                    alignment: 'center',
+                                    dataType: 'string',
+                                    type: 'buttons',
+                                    width: 60,
+                                    cellTemplate: function(container, options) {
+                                        $('<div class="d-flex order-actions">')
+                                            .append('<a href="javascript:;" class="delete-action" title="Delete">'+
+                                                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">'+
+                                                '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>'+
+                                                '</svg>'+
+                                                '</a>')
+                                            .on('dxclick', function() {
+                                                    deleteManpower(options.data);
+                                            })
+                                            .appendTo(container);
+                                    }
+                                }
+                            ],
+
+							columnsAutoWidth: true,
+							wordWrapEnabled: false,
+							rowAlternationEnabled: false,
+							showBorders: true,
+							grouping: { autoExpandAll: true },
+							paging: { pageSize: 10 },
+							pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+							headerFilter: { visible: false },
+							filterRow: { visible: true, applyFilter: "auto" },
+							allowColumnResizing: true,
+							groupPanel: { visible: true },
+							searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+							allowColumnReordering: true,
+							columnFixing: { enabled: false },
+                                 scrolling: {
+                                mode: "standard",
+                                useNative: true,
+                                showScrollbar: "always"
+                            },
+							onContentReady(e) {
+								   $('#rowCount1').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
+							}
+						}).dxDataGrid('instance');
+					
+						  $('#grid-loader').removeClass('d-flex').hide();
+
+				},
+				error: function (xhr, status, error) {
+					  $('#grid-loader').removeClass('d-flex').hide();
+
+					// Handle any errors that occurred during the AJAX request
+					console.error("AJAX Error: " + status + " - " + error);
+
+				}
+			});
+
+		  } catch (e)
+		  {
+			   console.error("Error in TicketPriorityDataTable:", e);
+			   $('#grid-loader').removeClass('d-flex').hide();
+		  }
+	}
+
+        var otherBenefit = [
+        "Not Applicable",
+        "Convenience",
+        "Petrol Allowance"
+    ];
+
+     $(function() {
+        $("#otherBenefitsSelectBox").dxTagBox({ 
+            placeholder: "None selected",
+            dataSource: otherBenefit || [],
+            showClearButton: true,
+             placeholder:"Other Benefits",
+            searchEnabled: true,
+            showSelectionControls: true, 
+            maxDisplayedTags: 3, 
+            value: [],
+            onValueChanged: function(e) {
+            }
+        });
+    });
+   
+         async function loadDropDownForManpower(){
+           $.ajax({
+                    url: '@baseUrl/ManpowerRequisitionAPI/GetDropDownForManpower/'+CompanyId,
+                    method: 'GET',
+                    success: function(response) {
+                            if (response.isSuccess)
+                            {
+                              
+                                bindDesignation(response.data.designations);
+                                bindReporting(response.data.reportingEmployees);
+                                bindDepartment(response.data.departments);
+                                    bindBranch(response.data.branches);
+                                     
+                            }
+                            else{
+                                round_error_noti(data.responseMessage);
+                              
+                            }
+                                   
+                    },
+                    error: function(error) {
+                        console.error('Error fetching  data:', error);
+                    }
+                });
+
+        }
+
+    async  function bindDepartment(data)
+    {
+            var dropdown = $('#ddlDepartment');
+        dropdown.empty();
+        dropdown.append('<option disabled selected value="">Select </option>');
+        $.each(data, function(index, company) {
+                dropdown.append($('<option>', {
+                                value: company.departmentId,
+                                text: company.departmentName
+                }));
+        });
+    }
+    
+    async  function bindBranch(data)
+    {
+             $('#ddlBranch').searchableSelect({
+                data: data||[],
+                valueKey: 'branchId',
+                textKey: 'branchName',
+                placeholder:'Branch',
+                searchPlaceholder: 'Search branch...',
+                onChange: function(item) {
+                      manpowerDataTable();
+                }
+            });
+    }
+
+     function bindDesignation(data)
+     {
+        var dropdown = $('#ddlDesignation');
+        dropdown.empty();
+        dropdown.append('<option disabled selected value="">Select Designation</option>');
+        $.each(data, function(index, company) {
+            dropdown.append($('<option>', {
+                value: company.designationId,
+                text: company.designationName
+            }));
+        });
+     }
+
+
+    async function bindReporting(data)
+    {
+            var dropdown = $('#ddlReportingTo');
+            dropdown.empty();
+            dropdown.append('<option disabled selected value="">Select</option>');
+            $.each(data, function(index, company) {
+                dropdown.append($('<option>', {
+                    value: company.employeeId,
+                    text: company.fullName+" - "+company.employeeCode
+                }));
+            });
+    }
+
+$('#btnSubmitManpower').click( async function() {
+    //$('#btnSubmitManpower').prop('disabled', true)
+    var validate= await  validateForm();
+    if (!validate)
+    {
+                
+        return;
+    }
+        const formData = await  collectFormData();
+
+    $.ajax({
+         url: manpowerRequisitionId==0?'@baseUrl/ManpowerRequisitionAPI/CreateManpowerRequisition':'@baseUrl/ManpowerRequisitionAPI/UpdateManpowerRequisition',
+        type: 'POST',
+        data: JSON.stringify(formData),
+        contentType: 'application/json',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem("authToken")
+        },
+        success: function(response) {
+            if(response.isSuccess)
+            {
+                round_success_noti(response.responseMessage);
+                    manpowerDataTable();
+            }
+            else
+            {
+                round_error_noti(response.responseMessage);
+            }
+        },
+        error: function(xhr, status, error) {
+                round_error_noti("Some thing went wrong!");
+        }
+    });
+});
+
+
+function getValueOrNull(value) {
+        return value === "" || value === undefined || value === null ? null : value;
+    }
+
+    // Validation function
+    async function validateForm() 
+    {
+        let isValid = true;
+
+        // Reset all error messages and invalid states
+        $('.error-message').text('');
+        $('.form-control, .form-select').removeClass('is-invalid');
+
+        // Department validation
+        if (!$('#ddlDepartment').val()) {
+            $('#errorDepartment').text('Department is required');
+            $('#ddlDepartment').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Requirement Type validation
+        if (!$('#ddlRequirementType').val()) {
+            $('#errorRequirementType').text('Requirement Type is required');
+            $('#ddlRequirementType').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Employee Name validation
+        if (!$('#txtEmployeeName').val()) {
+            $('#errorEmployeeName').text('Employee Name is required');
+            $('#txtEmployeeName').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Personal Email validation
+        const email = $('#txtPersonalEmail').val();
+        if (!email) {
+            $('#errorPersonalEmail').text('Personal Email is required');
+            $('#txtPersonalEmail').addClass('is-invalid');
+            isValid = false;
+        } 
+        // Contact Number validation
+        if (!$('#txtContactNumber').val()) {
+            $('#errorContactNumber').text('Contact Number is required');
+            $('#txtContactNumber').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Closure By validation
+        if (!$('#txtClosureBy').val()) {
+            $('#errorClosureBy').text('Closure By is required');
+            $('#txtClosureBy').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Designation validation
+        if (!$('#ddlDesignation').val()) {
+            $('#errorDesignation').text('Designation is required');
+            $('#ddlDesignation').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Experience Range validation
+        if (!$('#txtExperienceRange').val()) {
+            $('#errorExperienceRange').text('Experience Range is required');
+            $('#txtExperienceRange').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Educational Qualification validation
+        if (!$('#ddlEducationalQualification').val()) {
+            $('#errorEducationalQualification').text('Educational Qualification is required');
+            $('#ddlEducationalQualification').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Computer Skills validation
+        if (!$('#txtComputerSkills').val()) {
+            $('#errorComputerSkills').text('Computer Skills are required');
+            $('#txtComputerSkills').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Job Responsibility validation
+        if (!$('#txtJobResponsibility').val()) {
+            $('#errorJobResponsibility').text('Job Responsibility is required');
+            $('#txtJobResponsibility').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Age validation
+        const age = $('#txtAge').val();
+        if (!age) {
+            $('#errorAge').text('Age is required');
+            $('#txtAge').addClass('is-invalid');
+            isValid = false;
+        } else if (age && (isNaN(age) || parseInt(age) < 18 || parseInt(age) > 100)) {
+            $('#errorAge').text('Please enter a valid age (18-100)');
+            $('#txtAge').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Gender validation
+        if (!$('input[name="gender"]:checked').length) {
+            $('#errorGender').text('Gender is required');
+            isValid = false;
+        }
+
+              var selectedValues = $("#otherBenefitsSelectBox").dxTagBox("option", "value");
+            var selectedValuesString = selectedValues && selectedValues.length > 0 ? selectedValues.join(", ") : null;
+
+        // Reporting To validation
+          if (!selectedValuesString) {
+                $('#errorOtherBenfit').text('Other benfit  is required');
+                $('#otherBenefitsSelectBox').addClass('is-invalid');
+            isValid = false;
+        }
+        // Reporting To validation
+        if (!$('#ddlReportingTo').val()) {
+            $('#errorReportingTo').text('Reporting To is required');
+            $('#ddlReportingTo').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Date of Joining validation
+        if (!$('#txtDateOfJoining').val()) {
+            $('#errorDateOfJoining').text('Date of Joining is required');
+            $('#txtDateOfJoining').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Category of Employment validation
+        if (!$('#ddlCategoryOfEmployment').val()) {
+            $('#errorCategoryOfEmployment').text('Category of Employment is required');
+            $('#ddlCategoryOfEmployment').addClass('is-invalid');
+            isValid = false;
+        }
+
+        // Take Home Salary validation
+        if (!$('#txtTakeHomeSalary').val()) {
+            $('#errorTakeHomeSalary').text('Take Home Salary is required');
+            $('#txtTakeHomeSalary').addClass('is-invalid');
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    // Collect form data function
+      async function collectFormData(manpowerRequisitionId) {
+        var selectedValues = $("#otherBenefitsSelectBox").dxTagBox("option", "value");
+        var selectedValuesString = selectedValues && selectedValues.length > 0 ? selectedValues.join(", ") : "";
+
+        return {
+            ManpowerRequisitionId: manpowerRequisitionId,
+            DepartmentId: getValueOrNull($('#ddlDepartment').val()),
+            RequirementType: getValueOrNull($('#ddlRequirementType').val()),
+            EmployeeName: getValueOrNull($('#txtEmployeeName').val()),
+            PersonalEmail: getValueOrNull($('#txtPersonalEmail').val()),
+            ContactNumber: getValueOrNull($('#txtContactNumber').val()),
+            ClosureBy: getValueOrNull($('#txtClosureBy').val()),
+            DesignationId: getValueOrNull($('#ddlDesignation').val()),
+            ExperienceRange: getValueOrNull($('#txtExperienceRange').val()),
+            EducationalQualification: getValueOrNull($('#ddlEducationalQualification').val()),
+            ComputerSkills: getValueOrNull($('#txtComputerSkills').val()),
+            JobResponsibility: getValueOrNull($('#txtJobResponsibility').val()),
+            Age: $('#txtAge').val() ? parseInt($('#txtAge').val()) : null, // Ensure it's an integer
+            Gender: getValueOrNull($('input[name="gender"]:checked').val()),
+            OtherBenefits: selectedValuesString,
+            SystemRequire: $('#chkSystemRequire').is(':checked') ? "Yes" : "No",
+            EmailIdRequire: $('#chkEmailIdRequire').is(':checked') ? "Yes" : "No",
+            SIMRequire: $('#chkSIMRequire').is(':checked') ? "Yes" : "No",
+            MobileHandsetRequire: $('#chkMobileHandsetRequire').is(':checked') ? "Yes" : "No",
+            ReportingToId: getValueOrNull($('#ddlReportingTo').val()),
+            DateOfJoining: $('#txtDateOfJoining').val() ? new Date($('#txtDateOfJoining').val()).toISOString() : null, // ISO format
+            CategoryOfEmployment: getValueOrNull($('#ddlCategoryOfEmployment').val()),
+            CTC_Monthly: $('#txtCTC_Monthly').val() ? parseFloat($('#txtCTC_Monthly').val()) : null, // Convert to decimal
+            GrossSalary: $('#txtGrossSalary').val() ? parseFloat($('#txtGrossSalary').val()) : null, // Convert to decimal
+            TakeHomeSalary: $('#txtTakeHomeSalary').val() ? parseFloat($('#txtTakeHomeSalary').val()) : null, // Convert to decimal
+          
+            CreatedBy: EmployeeId,
+            UpdatedBy: EmployeeId,
+            CompanyId: CompanyId // Ensure this is an integer (not DateTime)
+        };
+    }
+
+    // Clear validation errors when user interacts with fields
+    $('.form-control, .form-select').on('input change', function() {
+        $(this).removeClass('is-invalid');
+        const errorId = 'error' + this.id.charAt(0).toUpperCase() + this.id.slice(1);
+        $('#' + errorId).text('');
+    });
+
+    // Special handling for radio buttons
+    $('input[name="gender"]').change(function() {
+        $('#errorGender').text('');
+    });
+
+    // Special handling for checkboxes
+    $('input[type="checkbox"]').change(function() {
+        // Checkboxes don't have error messages in this form
+    });
+
+    async function updateManpower(data) {
+        await resetFormAndValidation();
+
+        // Set dropdown values
+        $('#ddlDepartment').val(data.DepartmentId);
+        $('#ddlRequirementType').val(data.RequirementType);
+        $('#ddlDesignation').val(data.DesignationId);
+        $('#ddlEducationalQualification').val(data.EducationalQualification);
+        $('#ddlCategoryOfEmployment').val(data.CategoryOfEmployment);
+        $('#ddlReportingTo').val(data.ReportingToId);
+
+        // Set text inputs
+        $('#txtEmployeeName').val(data.EmployeeName);
+        $('#txtPersonalEmail').val(data.PersonalEmail);
+        $('#txtContactNumber').val(data.ContactNumber);
+        $('#txtClosureBy').val(data.ClosureBy);
+        $('#txtExperienceRange').val(data.ExperienceRange);
+        $('#txtComputerSkills').val(data.ComputerSkills);
+        $('#txtJobResponsibility').val(data.JobResponsibility);
+        $('#txtAge').val(data.Age);
+        $('#txtTakeHomeSalary').val(data.TakeHomeSalary);
+
+        // Set gender radio button
+        if (data.Gender) {
+            $(`input[name="gender"][value="${data.Gender}"]`).prop('checked', true);
+        }
+
+        // Set date fields
+        if (data.DateOfJoining) {
+            $('#txtDateOfJoining').val(data.DateOfJoining.split('T')[0] || "");
+        }
+
+        // Set checkboxes based on string values
+        $('#chkSystemRequire').prop('checked', data.SystemRequire === "Yes");
+        $('#chkEmailIdRequire').prop('checked', data.EmailIdRequire === "Yes");
+        $('#chkSIMRequire').prop('checked', data.SIMRequire === "Yes");
+        $('#chkMobileHandsetRequire').prop('checked', data.MobileHandsetRequire === "Yes");
+
+        // Set OtherBenefits (assuming it's a dxTagBox or similar)
+        if (data.OtherBenefits) {
+            const benefitsArray = data.OtherBenefits.split(',').map(item => item.trim());
+            $('#otherBenefitsSelectBox').dxTagBox('instance').option('value', benefitsArray);
+        }
+
+        // Set the manpower requisition ID and update UI
+        manpowerRequisitionId = data.ManpowerRequisitionId;
+        $("#btnSubmitManpower").text("Update");
+        $("#formType").text("Update");
+        $("#addManpowerModal").modal('show');
+    }
+
+     function resetFormAndValidation() {
+             manpowerRequisitionId=0;
+        // Clear all error messages
+        $('.error-message').text('');
+        $('input[name="gender"]').closest('.form-check').removeClass('is-invalid');
+
+        // Remove invalid classes from all form controls
+        $('.form-control, .form-select, .dx-texteditor, .dx-selectbox, .dx-datebox').removeClass('is-invalid');
+
+        // Reset dropdowns
+        $('#ddlDepartment').val(null).trigger('change');
+        $('#ddlRequirementType').val(null).trigger('change');
+        $('#ddlDesignation').val(null).trigger('change');
+        $('#ddlEducationalQualification').val(null).trigger('change');
+        $('#ddlReportingTo').val(null).trigger('change');
+        $('#ddlCategoryOfEmployment').val(null).trigger('change');
+
+        // Reset text inputs
+        $('#txtEmployeeName').val('');
+        $('#txtPersonalEmail').val('');
+        $('#txtContactNumber').val('');
+        $('#txtClosureBy').val('');
+        $('#txtExperienceRange').val('');
+        $('#txtComputerSkills').val('');
+        $('#txtJobResponsibility').val('');
+        $('#txtAge').val('');
+        $('#txtTakeHomeSalary').val('');
+        $('#txtCTC_Monthly').val('');
+        $('#txtGrossSalary').val('');
+
+        // Reset radio buttons
+        $('input[name="gender"]').prop('checked', false);
+
+        // Reset checkboxes
+        $('#chkSystemRequire').prop('checked', false);
+        $('#chkEmailIdRequire').prop('checked', false);
+        $('#chkSIMRequire').prop('checked', false);
+        $('#chkMobileHandsetRequire').prop('checked', false);
+
+        // Reset DevExtreme components
+        if ($('#otherBenefitsSelectBox').data('dxTagBox')) {
+            $('#otherBenefitsSelectBox').dxTagBox('instance').reset();
+        }
+
+        if ($('#txtDateOfJoining').data('dxDateBox')) {
+            $('#txtDateOfJoining').dxDateBox('instance').reset();
+        }
+
+        // Reset read-only display fields
+        $('#lblSerialNo').text('');
+        $('#lblDesignationName').text('');
+        $('#lblDepartmentName').text('');
+        $('#lblReportingName').text('');
+        $('#lblReportingCode').text('');
+        $('#lblCreatedDate').text('');
+
+        // Reset hidden fields
+        $('#hdnManpowerRequisitionId').val('');
+
+        // Clear specific error messages
+        $('#errorDepartment').text('');
+        $('#errorRequirementType').text('');
+        $('#errorEmployeeName').text('');
+        $('#errorPersonalEmail').text('');
+        $('#errorContactNumber').text('');
+        $('#errorClosureBy').text('');
+        $('#errorDesignation').text('');
+        $('#errorExperienceRange').text('');
+        $('#errorEducationalQualification').text('');
+        $('#errorComputerSkills').text('');
+        $('#errorJobResponsibility').text('');
+        $('#errorAge').text('');
+        $('#errorGender').text('');
+        $('#errorReportingTo').text('');
+        $('#errorDateOfJoining').text('');
+        $('#errorCategoryOfEmployment').text('');
+        $('#errorTakeHomeSalary').text('');
+        $('#errorOtherBenefits').text('');
+        $("#btnSubmitManpower").text("Save");
+            $("#formType").text("Add");
+    }
+
+    function deleteManpower(data)
+    {
+        if (!confirm("Are you sure you want to delete this?"))
+        {
+            return; // Cancel the delete operation
+        }
+
+        var deleteObj = {
+            id: data.manpowerRequisitionId,
+            deletedBy: EmployeeId 
+        };
+
+        $.ajax({
+            url: '@baseUrl/ManpowerRequisitionAPI/DeleteManpowerRequisition',
+            type: 'DELETE',
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            data: JSON.stringify(deleteObj),
+            success: function (response) {
+                if(response.isSuccess)
+                {
+                    round_success_noti(response.responseMessage);
+                        manpowerDataTable();
+                }
+                else
+                {
+                    round_error_noti(response.responseMessage)
+                }
+                        
+            },
+            error: function (error) {
+                    console.log(error);
+            }
+        });
+    }
+
+
+
+
+
+         function populateManpowerModal(data) {
+            // Populate fields using jQuery, using capitalized keys
+            $('#location').text(data.BranchName || '');
+            $('#serialNo').text(data.SerialNo || '');
+            $('#date').text(data.CreatedDate ? new Date(data.CreatedDate).toLocaleDateString('en-GB') : '');
+            $('#departmentName').text(data.DepartmentName || '');
+            $('#requirementType').text(data.RequirementType || '');
+            $('#employeeName').text(data.EmployeeName || '');
+            $('#personalEmail').text(data.PersonalEmail || '');
+            $('#contactNumber').text(data.ContactNumber || '');
+            $('#closureBy').text(data.ClosureBy || '');
+            $('#designationName').text(data.DesignationName || '');
+            $('#experienceRange').text(data.ExperienceRange || '');
+            $('#educationalQualensification').text(data.EducationalQualification || '');
+            $('#computerSkills').text(data.ComputerSkills || '');
+            $('#jobResponsibility').text(data.JobResponsibility || '');
+            $('#age').text(data.Age || '');
+            $('#gender').text(data.Gender || '');
+            $('#reportingName').text(data.ReportingName || '');
+            $('#dateOfJoining').text(data.DateOfJoining ? new Date(data.DateOfJoining).toLocaleDateString('en-GB') : '');
+            $('#categoryOfEmployment').text(data.CategoryOfEmployment || '');
+            $('#takeHomeSalary').text(data.TakeHomeSalary ? data.TakeHomeSalary.toString().toUpperCase() : '');
+            $('#otherBenefits').text(data.OtherBenefits || '');
+            $('#systemRequire').text(data.SystemRequire || '');
+            $('#emailIdRequire').text(data.EmailIdRequire || '');
+            $('#simRequire').text(data.SimRequire || '');
+            $('#mobileHandsetRequire').text(data.MobileHandsetRequire || '');
+            // Approval Section
+            $('#authorisedName').text(data.RequestedBy || '');
+            $('#requestedBy').text(data.RequestedBy || '');
+                $('#requestedByDesignation').text(data.DesignationName||'');
+            $('#requestedByDate').text(data.CreatedDate ? new Date(data.CreatedDate).toLocaleDateString('en-GB') : '');
+
+            $("#showMawnpowerDetailsModal").modal('show');
+        }
+
+           document.getElementById('downloadPDF').addEventListener('click', function() {
+        const { jsPDF } = window.jspdf;
+        const element = document.getElementById('pdfContent');
+
+        html2canvas(element, {
+            scale: 2,
+            logging: false,
+            useCORS: true,
+            allowTaint: false // Set to false for security
+        }).then(canvas => {
+            // Convert canvas to image data URL
+            const imgData = canvas.toDataURL('image/png');
+
+            // Create PDF
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = 210; // A4 width in mm
+            const pageHeight = 295; // A4 height in mm
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            // Add image to PDF
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            // Add new pages if content is longer than one page
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            // Save PDF
+            pdf.save('Manpower_Requisition_Form.pdf');
+        });
+    });
+
+</script>
+
+
