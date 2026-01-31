@@ -18,21 +18,13 @@ jobs:
           
       - name: Clean and Prepare for Azure
         run: |
-          # Generic author set karo
           git config user.name "HRMS Development Team"
           git config user.email "dev@hrmsproject.com"
           
-          # Create a clean orphan branch with single commit
           git checkout --orphan temp-clean
-          
-          # Add all files
           git add -A
+          git commit -m "Production Release - $(date +'%d-%m-%Y %H:%M')" --author="HRMS Development Team <dev@hrmsproject.com>"
           
-          # Create single commit with generic author
-          git commit -m "Production Release - $(date +'%d-%m-%Y %H:%M')" \
-            --author="HRMS Development Team <dev@hrmsproject.com>"
-          
-          # Delete old azure branch and rename
           git branch -D azure || true
           git branch -m azure
           
@@ -40,50 +32,10 @@ jobs:
         env:
           AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
         run: |
-          # Add Azure DevOps remote
           git remote add azuredevops https://${AZURE_DEVOPS_PAT}@dev.azure.com/hemabadgali0673/HRMS/_git/HRMS
-          
-          # Push to Azure DevOps master branch
           git push azuredevops azure:master --force
           
       - name: Cleanup
         if: always()
         run: |
           git remote remove azuredevops 2>/dev/null || true
-```
-
-## Complete Flow Explanation:
-```
-┌──────────────────────────────────────────────────────────┐
-│ Developer pushes to Development branch                    │
-└──────────────────────────────────────────────────────────┘
-                        ↓
-        ┌───────────────────────────────────────┐
-        │ Workflow 1: update-azure-branch.yml    │
-        │ • Fetch development                    │
-        │ • Merge development → azure            │
-        │ • Push to GitHub (azure branch)        │
-        │ • Keeps full git history               │
-        └───────────────────────────────────────┘
-                        ↓
-        ┌───────────────────────────────────────┐
-        │ Azure Branch (GitHub)                  │
-        │ • Has all commits from development     │
-        │ • Intermediate staging branch          │
-        └───────────────────────────────────────┘
-                        ↓
-        ┌───────────────────────────────────────┐
-        │ Workflow 2: sync-to-azure.yml          │
-        │ • Checkout azure branch                │
-        │ • Create clean orphan branch           │
-        │ • Single commit with generic author    │
-        │ • Force push to Azure DevOps           │
-        └───────────────────────────────────────┘
-                        ↓
-        ┌───────────────────────────────────────┐
-        │ Azure DevOps (Client View)             │
-        │ • Single clean commit                  │
-        │ • Author: "HRMS Development Team"      │
-        │ • No individual developer details      │
-        │ • Latest production code               │
-        └───────────────────────────────────────┘
