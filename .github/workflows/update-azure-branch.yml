@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - development
-      - Development  # Case sensitivity handle karne ke liye
+      - Development
   workflow_dispatch:
 
 jobs:
@@ -12,41 +12,59 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository (fetch all branches)
         uses: actions/checkout@v4
         with:
-          ref: development
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # Fetch complete history
           
       - name: Configure Git
         run: |
           git config user.name "HRMS Bot"
           git config user.email "hrms-bot@noreply.github.com"
           
-      - name: Fetch all branches
+      - name: Debug - Show all branches
         run: |
-          git fetch --all
+          echo "=== Local branches ==="
           git branch -a
+          echo ""
+          echo "=== Current branch ==="
+          git branch --show-current
+          echo ""
+          echo "=== Remote branches ==="
+          git ls-remote --heads origin
           
-      - name: Update Azure Branch
+      - name: Ensure we're on development
         run: |
-          # Check if azure branch exists remotely
+          git checkout development || git checkout -b development origin/development
+          git pull origin development
+          
+      - name: Create or Update Azure Branch
+        run: |
+          # Try to checkout existing azure branch from remote
           if git ls-remote --exit-code --heads origin azure; then
-            echo "Azure branch exists remotely"
+            echo "✓ Azure branch exists on remote"
+            git fetch origin azure:azure
             git checkout azure
-            git pull origin azure --no-rebase
           else
-            echo "Creating new azure branch"
+            echo "✓ Creating new azure branch from development"
             git checkout -b azure
           fi
           
-          # Merge development into azure
-          git merge origin/development --no-ff -m "Auto sync from development - $(date +'%Y-%m-%d %H:%M:%S')" || {
-            echo "Merge conflict detected. Please resolve manually."
-            exit 1
+      - name: Merge Development into Azure
+        run: |
+          echo "Merging development into azure..."
+          git merge development --no-ff -m "🔄 Auto sync from development - $(date +'%Y-%m-%d %H:%M:%S')" || {
+            echo "❌ Merge failed. Checking if already up to date..."
+            if git diff --quiet development azure; then
+              echo "✓ Already up to date"
+              exit 0
+            else
+              echo "❌ Merge conflict - manual resolution required"
+              exit 1
+            fi
           }
           
-      - name: Push to GitHub
+      - name: Push to Azure Branch
         run: |
-          git push origin azure
+          git push origin azure || git push --set-upstream origin azure
+          echo "✅ Successfully synced to azure branch"
