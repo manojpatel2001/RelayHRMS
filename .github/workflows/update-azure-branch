@@ -10,48 +10,37 @@ jobs:
   update-azure-branch:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Development
+      - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-          ref: development
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Configure Git
+        run: |
+          git config user.name "HRMS Development Team"
+          git config user.email "dev@hrmsproject.com"
           
       - name: Update Azure Branch
         run: |
-          git config user.name "GitHub Action"
-          git config user.email "action@github.com"
+          # Fetch all branches
+          git fetch origin
           
-          # Azure branch ko development se sync karo
-          git fetch origin azure:azure || git branch azure
-          git checkout azure
-          git merge development --no-ff -m "Sync from development - $(date +'%d-%m-%Y')"
+          # Checkout development
+          git checkout development
+          
+          # Check if azure branch exists remotely
+          if git ls-remote --heads origin azure | grep azure; then
+            echo "Azure branch exists, checking out..."
+            git checkout azure
+            git pull origin azure
+          else
+            echo "Azure branch doesn't exist, creating..."
+            git checkout -b azure
+          fi
+          
+          # Merge development into azure
+          git merge development --no-ff -m "Auto sync from development - $(date +'%d-%m-%Y %H:%M')"
+          
+          # Push to GitHub
           git push origin azure
-```
-
-## Complete Automated Flow:
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Developer 1  →  Feature Branch  →  Development (Testing)   │
-│  Developer 2  →  Feature Branch  →  Development (Testing)   │
-└─────────────────────────────────────────────────────────────┘
-                        ↓ (Auto Trigger on Push)
-                        ↓
-        ┌───────────────────────────────┐
-        │  GitHub Action Workflow 1      │
-        │  (Update Azure Branch)         │
-        └───────────────────────────────┘
-                        ↓
-                  Azure Branch
-                 (GitHub mein)
-                        ↓ (Auto Trigger on Push)
-                        ↓
-        ┌───────────────────────────────┐
-        │  GitHub Action Workflow 2      │
-        │  (Clean & Sync to Azure)       │
-        └───────────────────────────────┘
-                        ↓
-            Clean Single Commit with
-            Generic Author Details
-                        ↓
-                 Azure DevOps
-              (Client ko dikhega)
