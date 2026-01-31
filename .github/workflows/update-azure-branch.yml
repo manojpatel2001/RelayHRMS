@@ -4,43 +4,49 @@ on:
   push:
     branches:
       - development
+      - Development  # Case sensitivity handle karne ke liye
   workflow_dispatch:
 
 jobs:
   update-azure-branch:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
+          ref: development
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Configure Git
         run: |
-          git config user.name "HRMS Development Team"
-          git config user.email "dev@hrmsproject.com"
+          git config user.name "HRMS Bot"
+          git config user.email "hrms-bot@noreply.github.com"
+          
+      - name: Fetch all branches
+        run: |
+          git fetch --all
+          git branch -a
           
       - name: Update Azure Branch
         run: |
-          # Fetch all branches
-          git fetch origin
-          
-          # Checkout development
-          git checkout development
-          
           # Check if azure branch exists remotely
-          if git ls-remote --heads origin azure | grep azure; then
-            echo "Azure branch exists, checking out...."
+          if git ls-remote --exit-code --heads origin azure; then
+            echo "Azure branch exists remotely"
             git checkout azure
-            git pull origin azure
+            git pull origin azure --no-rebase
           else
-            echo "Azure branch doesn't exist, creating..."
+            echo "Creating new azure branch"
             git checkout -b azure
           fi
           
           # Merge development into azure
-          git merge development --no-ff -m "Auto sync from development - $(date +'%d-%m-%Y %H:%M')"
+          git merge origin/development --no-ff -m "Auto sync from development - $(date +'%Y-%m-%d %H:%M:%S')" || {
+            echo "Merge conflict detected. Please resolve manually."
+            exit 1
+          }
           
-          # Push to GitHub
+      - name: Push to GitHub
+        run: |
           git push origin azure
