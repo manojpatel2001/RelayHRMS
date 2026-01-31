@@ -1,70 +1,60 @@
-name: Update Azure Branch from Development
+name: Sync Development to Azure
 
 on:
   push:
     branches:
       - development
-      - Development
   workflow_dispatch:
 
 jobs:
-  update-azure-branch:
+  sync:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Repository (fetch all branches)
+      # Step 1: Checkout development branch
+      - name: Checkout development branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch complete history
+          ref: development
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Configure Git
+      - name: Setup Git Config
         run: |
           git config user.name "HRMS Bot"
           git config user.email "hrms-bot@noreply.github.com"
           
-      - name: Debug - Show all branches
+      # Step 2: Fetch all remote branches
+      - name: Fetch all branches
         run: |
-          echo "=== Local branches ==="
-          git branch -a
-          echo ""
-          echo "=== Current branch ==="
-          git branch --show-current
-          echo ""
-          echo "=== Remote branches ==="
-          git ls-remote --heads origin
+          git fetch origin
           
-      - name: Ensure we're on development
+      # Step 3: Switch to or create azure branch
+      - name: Switch to azure branch
         run: |
-          git checkout development || git checkout -b development origin/development
-          git pull origin development
-          
-      - name: Create or Update Azure Branch
-        run: |
-          # Try to checkout existing azure branch from remote
-          if git ls-remote --exit-code --heads origin azure; then
-            echo "✓ Azure branch exists on remote"
-            git fetch origin azure:azure
-            git checkout azure
+          # Check if azure exists remotely
+          if git show-ref --verify --quiet refs/remotes/origin/azure; then
+            echo "Azure branch exists, checking out..."
+            git checkout -B azure origin/azure
           else
-            echo "✓ Creating new azure branch from development"
+            echo "Azure branch doesn't exist, creating..."
             git checkout -b azure
           fi
           
-      - name: Merge Development into Azure
+      # Step 4: Reset azure to match development
+      - name: Sync azure with development
         run: |
-          echo "Merging development into azure..."
-          git merge development --no-ff -m "🔄 Auto sync from development - $(date +'%Y-%m-%d %H:%M:%S')" || {
-            echo "❌ Merge failed. Checking if already up to date..."
-            if git diff --quiet development azure; then
-              echo "✓ Already up to date"
-              exit 0
-            else
-              echo "❌ Merge conflict - manual resolution required"
-              exit 1
-            fi
-          }
+          # Reset azure branch to match development exactly
+          git reset --hard origin/development
           
-      - name: Push to Azure Branch
+      # Step 5: Push to remote
+      - name: Push azure branch
         run: |
-          git push origin azure || git push --set-upstream origin azure
-          echo "✅ Successfully synced to azure branch"
+          git push origin azure --force
+          
+      # Step 6: Verify
+      - name: Verify sync
+        run: |
+          echo "✅ Azure branch successfully synced with development"
+          echo "Latest commit:"
+          git log -1 --pretty=format:"%h - %s (%an, %ar)"
