@@ -11,50 +11,31 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # Step 1: Checkout Development branch
-      - name: Checkout Development branch
+      - name: Checkout Development
         uses: actions/checkout@v4
         with:
           ref: Development
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Setup Git Config
+      - name: Configure Git
         run: |
           git config user.name "HRMS Bot"
           git config user.email "hrms-bot@noreply.github.com"
           
-      # Step 2: Fetch all remote branches
-      - name: Fetch all branches
+      - name: Update Azure Branch
         run: |
-          git fetch origin
+          # Get current commit
+          COMMIT_SHA=$(git rev-parse HEAD)
+          echo "Development commit: $COMMIT_SHA"
           
-      # Step 3: Switch to or create azure branch
-      - name: Switch to azure branch
-        run: |
-          # Check if azure exists remotely
-          if git show-ref --verify --quiet refs/remotes/origin/azure; then
-            echo "Azure branch exists, checking out..."
-            git checkout -B azure origin/azure
-          else
-            echo "Azure branch doesn't exist, creating..."
-            git checkout -b azure
-          fi
+          # Delete Azure branch if exists and recreate
+          git push origin --delete Azure 2>/dev/null || echo "Azure branch doesn't exist yet"
           
-      # Step 4: Reset azure to match development
-      - name: Sync azure with development
-        run: |
-          # Reset azure branch to match development exactly
-          git reset --hard origin/development
+          # Create fresh Azure branch from current commit
+          git checkout -b Azure
           
-      # Step 5: Push to remote
-      - name: Push azure branch
-        run: |
-          git push origin azure --force
+          # Push to origin
+          git push origin Azure
           
-      # Step 6: Verify
-      - name: Verify sync
-        run: |
-          echo "✅ Azure branch successfully synced with development"
-          echo "Latest commit:"
-          git log -1 --pretty=format:"%h - %s (%an, %ar)"
+          echo "✅ Azure branch created/updated successfully"
+          echo "✅ Azure now points to: $COMMIT_SHA"
