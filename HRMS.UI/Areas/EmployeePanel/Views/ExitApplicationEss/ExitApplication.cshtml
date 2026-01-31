@@ -300,6 +300,7 @@
     const companyDetails = JSON.parse(savedCompany || '{}');
     const Compid = parseInt(companyDetails.CompanyId);
     const today = new Date();
+    const NOTICE_PERIOD_DAYS = 30; // Fixed notice period
 
     function showBtnLoader() {
         $('#submitBtn').prop('disabled', true);
@@ -317,10 +318,12 @@
         $('#applicationDate').val(formattedDate);
         $('#employeeName').val(EmployeeName);
 
+        // Notice period by default 30
+        $('#noticePeriod').val(NOTICE_PERIOD_DAYS);
+
         // Debug localStorage values
         console.log('Employee ID:', Empid);
         console.log('Employee Name:', EmployeeName);
- 
 
         loadReportingManager();
 
@@ -351,11 +354,8 @@
     }
 
     function loadReportingManager() {
-        // Debug information
-        console.log('Loading reporting manager for Empid:', Empid);
-        const apiUrl = `@baseUrl/LeaveApplication/GetReportingperson?Empid=${Empid}`;
-        console.log('API URL:', apiUrl);
 
+        const apiUrl = `@baseUrl/LeaveApplication/GetReportingperson?Empid=${Empid}`;
         if (!Empid || isNaN(Empid)) {
             console.error('Invalid Employee ID');
             return;
@@ -367,14 +367,13 @@
             dataType: 'json',
             contentType: 'application/json',
             success: function (response) {
-                console.log('Reporting Manager Response:', response);
 
                 if (response.isSuccess && response.data) {
                     $('#reportingManager').val(response.data.fullName);
                     $('#reportingManagerId').val(response.data.id);
-                    console.log('Reporting Manager loaded:', response.data.fullName);
+
                 } else {
-                    console.warn('No reporting manager data found');
+
                     $('#reportingManager').val('Not Assigned');
                 }
             },
@@ -388,20 +387,52 @@
         });
     }
 
+
     function calculateNoticePeriod() {
         const resignationDate = $('#resignationDate').val();
         const lastWorkingDate = $('#lastWorkingDate').val();
 
-        // Always set to 0 as per requirement
-        $('#noticePeriod').val(0);
-        $('#shortFallDays').val(0);
+        // Notice period is always 30 days
+        $('#noticePeriod').val(NOTICE_PERIOD_DAYS);
 
-        // Clear any previous errors
+        // Clear previous LWD errors
         $('#lastWorkingDate').removeClass('is-invalid');
         $('#lastWorkingDateError').hide();
+
+        // Agar dono dates available hain tabhi calculate karo
+        if (resignationDate && lastWorkingDate) {
+            const resDate = new Date(resignationDate + 'T00:00:00');
+            const lwDate = new Date(lastWorkingDate + 'T00:00:00');
+
+            // --- Validation: LWD resignation date se pehle nahi ho sakta ---
+            if (lwDate < resDate) {
+                $('#lastWorkingDate').addClass('is-invalid');
+                $('#lastWorkingDateError').text('Last working date cannot be before resignation date').show();
+                $('#shortFallDays').val('');
+                return;
+            }
+
+            // Notice End Date = Resignation Date + 30 days
+            const noticeEndDate = new Date(resDate);
+            noticeEndDate.setDate(noticeEndDate.getDate() + NOTICE_PERIOD_DAYS);
+
+            // Short Fall = agar employee ne notice period poora nahi serve kiya
+            if (lwDate < noticeEndDate) {
+                const diffTime = noticeEndDate.getTime() - lwDate.getTime();
+                const shortFall = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                $('#shortFallDays').val(shortFall);
+            } else {
+                // Full notice period serve kiya — no shortfall
+                $('#shortFallDays').val(0);
+            }
+
+        } else {
+            // Dono dates nahi hain toh shortfall blank
+            $('#shortFallDays').val('');
+        }
     }
 
-        function validateForm() {
+    function validateForm() {
         let isValid = true;
         $('.error-message').hide();
         $('.form-control, .form-select').removeClass('is-invalid');
@@ -419,11 +450,18 @@
 
         if (!lastWorkingDate) {
             $('#lastWorkingDate').addClass('is-invalid');
-            $('#lastWorkingDateError').show();
+            $('#lastWorkingDateError').text('Please select last working date').show();
             isValid = false;
+        } else if (resignationDate) {
+            // Re-run date validation on submit
+            const resDate = new Date(resignationDate + 'T00:00:00');
+            const lwDate = new Date(lastWorkingDate + 'T00:00:00');
+            if (lwDate < resDate) {
+                $('#lastWorkingDate').addClass('is-invalid');
+                $('#lastWorkingDateError').text('Last working date cannot be before resignation date').show();
+                isValid = false;
+            }
         }
-
-
 
         if (!reason) {
             $('#resignationReason').addClass('is-invalid');
@@ -557,7 +595,7 @@
     function clearForm() {
         $('#resignationDate').val('');
         $('#lastWorkingDate').val('');
-        $('#noticePeriod').val('');
+        $('#noticePeriod').val(NOTICE_PERIOD_DAYS); // Clear pe wapas 30 set hoga
         $('#shortFallDays').val('');
         $('#resignationReason').val('');
         $('#comments').val('');
