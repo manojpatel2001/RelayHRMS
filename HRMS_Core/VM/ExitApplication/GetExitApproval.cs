@@ -9,6 +9,7 @@ namespace HRMS_Core.VM.ExitApplication
     public class GetExitApproval
     {
         public int ExitApplicationID { get; set; }
+        public int Employeeid { get; set; }
         public string? EmployeeCode { get; set; }
         public string? FullName { get; set; }
         public DateTime? ResignationDate { get; set; }
