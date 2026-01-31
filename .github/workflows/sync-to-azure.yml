@@ -1,41 +1,65 @@
-name: Sync to Azure DevOps
+name: Sync Azure to Azure DevOps
 
 on:
   push:
     branches:
-      - azure
+      - Azure  # Capital A - as per your GitHub branch
   workflow_dispatch:
 
 jobs:
-  sync:
+  sync-to-azure-devops:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout Azure Branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          ref: azure
+          ref: Azure  # Capital A
           fetch-depth: 0
           
-      - name: Clean and Prepare for Azure
+      - name: Configure Git with Dummy User
         run: |
           git config user.name "HRMS Development Team"
           git config user.email "dev@hrmsproject.com"
           
-          git checkout --orphan temp-clean
-          git add -A
-          git commit -m "Production Release - $(date +'%d-%m-%Y %H:%M')" --author="HRMS Development Team <dev@hrmsproject.com>"
-          
-          git branch -D azure || true
-          git branch -m azure
+      - name: Verify Branch and Commits
+        run: |
+          echo "Current branch: $(git branch --show-current)"
+          echo "Latest commit:"
+          git log -1 --pretty=format:"%h - %s (%an, %ar)"
+          echo ""
+          echo "Total commits: $(git rev-list --count HEAD)"
           
       - name: Push to Azure DevOps
         env:
           AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
         run: |
-          git remote add azuredevops https://${AZURE_DEVOPS_PAT}@dev.azure.com/hemabadgali0673/HRMS/_git/HRMS
-          git push azuredevops azure:master --force
+          # Azure DevOps repository URL
+          AZURE_URL="https://${AZURE_DEVOPS_PAT}@dev.azure.com/hemabadgali0673/HRMS/_git/HRMS"
+          
+          # Add Azure DevOps as remote
+          git remote add azuredevops "$AZURE_URL"
+          
+          # Push Azure branch to Azure DevOps master
+          git push azuredevops Azure:master --force
+          
+          echo "✅ Successfully synced to Azure DevOps"
           
       - name: Cleanup
         if: always()
         run: |
+          # Remove Azure DevOps remote for security
           git remote remove azuredevops 2>/dev/null || true
+          
+      - name: Summary
+        if: success()
+        run: |
+          echo "================================"
+          echo "✅ Azure DevOps Sync Complete!"
+          echo "================================"
+          echo "Source: Azure (GitHub)"
+          echo "Target: master (Azure DevOps)"
+          echo "Organization: hemabadgali0673"
+          echo "Project: HRMS"
+          echo "Pushed by: HRMS Development Team"
+          echo "================================"
