@@ -1,0 +1,896 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Leave/OD Status";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    body {
+        background-color: white !important;
+        margin: 0;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+    }
+
+    .leave-box {
+        background-color: white !important;
+        border: 1px solid #ccc;
+        padding: 12px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+
+    .leave-header {
+        background-color: #5a6c8f;
+        color: white;
+        font-weight: bold;
+        padding: 8px 15px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+
+    .section-header {
+        background-color: #5a6c8f;
+        color: white;
+        font-weight: bold;
+        padding: 8px 15px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        margin-top: 20px;
+    }
+
+    .form-label {
+        margin-bottom: 5px;
+        font-weight: 500;
+        display: block;
+    }
+
+    .form-group-row {
+        margin-bottom: 12px;
+    }
+
+    .btn-go {
+        background-color: #5a6c8f;
+        color: white;
+        border: none;
+        padding: 6px 20px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+        margin: 0 5px;
+        cursor: pointer !important;
+        position: relative;
+        z-index: 9999;
+    }
+
+        .btn-go:hover,
+        .btn-go:focus,
+        .btn-go:active {
+            background-color: #4a5c7f;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    /* Custom Searchable Multi-Select Styles */
+    .searchable-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .searchable-select-input {
+        width: 100%;
+        padding: 6px 35px 6px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 13px;
+        cursor: pointer !important;
+        background-color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: none;
+    }
+
+        .searchable-select-input:focus {
+            outline: none;
+            border-color: #5a6c8f;
+        }
+
+    .searchable-select-wrapper {
+        position: relative;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .searchable-select-arrow {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        width: 16px;
+        height: 16px;
+    }
+
+        .searchable-select-arrow svg {
+            width: 100%;
+            height: 100%;
+            fill: #666;
+        }
+
+    .searchable-select-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        display: none !important;
+        max-height: 300px;
+        overflow: hidden;
+    }
+
+        .searchable-select-dropdown.active {
+            display: block !important;
+        }
+
+    .searchable-select-search {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+
+        .searchable-select-search .search-input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+    .searchable-select-options {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .searchable-select-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+        .searchable-select-option:hover {
+            background-color: #f5f5f5;
+        }
+
+        .searchable-select-option.selected {
+            background-color: #e8f0fe;
+        }
+
+    select.form-select-sm {
+        width: 150px;
+        height: 32px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 4px 8px;
+        margin-right: 10px;
+    }
+
+    #grid-loader {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(3px);
+        z-index: 9998;
+    }
+
+    .grid-logo-spinner {
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0%
+
+    {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+
+    }
+
+    .grid-loading-text {
+        font-size: 16px;
+        color: #333;
+    }
+
+    /* DevExtreme Grid Header Styling */
+    .dx-datagrid-headers .dx-header-row > td,
+    .dx-datagrid-headers .dx-header-row > th {
+        background-color: #5a6c8f !important;
+        color: white !important;
+        font-weight: bold !important;
+        border-color: #495a75 !important;
+    }
+
+    .dx-datagrid .dx-datagrid-headers {
+        background-color: #5a6c8f !important;
+    }
+
+    #monthlyLeaveGrid,
+    #yearlyLeaveGrid {
+        margin-top: 15px;
+        display: none;
+    }
+
+    .total-column {
+        background-color: #f0f0f0 !important;
+        font-weight: bold;
+    }
+
+    .inline-filter-row {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+
+    .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .field-error {
+        font-size: 12px;
+        margin-top: 4px;
+    }
+</style>
+
+<!-- Top Filter Section -->
+<div class="leave-box">
+    <div class="leave-header">Employee Leave/OD Status</div>
+
+    <div class="row justify-content-center mt-3">
+        <div class="col-lg-4">
+            <div class="row">
+                <!-- Employee Dropdown -->
+                <div class="col-md-12">
+                    <label class="form-label">Employee<span class="text-danger">*</span> :</label>
+                    <div class="form-group-row">
+                        <div class="form-floating-custom flex-grow-1">
+                            <div class="searchable-select-wrapper">
+                                <input type="text" class="searchable-select-input" id="employeeDropdown" placeholder="Select Employee" readonly>
+                                <span class="searchable-select-arrow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                    </svg>
+                                </span>
+                                <div class="searchable-select-dropdown">
+                                    <div class="searchable-select-search">
+                                        <input type="text" placeholder="Search employee..." class="search-input">
+                                    </div>
+                                    <div class="searchable-select-options"></div>
+                                </div>
+                            </div>
+                            <div class="text-danger field-error" id="employeeError"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="col-md-12 text-center mt-3">
+        <!-- Go Button -->
+        <button class="btn-go" onclick="handleGoButton()">Go</button>
+
+        <!-- Clear Button -->
+        <button class="btn-go" onclick="handleClearButton()">Clear</button>
+
+        <!-- Back Button -->
+        <button class="btn-go" onclick="handleBackButton()">Back</button>
+    </div>
+</div>
+
+<!-- Loader -->
+<div id="grid-loader" class="justify-content-center align-items-center flex-column">
+    <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" />
+    <div class="grid-loading-text text-dark">Loading...</div>
+</div>
+
+<!-- Monthly Leave Status Section -->
+<div class="leave-box" id="monthlySection" style="display:none;">
+    <div class="section-header">Employee Leave Application Status</div>
+
+    <div class="inline-filter-row justify-content-center">
+        <div class="filter-item">
+            <label class="form-label">Month :</label>
+            <select class="form-select-sm" id="monthDropdown">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+        </div>
+
+        <div class="filter-item">
+            <label class="form-label">Year :</label>
+            <select class="form-select-sm" id="yearDropdownMonthly"></select>
+        </div>
+
+        <!-- Monthly Fetch Button -->
+        <button class="btn-go" onclick="handleFetchMonthly()">Go</button>
+    </div>
+
+    <div id="monthlyLeaveApplicationGrid" style="display:none; margin-top: 15px;"></div>
+
+    <div id="monthlyLeaveGrid"></div>
+</div>
+
+<!-- Yearly Leave Status Section -->
+<div class="leave-box" id="yearlySection" style="display:none;">
+    <div class="section-header">Employee Yearly Leave Status</div>
+
+    <div class="inline-filter-row justify-content-center">
+        <div class="filter-item">
+            <label class="form-label">Year :</label>
+            <select class="form-select-sm" id="yearDropdownYearly"></select>
+        </div>
+
+        <!-- Yearly Fetch Button -->
+        <button class="btn-go" onclick="handleFetchYearly()">Go</button>
+    </div>
+
+    <div id="yearlyLeaveGrid"></div>
+</div>
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    // Custom Searchable Multi-Select Plugin
+    (function($) {
+        $.fn.searchableSelect = function(options) {
+            const settings = $.extend({
+                data: [],
+                valueKey: 'value',
+                textKey: 'text',
+                placeholder: 'Select',
+                searchPlaceholder: 'Search...',
+                onChange: null
+            }, options);
+
+            return this.each(function() {
+                const $input = $(this);
+                const $wrapper = $input.closest('.searchable-select-wrapper');
+                const $dropdown = $wrapper.find('.searchable-select-dropdown');
+                const $searchInput = $dropdown.find('.search-input');
+                const $optionsContainer = $dropdown.find('.searchable-select-options');
+
+                let selectedValue = null;
+                let allData = settings.data;
+
+                $input.data('searchableSelect', {
+                    setData: function(newData) {
+                        allData = newData;
+                        selectedValue = null;
+                        renderOptions();
+                        updateInputDisplay();
+                    },
+                    getValue: function() {
+                        return selectedValue;
+                    },
+                    setValue: function(value) {
+                        selectedValue = value || null;
+                        renderOptions();
+                        updateInputDisplay();
+                    },
+                    clear: function() {
+                        selectedValue = null;
+                        renderOptions();
+                        updateInputDisplay();
+                    }
+                });
+
+                $input.on('click', function(e) {
+                    e.preventDefault();
+                    $('.searchable-select-dropdown').not($dropdown).removeClass('active');
+                    $dropdown.toggleClass('active');
+                    if ($dropdown.hasClass('active')) {
+                        $searchInput.focus();
+                    }
+                });
+
+                $dropdown.on('click', function(e) {
+                    e.stopPropagation();
+                });
+
+                $searchInput.on('input', function() {
+                    const searchTerm = $(this).val().toLowerCase();
+                    renderOptions(searchTerm);
+                });
+
+                function renderOptions(searchTerm = '') {
+                    $optionsContainer.empty();
+
+                    const filteredData = allData.filter(item => {
+                        const text = item[settings.textKey].toLowerCase();
+                        return text.includes(searchTerm.toLowerCase());
+                    });
+
+                    if (filteredData.length === 0) {
+                        $optionsContainer.html('<div style="padding: 12px; text-align: center; color: #999;">No results found</div>');
+                        return;
+                    }
+
+                    filteredData.forEach(item => {
+                        const value = item[settings.valueKey];
+                        const text = item[settings.textKey];
+                        const isSelected = selectedValue === value;
+
+                        const $option = $(`
+                            <div class="searchable-select-option ${isSelected ? 'selected' : ''}" data-value="${value}">
+                                <span>${text}</span>
+                            </div>
+                        `);
+
+                        $option.on('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            selectedValue = value;
+                            updateInputDisplay();
+                            $dropdown.removeClass('active');
+
+                            if (settings.onChange) {
+                                settings.onChange(selectedValue);
+                            }
+                        });
+
+                        $optionsContainer.append($option);
+                    });
+                }
+
+                function updateInputDisplay() {
+                    if (!selectedValue) {
+                        $input.val('').attr('placeholder', settings.placeholder);
+                    } else {
+                        const item = allData.find(d => d[settings.valueKey] === selectedValue);
+                        if (item) {
+                            $input.val(item[settings.textKey]);
+                        }
+                    }
+                }
+
+                renderOptions();
+            });
+        };
+    })(jQuery);
+
+    $(document).ready(function() {
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.searchable-select-wrapper').length) {
+                $('.searchable-select-dropdown').removeClass('active');
+            }
+        });
+
+        $('#employeeDropdown').searchableSelect({
+            data: [],
+            valueKey: 'employeeCode',
+            textKey: 'displayName',
+            placeholder: 'Select Employee',
+            searchPlaceholder: 'Search employee...'
+        });
+
+        $('.searchable-select-input').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const $dropdown = $(this).siblings('.searchable-select-dropdown');
+            $('.searchable-select-dropdown').not($dropdown).removeClass('active');
+            $dropdown.toggleClass('active');
+        });
+
+        BindEmployeeDropdown();
+        PopulateYearDropdowns();
+        SetCurrentMonthYear();
+    });
+
+    function goBack() {
+        window.history.back();
+    }
+
+    function PopulateYearDropdowns() {
+        const currentYear = new Date().getFullYear();
+        const startYear = 2025;
+
+        $('#yearDropdownMonthly').empty();
+        $('#yearDropdownYearly').empty();
+
+        for (let year = startYear; year <= currentYear; year++) {
+            $('#yearDropdownMonthly').append(`<option value="${year}">${year}</option>`);
+            $('#yearDropdownYearly').append(`<option value="${year}">${year}</option>`);
+        }
+
+        $('#yearDropdownMonthly').val(currentYear);
+        $('#yearDropdownYearly').val(currentYear);
+    }
+
+    function SetCurrentMonthYear() {
+        const currentMonth = new Date().getMonth() + 1;
+        $('#monthDropdown').val(currentMonth);
+    }
+
+    async function showLoder() {
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    async function hideLoder() {
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    async function BindEmployeeDropdown() {
+        var payLoad = {
+            BranchId: null,
+            CompanyId: CompanyId
+        };
+
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/EmployeeMasterAPI/GetEmployeeListByBranchIdForLeft',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                data: JSON.stringify(payLoad),
+                success: function(data) {
+                    if (data.isSuccess) {
+                        const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
+                        if (employeeDropdown && data.data && data.data.length > 0) {
+                            const employeeData = data.data.map(emp => ({
+                                employeeCode: emp.employeeCode,
+                                displayName: `${emp.fullName} - ${emp.employeeCode}`
+                            }));
+                            employeeDropdown.setData(employeeData);
+                        }
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch employees');
+                    }
+                },
+                error: function(error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    // Function for Go button
+    function handleGoButton() {
+        console.log("Go button clicked!");
+        const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
+        const employeeCode = employeeDropdown.getValue();
+
+        if (!employeeCode) {
+            Swal.fire("Please select an Employee");
+            return;
+        }
+
+        $('#monthlySection').show();
+        $('#yearlySection').show();
+        FetchMonthlyLeaveStatus();
+        FetchYearlyLeaveStatus();
+    }
+
+    // Function for Clear button
+    function handleClearButton() {
+        clearAllData();
+    }
+
+    // Function for Back button
+    function handleBackButton() {
+        goBack();
+    }
+
+    // Function for Monthly Fetch button
+    function handleFetchMonthly() {
+        FetchMonthlyLeaveStatus();
+    }
+
+    // Function for Yearly Fetch button
+    function handleFetchYearly() {
+        FetchYearlyLeaveStatus();
+    }
+
+    function FetchMonthlyLeaveStatus() {
+        const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
+        const employeeCode = employeeDropdown.getValue();
+
+        if (!employeeCode) {
+            Swal.fire("Please select an Employee first");
+            return;
+        }
+
+        const selectedMonth = $('#monthDropdown').val();
+        const selectedYear = $('#yearDropdownMonthly').val();
+
+        showLoder();
+
+        $.ajax({
+            url: '@baseDomainUrl/api/ReportAPI/GetEmployeeMonthlyLeaveStatus',
+            type: 'GET',
+            data: {
+                EmpId: employeeCode,
+                SelectedMonth: selectedMonth,
+                SelectedYear: selectedYear,
+                CompId: CompanyId
+            },
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function(response) {
+                hideLoder();
+                if (response.isSuccess) {
+                    if (response.data.leaveApplications && response.data.leaveApplications.length > 0) {
+                        RenderMonthlyLeaveApplicationGrid(response.data.leaveApplications);
+                        $('#monthlyLeaveApplicationGrid').show();
+                    } else {
+                        $('#monthlyLeaveApplicationGrid').hide();
+                    }
+
+                    if (response.data.leaveStatuses && response.data.leaveStatuses.length > 0) {
+                        RenderMonthlyLeaveStatusGrid(response.data.leaveStatuses);
+                        $('#monthlyLeaveGrid').show();
+                    } else {
+                        $('#monthlyLeaveGrid').hide();
+                    }
+
+                    if ((!response.data.leaveApplications || response.data.leaveApplications.length === 0) &&
+                        (!response.data.leaveStatuses || response.data.leaveStatuses.length === 0)) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'No Data Found',
+                            text: 'No records found for the selected criteria.'
+                        });
+                    }
+                } else {
+                    Swal.fire(response.responseMessage || "Error fetching data");
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoder();
+                Swal.fire("Error occurred while fetching data");
+                console.error(error);
+            }
+        });
+    }
+
+    function RenderMonthlyLeaveApplicationGrid(data) {
+        if ($("#monthlyLeaveApplicationGrid").data('dxDataGrid')) {
+            $("#monthlyLeaveApplicationGrid").dxDataGrid('dispose');
+        }
+
+        $("#monthlyLeaveApplicationGrid").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            columnAutoWidth: true,
+            height: 'auto',
+            paging: { enabled: true, pageSize: 10 },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 20, 50],
+                showInfo: true
+            },
+            searchPanel: { visible: true },
+            export: {
+                enabled: false
+            },
+            columns: [
+                { dataField: "leaveType", caption: "Leave Name", alignment: "center" },
+                { dataField: "leavePeriod", caption: "Leave Period", alignment: "center", format: "#0.00" },
+                { dataField: "fromDate", caption: "From Date", alignment: "center", dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "toDate", caption: "To Date", alignment: "center", dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "leaveStatus", caption: "Leave Status", alignment: "center" }
+            ]
+        });
+    }
+
+    function FetchYearlyLeaveStatus() {
+        const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
+        const employeeCode = employeeDropdown.getValue();
+
+        if (!employeeCode) {
+            Swal.fire("Please select an Employee first");
+            return;
+        }
+
+        const selectedYear = $('#yearDropdownYearly').val();
+
+        showLoder();
+
+        $.ajax({
+            url: '@baseDomainUrl/api/ReportAPI/GetEmployeeYearlyLeaveStatus',
+            type: 'GET',
+            data: {
+                EmpId: employeeCode,
+                CompId: CompanyId,
+                Year: selectedYear
+            },
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function(response) {
+                hideLoder();
+                if (response.isSuccess) {
+                    if (response.data && response.data.length > 0) {
+                        RenderYearlyLeaveGrid(response.data);
+                    } else {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'No Data Found',
+                            text: 'No records found for the selected criteria.'
+                        });
+                        $('#yearlyLeaveGrid').hide();
+                    }
+                } else {
+                    Swal.fire(response.responseMessage || "Error fetching data");
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoder();
+                Swal.fire("Error occurred while fetching data");
+                console.error(error);
+            }
+        });
+    }
+
+    function RenderMonthlyLeaveStatusGrid(data) {
+        if ($("#monthlyLeaveGrid").data('dxDataGrid')) {
+            $("#monthlyLeaveGrid").dxDataGrid('dispose');
+        }
+
+        $("#monthlyLeaveGrid").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            columnAutoWidth: true,
+            height: 'auto',
+            paging: { enabled: true, pageSize: 10 },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 20, 50],
+                showInfo: true
+            },
+            searchPanel: { visible: true },
+            export: {
+                enabled: false
+            },
+            columns: [
+                { dataField: "leaveType", caption: "Leave Type", alignment: "center" },
+                { dataField: "opening", caption: "Opening", alignment: "center", format: "#0.00" },
+                { dataField: "credit", caption: "Credit", alignment: "center", format: "#0.00" },
+                { dataField: "used", caption: "Used", alignment: "center", format: "#0.00" },
+                { dataField: "balance", caption: "Balance", alignment: "center", format: "#0.00" }
+            ]
+        });
+
+        $("#monthlyLeaveGrid").show();
+    }
+
+    function RenderYearlyLeaveGrid(data) {
+        if ($("#yearlyLeaveGrid").data('dxDataGrid')) {
+            $("#yearlyLeaveGrid").dxDataGrid('dispose');
+        }
+
+        $("#yearlyLeaveGrid").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            columnAutoWidth: true,
+            allowColumnResizing: true,
+            columnResizingMode: "widget",
+            height: 'auto',
+            paging: { enabled: true, pageSize: 10 },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 20, 50],
+                showInfo: true
+            },
+            searchPanel: { visible: true },
+            export: {
+                enabled: false
+            },
+            columns: [
+                {
+                    dataField: "leaveName",
+                    caption: "Leave Name",
+                    minWidth: 150,
+                    fixed: true,
+                    fixedPosition: "left",
+                    alignment: "left"
+                },
+                { dataField: "jan", caption: "Jan", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "feb", caption: "Feb", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "mar", caption: "Mar", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "apr", caption: "Apr", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "may", caption: "May", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "jun", caption: "Jun", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "jul", caption: "Jul", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "aug", caption: "Aug", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "sep", caption: "Sep", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "oct", caption: "Oct", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "nov", caption: "Nov", minWidth: 60, alignment: "center", format: "#0.00" },
+                { dataField: "dec", caption: "Dec", minWidth: 60, alignment: "center", format: "#0.00" },
+                {
+                    dataField: "total",
+                    caption: "Total",
+                    minWidth: 80,
+                    alignment: "center",
+                    format: "#0.00",
+                    cssClass: "total-column"
+                }
+            ],
+            scrolling: {
+                mode: "standard"
+            },
+            onContentReady: function(e) {
+                e.component.updateDimensions();
+            }
+        });
+
+        $("#yearlyLeaveGrid").show();
+    }
+
+    function clearAllData() {
+        const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
+        if (employeeDropdown) {
+            employeeDropdown.clear();
+        }
+
+        SetCurrentMonthYear();
+        PopulateYearDropdowns();
+
+        $('#monthlySection').hide();
+        $('#yearlySection').hide();
+        $('#monthlyLeaveGrid').hide();
+        $('#yearlyLeaveGrid').hide();
+        $('#monthlyLeaveApplicationGrid').hide();
+    }
+</script>

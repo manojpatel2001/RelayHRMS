@@ -3,6 +3,9 @@
 	ViewData["Title"] = "Ticket Type";
 	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
 	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+	string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
+	var uriAPI = new Uri(baseUrl);
+	string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
 }
 <style>
 	.nav-tabs {
@@ -33,7 +36,23 @@
 
 			<div class="col-6 d-flex justify-content-end align-items-center">
 				<div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
-					<i class="fadeIn animated bx bx-refresh" id="refreshData" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Refresh Data"></i>
+
+					<div class="input-group ">
+						<button id="addTypeBtn"
+								type="button"
+								class="btn mr-1 rounded-1"
+								style="background-color:#2395c6; color:white;">
+							Add Type
+						</button>
+
+						<button id="addPriorityBtn"
+								type="button"
+								class="btn mr-1 rounded-1 d-none"
+								style="background-color:#2395c6; color:white;">
+							Add Priority
+						</button>
+
+					</div>
 				</div>
 			</div>
 		</div>
@@ -45,61 +64,45 @@
 				Type Master
 			</button>
 		</li>
-		<li class="nav-item" role="presentation py-2">
-			<button class="nav-link open-modal" data-bs-toggle="tab" data-bs-target="#priorityTab" type="button" role="tab" data-tabname="Priority Master">
+		<li class="nav-item" role="presentation">
+			<button class="nav-link open-modal py-2" data-bs-toggle="tab" data-bs-target="#priorityTab" type="button" role="tab" data-tabname="Priority Master">
 				Priority Master
 			</button>
 		</li>
 	</ul>
 
 	<div class="card-body">
-		<div class="row me-3">
-			<div class="col-md-12 btn-heading-title">
-				<div class="input-group mb-2">
-					<button id="addTypeBtn"
-							type="button"
-							class="btn mr-1 rounded-1"
-							style="background-color:#2395c6; color:white;">
-						Add Type
-					</button>
-
-					<button id="addPriorityBtn"
-							type="button"
-							class="btn mr-1 rounded-1 d-none"
-							style="background-color:#2395c6; color:white;">
-						Add Priority
-					</button>
-				</div>
-			</div>
-		</div>
-
 		<div class="row">
 			<div class="col-md-12">
 				<div class="form-group">
 					<div id="typeGrid" class="grid-section">
-						<div class="rowCount" id="rowCount1"></div>
-						<div id="typeGridContainer">
-							<!-- Your grid content for Type -->
-							<div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
-								<div class="spinner-border text-primary" role="status">
-									<span class="visually-hidden">Loading...</span>
-								</div>
-							</div>
+						
+						<div class="grid-wrapper " style="position: relative; " id="gridTagType">
+							<div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+								 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+								<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+								<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
 
+							</div>
+							<div class="rowCount" id="rowCount1"></div>
+							<div id="typeGridContainer"></div>
 						</div>
+						<div id="divNoRecord" class="text-center text-muted" style="display:none;">No Record Found!</div>
 					</div>
 
 					<div id="priorityGrid" class="grid-section d-none">
-						<div class="rowCount" id="rowCount2"></div>
-						<div id="priorityGridContainer">
-							<!-- Your grid content for Priority -->
-							<div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
-								<div class="spinner-border text-primary" role="status">
-									<span class="visually-hidden">Loading...</span>
-								</div>
-							</div>
+						
+						<div class="grid-wrapper " style="position: relative; " id="gridTagPriority">
+							<div id="grid-loader-priority" class="grid-loader justify-content-center align-items-center flex-column "
+								 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+								<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+								<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
 
+							</div>
+							<div class="rowCount" id="rowCount2"></div>
+							<div id="priorityGridContainer"></div>
 						</div>
+						<div id="divNoRecordPriority" class="text-center text-muted" style="display:none;">No Record Found!</div>
 					</div>
 				</div>
 			</div>
@@ -111,7 +114,7 @@
 	<div class="modal-dialog modal-md">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Create</span> Ticket Type</h5>
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Add</span> Ticket Type</h5>
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body modal-body-font">
@@ -121,11 +124,12 @@
 							<input type="text"
 								   class="form-control floating-input"
 								   placeholder="Ticket Type"
+								   data-trim-input
 								   id="txtTicketType" />
-							<label class="floating-label" for="txtTicketType">Ticket Type</label>
-							<span id="spnTicketType" style="color:red; display:none;">Please Enter Ticket Type</span>
-
+							<label class="floating-label" for="txtTicketType">Ticket Type<span class="text-danger">*</span></label>
 						</div>
+						<span id="spnTicketType" style="color:red; display:none;">Please Enter Ticket Type</span>
+
 					</div>
 				</div>
 				<div class="row">
@@ -136,17 +140,18 @@
 								<option value="" selected disabled>Select Department</option>
 							</select>
 
-							<label class="floating-label" for="drpDepartment">Department Name</label>
-							<span id="spnDepartment" style="color:red; display:none;">Please Select Department Name</span>
-
+							<label class="floating-label" for="drpDepartment">Department Name<span class="text-danger">*</span></label>
 						</div>
+						<span id="spnDepartment" style="color:red; display:none;">Please Select Department Name</span>
+
 					</div>
 					
 				</div>
 
 			</div>
 			<div class="modal-footer btn-heading-title">
-				<button type="button" class="btn btn-primary" id="btnCreateTicketType" style="background-color:#2395c6; color:white;">Create</button>
+				
+				<button type="button" class="btn btn-primary" id="btnCreateTicketType" style="background-color:#2395c6; color:white;">Save</button>
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 			</div>
 		</div>
@@ -158,7 +163,7 @@
 	<div class="modal-dialog modal-md">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Create</span> Ticket Priority</h5>
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Add</span> Ticket Priority</h5>
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body modal-body-font">
@@ -168,34 +173,33 @@
 							<input type="text"
 								   class="form-control floating-input"
 								   placeholder="Ticket Priority"
+								   data-trim-input
 								   id="txtTicketPriority" />
-							<label class="floating-label" for="txtTicketPriority">Ticket Priority</label>
-							<span id="spnTicketPriority" style="color:red; display:none;">Please Enter Ticket Priority</span>
-
+							<label class="floating-label" for="txtTicketPriority">Ticket Priority<span class="text-danger">*</span></label>
 						</div>
+						<span id="spnTicketPriority" style="color:red; display:none;">Please Enter Ticket Priority</span>
+
 					</div>
 				</div>
 				<div class="row">
 					<div class="col-md-12">
 						<div class="form-group mt-3 position-relative">
-							<input type="number"
+							<input type="text"
 								   class="form-control floating-input"
 								   placeholder="Escalation Hours"
 								   id="txtEscalationHours"
-								   step="1"
-								   min="0"
-								   oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
-							<label class="floating-label" for="txtEscalationHours">Escalation Hours</label>
-							<span id="spnEscalationHours" style="color:red; display:none;">Please Enter Escalation Hours</span>
-
+								   data-decimal  />
+							<label class="floating-label" for="txtEscalationHours">Escalation Hours<span class="text-danger">*</span></label>
 						</div>
+						<span id="spnEscalationHours" style="color:red; display:none;">Please Enter Escalation Hours</span>
+
 					</div>
 
 				</div>
 
 			</div>
 			<div class="modal-footer btn-heading-title">
-				<button type="button" class="btn btn-primary" id="btnCreateTicketPriority" style="background-color:#2395c6; color:white;">Create</button>
+				<button type="button" class="btn btn-primary" id="btnCreateTicketPriority" style="background-color:#2395c6; color:white;">Save</button>
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 			</div>
 		</div>
@@ -205,9 +209,13 @@
 
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+		const EmployeeId = localStorage.getItem("EmployeeId");
+		  var Token=localStorage.getItem("authToken");
+	   const savedCompany = localStorage.getItem('selectedCompany');
+	   const companyDetails = JSON.parse(savedCompany || '{}');
+	   const companyId = parseInt(companyDetails.CompanyId);
 	let TicketTypeId=0;
 	   let TicketPriorityId=0;
 
@@ -240,49 +248,56 @@
 	});
 
 
+
 	$("#addTypeBtn").click( () => {
 		 clearTicketTypeForm();
-		 $('.formType').text('Create');
-		$('#btnCreateTicketType').text('Create');
 	  $("#addTicketTypeModel").modal('show');
 
 	})
 
 	$("#addPriorityBtn").click( () => {
 			clearTicketPriorityForm();
-		$('.formType').text('Create');
-		 $('#btnCreateTicketPriority').text('Create');
+		
 	  $("#addTicketPriorityModel").modal('show');
 
 	})
 
+	function showTypeNoRecord()
+	{
+	   $("#divNoRecord").show();
+		$("#gridTagType").hide();
+	}
+		
+	function hideTypeNoRecord()
+	{
+	   $("#divNoRecord").hide();
+		$("#gridTagType").show();
+	}
 
-		$("#refreshData").click( () => {
-			localStorage.removeItem('ticketPriorityLocalstorage');
-			resetGridFilters( $('#priorityGridContainer').dxDataGrid('instance'));
-			TicketPriorityDataTable();
-			   localStorage.removeItem('ticketTypeLocalstorage');
-			  resetGridFilters( $('#typeGridContainer').dxDataGrid('instance'));
-			TicketTypeDataTable();
-	   })
-
-	  function resetGridFilters(gridInstance) {
-		   if (gridInstance) {
-			   gridInstance.clearFilter();            // Clear all filters
-			   gridInstance.clearSorting();           // Clear all sorting
-
-		   }
-	   }
-
+	function showPriorityNoRecord()
+	{
+		$("#divNoRecordPriority").show();
+		$("#gridTagPriority").hide();
+	}
+		
+	function hidePriorityNoRecord()
+	{
+		$("#divNoRecordPriority").hide();
+		$("#gridTagPriority").show();
+	}
+		
  function BindDepartment() {
 		$.ajax({
 			type: "GET",
-			url: '@baseUrl/DepartmentAPI/GetAllDepartment',
+			url: '@baseUrl/DepartmentAPI/GetAllDepartments',
+			   headers: {
+					   'Authorization': 'Bearer ' + Token
+				   },
 			success: function (response) {
 				if (response.isSuccess && response.data && response.data.length > 0) {
 					var $dropdown = $("#dropdownDepartment");
 					$dropdown.empty(); // Clear existing options
-					$dropdown.append('<option value="" selected disabled>Select Department</option>'); // Default option
+					$dropdown.append('<option value="" selected disabled>Select</option>'); // Default option
 
 					$.each(response.data, function (index, department) {
 						$dropdown.append(
@@ -310,20 +325,27 @@
 	});
 
 	function TicketTypeDataTable() {
-		$.ajax({
+	 try {
+        $('#grid-loader').addClass('d-flex').show();
+	   
+		 $.ajax({
 			type: "GET",
-			url: '@baseUrl/TicketTypeAPI/GetAllTicketType',  // Update the URL based on the API you're using
-			success: function (data) {
+			 url: '@baseUrl/TicketTypeAPI/GetAllTicketTypes/'+companyId,  // Update the URL based on the API you're using
+			headers: {
+					'Authorization': 'Bearer ' + Token
+				},
+			 success: function (data) {
 				// Check if the API call was successful
 				if (data.isSuccess) {
+					   hideTypeNoRecord();
 					$("#typeGridContainer").dxDataGrid({
 						dataSource: data.data,  // Use the 'data' field from the API response
 						stateStoring: { enabled: true, type: 'localStorage', storageKey: 'ticketTypeLocalstorage' },
 
 						columns: [
-						
-							{ dataField: 'ticketTypeName', caption: 'Ticket Type Name', alignment: 'center', dataType: 'string' },
-							{ dataField: 'departmentName', caption: 'Department Name', alignment: 'center', dataType: 'number' },
+
+								{ dataField: 'ticketTypeName', caption: 'Ticket Type Name',alignment: 'left' },
+								{ dataField: 'departmentName', caption: 'Department Name',alignment: 'left' },
 								   {
 								   dataField: '',
 								   caption: '',
@@ -375,15 +397,7 @@
 									   svgElement.attr('title', 'Delete Ticket Type');
 								   }
 							   }
-							// {
-							// 	dataField: 'isEnabled',
-							// 	caption: 'Status',
-							// 	alignment: 'center',
-							// 	dataType: 'string',
-							// 	calculateCellValue: function (data) {
-							// 		return data.isEnabled ? "Active" : "Inactive"; // Based on isEnabled field value
-							// 	}
-							// }
+							
 						],
 						columnsAutoWidth: true,
 						wordWrapEnabled: false,
@@ -399,56 +413,56 @@
 						searchPanel: { visible: true, width: 240, placeholder: "Search..." },
 						allowColumnReordering: true,
 						columnFixing: { enabled: false },
-						onExporting: function (e) {
-							e.component.beginUpdate();
-							e.component.columnOption("Button", "visible", false);
-							e.component.columnOption("Add", "visible", false);
-						},
-						onExported: function (e) {
-							e.component.columnOption("Button", "visible", true);
-							e.component.columnOption("Add", "visible", true);
-							e.component.endUpdate();
-						},
-						onCellPrepared: function (e) {
-							if (e.rowType === "header" || e.rowType === "group") {
-								e.cellElement.css("text-align", "center");
-								if (e.rowType === "header") {
-									e.cellElement.css("font-weight", "bold");
-								}
-							}
-						},
+						
 						onContentReady(e) {
 							   $('#rowCount1').html('Total Records: ' + $("#typeGridContainer").dxDataGrid('instance').totalCount());
 						}
 					}).dxDataGrid('instance');
 				} else {
+					   showTypeNoRecord();
 					// Handle failure case
-					alert('Error: ' + data.responseMessage);
+					
 				}
+					  $('#grid-loader').removeClass('d-flex').hide();
+
 			},
 			error: function (xhr, status, error) {
+				  $('#grid-loader').removeClass('d-flex').hide();
+
 				// Handle any errors that occurred during the AJAX request
 				console.error("AJAX Error: " + status + " - " + error);
-				alert("An error occurred while fetching the data. Please try again later.");
+
 			}
 		});
-	}
+
+	  } catch (e)
+	  {
+		   console.error("Error in TicketPriorityDataTable:", e);
+		   $('#grid-loader').removeClass('d-flex').hide();
+		   showPriorityNoRecord();
+	  }
+}
 
 	function TicketPriorityDataTable() {
+		$('#grid-loader-priority').addClass('d-flex').show();
 		$.ajax({
 			type: "GET",
-			url: '@baseUrl/TicketPriorityAPI/GetAllTicketPriority',  // Update the URL based on the API you're using
+			url: '@baseUrl/TicketPriorityAPI/GetAllTicketPriority/'+companyId,  // Update the URL based on the API you're using
+			headers: {
+				'Authorization': 'Bearer ' + Token
+			},
 			success: function (data) {
 				// Check if the API call was successful
 				if (data.isSuccess) {
+						hidePriorityNoRecord();
 					$("#priorityGridContainer").dxDataGrid({
 						dataSource: data.data,  // Use the 'data' field from the API response
 						stateStoring: { enabled: true, type: 'localStorage', storageKey: 'ticketPriorityLocalstorage' },
 
 						columns: [
-						
-							{ dataField: 'ticketPriorityName', caption: 'Ticket Priority Name', alignment: 'center', dataType: 'string' },
-							{ dataField: 'escalationHours', caption: 'Escalation Hours', alignment: 'center', dataType: 'number' },
+
+								{ dataField: 'ticketPriorityName', caption: 'Ticket Priority Name',alignment: 'left' },
+								{ dataField: 'escalationHours', caption: 'Escalation Hours' ,alignment: 'left'},
 							   {
 								   dataField: '',
 								   caption: '',
@@ -498,15 +512,7 @@
 									   svgElement.attr('title', 'Delete Ticket Priority');
 								   }
 							   }
-							// {
-							// 	dataField: 'isEnabled',
-							// 	caption: 'Status',
-							// 	alignment: 'center',
-							// 	dataType: 'string',
-							// 	calculateCellValue: function (data) {
-							// 		return data.isEnabled ? "Active" : "Inactive"; // Based on isEnabled field value
-							// 	}
-							// }
+							
 							
 						],
 						columnsAutoWidth: true,
@@ -523,49 +529,37 @@
 						searchPanel: { visible: true, width: 240, placeholder: "Search..." },
 						allowColumnReordering: true,
 						columnFixing: { enabled: false },
-						onExporting: function (e) {
-							e.component.beginUpdate();
-							e.component.columnOption("Button", "visible", false);
-							e.component.columnOption("Add", "visible", false);
-						},
-						onExported: function (e) {
-							e.component.columnOption("Button", "visible", true);
-							e.component.columnOption("Add", "visible", true);
-							e.component.endUpdate();
-						},
-						onCellPrepared: function (e) {
-							if (e.rowType === "header" || e.rowType === "group") {
-								e.cellElement.css("text-align", "center");
-								if (e.rowType === "header") {
-									e.cellElement.css("font-weight", "bold");
-								}
-							}
-						},
+						
 						onContentReady(e) {
 							$('#rowCount2').html('Total Records: ' + $("#priorityGridContainer").dxDataGrid('instance').totalCount());
 						}
 					}).dxDataGrid('instance');
 				} else {
+						showPriorityNoRecord();
 					// Handle failure case
-					alert('Error: ' + data.responseMessage);
+					
 				}
+					 $('#grid-loader-priority').removeClass('d-flex').hide();
 			},
 			error: function (xhr, status, error) {
+						$('#grid-loader-priority').removeClass('d-flex').hide();
 				// Handle any errors that occurred during the AJAX request
 				console.error("AJAX Error: " + status + " - " + error);
-				alert("An error occurred while fetching the data. Please try again later.");
+				
 			}
 		});
 	}
 
 	function clearTicketTypeForm()
 	{
+			TicketTypeId=0
+		$('#txtTicketType').val("");
+		$('#dropdownDepartment').val("");
 		$("#btnCreateTicketType").prop("disabled", false);
-		$('#txtTicketType').val('');
-		$('#dropdownDepartment').val('');
+		$('.formType').text('Add');
+		$('#btnCreateTicketType').text('Save');
 		   $('#spnTicketType').hide();
-			  $('#spnDepartment').hide();
-		TicketTypeId = 0;
+		  $('#spnDepartment').hide();
 	}
 
 
@@ -573,7 +567,7 @@
 		$("#btnCreateTicketType").prop("disabled", true);
 		let isValid = true;
 
-		const ticketType = $('#txtTicketType').val().trim();
+		const ticketType = $('#txtTicketType').val();
 		const departmentId = $('#dropdownDepartment').val();
 
 		// Validation
@@ -583,8 +577,7 @@
 		} else {
 			$('#spnTicketType').hide();
 		}
-
-		if (departmentId === '') {
+		if (!departmentId) {
 		   $('#spnDepartment').show();
 			isValid = false;
 		}
@@ -601,14 +594,20 @@
 			ticketTypeId:TicketTypeId==0?0:TicketTypeId,
 			ticketTypeName: ticketType,
 			departmentId: departmentId,
-			createdBy: TicketTypeId==0?null:null,
-			updatedBy:TicketTypeId==0?null:null
+			CompanyId:companyId,
+			createdBy: TicketTypeId==0?EmployeeId:null,
+			updatedBy:TicketTypeId==0?null:EmployeeId
 		};
 
+		 typeUrl=TicketTypeId==0?'@baseUrl/TicketTypeAPI/CreateTicketType':'@baseUrl/TicketTypeAPI/UpdateTicketType';
+		 TypeMethod=TicketTypeId==0?"POST":"PUT";
 		$.ajax({
-			url: '@baseUrl/TicketTypeAPI/CreateTicketType',
-			type: 'POST',
+			url: typeUrl,
+			type: TypeMethod,
 			contentType: 'application/json',
+			headers: {
+						'Authorization': 'Bearer ' + Token
+					},
 			data: JSON.stringify(data),
 			success: function (response) {
 				if(response.isSuccess)
@@ -624,19 +623,20 @@
 				TicketTypeDataTable(); // optional: reload list
 			},
 			error: function (xhr, status, error) {
-				round_error_noti("Error while creating ticket type");
-			},
-			complete: function () {
 				$("#btnCreateTicketType").prop("disabled", false);
+				round_error_noti("Error while creating ticket type");
 			}
+			
+				
+			
 		});
 	});
 
-
+	
 	function updateTicketType(data) {
-		$("#btnCreateTicketType").prop("disabled", false);
-		$('#txtTicketType').val(data.ticketTypeName);
-		$('#dropdownDepartment').val(data.departmentId);
+			clearTicketTypeForm();
+		$('#txtTicketType').val(data.ticketTypeName||"");
+		$('#dropdownDepartment').val(data.departmentId||"");
 
 		$('.formType').text('Update');
 		$('#btnCreateTicketType').text('Update');
@@ -655,16 +655,19 @@
 
 		   var deleteObj = {
 			   id: data.ticketTypeId,
-			   deletedBy: null // Set this if you have a logged-in user ID
+			   deletedBy: EmployeeId // Set this if you have a logged-in user ID
 		   };
 
 		   $.ajax({
 			  url: '@baseUrl/TicketTypeAPI/DeleteTicketType',
 			   type: 'DELETE',
 			   contentType: 'application/json',
+			   headers: {
+				   'Authorization': 'Bearer ' + Token
+			   },
 			   data: JSON.stringify(deleteObj),
 			   success: function (response) {
-					 if(response.isSuccess)
+				   if(response.isSuccess)
 				   {
 					 round_success_noti(response.responseMessage);
 				   }
@@ -675,7 +678,7 @@
 				TicketTypeDataTable();
 			   },
 			   error: function (error) {
-				   alert('Error deleting ticket type!');
+					  console.log(error);
 			   }
 		   });
 	   }
@@ -693,6 +696,9 @@
 			$('#txtTicketPriority').val('');
 				$('#txtEscalationHours').val('');
 			$('#spnTicketPriority').hide();
+				$('#spnEscalationHours').hide();
+				$('.formType').text('Add');
+			 $('#btnCreateTicketPriority').text('Save');
 				TicketPriorityId = 0;
 	   }
 
@@ -701,7 +707,7 @@
 			$("#btnCreateTicketPriority").prop("disabled", true);
 		    let isValid = true;
 
-			const ticketPriority = $('#txtTicketPriority').val().trim();
+			const ticketPriority = $('#txtTicketPriority').val();
 			const escalationHours = $('#txtEscalationHours').val();
 
 			if (ticketPriority === '') 
@@ -727,19 +733,24 @@
 			 $("#btnCreateTicketPriority").prop("disabled", false);
 			   return;
 		   }
-
+				typeUrl=TicketPriorityId==0?'@baseUrl/TicketPriorityAPI/CreateTicketPriority':'@baseUrl/TicketPriorityAPI/UpdateTicketPriority';
+				  TypeMethod=TicketPriorityId==0?"POST":"PUT";
 		   const data = {
 			   ticketPriorityId:TicketPriorityId==0?0:TicketPriorityId,
 			   ticketPriorityName: ticketPriority,
 			   escalationHours: escalationHours,
-				createdBy: TicketPriorityId==0?null:null,
-				updatedBy:TicketPriorityId==0?null:null
+				CompanyId:companyId,
+				   createdBy: TicketPriorityId==0?EmployeeId:null,
+					updatedBy:TicketPriorityId==0?null:EmployeeId
 		   };
 
 		   $.ajax({
-			  url: '@baseUrl/TicketPriorityAPI/CreateTicketPriority',
-			   type: 'POST',
+				url: typeUrl,
+				type: TypeMethod,
 			   contentType: 'application/json',
+				 headers: {
+					'Authorization': 'Bearer ' + Token
+				},
 			   data: JSON.stringify(data),
 			   success: function (response) {
 				   if(response.isSuccess)
@@ -754,22 +765,22 @@
 					  TicketPriorityDataTable(); // optional: reload list
 			   },
 			   error: function (xhr, status, error) {
+					   $("#btnCreateTicketPriority").prop("disabled", false);
 					  round_error_noti("Error while creating ticket priority");
-			   },
-			   complete: function () {
-					  $("#btnCreateTicketPriority").prop("disabled", false);
 			   }
+			   
+			   
 		   });
 	   });
 
 
 		function updateTicketPriority(data)
 		{
-			  $("#btnCreateTicketPriority").prop("disabled", false);
+				clearTicketPriorityForm();
 			  $('#txtTicketPriority').val(data.ticketPriorityName);
-			  $('#txtEscalationHours').val(data.ticketPriorityId);
+				  $('#txtEscalationHours').val(data.escalationHours);
 
-		   $('.formType').text('Update');
+		       $('.formType').text('Update');
 			  $('#btnCreateTicketPriority').text('Update');
 			  TicketPriorityId = data.ticketPriorityId;
 
@@ -786,13 +797,16 @@
 
 			  var deleteObj = {
 				  id: data.ticketPriorityId,
-				  deletedBy: null // Set this if you have a logged-in user ID
+				  deletedBy: EmployeeId // Set this if you have a logged-in user ID
 			  };
 
 			  $.ajax({
 				  url: '@baseUrl/TicketPriorityAPI/DeleteTicketPriority',
 				  type: 'DELETE',
 				  contentType: 'application/json',
+					headers: {
+						'Authorization': 'Bearer ' + Token
+					},
 				  data: JSON.stringify(deleteObj),
 				  success: function (response) {
 						if(response.isSuccess)
@@ -806,7 +820,7 @@
 					  TicketPriorityDataTable();
 				  },
 				  error: function (error) {
-						 alert('Error deleting ticket priority!');
+						console.log('Error deleting ticket priority!');
 				  }
 			  });
 		  }

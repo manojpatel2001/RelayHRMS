@@ -9,15 +9,14 @@ namespace HRMS_Core.VM.Leave
     public class AttendanceReportVm
     {
 
-        public List<string>? EmployeeCodes { get; set; }
-        public int? BranchId { get; set; }
+        public List<int>? EmployeeIds { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
     }
     public class AttendanceReportforAdminVm
     {
-
-        public string? EmployeeCodes { get; set; }
+        public List<int>? EmployeeIds { get; set; }
+        public List<int>? BranchIds { get; set; }  // New property for branch filtering
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
     }

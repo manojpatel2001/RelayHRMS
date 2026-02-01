@@ -1,0 +1,562 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Loan Management";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uriAPI = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
+}
+
+<div class="no-print-content">
+    <div class="card">
+        <div class="card-header bg-transparent ml-0 py-0">
+            <div class="row">
+                <div class="col-6">
+                    <h6 class="p-2 mb-0">
+                        Manage Loan Applications
+                    </h6>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="grid-wrapper" style="position: relative;">
+                        <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column"
+                             style="display: none; position: absolute; inset: 0; background: rgba(255,255,255,0.6); z-index: 10;">
+                            <img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+                            <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+                        </div>
+                        <div class="rowCount" id="rowCount2"></div>
+                        <div id="GridContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Loan Status Update -->
+<div class="modal fade" id="loanStatusModal" tabindex="-1" role="dialog" aria-labelledby="loanStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loanStatusModalLabel">Update Loan Status</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="loanStatusForm">
+                    <div class="form-group">
+                        <label for="loanStatus">Loan Status <span class="text-danger">*</span></label>
+                        <select class="form-control" id="loanStatus" required>
+                            <option value="">Select Status</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="remarks">Remarks <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="remarks" rows="3" placeholder="Enter your remarks" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="confirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Bootstrap Icons CDN in head section if not already included -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script>
+    const EmployeeId = localStorage.getItem("EmployeeId");
+    var Token = localStorage.getItem("authToken");
+    var gridInstance;
+    var currentLoanData = null;
+    var loanStatusList = [];
+
+    $(() => {
+        // Load loan statuses first, then load the grid
+        loadLoanStatuses();
+
+        // Close button handlers - Fixed
+        $('#loanStatusModal .close, #loanStatusModal [data-dismiss="modal"]').on('click', function() {
+            $('#loanStatusModal').modal('hide');
+        });
+
+        // Confirm button click handler
+        $('#confirmBtn').on('click', function() {
+            const statusId = $('#loanStatus').val();
+            const remarks = $('#remarks').val().trim();
+
+            if (!statusId) {
+                round_error_noti('Please select a loan status'); // Changed from alert
+                return;
+            }
+
+            if (!remarks) {
+                round_error_noti('Please enter remarks'); // Changed from alert
+                return;
+            }
+
+            if (currentLoanData) {
+                // Find the selected status object
+                const selectedStatus = loanStatusList.find(s => {
+                    const id = s.probationStatusId || s.ProbationStatusId ||
+                              s.statusId || s.StatusId ||
+                              s.id || s.Id;
+                    return id == statusId;
+                });
+
+                let statusName = '';
+                if (selectedStatus) {
+                    statusName = selectedStatus.probationStatusName || selectedStatus.ProbationStatusName ||
+                                selectedStatus.statusName || selectedStatus.StatusName ||
+                                selectedStatus.name || selectedStatus.Name || '';
+                }
+
+                updateLoanApplication(currentLoanData, statusId, statusName, remarks);
+            }
+        });
+
+        // Reset form when modal is closed
+        $('#loanStatusModal').on('hidden.bs.modal', function () {
+            $('#loanStatusForm')[0].reset();
+            currentLoanData = null;
+        });
+
+        // Additional fix: Handle ESC key
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape' && $('#loanStatusModal').hasClass('show')) {
+                $('#loanStatusModal').modal('hide');
+            }
+        });
+    });
+
+    function loadLoanStatuses() {
+        $.ajax({
+            type: "GET",
+            url: '@baseUrl/LoanApplicationAPI/GetAllLoanStatus',
+            headers: {
+                'Authorization': 'Bearer ' + Token,
+                'Content-Type': 'application/json'
+            },
+            success: function (response) {
+                console.log("Loan Status API Response:", response);
+
+                if (response.isSuccess && response.data) {
+                    loanStatusList = response.data;
+
+                    // Log first item to check property names
+                    if (loanStatusList.length > 0) {
+                        console.log("First status object:", loanStatusList[0]);
+                        console.log("Available properties:", Object.keys(loanStatusList[0]));
+                    }
+
+                    // Populate dropdown
+                    const dropdown = $('#loanStatus');
+                    dropdown.empty();
+                    dropdown.append('<option value="">Select Status</option>');
+
+                    loanStatusList.forEach(function(status) {
+                        // Try different possible property name combinations
+                        const statusId = status.probationStatusId || status.ProbationStatusId ||
+                                       status.statusId || status.StatusId ||
+                                       status.id || status.Id;
+                        const statusName = status.probationStatusName || status.ProbationStatusName ||
+                                         status.statusName || status.StatusName ||
+                                         status.name || status.Name;
+
+                        console.log(`Adding status - ID: ${statusId}, Name: ${statusName}`);
+                        dropdown.append(`<option value="${statusId}">${statusName}</option>`);
+                    });
+
+                    // Load grid after statuses are loaded
+                    PendingLoanApplicationsDataTable();
+                } else {
+                    console.error("Failed to load loan statuses");
+                    round_error_noti('Failed to load loan statuses. Please refresh the page.'); // Changed from alert
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error loading loan statuses:", error);
+                console.error("Response:", xhr.responseText);
+                round_error_noti('Error loading loan statuses. Please refresh the page.'); // Changed from alert
+            }
+        });
+    }
+
+    function PendingLoanApplicationsDataTable() {
+        try {
+            $('#grid-loader').addClass('d-flex').show();
+
+            const approverEmployeeId = EmployeeId;
+            const status = "7";
+            const approvalMasterId = 2;
+
+            $.ajax({
+                type: "POST",
+                url: '@baseUrl/ProbationPerformanceAPI/GetPendingApprovalRequestsWithHistory1',
+                headers: {
+                    'Authorization': 'Bearer ' + Token,
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({
+                    approverEmployeeId: approverEmployeeId,
+                    status: status,
+                    ApprovalMasterId: approvalMasterId
+                }),
+                success: function (data) {
+                    console.log("Pending loan applications:", data);
+
+                    gridInstance = $("#GridContainer").dxDataGrid({
+                        dataSource: data.data || [],
+                        columns: [
+                            {
+                                dataField: "requesterName",
+                                caption: "Applicant",
+                                minWidth: 250
+                            },
+                            {
+                                dataField: "loanName",
+                                caption: "Loan Type",
+                                minWidth: 150
+                            },
+                            {
+                                dataField: "loanAmount",
+                                caption: "Amount",
+                                dataType: "number",
+                                minWidth: 120
+                            },
+                            {
+                                dataField: "currentLevelStatus",
+                                caption: "Status",
+                                minWidth: 120
+                            },
+                            {
+                                dataField: "currentLevelNo",
+                                caption: "Level",
+                                width: 80
+                            },
+                            {
+                                dataField: "loanApplicationID",
+                                caption: "loanApplicationID",
+                                visible: false
+                            },
+                            {
+                                dataField: "assignedOn",
+                                caption: "Assigned On",
+                                dataType: "date",
+                                format: "dd-MM-yyyy HH:mm",
+                                minWidth: 160
+                            },
+                            {
+                                dataField: "escalationDueOn",
+                                caption: "Due On",
+                                dataType: "date",
+                                format: "dd-MM-yyyy HH:mm",
+                                minWidth: 160
+                            },
+                            {
+                                dataField: '',
+                                caption: 'Action',
+                                alignment: 'center',
+                                dataType: 'string',
+                                type: 'buttons',
+                                width: '100px',
+                                cellTemplate: function (container, options) {
+                                    var actionContainer = $('<div/>').addClass('d-flex justify-content-center').appendTo(container);
+
+                                    // Edit Icon Button with Bootstrap Icons
+                                    $('<button/>')
+                                        .addClass('btn btn-primary btn-sm')
+                                        .attr('title', 'Update Status')
+                                        .html('<i class="bi bi-pencil-square"></i>')
+                                        .on('click', function () {
+                                            openStatusModal(options.data);
+                                        })
+                                        .appendTo(actionContainer);
+                                }
+                            }
+                        ],
+                        masterDetail: {
+                            enabled: true,
+                            template: function(container, options) {
+                                const data = options.data;
+                                const loadingIndicator = $("<div>")
+                                    .addClass("dx-loadindicator")
+                                    .text("Loading...")
+                                    .appendTo(container);
+
+                                const tabPanel = $("<div>").addClass("master-detail-tabs").appendTo(container);
+                                const tabContent = $("<div>").addClass("tab-content").appendTo(tabPanel);
+
+                                // Approval History Tab
+                                const historyTab = $("<div>").addClass("tab-pane fade show active").attr("id", "history").appendTo(tabContent);
+
+                                if (data.previousApprovalLevelsJson) {
+                                    try {
+                                        const historyData = JSON.parse(data.previousApprovalLevelsJson);
+
+                                        $("<h6>Approval History</h6>").appendTo(historyTab);
+
+                                        const historyGrid = $("<div>").dxDataGrid({
+                                            dataSource: historyData,
+                                            columns: [
+                                                { dataField: "HistoryLevelNo", caption: "Level", alignment: 'left', Width: 80 },
+                                                { dataField: "HistoryStatus", caption: "Status", alignment: 'left', minWidth: 120 },
+                                                { dataField: "HistoryApproverName", caption: "Approver", alignment: 'left', minWidth: 300 },
+                                                {
+                                                    dataField: "HistoryAssignedOn",
+                                                    caption: "Assigned On",
+                                                    dataType: "date",
+                                                    format: "dd-MM-yyyy HH:mm",
+                                                    alignment: 'left',
+                                                    minWidth: 180
+                                                },
+                                                {
+                                                    dataField: "HistoryEscalationDueOn",
+                                                    caption: "Due On",
+                                                    dataType: "date",
+                                                    format: "dd-MM-yyyy HH:mm",
+                                                    alignment: 'left',
+                                                    minWidth: 180
+                                                }
+                                            ],
+                                            showBorders: true,
+                                            paging: { enabled: false },
+                                            scrolling: { mode: "standard" }
+                                        }).appendTo(historyTab);
+                                    } catch (e) {
+                                        $("<p>Error loading approval history</p>").appendTo(historyTab);
+                                        console.error("Error parsing history JSON:", e);
+                                    }
+                                } else {
+                                    $("<p>No approval history available</p>").appendTo(historyTab);
+                                }
+
+                                // Loan Details Tab
+                                const loanTab = $("<div>").addClass("tab-pane fade").attr("id", "loan").appendTo(tabContent);
+
+                                $("<h6>Loan Application Details</h6>").appendTo(loanTab);
+
+                                const detailsTable = $("<table>").addClass("table table-bordered").appendTo(loanTab);
+                                const tbody = $("<tbody>").appendTo(detailsTable);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Applicant Name"))
+                                    .append($("<td>").text(data.applicantName || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Loan Type"))
+                                    .append($("<td>").text(data.loanType || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Loan Amount"))
+                                    .append($("<td>").text(data.loanAmount ? '₹' + data.loanAmount.toLocaleString() : "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Application Date"))
+                                    .append($("<td>").text(data.applicationDate ?
+                                        new Date(data.applicationDate).toLocaleDateString('en-GB') : "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Tenure (Months)"))
+                                    .append($("<td>").text(data.tenureMonths || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Purpose"))
+                                    .append($("<td>").text(data.purpose || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Branch"))
+                                    .append($("<td>").text(data.branchName || "N/A"))
+                                    .appendTo(tbody);
+
+                                loadingIndicator.remove();
+                            }
+                        },
+                        export: {
+                            enabled: false
+                        },
+                        columnsAutoWidth: true,
+                        wordWrapEnabled: true,
+                        rowAlternationEnabled: true,
+                        showBorders: true,
+                        grouping: { autoExpandAll: false },
+                        paging: { pageSize: 10 },
+                        pager: {
+                            showPageSizeSelector: true,
+                            allowedPageSizes: [10, 25, 50, 100],
+                            showInfo: true
+                        },
+                        headerFilter: { visible: false },
+                        filterRow: { visible: false },
+                        allowColumnResizing: true,
+                        allowColumnReordering: true,
+                        columnFixing: { enabled: false },
+                        searchPanel: {
+                            visible: true,
+                            width: 240,
+                            placeholder: "Search..."
+                        },
+                        scrolling: {
+                            mode: "standard",
+                            useNative: false,
+                            scrollByContent: true,
+                            scrollByThumb: true,
+                        },
+                        onContentReady: function(e) {
+                            $("#rowCount2").html("Total Records: " + e.component.totalCount());
+                        }
+                    }).dxDataGrid('instance');
+
+                    $('#grid-loader').removeClass('d-flex').hide();
+                },
+                error: function (xhr, status, error) {
+                    $('#grid-loader').removeClass('d-flex').hide();
+                    console.error("Error loading loan applications:", error);
+                    round_error_noti('Error loading loan applications. Please try again.'); // Changed from alert
+                }
+            });
+        } catch (e) {
+            console.error("Error in PendingLoanApplicationsDataTable:", e);
+            $('#grid-loader').removeClass('d-flex').hide();
+        }
+    }
+
+    function openStatusModal(data) {
+        currentLoanData = data;
+        $('#loanStatusModal').modal('show');
+    }
+
+    function updateLoanApplication(data, statusId, statusName, remarks) {
+        debugger;
+        // Close modal
+        $('#loanStatusModal').modal('hide');
+
+        // Show loader
+        $('#grid-loader').addClass('d-flex').show();
+
+        // Prepare update data
+        const updateData = {
+            LoanApplicationId: data.loanApplicationID,
+            ApprovalRequestLevelId: data.currentApprovalRequestLevelId,
+            ApprovalRequestId: data.approvalRequestId,
+            ApproverEmployeeId: parseInt(EmployeeId),
+            StatusId: parseInt(statusId),
+            Status: statusName,
+            LevelNo: data.currentLevelNo,
+            UpdatedBy: parseInt(EmployeeId),
+            Remarks: remarks
+        };
+
+        console.log("Update data being sent:", updateData);
+
+        $.ajax({
+            type: "PUT",
+            url: '@baseUrl/LoanApplicationAPI/LoanApproval',
+            headers: {
+                'Authorization': 'Bearer ' + Token,
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify(updateData),
+            success: function (response) {
+                $('#grid-loader').removeClass('d-flex').hide();
+
+                if (response.isSuccess) {
+                    // Use round_success_noti instead of alert
+                    const message = response.responseMessage || `Loan application ${statusName.toLowerCase()} successfully!`;
+                    round_success_noti(message);
+
+                    // Refresh the grid
+                    PendingLoanApplicationsDataTable();
+                } else {
+                    // Use round_error_noti for errors
+                    const errorMessage = response.responseMessage || 'Failed to update loan application';
+                    round_error_noti(errorMessage);
+                }
+            },
+            error: function (xhr, status, error) {
+                $('#grid-loader').removeClass('d-flex').hide();
+                console.error("Error updating loan application:", error);
+                console.error("Response:", xhr.responseText);
+                round_error_noti('Error updating loan application. Please try again.');
+            }
+        });
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+    }
+</script>
+
+<style>
+    @@keyframes spin {
+        0%
+
+    {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+
+    }
+
+    .gap-2 {
+        gap: 0.5rem;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .modal-header {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .modal-title {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .text-danger {
+        color: #dc3545;
+    }
+
+    .modal-footer {
+        border-top: 2px solid #dee2e6;
+    }
+
+    /* Ensure Bootstrap Icons are properly styled */
+    .btn i.bi {
+        font-size: 1rem;
+        line-height: 1;
+    }
+</style>

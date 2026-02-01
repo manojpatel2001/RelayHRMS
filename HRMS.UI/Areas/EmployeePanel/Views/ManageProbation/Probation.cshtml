@@ -1,0 +1,328 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Master";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uriAPI = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
+}
+
+<div class="no-print-content">
+    <div class="card">
+        <div class="card-header bg-transparent ml-0 py-0">
+            <div class="row">
+                <div class="col-6">
+                    <h6 class="p-2 mb-0">
+                        Manage Probation
+                    </h6>
+                </div>
+               
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="grid-wrapper" style="position: relative;">
+                        <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column"
+                             style="display: none; inset: 0; background: rgba(255,255,255,0.6); z-index: 10;">
+                            <img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+                            <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+                        </div>
+                        <div class="rowCount" id="rowCount2"></div>
+                        <div id="GridContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+   
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        const EmployeeId = localStorage.getItem("EmployeeId");
+        var Token = localStorage.getItem("authToken");
+        var gridInstance;
+
+    
+        $(() => {
+          //  ProbationDataTable();
+          PendingApprovalDataTable();
+        });
+
+        
+
+      function PendingApprovalDataTable() {
+        try {
+            $('#grid-loader').addClass('d-flex').show();
+
+            // Get parameters from UI or defaults
+            const approverEmployeeId = EmployeeId; // You can get this dynamically if needed
+            const status = "Pending";
+
+            $.ajax({
+                type: "POST",
+                url: '@baseUrl/ProbationPerformanceAPI/GetPendingApprovalRequestsWithHistory',
+                headers: {
+                    'Authorization': 'Bearer ' + Token,
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({
+                    approverEmployeeId: approverEmployeeId,
+                    status: status
+                }),
+                success: function (data) {
+                    console.log("Pending approval data:", data);
+
+                    // Initialize the DataGrid
+                    gridInstance = $("#GridContainer").dxDataGrid({
+                         dataSource: data.data || [],
+                        
+                        columns: [
+                            {
+                                dataField: "requesterName",
+                                caption: "Requester",
+                                minWidth: 300
+                            },
+                            // {
+                            //     dataField: "approverName",
+                            //     caption: "Current Approver",
+                            //     minWidth: 300
+                            // },
+                            {
+                                dataField: "currentLevelStatus",
+                                caption: "Status",
+                                minWidth: 120
+                            },
+                            {
+                                dataField: "currentLevelNo",
+                                caption: "Level",
+                                width: 80
+                            },
+                            {
+                                dataField: "assignedOn",
+                                caption: "Assigned On",
+                                dataType: "date",
+                                format: "dd-MM-yyyy HH:mm",
+                                minWidth: 160
+                            },
+                            {
+                                dataField: "escalationDueOn",
+                                caption: "Due On",
+                                dataType: "date",
+                                format: "dd-MM-yyyy HH:mm",
+                                minWidth: 160
+                            },
+                            
+                           {
+                            dataField: '',
+                            caption: 'Action',
+                            alignment: 'center',
+                            dataType: 'string',
+                            format: '',
+                            type: 'buttons',
+                            width: '100px',
+                            cellTemplate: function (container, options) {
+                                        
+                                    $('<a/>')
+                                        .attr('href', 'javascript:;')
+                                        .addClass('edit-action')
+                                        .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>')
+                                        .on('dxclick', function () {
+                                            evaluateEmployeeProbation(options.data);
+                                        })
+                                        .appendTo(container);
+                                       
+                            }
+                          }
+                        ],
+                        masterDetail: {
+                            enabled: true,
+                            template: function(container, options) {
+                                const data = options.data;
+                                const loadingIndicator = $("<div>")
+                                    .addClass("dx-loadindicator")
+                                    .text("Loading...")
+                                    .appendTo(container);
+
+                                // Create a tab panel for the master detail
+                                const tabPanel = $("<div>").addClass("master-detail-tabs").appendTo(container);
+
+                               
+                                // Create tab content
+                                const tabContent = $("<div>").addClass("tab-content").appendTo(tabPanel);
+
+                                // Approval History Tab
+                                const historyTab = $("<div>").addClass("tab-pane fade show active").attr("id", "history").appendTo(tabContent);
+
+                                if (data.previousApprovalLevelsJson) {
+                                    try {
+                                        const historyData = JSON.parse(data.previousApprovalLevelsJson);
+
+                                        $("<h6>Approval History</h6>").appendTo(historyTab);
+
+                                        const historyGrid = $("<div>").dxDataGrid({
+                                            dataSource: historyData,
+                                            columns: [
+                                                { dataField: "HistoryLevelNo", caption: "Level", alignment: 'left',Width: 80 },
+                                                { dataField: "HistoryStatus", caption: "Status",alignment: 'left', minWidth: 120 },
+                                                { dataField: "HistoryApproverName", caption: "Approver",alignment: 'left', minWidth: 300 },
+                                                {
+                                                    dataField: "HistoryAssignedOn",
+                                                    caption: "Assigned On",
+                                                    dataType: "date",
+                                                    format: "dd-MM-yyyy HH:mm",
+                                                    alignment: 'left',
+                                                    minWidth: 180
+                                                },
+                                                {
+                                                    dataField: "HistoryEscalationDueOn",
+                                                    caption: "Due On",
+                                                    dataType: "date",
+                                                    format: "dd-MM-yyyy HH:mm",
+                                                    alignment: 'left',
+                                                    minWidth: 180
+                                                }
+                                            ],
+                                            showBorders: true,
+                                            paging: { enabled: false },
+                                            scrolling: { mode: "standard" }
+                                        }).appendTo(historyTab);
+                                    } catch (e) {
+                                        $("<p>Error loading approval history</p>").appendTo(historyTab);
+                                        console.error("Error parsing history JSON:", e);
+                                    }
+                                } else {
+                                    $("<p>No approval history available</p>").appendTo(historyTab);
+                                }
+
+                                // Employee Details Tab
+                                const employeeTab = $("<div>").addClass("tab-pane fade").attr("id", "employee").appendTo(tabContent);
+
+                                $("<h6>Employee Details</h6>").appendTo(employeeTab);
+
+                                const detailsTable = $("<table>").addClass("table table-bordered").appendTo(employeeTab);
+                                const tbody = $("<tbody>").appendTo(detailsTable);
+
+                                // Add rows with employee details
+                                $("<tr>")
+                                    .append($("<th>").text("Employee Code"))
+                                    .append($("<td>").text(data.requesterName.split(' - ')[1] || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Full Name"))
+                                    .append($("<td>").text(data.requesterName.split(' - ')[0] || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Date of Joining"))
+                                    .append($("<td>").text(data.dateOfJoining ?
+                                        new Date(data.dateOfJoining).toLocaleDateString('en-GB') : "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Probation End Date"))
+                                    .append($("<td>").text(data.probationEndDate ?
+                                        new Date(data.probationEndDate).toLocaleDateString('en-GB') : "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Days Remaining"))
+                                    .append($("<td>").text(data.daysRemainingInProbation || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Branch"))
+                                    .append($("<td>").text(data.branchName || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Review Type"))
+                                    .append($("<td>").text(data.reviewType || "N/A"))
+                                    .appendTo(tbody);
+
+                                loadingIndicator.remove();
+                            }
+                        },
+                        export: {
+                            enabled: false
+                        },
+                        columnsAutoWidth: true,
+                        wordWrapEnabled: true,
+                        rowAlternationEnabled: true,
+                        showBorders: true,
+                        grouping: { autoExpandAll: false },
+                        paging: { pageSize: 10 },
+                        pager: {
+                            showPageSizeSelector: true,
+                            allowedPageSizes: [10, 25, 50, 100],
+                            showInfo: true
+                        },
+                        headerFilter: { visible: false },
+                        filterRow: { visible: false },
+                        allowColumnResizing: true,
+                        allowColumnReordering: true,
+                        columnFixing: { enabled: false },
+                        searchPanel: {
+                            visible: true,
+                            width: 240,
+                            placeholder: "Search..."
+                        },
+                        scrolling: {
+                                mode: "standard",
+                                useNative: false,
+                                scrollByContent: true,
+                                scrollByThumb: true,
+                            },
+
+                        onContentReady: function(e) {
+                            $("#pendingApprovalRowCount").html("Total Records: " + e.component.totalCount());
+                        },
+                        onRowExpanded: function(e) {
+                        },
+                        onRowCollapsed: function(e) {
+                        }
+                    }).dxDataGrid('instance');
+
+                    $('#grid-loader').removeClass('d-flex').hide();
+                },
+                error: function (xhr, status, error) {
+                    $('#grid-loader').removeClass('d-flex').hide();
+                    
+                }
+            });
+        } catch (e) {
+            console.error("Error in PendingApprovalDataTable:", e);
+            $('#grid-loader').removeClass('d-flex').hide();
+           
+        }
+    }
+
+    
+    
+        function evaluateEmployeeProbation(data) 
+        {
+            localStorage.removeItem('ProbationEmployeeId');
+            localStorage.removeItem('ApprovalRequestLevelId');
+            localStorage.removeItem('ApprovalRequestId');
+            localStorage.removeItem('Level');
+            localStorage.setItem('ApprovalRequestLevelId', data.currentApprovalRequestLevelId);
+            localStorage.setItem('ApprovalRequestId', data.approvalRequestId);
+            localStorage.setItem('ProbationEmployeeId', data.requesterEmployeeId);
+            localStorage.setItem('Level', data.currentLevelNo);
+            window.location.href = '@UIBaseUrlLayout/EmployeePanel/ManageProbation/ProbationPerformance';
+        }
+
+       
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+    </script>
+
+ 

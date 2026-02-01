@@ -1,6 +1,7 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Interface.Employee;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +25,150 @@ namespace HRMS_Infrastructure.Repository.Employee
         public EmployeeDashboardRepository(HRMSDbContext db)
         {
             _db = db;
+        }
+
+        public async Task<List<NewJoinerDetailsViewModel>> GetBranchNewJoinerDetails(int CompId, int BranchId)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@CompanyId", CompId) ,
+                    new SqlParameter("@BranchId", BranchId)
+
+                    };
+
+                var result = await _db.Set<NewJoinerDetailsViewModel>()
+                    .FromSqlRaw("EXEC GetBranchNewJoinerDetails @CompanyId , @BranchId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<NewJoinerDetailsViewModel>();
+            }
+        }
+
+        public async Task<List<GetCountDirectOrIndirectEmployeesVM>> GetCountDirectOrIndirectEmployees( int EmployeeId, int Compid)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@ReportingId", EmployeeId) ,
+                    new SqlParameter("@CompanyId", Compid) ,
+                   
+
+                    };
+
+                var result = await _db.Set<GetCountDirectOrIndirectEmployeesVM>()
+                    .FromSqlRaw("EXEC GetCountDirectOrIndirectEmployees @ReportingId, @CompanyId" ,parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<GetCountDirectOrIndirectEmployeesVM>();
+            }
+        }
+
+        public async Task<List<EmployeeDirectIndirectReport>> GetDirectIndirectEmp(int Compid, int EmployeeId, string Action)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@ReportingId", EmployeeId) ,
+                    new SqlParameter("@CompanyId", Compid) ,
+                    new SqlParameter("@Action", Action) 
+
+                    };
+
+                var result = await _db.Set<EmployeeDirectIndirectReport>()
+                    .FromSqlRaw("EXEC GetDirectOrIndirectEmployees @ReportingId, @CompanyId, @Action", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EmployeeDirectIndirectReport>();
+            }
+        }
+
+        public async Task<List<EmployeeDetailsViewModel>> GetEmployeeDetails(int EmpId)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@EmpId", EmpId) ,
+
+                    };
+
+                var result = await _db.Set<EmployeeDetailsViewModel>()
+                    .FromSqlRaw("EXEC GetEmployeeDetails @EmpId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EmployeeDetailsViewModel>();
+            }
+        }
+
+        public async Task<List<EmployeeDirectIndirectReport>> GetEmployeesforAttendanceRegister(int Compid, int EmployeeId, int Month, int Year)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@ReportingId", EmployeeId) ,
+                    new SqlParameter("@CompanyId", Compid) ,
+                    new SqlParameter("@Month", Month) ,
+                    new SqlParameter("@Year", Year) 
+                 
+
+                    };
+
+                var result = await _db.Set<EmployeeDirectIndirectReport>()
+                    .FromSqlRaw("EXEC GetEmployeesforAttendanceRegister @ReportingId, @CompanyId ,@Month,@Year", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<EmployeeDirectIndirectReport>();
+            }
+        }
+
+        public async Task<List<MyTeamleavesVM>> GetMyteamleave(int EmpId, int Compid, int Repoid)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@empid", EmpId) ,
+                    new SqlParameter("@companyid", Compid) ,
+                    new SqlParameter("@repoid", Repoid) ,
+
+
+                    };
+
+                var result = await _db.Set<MyTeamleavesVM>()
+                    .FromSqlRaw("EXEC MyTeamLeaves @empid, @companyid , @repoid", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<MyTeamleavesVM>();
+            }
         }
 
         public async Task<List<RecentEmployeeVM>> GetRecentJoinedEmployees(int Companyid)
@@ -44,6 +190,23 @@ namespace HRMS_Infrastructure.Repository.Employee
             catch (Exception)
             {
                 return new List<RecentEmployeeVM>();
+            }
+        }
+
+        public async Task<List<RecentJoinedEmplForAdmin>> GetRecentJoinedEmployeesForAdmin()
+        {
+            try
+            {
+         
+                var result = await _db.Set<RecentJoinedEmplForAdmin>()
+                    .FromSqlRaw("EXEC sp_GetRecentJoinedEmployeesForAdmin ")
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<RecentJoinedEmplForAdmin>();
             }
         }
 
@@ -116,18 +279,19 @@ namespace HRMS_Infrastructure.Repository.Employee
 
         }
 
-        public async Task<List<UpcommingholidaysVM>> Getupcommingholidays(int Compid)
+        public async Task<List<UpcommingholidaysVM>> Getupcommingholidays(int Compid, int EmployeeId)
         {
             try
             {
                 var parameters = new[]
                 {
-                    new SqlParameter("@CompanyId", Compid)
+                    new SqlParameter("@CompanyId", Compid) ,
+                    new SqlParameter("@EmployeeId", EmployeeId)
 
                     };
 
                 var result = await _db.Set<UpcommingholidaysVM>()
-                    .FromSqlRaw("EXEC sp_GetUpcomingHolidays @CompanyId", parameters)
+                    .FromSqlRaw("EXEC sp_GetUpcomingHolidays @CompanyId  , @EmployeeId", parameters)
                     .ToListAsync();
 
                 return result;

@@ -1,0 +1,616 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Salary Register";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<style>
+    .salary-box {
+        background-color: white !important;
+        border: 1px solid #ccc;
+        padding: 12px;
+        border-radius: 5px;
+    }
+
+    .salary-header {
+        background-color: #3e4b6d;
+        color: white;
+        font-weight: bold;
+        padding: 8px 15px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+
+    .form-group-row {
+        margin-bottom: 20px;
+        gap: 15px;
+    }
+
+    .form-label {
+        min-width: 100px;
+        font-weight: 500;
+        color: #495057;
+        font-size: 14px;
+        margin-bottom: 0;
+    }
+
+    .btn-go {
+        padding: 5px 30px;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin: 0 5px;
+    }
+
+    #btnFetchSalary, #btnFetchingSalary {
+        background-color: #2395c6;
+        color: #fff;
+    }
+
+        #btnFetchSalary:hover, #btnFetchingSalary:hover {
+            background-color: #1d7ba3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(35, 149, 198, 0.3);
+        }
+
+    #btnClear {
+        background-color: #dc3545;
+        color: #fff;
+    }
+
+        #btnClear:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+        }
+
+    .btn-go:last-child {
+        background-color: #6c757d;
+        color: #fff;
+    }
+
+        .btn-go:last-child:hover {
+            background-color: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+        }
+
+    #btnExportToExcel {
+        background-color: #28a745;
+        color: #fff;
+        padding: 6px 20px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+        #btnExportToExcel:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        }
+
+    .text-danger {
+        color: #dc3545;
+    }
+
+    .error-message {
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+    }
+
+    #salaryGridContainer {
+        margin-bottom: 20px !important;
+        max-height: 500px !important;
+        overflow: auto !important;
+    }
+
+    #grid-loader {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(3px);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    .grid-logo-spinner {
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .form-floating-custom {
+        position: relative;
+    }
+
+    .export-button-container {
+        margin: 20px 0;
+        text-align: right;
+    }
+</style>
+
+<div class="salary-box">
+    <div class="salary-header">Salary Register</div>
+    <div class="row justify-content-center mt-3">
+        <div class="col-lg-8">
+            <!-- First Row: Month and Year -->
+            <div class="row justify-content-center mb-3">
+                <div class="col-md-6">
+                    <div class="form-group-row d-flex align-items-center">
+                        <label class="form-label">Month<span class="text-danger">*</span>:</label>
+                        <div class="form-floating-custom flex-grow-1">
+                            <select class="form-select" id="monthDropdown">
+                                <option value="">Select Month</option>
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                            <span class="text-danger error-message" id="errorMonth">Please select month</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group-row d-flex align-items-center">
+                        <label class="form-label">Year<span class="text-danger">*</span>:</label>
+                        <div class="form-floating-custom flex-grow-1">
+                            <select class="form-select" id="yearDropdown">
+                                <option value="">Select Year</option>
+                            </select>
+                            <span class="text-danger error-message" id="errorYear">Please select year</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="col-md-12 text-center mt-4">
+        <button class="btn-go" id="btnFetchSalary">Go</button>
+        <button class="btn-go" id="btnFetchingSalary" disabled style="display: none;">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span> Go
+        </button>
+        <button class="btn-go" id="btnClear">Clear</button>
+        <button class="btn-go" onclick="goBack()">Back</button>
+    </div>
+</div>
+
+<!-- Loader -->
+<div id="grid-loader">
+    <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" />
+    <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+</div>
+
+<!-- Export Button Container -->
+<div id="exportButtonContainer" class="export-button-container" style="display: none;">
+    <button class="btn-go" id="btnExportToExcel">
+        <i class="fas fa-file-excel me-2"></i>Export to Excel
+    </button>
+</div>
+
+<!-- Salary Grid -->
+<div id="salaryGridContainer" style="display: none; margin-top: 20px;"></div>
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const Token = localStorage.getItem("authToken");
+
+    let salaryGridInstance = null;
+    let salaryData = [];
+
+    $(document).ready(function() {
+ 
+        const startYear = 2025;
+        const currentYear = new Date().getFullYear();
+
+        for (let year = currentYear; year >= startYear; year--) {
+            $('#yearDropdown').append(`<option value="${year}">${year}</option>`);
+        }
+
+        $('#exportButtonContainer').hide();
+    });
+
+    function goBack() {
+        window.location.href = '@Url.Action("Index", "Home", new { area = "AdminPanel" })';
+    }
+
+    function clearPage() {
+        $('#monthDropdown').val('');
+        $('#yearDropdown').val('');
+        $('.error-message').hide();
+        $('#salaryGridContainer').hide().empty();
+        $('#exportButtonContainer').hide();
+        salaryGridInstance = null;
+        salaryData = [];
+    }
+
+    $('#btnClear').click(function() {
+        clearPage();
+    });
+
+    function showLoader() {
+        $('#grid-loader').css('display', 'flex');
+    }
+
+    function hideLoader() {
+        $('#grid-loader').hide();
+    }
+
+    function showBtnLoader() {
+        $('#btnFetchingSalary').show();
+        $('#btnFetchSalary').hide();
+    }
+
+    function hideBtnLoader() {
+        $('#btnFetchingSalary').hide();
+        $('#btnFetchSalary').show();
+    }
+
+    $('#btnFetchSalary').click(function() {
+        showBtnLoader();
+        const month = $('#monthDropdown').val();
+        const year = $('#yearDropdown').val();
+
+        let isValid = true;
+
+        if (!month) {
+            $('#errorMonth').show();
+            isValid = false;
+        } else {
+            $('#errorMonth').hide();
+        }
+
+        if (!year) {
+            $('#errorYear').show();
+            isValid = false;
+        } else {
+            $('#errorYear').hide();
+        }
+
+        if (!isValid) {
+            hideBtnLoader();
+            return;
+        }
+
+        showLoader();
+
+        $.ajax({
+            url: `@baseUrl/MonthlySalaryDetailsAPI/GetEmployeeSalaryRegister`,
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            data: {
+                Month: month,
+                Year: year,
+                CompanyId: CompanyId
+            },
+            success: function(response) {
+                console.log('response', response);
+                hideLoader();
+                hideBtnLoader();
+
+                if (response.isSuccess) {
+                    if (response.data && response.data.length > 0) {
+                        salaryData = response.data;
+                        renderSalaryGrid(response.data);
+                        $('#exportButtonContainer').show();
+                    } else {
+                        Swal.fire('Info', 'No salary records found for the selected criteria.', 'info');
+                        $('#exportButtonContainer').hide();
+                    }
+                } else {
+                    Swal.fire('Info', response.ResponseMessage || 'No salary records found.', 'info');
+                    $('#exportButtonContainer').hide();
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoader();
+                hideBtnLoader();
+                console.error('Error fetching salary data:', error);
+
+                let errorMessage = 'Failed to fetch salary data.';
+                if (xhr.responseJSON && xhr.responseJSON.ResponseMessage) {
+                    errorMessage = xhr.responseJSON.ResponseMessage;
+                }
+
+                Swal.fire('Error', errorMessage, 'error');
+                $('#exportButtonContainer').hide();
+            }
+        });
+    });
+
+    function renderSalaryGrid(data) {
+        // Define columns WITHOUT id and employeeId - Employee Details FIRST
+        const columns = [
+            { dataField: "employeeCode", caption: "Employee Code", width: 120 },
+            { dataField: "employeeName", caption: "Employee Name", width: 200 },
+            { dataField: "branchName", caption: "Branch", width: 150 },
+            { dataField: "designationName", caption: "Designation", width: 150 },
+            { dataField: "departmentName", caption: "Department", width: 150 },
+            { dataField: "dateOfJoining", caption: "Date of Joining", width: 120, dataType: "date", format: "dd/MM/yyyy" },
+            { dataField: "monthName", caption: "Month", width: 100 },
+            { dataField: "year", caption: "Year", width: 80 },
+            { dataField: "monthDays", caption: "Month Days", width: 100 },  
+            { dataField: "payableDays", caption: "Payable Days", width: 100 },    
+            { dataField: "basicSalary", caption: "Basic Salary", width: 120, format: "#,##0.00" },
+            { dataField: "hra", caption: "HRA", width: 100, format: "#,##0.00" },
+            { dataField: "conveyanceAllowance", caption: "Conveyance", width: 120, format: "#,##0.00" },
+            { dataField: "childEducationAllowance", caption: "Child Education", width: 130, format: "#,##0.00" },
+            { dataField: "medicalAllowance", caption: "Medical", width: 100, format: "#,##0.00" },
+            { dataField: "deputationAllowance", caption: "Deputation", width: 120, format: "#,##0.00" },
+            { dataField: "grossSalary", caption: "Gross Salary", width: 120, format: "#,##0.00" },
+            { dataField: "totalGrossSalary", caption: "Total Gross", width: 120, format: "#,##0.00" },
+            { dataField: "arrears", caption: "Arrears", width: 100, format: "#,##0.00" },
+            { dataField: "pf", caption: "PF", width: 100, format: "#,##0.00" },
+            { dataField: "esic", caption: "ESIC", width: 100, format: "#,##0.00" },
+            { dataField: "professionalTax", caption: "Professional Tax", width: 130, format: "#,##0.00" },
+            { dataField: "groupMedical", caption: "Group Medical", width: 130, format: "#,##0.00" },
+            { dataField: "termInsurance", caption: "Term Insurance", width: 130, format: "#,##0.00" },
+            { dataField: "lwf", caption: "LWF", width: 100, format: "#,##0.00" },
+            { dataField: "tds", caption: "TDS", width: 100, format: "#,##0.00" },
+            { dataField: "loan", caption: "Loan", width: 100, format: "#,##0.00" },
+            { dataField: "otherDeduction", caption: "Other Deduction", width: 130, format: "#,##0.00" },
+            { dataField: "totalDeductions", caption: "Total Deductions", width: 150, format: "#,##0.00" },
+            { dataField: "netSalary", caption: "Net Salary", width: 120, format: "#,##0.00" },
+            { dataField: "employeeNamePrmaryBank", caption: "Bank Name", width: 150 },
+            { dataField: "primaryAccountNumber", caption: "Account Number", width: 150 },
+            { dataField: "primaryIFSCCode", caption: "IFSC Code", width: 120 }
+        ];
+
+        salaryGridInstance = $("#salaryGridContainer").dxDataGrid({
+            dataSource: data,
+            keyExpr: "id",
+            showBorders: true,
+            allowColumnResizing: true,
+            columnResizingMode: "widget",
+            rowHeight: 50,
+            columns: columns,
+            height:'auto',
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
+            },
+            searchPanel: {
+                visible: true,
+                width: 240,
+                placeholder: "Search..."
+            },
+            paging: {
+                pageSize: 20
+            },
+            pager: {
+                visible: true,
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 20, 50, 100],
+                showInfo: true
+            },
+            scrolling: {
+                mode: "standard",
+                showScrollbar: "always"
+            },
+            loadPanel: {
+                enabled: true
+            },
+            export: {
+                enabled: false
+            },
+            // DevExtreme onExporting event - SAME AS LEAVE BALANCE PAGE
+            onExporting: function(e) {
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet("Salary Register");
+
+                const devGrid = $("#salaryGridContainer").dxDataGrid("instance");
+                
+                // Get selected rows for export
+                const selectedRows = devGrid.getSelectedRowsData();
+                
+                if (selectedRows.length === 0) {
+                    Swal.fire('Warning', 'Please select at least one row to export!', 'warning');
+                    e.cancel = true;
+                    return;
+                }
+
+                // Create custom export with selected rows only and styled headers
+                exportCustomExcel(selectedRows, workbook, worksheet);
+                e.cancel = true;
+            }
+        }).dxDataGrid("instance");
+
+        $("#salaryGridContainer").show();
+    }
+
+    // Custom Excel Export Function with Styled Headers
+    function exportCustomExcel(selectedData, workbook, worksheet) {
+        // Define columns WITHOUT id and employeeId
+        worksheet.columns = [
+            { header: 'Employee Code', key: 'employeeCode', width: 15 },
+            { header: 'Employee Name', key: 'employeeName', width: 25 },
+            { header: 'Branch', key: 'branchName', width: 20 },
+            { header: 'Designation', key: 'designationName', width: 20 },
+            { header: 'Department', key: 'departmentName', width: 20 },
+            { header: 'Date of Joining', key: 'dateOfJoining', width: 15 },
+            { header: 'Month', key: 'monthName', width: 12 },
+            { header: 'Year', key: 'year', width: 10 },
+            { header: 'Month Days', key: 'monthDays', width: 12 }, 
+            { header: 'Payable Days', key: 'payableDays', width: 12 },         
+            { header: 'Basic Salary', key: 'basicSalary', width: 15 },
+            { header: 'HRA', key: 'hra', width: 12 },
+            { header: 'Conveyance', key: 'conveyanceAllowance', width: 15 },
+            { header: 'Child Education', key: 'childEducationAllowance', width: 15 },
+            { header: 'Medical', key: 'medicalAllowance', width: 12 },
+            { header: 'Deputation', key: 'deputationAllowance', width: 15 },
+            { header: 'Gross Salary', key: 'grossSalary', width: 15 },
+            { header: 'Total Gross', key: 'totalGrossSalary', width: 15 },
+            { header: 'Arrears', key: 'arrears', width: 12 },
+            { header: 'PF', key: 'pf', width: 12 },
+            { header: 'ESIC', key: 'esic', width: 12 },
+            { header: 'Professional Tax', key: 'professionalTax', width: 15 },
+            { header: 'Group Medical', key: 'groupMedical', width: 15 },
+            { header: 'Term Insurance', key: 'termInsurance', width: 15 },
+            { header: 'LWF', key: 'lwf', width: 12 },
+            { header: 'TDS', key: 'tds', width: 12 },
+            { header: 'Loan', key: 'loan', width: 12 },
+            { header: 'Other Deduction', key: 'otherDeduction', width: 15 },
+            { header: 'Total Deductions', key: 'totalDeductions', width: 15 },
+            { header: 'Net Salary', key: 'netSalary', width: 15 },
+            { header: 'Bank Name', key: 'employeeNamePrmaryBank', width: 20 },
+            { header: 'Account Number', key: 'primaryAccountNumber', width: 20 },
+            { header: 'IFSC Code', key: 'primaryIFSCCode', width: 15 }
+        ];
+
+        // Style header row - EXACT SAME AS LEAVE BALANCE
+        const headerRow = worksheet.getRow(1);
+        headerRow.eachCell((cell) => {
+            cell.font = {
+                bold: true,
+                color: { argb: 'FFFFFFFF' },
+                size: 11
+            };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF3E4B6D' }
+            };
+            cell.alignment = {
+                vertical: 'middle',
+                horizontal: 'center'
+            };
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FF000000' } },
+                left: { style: 'thin', color: { argb: 'FF000000' } },
+                bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                right: { style: 'thin', color: { argb: 'FF000000' } }
+            };
+        });
+        headerRow.height = 25;
+
+        // Add data rows
+        selectedData.forEach((rowData) => {
+            const row = worksheet.addRow({
+                employeeCode: rowData.employeeCode || '',
+                employeeName: rowData.employeeName || '',
+                branchName: rowData.branchName || '',
+                designationName: rowData.designationName || '',
+                departmentName: rowData.departmentName || '',
+                dateOfJoining: rowData.dateOfJoining ? new Date(rowData.dateOfJoining).toLocaleDateString('en-GB') : '',
+                monthName: rowData.monthName || '',
+                year: rowData.year || '',
+                monthDays: rowData.monthDays || 0,
+                payableDays: rowData.payableDays || 0,        
+                basicSalary: rowData.basicSalary || 0,
+                hra: rowData.hra || 0,
+                conveyanceAllowance: rowData.conveyanceAllowance || 0,
+                childEducationAllowance: rowData.childEducationAllowance || 0,
+                medicalAllowance: rowData.medicalAllowance || 0,
+                deputationAllowance: rowData.deputationAllowance || 0,
+                grossSalary: rowData.grossSalary || 0,
+                totalGrossSalary: rowData.totalGrossSalary || 0,
+                arrears: rowData.arrears || 0,
+                pf: rowData.pf || 0,
+                esic: rowData.esic || 0,
+                professionalTax: rowData.professionalTax || 0,
+                groupMedical: rowData.groupMedical || 0,
+                termInsurance: rowData.termInsurance || 0,
+                lwf: rowData.lwf || 0,
+                tds: rowData.tds || 0,
+                loan: rowData.loan || 0,
+                otherDeduction: rowData.otherDeduction || 0,
+                totalDeductions: rowData.totalDeductions || 0,
+                netSalary: rowData.netSalary || 0,
+                employeeNamePrmaryBank: rowData.employeeNamePrmaryBank || '',
+                primaryAccountNumber: rowData.primaryAccountNumber || '',
+                primaryIFSCCode: rowData.primaryIFSCCode || ''
+            });
+
+            row.eachCell((cell, colNumber) => {
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                };
+
+                if (colNumber >= 17 && colNumber <= 36) {
+                    cell.numFmt = '#,##0.00';
+                    cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                } else if (colNumber === 1 || (colNumber >= 7 && colNumber <= 16)) {
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                } else {
+                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                }
+            });
+        });
+
+        // Download file - SAME AS LEAVE BALANCE
+        const month = $('#monthDropdown option:selected').text();
+        const year = $('#yearDropdown').val();
+        const fileName = `Salary_Register_${month}_${year}.xlsx`;
+
+        workbook.xlsx.writeBuffer().then(function(buffer) {
+            saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            Swal.fire('Success', 'Excel file downloaded successfully!', 'success');
+        }).catch(error => {
+            console.error("Excel export error:", error);
+            Swal.fire('Error', 'Error exporting to Excel!', 'error');
+        });
+    }
+
+    // Export button click - Trigger DevExtreme export
+    $('#btnExportToExcel').click(function() {
+        if (!salaryGridInstance) {
+            Swal.fire('Warning', 'No data available to export.', 'warning');
+            return;
+        }
+
+        const selectedRows = salaryGridInstance.getSelectedRowsData();
+        if (selectedRows.length === 0) {
+            Swal.fire('Warning', 'Please select at least one row to export.', 'warning');
+            return;
+        }
+
+        // Manually call the export function
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Salary Register");
+        exportCustomExcel(selectedRows, workbook, worksheet);
+    });
+</script>

@@ -1,6 +1,8 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
+using HRMS_Core.ProfileManage;
 using HRMS_Core.VM;
+using HRMS_Core.VM.PasswordHistory;
 using HRMS_Infrastructure.Interface.Employee;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -96,5 +98,27 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return new VMCommonResult { Id = 0 };
             }
         }
+
+        public async Task<SP_Response> ResetPassword(VMResetPassword vmResetPassword)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>()
+                    .FromSqlInterpolated($@"
+                        EXEC SP_ResetPassword
+                            @UserId = {vmResetPassword.UserId},
+                            @EmployeeId = {vmResetPassword.EmployeeId},
+                            @NewPassword = {vmResetPassword.NewPassword}
+                           
+                    ").ToListAsync();
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
+
     }
 }

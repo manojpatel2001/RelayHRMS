@@ -1,9 +1,14 @@
-﻿using HRMS_Core.Leave;
+﻿using HRMS_API.NotificationService.HubService;
+using HRMS_API.NotificationService.ManageService;
+using HRMS_Core.Leave;
+using HRMS_Core.Notifications;
 using HRMS_Core.VM.Leave;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Repository;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace HRMS_API.Controllers.Leave
 {
@@ -11,14 +16,13 @@ namespace HRMS_API.Controllers.Leave
     [ApiController]
     public class CompOffAPIController : ControllerBase
     {
-
         private readonly IUnitOfWork _unitOfWork;
-
-        public CompOffAPIController(IUnitOfWork unitOfWork)
+        private readonly IHubContext<NotificationRemainderHub> _hubContext;
+        public CompOffAPIController(IUnitOfWork unitOfWork, IHubContext<NotificationRemainderHub> hubContext)
         {
             _unitOfWork = unitOfWork;
+            _hubContext = hubContext;
         }
-
 
         [HttpPost("CompOffDetailsApplication")]
 
@@ -30,33 +34,52 @@ namespace HRMS_API.Controllers.Leave
                 var comoffdata = new Comp_Off_Details
                 {
                     CreatedDate = DateTime.Now,
-                    CreatedBy= COA.CreatedBy,
-                    Cmp_Id= COA.Cmp_Id,
-                    Emp_Id= COA.Emp_Id,
-                    Rep_Person_Id= COA.Rep_Person_Id,
+                    CreatedBy = COA.CreatedBy,
+                    Cmp_Id = COA.Cmp_Id,
+                    Emp_Id = COA.Emp_Id,
+                    Rep_Person_Id = COA.Rep_Person_Id,
                     ApplicationDate = DateTime.Now,
-                    Extra_Work_Day= COA.Extra_Work_Day,
-                    Extra_Work_Hours=COA.Extra_Work_Hours,
-                    Application_Status="Pending",
-                    ComoffReason=COA.ComoffReason,
+                    Extra_Work_Day = COA.Extra_Work_Day,
+                    Extra_Work_Hours = COA.Extra_Work_Hours,
+                    Application_Status = "Pending",
+                    ComoffReason = COA.ComoffReason,
                     Emp_Code = empcode?.EmployeeCode
 
                 };
+
                 var isSaved = await _unitOfWork.CompOffDetailsRepository.InsertCompOffAsync(comoffdata);
 
-                if (!isSaved)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to insert Comp Off details." };
+                if (isSaved.Success <= 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = isSaved.ResponseMessage };
 
-                return new APIResponse { isSuccess = true, ResponseMessage = "Records Added successfully." };
+                //Notification send to reporting persion
+                var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)COA.Emp_Id);
+                var notification = new NotificationRemainders()
+                {
+                    NotificationMessage = $"{employeeDetails?.FullName} has applied for CompOff for Extra Work On : {COA.Extra_Work_Day:dd-MM-yyyy}. Awaiting your approval.",
+                    NotificationTime = DateTime.UtcNow,
+                    SenderId = COA.Emp_Id.ToString(),
+                    ReceiverIds = COA.Rep_Person_Id.ToString(),
+                    NotificationType = NotificationType.CompOffApplication,
+                    NotificationAffectedId = isSaved.Success
+                };
+                var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                if (savedNotification.Success > 0)
+                {
+                    notification.NotificationRemainderId = savedNotification.Success;
+                    var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(COA.Rep_Person_Id.ToString());
+                    if (reprtingConnection.Any())
+                    {
+                        await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                    }
+                }
+
+                return new APIResponse { isSuccess = true, ResponseMessage = isSaved.ResponseMessage };
             }
             catch (Exception ex)
             {
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to add records. Please try again later." };
             }
-
-
-
-
 
         }
 
@@ -72,22 +95,52 @@ namespace HRMS_API.Controllers.Leave
                     return new APIResponse { isSuccess = false, ResponseMessage = "Invalid input." };
                 }
 
-                var isSaved = await _unitOfWork.CompOffDetailsRepository.Updateapproval(ARVM.CompoffIds, ARVM.Status);
+                var isSaved = await _unitOfWork.CompOffDetailsRepository.UpdateCompOffApproval(ARVM);
 
-                if (!isSaved)
-                    return new APIResponse 
-                    { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
+                if (isSaved.Success < 1)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update Comp Off details." };
 
 
-                if(ARVM.Status== "Approved")
+                if (ARVM.Status == "Approved")
                 {
                     var leavemanage = await _unitOfWork.CompOffDetailsRepository.UpdateLeaveManger(ARVM.CompoffIds, ARVM.Status);
                     if (!leavemanage)
                         return new APIResponse
-                        { isSuccess = false, ResponseMessage = "Failed to update leave details." };
+                        { isSuccess = false, ResponseMessage = isSaved.ResponseMessage };
                 }
-               
-                return new APIResponse { isSuccess = true, ResponseMessage = "Records updated successfully." };
+
+
+                //Notification send to employee person
+                foreach (var applicationId in ARVM.CompoffIds)
+                {
+                    var applicationDetails = await _unitOfWork.CompOffDetailsRepository.GetCompOffApplicationById(applicationId);
+                    if (applicationDetails != null)
+                    {
+                        var reportingDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)ARVM.EmployeeId);
+
+                        var notification = new NotificationRemainders()
+                        {
+                            NotificationMessage = $"{reportingDetails?.FullName} has {ARVM.Status} your compoff leave for {applicationDetails.ApplicationDate:dd-MM-yyyy}",
+                            NotificationTime = DateTime.UtcNow,
+                            SenderId = reportingDetails?.Id.ToString(),
+                            ReceiverIds = applicationDetails.Emp_Id.ToString(),
+                            NotificationType = NotificationType.CompOffApproval,
+                            NotificationAffectedId = applicationId
+                        };
+                        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                        if (savedNotification.Success > 0)
+                        {
+                            notification.NotificationRemainderId = savedNotification.Success;
+                            var employeeConnection = NotificationRemainderConnectionManager.GetConnections(applicationDetails.Emp_Id.ToString());
+                            if (employeeConnection.Any())
+                            {
+                                await _hubContext.Clients.Clients(employeeConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                            }
+                        }
+                    }
+                }
+
+                return new APIResponse { isSuccess = true, ResponseMessage = isSaved.ResponseMessage };
             }
             catch (Exception ex)
             {
@@ -103,11 +156,11 @@ namespace HRMS_API.Controllers.Leave
 
 
         [HttpPost("ReportingPersonEmpVise")]
-        public async Task<APIResponse> ReportingPersonEmpVise(int Compid,int Empid)
+        public async Task<APIResponse> ReportingPersonEmpVise(int Compid, int Empid)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false && asd.IsBlocked==false && asd.CompanyId== Compid && asd.Id!= Empid);
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false && asd.IsBlocked == false && asd.CompanyId == Compid && asd.Id != Empid);
                 if (data == null)
                 {
                     return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
@@ -143,7 +196,7 @@ namespace HRMS_API.Controllers.Leave
                     return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
 
                 }
-                
+
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
@@ -178,6 +231,113 @@ namespace HRMS_API.Controllers.Leave
                     isSuccess = false,
                     Data = err.Message,
                     ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
+
+        [HttpPost("GetCompOffReportDetailed")]
+        public async Task<APIResponse> GetCompOffReportDetailed([FromBody] CompOffBalanceReportParamViewModel search)
+        {
+            try
+            {
+                var data = await _unitOfWork.CompOffDetailsRepository.GetCompOffReportDetailed(search);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+        [HttpPost("GetCompOffAvailableBalanceReport")]
+        public async Task<APIResponse> GetCompOffAvailableBalanceReport([FromBody] CompOffBalanceReportParamViewModel search)
+        {
+            try
+            {
+                var data = await _unitOfWork.CompOffDetailsRepository.GetCompOffAvailableBalanceReport(search);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
+        [HttpPost("GetCompOffDetailsReportForAdmin")]
+        public async Task<APIResponse> GetCompOffDetailsReportForAdmin([FromBody] SearchVmForCompoffAdmin search)
+        {
+            try
+            {
+                var data = await _unitOfWork.CompOffDetailsRepository.GetCompOffDetailsReportForAdmin(search);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
+        [HttpPost("GetApprovedCompOffDetails")]
+        public async Task<APIResponse> GetApprovedCompOffDetails(Comp_offpara model)
+        {
+            try
+            {
+                var data = await _unitOfWork.CompOffDetailsRepository.GetApprovedCompOffDetails(model);
+
+                if (data == null )
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No approved comp-off records found." };
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Approved comp-off records fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (use ILogger in real applications)
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to retrieve comp-off records. Please try again later."
                 };
             }
         }

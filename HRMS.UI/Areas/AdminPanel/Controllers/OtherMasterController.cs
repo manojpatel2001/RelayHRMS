@@ -19,7 +19,27 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View();
         }
+        public IActionResult TicketStatus()
+        {
+            return View();
+        }
         public IActionResult PunchInLocation()
+        {
+            return View();
+        }
+        public IActionResult SkillMaster()
+        {
+            return View();
+        }
+        public IActionResult LeaveTransaction()
+        {
+            return View();
+        }
+        public IActionResult EmployeeHolidayMarking()
+        {
+            return View();
+        }
+        public IActionResult AttendanceLock()
         {
             return View();
         }

@@ -1,7 +1,10 @@
-﻿using HRMS_Core.DbContext;
+﻿using Azure.Core;
+using HRMS_Core.DbContext;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.importData;
+using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Salary;
 using Microsoft.Data.SqlClient;
@@ -44,6 +47,64 @@ namespace HRMS_Infrastructure.Repository.Salary
             {
 
                 return new List<EmpAttendanceVM>();
+            }
+        }
+
+        public async Task<List<GetEmployeeInTime>> GetEmployeeInTime(int EmployeeId)
+        {
+            try
+            {
+                var result = await _db.Set<GetEmployeeInTime>()
+                    .FromSqlInterpolated($"EXEC GetEmployeeInTime  @EmployeeId = {EmployeeId}")
+                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetLeaveApplicationsReport Error: " + ex.Message);
+                return new List<GetEmployeeInTime>();
+            }
+        }
+
+        public async Task<List<TodaysAttendanceAdminViewModel>> GetTodaysAttendanceAdmin(int BranchId, int ShiftMatserId ,int CompId)
+        {
+            try
+            {
+                var result = await _db.Set<TodaysAttendanceAdminViewModel>()
+                    .FromSqlInterpolated($"EXEC GetTodaysAttendanceAdmin  @BranchId = {BranchId} ,@ShiftMasterId={ShiftMatserId} ,@CompanyId={CompId}")
+                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetTodaysAttendanceAdmin Error: " + ex.Message);
+                return new List<TodaysAttendanceAdminViewModel>();
+            }
+        }
+
+
+        public async Task<List<TodaysAttendanceAdminViewModel>> GetTodaysAttendanceDashbord(
+    List<int> branchIds, // List of branch IDs
+    int shiftMasterId,
+    int compId)
+        {
+            try
+            {
+     
+                string branchIdsString = string.Join(",", branchIds);
+
+                var result = await _db.Set<TodaysAttendanceAdminViewModel>()
+                    .FromSqlInterpolated($@"EXEC GetTodaysAttendanceDashboard
+                @BranchIds = {branchIdsString},
+                @ShiftMasterId = {shiftMasterId},
+                @CompanyId = {compId}")
+                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetTodaysAttendanceDashboard Error: " + ex.Message);
+                return new List<TodaysAttendanceAdminViewModel>();
             }
         }
 

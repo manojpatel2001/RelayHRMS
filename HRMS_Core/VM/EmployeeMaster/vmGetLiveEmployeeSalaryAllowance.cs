@@ -30,4 +30,5 @@ namespace HRMS_Core.VM.EmployeeMaster
         public decimal? CTC { get; set; }
 
     }
+    
 }

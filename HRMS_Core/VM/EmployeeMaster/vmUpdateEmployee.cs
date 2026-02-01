@@ -44,7 +44,6 @@ namespace HRMS_Core.VM.EmployeeMaster
         public int? ReportingManagerId { get; set; }
         public string? SubBranch { get; set; }
         public string? EnrollNo { get; set; }
-
         public int? CompanyId { get; set; }
 
         public bool? Overtime { get; set; } = false;
@@ -57,8 +56,11 @@ namespace HRMS_Core.VM.EmployeeMaster
         public bool? Trainee { get; set; } = false;
         public int? WeekOffDetailsId { get; set; }
         public bool? IsPermissionPunchInOut { get; set; } = false;
-        public string? CreatedByName { get; set; } 
-
+        public string? CreatedByName { get; set; }
+        public bool? IsPFApplicable { get; set; } = true;
+        public string? PFNo { get; set; }
+        public string? ESICNo { get; set; }
+        public string? NoOfChildren { get; set; }
 
 
         //base model
@@ -97,14 +99,14 @@ namespace HRMS_Core.VM.EmployeeMaster
         public DateTime? DrivingLicenseExpiry { get; set; }
         public string? RationCardType { get; set; }
         public string? RationCardNo { get; set; }
-        public int? ProbationCompletionPeriod { get; set; }
+        public decimal? ProbationCompletionPeriod { get; set; }
         public string? ProbationPeriodType { get; set; }
         //foreignKey
         public int? ManagerProbationId { get; set; }
         public DateTime? ConfirmDate { get; set; }
         public DateTime? RetirementDate { get; set; }
         public DateTime? OfferDate { get; set; }
-        public int? TraineeCompletionPeriod { get; set; }
+        public decimal? TraineeCompletionPeriod { get; set; }
         public string? TraineePeriodType { get; set; }
 
 
@@ -158,6 +160,14 @@ namespace HRMS_Core.VM.EmployeeMaster
         public string? EmployeeTaxReport{ get; set; }
         public string? EmployeeESIReport{ get; set; }
         public string? EmployeeNamePrmaryBank{ get; set; }
+        public int AttendanceLimit { get; set; }
 
+    }
+
+    public class vmAddProbationEndDate
+    {
+        public int? Id { get; set; }
+        public int? GradeId { get; set; }
+        public DateTime? DateOfJoining { get; set; }
     }
 }

@@ -13,8 +13,7 @@ namespace HRMS_Core.VM.ManagePermision
         public string PermissionName { get; set; }
         public string Slug { get; set; }
         public string GroupName { get; set; }
+        public string PermissionRoleTypeName { get; set; }
     }
-
-    
 
 }

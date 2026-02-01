@@ -21,11 +21,11 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
             _db = db;
         }
 
-        public async Task<VMCommonResult> CreateUserCompanyPermissions(VMUserCompanyPermission model)
+        public async Task<SP_Response> CreateUserCompanyPermissions(VMUserCompanyPermission model)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                 EXEC ManageUserCompanyPermission
                     @Action = {"CREATE"},
                     @EmployeeId = {model.EmployeeId},
@@ -34,19 +34,19 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                     @CreatedBy = {model.CreatedBy}
             ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                return result?.FirstOrDefault() ?? new SP_Response { Success = 0,ResponseMessage="Some thing went wrong!" };
             }
             catch
             {
-                return new VMCommonResult { Id = 0 };
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
         }
 
-        public async Task<VMCommonResult> UpdateUserCompanyPermissions(VMUserCompanyPermission model)
+        public async Task<SP_Response> UpdateUserCompanyPermissions(VMUserCompanyPermission model)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                 EXEC ManageUserCompanyPermission
                     @Action = {"UPDATE"},
                     @UserCompanyPermissionId = {model.UserCompanyPermissionId},
@@ -57,19 +57,19 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                     @UpdatedBy = {model.UpdatedBy}
             ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                return result?.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
             }
             catch
             {
-                return new VMCommonResult { Id = 0 };
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
         }
 
-        public async Task<VMCommonResult> DeleteUserCompanyPermissions(DeleteRecordVM model)
+        public async Task<SP_Response> DeleteUserCompanyPermissions(DeleteRecordVM model)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                 EXEC ManageUserCompanyPermission
                     @Action = {"DELETE"},
                     @UserCompanyPermissionId = {model.Id},
@@ -77,11 +77,11 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                     @DeletedBy = {model.DeletedBy}
             ").ToListAsync();
 
-                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                return result?.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
             }
             catch
             {
-                return new VMCommonResult { Id = 0 };
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
         }
         public async Task<List<vmGetAllCompanyDetailsList>> GetCompanyPermissionsListByEmployeeId(int EmployeeId)

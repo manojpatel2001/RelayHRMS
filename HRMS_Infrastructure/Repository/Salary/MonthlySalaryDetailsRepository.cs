@@ -1,16 +1,20 @@
-﻿using HRMS_Core.DbContext;
+﻿using Dapper;
+using HRMS_Core.DbContext;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.PrivilegeSetting;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.JobMaster;
+using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Salary;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
+using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -22,59 +26,85 @@ namespace HRMS_Infrastructure.Repository.Salary
     {
 
         private HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public MonthlySalaryDetailsRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
-        }
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
 
+        }
         public Task AddAsync(SalaryDetailViewModel entity)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<VMCommonResult> CreateSalaryDetails(MonthlySalaryRequestViewModel vm)
+        public async Task<SP_Response> CreateSalaryDetails(MonthlySalaryRequestViewModel vm)
         {
-
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC [USP_CalculateMonthlySalary1]
-                    @StartDate = {vm.StartDate},
-                    @EndDate = {vm.EndDate},
-                    @EmployeeCodes = {vm.EmployeeCodes},
-                    @BranchId = {vm.BranchId},
-                    @Action = {vm.Action}").ToListAsync();
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+            EXEC [USP_CalculateMonthlySalary_V2] 
+            @StartDate = {vm.StartDate:yyyy-MM-dd}, 
+            @EndDate = {vm.EndDate:yyyy-MM-dd}, 
+            @EmployeeCodes = {vm.EmployeeCodes}, 
+            @CompanyId ={vm.CompanyId},
+            @Action = {vm.Action ?? "Insert"},
+              @CreatedBy = {vm.CreatedBy}
+        ").ToListAsync();
 
-                return result.FirstOrDefault() ?? new VMCommonResult { Id = null };
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
             }
-            catch (Exception ex)
+            catch
             {
-                return new VMCommonResult { Id = null };
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
 
+        //public async Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm)
+        //{
+
+        //    try
+        //    {
+        //        var stratdate = new SqlParameter("@StartDate", (object?)vm.StartDate ?? DBNull.Value);
+        //        var enddate = new SqlParameter("@EndDate", (object?)vm.EndDate ?? DBNull.Value);
+        //        var employeecodes = new SqlParameter("@EmployeeCodes", (object?)vm.EmployeeCodes ?? DBNull.Value);
+        //        var branchidParam = new SqlParameter("@BranchId", (object?)vm.BranchId ?? DBNull.Value);
+        //        var action = new SqlParameter("@Action", (object?)vm.Action ?? DBNull.Value);
+
+
+        //        return await _db.Set<SalaryReportDTO>()
+        //      .FromSqlRaw("EXEC [dbo].[USP_CalculateMonthlySalary1] @StartDate, @EndDate, @EmployeeCodes,@BranchId,@Action",
+        //          stratdate, enddate, employeecodes, branchidParam, action)
+        //      .ToListAsync();
+        //    }
+        //    catch (Exception ex)
+        //    {
+
+        //        return new List<SalaryReportDTO>();
+        //    }
+        //}
 
         public async Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm)
         {
-
             try
             {
-                var stratdate = new SqlParameter("@StartDate", (object?)vm.StartDate ?? DBNull.Value);
-                var enddate = new SqlParameter("@EndDate", (object?)vm.EndDate ?? DBNull.Value);
-                var employeecodes = new SqlParameter("@EmployeeCodes", (object?)vm.EmployeeCodes ?? DBNull.Value);
-                var branchidParam = new SqlParameter("@BranchId", (object?)vm.BranchId ?? DBNull.Value);
-                var action = new SqlParameter("@Action", (object?)vm.Action ?? DBNull.Value);
-
-
                 return await _db.Set<SalaryReportDTO>()
-              .FromSqlRaw("EXEC [dbo].[USP_CalculateMonthlySalary1] @StartDate, @EndDate, @EmployeeCodes,@BranchId,@Action",
-                  stratdate, enddate, employeecodes, branchidParam, action)
-              .ToListAsync();
-            }
-            catch (Exception ex)
-            {
+                    .FromSqlInterpolated($@"EXEC [dbo].[USP_CalculateMonthlySalary_V2]
+                @StartDate ={vm.StartDate},
+                @EndDate ={vm.EndDate},
+                @EmployeeCodes ={vm.EmployeeCodes},
+                @BranchIdS ={vm.BranchId},
+                @CompanyId ={vm.CompanyId},
+                @Action={vm.Action},       
+                @CreatedBy = {vm.CreatedBy}")
 
+
+
+                    .ToListAsync();
+            }
+            catch
+            {
                 return new List<SalaryReportDTO>();
             }
         }
@@ -101,7 +131,7 @@ namespace HRMS_Infrastructure.Repository.Salary
 
             try
             {
-                var result= await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId={vm.BranchId}").ToListAsync();
+                var result= await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId ={vm.BranchId}").ToListAsync();
                 return result;
             }
             catch
@@ -147,5 +177,224 @@ namespace HRMS_Infrastructure.Repository.Salary
                 return null;
             }
         }
+
+        public async Task<List<SalaryDetailViewModel>> GetSalarySlip(salaryslipParam vm)
+        {
+
+            try
+            {
+                var result = await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetSalarySlip @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeId={vm.EmployeeId}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<SalaryDetailViewModel>();
+            }
+
+        }
+
+        public async Task<List<SalarySlipReport>> GetSalarySlipReport(salaryslipParamReport vm)
+        {
+            try
+            {
+                string empIds = string.Join(",", vm.EmployeeId);
+                var result = await _db.Set<SalarySlipReport>().FromSqlInterpolated($"EXEC GetAllSalaryReport @EmpIds={empIds},@Month={vm.Month},@Year={vm.Year}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<SalarySlipReport>();
+            }
+        }
+
+        public async Task<List<YearlySalarySummaryVM>> GetYearlySalarySummaryReport(int Year, int EmployeeId)
+        {
+            try
+            {
+
+                var result = await _db.Set<YearlySalarySummaryVM>().FromSqlInterpolated($"EXEC SP_YearlySalarySummary @Year={Year},@EmployeeId={EmployeeId}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<YearlySalarySummaryVM>();
+            }
+            
+        }
+
+        public async Task<List<YearlySalaryComponent>> GetYearlySalaryCard(int Year, int EmpId)
+        {
+            try
+            {
+
+                var result = await _db.Set<YearlySalaryComponent>().FromSqlInterpolated($"EXEC SP_YearlySalaryCrad @Year={Year},@EmployeeId={EmpId}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<YearlySalaryComponent>();
+            }
+        }
+
+        public async Task<List<EmployeeSalaryDaysViewModel>> GetEmployeeSalaryDays(int EmpId)
+        {
+            try
+            {
+
+                var result = await _db.Set<EmployeeSalaryDaysViewModel>().FromSqlInterpolated($"EXEC GetEmployeeSalaryDays @EmployeeId={EmpId}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EmployeeSalaryDaysViewModel>();
+            }
+        }
+
+        public async Task<List<EmployeesByBranchId>> GetEmployeesByBranchId(string? BranchIds, int CompanyId)
+        {
+            try
+            {
+
+                var result = await _db.Set<EmployeesByBranchId>().FromSqlInterpolated($"EXEC GetEmployeesByBranchId @BranchIds={BranchIds},@CompanyId={CompanyId}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EmployeesByBranchId>();
+            }
+        }
+
+        public async Task<List<EmployeeSalaryRegisterViewModel>> GetEmployeeSalaryRegister(
+         SalaryRegisterVM Model)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@MonthNumber", Model.Month);
+                    parameters.Add("@Year", Model.Year);
+                    parameters.Add("@CompId", Model.CompanyId);
+                    //parameters.Add("@EmployeeCode", Model.EmployeeCodes);
+
+                    var result = await connection.QueryAsync<EmployeeSalaryRegisterViewModel>(
+                        "GetEmployeeSalaryRegister",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result.AsList();
+                }
+            }
+            catch
+            {
+                return new List<EmployeeSalaryRegisterViewModel>();
+            }
+        }
+
+        public async Task<List<EmployeesByBranchId>> GetEmployeesForSalary(string BranchIds, int CompanyId, int? Month)
+        {
+            try
+            {
+
+                var result = await _db.Set<EmployeesByBranchId>().FromSqlInterpolated($"EXEC GetEmployeesForSalary @BranchIds={BranchIds},@CompanyId={CompanyId} ,@Month={Month}").ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EmployeesByBranchId>();
+            }
+        }
+
+        public async Task<List<EmployeeSalaryPublish>> GetEmployeeSalaryPublish(AttendanceLockParamVm model)
+        {
+            try
+            {
+                var result = await _db.Set<EmployeeSalaryPublish>()
+                    .FromSqlInterpolated($"EXEC GetEmployeeSalaryPublish  @Month = {model.Month}, @Year = {model.Year}, @EmpIds = {model.EmployeeId} ,@StatusFilter={model.Status}")
+                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetEmployeeSalaryPublish Error: " + ex.Message);
+                return new List<EmployeeSalaryPublish>();
+            }
+        }
+
+        public async Task<SP_Response> UpdateSalaryPublishStatus(SalaryPublishFilterViewModel model)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Month", model.Month, DbType.Int32);
+                    parameters.Add("@Year", model.Year, DbType.Int32);
+                    parameters.Add("@EmployeeIds", model.EmployeeIds, DbType.String);
+                    parameters.Add("@SalaryIds", model.SalaryIds, DbType.String);
+                    parameters.Add("@Status", model.Status, DbType.String);
+
+                    var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                        "UpdateSalaryPublishStatus",  // ✅ Corrected SP name
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result ?? new SP_Response
+                    {
+                        Success = 0,
+                        ResponseMessage = "No data returned"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+
+                return new SP_Response
+                {
+                    Success = 0,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<SP_Response> IsPayslipPublished(PayslipFilterViewModel model)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    
+                    parameters.Add("@EmployeeID", model.EmployeeId, DbType.Int32);
+                    parameters.Add("@Month", model.Month, DbType.Int32);
+                    parameters.Add("@Year", model.Year, DbType.Int32);
+
+                    var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                        "IsPayslipPublished",  // ✅ Corrected SP name
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result ?? new SP_Response
+                    {
+                        Success = 0,
+                        ResponseMessage = "No data returned"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+
+                return new SP_Response
+                {
+                    Success = 0,
+                    ResponseMessage = $"Error: {ex.Message}"
+                };
+            }
+        }
     }
-}
+    }
