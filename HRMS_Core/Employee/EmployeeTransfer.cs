@@ -22,5 +22,7 @@ namespace HRMS_Core.Employee
         public DateTime? UpdatedDate { get; set; }
         public int? DeletedBy { get; set; }
         public DateTime? DeletedDate { get; set; }
+        public int TransferReportingPerson { get; set; }
+        public int CurrentReportingPerson { get; set; }
     }
 }
