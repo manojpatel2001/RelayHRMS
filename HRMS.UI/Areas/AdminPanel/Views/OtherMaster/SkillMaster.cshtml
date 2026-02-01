@@ -1,0 +1,350 @@
+﻿@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "Skill Master";
+	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+	string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
+	var uriAPI = new Uri(baseUrl);
+	string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
+}
+
+<div class="card ">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row">
+			<div class="col-6">
+				<h6 class="pt-2 mb-0">
+					Skill Master
+				</h6>
+			</div>
+
+			<div class="col-6 d-flex justify-content-end align-items-center">
+				<div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
+
+					<button id="addSkillBtn"
+							type="button"
+							class="btn mr-1 rounded-1"
+							style="background-color:#2395c6; color:white;">
+						Add Skill
+					</button>
+
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<div class="card-body">
+		<div class="row">
+			<div class="col-md-12">
+
+				<div class="grid-wrapper " style="position: relative; " >
+					<div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+						 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+						<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+						<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+					</div>
+					<div  id="rowCount2"></div>
+					<div id="GridContainer"></div>
+				</div>
+				
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="modal fade" id="addSkillModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-md">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Add</span> Ticket Status</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font">
+				<div class="row">
+					<div class="col-md-12">
+						<div class="form-group mt-3 position-relative">
+							<input type="text"
+								   class="form-control floating-input"
+								   placeholder="Skill Name"
+								   data-trim-input
+								   id="txtSkillName" />
+							<label class="floating-label" for="txtSkillName">Skill Name<span class="text-danger">*</span></label>
+						</div>
+						<span id="spntxtSkillName" style="color:red; display:none;">Please Enter Skill Name</span>
+
+					</div>
+				</div>
+
+
+			</div>
+			<div class="modal-footer btn-heading-title">
+
+				<button type="button" class="btn btn-primary" id="btnSaveSkill" style="background-color:#2395c6; color:white;">Save</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+<script>
+			const EmployeeId = localStorage.getItem("EmployeeId");
+			  var Token=localStorage.getItem("authToken");
+
+		let skillMasterId=0;
+
+
+		$("#addSkillBtn").click( () => {
+			 clearSkillForm();
+		  $("#addSkillModal").modal('show');
+
+		})
+
+
+		
+
+
+		$(() => {
+
+			skillDataTable();
+		});
+
+		function skillDataTable() {
+		 try {
+			$('#grid-loader').addClass('d-flex').show();
+			 $.ajax({
+				type: "GET",
+				 url: '@baseUrl/SkillMasterAPI/GetAllSkillMasters',  // Update the URL based on the API you're using
+				headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+				 success: function (data) {
+					// Check if the API call was successful
+					
+						$("#GridContainer").dxDataGrid({
+							dataSource: data.data||[],  // Use the 'data' field from the API response
+
+							columns: [
+
+								{ dataField: 'skillName', caption: 'Skill Name' ,alignment: 'left'},
+									   {
+									   dataField: '',
+									   caption: '',
+									   alignment: 'center',
+									   dataType: 'string',
+									   format: '',
+									   type: 'buttons',
+									   width: '50px',
+									   cellTemplate: function (container, options) {
+
+													   var buttonElement = $('<div class="d-flex order-actions">' +
+															  '<a href="javascript:;" class="edit-action" title="Update Skill">' +
+														   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+														   '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+														   '</svg>' +
+														   '</a>' +
+														   '</div>')
+														   .on('dxclick', function () {
+																  updateSkill(options.data);
+														   }).appendTo(container);
+
+													   // Optional: update title attribute on SVG as well (for tooltip consistency)
+														  buttonElement.find('svg').attr('title', 'Update Skill');
+									   }
+								   },
+
+
+								   {
+									   dataField: '',
+									   caption: '',
+									   alignment: 'center',
+									   dataType: 'string',
+									   format: '',
+									   type: 'buttons',
+									   width: '50px',
+									   cellTemplate: function (container, options) {
+										   var buttonElement = $('<div class="d-flex order-actions">' +
+											   '<a href="javascript:;" class="delete-action" title="Delete Skill">' +
+											   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+											   '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+											   '</svg>' +
+											   '</a>' +
+											   '</div>')
+											   .on('dxclick', function () {
+												   deleteSkill(options.data);
+											   }).appendTo(container);
+
+										   var svgElement = buttonElement.find('svg');  // Accessing the svg element directly
+										   svgElement.attr('title', 'Delete Skill');
+									   }
+								   }
+
+							],
+							columnsAutoWidth: true,
+							wordWrapEnabled: false,
+							rowAlternationEnabled: false,
+							showBorders: true,
+							grouping: { autoExpandAll: true },
+							paging: { pageSize: 10 },
+							pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+							headerFilter: { visible: true },
+							filterRow: { visible: true, applyFilter: "auto" },
+							allowColumnResizing: true,
+							groupPanel: { visible: true },
+							searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+							allowColumnReordering: true,
+							columnFixing: { enabled: false },
+
+							onContentReady(e) {
+								   $('#rowCount1').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
+							}
+						}).dxDataGrid('instance');
+					
+						  $('#grid-loader').removeClass('d-flex').hide();
+
+				},
+				error: function (xhr, status, error) {
+					  $('#grid-loader').removeClass('d-flex').hide();
+
+					// Handle any errors that occurred during the AJAX request
+					console.error("AJAX Error: " + status + " - " + error);
+
+				}
+			});
+
+		  } catch (e)
+		  {
+			   console.error("Error in fetching skill:", e);
+			   $('#grid-loader').removeClass('d-flex').hide();
+			 
+		  }
+	}
+
+		function clearSkillForm()
+		{
+				skillMasterId=0
+			$('#txtSkillName').val("");
+			$("#btnSaveSkill").prop("disabled", false);
+			$('.formType').text('Add');
+			$('#btnSaveSkill').text('Save');
+			   $('#spntxtSkillName').hide();
+		}
+
+
+		$('#btnSaveSkill').click(function () {
+			$("#btnSaveSkill").prop("disabled", true);
+			let isValid = true;
+
+			const skillName = $('#txtSkillName').val();
+
+			// Validation
+			if (skillName === '') {
+				$('#spntxtSkillName').show();
+				isValid = false;
+			} else {
+				$('#spntxtSkillName').hide();
+			}
+
+			if (!isValid) {
+				$("#btnSaveSkill").prop("disabled", false);
+				return;
+			}
+
+			const data = {
+				SkillMasterId:skillMasterId==0?0:skillMasterId,
+				SkillName: skillName
+
+			};
+
+			 var typeUrl=skillMasterId==0?'@baseUrl/SkillMasterAPI/CreateSkillMaster':'@baseUrl/SkillMasterAPI/UpdateSkillMaster';
+			 var TypeMethod=skillMasterId==0?"POST":"PUT";
+			$.ajax({
+				url: typeUrl,
+				type: TypeMethod,
+				contentType: 'application/json',
+				headers: {
+							'Authorization': 'Bearer ' + Token
+						},
+				data: JSON.stringify(data),
+				success: function (response) {
+					if(response.isSuccess)
+					{
+					  round_success_noti(response.responseMessage);
+					}
+					else
+					{
+						round_error_noti(response.responseMessage)
+					}
+
+					$('#addSkillModal').modal('hide');
+					skillDataTable(); // optional: reload list
+				},
+				error: function (xhr, status, error) {
+					$("#btnSaveSkill").prop("disabled", false);
+					round_error_noti("Error while saving skill ");
+				}
+
+
+
+			});
+		});
+
+
+		function updateSkill(data) {
+				clearSkillForm();
+			$('#txtSkillName').val(data.skillName||"");
+
+			$('.formType').text('Update');
+			$('#btnSaveSkill').text('Update');
+			skillMasterId = data.skillMasterId;
+
+			// Show the modal
+			$("#addSkillModal").modal('show');
+		}
+
+		   function deleteSkill(data)
+		   {
+			  if (!confirm("Are you sure you want to delete this?"))
+			  {
+				   return; // Cancel the delete operation
+			   }
+
+			   var deleteObj = {
+				   id: data.skillMasterId,
+				   deletedBy: EmployeeId // Set this if you have a logged-in user ID
+			   };
+
+			   $.ajax({
+				  url: '@baseUrl/SkillMasterAPI/DeleteSkillMaster',
+				   type: 'DELETE',
+				   contentType: 'application/json',
+				   headers: {
+					   'Authorization': 'Bearer ' + Token
+				   },
+				   data: JSON.stringify(deleteObj),
+				   success: function (response) {
+					   if(response.isSuccess)
+					   {
+						 round_success_noti(response.responseMessage);
+					   }
+					   else
+					   {
+						   round_error_noti(response.responseMessage)
+					   }
+					skillDataTable();
+				   },
+				   error: function (error) {
+						  console.log(error);
+				   }
+			   });
+		   }
+
+		 
+
+
+</script>

@@ -63,6 +63,13 @@ namespace HRMS_Core.DbContext
         public bool? Fixsalary { get; set; } = false;
         public bool? Probation { get; set; } = false;
         public bool? Trainee { get; set; } = false;
+        public bool? IsLeft { get; set; } = false;
+        public bool? IsPFApplicable { get; set; } = true;
+        public DateTime? ProbationEndDate { get; set; }
+        public string? DeviceId { get; set; }
+        public bool? IsMobileAccess { get; set; } = false;
+        public string? FCMToken { get; set; }
+
 
         //base model
         public bool? IsDeleted { get; set; } = false;
@@ -81,6 +88,7 @@ namespace HRMS_Core.DbContext
         public bool? IsPasswordChange { get; set; } = false;
         public int? WeekOffDetailsId { get; set; }
         public bool? IsPermissionPunchInOut { get; set; } = false;
+        public int? IsSelfiRequired { get; set; }
 
 
         //PersionalInfo
@@ -106,15 +114,18 @@ namespace HRMS_Core.DbContext
         public DateTime? DrivingLicenseExpiry { get; set; }
         public string? RationCardType { get; set; }
         public string? RationCardNo { get; set; }
-        public int? ProbationCompletionPeriod { get; set; }
+        public decimal? ProbationCompletionPeriod { get; set; }
         public string? ProbationPeriodType { get; set; }
         //foreignKey
         public int? ManagerProbationId { get; set; }
         public DateTime? ConfirmDate { get; set; }
         public DateTime? RetirementDate { get; set; }
         public DateTime? OfferDate { get; set; }
-        public int? TraineeCompletionPeriod { get; set; }
+        public decimal? TraineeCompletionPeriod { get; set; }
         public string? TraineePeriodType { get; set; }
+        public string? PFNo { get; set; }
+        public string? ESICNo { get; set; }
+        public string? NoOfChildren { get; set; }
 
 
 
@@ -167,7 +178,9 @@ namespace HRMS_Core.DbContext
         public string? EmployeePTReport{ get; set; }
         public string? EmployeeTaxReport{ get; set; }
         public string? EmployeeESIReport{ get; set; }
-        public string? EmployeeNamePrmaryBank{ get; set; }
+        public string? EmployeeNamePrmaryBank { get; set; }
+        public DateTime? LastLogin { get; set; }
+        public int AttendanceLimit { get; set; }
 
 
     }

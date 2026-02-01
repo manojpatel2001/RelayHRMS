@@ -18,13 +18,12 @@ namespace HRMS_API.Controllers.JobMaster
             _unitOfWork = unitOfWork;
         }
 
-
         [HttpGet("GetAllGrade")]
         public async Task<APIResponse> GetAllGrade()
         {
             try
             {
-                var data = await _unitOfWork.GradeRepository.GetAllAsync();
+                var data = await _unitOfWork.GradeRepository.GetAllAsync(x => x.IsEnabled == true && x.IsDeleted == false);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)

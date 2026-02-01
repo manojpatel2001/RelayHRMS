@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.importData;
 using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.ManagePermision;
@@ -21,7 +22,10 @@ namespace HRMS_Infrastructure.Interface.JobMaster
         Task<List<vmGetAllCityByStateId>> GetAllCityByStateId(vmCommonGetById filter);
         Task<vmCheckExistBranchCode?> CheckExistBranchCode(vmCommonGetById filter);
 
-        Task<List<BranchUserStatsModel>> GetBranchWiseEmpCount();
+        Task<List<BranchUserStatsModel>> GetBranchWiseEmpCount(int CompanyId);
         Task<List<vmGetAllBranchesListByCompanyId>> GetAllBranchesListByCompanyId(vmCommonGetById filter);
+
+        Task<List<BranchViewModel>> GetBranchesByEmployee(int EmpId , int CompId);
+        Task<List<EmployeeViewModel>> GetEmployeesByBranchAndUser(int EmpId , int CompId);
     }
 }

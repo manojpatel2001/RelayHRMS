@@ -77,7 +77,6 @@
         public DateTime? DeletedDate { get; set; }
         public string? DeletedBy { get; set; }
         public string? BranchIds { get; set; }
-        public string? BranchNames { get; set; }
     }
 
 }

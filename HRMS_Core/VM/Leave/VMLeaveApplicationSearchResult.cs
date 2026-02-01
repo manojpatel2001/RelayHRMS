@@ -15,7 +15,7 @@ namespace HRMS_Core.VM.Leave
         public string? ReportingPersonName { get; set; }
         public DateTime? FromDate { get; set; }
         public DateTime? Todate { get; set; }
-        public int? No_Of_Date { get; set; }
+        public string? No_Of_Date { get; set; }
         public string? Reason { get; set; }
         public string? ApplicationType { get; set; }
         public string? LeaveStatus { get; set; }

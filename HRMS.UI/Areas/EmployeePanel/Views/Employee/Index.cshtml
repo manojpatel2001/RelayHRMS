@@ -1,136 +1,379 @@
-﻿@{
+﻿@inject IConfiguration Configuration
+@{
     ViewData["Title"] = "Employee Panel";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
-    string apiBase = ViewBag.BaseUrlAPI;
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 
 <!-- CSS -->
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<style>
-   
 
-    
+<!-- IMPORTANT: Load JSZip BEFORE DevExtreme scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- DevExtreme Excel Export Dependencies -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<style>
+    :root {
+        --primary-color: #3e4b6d;
+        --primary-hover: #2c3a57;
+        --text-light: white;
+        --bg-overlay: rgba(255, 255, 255, 0.6);
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Buttons */
     .btn-custom {
-        background-color: #3e4b6d;
-        color: white;
+        background-color: var(--primary-color);
+        color: var(--text-light);
         font-weight: 600;
-        padding: 4px 12px;
+        padding: 8px 16px;
         border: none;
-        border-radius: 4px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        font-size: 14px;
     }
 
         .btn-custom:hover {
-            background-color: #2c3a57;
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(62, 75, 109, 0.3);
         }
 
-    .search-panel-container {
-        background-color: #3e4b6d;
-        padding: 6px 15px;
-        border-radius: 6px;
-        margin-bottom: 15px;
+        .btn-custom:active {
+            transform: translateY(0);
+        }
+
+    .btn-punching {
+        background-color: #6c757d;
+        cursor: not-allowed;
     }
 
-    .search-panel-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    /* Search Panel */
+    .search-panel-container {
+        background-color: var(--primary-color);
+        padding:3px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(62, 75, 109, 0.2);
     }
 
     .search-heading {
-        font-size: 15px;
-        color: white;
+        font-size: 16px;
+        color: var(--text-light);
+        font-weight: 600;
         margin: 0;
     }
 
-    
+    /* Form Controls */
+    .form-control {
+        border: 2px solid #e0e6ed;
+        border-radius: 6px;
+        padding: 8px 12px;
+        transition: all 0.3s ease;
+    }
 
-    .text-center-cell {
-        text-align: center;
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(62, 75, 109, 0.25);
+        }
+
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 5px;
+    }
+
+    .filter-row > div {
+        margin-bottom: 15px;
+    }
+
+        .filter-row > div:last-child {
+            margin-bottom: 0;
+        }
+
+    /* Tabs */
+    .nav-tabs {
+        border-bottom: 2px solid var(--primary-color);
+    }
+
+        .nav-tabs .nav-link {
+            color: var(--primary-color);
+            font-weight: 600;
+            border: none;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+        }
+
+            .nav-tabs .nav-link:hover {
+                background-color: rgba(62, 75, 109, 0.1);
+            }
+
+            .nav-tabs .nav-link.active {
+                background-color: var(--primary-color);
+                color: var(--text-light);
+                border-color: var(--primary-color);
+            }
+
+    /* Grid */
+    .grid-container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+        max-height: 450px;
+    }
+
+    .grid-wrapper {
+        position: relative;
+        max-height: 400px;
+    }
+
+    @@keyframes spin {
+        0%
+
+    {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        margin-bottom: 20px;
+    }
+
+    .btn-group-custom {
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .mb-custom {
+        margin-bottom: 1rem;
+    }
+
+    /* Tab Content */
+    .tab-content {
+        margin-top: 20px;
+    }
+
+    /* Grid Header without Excel Export button */
+    .grid-header {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px 0;
+        border-bottom: 1px solid #e0e6ed;
+    }
+
+    /* Custom Excel Export Icon in Grid Toolbar */
+    .dx-toolbar-item .dx-button.excel-export-btn {
+        background-color: #28a745 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important;
+        padding: 6px 12px !important;
+        margin-right: 10px !important;
+    }
+
+        .dx-toolbar-item .dx-button.excel-export-btn:hover {
+            background-color: #218838 !important;
+        }
+
+        .dx-toolbar-item .dx-button.excel-export-btn .dx-icon {
+            color: white !important;
+            font-size: 16px !important;
+        }
+    /* Make grid container responsive */
+    #attendanceGridMultiple {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    /* Ensure toolbar adapts to smaller screens */
+    .dx-datagrid .dx-toolbar {
+        flex-wrap: wrap !important;
+        justify-content: space-between;
+    }
+
+    /* Search box width fix */
+    .dx-datagrid .dx-searchbox {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    @@media (max-width: 576px) {
+        .dx-datagrid .dx-toolbar .dx-toolbar-item
+
+    {
+        flex: 1 1 100% !important;
+        margin-bottom: 5px;
+    }
+
     }
 </style>
 
-<!-- Search Panel -->
-<div class="search-panel-wrapper">
-    <div class="search-panel-container">
-        <div class="search-panel-row">
-            <div class="search-heading">Search Panel</div>
+<style>
+    #attendanceGridFirst, #attendanceGridMultiple {
+        max-height: 350px;
+    }
+</style>
+
+
+<div class="container-fluid py-4">
+    <!-- Search Panel Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="search-panel-container">
+                <div class="search-panel-row">
+                    <div class="search-heading">
+                        Employee In Out
+                        &nbsp;
+                        &nbsp;
+                        &nbsp;
+                        <button type="button" id="btnInOut" style="background-color:#2395c6 ; color:white;border-radius:10px;padding:8px;">
+                            <i class="fas fa-sign-in-alt me-2"></i>In/Out
+                        </button>
+                        <button type="button" disabled id="btnPunching"  style="display:none; background-color:#2395c6 ; color:white;border-radius:10px;padding:8px;">
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Punching...
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Filters -->
-<div class="form-section">
-    <div class="row justify-content-center mb-3">
-        <div class="col-md-4 d-flex align-items-center">
-            <label class="form-label mb-2 me-2" style="width: 120px;">Month:</label>
-            <select id="dropdownmonth" class="form-control form-control-sm">
-                <option value="" disabled>Select Month</option>
-                @for (int i = 1; i <= 12; i++)
-                {
-                    var selected = (i == DateTime.Now.Month) ? "selected" : "";
-                    <option value="@i" @selected>@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-4 d-flex align-items-center">
-            <label class="form-label mb-2 me-2" style="width: 120px;">Year:</label>
-            <select id="dropdownyear" class="form-control form-control-sm">
-                @for (int y = 2024; y <= DateTime.Now.Year; y++)
-                {
-                    var selected = (y == DateTime.Now.Year) ? "selected" : "";
-                    <option value="@y" @selected>@y</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-4 d-flex align-items-center">
-        <div class="col d-flex align-items-center justify-content-center flex-wrap gap-3">
-                <button type="button" class="search-panel-container  search-heading btn-sm" id="btnGo">Go</button>
-        </div>
+
+    <!-- Filters Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="filter-section">
+                <div class="row g-3 filter-row">
+                    <!-- Month Filter -->
+                    <div class="col-12 col-md-4">
+                        <label class="filter-label" for="dropdownmonth">Month:</label>
+                        <select id="dropdownmonth" class="form-control">
+                            <option value="" disabled>Select Month</option>
+                            @for (int i = 1; i <= 12; i++)
+                            {
+                                var selected = (i == DateTime.Now.Month) ? "selected" : "";
+                                <option value="@i" @selected>@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Year Filter -->
+                    <div class="col-12 col-md-4">
+                        <label class="filter-label" for="dropdownyear">Year:</label>
+                        <select id="dropdownyear" class="form-control">
+                            @for (int y = 2024; y <= DateTime.Now.Year; y++)
+                            {
+                                var selected = (y == DateTime.Now.Year) ? "selected" : "";
+                                <option value="@y" @selected>@y</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Go Button -->
+                    <div class="col-12 col-md-4 d-flex align-items-end">
+                        <button type="button" class="btn-custom w-25 mb-3" id="btnGo">
+                            <i class="fas fa-play me-2"></i>Go
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
    
 
-    <!-- In/Out Heading -->
-    <div class="search-panel-wrapper">
-        <div class="search-panel-container">
-            <div class="search-panel-row">
-                <div class="search-heading">Employee In Out:</div>
-            </div>
+
+    <!-- Tab Navigation -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="attendanceTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="firstLast-tab" data-bs-toggle="tab" data-bs-target="#firstLast" type="button" role="tab">
+                        <i class="fas fa-list-alt me-2"></i>First In and Last Out
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="multiplePunches-tab" data-bs-toggle="tab" data-bs-target="#multiplePunches" type="button" role="tab">
+                        <i class="fas fa-clock me-2"></i>Multiple Punches
+                    </button>
+                </li>
+            </ul>
         </div>
     </div>
-</div>
 
-<!-- Tab Layout -->
-<div class="form-section">
-    <div class="container mt-3">
-        <ul class="nav nav-tabs" id="attendanceTabs" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active p-2" id="firstLast-tab" data-bs-toggle="tab" href="#firstLast" role="tab">First In and Last Out</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link p-2" id="multiplePunches-tab" data-bs-toggle="tab" href="#multiplePunches" role="tab">Multiple Punches</a>
-            </li>
-        </ul>
-    </div>
-
-    <div class="container mt-3">
-        <div class="d-flex justify-content-start mb-2 gap-2" id="actionButtons" style="display: none;">
-            <button type="button" id="btnInOut" class="search-panel-container  search-heading btn-sm ">In/Out</button>
-        </div>
-
-        <div class="tab-content">
-            <div class="tab-pane fade show active" id="firstLast" role="tabpanel">
-                <div id="tblFirstLast">
-                    <div id="attendanceGridFirst"></div>
+    <!-- Tab Content -->
+    <div class="row">
+        <div class="col-12">
+            <div class="tab-content" id="attendanceTabContent">
+                <!-- First In Last Out Tab -->
+                <div class="tab-pane fade show active" id="firstLast" role="tabpanel">
+                    <div class="grid-container">
+                        <!-- Grid Header without Excel Export button -->
+                        <div class="grid-header">
+                            <div id="attendanceGridFirstCount"></div>
+                        </div>
+                        <div class="grid-wrapper " style="position: relative; ">
+                            <div id="grid-first-loader" class="grid-loader justify-content-center align-items-center flex-column "
+                                 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+                                <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+                                <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+                            </div>
+                            <div id="GridTagFirst">
+                                <div id="attendanceGridFirst"></div>
+                            </div>
+                            <div id="spnNoRecordFirst" class="text-center py-5 text-muted" style="display:none;">No Record Found!</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="tab-pane fade" id="multiplePunches" role="tabpanel">
-                <div id="tblMultiplePunches">
-                    <div id="attendanceGridWrapper" >
-                    <div id="attendanceGridMultiple"></div>
+
+                <!-- Multiple Punches Tab -->
+                <div class="tab-pane fade" id="multiplePunches" role="tabpanel">
+                    <div class="grid-container">
+                        <!-- Grid Header without Excel Export button -->
+                        <div class="grid-header">
+                            <div id="attendanceGridMultipleCount"></div>
+                        </div>
+                        <div class="grid-wrapper " style="position: relative; ">
+                            <div id="grid-multi-loader" class="grid-loader justify-content-center align-items-center flex-column "
+                                 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+                                <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+                                <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+                            </div>
+                            <div id="GridTagMulti">
+                                <div id="attendanceGridMultiple"></div>
+                            </div>
+                            <div id="spnNoRecordMulti" class="text-center py-5 text-muted" style="display:none;">No Record Found!</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -140,12 +383,161 @@
 
 <!-- JavaScript -->
 <script>
-    const apiBase = '@apiBase';
+    const apiBase = '@baseUrl';
     const empid = parseInt(localStorage.getItem("EmployeeId"));
-         const savedCompany = localStorage.getItem('selectedCompany');
+    const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany || '{}');
     const Compid = parseInt(companyDetails.CompanyId);
-    const Token=localStorage.getItem("authToken");
+    const Token = localStorage.getItem("authToken");
+
+    // Grid instances to store references
+    let firstGridInstance = null;
+    let multipleGridInstance = null;
+
+    // Enhanced Manual Excel Export Function
+    function exportDataToExcel(data, fileName, columns) {
+        try {
+            // Check if JSZip is available
+            if (typeof JSZip === 'undefined') {
+                console.warn('JSZip not available, using alternative export method');
+                exportToCSV(data, fileName, columns);
+                return;
+            }
+
+            // Create workbook and worksheet
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Sheet1');
+
+            // Add headers
+            const headers = columns.map(col => col.caption || col.dataField);
+            worksheet.addRow(headers);
+
+            // Style headers
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true };
+            headerRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF3E4B6D' }
+            };
+            headerRow.font.color = { argb: 'FFFFFFFF' };
+
+            // Add data rows
+            data.forEach(item => {
+                const row = columns.map(col => {
+                    let value = item[col.dataField];
+
+                    // Format dates
+                    if (col.dataType === 'date' && value) {
+                        const date = new Date(value);
+                        return date.toLocaleDateString('en-GB'); // dd/mm/yyyy format
+                    }
+
+                    // Format numbers
+                    if (col.dataType === 'number' && value !== null && value !== undefined) {
+                        return parseFloat(value);
+                    }
+
+                    return value || '';
+                });
+                worksheet.addRow(row);
+            });
+
+            // Auto-fit columns
+            worksheet.columns.forEach(column => {
+                let maxLength = 0;
+                column.eachCell({ includeEmpty: true }, (cell) => {
+                    const cellLength = cell.value ? cell.value.toString().length : 10;
+                    if (cellLength > maxLength) {
+                        maxLength = cellLength;
+                    }
+                });
+                column.width = Math.min(maxLength + 2, 50);
+            });
+
+            // Ensure filename doesn't have special characters that might cause issues
+            const sanitizedFileName = fileName.replace(/[^a-z0-9_\-]/gi, '_');
+
+            // Generate Excel file with explicit filename
+            workbook.xlsx.writeBuffer().then(buffer => {
+                const blob = new Blob([buffer], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                });
+
+                // Use FileSaver.js with explicit filename
+                saveAs(blob, `${sanitizedFileName}.xlsx`);
+                round_success_noti("Excel file downloaded successfully!");
+            }).catch(error => {
+                console.error('Excel export error:', error);
+                round_error_noti("Failed to export Excel file. Trying CSV export...");
+                exportToCSV(data, fileName, columns);
+            });
+
+        } catch (error) {
+            console.error('Excel export error:', error);
+            round_error_noti("Failed to export Excel file. Trying CSV export...");
+            exportToCSV(data, fileName, columns);
+        }
+    }
+
+    // Fallback CSV Export Function
+      function exportToCSV(data, fileName, columns) {
+        try {
+            // Create CSV content
+            const headers = columns.map(col => col.caption || col.dataField);
+            let csvContent = headers.join(',') + '\n';
+
+            data.forEach(item => {
+                const row = columns.map(col => {
+                    let value = item[col.dataField];
+
+                    // Format dates
+                    if (col.dataType === 'date' && value) {
+                        const date = new Date(value);
+                        value = date.toLocaleDateString('en-GB');
+                    }
+
+                    // Format numbers
+                    if (col.dataType === 'number' && value !== null && value !== undefined) {
+                        value = parseFloat(value);
+                    }
+
+                    // Handle null/undefined values
+                    if (value === null || value === undefined) {
+                        value = '';
+                    }
+
+                    // Escape commas and quotes in CSV
+                    const stringValue = String(value);
+                    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                        return '"' + stringValue.replace(/"/g, '""') + '"';
+                    }
+
+                    return stringValue;
+                });
+                csvContent += row.join(',') + '\n';
+            });
+
+            // Ensure filename doesn't have special characters
+            const sanitizedFileName = fileName.replace(/[^a-z0-9_\-]/gi, '_');
+
+            // Download CSV file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${sanitizedFileName}.csv`;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            round_success_noti("CSV file downloaded successfully!");
+        } catch (error) {
+            console.error('CSV export error:', error);
+            round_error_noti("Failed to export data.");
+        }
+    }
+
 
     function convertUTCtoIST(utcInput) {
         const utcDate = new Date(utcInput);
@@ -154,61 +546,97 @@
         return istDate;
     }
 
+    $(document).ready(async function () {
+           $('#btnInOut').hide();
+        // Check if JSZip is loaded
+        if (typeof JSZip === 'undefined') {
+            console.warn('JSZip is not loaded. Excel export may not work properly.');
+        } else {
+            console.log('JSZip is loaded successfully.');
+        }
 
-    $(document).ready(function () {
-       reloadGrids();
+        await checkPermissionInOut();
+        reloadGrids();
 
         $('#btnInOut').click(function () {
-             const utcNow = new Date()
-             console.log(utcNow);
-            const payload = {
-                EmployeeId: empid,
-                PunchDateTime: convertUTCtoIST(utcNow),
-                CreatedBy: empid.toString(),
-                Mode: "Web",
-                CompanyId:Compid,
-            };
-           
+            $('#btnInOut').hide();
+            $('#btnPunching').show();
 
-            $.ajax({
-                url: apiBase + '/EmployeeInOut/CreateEmpINOut',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(payload),
-                success: function (res) {
-                    Swal.fire({ icon: 'success', title: res.responseMessage || '✅ In time saved.', timer: 2000 });
-                    reloadGrids();
-                },
-                error: () => alert('❌ Error saving In Time.')
-            });
+            try {
+                const utcNow = new Date();
+
+                const payload = {
+                    EmployeeId: empid,
+                    PunchDateTime: convertUTCtoIST(utcNow),
+                    CreatedBy: empid.toString(),
+                    Mode: "Web",
+                    CompanyId: Compid
+                };
+
+                $.ajax({
+                    url: apiBase + '/EmployeeInOut/CreateEmpINOut',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (response) {
+                        if (response.isSuccess) {
+                            round_success_noti(response.responseMessage);
+                            reloadGrids();
+                        } else {
+                            round_error_noti(response.responseMessage);
+                        }
+                        $('#btnInOut').show();
+                        $('#btnPunching').hide();
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("AJAX error:", error);
+                        $('#btnInOut').show();
+                        $('#btnPunching').hide();
+                        round_error_noti("Failed to punch in/out. Please try again.");
+                    }
+                });
+
+            } catch (err) {
+                console.error("Unexpected error:", err);
+                $('#btnInOut').show();
+                $('#btnPunching').hide();
+                round_error_noti("Something went wrong. Please try again.");
+            }
         });
-            
 
+        $('#dropdownyear,#dropdownmonth').focus(function () {
+            $('#btnGo').prop("disabled", false);
+        });
 
-
-     
         $('#btnGo').click(function () {
+            $('#btnGo').prop("disabled", true);
             const month = $('#dropdownmonth').val();
             const year = $('#dropdownyear').val();
-            if (!month || !year) return alert("Please select Month and Year");
+            if (!month || !year) return round_error_noti("Please select Month and Year");
 
-            const tab = $(".nav-link.active").attr("href");
-            if (tab === "#firstLast") loadFirstLast(empid, Compid, month, year) ;
-            else if (tab === "#multiplePunches") loadMultiple(empid, Compid, month, year) ;
+            const activeTab = $('#attendanceTabs .nav-link.active');
+            const tab = activeTab.attr("data-bs-target");
+
+            if (tab === "#firstLast") {
+                loadFirstLast(empid, Compid, month, year);
+            } else if (tab === "#multiplePunches") {
+                loadMultiple(empid, Compid, month, year);
+            } else {
+                round_error_noti("Unknown tab selected");
+            }
         });
 
-        $('a[data-bs-toggle="tab"]').on('shown.bs.tab',async  function (e) {
-            const target = $(e.target).attr("href");
+        $('button[data-bs-toggle="tab"]').on('shown.bs.tab', async function (e) {
+            const target = $(e.target).attr("data-bs-target");
             const month = $('#dropdownmonth').val();
             const year = $('#dropdownyear').val();
+
             if (!month || !year) return;
 
-            if (target === "#firstLast") 
-            {
+            if (target === "#firstLast") {
                 await loadFirstLast(empid, Compid, month, year);
             }
-            else if (target === "#multiplePunches") 
-            {
+            else if (target === "#multiplePunches") {
                 await loadMultiple(empid, Compid, month, year);
             }
         });
@@ -217,19 +645,48 @@
     function reloadGrids() {
         const month = $('#dropdownmonth').val() || (new Date().getMonth() + 1);
         const year = $('#dropdownyear').val() || new Date().getFullYear();
-        loadFirstLast(empid,Compid, month, year);
-        //loadMultiple(empid, month, year);
+        loadFirstLast(empid, Compid, month, year);
+        loadMultiple(empid, Compid, month, year);
     }
 
+    async function checkPermissionInOut() {
+        try {
+            const response = await fetch(`${apiBase}/EmployeeMasterAPI/GetEmployeeById/${empid}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${Token}` // optional, if needed
+                }
+            });
 
-     async function loadFirstLast(empid, Compid, month, year) {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.isSuccess) {
+                if (data.data.isPermissionPunchInOut == true) {
+                     $('#btnInOut').show();
+                }
+            } else {
+
+            }
+
+        } catch (error) {
+            console.error('Failed to load check permission', error);
+        }
+    }
+
+      async function loadFirstLast(empid, Compid, month, year) {
+        $('#grid-first-loader').addClass('d-flex').show();
         try {
             const response = await fetch(`${apiBase}/EmployeeInOut/GetMonthlyAttendanceDetails`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'Authorization': `Bearer ${Token}` // optional, if needed
+                    'Authorization': `Bearer ${Token}`
                 },
                 body: JSON.stringify({
                     employeeId: empid,
@@ -244,92 +701,131 @@
             }
 
             const data = await response.json();
-            console.log(data);
 
             if (data.isSuccess && Array.isArray(data.data)) {
-                $('#attendanceGridFirst').dxDataGrid({
+                console.log('data' ,data);
+                $('#GridTagFirst').show();
+                $('#spnNoRecordFirst').hide();
+
+                    firstGridInstance = $('#attendanceGridFirst').dxDataGrid({
                     dataSource: data.data,
                     rowHeight: 40,
                     width: '100%',
-                       columns: [
-                            { dataField: 'employeeCode', caption: 'Employee Code' },
-                            { dataField: 'fullName', caption: 'Full Name' },
-                            { dataField: 'branchName', caption: 'Branch' },
-                            { dataField: 'companyName', caption: 'Company Name' },
-                            {
-                                dataField: 'shiftDate',
-                                caption: 'Shift Date',
-                                dataType: 'date',
-                                format: 'dd-MM-yyyy'
-                            },
-                            {
-                                dataField: 'inTime',
-                                caption: 'In Time'
-                                
-                            },
-                            {
-                                dataField: 'outTime',
-                                caption: 'Out Time'
-                                
-                            },
-                            {
-                                dataField: 'workingHours',
-                                caption: 'Working Hours',
-                                dataType: 'number',
-                                format: '#0.00',
-                                alignment: 'left'
-                            },
-                            { dataField: 'attendanceStatus', caption: 'Attendance Status' },
-                            {
-                                dataField: 'salaryDay',
-                                caption: 'Salary Day',
-                                dataType: 'number',
-                                format: '#0.0',
-                                alignment: 'left'
+                    export: {
+                        enabled: true,
+                        allowExportSelectedData: false
+                    },
+                    columns: [
+                        { dataField: 'employeeCode', caption: 'Employee Code', minWidth: 80 },
+                        { dataField: 'fullName', caption: 'Full Name', minWidth: 150 },
+                        { dataField: 'branchName', caption: 'Branch', minWidth: 100 },
+                        {
+                            dataField: 'shiftDate',
+                            caption: 'Shift Date',
+                            dataType: 'date',
+                            format: 'dd-MM-yyyy',
+                            minWidth: 100
+                        },
+                        { dataField: 'inTime', caption: 'In Time', minWidth: 80 },
+                        { dataField: 'outTime', caption: 'Out Time', minWidth: 80 },
+                        {
+                            dataField: 'workingHours',
+                            caption: 'Working Hours',
+                            dataType: 'number',
+                            format: '#0.00',
+                            alignment: 'left',
+                            minWidth: 100
+                        },
+                        { dataField: 'attendanceStatus', caption: 'Attendance Status', minWidth: 120 }
+                    ],
 
-                            }
-                           
-                        ],
-                    columnsAutoWidth: false,
-                    wordWrapEnabled: false,
+                    // 🔹 Auto-fit settings
+                    columnsAutoWidth: true,
+                    columnResizingMode: 'widget',
+                    columnHidingEnabled: true,
+                    wordWrapEnabled: true,
+
+                    // 🔹 Enable responsive scrolling
+                    scrolling: {
+                        mode: "standard",
+                        useNative: true,
+                        scrollByContent: true,
+                        scrollByThumb: true,
+                        showScrollbar: "onHover"
+                    },
+
+                    // 🔹 Other settings
                     showBorders: true,
-                    rowAlternationEnabled: false,
+                    rowAlternationEnabled: true,
                     grouping: { autoExpandAll: false },
-                    paging: { pageSize: 10 },
-                    pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
                     headerFilter: { visible: false },
                     filterRow: { visible: false, applyFilter: "auto" },
                     allowColumnResizing: true,
                     groupPanel: { visible: false },
                     searchPanel: { visible: true, width: 240, placeholder: "Search..." },
                     columnFixing: { enabled: false },
-                    scrolling: {
-                        mode: "standard",
-                        useNative: false,
-                        scrollByContent: true,
-                        scrollByThumb: true
+
+                    // 🔹 Responsive behavior
+                    onInitialized: function (e) {
+                        $(window).on('resize', function () {
+                            e.component.updateDimensions();
+                        });
                     },
+
+                    toolbar: {
+                        items: [
+                            {
+                                name: 'exportButton',
+                                location: 'after',
+                                widget: 'dxButton',
+                                options: {
+                                    text: '',
+                                    icon: 'exportxlsx',
+                                    hint: 'Export to Excel',
+                                    elementAttr: {
+                                        class: 'excel-export-btn'
+                                    },
+                                    onClick: function () {
+                                        const month = $('#dropdownmonth').val();
+                                        const year = $('#dropdownyear').val();
+                                        const monthName = $('#dropdownmonth option:selected').text();
+                                        const fileName = `EmpInOutReport_${monthName}_${year}`;
+
+                                        const gridData = firstGridInstance.option('dataSource');
+                                        const columns = firstGridInstance.option('columns');
+                                        exportDataToExcel(gridData, fileName, columns);
+                                    }
+                                }
+                            },
+                            'searchPanel'
+                        ]
+                    },
+
                     onContentReady(e) {
-                        $('#rowCountEmployee').html('Total Records: ' + e.component.totalCount());
+                        $('#attendanceGridFirstCount').html('Total Records: ' + e.component.totalCount());
                     }
-                });
+                }).dxDataGrid("instance");
             } else {
-                $('#attendanceGridFirst').html('<div class="text-center text-muted">No records found.</div>');
+                $('#GridTagFirst').hide();
+                $('#spnNoRecordFirst').show();
+                firstGridInstance = null;
             }
+            $('#grid-first-loader').removeClass('d-flex').hide();
         } catch (error) {
-            console.error('❌ Failed to load First In/Out records:', error);
-            round_error_noti("❌ Failed to load First In/Out records.");
+            $('#grid-first-loader').removeClass('d-flex').hide();
+            console.error('Failed to load First In/Out records:', error);
+            round_error_noti("Failed to load First In/Out records.");
         }
     }
-
     async function loadMultiple(empid, Compid, month, year) {
+        $('#grid-multi-loader').addClass('d-flex').show();
         try {
             const response = await fetch(`${apiBase}/EmployeeInOut/GetMonthlyAttendanceLog`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'Authorization': `Bearer ${Token}` // optional, if needed
+                    'Authorization': `Bearer ${Token}`
                 },
                 body: JSON.stringify({
                     employeeId: empid,
@@ -341,178 +837,130 @@
 
             if (!response.ok) {
                 round_error_noti('Something went wrong!');
+                $('#grid-multi-loader').removeClass('d-flex').hide();
+                return;
             }
 
             const data = await response.json();
-            console.log(data);
 
             if (data.isSuccess && Array.isArray(data.data)) {
-                $('#attendanceGridMultiple').dxDataGrid({
+                $('#GridTagMulti').show();
+                $('#spnNoRecordMulti').hide();
+
+                multipleGridInstance = $('#attendanceGridMultiple').dxDataGrid({
                     dataSource: data.data,
                     rowHeight: 40,
                     width: '100%',
-                       columns: [
-                               { dataField: 'employeeCode', caption: 'Employee Code' },
-                                { dataField: 'fullName', caption: 'Full Name' },
-                                { dataField: 'branchName', caption: 'Branch' },
-                                { dataField: 'companyName', caption: 'Company Name' },
-                                {
-                                    dataField: 'punchDateTime',
-                                    caption: 'Punch Date',
-                                    dataType: 'date',
-                                    format: 'dd-MM-yyyy',
-                                    alignment: 'left'
-                                },
-                                // {
-                                //     dataField: 'punchDateTime',
-                                //     caption: 'Punch Time',
-                                //     dataType: 'datetime',
-                                //     customizeText: function(cellInfo) {
-                                //         const date = new Date(cellInfo.value);
-                                //         return date.toLocaleTimeString([], {
-                                //             hour: '2-digit',
-                                //             minute: '2-digit',
-                                //             hour12: true // 👈 shows AM/PM
-                                //         });
-                                //     },
-                                //     alignment: 'left'
-                                // },
-                                {
-                                    dataField: 'mode',
-                                    caption: 'Mode',
-                                    alignment: 'left'
-                                }
-
-                        ],
-                    columnsAutoWidth: false,
-                    wordWrapEnabled: false,
+                    columnAutoWidth: true,
+                    columnResizingMode: 'widget',
+                    columnHidingEnabled: true, // 🔹 hide columns on smaller screens
+                    wordWrapEnabled: true,     // 🔹 wrap text instead of overflowing
                     showBorders: true,
-                    rowAlternationEnabled: false,
+                    rowAlternationEnabled: true,
+
+                    export: {
+                        enabled: true,
+                        allowExportSelectedData: false
+                    },
+
+                    columns: [
+                        { dataField: 'employeeCode', caption: 'Employee Code', minWidth: 90 },
+                        { dataField: 'fullName', caption: 'Full Name', minWidth: 150 },
+                        { dataField: 'branchName', caption: 'Branch', minWidth: 100 },
+                        { dataField: 'companyName', caption: 'Company Name', minWidth: 120 },
+                        {
+                            dataField: 'punchDateTime',
+                            caption: 'Punch Date',
+                            dataType: 'date',
+                            format: 'dd-MM-yyyy',
+                            alignment: 'left',
+                            minWidth: 100
+                        },
+                        {
+                            dataField: 'punchTime',
+                            caption: 'Punch Time',
+                            minWidth: 90
+                        },
+                        {
+                            dataField: 'mode',
+                            caption: 'Mode',
+                            alignment: 'left',
+                            minWidth: 80
+                        }
+                    ],
+
                     grouping: { autoExpandAll: false },
-                    paging: { pageSize: 10 },
-                    pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
                     headerFilter: { visible: false },
                     filterRow: { visible: false, applyFilter: "auto" },
                     allowColumnResizing: true,
                     groupPanel: { visible: false },
-                    searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+
+                    searchPanel: {
+                        visible: true,
+                        width: 240,
+                        placeholder: "Search..."
+                    },
+
                     columnFixing: { enabled: false },
+
                     scrolling: {
                         mode: "standard",
-                        useNative: false,
+                        useNative: true,
                         scrollByContent: true,
-                        scrollByThumb: true
+                        scrollByThumb: true,
+                        showScrollbar: "onHover" // 🔹 cleaner scrollbar for mobile
                     },
+
+                    toolbar: {
+                        items: [
+                            {
+                                name: 'exportButton',
+                                location: 'after',
+                                widget: 'dxButton',
+                                options: {
+                                    text: '',
+                                    icon: 'exportxlsx',
+                                    hint: 'Export to Excel',
+                                    elementAttr: { class: 'excel-export-btn' },
+                                    onClick: function () {
+                                        const month = $('#dropdownmonth').val();
+                                        const year = $('#dropdownyear').val();
+                                        const monthName = $('#dropdownmonth option:selected').text();
+                                        const fileName = `EmpInOutReport_MultiplePunches_${monthName}_${year}`;
+
+                                        const gridData = multipleGridInstance.option('dataSource');
+                                        const columns = multipleGridInstance.option('columns');
+                                        exportDataToExcel(gridData, fileName, columns);
+                                    }
+                                }
+                            },
+                            'searchPanel'
+                        ]
+                    },
+
                     onContentReady(e) {
-                        $('#rowCountEmployee').html('Total Records: ' + e.component.totalCount());
+                        $('#attendanceGridMultipleCount').html('Total Records: ' + e.component.totalCount());
+                        e.component.updateDimensions(); // 🔹 ensures auto-fit on first load
+                    },
+
+                    onInitialized(e) {
+                        $(window).on('resize', () => e.component.updateDimensions()); // 🔹 responsive resize
                     }
-                });
+                }).dxDataGrid("instance");
+
             } else {
-                $('#attendanceGridFirst').html('<div class="text-center text-muted">No records found.</div>');
+                $('#GridTagMulti').hide();
+                $('#spnNoRecordMulti').show();
+                multipleGridInstance = null;
             }
+
+            $('#grid-multi-loader').removeClass('d-flex').hide();
+
         } catch (error) {
-            console.error('❌ Failed to load First In/Out records:', error);
-            alert("❌ Failed to load First In/Out records.");
+            $('#grid-multi-loader').removeClass('d-flex').hide();
+            console.error('Failed to load Multiple Punches records:', error);
+            round_error_noti("Failed to load Multiple Punches records.");
         }
     }
-
-
-
-
-
-
-
-    // function loadMultiple(empid, month, year) {
-    //     $.post(apiBase + "/EmployeeInOut/MultipleOut",
-    //         { EmpId: empid, Month: month, Year: year },
-    //         function (data) {
-    //             if (data.isSuccess && data.data?.length) {
-    //                 renderTableMultiple(data.data);
-    //             } else {
-    //                 $('#attendanceGridMultiple').html('<div class="text-center text-muted">No records found.</div>');
-    //             }
-    //         }
-    //     ).fail(() => alert("❌ Failed to load Multiple Punches records."));
-    // }
-
-
-    function renderTableFirst(data) {
-        $("#attendanceGridFirst").dxDataGrid({
-            dataSource: data,
-            //keyExpr: "comp_Off_Detailsid",
-            showBorders: true,
-            columnAutoWidth: true,
-               height: "auto",
-            // selection: {
-            //     mode: "multiple",
-            //     showCheckBoxesMode: "always"
-            // },
-            // onSelectionChanged: function (e) {
-            //     $("#actionButtons").toggle(e.selectedRowKeys.length > 0);
-            // },
-            columns: [
-
-                 { dataField: "employeeCode", caption: "EmployeeCode" ,cssClass: "text-center-cell"},
-                { dataField: "fullName", caption: "EmployeeName" ,cssClass: "text-center-cell"},
-                { dataField: "branchName", caption: "BranchName" ,cssClass: "text-center-cell"},
-                { dataField: "for_Date", caption: "Date",dataType: "date",format: "dd-MM-yyyy",cssClass: "text-center-cell"},
-                { dataField: "day_Name", caption: "Day" ,cssClass: "text-center-cell"},
-                { dataField: "in_Time", caption: "In Time",cssClass: "text-center-cell" },
-                { dataField: "out_Time", caption: "Out Time",cssClass: "text-center-cell" },
-                { dataField: "duration", caption: "Duration" ,cssClass: "text-center-cell"}
-            ]
-              ,   onContentReady: function (e) {
-            const rowCount = data.length;
-            const rowHeight = 40; // approx row height in pixels
-            const headerHeight = 40;
-            const totalHeight = headerHeight + (rowCount * rowHeight);
-            e.component.option("height", totalHeight);
-        }
-        });
-    }
-
-
-    function renderTableMultiple(data) {
-        $("#attendanceGridMultiple").dxDataGrid({
-            dataSource: data,
-            //keyExpr: "comp_Off_Detailsid",
-            showBorders: true,
-                columnAutoWidth: true,
-        height: "auto", 
-        paging: {
-            pageSize: 15 
-        },
-        pager: {
-            showPageSizeSelector: true,
-            allowedPageSizes: [15, 30, 45],
-            showInfo: true
-        },
-           scrolling: {
-            mode: "standard",     
-            useNative: true     
-        },
-            // selection: {
-            //     mode: "multiple",
-            //     showCheckBoxesMode: "always"
-            // },
-            // onSelectionChanged: function (e) {
-            //     $("#actionButtons").toggle(e.selectedRowKeys.length > 0);
-            // },
-            columns: [
-                   { dataField: "employeeCode", caption: "EmployeeCode" ,cssClass: "text-center-cell"},
-                 { dataField: "employeeName", caption: "EmployeeName" ,cssClass: "text-center-cell"},
-                { dataField: "branchName", caption: "BranchName" ,cssClass: "text-center-cell"},
-                { dataField: "for_Date", caption: "Date",format: "dd-MM-yyyy",dataType: "date",cssClass: "text-center-cell"},
-                { dataField: "day_Name", caption: "Day",cssClass: "text-center-cell" },
-                { dataField: "in_Time", caption: "In Time",cssClass: "text-center-cell" },
-                { dataField: "out_Time", caption: "Out Time",cssClass: "text-center-cell" },
-                { dataField: "duration", caption: "Duration",cssClass: "text-center-cell" }
-            ]
-
-        });
-    }
-
 
 </script>
-
-

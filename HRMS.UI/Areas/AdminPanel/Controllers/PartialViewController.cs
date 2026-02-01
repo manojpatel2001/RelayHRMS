@@ -44,6 +44,14 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return PartialView("_CompanyModal");
         }
+        public IActionResult LoadSessionTimmerModal()
+        {
+            return PartialView("_SessionOutTimmer");
+        }
+        public IActionResult LoadSessionLogoutModal()
+        {
+            return PartialView("_SessionLogout");
+        }
 
 
 

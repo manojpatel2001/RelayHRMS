@@ -17,6 +17,30 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
             return View();
         }
+        public IActionResult SalarySlip()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+        public IActionResult EmpLoanApplication()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+        public IActionResult EmpLoanApproval()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
+        public IActionResult LoanApproval()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
 
        
     }

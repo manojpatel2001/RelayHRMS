@@ -15,5 +15,6 @@ namespace HRMS_Core.ControlPanel.ImportData
         public string SheetName { get; set; }
         public int RowFrom { get; set; }
         public int RowTo { get; set; }
+        public string CreatedBy { get; set; }
     }
 }

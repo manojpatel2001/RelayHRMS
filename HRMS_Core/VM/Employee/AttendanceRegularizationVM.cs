@@ -9,7 +9,6 @@ namespace HRMS_Core.VM.Employee
     public class AttendanceRegularizationVM
 
     {
-
         public int? AttendanceRegularizationId { get; set; }
         public int? EmpId { get; set; }
         public string? FullName { get; set; }
@@ -21,13 +20,16 @@ namespace HRMS_Core.VM.Employee
         public string? ShiftTime { get; set; }
         public DateTime? InTime { get; set; }
         public DateTime? OutTime { get; set; }
-        public TimeSpan? Duration { get; set; }
+        public decimal? Duration { get; set; }
         public string? Day { get; set; }
      
         public string? Reason { get; set; }
+        public string? Remark { get; set; }
 
         public bool IsApproved { get; set; }
         public bool IsPending { get; set; }
         public bool IsRejected { get; set; }
+        public string? UpdatedBy { get; set; }
+        public DateTime? UpdatedDate { get; set; }
     }
 }

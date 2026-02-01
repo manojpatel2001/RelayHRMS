@@ -1,0 +1,19 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace HRMS_Core.Services
+{
+    public static class EmailReportType
+    {
+        public const string DailyAbsentEmployeesReport = "Daily Absent Employees Report";
+        public const string DailyAbsentAllEmployeesReport = "Daily Absent All Employees Report";
+        public const string DailyLeftEmployeeReport = "Daily Left Employee Report";
+        public const string HoldAndExtendReport = "Hold and Extend Report";
+        public const string EscalatedReport = "Escalated Report";
+        
+    }
+
+}

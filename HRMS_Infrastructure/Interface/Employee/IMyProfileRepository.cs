@@ -10,5 +10,8 @@ namespace HRMS_Infrastructure.Interface.Employee
     public interface IMyProfileRepository
     {
         Task<List<vmMyProfile>> GetEmployeeProfile(int employeeId, int companyId);
+
+        Task<List<vmMyProfile>> GetEmployeeProfiles(int employeeId,int companyId);
+
     }
 }

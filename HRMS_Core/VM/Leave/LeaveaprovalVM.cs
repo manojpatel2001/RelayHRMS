@@ -11,6 +11,7 @@ namespace HRMS_Core.VM.Leave
         public List<int> Ids { get; set; }
         public string Status { get; set; }
         public DateTime Date { get; set; }
+        public int? EmployeeId { get; set; }
 
     }
 }

@@ -28,7 +28,7 @@ namespace HRMS_Infrastructure.Repository.Leave
             {
                 var parameters = new[]
                 {
-                          new SqlParameter("@EmpId", model.Emp_Id),
+                new SqlParameter("@EmpId", model.Emp_Id),
                 new SqlParameter("@CompId", model.Comp_Id),
           
                 new SqlParameter("@CreatedBy", model.CreatedBy),
