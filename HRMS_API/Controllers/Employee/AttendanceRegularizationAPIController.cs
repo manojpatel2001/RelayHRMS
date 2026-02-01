@@ -518,7 +518,6 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
-
         [HttpPost("GetAttendanceRegularizationForAdmin")]
         public async Task<APIResponse> GetAttendanceRegularizationForAdmin([FromBody] AttendanceRegularizationSearchFilterForAdminVM attendance)
         {
@@ -529,28 +528,29 @@ namespace HRMS_API.Controllers.Employee
                     return new APIResponse
                     {
                         isSuccess = false,
-                        ResponseMessage = "attendance details are required."
+                        ResponseMessage = "Attendance details are required."
                     };
                 }
 
-
                 var data = await _unitOfWork.AttendanceRegularizationRepository.GetAttendanceRegularizationForAdmin(attendance);
 
-
-                if (data == null)
+                if (data == null || data.Count == 0)
                 {
                     return new APIResponse
                     {
                         isSuccess = false,
-                        ResponseMessage = "No matching IN record found or update failed."
+                        ResponseMessage = "No data found.",
+                        Data = new { items = new List<AttendanceRegularizationAdmin>(), totalRecords = 0 }
                     };
                 }
+
+                int totalRecords = data.FirstOrDefault()?.TotalRecords ?? 0;
 
                 return new APIResponse
                 {
                     isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Data Fetched successfully."
+                    Data = new { items = data, totalRecords = totalRecords },
+                    ResponseMessage = "Data fetched successfully."
                 };
             }
             catch (Exception ex)
@@ -558,11 +558,10 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse
                 {
                     isSuccess = false,
-                    ResponseMessage = "An error occurred while updating out time."
+                    ResponseMessage = "An error occurred while fetching data."
                 };
             }
         }
-
         [HttpPost("GetAttendanceRequestAdminReport")]
         public async Task<APIResponse> GetAttendanceRequestAdminReport([FromBody] AttendanceRequestReportFilterVm attendance)
         {

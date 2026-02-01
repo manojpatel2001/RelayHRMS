@@ -41,6 +41,8 @@ namespace HRMS_Infrastructure.Repository.Employee
                     parameters.Add("@EmployeeId", model.EmployeeId);
                     parameters.Add("@CurrentBranchId", model.CurrentBranchId);
                     parameters.Add("@TransferBranchId", model.TransferBranchId);
+                    parameters.Add("@CurrentReportingPerson", model.CurrentReportingPerson); // Naya parameter
+                    parameters.Add("@TransferReportingPerson", model.TransferReportingPerson); // Naya parameter
                     parameters.Add("@EffectiveDate", model.EffectiveDate);
                     parameters.Add("@Reason", model.Reason);
                     parameters.Add("@CreatedBy", model.CreatedBy);
@@ -62,6 +64,7 @@ namespace HRMS_Infrastructure.Repository.Employee
             return response;
         }
 
+
         // Update Employee Transfer
         public async Task<SP_Response> UpdateEmployeeTransfer(EmployeeTransfer model)
         {
@@ -78,6 +81,8 @@ namespace HRMS_Infrastructure.Repository.Employee
                     parameters.Add("@EmployeeId", model.EmployeeId);
                     parameters.Add("@CurrentBranchId", model.CurrentBranchId);
                     parameters.Add("@TransferBranchId", model.TransferBranchId);
+                    parameters.Add("@CurrentReportingPerson", model.CurrentReportingPerson); // Naya parameter
+                    parameters.Add("@TransferReportingPerson", model.TransferReportingPerson); // Naya parameter
                     parameters.Add("@EffectiveDate", model.EffectiveDate);
                     parameters.Add("@Reason", model.Reason);
                     parameters.Add("@UpdatedBy", model.UpdatedBy);

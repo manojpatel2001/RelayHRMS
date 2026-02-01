@@ -21,5 +21,7 @@ namespace HRMS_Core.VM.Employee
         public string? DesignationName { get; set; }
         public string? DepartmentName { get; set; }
         public string? ReportingManagerName { get; set; }
+        public string? TransferReportingPersonName { get; set; }
+        public int TransferReportingPerson { get; set; }
     }
 }

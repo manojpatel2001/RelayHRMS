@@ -308,20 +308,22 @@ namespace HRMS_Infrastructure.Repository.Employee
                 var todateParam = new SqlParameter("@ToDate", (object?)attendance.ToDate ?? DBNull.Value);
                 var statustypeParam = new SqlParameter("@Status", (object?)attendance.Status ?? DBNull.Value);
                 var companyidParam = new SqlParameter("@CompanyId", (object?)attendance.CompanyId ?? DBNull.Value);
-                var EmpidParam = new SqlParameter("@EmployeeId", (object?)attendance.EmployeeId ?? DBNull.Value);
+                var empidParam = new SqlParameter("@EmployeeId", (object?)attendance.EmployeeId ?? DBNull.Value);
+                var pageNumberParam = new SqlParameter("@PageNumber", attendance.PageNumber ?? 1);
+                var pageSizeParam = new SqlParameter("@PageSize", attendance.PageSize ?? 100);
 
                 return await _db.Set<AttendanceRegularizationAdmin>()
-              .FromSqlRaw("EXEC [dbo].[GetAttendanceRegularizationSearchForAdmin] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status,@CompanyId,@EmployeeId",
-                  searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam, companyidParam, EmpidParam)
-              .ToListAsync();
+                    .FromSqlRaw(@"EXEC [dbo].[GetAttendanceRegularizationSearchForAdmin] 
+                @SearchBy, @SearchValue, @FromDate, @ToDate, @Status, @CompanyId, @EmployeeId, @PageNumber, @PageSize",
+                        searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam,
+                        companyidParam, empidParam, pageNumberParam, pageSizeParam)
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-
                 return new List<AttendanceRegularizationAdmin>();
             }
         }
-
         public async Task<List<AttendanceRegularizationVM>> GetAttendanceRegularizationApproval(AttendanceRegularizationSearchFilterVM attendance)
         {
             try

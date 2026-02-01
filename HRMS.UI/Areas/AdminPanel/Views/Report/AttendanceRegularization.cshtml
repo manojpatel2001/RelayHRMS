@@ -43,8 +43,6 @@
             box-shadow: none;
         }
 
-
-
     .search-panel-wrapper {
         max-width: 100%;
         margin: auto;
@@ -141,20 +139,6 @@
         border-radius: 4px;
     }
 
-    .action-buttons-container {
-        width: 100%;
-        margin-top: 15px;
-        margin-bottom: 15px;
-        text-align: right;
-    }
-
-        .action-buttons-container .btn-custom,
-        .action-buttons-container .btn-export {
-            margin-left: 8px;
-            padding: 6px 16px;
-            font-size: 14px;
-        }
-
     .btn-export {
         background-color: #28a745;
         color: white;
@@ -168,6 +152,16 @@
         .btn-export:hover {
             background-color: #218838;
         }
+
+    .pagination-info {
+        text-align: center;
+        padding: 10px;
+        font-size: 14px;
+        color: #333;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        margin-top: 10px;
+    }
 </style>
 
 <!-- Search Panel Header -->
@@ -278,13 +272,22 @@
     <div class="grid-container">
         <div id="attendanceGrid"></div>
     </div>
+
+    <!-- Pagination Info -->
+    <div id="paginationInfo" class="pagination-info" style="display: none;"></div>
 </div>
 
 <script>
-     const savedCompany = localStorage.getItem('selectedCompany');
+    const savedCompany = localStorage.getItem('selectedCompany');
     var companyDetails = JSON.parse(savedCompany);
     const CompanyId = companyDetails.CompanyId;
     const EmployeeId = localStorage.getItem('EmployeeId');
+
+    let currentPage = 1;
+    let pageSize = 100;
+    let totalRecords = 0;
+    let selectedKeys = [];
+
     $(document).ready(function () {
         $('#r2').prop('checked', true);
         $('#btnGo').click();
@@ -297,13 +300,10 @@
             updateAttendanceStatus("Rejected");
         });
 
-        // Excel Export Button Click
         $("#btnExport").click(function () {
             exportAttendanceToExcel();
         });
     });
-
-    let selectedKeys = [];
 
     function goBack() {
         window.history.back();
@@ -326,15 +326,28 @@
         }
     }
 
-    async function showLoder(){
+    async function showLoder() {
         $('#grid-loader').addClass('d-flex').show();
     }
 
-    async function hideLoder(){
+    async function hideLoder() {
         $('#grid-loader').removeClass('d-flex').hide();
     }
 
-    // Excel Export Function - Unique name to avoid conflicts
+    function updatePaginationInfo() {
+        if (totalRecords > 0) {
+            const startRecord = (currentPage - 1) * pageSize + 1;
+            const endRecord = Math.min(currentPage * pageSize, totalRecords);
+            const totalPages = Math.ceil(totalRecords / pageSize);
+
+            $('#paginationInfo').html(
+                `Showing ${startRecord} to ${endRecord} of ${totalRecords} records | Page ${currentPage} of ${totalPages}`
+            ).show();
+        } else {
+            $('#paginationInfo').hide();
+        }
+    }
+
     function exportAttendanceToExcel() {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
@@ -349,7 +362,6 @@
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet("Attendance Regularization");
 
-        // Define columns
         worksheet.columns = [
             { header: 'Code', key: 'employeeCode', width: 12 },
             { header: 'Name', key: 'fullName', width: 30 },
@@ -367,7 +379,6 @@
             { header: 'Approved Date', key: 'updatedDate', width: 15 }
         ];
 
-        // Style header row - EXACT SAME AS SALARY REGISTER
         const headerRow = worksheet.getRow(1);
         headerRow.eachCell((cell) => {
             cell.font = {
@@ -393,7 +404,6 @@
         });
         headerRow.height = 25;
 
-        // Helper function to format date
         const formatDate = (dateStr) => {
             if (!dateStr) return '-';
             const date = new Date(dateStr);
@@ -403,7 +413,6 @@
             return `${day}/${month}/${year}`;
         };
 
-        // Helper function to format datetime
         const formatDateTime = (dateStr) => {
             if (!dateStr) return '-';
             const date = new Date(dateStr);
@@ -415,7 +424,6 @@
             return `${day}/${month}/${year} ${hours}:${minutes}`;
         };
 
-        // Add data rows
         selectedRows.forEach((rowData) => {
             let statusText = "";
             if (rowData.isApproved === true) {
@@ -443,7 +451,6 @@
                 reportingManager: rowData.reportingManager
             });
 
-            // Apply borders and alignment to data cells
             row.eachCell((cell, colNumber) => {
                 cell.border = {
                     top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
@@ -452,7 +459,6 @@
                     right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
                 };
 
-                // Center align for certain columns
                 if (colNumber === 1 || colNumber === 3 || colNumber === 4 || colNumber === 7 || colNumber === 8 || colNumber === 10 || colNumber === 12) {
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 } else {
@@ -461,10 +467,9 @@
             });
         });
 
-        // Download file
         const fileName = `Attendance_Regularization_${new Date().getTime()}.xlsx`;
 
-        workbook.xlsx.writeBuffer().then(function(buffer) {
+        workbook.xlsx.writeBuffer().then(function (buffer) {
             saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             hideLoder();
             Swal.fire('Success', 'Excel file downloaded successfully!', 'success');
@@ -481,19 +486,28 @@
             if (gridInstance) {
                 gridInstance.dispose();
             }
-        } catch (e) {
-        }
+        } catch (e) { }
 
         $("#attendanceGrid").empty();
 
         $("#attendanceGrid").dxDataGrid({
-            dataSource: data||[],
+            dataSource: data || [],
             keyExpr: "attendanceRegularizationId",
             showBorders: true,
             width: "100%",
             height: 250,
             paging: {
-                enabled: false
+                enabled: true,
+                pageSize: pageSize,
+                pageIndex: currentPage - 1
+            },
+            pager: {
+                visible: true,
+                showPageSizeSelector: true,
+                allowedPageSizes: [50, 100, 200, 500],
+                showInfo: true,
+                showNavigationButtons: true,
+                displayMode: "full"
             },
             scrolling: {
                 mode: "standard",
@@ -511,6 +525,18 @@
             onSelectionChanged: function (e) {
                 selectedKeys = e.selectedRowKeys;
             },
+            onOptionChanged: function (e) {
+                if (e.name === "paging") {
+                    if (e.fullName === "paging.pageSize") {
+                        pageSize = e.value;
+                        currentPage = 1;
+                        loadDataFromServer();
+                    } else if (e.fullName === "paging.pageIndex") {
+                        currentPage = e.value + 1;
+                        loadDataFromServer();
+                    }
+                }
+            },
             columns: [
                 { dataField: "employeeCode", caption: "Code", width: 80 },
                 { dataField: "empId", visible: false },
@@ -522,19 +548,17 @@
                 { dataField: "duration", caption: "Duration", dataType: "string", width: 80 },
                 { dataField: "day", caption: "Day", dataType: "string", width: 80 },
                 { dataField: "reason", caption: "Reason", dataType: "string", width: 150 },
-            {
-                  dataField: "remark",
-                  caption: "Remark",
-                  width: 150,
-                  cellRender: (container, options) => {
-                    const div = document.createElement("div");
-                    div.title = options.value;
-                    div.textContent = options.value;
-                    container.appendChild(div);
-                  }
+                {
+                    dataField: "remark",
+                    caption: "Remark",
+                    width: 150,
+                    cellRender: (container, options) => {
+                        const div = document.createElement("div");
+                        div.title = options.value;
+                        div.textContent = options.value;
+                        container.appendChild(div);
+                    }
                 },
-
-
                 { dataField: "reportingManager", caption: "Reporting Manager", dataType: "string", width: 150 },
                 {
                     caption: "Status",
@@ -542,7 +566,7 @@
                     alignment: "center",
                     allowFiltering: false,
                     allowSorting: false,
-                    cellTemplate: function(container, options) {
+                    cellTemplate: function (container, options) {
                         const row = options.data;
                         let statusText = "";
 
@@ -561,7 +585,7 @@
                     dataField: "updatedBy",
                     caption: "Approved By",
                     width: 120,
-                    calculateCellValue: function(rowData) {
+                    calculateCellValue: function (rowData) {
                         return rowData.updatedBy ? rowData.updatedBy : "-";
                     }
                 },
@@ -572,7 +596,7 @@
                     format: "dd/MM/yyyy",
                     width: "10%",
                     minWidth: 100,
-                    calculateCellValue: function(rowData) {
+                    calculateCellValue: function (rowData) {
                         if (!rowData.updatedDate) return "-";
 
                         const date = new Date(rowData.updatedDate);
@@ -584,16 +608,17 @@
                     }
                 }
             ],
-            onContentReady: function(e) {
+            onContentReady: function (e) {
                 $('#attendanceGrid .dx-datagrid').css('height', 'auto');
                 $('#attendanceGrid .dx-scrollable-container').css('height', 'auto');
+                updatePaginationInfo();
             }
         });
 
         $("#actionButtons").show();
     }
 
-    $('#btnGo').on('click', function () {
+    function loadDataFromServer() {
         showLoder();
 
         let model = {
@@ -602,8 +627,10 @@
             FromDate: $('#fromdate').val() || null,
             ToDate: $('#todate').val() || null,
             Status: getStatus(),
-            CompanyId:CompanyId,
-            EmployeeId:EmployeeId
+            CompanyId: CompanyId,
+            EmployeeId: EmployeeId,
+            PageNumber: currentPage,
+            PageSize: pageSize
         };
 
         $.ajax({
@@ -615,8 +642,9 @@
                 console.log('API Response:', res);
                 hideLoder();
 
-                if (res.isSuccess && res.data && res.data.length > 0) {
-                    loadGrid(res.data);
+                if (res.isSuccess && res.data && res.data.items && res.data.items.length > 0) {
+                    totalRecords = res.data.totalRecords || 0;
+                    loadGrid(res.data.items);
                     $("#actionButtons").show();
                     $("#btnExport").show();
                     $("#btnDelete").show();
@@ -628,14 +656,13 @@
                         gridInstance.dispose();
                     }
                     $("#attendanceGrid").empty();
-
                     $("#actionButtons").hide();
                     $("#btnExport").hide();
                     $("#btnDelete").hide();
                     $("#btnApprove").hide();
                     $("#btnReject").hide();
-                    var emptyData=[];
-                    loadGrid(emptyData);
+                    totalRecords = 0;
+                    loadGrid([]);
                 }
             },
             error: function (xhr, status, error) {
@@ -644,6 +671,11 @@
                 round_error_noti('Error occurred while fetching data');
             }
         });
+    }
+
+    $('#btnGo').on('click', function () {
+        currentPage = 1;
+        loadDataFromServer();
     });
 
     $("#btnClear").click(function () {
@@ -653,14 +685,16 @@
         $('#todate').val('');
         $("input[name='type']").prop('checked', false);
         $('#r2').prop('checked', true);
+        currentPage = 1;
+        pageSize = 100;
+        totalRecords = 0;
 
         try {
             const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
             if (gridInstance) {
                 gridInstance.dispose();
             }
-        } catch (e) {
-        }
+        } catch (e) { }
 
         $("#attendanceGrid").empty();
         $("#actionButtons").hide();
@@ -668,6 +702,7 @@
         $("#btnDelete").hide();
         $("#btnApprove").hide();
         $("#btnReject").hide();
+        $("#paginationInfo").hide();
     });
 
     $('#btnDelete').on('click', function () {
@@ -678,6 +713,7 @@
             round_error_noti("Please select at least one record.");
             return;
         }
+
         const approvedRecords = selectedRows.filter(row => row.isRejected);
         if (approvedRecords.length > 0) {
             Swal.fire({
@@ -709,7 +745,7 @@
                 hideLoder();
                 if (res.isSuccess) {
                     round_success_noti(res.responseMessage || "Deleted successfully.");
-                    $("#btnGo").click();
+                    loadDataFromServer();
                 } else {
                     round_error_noti(res.responseMessage || "Deletion failed.");
                 }
@@ -724,6 +760,7 @@
     function updateAttendanceStatus(status) {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
+
         if (selectedRows.length === 0) {
             round_error_noti("Please select at least one record.");
             return;
@@ -789,13 +826,7 @@
                 hideLoder();
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage || "Status updated successfully.");
-                    const selectedKeys = grid.getSelectedRowKeys();
-                    let dataSource = grid.option("dataSource");
-                    const updatedData = dataSource.filter(item => {
-                        return !selectedKeys.includes(item.attendanceRegularizationId);
-                    });
-                    grid.option("dataSource", updatedData);
-                    grid.refresh();
+                    loadDataFromServer();
                 } else {
                     round_error_noti(response.responseMessage || "Update failed.");
                 }

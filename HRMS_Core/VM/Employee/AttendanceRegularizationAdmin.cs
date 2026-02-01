@@ -29,5 +29,6 @@ namespace HRMS_Core.VM.Employee
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public string? ReportingManager { get; set; }
+        public int TotalRecords { get; set; }
     }
 }
