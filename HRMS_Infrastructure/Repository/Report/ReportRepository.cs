@@ -2,6 +2,7 @@
 using HRMS_Core.DbContext;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.ExitApplication;
 using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
@@ -101,6 +102,24 @@ namespace HRMS_Infrastructure.Repository.Report
             catch (Exception)
             {
                 return new List<CompoffLapseReminderViewModel>();
+            }
+        }
+
+        public async Task<List<EmployeeDetailsForLettervm>> GetEmployeeDetailsForLetter(int EmployeeId)
+        {
+
+            try
+            {
+                var result = await _db.Set<EmployeeDetailsForLettervm?>().FromSqlInterpolated($@"
+                    EXEC sp_GetExitApplicationByEmployeeId
+                        @Employeeid = {EmployeeId}
+                ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return null;
             }
         }
 

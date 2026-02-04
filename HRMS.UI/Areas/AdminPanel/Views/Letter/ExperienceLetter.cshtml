@@ -1,0 +1,858 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Experience Letter";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<meta charset="UTF-8">
+<title>Experience Letter</title>
+
+<!-- DevExtreme -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/devextreme@23.2.3/dist/css/dx.light.css">
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/devextreme@23.2.3/dist/js/dx.all.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- PDF Generation Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    .header {
+        background-color: #3f4d6b;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .main {
+        display: flex;
+        height: calc(100vh - 50px);
+    }
+
+    .left-section, .right-section {
+        width: 50%;
+        padding: 30px;
+        background-color: #fff;
+        box-sizing: border-box;
+    }
+
+    .separator {
+        width: 1px;
+        background-color: #ccc;
+    }
+
+    .date-row {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .form-group {
+        flex: 1;
+    }
+
+    label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 4px;
+        font-size: 13px;
+        color: #333;
+    }
+
+    select {
+        padding: 4px 6px;
+        font-size: 13px;
+        height: 32px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 130px;
+        box-sizing: border-box;
+    }
+
+    #branchDropdown {
+        width: 180px;
+    }
+
+    .btn-group {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+
+        .btn-group button {
+            padding: 6px 14px;
+            font-size: 13px;
+            min-width: 70px;
+        }
+
+    button {
+        border: none;
+        background-color: #3f4d6b;
+        color: white;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+        button:hover {
+            background-color: #2d3a52;
+        }
+
+    #recordCount {
+        color: red;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: none;
+    }
+
+    #employeeGrid {
+        height: calc(100vh - 250px);
+    }
+
+    #yearSelect {
+        padding: 4px 6px;
+        font-size: 13px;
+        height: 30px;
+        width: 110px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+    }
+
+    .filter-section {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+
+    .search-view-container {
+        display: none;
+        margin-bottom: 15px;
+        align-items: center;
+        gap: 15px;
+    }
+
+        .search-view-container.show {
+            display: flex;
+        }
+
+        .search-view-container input {
+            padding: 6px 10px;
+            font-size: 13px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 240px;
+        }
+
+        .search-view-container button {
+            padding: 6px 14px;
+            font-size: 13px;
+            min-width: 70px;
+        }
+
+    .action-buttons-container {
+        display: none;
+        margin-bottom: 15px;
+        gap: 10px;
+    }
+
+        .action-buttons-container.show {
+            display: flex;
+        }
+
+        .action-buttons-container button {
+            padding: 8px 16px;
+            font-size: 13px;
+            min-width: 90px;
+        }
+
+    .no-data-message {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+        font-style: italic;
+        font-size: 14px;
+    }
+
+    #recordCount.show {
+        display: block;
+    }
+
+    .custom-modal-width {
+        max-width: 90% !important;
+    }
+
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.8;
+    }
+
+        .btn-loading::before {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+        }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Experience Letter Styles */
+    .experience-letter-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px;
+        background: white;
+        border: 1px solid #ddd;
+    }
+
+    .letter-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .company-logo {
+        max-width: 200px;
+        margin-bottom: 15px;
+    }
+
+    .letter-title {
+        font-size: 20px;
+        font-weight: bold;
+        text-decoration: underline;
+        margin: 20px 0;
+    }
+
+    .letter-content {
+        line-height: 1.8;
+        text-align: justify;
+    }
+
+        .letter-content p {
+            margin-bottom: 15px;
+        }
+
+    .letter-footer {
+        margin-top: 50px;
+    }
+
+    .signature-section {
+        margin-top: 80px;
+    }
+
+    .grid-loader {
+        position: absolute;
+        display: none;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.6);
+        z-index: 10;
+    }
+
+        .grid-loader.d-flex {
+            display: flex !important;
+        }
+
+    .grid-logo-spinner {
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+    }
+</style>
+
+<div class="header">
+    EXPERIENCE LETTER GENERATION
+</div>
+
+<div class="main">
+    <!-- Left Section -->
+    <div class="left-section">
+        <div class="filter-section">
+            <!-- Single Row for Branch and Year -->
+            <div class="date-row">
+                <div class="form-group" style="width: 200px; display: inline-block; margin-right: 20px;">
+                    <label for="branchDropdown">Branch:</label>
+                    <div id="branchDropdown"></div>
+                </div>
+                <div class="form-group" style="width: 120px; display: inline-block;">
+                    <label for="yearSelect">Year:</label>
+                    <select id="yearSelect" class="form-control"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button onclick="onFind()" id="btnfind">Find</button>
+            <button onclick="onClear()">Clear</button>
+            <button onclick="goBack()">Back</button>
+        </div>
+    </div>
+
+    <!-- Vertical Separator -->
+    <div class="separator"></div>
+
+    <!-- Right Section -->
+    <div class="right-section">
+        <!-- Record count - hidden by default -->
+        <div id="recordCount">0 Records found.</div>
+
+        <!-- Search container - hidden by default -->
+        <div class="search-view-container" id="searchViewContainer">
+            <input type="text" id="employeeSearch" placeholder="Search employees..." />
+        </div>
+
+        <!-- Action buttons - hidden by default -->
+        <div class="action-buttons-container" id="actionButtonsContainer">
+            <button id="btnView">View</button>
+            <button id="btnDownloadMultiple">Download PDF</button>
+        </div>
+
+        <!-- Grid container with no data message -->
+        <div class="grid-wrapper" style="position: relative;" id="gridTag">
+            <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column">
+                <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" />
+                <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+            </div>
+
+            <!-- No data message - shown by default -->
+            <div class="no-data-message" id="noDataMessage">
+                No data to display. Please select a branch and click Find to load employee data.
+            </div>
+
+            <!-- DevExtreme Grid -->
+            <div id="employeeGrid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Experience Letter Modal -->
+<div class="modal fade" id="experienceLetterModal" tabindex="-1" aria-labelledby="experienceLetterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl custom-modal-width">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Experience Letter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="experienceLetterBody">
+                <!-- Experience letter will be injected here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btnDownloadPDF">Download PDF</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const Empid = parseInt(localStorage.getItem("EmployeeId"));
+    const Role = localStorage.getItem("RoleSlug");
+    const Token = localStorage.getItem("authToken");
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany || '{}');
+    const Compname = companyDetails.CompanyName;
+    const CompanyId = companyDetails.CompanyId;
+
+    // Global variable to store original employee data
+    let originalEmployeeData = [];
+    let currentEmployeeData = null;
+    let hrManagerData = null;
+
+    $(document).ready(function () {
+        populateYearDropdown();
+        BindBranchDropdown();
+        fetchHRManagerDetails();
+        hideDataElements();
+    });
+
+    $('#yearSelect').on('change', function () {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+        if (selectedBranchIds && selectedBranchIds.length > 0) {
+            onFind();
+        }
+    });
+
+    function hideDataElements() {
+        $('#recordCount').removeClass('show').hide();
+        $('#searchViewContainer').removeClass('show').hide();
+        $('#actionButtonsContainer').removeClass('show').hide();
+        $('#noDataMessage').show();
+        $('#employeeGrid').hide();
+    }
+
+    function showDataElements() {
+        $('#recordCount').addClass('show').show();
+        $('#searchViewContainer').addClass('show').show();
+        $('#actionButtonsContainer').addClass('show').show();
+        $('#noDataMessage').hide();
+        $('#employeeGrid').show();
+    }
+
+    function goBack() {
+        window.history.back();
+    }
+
+    function populateYearDropdown() {
+        const startYear = 2025;
+        const currentYear = new Date().getFullYear();
+        const yearDropdown = $("#yearSelect");
+        yearDropdown.empty();
+        for (let year = currentYear; year >= startYear; year--) {
+            yearDropdown.append(`<option value="${year}">${year}</option>`);
+        }
+        yearDropdown.val(currentYear);
+    }
+
+    function BindBranchDropdown() {
+        $.ajax({
+            url: '@baseDomainUrl/api/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response?.data?.length > 0) {
+                    $("#branchDropdown").dxTagBox({
+                        items: response.data,
+                        displayExpr: "branchName",
+                        valueExpr: "branchId",
+                        placeholder: "--Select Branch--",
+                        showSelectionControls: true,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        maxDisplayedTags: 3,
+                        applyValueMode: "instantly",
+                        multiline: false,
+                        minSearchLength: 0,
+                        width: "100%",
+                        onOpened: function () {
+                            $(".dx-overlay-content").css("max-width", "150px");
+                        }
+                    });
+                }
+            },
+            error: function () {
+                console.error('Failed to load branches');
+                Swal.fire('Error', 'Failed to load branches.', 'error');
+            }
+        });
+    }
+
+    function fetchHRManagerDetails() {
+        // Replace this API endpoint with your actual HR Manager API
+        $.ajax({
+            url: '@baseDomainUrl/api/HRManagerAPI/GetHRManagerDetails/' + CompanyId,
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response && response.isSuccess && response.Data) {
+                    hrManagerData = response.Data;
+                }
+            },
+            error: function () {
+                console.warn('Failed to load HR Manager details. Using default values.');
+            }
+        });
+    }
+
+    function updateRecordCount() {
+        const grid = $("#employeeGrid").dxDataGrid("instance");
+        if (grid) {
+            const visibleRows = grid.getVisibleRows();
+            const filteredCount = visibleRows.length;
+            $('#recordCount').text(`${filteredCount} Records found.`);
+            if (filteredCount > 0) {
+                $('#recordCount').css('color', '#28a745');
+            } else {
+                $('#recordCount').css('color', '#dc3545');
+            }
+        }
+    }
+
+    function onFind() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+
+        if (!selectedBranchIds || selectedBranchIds.length === 0) {
+            Swal.fire('Warning', 'Please select at least one branch.', 'warning');
+            return;
+        }
+
+        const selectedYear = $('#yearSelect').val();
+
+        $('#grid-loader').addClass('d-flex').show();
+        hideDataElements();
+
+        const branchIdsParam = selectedBranchIds.join(',');
+
+        $.ajax({
+            url: `@baseDomainUrl/api/EmployeeMasterAPI/GetAllEmployee_DropDown/${CompanyId}?BranchId=${branchIdsParam}&Year=${selectedYear}`,
+            type: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            dataType: "json",
+            success: function (response) {
+                const employeeData = response.data || response;
+                originalEmployeeData = employeeData;
+
+                if (employeeData && employeeData.length > 0) {
+                    showDataElements();
+
+                    const grid = $("#employeeGrid").dxDataGrid({
+                        dataSource: employeeData,
+                        keyExpr: "id",
+                        selection: {
+                            mode: "multiple",
+                            showCheckBoxesMode: "always"
+                        },
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        paging: {
+                            enabled: false
+                        },
+                        scrolling: {
+                            mode: "standard",
+                            useNative: true,
+                            showScrollbar: "always"
+                        },
+                        searchPanel: {
+                            visible: false
+                        },
+                        height: 500,
+                        columns: [
+                            { dataField: "employeeCode", caption: "Employee Code", width: 150 },
+                            { dataField: "id", caption: "EmployeeId", visible: false },
+                            { dataField: "fullName", caption: "Employee Name" },
+                            { dataField: "branchName", caption: "Branch", width: 150 }
+                        ],
+                        onContentReady: function () {
+                            updateRecordCount();
+                        }
+                    }).dxDataGrid("instance");
+
+                    $('#employeeSearch').off('input').on('input', function () {
+                        const searchValue = $(this).val();
+                        if (searchValue) {
+                            grid.filter([
+                                ['fullName', 'contains', searchValue],
+                                'or',
+                                ['employeeCode', 'contains', searchValue],
+                                'or',
+                                ['branchName', 'contains', searchValue]
+                            ]);
+                        } else {
+                            grid.clearFilter();
+                        }
+                        setTimeout(updateRecordCount, 100);
+                    });
+
+                    const recordCount = employeeData.length;
+                    $('#recordCount').text(`${recordCount} Records found.`);
+                    $('#recordCount').css('color', '#28a745');
+                } else {
+                    hideDataElements();
+                    $('#noDataMessage').text('No employees found for the selected branch(es).').show();
+                }
+
+                $('#grid-loader').removeClass('d-flex').hide();
+            },
+            error: function () {
+                $('#grid-loader').removeClass('d-flex').hide();
+                hideDataElements();
+                $('#noDataMessage').text('Failed to load employees. Please try again.').show();
+                Swal.fire('Error', 'Failed to load employees.', 'error');
+            }
+        });
+    }
+
+    function onClear() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        if (branchTagBox) {
+            branchTagBox.option("value", []);
+        }
+        $('#yearSelect').val(new Date().getFullYear());
+
+        const grid = $("#employeeGrid").dxDataGrid("instance");
+        if (grid) {
+            grid.option("dataSource", []);
+        }
+
+        hideDataElements();
+        $('#noDataMessage').text('No data to display. Please select a branch and click Find to load employee data.');
+        $('#employeeSearch').val('');
+        originalEmployeeData = [];
+    }
+
+    $('#btnView').on('click', function () {
+        const grid = $('#employeeGrid').dxDataGrid("instance");
+        const selected = grid.getSelectedRowsData();
+
+        if (!selected.length) {
+            Swal.fire('Warning', 'Please select at least one employee.', 'warning');
+            return;
+        }
+
+        if (selected.length > 1) {
+            Swal.fire('Warning', 'Please select only one employee to view.', 'warning');
+            return;
+        }
+
+        const employeeId = selected[0].id;
+        const $btnView = $(this);
+        $btnView.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...');
+
+        $.ajax({
+            url: `@baseDomainUrl/api/ReportAPI/GetEmployeeDetailsForLetter/${employeeId}`,
+            type: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            dataType: "json",
+            success: function (response) {
+                if (response && response.isSuccess && response.Data) {
+                    currentEmployeeData = response.Data;
+                    renderExperienceLetter(response.Data);
+                    const modal = new bootstrap.Modal(document.getElementById('experienceLetterModal'));
+                    modal.show();
+                } else {
+                    Swal.fire('Error', response.ResponseMessage || 'Failed to fetch employee details.', 'error');
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error fetching employee details:", error);
+                Swal.fire('Error', `Failed to fetch employee details: ${error}`, 'error');
+            },
+            complete: function () {
+                $btnView.prop('disabled', false).html('View');
+            }
+        });
+    });
+
+    $('#btnDownloadMultiple').on('click', function () {
+        const grid = $('#employeeGrid').dxDataGrid("instance");
+        const selected = grid.getSelectedRowsData();
+
+        if (!selected.length) {
+            Swal.fire('Warning', 'Please select at least one employee.', 'warning');
+            return;
+        }
+
+        const $btn = $(this);
+        $btn.prop('disabled', true).addClass('btn-loading');
+
+        let completedCount = 0;
+        const totalCount = selected.length;
+
+        // Process each selected employee
+        selected.forEach((employee, index) => {
+            $.ajax({
+                url: `@baseDomainUrl/api/ReportAPI/GetEmployeeDetailsForLetter/${employee.id}`,
+                type: "GET",
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                dataType: "json",
+                success: function (response) {
+                    if (response && response.isSuccess && response.Data) {
+                        generatePDFForEmployee(response.Data, () => {
+                            completedCount++;
+                            if (completedCount === totalCount) {
+                                $btn.prop('disabled', false).removeClass('btn-loading');
+                                Swal.fire('Success', `${totalCount} PDF(s) generated successfully!`, 'success');
+                            }
+                        });
+                    } else {
+                        completedCount++;
+                        if (completedCount === totalCount) {
+                            $btn.prop('disabled', false).removeClass('btn-loading');
+                        }
+                    }
+                },
+                error: function () {
+                    completedCount++;
+                    if (completedCount === totalCount) {
+                        $btn.prop('disabled', false).removeClass('btn-loading');
+                    }
+                }
+            });
+        });
+    });
+
+    function generatePDFForEmployee(data, callback) {
+        // Create a temporary container for the letter
+        const tempContainer = $('<div>').css({
+            position: 'absolute',
+            left: '-9999px',
+            top: '0'
+        }).appendTo('body');
+
+        const letterHTML = generateLetterHTML(data);
+        tempContainer.html(letterHTML);
+
+        const element = tempContainer.find('.experience-letter-container')[0];
+
+        html2canvas(element, {
+            scale: 2,
+            logging: false,
+            useCORS: true
+        }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+
+            const imgWidth = 210;
+            const pageHeight = 297;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            const fileName = `Experience_Letter_${data.employeeCode}_${new Date().getTime()}.pdf`;
+            pdf.save(fileName);
+
+            tempContainer.remove();
+            if (callback) callback();
+        }).catch(error => {
+            console.error('PDF generation error:', error);
+            tempContainer.remove();
+            if (callback) callback();
+        });
+    }
+
+    function generateLetterHTML(data) {
+        const formatDate = (dateStr) => {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        };
+
+        const today = formatDate(new Date().toISOString());
+
+        return `
+            <div class="experience-letter-container">
+                <div class="letter-header">
+                    <img src="@baseDomainUrl/images/company-logo.png" alt="Company Logo" class="company-logo" onerror="this.style.display='none'" />
+                    <h3>${Compname}</h3>
+                    <p>${data.companyAddress || ''}</p>
+                    <p>Date: ${today}</p>
+                </div>
+
+                <div class="letter-title">
+                    TO WHOMSOEVER IT MAY CONCERN
+                </div>
+
+                <div class="letter-content">
+                    <p>This is to certify that <strong>${data.fullName || 'Mr./Ms. [Name]'}</strong> (Employee Code: <strong>${data.employeeCode || 'N/A'}</strong>) has worked in our organization as <strong>${data.designation || '[Designation]'}</strong> from <strong>${formatDate(data.joiningDate)}</strong> to <strong>${formatDate(data.relievingDate) || 'Present'}</strong>.</p>
+
+                    <p>During ${data.gender === 'Male' ? 'his' : data.gender === 'Female' ? 'her' : 'their'} tenure of service, we found ${data.gender === 'Male' ? 'his' : data.gender === 'Female' ? 'her' : 'their'} character and conduct to be satisfactory.</p>
+
+                    <p>We wish ${data.gender === 'Male' ? 'him' : data.gender === 'Female' ? 'her' : 'them'} all the best in ${data.gender === 'Male' ? 'his' : data.gender === 'Female' ? 'her' : 'their'} future endeavors.</p>
+                </div>
+
+                <div class="letter-footer">
+                    <div class="signature-section">
+                        <p><strong>For ${Compname}</strong></p>
+                        <br><br>
+                        <p>_____________________</p>
+                        <p><strong>${hrManagerData?.hrManagerName || data.hrManagerName || 'HR Manager'}</strong></p>
+                        <p>${hrManagerData?.hrManagerDesignation || data.hrManagerDesignation || 'HR Department'}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderExperienceLetter(data) {
+        $('#experienceLetterBody').html(generateLetterHTML(data));
+    }
+
+    $('#btnDownloadPDF').on('click', function () {
+        const $btn = $(this);
+        $btn.prop('disabled', true).addClass('btn-loading');
+
+        const element = document.getElementById('experienceLetterBody').querySelector('.experience-letter-container');
+
+        html2canvas(element, {
+            scale: 2,
+            logging: false,
+            useCORS: true
+        }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+
+            const imgWidth = 210;
+            const pageHeight = 297;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            const fileName = `Experience_Letter_${currentEmployeeData.employeeCode}_${new Date().getTime()}.pdf`;
+            pdf.save(fileName);
+
+            $btn.prop('disabled', false).removeClass('btn-loading');
+        }).catch(error => {
+            console.error('PDF generation error:', error);
+            Swal.fire('Error', 'Failed to generate PDF.', 'error');
+            $btn.prop('disabled', false).removeClass('btn-loading');
+        });
+    });
+
+    $('#experienceLetterModal').on('hidden.bs.modal', function () {
+        const grid = $('#employeeGrid').dxDataGrid("instance");
+        if (grid) {
+            grid.clearSelection();
+        }
+    });
+</script>

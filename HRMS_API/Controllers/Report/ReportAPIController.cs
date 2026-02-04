@@ -288,7 +288,7 @@ namespace HRMS_API.Controllers.Report
 
 
         [HttpGet("GetLeaveYearlySummary")]
-        public async Task<APIResponse> GetLeaveYearlySummary( string EmpCode, DateTime StratDate, DateTime EndDate)
+        public async Task<APIResponse> GetLeaveYearlySummary(string EmpCode, DateTime StratDate, DateTime EndDate)
         {
             try
             {
@@ -310,6 +310,27 @@ namespace HRMS_API.Controllers.Report
                 };
             }
         }
+
+
+        [HttpGet("GetEmployeeDetailsForLetter")]
+        public async Task<APIResponse> GetEmployeeDetailsForLetter(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetEmployeeDetailsForLetter(EmployeeId);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
 
     }
 }
