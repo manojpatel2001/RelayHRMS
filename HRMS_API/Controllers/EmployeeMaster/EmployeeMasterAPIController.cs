@@ -169,13 +169,13 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 }
 
                 // Check if the user already exists
-                var existingUser = await _userManager.FindByEmailAsync(employeeData.LoginAlias);
-                if (existingUser != null)
+                var existingUser = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.LoginAlias == employeeData.LoginAlias);
+                if (existingUser.Any())
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Login Alias already exists." };
                 }
 
-                var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.CompanyId == employeeData.CompanyId && u.EmployeeCode == employeeData.EmployeeCode);
+                var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u =>u.EmployeeCode == employeeData.EmployeeCode);
 
                 if (existingUserByEmployeeCode.Any())
                 {
