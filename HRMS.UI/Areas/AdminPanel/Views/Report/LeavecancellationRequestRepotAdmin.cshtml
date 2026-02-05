@@ -1,0 +1,556 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Attendance Regularization";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+<title>Leave Cancellation Approval</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #ffffff;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .search-panel-wrapper {
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .btn-add {
+        background-color: orange;
+        color: white;
+        font-size: 14px;
+        padding: 6px 15px;
+        border: none;
+        border-radius: 4px;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+
+    /* Grid width fixes */
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .grid-container {
+        width: 100% !important;
+        overflow-x: auto;
+        margin: 0;
+        padding: 0;
+    }
+
+    #leaveCancellationGrid {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+
+        #leaveCancellationGrid .dx-datagrid {
+            width: 100% !important;
+        }
+
+        #leaveCancellationGrid .dx-datagrid-content {
+            width: 100% !important;
+        }
+
+        #leaveCancellationGrid .dx-datagrid-table {
+            width: 100% !important;
+            table-layout: auto !important;
+        }
+
+    .form-section {
+        width: 100%;
+        max-width: 100%;
+        padding: 15px;
+        border: 1px solid #ccc;
+        margin: 0;
+    }
+
+    .search-panel-wrapper {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .custom-action-buttons {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .btn-add {
+        background-color: orange;
+        color: white;
+        font-size: 14px;
+        padding: 6px 15px;
+        border: none;
+        border-radius: 4px;
+    }
+</style>
+
+<!-- Search Panel Header -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search panel</div>
+            <a href="/AdminPanel/Report/AddLeavecancellationRequestAdmin" class="btn-add">Add</a>
+        </div>
+    </div>
+</div>
+<!-- Form Starts -->
+<div class="form-section">
+    <!-- Row 1: Search By & Search For -->
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="searchby" class="form-label mb-0 me-2" style="width: 120px;">Search By<span class="text-danger">*</span>:</label>
+            <select class="form-select form-select-sm" id="searchby" style="width: 180px;">
+                <option value="1">Emp Name</option>
+                <option value="2">Emp Code</option>
+                <option value="3">Leave Type</option>
+                <option value="4">Manager Name</option>
+            </select>
+        </div>
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="searchfor" class="form-label mb-0 me-2" style="width: 120px;">Search for<span class="text-danger">*</span>:</label>
+            <input type="text" class="form-control form-control-sm" id="searchfor" style="width: 180px;" />
+        </div>
+    </div>
+
+    <!-- Row 2: From Date & To Date -->
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="fromdate" class="form-label mb-0 me-2" style="width: 120px;">From Date:</label>
+            <input type="date" class="form-control form-control-sm" id="fromdate" style="width: 180px;" />
+        </div>
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="todate" class="form-label mb-0 me-2" style="width: 120px;">To Date:</label>
+            <input type="date" class="form-control form-control-sm" id="todate" style="width: 180px;" />
+        </div>
+    </div>
+
+    <!-- Row 3: Radio Buttons + Buttons -->
+    <div class="row justify-content-center align-items-center mb-3">
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <!-- Radio Buttons -->
+                <div class="d-flex align-items-center flex-wrap">
+                    <div class="form-check me-4">
+                        <input class="form-check-input" type="radio" name="type" id="r2">
+                        <label class="form-check-label" for="r2">Pending</label>
+                    </div>
+                    <div class="form-check me-4">
+                        <input class="form-check-input" type="radio" name="type" id="r3">
+                        <label class="form-check-label" for="r3">Approved</label>
+                    </div>
+                    <div class="form-check me-4">
+                        <input class="form-check-input" type="radio" name="type" id="r4">
+                        <label class="form-check-label" for="r4">Rejected</label>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex align-items-center mt-2 mt-md-0">
+                    <button class="btn btn-custom me-2" id="btnGo">Go</button>
+                    <button class="btn btn-custom" id="btnClear">Clear</button>
+                    <button class="btn btn-custom" onclick="goBack()">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LEAVE CANCELLATION Heading -->
+<div class="search-panel-wrapper mt-2">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">LEAVE CANCELLATION REQUESTS</div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons + Grid Container -->
+<div class="container mt-3">
+    <!-- Action Buttons Row -->
+    <div id="actionButtons" class="custom-action-buttons text-end mb-2" style="display: none;">
+        <button id="btnApprove" class="btn btn-custom">Approve</button>
+        <button id="btnReject" class="btn btn-custom">Reject</button>
+    </div>
+
+    <!--Loader-->
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+        <img src="@(baseDomainUrl)/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+        <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+    </div>
+
+    <!-- Grid Container with proper width -->
+    <div class="grid-container">
+        <div id="leaveCancellationGrid"></div>
+    </div>
+</div>
+
+<script>
+    const EmployeeId = localStorage.getItem('EmployeeId');
+      const savedCompany = localStorage.getItem('selectedCompany');
+      var companyDetails = JSON.parse(savedCompany);
+      const CompanyId = companyDetails.CompanyId;
+    // Safe grid disposal function
+    function safeDisposeGrid() {
+        try {
+            var gridInstance = $("#leaveCancellationGrid").data("dxDataGrid");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+
+        }
+        $("#leaveCancellationGrid").empty();
+    }
+
+    $(document).ready(function () {
+        $('#r2').prop('checked', true); // Default to Pending
+        $('#btnGo').click(); // Trigger initial load
+
+        $("#btnApprove").click(function () {
+            updateLeaveCancellationStatus("Approved");
+        });
+
+        $("#btnReject").click(function () {
+            updateLeaveCancellationStatus("Rejected");
+        });
+    });
+
+    let selectedKeys = [];
+
+    // Get selected status from radio buttons
+    function getStatus() {
+        if ($('#r2').is(':checked')) return 'Pending';
+        if ($('#r3').is(':checked')) return 'Approved';
+        if ($('#r4').is(':checked')) return 'Rejected';
+        return null;
+    }
+
+    // Map dropdown value to parameter
+    function getSearchByText(value) {
+        switch (value) {
+            case '1': return 'EmpName';
+            case '2': return 'EmpCode';
+            case '3': return 'LeaveType';
+            case '4': return 'ManagerName';
+            default: return null;
+        }
+    }
+
+        function goBack() {
+            window.history.back(); // Navigates to the previous page
+        }
+    async function showLoder() {
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    async function hideLoder() {
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    function loadGrid(data) {
+        // Dispose existing grid first to prevent conflicts
+        try {
+            const gridInstance = $("#leaveCancellationGrid").dxDataGrid("instance");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+            // Grid doesn't exist yet, that's okay
+        }
+
+        // Clear the container
+        $("#leaveCancellationGrid").empty();
+
+        if (!data || data.length === 0) {
+            $("#actionButtons").hide();
+            $(".search-panel-wrapper").last().hide();
+            return;
+        }
+
+        // Show heading if data exists
+        $(".search-panel-wrapper").last().show();
+
+        $("#leaveCancellationGrid").dxDataGrid({
+            dataSource: data,
+            keyExpr: "leaveCancellationId",
+            showBorders: true,
+            width: "100%",
+            height: 400,
+            columnAutoWidth: true,
+            wordWrapEnabled: false,
+            paging: {
+                enabled: false
+            },
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always"
+            },
+            filterRow: { visible: false },
+            searchPanel: { visible: false },
+            onSelectionChanged: function (e) {
+                selectedKeys = e.selectedRowKeys;
+            },
+            columns: [
+                { dataField: "employeeCode", caption: "Employee Code", width: 80 },
+                { dataField: "id", visible: false },
+                { dataField: "fullName", caption: "Employee Name", width: 200 },
+                { dataField: "leave_Name", caption: "Leave Type", width: 120 },
+                { dataField: "fromDate", caption: "From Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "toDate", caption: "To Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "no_Of_Date", caption: "Days", width: 60 },
+                { dataField: "reason", caption: "Cancellation Reason", width: 200 },
+                { dataField: "leaveStatus", caption: "Leave Status", width: 200 },
+                // { dataField: "CreatedDate", caption: "Request Date", dataType: "date", format: "dd/MM/yyyy", width: 110 },
+
+                {
+                    dataField: "updatedBy",
+                    caption: "Approved By",
+                    width: 150,
+                    calculateCellValue: function(rowData) {
+                        return rowData.updatedBy ? rowData.updatedBy : "-";
+                    }
+                },
+                {
+                    dataField: "approvedDate",
+                    caption: "Approved Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: 120,
+                    calculateCellValue: function(rowData) {
+                        if (!rowData.updatedDate) return "-";
+                        const date = new Date(rowData.updatedDate);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        return `${day}/${month}/${year}`;
+                    }
+                }
+            ]
+        });
+
+        $("#actionButtons").show();
+    }
+
+    $('#btnGo').on('click', function () {
+        let model = {
+            SearchBy: getSearchByText($('#searchby').val()),
+            SearchValue: $('#searchfor').val(),
+            FromDate: $('#fromdate').val() || null,
+            ToDate: $('#todate').val() || null,
+            LeaveStatus: getStatus(),
+            Companyid: CompanyId
+        };
+
+        showLoder();
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/GetLeaveCancellationReportAdmin")',
+            type: 'POST',
+            data: JSON.stringify(model),
+            contentType: 'application/json',
+            success: function (res) {
+                hideLoder();
+                console.log('Response received:', res);
+
+                if (res.isSuccess) {
+                    if (res.data && res.data.length > 0) {
+                        loadGrid(res.data);
+                    } else {
+
+                        $("#actionButtons").hide();
+                        $(".search-panel-wrapper").last().hide();
+                        safeDisposeGrid();
+                        round_error_noti('No Data Found');
+                    }
+                } else {
+                    $("#actionButtons").hide();
+                    $(".search-panel-wrapper").last().hide();
+                    safeDisposeGrid();
+                    round_error_noti(res.responseMessage || 'No Data');
+                }
+            },
+            error: function (xhr, status, error) {
+                hideLoder();
+                console.error('AJAX Error:', {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText,
+                    statusCode: xhr.status
+                });
+
+                $("#actionButtons").hide();
+                $(".search-panel-wrapper").last().hide();
+                safeDisposeGrid();
+                round_error_noti('Error loading data: ' + error);
+            }
+        });
+    });
+
+    $("#btnClear").click(function () {
+        // Reset form
+        $('#searchby').val("1");
+        $('#searchfor').val('');
+        $('#fromdate').val('');
+        $('#todate').val('');
+        $("input[name='type']").prop('checked', false);
+        $('#r2').prop('checked', true);
+
+        safeDisposeGrid();
+        $("#actionButtons").hide();
+        $(".search-panel-wrapper").last().hide();
+    });
+
+    function updateLeaveCancellationStatus(status) {
+        debugger;
+        var grid = $("#leaveCancellationGrid").dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
+
+     if (selectedRows.length === 0) {
+        round_error_noti("Please select at least one record.");
+        return;
+    }
+
+    const hasApproved = selectedRows.some(row => row.isApproved);
+    const hasRejected = selectedRows.some(row => row.isRejected);
+
+    if (hasApproved) {
+        Swal.fire({
+            title: "Not Allowed",
+            text: "Approved records cannot be modified.",
+            icon: "error",
+            customClass: { popup: 'swal-small' }
+        });
+        return;
+    }
+
+    if (hasRejected) {
+        Swal.fire({
+            title: "Not Allowed",
+            text: "Rejected records cannot be modified.",
+            icon: "error",
+            customClass: { popup: 'swal-small' }
+        });
+        return;
+    }
+
+    var payload = selectedRows.map(function (row) {
+        return {
+            leaveCancellationId: row.leaveCancellationId,
+            employeeId: row.id,
+            isApproved: (status === "Approved"),
+            isRejected: (status === "Rejected"),
+            updatedBy: EmployeeId
+        };
+    });
+
+
+        showLoder();
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/UpdateLeaveCancellationStatus")',
+            type: "PUT",
+            data: JSON.stringify(payload), // Send the list of requests
+            contentType: "application/json",
+            success: function (response) {
+                hideLoder();
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage);
+                    $('#btnGo').click(); // Refresh the grid
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+            },
+            error: function (xhr, status, error) {
+                hideLoder();
+                console.error("AJAX Error:", error);
+                round_error_noti("Something went wrong during update.");
+            }
+        });
+    }
+
+    //Handle window resize
+    $(window).on('resize', function() {
+        var gridInstance = $("#leaveCancellationGrid").data("dxDataGrid");
+        if (gridInstance) {
+            setTimeout(function() {
+                gridInstance.updateDimensions();
+            }, 100);
+        }
+    });
+</script>

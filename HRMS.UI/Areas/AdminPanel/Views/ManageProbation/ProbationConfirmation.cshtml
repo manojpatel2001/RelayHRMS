@@ -1,0 +1,872 @@
+﻿@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "Probation Confirmation";
+	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+	var uri = new Uri(baseUrl);
+	string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+
+<div class="card ">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row align-items-center">
+
+			<!-- Title (Left) -->
+			<div class="col-6">
+				<h6 class="p-2 mb-0">
+					Probation Review & Confirmation
+				</h6>
+			</div>
+
+			<!-- Export Button (Right) -->
+			<div class="col-6 text-end">
+				<button type="button" id="exportExcelButton" class="btn btn-success btn-sm px-2 py-1" onclick="downloadGridExcel()">
+					<span id="exportButtonText">
+						<i class="bx bx-file-excel fs-6"></i> Export Excel
+					</span>
+					<span id="exportButtonLoader" style="display: none;" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Exporting..
+				</button>
+
+			</div>
+
+
+		</div>
+	</div>
+
+
+	<div class="card-body">
+		<div class="row mb-2">
+			<div class="col-sm-3">
+			</div>
+
+			<div class="col-sm-3">
+				<div class="form-group mt-3 position-relative">
+					<select class="form-select floating-input" id="ddlStatus">
+						<option selected value="">All</option>
+
+
+					</select>
+					<label class="floating-label" for="ddlStatus">Probation Status<span class="required-star">*</span></label>
+				</div>
+				<span id="spnStatus" style="color:red; display:none;">Please Select Probation Status</span>
+			</div>
+			<div class="col-sm-3">
+				<div class="form-group mt-3 position-relative">
+					<select class="form-select floating-input" id="ddlYear">
+						<option selected value="">All</option>
+
+
+					</select>
+					<label class="floating-label" for="ddlYear">Year</label>
+				</div>
+			</div>
+
+			<div class="col-sm-3">
+			</div>
+
+		</div>
+		<div class="row">
+			<div class="col-md-12">
+
+				<div class="grid-wrapper " style="position: relative; " id="gridTag">
+					<div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+						 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+						<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+						<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+					</div>
+					<div id="rowCount"></div>
+					<div id="GridContainer"></div>
+				</div>
+
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmEmailChangeModal" tabindex="-1">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header bg-warning text-dark">
+				<h5 class="modal-title">Confirmation</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+
+			<div class="modal-body">
+				<p>Are you sure you want to proceed with sending the confirmation email to this employee?</p>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" id="btnConfirmNo" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+				<button type="button" id="btnConfirmYes" class="btn btn-primary">Yes</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="modal fade"
+	 id="emailModal"
+	 tabindex="-1"
+	 data-bs-backdrop="static"
+	 data-bs-keyboard="false">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+
+			<div class="modal-header bg-info text-white">
+				<h5 class="modal-title">Update Employee Email</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+
+			<div class="modal-body">
+				<div class="row">
+					<div class="col-md-12">
+						<div class="form-group mt-3 position-relative">
+							<input type="text" class="form-control floating-input" id="employeeEmail" placeholder="Employee Email">
+							<label class="floating-label" for="employeeEmail">Employee Email<span class="text-danger">*</span></label>
+						</div>
+						<span id="spnEmployeeEmail" style="color:red; display:none;">Please Enter Employee Email</span>
+					</div>
+
+					<div class="col-md-12 mt-3">
+
+						<input type="checkbox" id="reportingEmailCheck" checked>
+						&nbsp;<label for="reportingEmailCheck"><i>Do you also want to send mail to reporting manager?</i></label>
+
+					</div>
+					<div class="col-md-12">
+						<div class="form-group mt-3 position-relative">
+							<input type="text" class="form-control floating-input" id="reportingEmail" placeholder="Reporting Manager Email">
+							<label class="floating-label" for="reportingEmail">Reporting Manager Email</label>
+						</div>
+						<span id="spnReportingEmail" style="color:red; display:none;">Please Enter Reporting Email</span>
+					</div>
+
+				</div>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" id="btnEmailSend" class="btn btn-primary">
+					Send
+				</button>
+
+				<button type="button" id="btnEmailSending" class="btn btn-primary" style="display:none" disabled>
+					<span class="spinner-border spinner-border-sm me-2"></span>
+					Sending...
+				</button>
+			</div>
+
+		</div>
+	</div>
+</div>
+
+
+
+
+
+<script src="~/assets/js/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+
+<script>
+			const EmployeeId=localStorage.getItem('EmployeeId');
+		var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+		const CompanyId=companyDetails.CompanyId;
+			const Token=localStorage.getItem("authToken");
+
+		$(document).ready(() =>
+		{
+				bindYearDropdown();
+				GetAllProbationStatus();
+				ProbationDataTable();
+		});
+
+
+			function bindYearDropdown() {
+				const ddlYear = $("#ddlYear");
+
+				ddlYear.empty();
+				ddlYear.append('<option value="">All</option>');
+
+				const currentYear = new Date().getFullYear();
+
+				// Previous, Current, Next year
+				for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+					ddlYear.append(
+						`<option value="${y}">${y}</option>`
+					);
+				}
+
+				// Optional: select current year by default
+				//ddlYear.val(currentYear);
+			}
+			$("#ddlStatus,#ddlYear").change(()=>{
+
+			ProbationDataTable();
+		});
+
+		function GetAllProbationStatus() {
+			$.ajax({
+				url: '@baseUrl/ProbationPerformanceAPI/GetAllProbationStatus',
+				method: 'GET',
+				headers: {
+					'Authorization': 'Bearer ' + Token
+				},
+				success: function (data) {
+					if (data.isSuccess && data.data && data.data.length > 0) {
+
+						var ddlProbationStatus = $("#ddlStatus");
+						ddlProbationStatus.empty();
+						ddlProbationStatus.append(
+							$('<option>', { value: '', text: 'All' })
+						);
+
+						$.each(data.data, function (index, item) {
+
+								if(item.ProbationStatusId!=6){
+								ddlProbationStatus.append(
+									$('<option>', {
+										value: item.ProbationStatusId,
+										text: item.ProbationStatusName
+									})
+								);
+								}
+
+						});
+
+					}
+				},
+				error: function (error) {
+					console.error('Error fetching probation status data:', error);
+				}
+			});
+		}
+
+
+
+	  async function ProbationDataTable() {
+			try {
+				$('#grid-loader').addClass('d-flex').show();
+
+				let statusId = $("#ddlStatus").val();
+				let year = $("#ddlYear").val();
+				if(!year)
+				{
+					year=null;
+				}
+				if (!statusId) statusId = null;
+
+				const response = await $.ajax({
+					url: '@baseUrl/ProbationPerformanceAPI/GetAllConfirmationProbationDetails',
+					method: 'POST',
+					contentType: 'application/json',
+					headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+					data: JSON.stringify({
+						CompanyId: CompanyId,
+						StatusId: statusId,
+						 Year:year,
+						ApprovalMasterId: 1
+					})
+				});
+				$("#GridContainer").dxDataGrid({
+					dataSource: response.data || [],
+
+
+					/* ===================== MAIN GRID COLUMNS ===================== */
+					columns: [
+						{ dataField: 'employeeCode', caption: 'Code', minWidth: 80 },
+						{ dataField: 'employeeName', caption: 'Employee Name', minWidth: 200 },
+						{ dataField: 'personalEmailId', caption: 'Personal Email', minWidth: 220 },
+						{ dataField: 'statusName', caption: 'Status', alignment: 'center', minWidth: 120 },
+						{ dataField: 'remarksOfApprover', caption: 'Remarks Of Approver', minWidth: 220 },
+						{ dataField: 'probationEvaluationDays', caption: 'Evaluation Days', minWidth: 120 },
+
+						{ dataField: 'reportingManagerName', caption: 'Reporting Manager', minWidth: 200 },
+						{ dataField: 'reportingManagerEmail', caption: 'Manager Email', minWidth: 220 },
+						{ dataField: 'currentLevelNo', caption: 'Current Level', alignment: 'center', minWidth: 100 },
+						{ dataField: 'currentApprover', caption: 'Current Approver', minWidth: 220 },
+						
+
+						{
+							dataField: 'probationEndDate',
+							caption: 'Probation End Date',
+							dataType: 'date',
+							format: 'dd-MM-yyyy',
+							alignment: 'center',
+							minWidth: 120
+						},
+						{
+								dataField: 'dateOfJoining',
+								caption: 'Date Of Joining',
+							dataType: 'date',
+							format: 'dd-MM-yyyy',
+							alignment: 'center',
+							minWidth: 120
+						},
+
+							  {
+												dataField: 'actionDate',
+												caption: 'Action Date',
+												dataType: 'date',
+												alignment: 'center',
+												format: 'dd-MM-yyyy',
+												minWidth: 100,
+												customizeText: function (cellInfo) {
+																if (!cellInfo.value) {
+																	return 'No Action';
+																}
+																return cellInfo.valueText;
+												}
+								},
+								{
+									dataField: 'isMailSent', 
+									caption: 'Mail Sent Status',
+									minWidth: 120,
+									alignment: 'center',
+									cellTemplate: function (container, options) {
+										$("<span>")
+											.text(options.value === true ? "Yes" : "No")
+											.css("color", options.value === true ? "green" : "red")
+											.appendTo(container);
+									}
+								},
+
+
+
+								{
+												caption: "Actions",
+												alignment: "center",
+												width: 100,
+												allowExporting: false,
+												cellTemplate: function (container, options) {
+
+																// Show ONLY when Status = Approved
+																if (options.data.statusId !== 2) {
+																	return;  // hide column for other statuses
+																}
+
+																let wrapper = $('<div class="d-flex justify-content-center gap-2"></div>');
+
+																// Mail Icon
+																let mailIcon = $(`
+																	<a href="javascript:;" title="Send Mail">
+																		<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-envelope" viewBox="0 0 16 16">
+																			<path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v.217l-8 4.8l-8-4.8V4zm0 1.383v6.384l5.803-3.482L0 5.383zm6.761 3.93L1.146 13H14.854l-5.615-3.687l-.479.286l-.478-.286zM16 5.383l-5.803 3.482L16 11.767V5.383z"/>
+																		</svg>
+																	</a>
+																`);
+
+																mailIcon.on("click", function () {
+																	sendMail(options.data);
+																});
+
+																	let pdfIcon = $(`
+																		<a href="javascript:;" title="Download PDF">
+																			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+																				class="bi bi-file-earmark-pdf" viewBox="0 0 16 16">
+
+																				<path d="M5.5 6.5A.5.5 0 0 1 6 6h2a.5.5 0 0 1 .5.5v3A.5.5 0 0 1 8 10H6a.5.5 0 0 1-.5-.5v-3Zm1 .5v2h1v-2h-1Z"/>
+																				<path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2
+																						 2 0 0 1 2-2h5.5L14 4.5ZM5 3.5A1.5 1.5 0 1 0 5 6a1.5 1.5 0 0 0 0-3Zm1
+																						 7a.5.5 0 0 1 .5-.5h3.293l-1.147-1.146a.5.5 0 0 1
+																						 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L9.793
+																						 11H6.5a.5.5 0 0 1-.5-.5Z"/>
+																			</svg>
+																		</a>
+																	`);
+
+
+																pdfIcon.on("click", function () {
+																	downloadPDF(options.data);
+																});
+
+																wrapper.append(mailIcon);
+																wrapper.append(pdfIcon);
+																wrapper.appendTo(container);
+												}
+								}
+					],
+
+					/* ===================== MASTER DETAIL (APPROVAL HISTORY) ===================== */
+					masterDetail: {
+						enabled: true,
+						template: function (container, options) {
+
+							const historyData = options.data.approvalHistory;
+
+							if (!historyData || historyData.length === 0) {
+								$("<div>")
+									.text("No approval history available")
+									.css({ padding: "10px", color: "#777" })
+									.appendTo(container);
+								return;
+							}
+
+							$("<div>")
+								.text("Approval History")
+								.css({ fontWeight: "600", margin: "8px 0" })
+								.appendTo(container);
+
+							$("<div>").dxDataGrid({
+								dataSource: historyData,
+								showBorders: true,
+								paging: { enabled: false },
+								columnsAutoWidth: true,
+								scrolling: {
+									mode: "standard",
+									useNative: false,
+									showScrollbar: "always"
+								},
+								columns: [
+									{
+										dataField: "historyLevelNo",
+										caption: "Level",
+										width: 70,
+										alignment: "center"
+									},
+									{
+										dataField: "historyStatus",
+										caption: "Status",
+										minWidth: 120,
+										alignment: "center"
+									},
+									{
+										dataField: "historyApproverName",
+										caption: "Approver Name",
+										minWidth: 280
+									},
+									{ dataField: 'historyRemarksOfApprover', caption: 'Remarks Of Approver', minWidth: 220 },
+
+									{
+										dataField: "historyAssignedOn",
+										caption: "Assign Date",
+										dataType: "date",
+										format: "dd-MM-yyyy",
+										minWidth: 170,
+										alignment: "center"
+									},
+									{
+										dataField: "historyActionOn",
+										caption: "Action On",
+										dataType: "date",
+										format: "dd-MM-yyyy",
+										minWidth: 170,
+										alignment: "center"
+									},
+									{
+										dataField: "historyEscalatedOn",
+										caption: "Escalated Date",
+										dataType: "date",
+										format: "dd-MM-yyyy",
+										minWidth: 170,
+										alignment: "center"
+									}
+								]
+							}).appendTo(container);
+						}
+					},
+						showBorders: true,
+						columnsAutoWidth: true,
+						 height: 300,
+						paging: { enabled: false },
+
+						searchPanel: {
+							visible: true,
+							width: 240,
+							placeholder: "Search..."
+						},
+
+						scrolling: {
+							mode: "standard",
+							useNative: false,
+							scrollByContent: true,
+							scrollByThumb: true,
+							showScrollbar: "always"
+						},
+					onContentReady: function (e) {
+						$("#rowCount").html("Total Records: " + e.component.totalCount());
+					}
+				});
+
+				$('#grid-loader').removeClass('d-flex').hide();
+
+			} catch (error) {
+				console.error("Error loading probation data:", error);
+				$('#grid-loader').removeClass('d-flex').hide();
+			}
+		}
+
+			let selectedEmployeeData = null;
+
+		function sendMail(data) {
+			// Store data globally so YES button can access
+			selectedEmployeeData = data;
+			// Open confirmation modal
+			$("#confirmEmailChangeModal").modal("show");
+		}
+
+
+		$("#btnConfirmYes").on("click", function () {
+
+			// Close confirmation modal
+			$("#confirmEmailChangeModal").modal("hide");
+
+			// (Optional) Fill data in email modal
+			if (selectedEmployeeData) {
+				$("#employeeEmail").val(selectedEmployeeData.personalEmailId);
+				$("#reportingEmail").val(selectedEmployeeData.reportingManagerEmail);
+			}
+
+			// Open actual email modal
+			$("#emailModal").modal("show");
+		});
+
+
+		function showEmailSendBtnLoder()
+		{
+			$("#btnEmailSend").hide();
+			$("#btnEmailSending").show();
+		}
+		function hideEmailSendBtnLoder()
+		{
+			$("#btnEmailSend").show();
+			$("#btnEmailSending").hide();
+		}
+
+		$("#btnEmailSend").on("click", async function () {
+			try {
+				showEmailSendBtnLoder();
+				var email = $("#employeeEmail").val();
+				var reportingEmail = $("#reportingEmail").val();
+
+				if (!email) {
+					round_error_noti("Please enter email.");
+					hideEmailSendBtnLoder();
+					return;
+				}
+					const isChecked = $("#reportingEmailCheck").is(':checked');
+					if(isChecked){
+						if (!reportingEmail)
+						{
+								round_error_noti("Please enter reporting email.");
+							hideEmailSendBtnLoder();
+							return;
+						}
+					}
+					else{
+							reportingEmail=null;
+					}
+
+				// Get the PDF as a Base64 string
+				const pdfBase64 = await getPDFAsBase64(selectedEmployeeData);
+				if(!pdfBase64){
+					round_error_noti("Some thing went wrong.");
+					return ;
+				}
+				var emailPayload = {
+					EmployeeId: selectedEmployeeData.employeeId,
+					EmployeeName: selectedEmployeeData.employeeName,
+					EmployeeCode: selectedEmployeeData.employeeCode,
+					CompanyName: selectedEmployeeData.companyName,
+					ActionDate: selectedEmployeeData.actionDate,
+					Location: selectedEmployeeData.location,
+					PersonalEmailId: email,
+						ReportingManagerEmail:reportingEmail,
+					ApprovalRequestId:selectedEmployeeData.approvalRequestId,
+					ConfirmationPdf: pdfBase64 // Send as Base64 string
+				};
+
+
+				const response = await $.ajax({
+					url: '@baseUrl/ProbationPerformanceAPI/SendProbationConfirmationEmail',
+					method: 'POST',
+					contentType: 'application/json',
+					headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+					data: JSON.stringify(emailPayload)
+				});
+
+				if (response.isSuccess) {
+					round_success_noti(response.responseMessage);
+					 ProbationDataTable();
+					$("#emailModal").modal("hide");
+				} else {
+					round_error_noti(response.responseMessage);
+				}
+			} catch (error) {
+				console.error("Error in sending email:", error);
+				round_error_noti("An error occurred while sending the email. Please try again.");
+			} finally {
+				hideEmailSendBtnLoder();
+			}
+		});
+
+
+
+
+			const pdfTemplateHTML = `
+				<div id="pdf-template" style="display: none; background: #ffffff; border-radius: 6px; padding: 30px; max-width: 700px; margin: 0 auto; font-family: Arial, sans-serif;">
+					<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:6px; padding:30px;">
+						<tr>
+							<td align="right">
+								<img id="pdf-company-logo" src="" alt="Company Logo" style="max-width:180px;">
+							</td>
+						</tr>
+						<tr>
+							<td style="padding-top:20px; font-size:14px; color:#000000;">
+								<p><strong>Employee Code:</strong> <span id="pdf-employee-code"></span></p>
+								<p><strong>Employee Name:</strong> <span id="pdf-employee-name"></span></p>
+								<p><strong>Location:</strong> <span id="pdf-location"></span></p>
+								<p style="margin:20px 0 10px 0; font-size:16px;"><strong>Subject: CONFIRMATION LETTER</strong></p>
+								<p>Dear <strong><span id="pdf-employee-first-name"></span></strong>,</p>
+								<p>
+									With reference to your Offer Letter, we congratulate you on your successful
+									completion of probation with us.
+								</p>
+								<p>
+									The management is pleased to confirm your services with effect from
+									<strong>“<span id="pdf-confirmation-date"></span>”</strong>.
+								</p>
+								<p>
+									We wish you all the best and expect that you continue to work with the same zeal
+									& enthusiasm.
+								</p>
+								<br>
+								<p>For</p>
+								<p style="color:#d9534f; font-weight:bold;"><span id="pdf-company-name"></span></p>
+								<p>Mr. Girish Chavda<br><strong>GM-HR & Admin</strong></p>
+								<hr style="margin:30px 0; border:0; border-top:1px solid #ccc;">
+								<p><strong>Employee Name:</strong> ____________________________ <span style="float:right;"><strong>Date:</strong> ___________</span></p>
+								<br>
+								<p><strong>Employee Signature:</strong></p>
+								<p style="margin-top:30px;">
+									____________________________________________________________________________
+								</p>
+								<p style="font-size:12px; color:#666;">
+									Please sign the copy of this confirmation letter as a token of acceptance and
+									submit it back to us.
+								</p>
+								<br><br>
+								<p style="font-size:11px; color:#777; text-align:center;">
+									Head Office: 406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway,
+									Makarba, Ahmedabad - 380051 Gujarat, India
+								</p>
+							</td>
+						</tr>
+					</table>
+				</div>
+				`;
+
+	async function downloadPDF(data) {
+		try {
+
+			// Get the PDF as a Uint8Array (Byte[])
+			const byteArray = await getPDFAsByteArray(data);
+
+			// Create a Blob from the Uint8Array
+			const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+			// Create a download link
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `Confirmation_Letter_${data.employeeCode}.pdf`;
+
+			// Append the element to the DOM (required for Firefox)
+			document.body.appendChild(a);
+
+			// Trigger the download
+			a.click();
+
+			// Clean up
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+
+		} catch (error) {
+			console.error("Error downloading PDF:", error);
+			// Optionally, show an error notification to the user
+			alert("Failed to download PDF. Please try again.");
+		}
+	}
+
+
+
+		async function getPDFAsByteArray(data) {
+			// Insert the template into the DOM
+			document.body.insertAdjacentHTML('beforeend', pdfTemplateHTML);
+
+			// Fill the template with data
+			document.getElementById("pdf-employee-code").textContent = data.employeeCode;
+			document.getElementById("pdf-employee-name").textContent = data.employeeName;
+			document.getElementById("pdf-location").textContent = data.location;
+			document.getElementById("pdf-employee-first-name").textContent = data.employeeName;
+			document.getElementById("pdf-confirmation-date").textContent = data.probationEndDate ? new Date(data.probationEndDate).toLocaleDateString() : "";
+			document.getElementById("pdf-company-name").textContent = data.companyName;
+			document.getElementById("pdf-company-logo").src = '/assets/images/relaylogo.jpeg';
+
+			// Show the template
+			const template = document.getElementById("pdf-template");
+			template.style.display = "block";
+
+			// Use html2canvas to capture the template
+			const canvas = await html2canvas(template);
+
+			// Use jsPDF to generate the PDF
+			const { jsPDF } = window.jspdf;
+			const pdf = new jsPDF("p", "mm", "a4");
+			const imgData = canvas.toDataURL("image/png");
+			const imgWidth = 210; // A4 width in mm
+			const imgHeight = canvas.height * imgWidth / canvas.width;
+
+			pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+			// Remove the template from the DOM
+			template.remove();
+
+			// Return the PDF as a Uint8Array (Byte[])
+			return pdf.output('arraybuffer');
+		}
+
+			async function getPDFAsBase64(data) {
+			// Insert the template into the DOM
+			document.body.insertAdjacentHTML('beforeend', pdfTemplateHTML);
+
+			// Fill the template with data
+			document.getElementById("pdf-employee-code").textContent = data.employeeCode;
+			document.getElementById("pdf-employee-name").textContent = data.employeeName;
+			document.getElementById("pdf-location").textContent = data.location;
+			document.getElementById("pdf-employee-first-name").textContent = data.employeeName;
+			document.getElementById("pdf-confirmation-date").textContent = data.probationEndDate ? new Date(data.probationEndDate).toLocaleDateString() : "";
+			document.getElementById("pdf-company-name").textContent = data.companyName;
+				document.getElementById("pdf-company-logo").src = '/assets/images/relaylogo.jpeg';
+
+			// Show the template
+			const template = document.getElementById("pdf-template");
+			template.style.display = "block";
+
+			// Use html2canvas to capture the template
+			const canvas = await html2canvas(template);
+
+			// Use jsPDF to generate the PDF
+			const { jsPDF } = window.jspdf;
+			const pdf = new jsPDF("p", "mm", "a4");
+			const imgData = canvas.toDataURL("image/png");
+			const imgWidth = 210; // A4 width in mm
+			const imgHeight = canvas.height * imgWidth / canvas.width;
+
+			pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+			// Remove the template from the DOM
+			template.remove();
+
+			// Return the PDF as a Base64 string
+			return pdf.output('datauristring').split(',')[1]; // Extract the Base64 part
+		}
+
+			async function downloadGridExcel() {
+		$("#exportButtonText").hide();
+		$("#exportButtonLoader").show();
+
+		try {
+			const grid = $("#GridContainer").dxDataGrid("instance");
+			if (!grid || grid.totalCount() === 0) {
+				round_error_noti("No data to export");
+				return;
+			}
+
+			const workbook = new ExcelJS.Workbook();
+			const mainWorksheet = workbook.addWorksheet("Probation Data");
+
+			// Export main grid
+			await DevExpress.excelExporter.exportDataGrid({
+				component: grid,
+				worksheet: mainWorksheet,
+				autoFilterEnabled: true,
+			});
+
+			// Track used worksheet names
+			const usedWorksheetNames = new Set();
+			usedWorksheetNames.add("Probation Data");
+
+			// Loop through each row to create separate history worksheets
+			const rows = grid.getVisibleRows();
+			rows.forEach(row => {
+				const approvalHistory = row.data.approvalHistory;
+				if (approvalHistory && approvalHistory.length > 0) {
+					// Generate a unique worksheet name
+					let worksheetName = `History_${row.data.employeeCode}`;
+					let counter = 1;
+
+					// Ensure the worksheet name is unique
+					while (usedWorksheetNames.has(worksheetName)) {
+						worksheetName = `History_${row.data.employeeCode}_${counter}`;
+						counter++;
+					}
+
+					// Add the worksheet name to the set
+					usedWorksheetNames.add(worksheetName);
+
+					// Create a new worksheet for this employee's history
+					const employeeHistoryWorksheet = workbook.addWorksheet(worksheetName);
+
+					// Define columns for the history worksheet
+					employeeHistoryWorksheet.columns = [
+						{ header: "Level", key: "Level", width: 10 },
+						{ header: "Status", key: "Status", width: 15 },
+						{ header: "Approver", key: "Approver", width: 25 },
+						{ header: "Remarks", key: "Remarks", width: 30 },
+						{ header: "Assigned On", key: "AssignedOn", width: 15 },
+						{ header: "Action On", key: "ActionOn", width: 15 },
+						{ header: "Escalated On", key: "EscalatedOn", width: 15 },
+					];
+
+					// Add history data to the employee's worksheet
+					const historyRows = approvalHistory.map(history => {
+						// Convert dates to UTC and format as DD-MM-YY
+						const formatDate = (date) => {
+							if (!date) return "";
+							const utcDate = new Date(date);
+							const day = String(utcDate.getUTCDate()).padStart(2, '0');
+							const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+							const year = String(utcDate.getUTCFullYear()).slice(-2);
+							return `${day}-${month}-${year}`;
+						};
+
+						return {
+							Level: history.historyLevelNo,
+							Status: history.historyStatus,
+							Approver: history.historyApproverName,
+							Remarks: history.historyRemarksOfApprover,
+							AssignedOn: formatDate(history.historyAssignedOn),
+							ActionOn: formatDate(history.historyActionOn),
+							EscalatedOn: formatDate(history.historyEscalatedOn),
+						};
+					});
+
+					employeeHistoryWorksheet.addRows(historyRows);
+				}
+			});
+
+			// Generate and save the Excel file
+			const buffer = await workbook.xlsx.writeBuffer();
+			saveAs(new Blob([buffer]), "Probation_Data_With_History.xlsx");
+		} catch (error) {
+			console.error("Export error:", error);
+			round_error_noti("Export failed. Check console for details.");
+		} finally {
+			$("#exportButtonLoader").hide();
+			$("#exportButtonText").show();
+		}
+	}
+
+</script>

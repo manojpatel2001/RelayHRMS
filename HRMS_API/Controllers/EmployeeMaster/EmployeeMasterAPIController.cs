@@ -1,18 +1,23 @@
-﻿using HRMS_API.Services;
+﻿using HRMS_API.NotificationService.HubService;
+using HRMS_API.NotificationService.ManageService;
+using HRMS_API.Services;
 using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
 using HRMS_Core.EmployeeMaster;
 using HRMS_Core.Leave;
+using HRMS_Core.Notifications;
 using HRMS_Core.VM;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Repository;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Configuration;
@@ -30,14 +35,16 @@ namespace HRMS_API.Controllers.EmployeeMaster
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly FileUploadService _fileUploadService;
+        private readonly IHubContext<NotificationRemainderHub> _hubContext;
 
 
-        public EmployeeMasterAPIController(IUnitOfWork unitOfWork, UserManager<HRMSUserIdentity> userManager, IConfiguration configuration, FileUploadService fileUploadService)
+        public EmployeeMasterAPIController(IUnitOfWork unitOfWork, UserManager<HRMSUserIdentity> userManager, IConfiguration configuration, FileUploadService fileUploadService, IHubContext<NotificationRemainderHub> hubContext)
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
             _configuration = configuration;
             _fileUploadService = fileUploadService;
+            _hubContext = hubContext;
         }
 
 
@@ -57,14 +64,17 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
-
-
-        [HttpGet("GetAllEmployees")]
-        public async Task<APIResponse> GetAllEmployees()
+        [HttpGet("GetAllEmployeeByBranch/{companyId}")]
+        public async Task<APIResponse> GetAllEmployeeByBranch(int companyId, [FromQuery] string BranchId)
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync();
+                // Split comma-separated BranchIds if multiple branches are sent
+                var branchIds = string.IsNullOrEmpty(BranchId) ? new List<string>()
+                               : BranchId.Split(',').ToList();
+
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeByBranch(companyId, BranchId);
+
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -75,6 +85,44 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
+        [HttpGet("GetAllEmployee_DropDown/{companyId}")]
+        public async Task<APIResponse> GetAllEmployee_DropDown(int companyId, [FromQuery] string BranchId, int Month, int Year)
+        {
+            try
+            {
+                // Split comma-separated BranchIds if multiple branches are sent
+                var branchIds = string.IsNullOrEmpty(BranchId) ? new List<string>()
+                               : BranchId.Split(',').ToList();
+
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployee_DropDown(companyId, BranchId, Month, Year);
+
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        //[HttpGet("GetAllEmployees")]
+        //public async Task<APIResponse> GetAllEmployees()
+        //{
+        //    try
+        //    {
+        //        var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync();
+        //        if (data == null || !data.Any())
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+        //        return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+        //    }
+        //}
 
         [HttpGet("GetAllEmployeeForUpdate")]
         public async Task<APIResponse> GetAllEmployeeForUpdate(int companyId)
@@ -121,13 +169,13 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 }
 
                 // Check if the user already exists
-                var existingUser = await _userManager.FindByEmailAsync(employeeData.LoginAlias);
-                if (existingUser != null)
+                var existingUser = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.LoginAlias == employeeData.LoginAlias);
+                if (existingUser.Any())
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Login Alias already exists." };
                 }
 
-                var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.CompanyId == employeeData.CompanyId && u.EmployeeCode == employeeData.EmployeeCode);
+                var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u =>u.EmployeeCode == employeeData.EmployeeCode);
 
                 if (existingUserByEmployeeCode.Any())
                 {
@@ -167,7 +215,11 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     CompanyId = employeeData.CompanyId,
                     Pt = employeeData.Pt,
                     WeekOffDetailsId=(int)employeeData.WeekOffDetailsId,
-                    IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut
+                    IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut,
+                    IsLeft=employeeData.IsLeft,
+                    IsPFApplicable=employeeData.IsPFApplicable,
+                    Probation = employeeData.Probation,
+                    AttendanceLimit=employeeData.AttendanceLimit
 
                 };
 
@@ -186,7 +238,8 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     };
                       var resultUserRole=await _unitOfWork.HRMSUserRoleRepository.CreateUserRole(userRole);
 
-                    var salary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId= employee.Id,CompanyId= employee.CompanyId, GrossSalary=employee.GrossSalary});
+                    var salary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId= employee.Id,CompanyId= employee.CompanyId, GrossSalary=employee.GrossSalary, BasicSalary = employeeData.BasicSalary, IsPFApplicable = employeeData.IsPFApplicable });
+
                     var getRole = await _unitOfWork.RoleRepository.GetAsync(x => x.Id == (int)employeeData.RoleId && x.IsDeleted == false && x.IsEnabled == true);
                     var companyPermission = new VMUserCompanyPermission
                     {
@@ -204,18 +257,11 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     };
                     var CreateHistory = await _unitOfWork.PasswordHistory.CreateHistoryPassword(history);
 
-                    var leavedetails = new LeaveDetails
+                    var reporting = await _unitOfWork.ReportingManagerDetailsRepository.CreateReportingManagerDetail(new ReportingManagerDetails { EffectedDate=DateTime.UtcNow,EmployeeId= employee .Id,ReportingManagerId=(int) employee.ReportingManagerId,MethodName= "In Person" });
+                    if (employee.Probation!=null && employee.Probation==true)
                     {
-                        Emp_Id = employee.Id,
-                        Comp_Id = employee.CompanyId,
-                        CreatedBy = employeeData.CreatedBy,
-                        CreatedDate = DateTime.Now,
-
-
-                    };
-                    var isleavemange = await _unitOfWork.LeaveDetailsRepository.InsertLeaveManageAsync(leavedetails);
-
-
+                        var addprobationEndDate = await _unitOfWork.EmployeeManageRepository.AddProbationEndDate(new vmAddProbationEndDate { Id = employee.Id, GradeId = employee.GradeId, DateOfJoining = employee.DateOfJoining });
+                    }
                     return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
 
                 }
@@ -276,17 +322,17 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     }
                 }
 
-                // Reset password if a new password is provided
-                if (!string.IsNullOrEmpty(employeeData.Password))
-                {
+                //// Reset password if a new password is provided
+                //if (!string.IsNullOrEmpty(employeeData.Password))
+                //{
 
-                    var token = await _userManager.GeneratePasswordResetTokenAsync(oldUser);
-                    var resetPasswordResult = await _userManager.ResetPasswordAsync(oldUser, token, employeeData.Password);
-                    if (!resetPasswordResult.Succeeded)
-                    {
-                        return new APIResponse { isSuccess = false, ResponseMessage = "Failed to reset password." };
-                    }
-                }
+                //    var token = await _userManager.GeneratePasswordResetTokenAsync(oldUser);
+                //    var resetPasswordResult = await _userManager.ResetPasswordAsync(oldUser, token, employeeData.Password);
+                //    if (!resetPasswordResult.Succeeded)
+                //    {
+                //        return new APIResponse { isSuccess = false, ResponseMessage = "Failed to reset password." };
+                //    }
+                //}
                 
                 // Update other user properties
                 var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployee(employeeData);
@@ -314,54 +360,51 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     var checkExistSalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.GetEmployeeSalaryAllowanceByEmployeeId((int)employeeData.Id);
                     if (checkExistSalary == null)
                     {
-                        var newsalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary });
+                        var newsalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary, BasicSalary=employeeData.BasicSalary, IsPFApplicable= employeeData.IsPFApplicable });
 
                     }
                     else
                     {
-                        var updateSalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.UpdateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary });
+                        var updateSalary = await _unitOfWork.EmployeeSalaryAllowanceRepository.UpdateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId = employeeData.Id, CompanyId = employeeData.CompanyId, GrossSalary = employeeData.GrossSalary, BasicSalary = employeeData.BasicSalary, IsPFApplicable = employeeData.IsPFApplicable });
+
                     }
-                    //// Additional information
-                    //if (updateEmployee.EmployeePersonalInfo != null)
+
+                    //if ((existingUser.ProbationCompletionPeriod == 0 || existingUser.ProbationCompletionPeriod == null) && employeeData.ProbationCompletionPeriod != 0)
                     //{
-                    //    var modelEmployeePersonalInfo = updateEmployee.EmployeePersonalInfo;
-                    //    // Add or update employee personal info
-                    //    if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0|| modelEmployeePersonalInfo.EmployeePersonalInfoId==null)
+                    //    //Notification send to reporting persion
+                    //    if (employeeData.ManagerProbationId != null)
                     //    {
-                    //        var resultEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.CreateEmployeePersonalInfo(modelEmployeePersonalInfo);
-                    //    }
-                    //    else
-                    //    {
-                    //        var check = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoById(modelEmployeePersonalInfo.EmployeePersonalInfoId);
-                    //        if (check != null)
+                    //        var notification = new NotificationRemainders()
                     //        {
-                    //            var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.UpdateEmployeePersonalInfo(modelEmployeePersonalInfo);
+                    //            NotificationMessage = $"Employee {employeeData.FullName} is in probation from Now.",
+                    //            NotificationTime = DateTime.UtcNow,
+                    //            SenderId = employeeData.Id.ToString(),
+                    //            ReceiverIds = employeeData.ManagerProbationId.ToString(),
+                    //            NotificationType = NotificationType.ProbationOver,
+                    //            NotificationAffectedId = employeeData.Id
+                    //        };
+                    //        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                    //        if (savedNotification.Success > 0)
+                    //        {
+                    //            notification.NotificationRemainderId = savedNotification.Success;
+                    //            var reprtingConnection = NotificationRemainderConnectionManager.GetConnections(employeeData.ManagerProbationId.ToString());
+                    //            if (reprtingConnection.Any())
+                    //            {
+                    //                await _hubContext.Clients.Clients(reprtingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                    //            }
                     //        }
                     //    }
-                    //}
-                    ////Add employee contact
-                    //if (updateEmployee.EmployeeContact != null)
-                    //{
-                    //    var modelEmployeeContact = updateEmployee.EmployeeContact;
-                    //    if (modelEmployeeContact.EmployeeContactId == 0 || modelEmployeeContact.EmployeeContactId == null)
-                    //    {
-                    //        var resultEmployeeContact = await _unitOfWork.EmployeeContactRepository.CreateEmployeeContact(modelEmployeeContact);
-                    //    }
-                    //    else
-                    //    {
-                    //        var check = await _unitOfWork.EmployeeContactRepository.GetEmployeeContactById(modelEmployeeContact.EmployeeContactId);
-                    //        if (check != null)
-                    //        {
-                    //            var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeeContactRepository.UpdateEmployeeContact(modelEmployeeContact);
-                    //        }
-                    //    }
+
                     //}
 
 
                     var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById((int)result.Id);
+
+
                     return new APIResponse { isSuccess = true, Data = updatedEmployee, ResponseMessage = "Employee has been updated successfully" };
                 }
 
+               
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update employee, Please try again later!" };
             }
             catch (Exception ex)
@@ -370,101 +413,170 @@ namespace HRMS_API.Controllers.EmployeeMaster
             }
         }
 
-        //public async Task<APIResponse> UpdateEmployee(vmUpdateEmployee updateEmployee)
+        [HttpPost("UpdateBasicInfo")]
+        public async Task<APIResponse> UpdateBasicInfo(vmUpdateEmployee employeeData)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.UpdateBasicInfo(employeeData);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+        [HttpPost("UpdatePersonalInfo")]
+        public async Task<APIResponse> UpdatePersonalInfo(vmUpdateEmployee employeeData)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.UpdatePersonalInfo(employeeData);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+        [HttpPost("UpdateContactInfo")]
+        public async Task<APIResponse> UpdateContactInfo(vmUpdateEmployee employeeData)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.UpdateContactInfo(employeeData);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+
+        [HttpPost("UpdateSalaryInfo")]
+        public async Task<APIResponse> UpdateSalaryInfo(vmUpdateEmployee employeeData)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.UpdateSalaryInfo(employeeData);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+
+        [HttpDelete("DeleteEmployee")]
+        public async Task<APIResponse> DeleteEmployee(DeleteRecordVM deleteRecord)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.DeleteEmployee(deleteRecord);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetBasicInfoById/{EmployeeId}")]
+        public async Task<APIResponse> GetBasicInfoById(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetUpdateEmployeeById(EmployeeId, "BASIC");
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+        [HttpGet("GetPersonalInfoById/{EmployeeId}")]
+        public async Task<APIResponse> GetPersonalInfoById(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetUpdateEmployeeById(EmployeeId, "PERSONAL");
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+        [HttpGet("GetContactInfoById/{EmployeeId}")]
+        public async Task<APIResponse> GetContactInfoById(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetUpdateEmployeeById(EmployeeId, "CONTACT");
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+        [HttpGet("GetSalaryInfoById/{EmployeeId}")]
+        public async Task<APIResponse> GetSalaryInfoById(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetUpdateEmployeeById(EmployeeId, "SALARY");
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update data. Please try again later." };
+            }
+        }
+
+
+
+        //[HttpDelete("DeleteEmployee")]
+        //public async Task<APIResponse> DeleteEmployee(DeleteRecordVM model)
         //{
         //    try
         //    {
-        //        var employeeData = updateEmployee.vmEmployeeData;
-        //        if (employeeData == null || string.IsNullOrEmpty(employeeData.LoginAlias))
-        //        {
-        //            return new APIResponse { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
-        //        }
-
-        //        var existingUser = await _unitOfWork.EmployeeManageRepository.GetAsync(x=>x.Id==employeeData.Id && x.IsDeleted==false && x.IsEnabled==true);
+        //        if (model == null || model.emp_id == null)
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
+        //        var existingUser = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.Id == model.emp_id && x.IsDeleted == false && x.IsEnabled == true);
         //        if (existingUser == null)
         //        {
         //            return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
         //        }
+        //        model.DeletedDate = DateTime.UtcNow;
+        //        var result = await _unitOfWork.EmployeeManageRepository.DeleteEmployee(model);
 
+        //        if (result.Id !=null)
+        //            return new APIResponse { isSuccess = true, ResponseMessage = "The record has been deleted successfully." };
 
-        //        // Check if another user with the same EmployeeCode exists (excluding the current user)
-        //        var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.EmployeeCode == employeeData.EmployeeCode && u.Id != existingUser.Id);
-        //        if (existingUserByEmployeeCode.Any())
-        //        {
-        //            return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Employee Code already exists." };
-        //        }
-
-        //        // Update the user
-        //        var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployee(employeeData);
-
-        //        if (result.Emp_Id!=null)
-        //        {
-        //            // Additional information
-        //            if (updateEmployee.EmployeePersonalInfo != null)
-        //            {
-        //                var modelEmployeePersonalInfo = updateEmployee.EmployeePersonalInfo;
-        //                //Add employee info
-        //                if (modelEmployeePersonalInfo.EmployeePersonalInfoId == 0)
-        //                {
-        //                    var resultEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.CreateEmployeePersonalInfo(modelEmployeePersonalInfo);
-        //                }
-        //                else
-        //                {
-        //                    var check = await _unitOfWork.EmployeePersonalInfoRepository.GetEmployeePersonalInfoById(modelEmployeePersonalInfo.EmployeePersonalInfoId);
-        //                    if (check != null)
-        //                    {
-        //                        var resultUpdatedEmployeePersonalInfo = await _unitOfWork.EmployeePersonalInfoRepository.UpdateEmployeePersonalInfo(modelEmployeePersonalInfo);
-        //                    }
-        //                }
-        //            }
-
-
-        //            var updatedEmployee = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(result.Emp_Id);
-        //            return new APIResponse { isSuccess = true, Data = updatedEmployee, ResponseMessage = "Employee has been updated successfully" };
-        //        }
-
-        //        return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update employee, Please try again later!" };
+        //        return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete city. Please try again later." };
         //    }
         //    catch (Exception ex)
         //    {
-        //        return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update employee, Please try again later!" };
+        //        return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
         //    }
         //}
 
-
-
-        [HttpDelete("DeleteEmployee")]
-        public async Task<APIResponse> DeleteEmployee(DeleteRecordVM model)
+        [HttpGet("GetAllEmployeeActiveOrLeft/{IsLeft}")]
+        public async Task<APIResponse> GetAllEmployeeActiveOrLeft( bool IsLeft, int companyId)
         {
             try
             {
-                if (model == null || model.emp_id == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
-                var existingUser = await _unitOfWork.EmployeeManageRepository.GetAsync(x => x.Id == model.emp_id && x.IsDeleted == false && x.IsEnabled == true);
-                if (existingUser == null)
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
-                }
-                model.DeletedDate = DateTime.UtcNow;
-                var result = await _unitOfWork.EmployeeManageRepository.DeleteEmployee(model);
-
-                if (result.Id !=null)
-                    return new APIResponse { isSuccess = true, ResponseMessage = "The record has been deleted successfully." };
-
-                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete city. Please try again later." };
-            }
-            catch (Exception ex)
-            {
-                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
-            }
-        }
-
-        [HttpGet("GetAllEmployeeByIsBlocked/{IsBlocked}")]
-        public async Task<APIResponse> GetAllEmployeeByIsBlocked( bool IsBlocked,int companyId)
-        {
-            try
-            {
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeByIsBlocked(IsBlocked, companyId);
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeActiveOrLeft(IsLeft, companyId);
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
@@ -497,7 +609,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
         {
             try
             {
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync(x => x.BranchId == BranchId && x.IsDeleted == false && x.IsEnabled == true && x.IsBlocked == false );
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync(x => x.BranchId == BranchId && x.IsDeleted == false && x.IsEnabled == true);
 
                 if (data == null)
                 {
@@ -579,30 +691,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 {
                     model.EmployeeSignatureUrl = null;
                 }
-                    //if ((string.IsNullOrEmpty(model.EmployeeSignatureUrl)|| model.EmployeeSignatureUrl==null)&& model.EmployeeSignatureFile==null)
-                    //{
-                    //    model.EmployeeSignatureUrl = null;
-                    //}
-                    //if ((string.IsNullOrEmpty(model.EmployeeProfileUrl)|| model.EmployeeProfileUrl=="null")&& model.EmployeeSignatureFile == null)
-                    //{
-                    //    model.EmployeeProfileUrl = null;
-                    //}
-
-                    //if ((!string.IsNullOrEmpty(model.EmployeeSignatureUrl) || model.EmployeeSignatureUrl != "null") && model.EmployeeSignatureFile == null)
-                    //{
-                    //    var folder = $"uploads/employeesignature";
-                    //    bool isDeleted =  UploadDocument.DeleteUploadedFile(Request,  folder, model.EmployeeSignatureUrl);
-
-                    //    model.EmployeeSignatureUrl = null;
-                    //}
-                    //if ((!string.IsNullOrEmpty(model.EmployeeProfileUrl) || model.EmployeeProfileUrl != "null") && model.EmployeeSignatureFile == null)
-                    //{
-                    //    var folder = $"uploads/employeeprofile";
-                    //    bool isDeleted = UploadDocument.DeleteUploadedFile(Request, folder, model.EmployeeSignatureUrl);
-
-                    //    model.EmployeeProfileUrl = null;
-                    //}
-
+                
 
                     var result = await _unitOfWork.EmployeeManageRepository.UpdateEmployeeProfileAndSignature(model);
 
@@ -709,60 +798,192 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
 
         [HttpGet("GetAllEmployeeByBranchId")]
-        public async Task<APIResponse> GetAllEmployeeByBranchId([FromQuery] string? BranchIds)
+        public async Task<APIResponse> GetAllEmployeeByBranchId([FromQuery] string? BranchIds,int CompanyId)
         {
             try
             {
-                List<int> branchIdList = new List<int>();
-
-                if (!string.IsNullOrWhiteSpace(BranchIds))
-                {
-                    branchIdList = BranchIds
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(id => int.TryParse(id.Trim(), out int val) ? val : (int?)null)
-                        .Where(id => id.HasValue)
-                        .Select(id => id.Value)
-                        .ToList();
-                }
-
-                // Check: if 0 is in the list → treat it as "all branches"
-                bool showAll = branchIdList.Count == 0 || branchIdList.Contains(0);
-
-                var data = await _unitOfWork.EmployeeManageRepository.GetAllAsync(x =>
-                    (showAll || (x.BranchId.HasValue && branchIdList.Contains(x.BranchId.Value))) &&
-                    x.IsDeleted == false &&
-                    x.IsEnabled == true &&
-                    x.IsBlocked == false
-                );
-
-                if (data == null || !data.Any())
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = "Record not found"
-                    };
-                }
-
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Record fetched successfully"
-                };
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeesByBranchId(BranchIds,CompanyId);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
-            catch (Exception ex)
+            catch (Exception err)
             {
                 return new APIResponse
                 {
                     isSuccess = false,
-                    Data = ex.Message,
-                    ResponseMessage = "Unable to retrieve records. Please try again later."
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
                 };
             }
         }
 
 
 
+        [HttpGet("EmployeePersonalInformation")]
+        public async Task<APIResponse> EmployeePersonalInformation([FromQuery]int empid,[FromQuery] int Compid)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.EmployeePersonalInformation(empid,Compid);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+        [HttpGet("GetAllReportingPersons")]
+        public async Task<APIResponse> GetAllReportingPersons()
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeePersonalInfoRepository.GetAllReportingPersons();
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        [HttpPost("GetRecordsForUpdate")]
+        public async Task<APIResponse> GetRecordsForUpdate(CommonParameter param)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetRecordsForUpdate( param);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+        [HttpGet("GetRecordsForAdd/{CompanyId}")]
+        public async Task<APIResponse> GetRecordsForAdd(int CompanyId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetRecordsForAdd(CompanyId);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+        [HttpGet("GetReportingList")]
+        public async Task<APIResponse> GetReportingList()
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetReportingList();
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetEmployeesListForSalary")]
+        public async Task<APIResponse> GetEmployeesListForSalary([FromQuery] int month, [FromQuery] int year , [FromQuery] int compId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetEmployeesListForSalary(month, year,compId);
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
+
+        [HttpPost("GetEmployeeListByBranchId")]
+        public async Task<APIResponse> GetEmployeeListByBranchId(CommonParameter parameter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetEmployeeListByBranchId(parameter);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+        [HttpPost("GetEmployeeListByBranchIdForLeft")]
+        public async Task<APIResponse> GetEmployeeListByBranchIdForLeft(CommonParameter parameter)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetEmployeeListByBranchIdForLeft(parameter);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
+        [HttpPost("GetGradeBySalaryRange")]
+        public async Task<APIResponse> GetGradeBySalaryRange(vmEmployeeSalary param)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetGradeBySalaryRange(param);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetEmplyeeDetailsById/{EmployeeId}")]
+        public async Task<APIResponse> GetEmplyeeDetailsById(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetEmplyeeDetailsById(EmployeeId);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetAllEmployeeList/{CompanyId}")]
+        public async Task<APIResponse> GetAllEmployeeList(int CompanyId)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeManageRepository.GetAllEmployeeList(CompanyId);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
     }
 }

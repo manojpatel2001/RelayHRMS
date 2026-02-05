@@ -1,0 +1,362 @@
+﻿@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "Approval Master";
+	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+	var uri = new Uri(baseUrl);
+	string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<div class="card ">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row">
+			<div class="col-6">
+				<h6 class="p-2 ">
+					Approval Master Details
+				</h6>
+			</div>
+			<div class="col-6 d-flex justify-content-end align-items-center">
+
+				<button id="addApprovalMaster"
+						type="button"
+						class="btn mr-1 rounded-1 "
+						style="background-color:#2395c6; color:white;">
+					Add 
+				</button>
+
+			</div>
+
+		</div>
+	</div>
+
+
+	<div class="card-body">
+		
+		<div class="row">
+			<div class="col-md-12">
+
+				<div class="grid-wrapper " style="position: relative; " id="gridTag">
+					<div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+						 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+						<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+						<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+					</div>
+					<div id="rowCount"></div>
+					<div id="GridContainer"></div>
+				</div>
+
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="addApprovalMasterModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-md">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title btn-heading-title" id="exampleModalLabel"><span class="formType">Add</span> Approval Master</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body modal-body-font">
+				<div class="row">
+					<div class="col-md-12" >
+						<div class="form-group mt-3 position-relative">
+							<select class="form-select floating-input" id="ddlApprovalType">
+								<option selected disabled value="">Select</option>
+
+							</select>
+							<label class="floating-label" for="ddlEmployeeType">Approval Type</label>
+						</div>
+						<span id="spnApprovalType" style="color:red; display:none;">Please Select Approval Type</span>
+					</div>
+
+					<div class="col-md-12">
+						<div class="form-group mt-3 position-relative">
+							<input type="text"
+								   class="form-control floating-input"
+								   placeholder="Approval Name"
+								   data-trim-input
+								   id="txtApprovalName" />
+							<label class="floating-label" for="txtApprovalName">Approval Name<span class="text-danger">*</span></label>
+						</div>
+						<span id="spnApprovalName" style="color:red; display:none;">Please Enter Approval Name</span>
+
+					</div>
+				</div>
+
+
+			</div>
+			<div class="modal-footer btn-heading-title">
+
+				<button type="button" class="btn btn-primary" id="btnCreateApproval" style="background-color:#2395c6; color:white;">Save</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<script src="~/assets/js/jquery.min.js"></script>
+<script>
+			const EmployeeId=localStorage.getItem('EmployeeId');
+		var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+		const CompanyId=companyDetails.CompanyId;
+			const Token=localStorage.getItem("authToken");
+			let approvalMasterId=null;
+		$(document).ready(() =>
+		{
+            ApprovalMasterTable();
+			bindApprovalType();
+		});
+
+		
+		$("#addApprovalMaster").click(function()
+		{
+			ClearForm();
+			$("#addApprovalMasterModal").modal('show');
+		});
+
+		async function ApprovalMasterTable() {
+			try {
+					$('#grid-loader').addClass('d-flex').show();
+					
+					const response = await $.ajax({
+					 url: '@baseUrl/ApprovalMasterAPI/GetAllApprovalMasters',
+						method: 'Get',
+						headers: {
+							'Authorization': 'Bearer ' + Token
+						}
+					});
+
+					$("#GridContainer").dxDataGrid({
+							dataSource: response.data||[],
+								columns: [
+									{ dataField: 'ApprovalName', caption: 'Approval Name', alignment: 'left' },
+									{ dataField: 'ApprovalTypeName', caption: 'Approval Type Name', alignment: 'left' },
+
+									{
+									dataField: '',
+									caption: '',
+									width: '50px',
+									cellTemplate: function(container, options) {
+										var buttonElement = $('<div class="d-flex order-actions">' +
+											'<a href="javascript:;" class="edit-action" title="Edit Approval">' +
+											'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+											'<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+											'</svg>' +
+											'</a>' +
+											'</div>')
+											.on('dxclick', function() {
+												updateApprovalDetails(options.data);
+											}).appendTo(container);
+									}
+								},
+								{
+									dataField: '',
+									caption: '',
+									width: '50px',
+									cellTemplate: function(container, options) {
+										var buttonElement = $('<div class="d-flex order-actions">' +
+											'<a href="javascript:;" class="delete-action" title="Delete Approval">' +
+											'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+											'<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+											'</svg>' +
+											'</a>' +
+											'</div>')
+											.on('dxclick', function() {
+												deleteDeleteDetails(options.data);
+											}).appendTo(container);
+									}
+								}
+								],
+
+							columnsAutoWidth: true,
+							wordWrapEnabled: false,
+							rowAlternationEnabled: false,
+							showBorders: true,
+							grouping: { autoExpandAll: false },
+							paging: { pageSize: 10 },
+							pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+							headerFilter: { visible: false },
+							filterRow: { visible: false, applyFilter: "auto" },
+							allowColumnResizing: false,
+							groupPanel: { visible: false },
+							searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+							allowColumnReordering: false,
+							columnFixing: { enabled: false },
+
+							onContentReady(e) {
+									$('#rowCount').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
+							}
+					}).dxDataGrid('instance');
+
+						$('#grid-loader').removeClass('d-flex').hide();
+
+
+			} catch (error) {
+				console.error('Error in fetching data:', error);
+					$('#grid-loader').removeClass('d-flex').hide();
+			}
+
+
+		}
+
+	function bindApprovalType(){
+
+	   $.ajax({
+			url: '@baseUrl/ApprovalMasterAPI/GetAllApprovalMasterType',
+			method: 'GET',
+			headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+			success: function(data) {
+				if(data.isSuccess){
+					var dropdown = $('#ddlApprovalType');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function(index, company) {
+						dropdown.append($('<option>', {
+							value: company.ApprovalTypeId,
+							text: company.ApprovalTypeName
+						}));
+					});
+
+
+				}
+			},
+			error: function(error) {
+				console.error('Error fetching approval type  data:', error);
+			}
+		});
+
+	}
+
+		 $('#btnCreateApproval').click(function() {
+			// Validate inputs
+			var isValid = true;
+			var approvalTypeId = $('#ddlApprovalType').val();
+			var approvalName = $('#txtApprovalName').val();
+
+			// Reset error messages
+			$('#spnApprovalType').hide();
+			$('#spnApprovalName').hide();
+
+			// Validate Approval Type
+			if (!approvalTypeId) {
+				$('#spnApprovalType').show();
+				isValid = false;
+			}
+
+			// Validate Approval Name
+			if (!approvalName) {
+				$('#spnApprovalName').show();
+				isValid = false;
+			}
+
+			if (!isValid) {
+				return;
+			}
+
+			// Determine if it's an insert or update
+			var action = approvalMasterId==null ? 'INSERT' : 'UPDATE';
+
+			// Prepare the data
+			var model = {
+				Action: action,
+				ApprovalMasterId: approvalMasterId,
+				ApprovalName: approvalName,
+				ApprovalTypeId: approvalTypeId,
+				CreatedBy: EmployeeId ,
+				UpdatedBy:EmployeeId
+			};
+
+			// AJAX call
+			$.ajax({
+				url: '@baseUrl/ApprovalMasterAPI/ManageApprovalMaster', 
+				type: 'POST',
+				contentType: 'application/json',
+				headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+				data: JSON.stringify(model),
+				success: function(response) {
+					if (response.isSuccess) {
+						round_success_noti(response.responseMessage);
+						ApprovalMasterTable();
+						$('#addApprovalMasterModal').modal('hide');
+						
+					} else {
+						round_error_noti(response.responseMessage);
+					}
+				},
+				error: function(xhr, status, error) {
+					console.log('Error: ' + error);
+				}
+			});
+		});
+
+
+		function updateApprovalDetails(data) {
+			ClearForm();
+			$('#ddlApprovalType').val(data.ApprovalTypeId||'');
+			$('#txtApprovalName').val(data.ApprovalName||'');
+
+			$('.formType').text('Update');
+			$('#btnCreateApproval').text('Update');
+			approvalMasterId = data.ApprovalMasterId;
+
+			// Show the modal
+			$('#addApprovalMasterModal').modal('show');
+		}
+
+		function ClearForm()
+		{
+			$('#spnApprovalType').hide();
+			$('#spnApprovalName').hide();
+
+			$('#ddlApprovalType').val('');
+			$('#txtApprovalName').val('');
+
+			$('.formType').text('Add');
+			$('#btnCreateApproval').text('Save');
+			approvalMasterId = null;
+		}
+
+
+		   function deleteDeleteDetails(data)
+		   {
+			  if (!confirm("Are you sure you want to delete this Approval?"))
+			  {
+				   return; // Cancel the delete operation
+			   }
+
+			   var model = {
+
+				   ApprovalMasterId: data.ApprovalMasterId,
+				   deletedBy: EmployeeId,
+				   Action:'DELETE'
+			   };
+
+				 $.ajax({
+					url: '@baseUrl/ApprovalMasterAPI/ManageApprovalMaster',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(model),
+					success: function(response) {
+						if (response.isSuccess) {
+							round_success_noti(response.responseMessage);
+							ApprovalMasterTable();
+
+						} else {
+							round_error_noti(response.responseMessage);
+						}
+					},
+					error: function(xhr, status, error) {
+						console.log('Error: ' + error);
+					}
+				});
+		   }
+
+
+</script>

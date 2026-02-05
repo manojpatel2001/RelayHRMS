@@ -9,16 +9,17 @@
 
 <title>Search Panel</title>
 
-<!-- jQuery + Bootstrap + SweetAlert -->
+<!-- jQuery + Bootstrap + SweetAlert + ExcelJS + FileSaver -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <style>
-   
-
     .form-section {
         padding: 15px;
         border: 1px solid #ccc;
+        margin-bottom: 20px;
     }
 
     .btn-custom {
@@ -41,6 +42,8 @@
             outline: none;
             box-shadow: none;
         }
+
+
 
     .search-panel-wrapper {
         max-width: 100%;
@@ -81,12 +84,90 @@
         margin-bottom: 4px;
     }
 
-
     .form-control-sm, .form-select-sm {
         height: calc(1.5em + .5rem + 2px);
         font-size: 0.875rem;
         padding: .25rem .5rem;
     }
+
+    .action-buttons-container {
+        width: 100%;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        text-align: right;
+    }
+
+        .action-buttons-container .btn-custom,
+        .action-buttons-container .btn-export {
+            margin-left: 8px;
+            padding: 6px 16px;
+            font-size: 14px;
+        }
+
+    .main-container {
+        padding: 0 15px;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    #attendanceGrid {
+        width: 100% !important;
+        min-height: auto !important;
+    }
+
+    .dx-datagrid {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .dx-datagrid-content {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .dx-datagrid-rowsview {
+        height: auto !important;
+    }
+
+    .dx-scrollable-container {
+        height: auto !important;
+    }
+
+    .grid-container {
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .action-buttons-container {
+        width: 100%;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        text-align: right;
+    }
+
+        .action-buttons-container .btn-custom,
+        .action-buttons-container .btn-export {
+            margin-left: 8px;
+            padding: 6px 16px;
+            font-size: 14px;
+        }
+
+    .btn-export {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+    }
+
+        .btn-export:hover {
+            background-color: #218838;
+        }
 </style>
 
 <!-- Search Panel Header -->
@@ -98,6 +179,7 @@
         </div>
     </div>
 </div>
+
 <!-- Form Starts -->
 <div class="form-section">
     <!-- Row 1: Search By & Search For -->
@@ -158,11 +240,9 @@
             </div>
         </div>
     </div>
-
 </div>
 
 <!-- EMPLOYEE REGULARIZATION Heading -->
-
 <div class="search-panel-wrapper">
     <div class="search-panel-container">
         <div class="search-panel-row">
@@ -171,50 +251,64 @@
     </div>
 </div>
 
-<!-- Delete Button + Grid Container -->
-<div class="container mt-3">
+<!-- Main Container for Grid and Buttons -->
+<div class="main-container">
     <!-- Action Buttons Row -->
-   <div id="actionButtons" class="custom-action-buttons text-end mb-2">
+    <div id="actionButtons" class="action-buttons-container" style="display: none;">
+        <button id="btnExport" class="btn btn-export">
+            <i class="fas fa-file-excel me-2"></i>Export to Excel
+        </button>
         <button id="btnDelete" class="btn btn-custom">Delete</button>
         <button id="btnApprove" class="btn btn-custom">Approve</button>
         <button id="btnReject" class="btn btn-custom">Reject</button>
-</div>
-    <!--Loader-->
+    </div>
 
+    <!--Loader-->
     <div id="grid-loader"
          class="grid-loader justify-content-center align-items-center flex-column"
          style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
-
         <img src="@baseDomainUrl/loders/loder.png"
              class="grid-logo-spinner"
              style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
-
         <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
     </div>
-    <!-- Grid -->
-    <div id="attendanceGrid"></div>
+
+    <!-- Grid Container -->
+    <div class="grid-container">
+        <div id="attendanceGrid"></div>
+    </div>
 </div>
 
 <script>
+     const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    $(document).ready(function () {
+        $('#r2').prop('checked', true);
+        $('#btnGo').click();
 
-        $(document).ready(function () {
-        $('#r2').prop('checked', true); 
-        $('#btnGo').click(); 
-            $("#btnApprove").click(function () {
-        updateAttendanceStatus("Approved");
+        $("#btnApprove").click(function () {
+            updateAttendanceStatus("Approved");
+        });
+
+        $("#btnReject").click(function () {
+            updateAttendanceStatus("Rejected");
+        });
+
+        // Excel Export Button Click
+        $("#btnExport").click(function () {
+            exportAttendanceToExcel();
+        });
     });
 
-    $("#btnReject").click(function () {
-        updateAttendanceStatus("Rejected");
-    });
-    });
     let selectedKeys = [];
 
-
-      function goBack() {
-        window.history.back(); 
+    function goBack() {
+        window.history.back();
     }
+
     function getStatus() {
         if ($('#r2').is(':checked')) return 'Pending';
         if ($('#r3').is(':checked')) return 'Approved';
@@ -232,112 +326,378 @@
         }
     }
 
+    async function showLoder(){
+        $('#grid-loader').addClass('d-flex').show();
+    }
 
-          async function showLoder(){
-          $('#grid-loader').addClass('d-flex').show();
+    async function hideLoder(){
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    // Excel Export Function - Unique name to avoid conflicts
+    function exportAttendanceToExcel() {
+        var grid = $("#attendanceGrid").dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            Swal.fire('Warning', 'Please select at least one row to export.', 'warning');
+            return;
         }
-        async function hideLoder(){
-                $('#grid-loader').removeClass('d-flex').hide();
-        } 
 
+        showLoder();
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Attendance Regularization");
+
+        // Define columns
+        worksheet.columns = [
+            { header: 'Code', key: 'employeeCode', width: 12 },
+            { header: 'Name', key: 'fullName', width: 30 },
+            { header: 'Date', key: 'forDate', width: 15 },
+            { header: 'App Date', key: 'createdDate', width: 15 },
+            { header: 'In Time', key: 'inTime', width: 20 },
+            { header: 'Out Time', key: 'outTime', width: 20 },
+            { header: 'Duration', key: 'duration', width: 12 },
+            { header: 'Day', key: 'day', width: 12 },
+            { header: 'Reason', key: 'reason', width: 25 },
+            { header: 'Remark', key: 'remark', width: 25 },
+            { header: 'Reporting Manager', key: 'reportingManager', width: 25 },
+            { header: 'Status', key: 'status', width: 12 },
+            { header: 'Approved By', key: 'updatedBy', width: 20 },
+            { header: 'Approved Date', key: 'updatedDate', width: 15 }
+        ];
+
+        // Style header row - EXACT SAME AS SALARY REGISTER
+        const headerRow = worksheet.getRow(1);
+        headerRow.eachCell((cell) => {
+            cell.font = {
+                bold: true,
+                color: { argb: 'FFFFFFFF' },
+                size: 11
+            };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF3E4B6D' }
+            };
+            cell.alignment = {
+                vertical: 'middle',
+                horizontal: 'center'
+            };
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FF000000' } },
+                left: { style: 'thin', color: { argb: 'FF000000' } },
+                bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                right: { style: 'thin', color: { argb: 'FF000000' } }
+            };
+        });
+        headerRow.height = 25;
+
+        // Helper function to format date
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        };
+
+        // Helper function to format datetime
+        const formatDateTime = (dateStr) => {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
+        };
+
+        // Add data rows
+        selectedRows.forEach((rowData) => {
+            let statusText = "";
+            if (rowData.isApproved === true) {
+                statusText = "Approved";
+            } else if (rowData.isRejected === true) {
+                statusText = "Rejected";
+            } else if (rowData.isPending === true) {
+                statusText = "Pending";
+            }
+
+            const row = worksheet.addRow({
+                employeeCode: rowData.employeeCode || '',
+                fullName: rowData.fullName || '',
+                forDate: formatDate(rowData.forDate),
+                createdDate: formatDate(rowData.createdDate),
+                inTime: formatDateTime(rowData.inTime),
+                outTime: formatDateTime(rowData.outTime),
+                duration: rowData.duration || '',
+                day: rowData.day || '',
+                reason: rowData.reason || '',
+                remark: rowData.remark || '',
+                status: statusText,
+                updatedBy: rowData.updatedBy || '-',
+                updatedDate: formatDate(rowData.updatedDate),
+                reportingManager: rowData.reportingManager
+            });
+
+            // Apply borders and alignment to data cells
+            row.eachCell((cell, colNumber) => {
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                };
+
+                // Center align for certain columns
+                if (colNumber === 1 || colNumber === 3 || colNumber === 4 || colNumber === 7 || colNumber === 8 || colNumber === 10 || colNumber === 12) {
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                } else {
+                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                }
+            });
+        });
+
+        // Download file
+        const fileName = `Attendance_Regularization_${new Date().getTime()}.xlsx`;
+
+        workbook.xlsx.writeBuffer().then(function(buffer) {
+            saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            hideLoder();
+            Swal.fire('Success', 'Excel file downloaded successfully!', 'success');
+        }).catch(error => {
+            hideLoder();
+            console.error("Excel export error:", error);
+            Swal.fire('Error', 'Error exporting to Excel!', 'error');
+        });
+    }
 
     function loadGrid(data) {
+        try {
+            const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+        }
+
+        $("#attendanceGrid").empty();
+
         $("#attendanceGrid").dxDataGrid({
-            dataSource: data,
-            keyExpr: "attendanceRegularizationId", // must be unique
+            dataSource: data||[],
+            keyExpr: "attendanceRegularizationId",
             showBorders: true,
-            height:"auto",
+            width: "100%",
+            height: 250,
+            paging: {
+                enabled: false
+            },
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
+            columnAutoWidth: false,
+            allowColumnResizing: false,
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
+            filterRow: { visible: false },
+            searchPanel: { visible: false },
             onSelectionChanged: function (e) {
                 selectedKeys = e.selectedRowKeys;
             },
             columns: [
                 { dataField: "employeeCode", caption: "Code", width: 80 },
-               { dataField: "empId", visible: false },
-                { dataField: "fullName", caption: "Name" },
-         
-      { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy" },
-      { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy" },
-      { dataField: "inTime", caption: "In Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm" },
-      { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm" },
+                { dataField: "empId", visible: false },
+                { dataField: "fullName", caption: "Name", width: 240 },
+                { dataField: "forDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
+                { dataField: "createdDate", caption: "App Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
+                { dataField: "inTime", caption: "In Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
+                { dataField: "outTime", caption: "Out Time", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 140 },
+                { dataField: "duration", caption: "Duration", dataType: "string", width: 80 },
+                { dataField: "day", caption: "Day", dataType: "string", width: 80 },
+                { dataField: "reason", caption: "Reason", dataType: "string", width: 150 },
+            {
+                  dataField: "remark",
+                  caption: "Remark",
+                  width: 150,
+                  cellRender: (container, options) => {
+                    const div = document.createElement("div");
+                    div.title = options.value;
+                    div.textContent = options.value;
+                    container.appendChild(div);
+                  }
+                },
 
 
-               { dataField: "duration", caption: "Duration", dataType: "string" },   
-               { dataField: "day", caption: "Day", dataType: "string" },
-                    {
+                { dataField: "reportingManager", caption: "Reporting Manager", dataType: "string", width: 150 },
+                {
                     caption: "Status",
-                    calculateCellValue: function (row) {
-                        if (row.isApproved) return "Approved";
-                        if (row.isRejected) return "Rejected";
-                        if (row.isPending) return "Pending";
-                        return "";
+                    width: 80,
+                    alignment: "center",
+                    allowFiltering: false,
+                    allowSorting: false,
+                    cellTemplate: function(container, options) {
+                        const row = options.data;
+                        let statusText = "";
+
+                        if (row.isApproved === true) {
+                            statusText = "Approved";
+                        } else if (row.isRejected === true) {
+                            statusText = "Rejected";
+                        } else if (row.isPending === true) {
+                            statusText = "Pending";
+                        }
+
+                        $("<div>").text(statusText).appendTo(container);
+                    }
+                },
+                {
+                    dataField: "updatedBy",
+                    caption: "Approved By",
+                    width: 120,
+                    calculateCellValue: function(rowData) {
+                        return rowData.updatedBy ? rowData.updatedBy : "-";
+                    }
+                },
+                {
+                    dataField: "updatedDate",
+                    caption: "Approved Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: "10%",
+                    minWidth: 100,
+                    calculateCellValue: function(rowData) {
+                        if (!rowData.updatedDate) return "-";
+
+                        const date = new Date(rowData.updatedDate);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+
+                        return `${day}/${month}/${year}`;
                     }
                 }
-            ]
-
+            ],
+            onContentReady: function(e) {
+                $('#attendanceGrid .dx-datagrid').css('height', 'auto');
+                $('#attendanceGrid .dx-scrollable-container').css('height', 'auto');
+            }
         });
+
         $("#actionButtons").show();
     }
 
-
     $('#btnGo').on('click', function () {
-               showLoder();
+        showLoder();
+
         let model = {
             SearchBy: getSearchByText($('#searchby').val()),
             SearchValue: $('#searchfor').val(),
             FromDate: $('#fromdate').val() || null,
             ToDate: $('#todate').val() || null,
-            Status: getStatus()
+            Status: getStatus(),
+            CompanyId:CompanyId,
+            EmployeeId:EmployeeId
         };
 
         $.ajax({
-            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetAttendanceRegularization")',
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetAttendanceRegularizationForAdmin")',
             type: 'POST',
             data: JSON.stringify(model),
             contentType: 'application/json',
             success: function (res) {
-                if (res.isSuccess) {                    
-                    loadGrid(res.data); 
-                        $("#actionButtons").show();
-                            $("#btnDelete").show();
-                         $("#btnApprove").show();
-                         $("#btnReject").show();
-                } else {         
-                       $("#actionButtons").hide();
-                         $("#btnDelete").hide();
-                         $("#btnApprove").hide();
-                         $("#btnReject").hide();
-                       round_error_noti(res.responseMessage || 'No Data');
+                console.log('API Response:', res);
+                hideLoder();
+
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    loadGrid(res.data);
+                    $("#actionButtons").show();
+                    $("#btnExport").show();
+                    $("#btnDelete").show();
+                    $("#btnApprove").show();
+                    $("#btnReject").show();
+                } else {
+                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+                    if (gridInstance) {
+                        gridInstance.dispose();
+                    }
+                    $("#attendanceGrid").empty();
+
+                    $("#actionButtons").hide();
+                    $("#btnExport").hide();
+                    $("#btnDelete").hide();
+                    $("#btnApprove").hide();
+                    $("#btnReject").hide();
+                    var emptyData=[];
+                    loadGrid(emptyData);
                 }
             },
-            error: function () {               
-                   round_error_noti(res.responseMessage || 'No Data');
-            },
-            complete: function () {
-
-            hideLoder();
-        }
+            error: function (xhr, status, error) {
+                hideLoder();
+                console.error('API Error:', error);
+                round_error_noti('Error occurred while fetching data');
+            }
         });
     });
 
+    $("#btnClear").click(function () {
+        $('#searchby').val("1");
+        $('#searchfor').val('');
+        $('#fromdate').val('');
+        $('#todate').val('');
+        $("input[name='type']").prop('checked', false);
+        $('#r2').prop('checked', true);
 
+        try {
+            const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+        }
 
-       $('#btnDelete').on('click', function () {
+        $("#attendanceGrid").empty();
+        $("#actionButtons").hide();
+        $("#btnExport").hide();
+        $("#btnDelete").hide();
+        $("#btnApprove").hide();
+        $("#btnReject").hide();
+    });
+
+    $('#btnDelete').on('click', function () {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
-        var selectedIds = grid.getSelectedRowKeys(); 
+        var selectedRows = grid.getSelectedRowsData();
 
-        if (selectedIds.length === 0) {
-            round_error_noti('Please select records to delete.');
+        if (selectedRows.length === 0) {
+            round_error_noti("Please select at least one record.");
+            return;
+        }
+        const approvedRecords = selectedRows.filter(row => row.isApproved);
+        if (approvedRecords.length > 0) {
+            Swal.fire({
+                title: "Not Allowed",
+                text: "Approved records cannot be deleted.",
+                icon: "error",
+                customClass: {
+                    popup: 'swal-small'
+                }
+            });
             return;
         }
 
-               showLoder();
+        showLoder();
+
+        const selectedIds = selectedRows.map(row => row.attendanceRegularizationId);
+
         const deletePayload = {
-            Id: selectedIds,     
-            DeletedBy: ""        
+            Id: selectedIds,
+            DeletedBy: EmployeeId
         };
 
         $.ajax({
@@ -346,102 +706,104 @@
             contentType: 'application/json',
             data: JSON.stringify(deletePayload),
             success: function (res) {
+                hideLoder();
                 if (res.isSuccess) {
                     round_success_noti(res.responseMessage || "Deleted successfully.");
-                      selectedRowKeys.forEach(function (key) {
-                    grid.deleteRow(grid.getRowIndexByKey(key));
-                });
-                    $("#btnGo").click(); 
+                    $("#btnGo").click();
                 } else {
                     round_error_noti(res.responseMessage || "Deletion failed.");
                 }
             },
             error: function () {
+                hideLoder();
                 round_error_noti("Something went wrong during deletion.");
-            },
-            complete: function () {
-
-            hideLoder();
-        }
+            }
         });
     });
 
-       function updateAttendanceStatus(status) {
+    function updateAttendanceStatus(status) {
         var grid = $("#attendanceGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
         if (selectedRows.length === 0) {
-           round_error_noti("Please select at least one record.");
+            round_error_noti("Please select at least one record.");
             return;
         }
-          if (status === "Rejected") {
-        const approvedRecords = selectedRows.filter(row => row.isApproved);
-        if (approvedRecords.length > 0) {
-           Swal.fire({
-        title: "Not Allowed",
-        text: "Approved records cannot be rejected.",
-        icon: "error",
-        customClass: {
-            popup: 'swal-small'
+
+        if (status === "Rejected") {
+            const approvedRecords = selectedRows.filter(row => row.isApproved);
+            if (approvedRecords.length > 0) {
+                Swal.fire({
+                    title: "Not Allowed",
+                    text: "Approved records cannot be rejected.",
+                    icon: "error",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+                return;
+            }
         }
-    });
-            return;
+
+        if (status === "Approved") {
+            const approvedRecords = selectedRows.filter(row => row.isApproved);
+            if (approvedRecords.length > 0) {
+                Swal.fire({
+                    title: "Not Allowed",
+                    text: "Already Approved.",
+                    icon: "error",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+                return;
+            }
         }
-    }
+
+        if (status === "Rejected") {
+            const rejectedRecords = selectedRows.filter(row => row.isRejected);
+            if (rejectedRecords.length > 0) {
+                Swal.fire({
+                    title: "Not Allowed",
+                    text: "Already Rejected.",
+                    icon: "error",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+                return;
+            }
+        }
+
         selectedRows.forEach(function (row) {
-            row.status = status; 
-   
+            row.status = status;
+            row.createdBy = EmployeeId;
         });
-            showLoder();
+
+        showLoder();
         $.ajax({
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/UpdateAttendanceRegularization")',
             type: "PUT",
-            data: JSON.stringify(selectedRows), 
+            data: JSON.stringify(selectedRows),
             contentType: "application/json",
             success: function (response) {
+                hideLoder();
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage || "Status updated successfully.");
-                        const selectedKeys = grid.getSelectedRowKeys(); 
-                let dataSource = grid.option("dataSource");
-                const updatedData = dataSource.filter(item => {
-                    return !selectedKeys.includes(item.attendanceRegularizationId);
-                });
-                grid.option("dataSource", updatedData);
-                grid.refresh();
+                    const selectedKeys = grid.getSelectedRowKeys();
+                    let dataSource = grid.option("dataSource");
+                    const updatedData = dataSource.filter(item => {
+                        return !selectedKeys.includes(item.attendanceRegularizationId);
+                    });
+                    grid.option("dataSource", updatedData);
+                    grid.refresh();
                 } else {
-                    round_error_noti(response.responseMessage || "Update failed.", "error");
-
+                    round_error_noti(response.responseMessage || "Update failed.");
                 }
             },
             error: function () {
-              round_error_noti(response.responseMessage || "Error", "Something went wrong during update.", "error");
-            },   
-            complete: function () {
-     
-            hideLoder();
-        }
+                hideLoder();
+                round_error_noti("Something went wrong during update.");
+            }
         });
     }
-
-
-      $("#btnClear").click(function () {
-        // Reset form
-        $('#searchby').val("1");
-        $('#searchfor').val('');
-        $('#fromdate').val('');
-        $('#todate').val('');
-        $("input[name='type']").prop('checked', false);
-        $('#r2').prop('checked', true);
-        $("#attendanceGrid").dxDataGrid("dispose");
-        $("#attendanceGrid").dxDataGrid({
-            dataSource: [],
-            showBorders: true
-        });
-        $("#actionButtons").hide();
-            $("#btnDelete").hide();
-    $("#btnApprove").hide();
-    $("#btnReject").hide();
-    });
-
-
-
 </script>

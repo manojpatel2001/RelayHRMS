@@ -1,16 +1,15 @@
-﻿using HRMS_Core.VM.OtherMaster;
+﻿using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using HRMS_Core.Master.OtherMaster;
-using System.Net.Sockets;
 
-namespace HRMS_API.Controllers.OtherMaster
+namespace HRMS_API.Controllers.TicketManagement
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TicketTypeAPIController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -20,139 +19,58 @@ namespace HRMS_API.Controllers.OtherMaster
             _unitOfWork = unitOfWork;
         }
 
-        [HttpGet("GetAllTicketType")]
-        public async Task<APIResponse> GetAllTicketType()
+        [HttpGet("GetAllTicketTypes/{companyId}")]
+        public async Task<APIResponse> GetAllTicketTypes(int companyId)
         {
             try
             {
-                var data = await _unitOfWork.TicketTypeRepository.GetAllTicketTypes();
+                var data = await _unitOfWork.TicketTypeRepository.GetAllTicketTypes(companyId);
                 if (data == null || !data.Any())
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = "Record not found"
-                    };
-                }
-                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
             }
-            catch (Exception err)
+            catch (Exception ex)
             {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to retrieve records, Please try again later!"
-                };
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
 
-
-        [HttpGet("GetByTicketTypeId/{id}")]
-        public async Task<APIResponse> GetByTicketTypeId(int ticketTypeId)
+        [HttpGet("GetTicketTypeById/{ticketTypeId}")]
+        public async Task<APIResponse> GetTicketTypeById(int ticketTypeId)
         {
             try
             {
-                var data = await _unitOfWork.TicketTypeRepository.GetAsync(x => x.TicketTypeId == ticketTypeId && x.IsEnabled == true && x.IsDeleted == false);
+                var data = await _unitOfWork.TicketTypeRepository.GetTicketTypeById(ticketTypeId);
                 if (data == null)
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = "Record not found"
-                    };
-                }
-
-                return new APIResponse
-                {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Record fetched successfully"
-                };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found." };
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully." };
             }
-            catch (Exception err)
+            catch (Exception ex)
             {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to retrive records, Please try again later!"
-                };
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve record. Please try again later." };
             }
-
         }
 
+       
 
         [HttpPost("CreateTicketType")]
-        public async Task<APIResponse> CreateTicketType(TicketType ticketType)
+        public async Task<APIResponse> CreateTicketType(TicketType model)
         {
             try
             {
-                if (ticketType == null)
+                if (model == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Ticket type details cannot be null." };
+
+                var result = await _unitOfWork.TicketTypeRepository.CreateTicketType(model);
+                if (result.Success > 0)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Ticket type details cannot be null" };
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
                 }
-                
-                if (ticketType.TicketTypeId == 0|| ticketType.TicketTypeId == null)
-                {
-                    var isExists = await _unitOfWork.TicketTypeRepository.GetAllAsync(asd => asd.TicketTypeName.ToLower().Trim() == ticketType.TicketTypeName.ToLower().Trim() && asd.IsEnabled == true && asd.IsDeleted == false);
-                    if (isExists.Any())
-                    {
-                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{ticketType.TicketTypeName}' already exists" };
-                    }
-
-                    ticketType.CreatedDate = DateTime.UtcNow;
-                    var result = await _unitOfWork.TicketTypeRepository.CreateTicketType(ticketType);
-                    if (result.Id > 0)
-                    {
-                        var newTicketType = await _unitOfWork.TicketTypeRepository.GetAsync(asd => asd.TicketTypeId == result.Id);
-
-                        return new APIResponse() { isSuccess = true, Data = newTicketType, ResponseMessage = "The record has been saved successfully" };
-
-                    }
-
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Unable to add record" };
-
-                }
-                else
-                {
-                    var isExists = await _unitOfWork.TicketTypeRepository.GetAllAsync(asd => asd.TicketTypeName.ToLower().Trim() == ticketType.TicketTypeName.ToLower().Trim() && asd.TicketTypeId != ticketType.TicketTypeId && asd.IsEnabled == true && asd.IsDeleted == false);
-                    if (isExists.Any())
-                    {
-                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{ticketType.TicketTypeName}' already exists" };
-                    }
-
-                    var checkValidId = await _unitOfWork.TicketTypeRepository.GetAsync(asd => asd.TicketTypeId== ticketType.TicketTypeId && asd.IsEnabled == true && asd.IsDeleted == false);
-                    if (checkValidId == null)
-                    {
-                        return new APIResponse() { isSuccess = false, ResponseMessage = $"Please select valid record" };
-                    }
-
-
-                    ticketType.UpdatedDate = DateTime.UtcNow;
-                    var result = await _unitOfWork.TicketTypeRepository.UpdateTicketType(ticketType);
-                    if (result.Id > 0)
-                    {
-                        var newTicketType = await _unitOfWork.TicketTypeRepository.GetAsync(asd => asd.TicketTypeId == ticketType.TicketTypeId);
-
-                        return new APIResponse() { isSuccess = true, Data = newTicketType, ResponseMessage = "The record has been updated successfully" };
-
-                    }
-
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Unable to update record" };
-
-                }
-
-
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
-            catch (Exception err)
+            catch (Exception ex)
             {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to add records, Please try again later!"
-                };
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to add record. Please try again later." };
             }
         }
 
@@ -161,90 +79,41 @@ namespace HRMS_API.Controllers.OtherMaster
         {
             try
             {
-                if (ticketType == null || ticketType.TicketTypeId == 0|| ticketType.TicketTypeId == null)
-                {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Ticket type details cannot be null" };
-                }
+                if (ticketType == null || ticketType.TicketTypeId == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Ticket type details cannot be null." };
 
-
-                var isExists = await _unitOfWork.TicketTypeRepository.GetAllAsync(asd => asd.TicketTypeName.ToLower().Trim() == ticketType.TicketTypeName.ToLower().Trim() && asd.TicketTypeId != ticketType.TicketTypeId && asd.IsEnabled == true && asd.IsDeleted == false);
-                if (isExists.Any())
-                {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = $"Record with name '{ticketType.TicketTypeName}' already exists" };
-                }
-
-                var checkValidId = await _unitOfWork.TicketTypeRepository.GetAsync(asd => asd.TicketTypeId == ticketType.TicketTypeId && asd.IsEnabled == true && asd.IsDeleted == false);
-                if (checkValidId == null)
-                {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = $"Please select valid record" };
-                }
-
-
-                ticketType.UpdatedDate = DateTime.UtcNow;
                 var result = await _unitOfWork.TicketTypeRepository.UpdateTicketType(ticketType);
-                if (result.Id > 0)
+                if (result.Success > 0)
                 {
-                    var addedTicketType = await _unitOfWork.TicketTypeRepository.GetAsync(asd => asd.TicketTypeId == ticketType.TicketTypeId);
-
-                    return new APIResponse() { isSuccess = true, Data = addedTicketType, ResponseMessage = "The record has been updated successfully" };
-
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
                 }
-
-                return new APIResponse() { isSuccess = false, ResponseMessage = "Unable to update record" };
-
-
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
-            catch (Exception err)
+            catch (Exception ex)
             {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to update records, Please try again later!"
-                };
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update record. Please try again later." };
             }
         }
 
         [HttpDelete("DeleteTicketType")]
-        public async Task<APIResponse> DeleteTicketType(DeleteRecordVM deleteRecordVM)
+        public async Task<APIResponse> DeleteTicketType([FromBody] DeleteRecordVM model)
         {
             try
             {
-                if (deleteRecordVM == null || deleteRecordVM.Id == 0)
+                if (model == null || model.Id == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null." };
+
+                var result = await _unitOfWork.TicketTypeRepository.DeleteTicketType(model);
+                if (result.Success > 0)
                 {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
                 }
-
-                var checkValidId = await _unitOfWork.TicketTypeRepository.GetAsync(asd => asd.TicketTypeId == deleteRecordVM.Id && asd.IsEnabled == true && asd.IsDeleted == false);
-                if (checkValidId == null)
-                {
-                    return new APIResponse() { isSuccess = false, ResponseMessage = $"Please select valid record" };
-                }
-
-                deleteRecordVM.DeletedDate = DateTime.UtcNow;
-                var result = await _unitOfWork.TicketTypeRepository.DeleteTicketType(deleteRecordVM);
-                if (result.Id > 0)
-                {
-                    var deletedTicketType = await _unitOfWork.TicketTypeRepository.GetAsync(asd => asd.TicketTypeId == deleteRecordVM.Id);
-
-                    return new APIResponse() { isSuccess = true, Data = deletedTicketType, ResponseMessage = "The record has been deleted successfully" };
-
-                }
-
-                return new APIResponse() { isSuccess = false, ResponseMessage = "Unable to delete record" };
-
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
-            catch (Exception err)
+            catch (Exception ex)
             {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    Data = err.Message,
-                    ResponseMessage = "Unable to add records, Please try again later!"
-                };
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete record. Please try again later." };
             }
         }
-
-
     }
 }

@@ -30,5 +30,13 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
             return View();
         }
+        public IActionResult TicketRequest()
+        {
+            return View();
+        }
+        public IActionResult TicketApplication()
+        {
+            return View();
+        }
     }
 }

@@ -22,5 +22,8 @@ namespace HRMS_Core.VM.Employee
         public decimal? SalaryDay { get; set; }
 
         public DateTime? CreatedOn { get; set; }
+        public string? StatusReason { get; set; }
+        public string? MonthDay { get; set; }
+        public string? AdjustmentNote { get; set; }
     }
 }

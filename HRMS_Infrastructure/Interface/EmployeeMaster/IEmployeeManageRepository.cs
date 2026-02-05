@@ -1,6 +1,9 @@
 ﻿using HRMS_Core.DbContext;
+using HRMS_Core.EmployeeMaster;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,13 +15,36 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
     public interface IEmployeeManageRepository:IRepository<HRMSUserIdentity>
     {
         Task<List<vmGetAllEmployee>> GetAllEmployee(int companyId);
-        Task<List<vmGetAllEmployee>> GetAllEmployeeByIsBlocked(bool IsBlocked,int companyId);
-        Task<vmGetAllEmployee?> GetEmployeeById(int Id);
+        Task<List<vmGetAllEmployee>> GetAllEmployeeActiveOrLeft(bool IsLeft, int companyId);
+        Task<vmGetEmployeeById?> GetEmployeeById(int Id);
         Task<List<vmUpdateEmployee>> GetAllEmployeeForUpdate(int companyId);
         Task<VMCommonResult> UpdateEmployee(vmUpdateEmployee employee);
-        Task<VMCommonResult> DeleteEmployee(DeleteRecordVM deleteRecord);
+        Task<APIResponse> CreateEmployee(vmUpdateEmployee employee);
+
+        Task<APIResponse> UpdateBasicInfo(vmUpdateEmployee employee);
+        Task<APIResponse> UpdatePersonalInfo(vmUpdateEmployee employee);
+        Task<APIResponse> UpdateContactInfo(vmUpdateEmployee employee);
+        Task<APIResponse>  UpdateSalaryInfo(vmUpdateEmployee employee);
+        Task<APIResponse> DeleteEmployee(DeleteRecordVM deleteRecord);
+        Task<APIResponse> GetUpdateEmployeeById(int id, string? action = null);
+        //Task<VMCommonResult> DeleteEmployee(DeleteRecordVM deleteRecord);
         Task<VMCommonResult> UpdateEmployeeProfileAndSignature(vmUpdateEmployeeProfile model);
         Task<vmGetNextEmployeeCode?> GetNextEmployeeCode(int CompanyId);
         Task<VMGetExistEmployeeCode?> GetExistEmployeeCode(vmCommonParameters vmCommonParameters);
+        Task<VMCommonResult> UpdateLastLogin(int empid, int compId);
+        Task<List<EmployeePersonalInformationVM>> EmployeePersonalInformation(int empid, int compId);
+        Task<vmUserLogin?> UserLogin(vmLogin login);
+        Task<List<vmGetAllEmployee_DropDown>> GetAllEmployee_DropDown(int companyId ,string BranchId ,int Month, int Year);
+        Task<List<vmGetAllEmployee_DropDown>> GetAllEmployeeByBranch(int companyId ,string BranchId );
+        Task<APIResponse> GetRecordsForUpdate(CommonParameter param);
+        Task<APIResponse> GetRecordsForAdd(int CompanyId);
+        Task<APIResponse> GetReportingList();
+        Task<APIResponse> GetEmployeesListForSalary(int Month , int Year, int CompId);
+        Task<APIResponse> GetEmployeeListByBranchId(CommonParameter parameter);
+        Task<APIResponse> GetEmployeeListByBranchIdForLeft(CommonParameter parameter);
+        Task<APIResponse> GetGradeBySalaryRange(vmEmployeeSalary salaryPara);
+        Task<APIResponse> GetEmplyeeDetailsById(int EmployeeId);
+        Task<APIResponse> GetAllEmployeeList(int CompanyId);
+        Task<APIResponse> AddProbationEndDate(vmAddProbationEndDate model);
     }
 }
