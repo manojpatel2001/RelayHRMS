@@ -369,6 +369,9 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<NOCFormDataResponse>().HasNoKey().ToView(null);
              modelBuilder.Entity<NOCItem>().HasNoKey().ToView(null);
              modelBuilder.Entity<EmployeeDetailsForLettervm>().HasNoKey().ToView(null);
+             modelBuilder.Entity<GetAllLeftEmployeeVm>().HasNoKey().ToView(null);
+             modelBuilder.Entity<FiletrLeftEmpl>().HasNoKey().ToView(null);
+             modelBuilder.Entity<letterInformation>().HasNoKey().ToView(null);
 
 
 

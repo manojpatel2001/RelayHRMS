@@ -27,6 +27,8 @@ namespace HRMS_Infrastructure.Interface.Report
 
         Task<List<ProbationStatusSearchViewModel>> GetProbationStatusSearchAsync(GetProbationSearchParam Model); 
         Task<List<EmployeeDetailsForLettervm>> GetEmployeeDetailsForLetter(int EmployeeId); 
+        Task<List<GetAllLeftEmployeeVm>> GetAllLeftEmployee(int companyId, string BranchId, int Year); 
+        Task<List<letterInformation>> GetLetterInformation(); 
 
 
 

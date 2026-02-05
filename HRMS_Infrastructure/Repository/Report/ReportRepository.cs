@@ -1,7 +1,9 @@
 ﻿using Dapper;
 using HRMS_Core.DbContext;
+using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.ExitApplication;
 using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Report;
@@ -12,11 +14,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Data;
 using System.Linq;
 using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace HRMS_Infrastructure.Repository.Report
 {
@@ -80,6 +84,20 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+        public async Task<List<GetAllLeftEmployeeVm>> GetAllLeftEmployee(int companyId, string BranchId,  int Year)
+        {
+            try
+            {
+                return await _db.Set<GetAllLeftEmployeeVm>()
+                                .FromSqlInterpolated($"EXEC GetAllLeftEmployee @CompanyId={companyId} , @BranchIds={BranchId}, @Year={Year}")
+                                .ToListAsync();
+            }
+            catch (Exception)
+            {
+                return new List<GetAllLeftEmployeeVm>();
+            }
+        }
+
         public async Task<List<CompoffLapseReminderViewModel>> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays)
         {
             try
@@ -111,7 +129,7 @@ namespace HRMS_Infrastructure.Repository.Report
             try
             {
                 var result = await _db.Set<EmployeeDetailsForLettervm?>().FromSqlInterpolated($@"
-                    EXEC sp_GetExitApplicationByEmployeeId
+                    EXEC GetEmployeeDetailsForLetter
                         @Employeeid = {EmployeeId}
                 ").ToListAsync();
 
@@ -245,6 +263,27 @@ namespace HRMS_Infrastructure.Repository.Report
                 )).ToList();
 
                 return result;
+            }
+        }
+
+        public async Task<List<letterInformation>> GetLetterInformation()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var result = await connection.QueryAsync<letterInformation>(
+                        "GetLetterInformation",
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                throw new Exception("Error retrieving letter information", ex);
             }
         }
 
