@@ -1,63 +1,485 @@
-﻿@{
-    ViewData["Title"] = "Shift Changes Details";
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
-<link href="~/commoncss.css" rel="stylesheet" />
-<!-- jQuery -->
+<title>Search Panel</title>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
-<!-- Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
 <style>
-    .fixed-label {
-        min-width: 100px;
-        white-space: nowrap;
-        margin-bottom: 0;
-        text-align: right;
+    body, html {
+        height: 100%;
+        margin: 0;
+        padding: 0;
     }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .search-panel-wrapper {
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 500px;
+        padding: 10px;
+        box-sizing: border-box;
+        margin: 0;
+    }
+
+    /* Custom Table Styling */
+    .yearly-leave-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin-top: 10px;
+    }
+
+        .yearly-leave-table thead {
+            background-color: #3e4b6d;
+            color: white;
+        }
+
+            .yearly-leave-table thead th {
+                padding: 10px 8px;
+                text-align: center;
+                font-weight: bold;
+                border: 1px solid #2d3a52;
+            }
+
+        .yearly-leave-table tbody td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+            .yearly-leave-table tbody td.text-left {
+                text-align: left;
+            }
+
+        .yearly-leave-table tbody tr.employee-row {
+            border-top: 3px solid #000;
+        }
+
+        .yearly-leave-table tbody tr.closing-row {
+            background-color: #fff9e6;
+        }
+
+            .yearly-leave-table tbody tr.closing-row td {
+                font-weight: 600;
+            }
+
+        .yearly-leave-table tbody td.merged-cell {
+            background-color: #f8f9fa;
+            font-weight: 500;
+        }
+
+    .table-container {
+        overflow-x: auto;
+        width: 100%;
+        display: none; /* Hidden by default */
+    }
+
+        .table-container.show {
+            display: block;
+        }
 </style>
 
-<div class="card">
-
-    <!-- Header Center -->
-    <div class="card-header bg-transparent py-2 d-flex justify-content-center align-items-center" style="height: 60px;">
-        <h6 class="mb-0 text-center">YEARLY LEAVE TRANSACTION</h6>
-    </div>
-
-    <!-- Body -->
-    <div class="card-body">
-        <form>
-            <div class="col-md-8 mx-auto">
-
-                <!-- From / To Inputs -->
-                <div class="row mb-3 justify-content-center">
-                    <div class="col-auto d-flex align-items-center pe-2">
-                        <label for="fromid" class="fixed-label me-2">From<span class="text-danger">*</span>:</label>
-                        <input type="date" class="form-control form-control-sm" id="fromid" />
-                    </div>
-                    <div class="col-auto d-flex align-items-center ps-2">
-                        <label for="toid" class="fixed-label me-2">To<span class="text-danger">*</span>:</label>
-                        <input type="date" class="form-control form-control-sm" id="toid" />
-                    </div>
-                </div>
-
-                
-
-
-                <!-- Buttons -->
-                <div class="row justify-content-center">
-                    <div class="col-md-6 d-flex justify-content-center gap-2">
-                        <button type="button" class="btn btn-primary btn-sm">View</button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("Index", "MyReports")'">Back</button>
-                    </div>
-                </div>
-
-            </div>
-        </form>
+<!-- Search Panel Header -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search Panel</div>
+        </div>
     </div>
 </div>
+
+<div class="form-section">
+    <div class="d-flex flex-column align-items-center gap-3">
+        <div class="d-flex justify-content-center gap-3">
+            <div class="d-flex align-items-center">
+                <label for="fromdate" class="form-label mb-0 me-2">From Date<span class="text-danger">*</span>:</label>
+                <input type="date" class="form-control form-control-sm" id="fromdate" style="width: 160px;" />
+                <span id="spnfromdate" style="color:red; display:none;">Please Select From Date</span>
+            </div>
+            <div class="d-flex align-items-center">
+                <label for="todate" class="form-label mb-0 me-2">To Date<span class="text-danger">*</span>:</label>
+                <input type="date" class="form-control form-control-sm" id="todate" style="width: 160px;" />
+                <span id="spntodate" style="color:red; display:none;">Please Select To Date</span>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-2">
+            <button class="btn btn-custom" id="btnGo">Go</button>
+            <button class="btn btn-custom" id="btnClear">Clear</button>
+            <button class="btn btn-custom" onclick="window.location.href='@Url.Action("Index", "MyReports")'">
+                Back
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Yearly Leave</div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-3">
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+        <img src="@baseDomainUrl/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+        <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+    </div>
+
+    <div class="table-container">
+        <table class="yearly-leave-table" id="yearlyLeaveTable">
+            <thead>
+                <tr>
+                    <th>Location</th>
+                    <th>Name</th>
+                    <th>DOJ</th>
+                    <th>Leave</th>
+                    <th>Opening</th>
+                    <th>Type</th>
+                    <th>Jan</th>
+                    <th>Feb</th>
+                    <th>Mar</th>
+                    <th>Apr</th>
+                    <th>May</th>
+                    <th>Jun</th>
+                    <th>Jul</th>
+                    <th>Aug</th>
+                    <th>Sep</th>
+                    <th>Oct</th>
+                    <th>Nov</th>
+                    <th>Dec</th>
+                    <th>Closing</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Data will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        initializePage();
+    });
+
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const Compid = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    function showLoder() {
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    function hideLoder() {
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    function setDefaultDates() {
+        const currentYear = new Date().getFullYear();
+        const startDate = `${currentYear}-01-01`;
+        const endDate = `${currentYear}-12-31`;
+        $("#fromdate").val(startDate);
+        $("#todate").val(endDate);
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        const day = String(date.getDate()).padStart(2, '0');
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const month = months[date.getMonth()];
+        const year = String(date.getFullYear()).substr(-2);
+        return `${day}-${month}-${year}`;
+    }
+
+    function formatValue(val) {
+        return (val !== null && val !== undefined) ? val : '-';
+    }
+
+    function buildTable(apiData) {
+        if (!apiData || !Array.isArray(apiData) || apiData.length === 0) {
+            $('#tableBody').html('<tr><td colspan="19" style="text-align:center; padding:20px;">No data available</td></tr>');
+            $('.table-container').addClass('show'); // Show table even for no data
+            return;
+        }
+
+        // Group data by employee
+        const employeeGroups = new Map();
+
+        apiData.forEach(item => {
+            const empKey = `${item.name.trim()}_${item.location || 'NA'}`;
+
+            if (!employeeGroups.has(empKey)) {
+                employeeGroups.set(empKey, {
+                    location: item.location,
+                    name: item.name,
+                    doj: item.doj,
+                    leaveTypes: new Map()
+                });
+            }
+
+            const emp = employeeGroups.get(empKey);
+            const leaveType = item.leaveType;
+
+            if (!emp.leaveTypes.has(leaveType)) {
+                emp.leaveTypes.set(leaveType, []);
+            }
+
+            emp.leaveTypes.get(leaveType).push(item);
+        });
+
+        // Build HTML
+        let html = '';
+        const rowTypeOrder = ['Credit', 'Debit', 'Laps', 'Closing'];
+
+        employeeGroups.forEach((empData) => {
+            // Calculate total rows for this employee
+            let totalRows = 0;
+            empData.leaveTypes.forEach((leaveRows) => {
+                totalRows += leaveRows.length;
+            });
+
+            let isFirstEmployeeRow = true;
+
+            empData.leaveTypes.forEach((leaveRows, leaveType) => {
+                // Get opening value
+                let openingValue = null;
+                for (let row of leaveRows) {
+                    if (row.opening !== null && row.opening !== undefined) {
+                        openingValue = row.opening;
+                        break;
+                    }
+                }
+
+                // Sort rows
+                const sortedRows = leaveRows.sort((a, b) => {
+                    return rowTypeOrder.indexOf(a.rowType) - rowTypeOrder.indexOf(b.rowType);
+                });
+
+                const leaveRowCount = sortedRows.length;
+                let isFirstLeaveRow = true;
+
+                sortedRows.forEach((row, idx) => {
+                    const rowClass = row.rowType === 'Closing' ? 'closing-row' : '';
+                    const empRowClass = isFirstEmployeeRow ? 'employee-row' : '';
+
+                    html += `<tr class="${empRowClass} ${rowClass}">`;
+
+                    // Location (rowspan for entire employee)
+                    if (isFirstEmployeeRow) {
+                        html += `<td rowspan="${totalRows}" class="text-left merged-cell">${empData.location || '-'}</td>`;
+                    }
+
+                    // Name (rowspan for entire employee)
+                    if (isFirstEmployeeRow) {
+                        html += `<td rowspan="${totalRows}" class="text-left merged-cell">${empData.name || '-'}</td>`;
+                    }
+
+                    // DOJ (rowspan for entire employee)
+                    if (isFirstEmployeeRow) {
+                        html += `<td rowspan="${totalRows}" class="merged-cell">${formatDate(empData.doj)}</td>`;
+                    }
+
+                    // Leave Type (rowspan for leave type group)
+                    if (isFirstLeaveRow) {
+                        html += `<td rowspan="${leaveRowCount}" style="font-weight:600;">${leaveType}</td>`;
+                    }
+
+                    // Opening (rowspan for leave type group)
+                    if (isFirstLeaveRow) {
+                        html += `<td rowspan="${leaveRowCount}" style="font-weight:500;">${formatValue(openingValue)}</td>`;
+                    }
+
+                    // Type column
+                    html += `<td>${row.rowType}</td>`;
+
+                    // Month columns
+                    html += `<td>${formatValue(row.jan)}</td>`;
+                    html += `<td>${formatValue(row.feb)}</td>`;
+                    html += `<td>${formatValue(row.mar)}</td>`;
+                    html += `<td>${formatValue(row.apr)}</td>`;
+                    html += `<td>${formatValue(row.may)}</td>`;
+                    html += `<td>${formatValue(row.jun)}</td>`;
+                    html += `<td>${formatValue(row.jul)}</td>`;
+                    html += `<td>${formatValue(row.aug)}</td>`;
+                    html += `<td>${formatValue(row.sep)}</td>`;
+                    html += `<td>${formatValue(row.oct)}</td>`;
+                    html += `<td>${formatValue(row.nov)}</td>`;
+                    html += `<td>${formatValue(row.dec)}</td>`;
+
+                    // Closing
+                    html += `<td>${formatValue(row.closing)}</td>`;
+
+                    html += '</tr>';
+
+                    isFirstEmployeeRow = false;
+                    isFirstLeaveRow = false;
+                });
+            });
+        });
+
+        $('#tableBody').html(html);
+        $('.table-container').addClass('show'); // Show table after data is loaded
+    }
+
+    function initializePage() {
+        setDefaultDates();
+
+        $('#btnGo').off('click').on('click', function () {
+            var txtformdate = $("#fromdate").val();
+            var txttodate = $("#todate").val();
+            var isValid = true;
+
+            if (txtformdate === "") {
+                $("#spnfromdate").show();
+                isValid = false;
+            } else {
+                $("#spnfromdate").hide();
+            }
+
+            if (txttodate === "") {
+                $("#spntodate").show();
+                isValid = false;
+            } else {
+                $("#spntodate").hide();
+            }
+
+            if (txtformdate && txttodate && new Date(txtformdate) > new Date(txttodate)) {
+                $("#spntodate").text("To Date must be greater than or equal to From Date").show();
+                isValid = false;
+            }
+
+            if (!isValid) {
+                return;
+            }
+
+            showLoder();
+
+            let model = {
+                EmpId: parseInt(EmployeeId),
+                StartDate: txtformdate,
+                EndDate: txttodate
+            };
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/LeaveApplication/GetYearlyLeaveReport")',
+                type: 'POST',
+                data: JSON.stringify(model),
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (res) {
+ 
+                    if (res.isSuccess) {
+                        buildTable(res.data);
+                    } else {
+                        if (typeof round_error_noti === 'function') {
+                            round_error_noti(res.responseMessage || 'No Data');
+                        } else {
+                            alert(res.responseMessage || 'No Data');
+                        }
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Error:", xhr);
+                    if (typeof round_error_noti === 'function') {
+                        round_error_noti(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.');
+                    } else {
+                        alert('An error occurred. Please try again.');
+                    }
+                },
+                complete: function () {
+                    hideLoder();
+                }
+            });
+        });
+
+        $("#btnClear").off('click').on('click', function () {
+            $('#fromdate').val('');
+            $('#todate').val('');
+            $('#tableBody').html('');
+            $('.table-container').removeClass('show'); // Hide table on clear
+            $("#spnfromdate").hide();
+            $("#spntodate").hide();
+        });
+    }
+</script>

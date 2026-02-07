@@ -3,111 +3,103 @@ using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace HRMS_Infrastructure.Repository.OtherMaster
+namespace HRMS_Infrastructure.Repository.TicketManagement
 {
-    public class TicketPriorityRepository:Repository<TicketPriority>,ITicketPriorityRepository
+    public class TicketPriorityRepository : ITicketPriorityRepository
     {
-        private HRMSDbContext _db;
+        private readonly HRMSDbContext _db;
 
-        public TicketPriorityRepository(HRMSDbContext db) : base(db)
+        public TicketPriorityRepository(HRMSDbContext db)
         {
             _db = db;
         }
 
-        public async Task<VMCommonResult> CreateTicketPriority(TicketPriority ticketPriority)
+        public async Task<List<TicketPriority>> GetAllTicketPriority(int companyId)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC CreateTicketPriority 
-                    @TicketPriorityName = {ticketPriority.TicketPriorityName},
-                    @EscalationHours = {ticketPriority.EscalationHours},
-                    @IsDeleted = {ticketPriority.IsDeleted},
-                    @IsEnabled = {ticketPriority.IsEnabled},
-                    @IsBlocked = {ticketPriority.IsBlocked},
-                    @CreatedDate = {ticketPriority.CreatedDate},
-                    @CreatedBy = {ticketPriority.CreatedBy},
-                    @DeletedDate = {ticketPriority.DeletedDate},
-                    @DeletedBy = {ticketPriority.DeletedBy},
-                    @UpdatedDate = {ticketPriority.UpdatedDate},
-                    @UpdatedBy = {ticketPriority.UpdatedBy}
-            ").ToListAsync();
-
-                return result?.FirstOrDefault() ?? new VMCommonResult
-                {
-                    Id = 0,
-                };
+                return await _db.Set<TicketPriority>()
+                    .FromSqlInterpolated($"EXEC GetAllTicketPriority @CompanyId = {companyId}")
+                    .ToListAsync();
             }
-            catch (Exception ex)
+            catch
             {
-
-                return new VMCommonResult
-                {
-                    Id = 0,
-                };
+                return new List<TicketPriority>();
             }
         }
 
-        public async Task<VMCommonResult> DeleteTicketPriority(DeleteRecordVM deleteRecordVM)
+        public async Task<TicketPriority?> GetTicketPriorityById(int ticketPriorityId)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                EXEC DeleteTicketPriority 
-                    @TicketPriorityId = {deleteRecordVM.Id},
-                    @DeletedDate = {deleteRecordVM.DeletedDate},
-                    @DeletedBy = {deleteRecordVM.DeletedBy}
-                    
-            ").ToListAsync();
-
-                return result?.FirstOrDefault() ?? new VMCommonResult
-                {
-                    Id = 0,
-                };
+                var result = await _db.Set<TicketPriority>()
+                    .FromSqlInterpolated($"EXEC GetTicketPriorityById @TicketPriorityId = {ticketPriorityId}")
+                    .ToListAsync();
+                return result.FirstOrDefault();
             }
-            catch (Exception ex)
+            catch
             {
-
-                return new VMCommonResult
-                {
-                    Id = 0,
-                };
+                return null;
             }
         }
 
-        public async Task<VMCommonResult> UpdateTicketPriority(TicketPriority ticketPriority)
+        public async Task<SP_Response> CreateTicketPriority(TicketPriority ticketPriority)
         {
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                 EXEC UpdateTicketPriority 
-                     @TicketPriorityId= {ticketPriority.TicketPriorityId},
-                     @TicketPriorityName = {ticketPriority.TicketPriorityName},
-                     @EscalationHours = {ticketPriority.EscalationHours},
-                     @UpdatedDate = {ticketPriority.UpdatedDate},
-                     @UpdatedBy = {ticketPriority.UpdatedBy}
-                    
-             ").ToListAsync();
-
-                return result?.FirstOrDefault() ?? new VMCommonResult
-                {
-                    Id = 0,
-                };
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+                    EXEC ManageTicketPriority
+                        @Action = {"CREATE"},
+                        @TicketPriorityName = {ticketPriority.TicketPriorityName},
+                        @EscalationHours = {ticketPriority.EscalationHours},
+                        @CompanyId = {ticketPriority.CompanyId},
+                        @CreatedBy = {ticketPriority.CreatedBy}
+                ").ToListAsync();
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
             }
-            catch (Exception ex)
+            catch
             {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
 
-                return new VMCommonResult
-                {
-                    Id = 0,
-                };
+        public async Task<SP_Response> UpdateTicketPriority(TicketPriority ticketPriority)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+                    EXEC ManageTicketPriority
+                        @Action = {"UPDATE"},
+                        @TicketPriorityId = {ticketPriority.TicketPriorityId},
+                        @TicketPriorityName = {ticketPriority.TicketPriorityName},
+                        @EscalationHours = {ticketPriority.EscalationHours},
+                        @CompanyId = {ticketPriority.CompanyId},
+                        @UpdatedBy = {ticketPriority.UpdatedBy}
+                ").ToListAsync();
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
+
+        public async Task<SP_Response> DeleteTicketPriority(DeleteRecordVM deleteRecord)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+                    EXEC ManageTicketPriority
+                        @Action = {"DELETE"},
+                        @TicketPriorityId = {deleteRecord.Id},
+                        @UpdatedBy = {deleteRecord.DeletedBy}
+                ").ToListAsync();
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
     }

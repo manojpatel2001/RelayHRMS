@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
+using HRMS_Core.ProfileManage;
 using HRMS_Core.Salary;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.PasswordHistory;
@@ -62,12 +63,7 @@ namespace HRMS_API.Controllers.Employee
                         ResponseMessage = "Incorrect old password."
                     };
                 }
-                var oldUser = await _userManager.FindByIdAsync(password.EMPID.ToString());
-                if (oldUser == null)
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
-                }
-
+      
                 var history = new PasswordHistory
                 {
                     EMPID=password.EMPID,
@@ -88,16 +84,7 @@ namespace HRMS_API.Controllers.Employee
 
                     }
                 }
-                if (!string.IsNullOrEmpty(password.NewPassword))
-                {
-
-                    var token = await _userManager.GeneratePasswordResetTokenAsync(oldUser);
-                    var resetPasswordResult = await _userManager.ResetPasswordAsync(oldUser, token, password.NewPassword);
-                    if (!resetPasswordResult.Succeeded)
-                    {
-                        return new APIResponse { isSuccess = false, ResponseMessage = "Failed to change password." };
-                    }
-                }
+         
                 var updatedPassword = await _unitOfWork.PasswordHistory.ChangePassword(history);
                 
                 return new APIResponse()
@@ -117,6 +104,26 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+        [HttpPost("ResetPassword")]
+        public async Task<APIResponse> ResetPassword(VMResetPassword vmResetPassword)
+        {
+            try
+            {
+                if (vmResetPassword == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Password details cannot be null." };
+                var result = await _unitOfWork.PasswordHistory.ResetPassword(vmResetPassword);
+                if (result.Success > 0)
+                {
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                }
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to reset password. Please try again later." };
+            }
+        }
+
 
     }
 }

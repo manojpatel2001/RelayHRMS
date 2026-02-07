@@ -22,11 +22,11 @@ namespace HRMS_API.Controllers.Leave
 
 
         [HttpGet("LeaveType")]
-        public async Task<APIResponse> LeaveType()
+        public async Task<APIResponse> LeaveType(int Compid)
         {
             try
             {
-                var data = await _unitOfWork.LeaveMasterRepository.GetAllAsync(asd => asd.IsEnabled == true && asd.IsDeleted == false);
+                var data = await _unitOfWork.LeaveMasterRepository.GetAllAsync(asd => asd.Comp_Id == Compid && asd.IsEnabled == true && asd.IsDeleted == false);
                 if (data == null)
                 {
                     return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
@@ -51,12 +51,62 @@ namespace HRMS_API.Controllers.Leave
         }
 
 
+
+        [HttpGet("GetAllLeave")]
+        public async Task<APIResponse> GetAllLeave(int CompId)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveMasterRepository.GetLeaveMaster(CompId);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+        [HttpGet("GetLeaveTypesForEmployee")]
+        public async Task<APIResponse> GetLeaveTypesForEmployee(int CompId ,int EmpId)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveMasterRepository.GetLeaveTypesForEmployee(CompId ,EmpId);
+                if (data == null)
+                {
+                    return new APIResponse() { isSuccess = true, ResponseMessage = "Record not fetched successfully" };
+
+                }
+
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
         //[HttpPost("AddLeavemanage")]
         //public async Task<APIResponse> AddLeavemanage(List<int> id,string status)
         //{
         //    try
         //    {
-               
+
         //        var data = await _unitOfWork.CompOffDetailsRepository.UpdateLeaveMange(id,status);
         //        if (data == null)
         //        {
