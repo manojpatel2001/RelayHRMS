@@ -1,0 +1,699 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Attendance Regularization";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<title>Search Panel</title>
+
+<!-- jQuery + Bootstrap + SweetAlert -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+        margin-bottom: 20px;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .search-panel-wrapper {
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .btn-add {
+        background-color: orange;
+        color: white;
+        font-size: 14px;
+        padding: 6px 15px;
+        border: none;
+        border-radius: 4px;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+
+
+    /* Action buttons positioning */
+    .action-buttons-container {
+        width: 100%;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        text-align: right;
+    }
+
+        .action-buttons-container .btn-custom {
+            margin-left: 8px;
+            padding: 6px 16px;
+            font-size: 14px;
+        }
+
+
+
+
+    /* Container adjustments */
+    .main-container {
+        padding: 0 15px;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+
+    #attendanceGrid {
+        width: 100% !important;
+        min-height: auto !important;
+    }
+
+    .dx-datagrid {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .dx-datagrid-content {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .dx-datagrid-rowsview {
+        height: auto !important;
+    }
+
+    .dx-scrollable-container {
+        height: auto !important;
+    }
+
+    .grid-container {
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        /* Remove any fixed height */
+    }
+</style>
+
+<!-- Search Panel Header -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search panel</div>
+@*             <a href="/AdminPanel/Report/AddAttendanceRegularization" class="btn-add">Add</a> *@
+        </div>
+    </div>
+</div>
+
+<!-- Form Starts -->
+<div class="form-section">
+    <!-- Row 1: Search By & Search For -->
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="searchby" class="form-label mb-0 me-2" style="width: 120px;">Search By<span class="text-danger">*</span>:</label>
+            <select class="form-select form-select-sm" id="searchby" style="width: 180px;">
+                <option value="1">Emp Name</option>
+                <option value="2">Emp Code</option>
+                <option value="3">Reason</option>
+                <option value="4">Manager Name</option>
+            </select>
+        </div>
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="searchfor" class="form-label mb-0 me-2" style="width: 120px;">Search for<span class="text-danger">*</span>:</label>
+            <input type="text" class="form-control form-control-sm" id="searchfor" style="width: 180px;" />
+        </div>
+    </div>
+
+    <!-- Row 2: From Date & To Date -->
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="fromdate" class="form-label mb-0 me-2" style="width: 120px;">From Date:</label>
+            <input type="date" class="form-control form-control-sm" id="fromdate" style="width: 180px;" />
+        </div>
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="todate" class="form-label mb-0 me-2" style="width: 120px;">To Date:</label>
+            <input type="date" class="form-control form-control-sm" id="todate" style="width: 180px;" />
+        </div>
+    </div>
+
+    <!-- Row 3: Radio Buttons + Buttons -->
+    <div class="row justify-content-center align-items-center mb-3">
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <!-- Radio Buttons -->
+                <div class="d-flex align-items-center flex-wrap">
+                    <div class="form-check me-4">
+                        <input class="form-check-input" type="radio" name="type" id="r2">
+                        <label class="form-check-label" for="r2">Pending</label>
+                    </div>
+                    <div class="form-check me-4">
+                        <input class="form-check-input" type="radio" name="type" id="r3">
+                        <label class="form-check-label" for="r3">Approved</label>
+                    </div>
+                    <div class="form-check me-4">
+                        <input class="form-check-input" type="radio" name="type" id="r4">
+                        <label class="form-check-label" for="r4">Rejected</label>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center mt-2 mt-md-0">
+                    <button class="btn btn-custom me-2" id="btnGo">Go</button>
+                    <button class="btn btn-custom" id="btnClear">Clear</button>
+                    <button class="btn btn-custom" onclick="goBack()">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EMPLOYEE REGULARIZATION Heading -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">EMPLOYEE REGULARIZATION</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Container for Grid and Buttons -->
+<div class="main-container">
+    <!-- Action Buttons Row - Properly positioned outside grid -->
+    <div id="actionButtons" class="action-buttons-container" style="display: none;">
+        <button id="btnDelete" class="btn btn-custom">Delete</button>
+        <button id="btnApprove" class="btn btn-custom">Approve</button>
+        <button id="btnReject" class="btn btn-custom">Reject</button>
+    </div>
+
+    <!--Loader-->
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+        <img src="@baseDomainUrl/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+        <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+    </div>
+
+    <!-- Grid Container -->
+    <div class="grid-container">
+        <div id="attendanceGrid"></div>
+    </div>
+</div>
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const companyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+
+    $(document).ready(function () {
+    
+        $('#fromdate').val('');
+        $('#todate').val('');
+
+        $('#r2').prop('checked', true);
+
+        $('#btnGo').click();
+
+        $("#btnApprove").click(function () {
+            updateAttendanceStatus("Approved");
+        });
+
+        $("#btnReject").click(function () {
+            updateAttendanceStatus("Rejected");
+        });
+    });
+    let selectedKeys = [];
+
+    function goBack() {
+        window.history.back();
+    }
+
+    function getStatus() {
+        if ($('#r2').is(':checked')) return 'Pending';
+        if ($('#r3').is(':checked')) return 'Approved';
+        if ($('#r4').is(':checked')) return 'Rejected';
+        return null;
+    }
+
+    function getSearchByText(value) {
+        switch (value) {
+            case '1': return 'EmpName';
+            case '2': return 'EmpCode';
+            case '3': return 'Reason';
+            case '4': return 'ManagerName';
+            default: return null;
+        }
+    }
+
+    async function showLoder(){
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    async function hideLoder(){
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+      function loadGrid(data) {
+        // Dispose existing grid first to prevent conflicts
+        try {
+            const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+            // Grid doesn't exist yet, that's okay
+        }
+
+        $("#attendanceGrid").empty();
+
+       $("#attendanceGrid").dxDataGrid({
+        dataSource: data || [],
+        keyExpr: "attendanceRegularizationId",
+        showBorders: true,
+        width: "100%",
+        height: 250,
+        paging: {
+            enabled: false
+        },
+        scrolling: {
+            mode: "standard",
+            useNative: true,
+            showScrollbar: "always"
+        },
+        columnAutoWidth: false,
+        allowColumnResizing: false,
+        selection: {
+            mode: "multiple",
+            showCheckBoxesMode: "always"
+        },
+        filterRow: { visible: false },
+        searchPanel: { visible: false },
+        onSelectionChanged: function (e) {
+            selectedKeys = e.selectedRowKeys;
+        },
+        columns: [
+            {
+                dataField: "employeeCode",
+                caption: "Code",
+                width: 80
+            },
+            {
+                dataField: "empId",
+                visible: false
+            },
+            {
+                dataField: "fullName",
+                caption: "Name",
+                width: 240
+            },
+            {
+                dataField: "forDate",
+                caption: "Date",
+                dataType: "date",
+                format: "dd/MM/yyyy",
+                width: 100
+            },
+            {
+                dataField: "createdDate",
+                caption: "App Date",
+                dataType: "date",
+                format: "dd/MM/yyyy",
+                width: 100
+            },
+            {
+                dataField: "inTime",
+                caption: "In Time",
+                dataType: "datetime",
+                format: "dd/MM/yyyy HH:mm",
+                width: 110
+            },
+            {
+                dataField: "outTime",
+                caption: "Out Time",
+                dataType: "datetime",
+                format: "dd/MM/yyyy HH:mm",
+                width: 110
+            },
+            {
+                dataField: "duration",
+                caption: "Duration",
+                dataType: "string",
+                width: 40
+            },
+            {
+                dataField: "day",
+                caption: "Day",
+                dataType: "string",
+                width: 60
+            },
+            {
+                dataField: "reason",
+                caption: "Reason",
+                dataType: "string",
+                width: 150
+            },
+            {
+                caption: "Status",
+                width: 80,
+                alignment: "center",
+                allowFiltering: false,
+                allowSorting: false,
+                cellTemplate: function(container, options) {
+                    const row = options.data;
+                    let statusText = "";
+
+                    if (row.isApproved === true) {
+                        statusText = "Approved";
+                    } else if (row.isRejected === true) {
+                        statusText = "Rejected";
+                    } else if (row.isPending === true) {
+                        statusText = "Pending";
+                    }
+
+                    $("<div>").text(statusText).appendTo(container);
+                }
+            },
+            {
+                dataField: "updatedBy",
+                caption: "Approved By",
+                width: 120,
+                calculateCellValue: function(rowData) {
+                    return rowData.updatedBy ? rowData.updatedBy : "-";
+                }
+            },
+            {
+                dataField: "updatedDate",
+                caption: "Approved Date",
+                width: 120,
+                alignment: "center",
+                calculateCellValue: function(rowData) {
+                    if (!rowData.updatedDate) return "-";
+
+                    // Parse the ISO date string
+                    const date = new Date(rowData.updatedDate);
+
+                    // Extract day, month, and year
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+
+                    // Return formatted date as dd/MM/yyyy
+                    return `${day}/${month}/${year}`;
+                }
+            }
+        ],
+        onContentReady: function(e) {
+            // Auto height
+            $('#attendanceGrid .dx-datagrid').css('height', 'auto');
+            $('#attendanceGrid .dx-scrollable-container').css('height', 'auto');
+        }
+    });
+
+        $("#actionButtons").show();
+    }
+
+    $('#btnGo').on('click', function () {
+        showLoder();
+
+        let model = {
+            SearchBy: getSearchByText($('#searchby').val()),
+            SearchValue: $('#searchfor').val(),
+            FromDate: $('#fromdate').val() || null,
+            ToDate: $('#todate').val() || null,
+            Status: getStatus() ,
+            CompanyId:companyId
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetAttendanceRequestAdminReport")',
+            type: 'POST',
+            data: JSON.stringify(model),
+            contentType: 'application/json',
+            success: function (res) {
+                console.log('API Response:', res);
+                hideLoder();
+
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    loadGrid(res.data);
+                    $("#actionButtons").show();
+                    $("#btnDelete").show();
+                    $("#btnApprove").show();
+                    $("#btnReject").show();
+                } else {
+                    // Clear grid if no data
+                    const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+                    if (gridInstance) {
+                        gridInstance.dispose();
+                    }
+                    $("#attendanceGrid").empty();
+
+                    $("#actionButtons").hide();
+                    $("#btnDelete").hide();
+                    $("#btnApprove").hide();
+                    $("#btnReject").hide();
+                    var emptyData=[];
+                     loadGrid(emptyData);
+                    //round_error_noti(res.responseMessage || 'No Data Found');
+                }
+            },
+            error: function (xhr, status, error) {
+                hideLoder();
+                console.error('API Error:', error);
+                round_error_noti('Error occurred while fetching data');
+            }
+        });
+    });
+
+    // Fix the Clear button too
+    $("#btnClear").click(function () {
+        // Reset form
+        $('#searchby').val("1");
+        $('#searchfor').val('');
+        $('#fromdate').val('');
+        $('#todate').val('');
+        $("input[name='type']").prop('checked', false);
+        $('#r2').prop('checked', true);
+
+        // Dispose grid safely
+        try {
+            const gridInstance = $("#attendanceGrid").dxDataGrid("instance");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+            // Grid doesn't exist, ignore
+        }
+
+        $("#attendanceGrid").empty();
+        $("#actionButtons").hide();
+        $("#btnDelete").hide();
+        $("#btnApprove").hide();
+        $("#btnReject").hide();
+    });
+
+    $('#btnDelete').on('click', function () {
+        var grid = $("#attendanceGrid").dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
+
+        if (selectedRows.length === 0) {
+            round_error_noti("Please select at least one record.");
+            return;
+        }
+        const approvedRecords = selectedRows.filter(row => row.isApproved);
+        if (approvedRecords.length > 0) {
+            Swal.fire({
+                title: "Not Allowed",
+                text: "Approved records cannot be deleted.",
+                icon: "error",
+                customClass: {
+                    popup: 'swal-small'
+                }
+            });
+            return;
+        }
+
+        // Check for rejected records
+        const rejectedRecords = selectedRows.filter(row => row.isRejected);
+        if (rejectedRecords.length > 0) {
+            Swal.fire({
+                title: "Not Allowed",
+                text: "Rejected records cannot be deleted.",
+                icon: "error",
+                customClass: {
+                    popup: 'swal-small'
+                }
+            });
+            return;
+        }
+
+        showLoder();
+
+        const selectedIds = selectedRows.map(row => row.attendanceRegularizationId);
+
+        const deletePayload = {
+            Id: selectedIds,
+            DeletedBy: EmployeeId
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/Delete")',
+            type: 'DELETE',
+            contentType: 'application/json',
+            data: JSON.stringify(deletePayload),
+            success: function (res) {
+                hideLoder();
+                if (res.isSuccess) {
+                    round_success_noti(res.responseMessage || "Deleted successfully.");
+                    $("#btnGo").click();
+                } else {
+                    round_error_noti(res.responseMessage || "Deletion failed.");
+                }
+            },
+            error: function () {
+                hideLoder();
+                round_error_noti("Something went wrong during deletion.");
+            }
+        });
+    });
+
+    function updateAttendanceStatus(status) {
+
+        var grid = $("#attendanceGrid").dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
+        if (selectedRows.length === 0) {
+            round_error_noti("Please select at least one record.");
+            return;
+        }
+
+        if (status === "Rejected") {
+            const approvedRecords = selectedRows.filter(row => row.isApproved);
+            if (approvedRecords.length > 0) {
+                Swal.fire({
+                    title: "Not Allowed",
+                    text: "Approved records cannot be rejected.",
+                    icon: "error",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+                return;
+            }
+        }
+
+        if (status === "Approved") {
+            const approvedRecords = selectedRows.filter(row => row.isApproved);
+            if (approvedRecords.length > 0) {
+                Swal.fire({
+                    title: "Not Allowed",
+                    text: "Already Approved.",
+                    icon: "error",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+                return;
+            }
+        }
+
+        if (status === "Rejected") {
+            const rejectedRecords = selectedRows.filter(row => row.isRejected);
+            if (rejectedRecords.length > 0) {
+                Swal.fire({
+                    title: "Not Allowed",
+                    text: "Already Rejected.",
+                    icon: "error",
+                    customClass: {
+                        popup: 'swal-small'
+                    }
+                });
+                return;
+            }
+        }
+
+        selectedRows.forEach(function (row) {
+            row.status = status;
+            row.createdBy = EmployeeId;
+        });
+
+        showLoder();
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/UpdateAttendanceRegularization")',
+            type: "PUT",
+            data: JSON.stringify(selectedRows),
+            contentType: "application/json",
+            success: function (response) {
+                hideLoder();
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage || "Status updated successfully.");
+                    const selectedKeys = grid.getSelectedRowKeys();
+                    let dataSource = grid.option("dataSource");
+                    const updatedData = dataSource.filter(item => {
+                        return !selectedKeys.includes(item.attendanceRegularizationId);
+                    });
+                    grid.option("dataSource", updatedData);
+                    grid.refresh();
+                } else {
+                    round_error_noti(response.responseMessage || "Update failed.");
+                }
+            },
+            error: function () {
+                hideLoder();
+                round_error_noti("Something went wrong during update.");
+            }
+        });
+    }
+
+
+</script>

@@ -8,9 +8,8 @@ namespace HRMS_Core.VM.Employee
 {
     public class WishesReportVM
     {
-
-        
             public int? Id { get; set; }
+            public string? EmployeeCode { get; set; }
             public string? FullName { get; set; }
             public string? EmployeeProfileUrl { get; set; }
             public string? CompanyName { get; set; }
@@ -20,6 +19,5 @@ namespace HRMS_Core.VM.Employee
             public DateTime? Date { get; set; } 
             public int? AgeInYears { get; set; }
         
-
     }
 }

@@ -11,12 +11,15 @@ namespace HRMS_Core.VM.importData
         public int? DeductionId { get; set; }
         public string? EmployeeCode { get; set; }
         public string? FullName { get; set; }
+        public decimal? TermInsurance { get; set; }
+        public decimal? GroupMedical { get; set; }
+        public decimal? Loan { get; set; }
+        public decimal? OtherDeduction { get; set; }
         public int? Month { get; set; }
         public int? Year { get; set; }
         public decimal? PF { get; set; }
         public decimal? ESIC { get; set; }
         public decimal? PT { get; set; }
-        public decimal? Insurance { get; set; }
         public decimal? LWF { get; set; }
         public decimal? TDS { get; set; }
         public string? BranchName { get; set; }

@@ -2,9 +2,10 @@
 
 namespace HRMS.UI.Areas.EmployeePanel.Controllers
 {
+    [Area("EmployeePanel")]
     public class PartialViewController : Controller
     {
-        [Area("EmployeePanel")]
+        
         public IActionResult PersonalInfo()
         {
             return PartialView("_PersonalInfo");
@@ -32,27 +33,27 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
         }
         public IActionResult Reporting()
         {
-            return PartialView("_Reporting ");
+           return PartialView("_Reporting");
         }
         public IActionResult Experience()
         {
-            return PartialView("_Experience ");
+            return PartialView("_Experience");
         }
         public IActionResult Qualification()
         {
-            return PartialView("_Qualification ");
+            return PartialView("_Qualification");
         }
         public IActionResult Skills()
         {
-            return PartialView("_Skills ");
+            return PartialView("_Skills");
         }
         public IActionResult Attachments()
         {
-            return PartialView("_Attachments ");
+            return PartialView("_Attachments");
         }
         public IActionResult Allowance()
         {
-            return PartialView("_Allowance ");
+            return PartialView("_Allowance");
         }
         public IActionResult Salary()
         {

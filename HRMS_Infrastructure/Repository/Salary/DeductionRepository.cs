@@ -42,6 +42,7 @@ namespace HRMS_Infrastructure.Repository.Salary
             catch (Exception ex)
             {
 
+
                 return new List<GetAllDeductionData>();
             }
         }

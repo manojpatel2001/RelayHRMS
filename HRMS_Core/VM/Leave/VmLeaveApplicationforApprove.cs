@@ -10,7 +10,7 @@ namespace HRMS_Core.VM.Leave
     {
 
         
-            public int LeaveApplicationId { get; set; }
+            public int LeaveApplicationid { get; set; }
             public string? LeaveTypeName { get; set; }
             public string? EmployeeName { get; set; }
 
@@ -19,10 +19,11 @@ namespace HRMS_Core.VM.Leave
             public string? ReportingPersonName { get; set; }
             public DateTime? FromDate { get; set; }
             public DateTime? Todate { get; set; }
-            public int? No_Of_Date { get; set; }
+            public decimal? No_Of_Date { get; set; }
             public string? Reason { get; set; }
             public string? ApplicationType { get; set; }
             public string? LeaveStatus { get; set; }
+            public string? BranchName { get; set; }
         
     }
 }

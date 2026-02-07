@@ -1,0 +1,973 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Probation Status";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<title>Probation Status</title>
+
+<!-- jQuery + Bootstrap + SweetAlert + XLSX -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+        margin-bottom: 20px;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover,
+        .btn-custom:focus,
+        .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .search-panel-wrapper {
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+
+    /* Searchable Select Styles */
+    .searchable-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .searchable-select-input {
+        width: 100%;
+        padding: 8px 35px 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 13px;
+        cursor: pointer;
+        background: white;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+        .searchable-select-input:focus {
+            outline: none;
+            border-color: #3e4b6d;
+        }
+
+    .searchable-select-arrow {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        width: 16px;
+        height: 16px;
+    }
+
+        .searchable-select-arrow svg {
+            width: 100%;
+            height: 100%;
+            fill: #666;
+        }
+
+    .searchable-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-top: 4px;
+        max-height: 300px;
+        display: none;
+        flex-direction: column;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+        .searchable-select-dropdown.active {
+            display: flex;
+        }
+
+    .searchable-select-search {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 6px 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 13px;
+    }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3e4b6d;
+        }
+
+    .multi-select-actions {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        gap: 8px;
+    }
+
+    .multi-select-btn {
+        flex: 1;
+        padding: 4px 8px;
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+        .multi-select-btn:hover {
+            background: #e8e8e8;
+        }
+
+    .searchable-select-options {
+        overflow-y: auto;
+        max-height: 200px;
+    }
+
+    .searchable-select-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        transition: background 0.2s;
+    }
+
+        .searchable-select-option:hover {
+            background: #f5f5f5;
+        }
+
+        .searchable-select-option.selected {
+            background: #e3f2fd;
+        }
+
+        .searchable-select-option input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+    .field-error {
+        font-size: 12px;
+        margin-top: 4px;
+    }
+
+    /* Action buttons positioning */
+    .action-buttons-container {
+        width: 100%;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        text-align: right;
+    }
+
+        .action-buttons-container .btn-custom {
+            margin-left: 8px;
+            padding: 6px 16px;
+            font-size: 14px;
+        }
+
+    .btn-excel {
+        background-color: #28a745 !important;
+        color: white !important;
+        border: none;
+        padding: 6px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-excel:hover,
+        .btn-excel:focus,
+        .btn-excel:active {
+            background-color: #218838 !important;
+            color: white !important;
+            outline: none;
+            box-shadow: none;
+        }
+
+    /* Container adjustments */
+    .main-container {
+        padding: 0 15px;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    #probationGrid {
+        width: 100% !important;
+        min-height: auto !important;
+    }
+
+    .dx-datagrid {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .dx-datagrid-content {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .dx-datagrid-rowsview {
+        height: auto !important;
+    }
+
+    .dx-scrollable-container {
+        height: auto !important;
+    }
+
+    .grid-container {
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    /* DevExtreme Dropdown Fixes */
+    .dx-dropdowneditor-overlay {
+        z-index: 10000 !important;
+    }
+
+    .dx-overlay-wrapper {
+        z-index: 10000 !important;
+    }
+
+    .dx-popup-wrapper {
+        z-index: 10000 !important;
+    }
+
+    .dx-dropdownlist-popup-wrapper {
+        z-index: 10000 !important;
+    }
+
+    .dx-dropdowneditor-input-wrapper {
+        overflow: visible !important;
+    }
+
+    .dx-texteditor {
+        overflow: visible !important;
+    }
+
+    .dx-datagrid-container {
+        overflow: visible !important;
+    }
+
+    /* Ensure dropdown opens properly */
+    .dx-popup-content {
+        overflow: visible !important;
+    }
+
+    .dx-scrollable-content {
+        overflow: visible !important;
+    }
+</style>
+
+<!-- Search Panel Header -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search panel</div>
+        </div>
+    </div>
+</div>
+
+<!-- Form Starts -->
+<div class="form-section">
+    <!-- Row 1: Search By & Search For -->
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="searchby" class="form-label mb-0 me-2" style="width: 120px;">Search By:</label>
+            <select class="form-select form-select-sm" id="searchby" style="width: 300px;">
+                <option value="">Select</option>
+                <option value="EmpCode">Emp Code</option>
+                <option value="EmpName">Emp Name</option>
+                <option value="Status">Status</option>
+            </select>
+        </div>
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="searchfor" class="form-label mb-0 me-2" style="width: 120px;">Search for:</label>
+            <input type="text" class="form-control form-control-sm" id="searchfor" style="width: 300px;" />
+        </div>
+    </div>
+
+    <!-- Row 2: Branch Dropdown Only -->
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-5 d-flex align-items-center">
+            <label for="branchDropdown" class="form-label mb-0 me-2" style="width: 120px;">Branch<span class="text-danger">*</span>:</label>
+            <div class="searchable-select-wrapper" style="width: 300px;">
+                <input type="text" class="searchable-select-input" id="branchDropdown" placeholder="Select Branch" readonly>
+                <span class="searchable-select-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                    </svg>
+                </span>
+                <div class="searchable-select-dropdown">
+                    <div class="searchable-select-search">
+                        <input type="text" placeholder="Search branch..." class="search-input">
+                    </div>
+                    <div class="multi-select-actions">
+                        <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                        <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                    </div>
+                    <div class="searchable-select-options"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <!-- Empty column for alignment -->
+        </div>
+    </div>
+
+    <!-- Row 3: Radio Buttons + Buttons -->
+    <div class="row justify-content-center align-items-center mb-3">
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <!-- Radio Buttons -->
+                <div class="d-flex align-items-center flex-wrap">
+                    <div class="form-check me-4">
+                        <input class="form-check-input" type="radio" name="type" id="r1" value="Pending" checked>
+                        <label class="form-check-label" for="r1">Pending</label>
+                    </div>
+                    <div class="form-check me-4">
+                        <input class="form-check-input" type="radio" name="type" id="r2" value="Final">
+                        <label class="form-check-label" for="r2">Approved</label>
+                    </div>
+
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex align-items-center mt-2 mt-md-0">
+                    <button class="btn btn-custom me-2" id="btnGo">Go</button>
+                    <button class="btn btn-custom" id="btnClear">Clear</button>
+                    <button class="btn btn-custom" onclick="goBack()">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PROBATION STATUS Heading -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">PROBATION STATUS</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Container for Grid and Buttons -->
+<div class="main-container">
+
+
+    <!--Loader-->
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+        <img src="@baseDomainUrl/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+        <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons-container">
+        <button class="btn btn-excel" id="btnExportExcel">
+            <i class="fas fa-file-excel me-1"></i> Export to Excel
+        </button>
+    </div>
+
+    <!-- Grid Container -->
+    <div class="grid-container">
+        <div id="probationGrid"></div>
+    </div>
+</div>
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    // Custom Searchable Multi-Select Plugin
+    (function($) {
+        $.fn.searchableSelect = function(options) {
+            const settings = $.extend({
+                data: [],
+                valueKey: 'value',
+                textKey: 'text',
+                placeholder: 'Select',
+                searchPlaceholder: 'Search...',
+                onChange: null
+            }, options);
+
+            return this.each(function() {
+                const $input = $(this);
+                const $wrapper = $input.closest('.searchable-select-wrapper');
+                const $dropdown = $wrapper.find('.searchable-select-dropdown');
+                const $searchInput = $dropdown.find('.search-input');
+                const $optionsContainer = $dropdown.find('.searchable-select-options');
+                const $selectAllBtn = $dropdown.find('.select-all-btn');
+                const $clearAllBtn = $dropdown.find('.clear-all-btn');
+
+                let selectedValues = [];
+                let allData = settings.data;
+
+                $input.data('searchableSelect', {
+                    setData: function(newData) {
+                        allData = newData;
+                        selectedValues = [];
+                        renderOptions();
+                        updateInputDisplay();
+                    },
+                    getValue: function() {
+                        return selectedValues;
+                    },
+                    setValue: function(values) {
+                        selectedValues = values || [];
+                        renderOptions();
+                        updateInputDisplay();
+                    },
+                    clear: function() {
+                        selectedValues = [];
+                        renderOptions();
+                        updateInputDisplay();
+                    }
+                });
+
+                $input.on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    $('.searchable-select-dropdown').not($dropdown).removeClass('active');
+                    $dropdown.toggleClass('active');
+                    if ($dropdown.hasClass('active')) {
+                        $searchInput.focus();
+                    }
+                });
+
+                $dropdown.on('click', function(e) {
+                    e.stopPropagation();
+                });
+
+                $searchInput.on('input', function() {
+                    const searchTerm = $(this).val().toLowerCase();
+                    renderOptions(searchTerm);
+                });
+
+                $selectAllBtn.on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectedValues = allData.map(item => item[settings.valueKey]);
+                    renderOptions($searchInput.val());
+                    updateInputDisplay();
+                    if (settings.onChange) settings.onChange(selectedValues);
+                });
+
+                $clearAllBtn.on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectedValues = [];
+                    renderOptions($searchInput.val());
+                    updateInputDisplay();
+                    if (settings.onChange) settings.onChange(selectedValues);
+                });
+
+                function renderOptions(searchTerm = '') {
+                    $optionsContainer.empty();
+
+                    const filteredData = allData.filter(item => {
+                        const text = item[settings.textKey].toLowerCase();
+                        return text.includes(searchTerm.toLowerCase());
+                    });
+
+                    if (filteredData.length === 0) {
+                        $optionsContainer.html('<div style="padding: 12px; text-align: center; color: #999;">No results found</div>');
+                        return;
+                    }
+
+                    filteredData.forEach(item => {
+                        const value = item[settings.valueKey];
+                        const text = item[settings.textKey];
+                        const isSelected = selectedValues.includes(value);
+
+                        const $option = $(`
+                            <div class="searchable-select-option ${isSelected ? 'selected' : ''}" data-value="${value}">
+                                <input type="checkbox" ${isSelected ? 'checked' : ''}>
+                                <span>${text}</span>
+                            </div>
+                        `);
+
+                        $option.on('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const checkbox = $(this).find('input[type="checkbox"]');
+                            checkbox.prop('checked', !checkbox.prop('checked'));
+
+                            if (checkbox.prop('checked')) {
+                                if (!selectedValues.includes(value)) {
+                                    selectedValues.push(value);
+                                }
+                            } else {
+                                selectedValues = selectedValues.filter(v => v !== value);
+                            }
+
+                            $(this).toggleClass('selected', checkbox.prop('checked'));
+                            updateInputDisplay();
+                            if (settings.onChange) settings.onChange(selectedValues);
+                        });
+
+                        $optionsContainer.append($option);
+                    });
+                }
+
+                function updateInputDisplay() {
+                    if (selectedValues.length === 0) {
+                        $input.val('').attr('placeholder', settings.placeholder);
+                    } else {
+                        const selectedTexts = selectedValues.map(val => {
+                            const item = allData.find(d => d[settings.valueKey] === val);
+                            return item ? item[settings.textKey] : '';
+                        }).filter(t => t);
+
+                        $input.val(selectedTexts.join(', '));
+                    }
+                }
+
+                renderOptions();
+            });
+        };
+    })(jQuery);
+
+    $(document).ready(function () {
+        console.log('Document ready!');
+
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.searchable-select-wrapper').length) {
+                $('.searchable-select-dropdown').removeClass('active');
+            }
+        });
+
+        $('#branchDropdown').searchableSelect({
+            data: [],
+            valueKey: 'branchId',
+            textKey: 'branchName',
+            placeholder: 'Select Branch',
+            searchPlaceholder: 'Search branch...',
+            onChange: function(selectedValues) {
+                console.log('Selected branches:', selectedValues);
+            }
+        });
+
+        $('.searchable-select-input').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const $dropdown = $(this).siblings('.searchable-select-dropdown');
+            $('.searchable-select-dropdown').not($dropdown).removeClass('active');
+            $dropdown.toggleClass('active');
+        });
+
+        $('.searchable-select-wrapper').on('click', function(e) {
+            if (!$(e.target).hasClass('search-input') && !$(e.target).closest('.searchable-select-options').length) {
+                e.preventDefault();
+                e.stopPropagation();
+                const $dropdown = $(this).find('.searchable-select-dropdown');
+                $('.searchable-select-dropdown').not($dropdown).removeClass('active');
+                $dropdown.toggleClass('active');
+            }
+        });
+
+        BindBranchDropdown();
+        $('#r1').prop('checked', true);
+        loadDefaultPendingData();
+    });
+
+    let selectedKeys = [];
+
+    function goBack() {
+        window.history.back();
+    }
+
+    function getStatus() {
+        return $('input[name="type"]:checked').val() || 'Pending';
+    }
+
+    function BindBranchDropdown() {
+        $.ajax({
+            url: '@baseDomainUrl/api/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function(response) {
+                if (response?.data?.length > 0) {
+                    const branchDropdown = $('#branchDropdown').data('searchableSelect');
+                    if (branchDropdown) {
+                        branchDropdown.setData(response.data);
+                    }
+                }
+            },
+            error: function() {
+                console.error('Failed to load branches');
+            }
+        });
+    }
+
+    function showLoder(){
+        $('#grid-loader').addClass('d-flex').show();
+    }
+
+    function hideLoder(){
+        $('#grid-loader').removeClass('d-flex').hide();
+    }
+
+    function loadGrid(data) {
+        try {
+            const gridInstance = $("#probationGrid").dxDataGrid("instance");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+            // Grid doesn't exist yet
+        }
+
+        $("#probationGrid").empty();
+
+        // Add unique row indices
+        const processedData = data.map(function(item, idx) {
+            return {
+                rowIndex: idx,
+                employeeId: item.employeeId,
+                employeeCode: item.employeeCode,
+                fullName: item.fullName,
+                branchName: item.branchName,
+                dateOfJoining: item.dateOfJoining,
+                probationEndDate: item.probationEndDate,
+                reviewType: item.reviewType,
+                updatedBy: item.updatedBy,
+                updatedDate: item.updatedDate
+            };
+        });
+
+        $("#probationGrid").dxDataGrid({
+            dataSource: processedData,
+            keyExpr: "rowIndex",
+            showBorders: true,
+            width: "100%",
+            height: 500,
+            paging: { enabled: false },
+            scrolling: {
+                mode: "standard",
+                useNative: true,
+                showScrollbar: "always"
+            },
+            columnAutoWidth: false,
+            allowColumnResizing: false,
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always",
+                selectAllMode: "allPages"
+            },
+            filterRow: { visible: false },
+            searchPanel: { visible: false },
+            onSelectionChanged: function (e) {
+                selectedKeys = e.selectedRowKeys;
+                console.log('Selected Keys:', selectedKeys);
+            },
+            columns: [
+                { dataField: "employeeCode", caption: "Emp Code", width: 100 },
+                { dataField: "fullName", caption: "Employee Name", width: 200 },
+                { dataField: "branchName", caption: "Branch", width: 150 },
+                {
+                    dataField: "dateOfJoining",
+                    caption: "Date of Joining",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: 140
+                },
+                {
+                    dataField: "probationEndDate",
+                    caption: "Probation End Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: 160,
+                     calculateCellValue: function(rowData) {
+                        return rowData.probationEndDate ? rowData.probationEndDate : "-";
+                    }
+                },
+                { dataField: "reviewType", caption: "Review Type", width: 100 },
+                {
+                    dataField: "updatedBy",
+                    caption: "Review By",
+                    width: 150,
+                    calculateCellValue: function(rowData) {
+                        return rowData.updatedBy ? rowData.updatedBy : "-";
+                    }
+                }
+            ]
+        });
+
+        $("#actionButtons").show();
+    }
+
+    function loadDefaultPendingData() {
+        showLoder();
+
+        let model = {
+            searchBy: null,
+            searchValue: null,
+            branchId: null,
+            status: 'Pending'
+        };
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/ReportAPI/GetProbationStatusSearch")',
+            type: 'POST',
+            data: JSON.stringify(model),
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (res) {
+                console.log('res', res);
+                hideLoder();
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    loadGrid(res.data);
+                } else {
+                    $("#probationGrid").empty();
+                    $("#actionButtons").hide();
+                }
+            },
+            error: function (xhr, status, error) {
+                hideLoder();
+                console.error('API Error:', xhr.responseText);
+                round_error_noti('Error occurred while fetching data');
+            }
+        });
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return day + '/' + month + '/' + year;
+        } catch (e) {
+            return '';
+        }
+    }
+
+    // NEW EXPORT FUNCTION - Different name to avoid conflicts
+    function doExportProbationData() {
+        try {
+       
+            const gridInstance = $("#probationGrid").dxDataGrid("instance");
+            if (!gridInstance) {
+                round_error_noti('Grid not initialized');
+                return;
+            }
+            const selectedRowsData = gridInstance.getSelectedRowsData();
+         
+            if (!selectedRowsData || selectedRowsData.length === 0) {
+                round_error_noti('Please select at least one row to export');
+                return;
+            }
+
+       
+            const excelArray = [];
+
+            // Add header row
+            excelArray.push([
+                'Emp Code',
+                'Employee Name',
+                'Branch',
+                'Date of Joining',
+                'Probation End Date',
+                'Review Type',
+                'Review By'
+            ]);
+
+            // Add data rows
+            for (let i = 0; i < selectedRowsData.length; i++) {
+                const row = selectedRowsData[i];
+                excelArray.push([
+                    row.employeeCode || '',
+                    row.fullName || '',
+                    row.branchName || '',
+                    row.dateOfJoining ? formatDate(row.dateOfJoining) : '',
+                    row.probationEndDate ? formatDate(row.probationEndDate) : '',
+                    row.reviewType || '',
+                    row.updatedBy || '-'
+                ]);
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(excelArray);
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 12 },
+                { wch: 25 },
+                { wch: 20 },
+                { wch: 15 },
+                { wch: 18 },
+                { wch: 15 },
+                { wch: 20 }
+            ];
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Probation Status');
+
+            // Generate filename
+            const today = new Date();
+            const filename = 'Probation_Status_' + today.getDate() + '-' + (today.getMonth() + 1) + '-' + today.getFullYear() + '.xlsx';
+
+            // Download file
+            XLSX.writeFile(wb, filename);
+
+            round_success_noti('Exported ' + selectedRowsData.length + ' records successfully!');
+
+        } catch (error) {
+          
+            console.error('Error:', error);
+            console.error('Stack:', error.stack);
+            round_error_noti('Export failed: ' + error.message);
+        }
+    }
+
+    // Button click handler
+    $('#btnExportExcel').off('click').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();     
+        doExportProbationData();
+        return false;
+    });
+
+    $('#btnGo').on('click', function () {
+        debugger;
+        showLoder();
+        const branchDropdown = $('#branchDropdown').data('searchableSelect');
+        const selectedBranches = branchDropdown ? branchDropdown.getValue() : [];
+        // Ensure selectedBranches is an array, even if getValue() returns null/undefined
+        const safeSelectedBranches = Array.isArray(selectedBranches) ? selectedBranches : [];
+
+        let model = {
+            searchBy: $('#searchby').val() || null,
+            searchValue: $('#searchfor').val() || null,
+            branchId: safeSelectedBranches.length > 0 ? safeSelectedBranches.join(',') : null,
+            status: getStatus() || 'Pending'
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/ReportAPI/GetProbationStatusSearch")',
+            type: 'POST',
+            data: JSON.stringify(model),
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (res) {
+                hideLoder();
+             
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    loadGrid(res.data);
+                } else {
+                    $("#probationGrid").empty();
+                    $("#actionButtons").hide();
+                    round_error_noti('No Data Found');
+                }
+            },
+            error: function (xhr, status, error) {
+                hideLoder();
+                console.error('API Error:', xhr.responseText);
+                round_error_noti('Error occurred while fetching data');
+            }
+        });
+    });
+
+
+    $("#btnClear").click(function () {
+        $('#searchby').val("");
+        $('#searchfor').val('');
+
+        const branchDropdown = $('#branchDropdown').data('searchableSelect');
+        if (branchDropdown) branchDropdown.clear();
+
+        $("input[name='type']").prop('checked', false);
+        $('#r1').prop('checked', true);
+
+        try {
+            const gridInstance = $("#probationGrid").dxDataGrid("instance");
+            if (gridInstance) {
+                gridInstance.dispose();
+            }
+        } catch (e) {
+            
+        }
+
+        $("#probationGrid").empty();
+        $("#actionButtons").hide();
+        loadDefaultPendingData();
+    });
+
+</script>

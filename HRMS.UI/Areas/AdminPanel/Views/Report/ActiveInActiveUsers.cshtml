@@ -1,0 +1,221 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+<style>
+    .fixed-label {
+        min-width: 180px;
+        white-space: nowrap;
+        margin-bottom: 0;
+        text-align: right;
+    }
+
+    .section-heading {
+        background-color: #1e3a5f !important;
+        color: white !important;
+        font-weight: 600;
+        padding: 8px 15px;
+        border-radius: 0.375rem 0.375rem 0 0;
+    }
+
+    .card-header.custom-header {
+        background-color: transparent !important;
+        border-bottom: none;
+        padding: 0;
+    }
+
+    .form-check-input:checked {
+        background-color: #1e3a5f;
+        border-color: #1e3a5f;
+    }
+
+    .form-check-label {
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .grid-container {
+        margin-top: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
+
+    .radio-container {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        padding: 15px;
+        border-radius: 0 0 0.375rem 0.375rem;
+    }
+
+    .radio-section {
+        border-right: 2px solid #dee2e6;
+        padding-right: 20px;
+    }
+
+        .radio-section:last-child {
+            border-right: none;
+            padding-left: 20px;
+        }
+
+    .radio-section-title {
+        font-weight: 600;
+        color: #1e3a5f;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<div class="card mb-4">
+    <div class="card-header custom-header">
+        <div class="row">
+            <div class="col">
+                <h6 class="section-heading">Employee Records</h6>
+            </div>
+        </div>
+
+        <!-- Radio buttons section -->
+        <div class="radio-container">
+            <form>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-check d-inline-block me-4">
+                            <input class="form-check-input" type="radio" name="Status" id="activeid" value="Active" checked>
+                            <label class="form-check-label" for="activeid">Active</label>
+                        </div>
+                        <div class="form-check d-inline-block">
+                            <input class="form-check-input" type="radio" name="Status" id="inactiveid" value="Inactive">
+                            <label class="form-check-label" for="inactiveid">Inactive</label>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Employee Grid -->
+        <div class="grid-container">
+            <div id="employeeGrid"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const apiBase = '@baseUrl';
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = sessionStorage.getItem('EmployeeId');
+    const Token = sessionStorage.getItem("authToken");
+
+    $(document).ready(function () {
+        let selectedStatus = 'Active';
+
+        // Initialize grid first
+        initializeGrid();
+
+        // Load initial data
+        loadEmployeeGrid(selectedStatus);
+
+        // Radio change event
+        $('input[name="Status"]').change(function () {
+            selectedStatus = $(this).val();
+            loadEmployeeGrid(selectedStatus);
+        });
+    });
+
+    let gridInstance = null;
+
+    function initializeGrid() {
+        if (!gridInstance) {
+            gridInstance = $("#employeeGrid").dxDataGrid({
+                dataSource: [],
+                showBorders: true,
+                height: '400',
+                rowAlternationEnabled: true,
+                columnAutoWidth: true,
+                showColumnLines: true,
+                showRowLines: true,
+                                  paging: {
+                                         enabled: false
+                                        },
+                                        scrolling: {
+                                            mode: "standard",
+                                            useNative: true,
+                                            showScrollbar: "always"
+                                        },
+                columns: [
+                  
+                    {
+                        dataField: "loginAlias",
+                        caption: "Login Alias",
+                        width: 190
+                    },
+                  
+                    {
+                        dataField: "employeeCode",
+                        caption: "Employee Code",
+                        width: 150
+                    },
+                    {
+                        dataField: "fullName",
+                        caption: "Employee Name"
+                    }
+                  
+                ],
+                onContentReady: function(e) {
+                    $('.dx-header-row').css({
+                        'background-color': '#1e3a5f',
+                        'color': 'white',
+                        'font-weight': '600'
+                    });
+                }
+            }).dxDataGrid("instance");
+        }
+    }
+
+    function loadEmployeeGrid(status) {
+        $.ajax({
+            type: "GET",
+            url: apiBase + '/ReportAPI/ActiveOrInactive',
+            data: {
+                Compid: CompanyId,
+                Action: status
+            },
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess) {
+                    const data = response.data;
+                    initializeGrid();
+                    if (gridInstance) {
+                        gridInstance.option("dataSource", data);
+                        gridInstance.refresh();
+                    }
+                } else {
+                    if (gridInstance) {
+                        gridInstance.option("dataSource", []);
+                        gridInstance.refresh();
+                    }
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr);
+                if (gridInstance) {
+                    gridInstance.option("dataSource", []);
+                    gridInstance.refresh();
+                }
+            }
+        });
+    }
+</script>

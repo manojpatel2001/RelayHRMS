@@ -15,6 +15,7 @@ namespace HRMS_Core.VM.Ess.InOut
         public DateTime? CreatedOn { get; set; }
         public string? Mode { get; set; }
         public DateTime? PunchDateTime { get; set; }
+        public string? PunchTime { get; set; }
         public int? CompanyId { get; set; }
         public string? CompanyName { get; set; }
     }
