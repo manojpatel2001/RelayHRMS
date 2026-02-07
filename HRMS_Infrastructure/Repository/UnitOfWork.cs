@@ -177,6 +177,7 @@ namespace HRMS_Infrastructure.Repository
             EmployeeTransferRepository = new EmployeeTransferRepository(_dbContext);
             ExitApplicationRepository = new ExitApplicationRepository(_dbContext);
             NOCRepository = new NOCRepository(_dbContext);
+            NewsAnnouncementRepository =new NewsAnnouncementRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -315,6 +316,8 @@ namespace HRMS_Infrastructure.Repository
         public IExitApplicationRepository ExitApplicationRepository { get; set; }
 
         public INOCRepository NOCRepository { get; set; }
+
+        public INewsAnnouncementRepository NewsAnnouncementRepository { get; set; }
 
         public void Commit()
         {

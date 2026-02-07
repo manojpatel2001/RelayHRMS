@@ -151,6 +151,7 @@ namespace HRMS_Infrastructure.Interface
         IEmployeeTransferRepository EmployeeTransferRepository { get; }
         IExitApplicationRepository ExitApplicationRepository { get; }
         INOCRepository NOCRepository { get; }
+        INewsAnnouncementRepository NewsAnnouncementRepository { get; }
         void Commit();
         Task CommitAsync();
     }

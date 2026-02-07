@@ -1,0 +1,941 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "News & Announcements";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+@* 
+    Note: If you see "Failed to load resource: sound4.ogg" error in console,
+    this is a browser notification sound error and can be safely ignored.
+    To fix it completely, ensure the notification sound file exists in your project
+    or disable browser notification sounds in your notification library settings.
+*@
+
+
+
+<style>
+    .multi-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+        .multi-select-wrapper label {
+            position: absolute;
+            top: -10px;
+            left: 12px;
+            background: white;
+            padding: 0 5px;
+            font-size: 12px;
+            color: #495057;
+            z-index: 1;
+        }
+
+    .multi-select-display {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 8px 35px 8px 12px;
+        cursor: pointer;
+        background: white;
+        min-height: 38px;
+        max-height: 120px; /* Added max-height */
+        overflow-y: auto; /* Added scrollbar */
+        display: flex;
+        align-items: flex-start; /* Changed from center to flex-start */
+        flex-wrap: wrap;
+        gap: 5px;
+        position: relative;
+    }
+
+        .multi-select-display:hover {
+            border-color: #86b7fe;
+        }
+
+        /* Custom scrollbar styling */
+        .multi-select-display::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .multi-select-display::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .multi-select-display::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+            .multi-select-display::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+
+    .multi-select-placeholder {
+        color: #6c757d;
+        font-size: 14px;
+    }
+
+    .multi-select-arrow {
+        position: absolute;
+        right: 10px;
+        top: 12px; /* Fixed position from top instead of center */
+        width: 12px;
+        height: 12px;
+        pointer-events: none;
+    }
+
+        .multi-select-arrow svg {
+            width: 100%;
+            height: 100%;
+            fill: #495057;
+        }
+
+    .multi-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        margin-top: 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .multi-select-search {
+        padding: 8px;
+        border-bottom: 1px solid #e9ecef;
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 1;
+    }
+
+        .multi-select-search input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+            .multi-select-search input:focus {
+                outline: none;
+                border-color: #86b7fe;
+                box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+            }
+
+    .select-all-option {
+        padding: 8px 12px;
+        border-bottom: 1px solid #e9ecef;
+        background: #f8f9fa;
+        font-weight: 500;
+        position: sticky;
+        top: 45px;
+        z-index: 1;
+    }
+
+    .multi-select-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+        .multi-select-option:hover {
+            background: #f8f9fa;
+        }
+
+    .multi-select-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+        .multi-select-checkbox + label {
+            cursor: pointer;
+            margin: 0;
+            position: static;
+            background: none;
+            padding: 0;
+        }
+
+    .selected-tag {
+        background: #2395c6;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap; /* Prevent tag text wrapping */
+    }
+
+        .selected-tag .remove-tag {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+            .selected-tag .remove-tag:hover {
+                color: #ff4444;
+            }
+</style>
+
+<div class="card">
+    <div class="card-header bg-transparent ml-0 py-0">
+        <div class="row">
+            <div class="col-6">
+                <h6 class="pt-2 mb-0">
+                    Manage News & Announcements
+                </h6>
+            </div>
+
+            <div class="col-6 d-flex justify-content-end align-items-center">
+                <button id="addNewsAnnouncement"
+                        type="button"
+                        class="btn mr-1 rounded-1"
+                        style="background-color:#2395c6; color:white;">
+                    Add
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+
+        <div class="card-body">
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-group">
+
+                        <div class="grid-wrapper " style="position: relative; ">
+                            <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+                                 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+                                <img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+                                <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+                            </div>
+                            <div id="gridTag">
+                                <div class="rowCount" id="rowCount1"></div>
+                                <div id="gridContainer"></div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="modal fade" id="addNewsAnnouncementModal" tabindex="-1" aria-labelledby="addNewsAnnouncementLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title btn-heading-title" id="modalTitle">Add News & Announcement</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font" style="font-size:12px;">
+                <form id="newsAnnouncementForm">
+                    <input type="hidden" id="newsAnnouncementId" value="0">
+
+                    <div class="row">
+                        <!-- News Title -->
+                        <div class="col-md-6">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="text" class="form-control floating-input" id="newsTitle" placeholder="News Title">
+                                <label class="floating-label" for="newsTitle">News Title <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spnNewsTitle" style="color:red; display:none; font-size: 0.85em;">Please Enter News Title</span>
+                        </div>
+
+                        <!-- Branch (Multi-select) -->
+                        <div class="col-md-6">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="multi-select-wrapper" id="branchWrapper">
+                                    <label for="branch">Branch <span class="text-danger">*</span></label>
+                                    <div class="multi-select-display" id="branchDisplay">
+                                        <span class="multi-select-placeholder">Select branches...</span>
+                                        <span class="multi-select-arrow">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <div class="multi-select-dropdown" id="branchDropdown" style="display: none;">
+                                        <div class="multi-select-search">
+                                            <input type="text" placeholder="Search branch..." class="search-input" id="branchSearch">
+                                        </div>
+                                        <div class="multi-select-option select-all-option">
+                                            <input type="checkbox" id="selectAllBranches" class="multi-select-checkbox">
+                                            <label for="selectAllBranches">Select All</label>
+                                        </div>
+                                        <div class="multi-select-options" id="branchOptions"></div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="selectedBranches" value="">
+                                <span id="spnBranch" style="color:red; display:none; font-size: 0.85em;">Please Select at least one Branch</span>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-md-12">
+                            <div class="form-group mt-3 position-relative">
+                                <textarea class="form-control floating-input" id="description" placeholder="Description" rows="3"></textarea>
+                                <label class="floating-label" for="description">Description <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spnDescription" style="color:red; display:none; font-size: 0.85em;">Please Enter Description</span>
+                        </div>
+
+                        <!-- Start Date -->
+                        <div class="col-md-6">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="date" class="form-control floating-input" id="startDate" placeholder="Start Date">
+                                <label class="floating-label" for="startDate">Start Date <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spnStartDate" style="color:red; display:none; font-size: 0.85em;">Please Select Start Date</span>
+                        </div>
+
+                        <!-- End Date -->
+                        <div class="col-md-6">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="date" class="form-control floating-input" id="endDate" placeholder="End Date">
+                                <label class="floating-label" for="endDate">End Date <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spnEndDate" style="color:red; display:none; font-size: 0.85em;">Please Select End Date</span>
+                        </div>
+
+                        <!-- Checkboxes Row -->
+                        <div class="col-md-12">
+                            <div class="row mt-3">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isShow">
+                                        <label class="form-check-label" for="isShow">
+                                            Is Show
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isThought">
+                                        <label class="form-check-label" for="isThought">
+                                            Is Thought
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isPopup">
+                                        <label class="form-check-label" for="isPopup">
+                                            Is Popup
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="loginNotification">
+                                        <label class="form-check-label" for="loginNotification">
+                                            Login Notification
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer btn-heading-title">
+                <button type="button" class="btn btn-primary" id="btnSaveNewsAnnouncement" style="background-color:#2395c6; color:white;">Save</button>
+                <button type="button" class="btn btn-primary" id="btnSavingNewsAnnouncement" style="background-color:#2395c6; color:white;display:none;" disabled><span class="spinner-border spinner-border-sm me-2" role="status"></span> Saving..</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="~/assets/js/jquery.min.js"></script>
+<script>
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails?.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    let branchesData = [];
+    let selectedBranchIds = [];
+
+    $(document).ready(function () {
+        // Disable toastr sounds to prevent sound4.ogg error
+        if (typeof toastr !== 'undefined') {
+            toastr.options.closeButton = true;
+            toastr.options.progressBar = true;
+            toastr.options.positionClass = "toast-top-right";
+            toastr.options.timeOut = 3000;
+            toastr.options.playSound = false; // Disable sound
+        }
+
+        // Set current date by default
+        var today = new Date().toISOString().split('T')[0];
+        $('#startDate').val(today);
+
+        loadNewsAnnouncements(CompanyId);
+        BindBranchDropdown();
+        initializeBranchMultiSelect();
+    });
+
+    function initializeBranchMultiSelect() {
+        // Toggle dropdown
+        $('#branchDisplay').click(function(e) {
+            e.stopPropagation();
+            $('#branchDropdown').toggle();
+        });
+
+        // Close dropdown when clicking outside
+        $(document).click(function(e) {
+            if (!$(e.target).closest('.multi-select-wrapper').length) {
+                $('#branchDropdown').hide();
+            }
+        });
+
+        // Search functionality
+        $('#branchSearch').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            $('.multi-select-option').not('.select-all-option').each(function() {
+                const text = $(this).find('label').text().toLowerCase();
+                $(this).toggle(text.includes(searchTerm));
+            });
+        });
+
+        // Select All functionality
+        $('#selectAllBranches').change(function() {
+            const isChecked = $(this).is(':checked');
+            $('.multi-select-option').not('.select-all-option').find('input[type="checkbox"]').prop('checked', isChecked);
+            updateSelectedBranches();
+        });
+    }
+
+    function renderBranchOptions(branches) {
+        branchesData = branches;
+        const optionsHtml = branches.map(branch => `
+            <div class="multi-select-option">
+                <input type="checkbox" id="branch_${branch.branchId}" class="multi-select-checkbox branch-checkbox" value="${branch.branchId}">
+                <label for="branch_${branch.branchId}">${branch.branchName}</label>
+            </div>
+        `).join('');
+
+        $('#branchOptions').html(optionsHtml);
+
+        // Add change event to checkboxes
+        $('.branch-checkbox').change(function() {
+            updateSelectedBranches();
+            updateSelectAllCheckbox();
+        });
+    }
+
+    function updateSelectedBranches() {
+        selectedBranchIds = [];
+        const selectedTags = [];
+
+        $('.branch-checkbox:checked').each(function() {
+            const branchId = $(this).val();
+            selectedBranchIds.push(branchId);
+
+            const branch = branchesData.find(b => b.branchId == branchId);
+            if (branch) {
+                selectedTags.push(`
+                    <span class="selected-tag" data-id="${branchId}">
+                        ${branch.branchName}
+                        <span class="remove-tag" onclick="removeBranch(${branchId})">&times;</span>
+                    </span>
+                `);
+            }
+        });
+
+        $('#selectedBranches').val(selectedBranchIds.join(','));
+
+        if (selectedTags.length > 0) {
+            $('#branchDisplay').html(selectedTags.join('') + `
+                <span class="multi-select-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                    </svg>
+                </span>
+            `);
+        } else {
+            $('#branchDisplay').html(`
+                <span class="multi-select-placeholder">Select branches...</span>
+                <span class="multi-select-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                    </svg>
+                </span>
+            `);
+        }
+    }
+
+    function updateSelectAllCheckbox() {
+        const totalCheckboxes = $('.branch-checkbox').length;
+        const checkedCheckboxes = $('.branch-checkbox:checked').length;
+
+        $('#selectAllBranches').prop('checked', totalCheckboxes === checkedCheckboxes && totalCheckboxes > 0);
+    }
+
+    function removeBranch(branchId) {
+        $(`#branch_${branchId}`).prop('checked', false);
+        updateSelectedBranches();
+        updateSelectAllCheckbox();
+    }
+
+    function clearBranchSelection() {
+        $('.branch-checkbox').prop('checked', false);
+        $('#selectAllBranches').prop('checked', false);
+        updateSelectedBranches();
+    }
+
+    function setBranchSelection(branchIds) {
+        clearBranchSelection();
+        if (branchIds && branchIds.length > 0) {
+            branchIds.forEach(id => {
+                $(`#branch_${id}`).prop('checked', true);
+            });
+            updateSelectedBranches();
+            updateSelectAllCheckbox();
+        }
+    }
+
+    $("#addNewsAnnouncement").click(() => {
+        resetNewsAnnouncementForm();
+        $('#modalTitle').text('Add News & Announcement');
+        $("#addNewsAnnouncementModal").modal('show');
+    });
+
+    function showbtnLoder(isUpdate) {
+        $('#btnSaveNewsAnnouncement').hide();
+        if (isUpdate) {
+            $('#btnSavingNewsAnnouncement').html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Updating..');
+        } else {
+            $('#btnSavingNewsAnnouncement').html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> Saving..');
+        }
+        $('#btnSavingNewsAnnouncement').show();
+    }
+
+    function hidebtnLoder() {
+        $('#btnSaveNewsAnnouncement').show();
+        $('#btnSavingNewsAnnouncement').hide();
+    }
+
+    async function BindBranchDropdown() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (data) {
+                    if (data.isSuccess) {
+                        renderBranchOptions(data.data || []);
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch branches');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    async function loadNewsAnnouncements(CompanyId) {
+        $('#grid-loader').addClass('d-flex').show();
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: `@baseUrl/NewsAnnouncementAPI/GetNewsAnnouncement/${CompanyId}`,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    if (!response.isSuccess) {
+                        $('#grid-loader').removeClass('d-flex').hide();
+                        toastr.error(response.responseMessage || 'Failed to load data');
+                        reject(response.responseMessage);
+                        return;
+                    }
+
+                    var gridInstance = $("#gridContainer").dxDataGrid({
+                        dataSource: response.data || [],
+                        columns: [
+                            { dataField: 'newsTitle', caption: 'News Title' },
+                            { dataField: 'newsDescription', caption: 'NewsDescription' },
+             
+                            {
+                                dataField: 'startDate',
+                                caption: 'Start Date',
+                                dataType: 'date',
+                                format: 'dd-MM-yyyy'
+                            },
+                            {
+                                dataField: 'endDate',
+                                caption: 'End Date',
+                                dataType: 'date',
+                                format: 'dd-MM-yyyy'
+                            },
+                            {
+                                dataField: 'isVisible',
+                                caption: 'Show',
+                                dataType: 'boolean',
+                                width: '80px',
+                                alignment: 'center'
+                            },
+                            {
+                                dataField: 'isThought',
+                                caption: 'Thought',
+                                dataType: 'boolean',
+                                width: '80px',
+                                alignment: 'center'
+                            },
+                            {
+                                dataField: 'isPop',
+                                caption: 'Popup',
+                                dataType: 'boolean',
+                                width: '80px',
+                                alignment: 'center'
+                            },
+                            {
+                                dataField: 'isLoginNotification',
+                                caption: 'Login Alert',
+                                dataType: 'boolean',
+                                width: '100px',
+                                alignment: 'center'
+                            },
+                            { dataField: 'newsID', caption: 'Id', visible: false },
+                            {
+                                caption: 'Edit',
+                                dataType: 'string',
+                                width: '70px',
+                                alignment: 'center',
+                                cellTemplate: function (container, options) {
+                                    var buttonElement = $('<a href="javascript:;" class="edit-action" title="Edit News">' +
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">' +
+                                        '<path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>' +
+                                        '<path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>' +
+                                        '</svg>' +
+                                        '</a>');
+
+                                    buttonElement.on('click', function () {
+                                        UpdateNewsAnnouncementData(options.data);
+                                    });
+
+                                    buttonElement.appendTo(container);
+                                }
+                            },
+                            {
+                                caption: 'Delete',
+                                dataType: 'string',
+                                width: '80px',
+                                alignment: 'center',
+                                cellTemplate: function (container, options) {
+                                    var buttonElement = $('<a href="javascript:;" class="delete-action" title="Delete News">' +
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">' +
+                                        '<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>' +
+                                        '<path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>' +
+                                        '</svg>' +
+                                        '</a>');
+
+                                    buttonElement.on('click', function () {
+                                        DeleteNewsAnnouncement(options.data);
+                                    });
+
+                                    buttonElement.appendTo(container);
+                                }
+                            }
+                        ],
+                        columnAutoWidth: true,
+                        allowColumnResizing: true,
+                        columnResizingMode: "widget",
+                        wordWrapEnabled: false,
+                        showBorders: true,
+                        scrolling: {
+                            mode: "standard",
+                            useNative: true,
+                            scrollByContent: true,
+                            scrollByThumb: true,
+                            showScrollbar: "always"
+                        },
+                        rowAlternationEnabled: false,
+                        grouping: { autoExpandAll: false },
+                        paging: { pageSize: 10 },
+                        pager: {
+                            showPageSizeSelector: true,
+                            allowedPageSizes: [10, 25, 50, 100]
+                        },
+                        headerFilter: { visible: false },
+                        filterRow: { visible: false, applyFilter: "auto" },
+                        groupPanel: { visible: false },
+                        searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+                        allowColumnReordering: false,
+                        onContentReady(e) {
+                            $('.rowCount').html('Total Records: ' + e.component.totalCount());
+                            e.component.updateDimensions();
+                            $('#grid-loader').removeClass('d-flex').hide();
+                        }
+                    }).dxDataGrid('instance');
+
+                    $('#grid-loader').removeClass('d-flex').hide();
+                    toastr.success(response.responseMessage || 'Data loaded successfully');
+                    resolve(response.data);
+                },
+                error: function (xhr, status, error) {
+                    $('#grid-loader').removeClass('d-flex').hide();
+                    console.error('Error loading news announcements:', error);
+
+                    let errorMessage = 'Failed to load news announcements';
+                    if (xhr.responseJSON && xhr.responseJSON.responseMessage) {
+                        errorMessage = xhr.responseJSON.responseMessage;
+                    }
+
+                    toastr.error(errorMessage);
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    $('#btnSaveNewsAnnouncement').click(function () {
+        var newsAnnouncementId = $('#newsAnnouncementId').val();
+        var isUpdate = newsAnnouncementId > 0;
+        showbtnLoder(isUpdate);
+
+        var newsTitle = $('#newsTitle').val().trim();
+        var selectedBranchesValue = $('#selectedBranches').val();
+        var description = $('#description').val().trim();
+        var startDate = $('#startDate').val();
+        var endDate = $('#endDate').val();
+        var isShow = $('#isShow').is(':checked');
+        var isThought = $('#isThought').is(':checked');
+        var isPopup = $('#isPopup').is(':checked');
+        var loginNotification = $('#loginNotification').is(':checked');
+
+        var isValid = true;
+
+        // Validation
+        if (!newsTitle) {
+            $('#spnNewsTitle').show();
+            isValid = false;
+        } else {
+            $('#spnNewsTitle').hide();
+        }
+
+        if (!selectedBranchesValue || selectedBranchesValue === '') {
+            $('#spnBranch').show();
+            isValid = false;
+        } else {
+            $('#spnBranch').hide();
+        }
+
+        if (!description) {
+            $('#spnDescription').show();
+            isValid = false;
+        } else {
+            $('#spnDescription').hide();
+        }
+
+        if (!startDate) {
+            $('#spnStartDate').show();
+            isValid = false;
+        } else {
+            $('#spnStartDate').hide();
+        }
+
+        if (!endDate) {
+            $('#spnEndDate').show();
+            isValid = false;
+        } else {
+            $('#spnEndDate').hide();
+        }
+
+        if (!isValid) {
+            hidebtnLoder();
+            return;
+        }
+
+        // Parse selected branches as comma-separated string
+        var branchIdsString = selectedBranchesValue; // Already comma-separated from the hidden field
+
+        var newsAnnouncementData = {
+            NewsID: parseInt(newsAnnouncementId),
+            CmpID: CompanyId,
+            NewsTitle: newsTitle,
+            BranchWiseNewsAnnoun: branchIdsString, // Send as comma-separated string
+            NewsDescription: description,
+            StartDate: startDate,
+            EndDate: endDate,
+            IsVisible: isShow,
+            IsThought: isThought,
+            IsPop: isPopup,
+            IsLoginNotification: loginNotification,
+            IsEnabled: true,
+            IsDeleted: false,
+            CreatedBy: parseInt(EmployeeId),
+            UpdatedBy: parseInt(EmployeeId)
+        };
+
+        var apiUrl = isUpdate
+            ? "@baseUrl/NewsAnnouncementAPI/UpdateNewsAnnouncement"
+            : "@baseUrl/NewsAnnouncementAPI/CreateNewsAnnouncement";
+
+        var httpMethod = isUpdate ? "PUT" : "POST";
+
+        $.ajax({
+            url: apiUrl,
+            type: httpMethod,
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            data: JSON.stringify(newsAnnouncementData),
+            success: function (response) {
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage);
+                    $("#addNewsAnnouncementModal").modal('hide');
+                    loadNewsAnnouncements(CompanyId);
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+                hidebtnLoder();
+            },
+            error: function (xhr) {
+                hidebtnLoder();
+                console.error('Error:', xhr);
+                var errorMsg = 'Unable to save news announcement';
+                if (xhr.responseJSON && xhr.responseJSON.responseMessage) {
+                    errorMsg = xhr.responseJSON.responseMessage;
+                }
+                round_error_noti(errorMsg);
+            }
+        });
+    });
+
+    async function resetNewsAnnouncementForm() {
+        $('#newsAnnouncementId').val('0');
+
+        var today = new Date().toISOString().split('T')[0];
+        $('#startDate').val(today);
+        $('#endDate').val('');
+
+        $('#newsTitle').val('');
+        clearBranchSelection();
+        $('#description').val('');
+
+        $('#isShow').prop('checked', false);
+        $('#isThought').prop('checked', false);
+        $('#isPopup').prop('checked', false);
+        $('#loginNotification').prop('checked', false);
+
+        hidebtnLoder();
+
+        $('#btnSaveNewsAnnouncement').text('Save');
+        $('#spnNewsTitle, #spnBranch, #spnDescription, #spnStartDate, #spnEndDate').hide();
+    }
+
+    async function UpdateNewsAnnouncementData(data) {
+        await resetNewsAnnouncementForm();
+        $('#modalTitle').text('Update News & Announcement');
+        $('#btnSaveNewsAnnouncement').text('Update');
+
+        $('#newsAnnouncementId').val(data.newsID || data.NewsID || 0);
+
+        $('#newsTitle').val(data.newsTitle || data.NewsTitle || '');
+
+        // Handle branch IDs from BranchWiseNewsAnnoun (comma-separated string)
+        const branchWiseString = data.branchWiseNewsAnnoun || data.BranchWiseNewsAnnoun || '';
+        if (branchWiseString) {
+            const branchIds = branchWiseString.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+            if (branchIds.length > 0) {
+                setBranchSelection(branchIds);
+            }
+        }
+
+        $('#description').val(data.newsDescription || data.NewsDescription || '');
+
+        var startDateStr = data.startDate || data.StartDate;
+        if (startDateStr) {
+            if (startDateStr.includes('T')) {
+                startDateStr = startDateStr.split('T')[0];
+            } else if (startDateStr.includes(' ')) {
+                startDateStr = startDateStr.split(' ')[0];
+            }
+            $('#startDate').val(startDateStr);
+        }
+
+        var endDateStr = data.endDate || data.EndDate;
+        if (endDateStr) {
+            if (endDateStr.includes('T')) {
+                endDateStr = endDateStr.split('T')[0];
+            } else if (endDateStr.includes(' ')) {
+                endDateStr = endDateStr.split(' ')[0];
+            }
+            $('#endDate').val(endDateStr);
+        }
+
+        $('#isShow').prop('checked', data.isVisible || data.IsVisible || false);
+        $('#isThought').prop('checked', data.isThought || data.IsThought || false);
+        $('#isPopup').prop('checked', data.isPop || data.IsPop || false);
+        $('#loginNotification').prop('checked', data.isLoginNotification || data.IsLoginNotification || false);
+
+        $("#addNewsAnnouncementModal").modal('show');
+    }
+
+    function DeleteNewsAnnouncement(data) {
+        const newsId = data.newsID || data.NewsID;
+        if (confirm('Are you sure you want to delete this news/announcement?')) {
+            var deletePayload = {
+                Id: parseInt(newsId),
+                DeletedBy: (EmployeeId).toString()
+            };
+
+            $.ajax({
+                url: `@baseUrl/NewsAnnouncementAPI/DeleteNewsAnnouncement`,
+                type: "DELETE",
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                data: JSON.stringify(deletePayload),
+                success: function (response) {
+                    if (response.isSuccess) {
+                        round_success_noti(response.responseMessage);
+                        loadNewsAnnouncements(CompanyId);
+                    } else {
+                        round_error_noti(response.responseMessage);
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error:', xhr);
+                    var errorMsg = 'Unable to delete news/announcement';
+                    if (xhr.responseJSON && xhr.responseJSON.responseMessage) {
+                        errorMsg = xhr.responseJSON.responseMessage;
+                    }
+                    round_error_noti(errorMsg);
+                }
+            });
+        }
+    }
+</script>
