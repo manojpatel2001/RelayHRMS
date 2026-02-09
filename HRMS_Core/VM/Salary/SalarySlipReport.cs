@@ -8,15 +8,16 @@ namespace HRMS_Core.VM.Salary
 {
     public class SalarySlipReport
     {
-        public int? Id { get; set; }
-        public int? EmployeeId { get; set; }  // int (not string)
+        // SalaryDetails table fields
+        public int Id { get; set; }
+        public int EmployeeId { get; set; }
         public string? EmployeeCode { get; set; }
         public string? EmployeeName { get; set; }
         public decimal? GrossSalary { get; set; }
-        public decimal? PayableDays { get; set; }  // decimal (not int)
-        public int? MonthNumber { get; set; }
+        public decimal? PayableDays { get; set; }
+        public int MonthNumber { get; set; }
         public string? MonthName { get; set; }
-        public int? Year { get; set; }
+        public int Year { get; set; }
         public decimal? BasicSalary { get; set; }
         public decimal? HRA { get; set; }
         public decimal? ConveyanceAllowance { get; set; }
@@ -32,20 +33,20 @@ namespace HRMS_Core.VM.Salary
         public decimal? LWF { get; set; }
         public decimal? TDS { get; set; }
         public decimal? Loan { get; set; }
-        public decimal? Arrears { get; set; }
-        public decimal? OtherDeduction { get; set; }
         public decimal? TotalDeductions { get; set; }
         public decimal? NetSalary { get; set; }
         public DateTime? CreatedDate { get; set; }
-        public int? MonthDays { get; set; }
-        public int? Holiday { get; set; }
-        public decimal? AbsentDays { get; set; }  // decimal (not int)
-        public decimal? PresentDays { get; set; }  // decimal (not int)
-        public int? WeekOff { get; set; }
+        public int? MonthDays { get; set; }       // int in DB
+        public int? Holiday { get; set; }          // int in DB
+        public decimal? AbsentDays { get; set; }
+        public decimal? PresentDays { get; set; }
+        public int? WeekOff { get; set; }          // int in DB
         public decimal? Leave { get; set; }
-        public int? SalaryDays { get; set; }
+        public decimal? SalaryDays { get; set; }   // decimal(10,2) in DB - THIS WAS THE ISSUE!
+        public decimal? Arrears { get; set; }
+        public decimal? OtherDeduction { get; set; }
 
-        // Employee details from joins
+        // Employee details from AspNetUsers and related tables
         public string? FullName { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public DateTime? DateOfJoining { get; set; }
@@ -60,5 +61,12 @@ namespace HRMS_Core.VM.Salary
         public string? DepartmentName { get; set; }
         public string? GradeName { get; set; }
 
+        // EmployeeSalaryAllowance table fields (rates)
+        public decimal? BasicSalaryRate { get; set; }
+        public decimal? HRARate { get; set; }
+        public decimal? ConveyanceAllowanceRate { get; set; }
+        public decimal? MedicalAllowanceRate { get; set; }
+        public decimal? ChildEducationAllowanceRate { get; set; }
+        public decimal? DeputationAllowanceRate { get; set; }
     }
 }
