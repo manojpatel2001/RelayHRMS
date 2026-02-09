@@ -373,6 +373,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<FiletrLeftEmpl>().HasNoKey().ToView(null);
              modelBuilder.Entity<letterInformation>().HasNoKey().ToView(null);
              modelBuilder.Entity<NewsAnnouncement>().HasNoKey().ToView(null);
+             modelBuilder.Entity<NewsAnnouncementDto>().HasNoKey().ToView(null);
 
 
 

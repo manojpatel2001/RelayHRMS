@@ -340,6 +340,65 @@
         .small-swal .swal2-content {
             font-size: 13px !important;
         }
+
+
+    .news-item-popup {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+        .news-item-popup:last-child {
+            margin-bottom: 0;
+        }
+
+        .news-item-popup .news-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .news-item-popup .news-description {
+            font-size: 14px;
+            color: #856404;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .news-item-popup .news-meta {
+            font-size: 12px;
+            color: #856404;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .news-item-popup .news-date {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+    .no-news-popup {
+        text-align: center;
+        padding: 40px 20px;
+        color: #999;
+        font-style: italic;
+    }
+
+        .no-news-popup i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #ddd;
+        }
+
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -347,6 +406,42 @@
 
 
 <div style="min-height: 600px;">
+
+    <div id="newsAnnouncementContainer" style="display: none; margin-bottom: 15px;">
+        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 12px 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; flex: 1;">
+                    <i class="fa fa-bullhorn" style="color: #856404; font-size: 20px; margin-right: 12px;"></i>
+                    <div style="flex: 1;">
+                        <h6 style="margin: 0 0 5px 0; color: #856404; font-weight: 600; font-size: 14px;" id="newsTitle">News Announcement</h6>
+                        <p style="margin: 0; color: #856404; font-size: 13px;" id="newsDescription">News content will appear here</p>
+                    </div>
+                </div>
+                <button onclick="closeNewsAnnouncement()" style="background: transparent; border: none; color: #856404; font-size: 20px; cursor: pointer; padding: 0 5px;">&times;</button>
+            </div>
+        </div>
+    </div>
+@*     <div class="modal fade" id="newsPopupModal" tabindex="-1" aria-labelledby="newsPopupModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: #5a6b7d; color: white;">
+                    <h5 class="modal-title" id="newsPopupModalLabel">
+                        <i class="fa fa-bullhorn"></i> News & Announcements
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="max-height: 500px; overflow-y: auto;">
+                    <div id="newsPopupContent">
+                        <!-- News content will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+ *@
     <div class="container-fluid">
         <div class="row">
             <!-- Left Content -->
@@ -712,6 +807,43 @@
         #salaryTable::-webkit-scrollbar-thumb:hover {
             background: #4a5a6b;
         }
+
+    /* News Announcement Styles */
+    #newsAnnouncementContainer {
+        animation: slideDown 0.5s ease-out;
+    }
+
+    @@keyframes slideDown {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .fa-bullhorn {
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100%
+
+    {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    }
 </style>
 
 <!-- Scripts -->
@@ -1007,6 +1139,8 @@
         LoadLeaveCancellationCount();
         LoadActivemobileuserCount();
         LoadActiveUserCount();
+            startNewsCheck();
+            testNewsAPI();
         // Open the Events tab by default
         $('.tab-item[data-tab="addViewEvents"]').addClass('active'); // Mark tab as active
         $('#addViewEventsContent').show(); // Show the content (no animation delay)
@@ -1817,7 +1951,7 @@
         ToDate: null,
         Status: 'Pending',
         CompanyId: CompanyId,
-        EmployeeId:EmployeeId
+        // EmployeeId:EmployeeId
     };
         $.ajax({
             url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetAttendanceRegularizationForAdmin")', // Use a dedicated count endpoint
@@ -5326,4 +5460,184 @@
             closeContinuousAbsentModal();
         }
     });
+
+
+    let currentNewsId = null;
+    let newsCheckInterval = null;
+    let newsDataCache = [];
+
+    function loadNewsAnnouncement() {
+        const apiUrl = `@baseDomainUrl/api/NewsAnnouncementAPI/GetActiveNewsForDashboard?companyId=${CompanyId}&employeeId=${userId}`;
+
+        console.log('Loading news from:', apiUrl);
+
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function(response) {
+                console.log('News API Response:', response);
+
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    newsDataCache = response.data;
+                    displayNewsAnnouncement(response.data[0]);
+                } else {
+                    console.log('No active news found');
+                    hideNewsAnnouncement();
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading news:', error);
+                hideNewsAnnouncement();
+            }
+        });
+    }
+
+    function displayNewsAnnouncement(news) {
+        if (!news) {
+            hideNewsAnnouncement();
+            return;
+        }
+
+        const closedNewsId = sessionStorage.getItem('closedNewsId');
+        if (closedNewsId && parseInt(closedNewsId) === news.newsID) {
+            return;
+        }
+
+        currentNewsId = news.newsID;
+        $('#newsTitle').text(news.newsTitle || 'News Announcement');
+        $('#newsDescription').text(news.newsDescription || '');
+        $('#newsAnnouncementContainer').slideDown(400);
+    }
+
+ 
+    function hideNewsAnnouncement() {
+        $('#newsAnnouncementContainer').slideUp(300);
+        currentNewsId = null;
+    }
+
+    function closeNewsAnnouncement() {
+        if (currentNewsId) {
+            sessionStorage.setItem('closedNewsId', currentNewsId);
+        }
+        hideNewsAnnouncement();
+    }
+
+  
+
+    // function loadNewsPopupModal() {
+    //     const apiUrl = `@baseDomainUrl/api/NewsAnnouncementAPI/GetActiveNewsForDashboard?companyId=${CompanyId}&employeeId=${userId}`;
+
+    //     console.log('Loading news popup from:', apiUrl);
+
+    //     $.ajax({
+    //         url: apiUrl,
+    //         type: 'GET',
+    //         headers: {
+    //             'Authorization': 'Bearer ' + Token
+    //         },
+    //         success: function(response) {
+    //             console.log('News Popup API Response:', response);
+
+    //             if (response.isSuccess && response.data && response.data.length > 0) {
+    //                 const closedPopupSession = sessionStorage.getItem('newsPopupClosed');
+    //                 if (closedPopupSession === 'true') {
+    //                     console.log('News popup already closed by user');
+    //                     return;
+    //                 }
+    //                 displayNewsPopup(response.data);
+    //             }
+    //         },
+    //         error: function(xhr, status, error) {
+    //             console.error('Error loading news popup:', error);
+    //         }
+    //     });
+    // }
+
+    // function displayNewsPopup(newsArray) {
+    //     let popupContent = '';
+
+    //     newsArray.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+
+    //     newsArray.forEach((news) => {
+    //         const startDate = new Date(news.startDate);
+    //         const endDate = new Date(news.endDate);
+
+    //         const startDateFormatted = startDate.toLocaleDateString('en-GB', {
+    //             day: '2-digit',
+    //             month: 'short',
+    //             year: 'numeric'
+    //         });
+
+    //         const endDateFormatted = endDate.toLocaleDateString('en-GB', {
+    //             day: '2-digit',
+    //             month: 'short',
+    //             year: 'numeric'
+    //         });
+
+    //         popupContent += `
+    //             <div class="news-item-popup">
+    //                 <div class="news-title">
+    //                     <i class="fa fa-bullhorn" style="color: #ffc107;"></i>
+    //                     ${news.newsTitle}
+    //                 </div>
+    //                 <div class="news-description">
+    //                     ${news.newsDescription}
+    //                 </div>
+    //                 <div class="news-meta">
+    //                     <div class="news-date">
+    //                         <i class="fa fa-calendar" style="color: #856404;"></i>
+    //                         <strong>Valid:</strong> ${startDateFormatted} to ${endDateFormatted}
+    //                     </div>
+    //                 </div>
+    //             </div>
+    //         `;
+    //     });
+
+    //     $('#newsPopupContent').html(popupContent);
+
+    //     const newsModal = new bootstrap.Modal(document.getElementById('newsPopupModal'));
+    //     newsModal.show();
+
+    //     $('#newsPopupModal').on('hidden.bs.modal', function () {
+    //         sessionStorage.setItem('newsPopupClosed', 'true');
+    //     });
+    // }
+
+    // function openNewsPopup() {
+    //     loadNewsPopupModal();
+    // }
+
+
+
+    function startNewsCheck() {
+        if (newsCheckInterval) {
+            clearInterval(newsCheckInterval);
+        }
+
+        loadNewsAnnouncement();
+
+  
+        // setTimeout(function() {
+        //     loadNewsPopupModal();
+        // }, 2000);
+
+        newsCheckInterval = setInterval(function() {
+            loadNewsAnnouncement();
+        }, 300000);
+    }
+
+    function stopNewsCheck() {
+        if (newsCheckInterval) {
+            clearInterval(newsCheckInterval);
+            newsCheckInterval = null;
+        }
+    }
+
+    $(window).on('beforeunload', function() {
+        stopNewsCheck();
+    });
+  
 </script>
