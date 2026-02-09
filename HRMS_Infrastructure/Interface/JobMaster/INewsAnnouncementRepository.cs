@@ -2,6 +2,7 @@
 using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Report;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,5 +17,6 @@ namespace HRMS_Infrastructure.Interface.JobMaster
         Task<SP_Response> UpdateNewsAnnouncement(NewsAnnouncement model);
         Task<SP_Response> DeleteNewsAnnouncement(DeleteRecordVM deleteRecord);
         Task<List<NewsAnnouncement>> GetNewsAnnouncement(int? CompanyId);
+        Task<List<NewsAnnouncementDto>> GetActiveNewsForDashboard(int companyId, int employeeId);
     }
 }

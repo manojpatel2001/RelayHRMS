@@ -3,11 +3,13 @@ using HRMS_Core.DbContext;
 using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface.JobMaster;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Data;
 using System.Linq;
 using System.Text;
@@ -176,6 +178,29 @@ namespace HRMS_Infrastructure.Repository.JobMaster
                     Success = -1,
                     ResponseMessage = $"Error: {ex.Message}"
                 };
+            }
+        }
+
+        public async Task<List<NewsAnnouncementDto>> GetActiveNewsForDashboard(int companyId, int employeeId)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@CompanyId", companyId),
+                    new SqlParameter("@EmployeeId", employeeId),
+
+                };
+
+                var result = await _db.Set<NewsAnnouncementDto>()
+                    .FromSqlRaw("EXEC SP_GetActiveNewsForDashboard @CompanyId ,@EmployeeId ", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return new List<NewsAnnouncementDto>();
             }
         }
     }

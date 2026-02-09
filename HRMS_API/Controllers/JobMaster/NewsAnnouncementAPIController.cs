@@ -222,5 +222,40 @@ namespace HRMS_API.Controllers.JobMaster
             }
 
         }
+        [HttpGet("GetActiveNewsForDashboard")]
+        public async Task<APIResponse> GetActiveNewsForDashboard([FromQuery] int companyId, [FromQuery] int employeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.NewsAnnouncementRepository.GetActiveNewsForDashboard(companyId, employeeId);
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Record not found"
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrive records, Please try again later!"
+                };
+            }
+
+        }
+
+
     }
 }
