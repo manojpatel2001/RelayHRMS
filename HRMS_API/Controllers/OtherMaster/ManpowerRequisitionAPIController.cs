@@ -1,5 +1,8 @@
 ﻿using HRMS_Core.VM;
+using HRMS_Core.VM.ApprovalManagement;
 using HRMS_Core.VM.OtherMaster;
+using HRMS_Core.VM.Report;
+using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -46,7 +49,7 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
             }
         }
-     
+
         [HttpPost("CreateManpowerRequisition")]
         public async Task<APIResponse> CreateManpowerRequisition([FromBody] ManpowerRequisition model)
         {
@@ -156,7 +159,7 @@ namespace HRMS_API.Controllers.OtherMaster
         {
             try
             {
-                var data = await _unitOfWork.ManpowerRequisitionRepository.UpdateJoinningDetails( model);
+                var data = await _unitOfWork.ManpowerRequisitionRepository.UpdateJoinningDetails(model);
 
                 return data;
             }
@@ -179,6 +182,60 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve manpower requisitions. Please try again later." };
             }
         }
+
+        [HttpPut("ManPowerApproval")]
+        public async Task<APIResponse> ManPowerApproval([FromBody] ManPowerfilter model)
+        {
+            try
+            {
+
+                if (model == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Man Power details cannot be null"
+                    };
+                }
+
+                var ApprovalResult = await _unitOfWork.ManpowerRequisitionRepository.ApprovalManPower(model);
+
+                var approvalAction = new ApprovalRequestLevelActionPara
+                {
+                    ApprovalRequestLevelId = model.ApprovalRequestLevelId,
+                    ApprovalRequestId = model.ApprovalRequestId,
+                    StatusId = model.StatusId,
+                    Remarks = model.Remarks ?? "N/A",
+                    ActionBy = Convert.ToInt32(model.UpdatedBy)
+                };
+
+                var approvalActionResult = await _unitOfWork.ApprovalManagementRepository.ManpowerApprovalRequestLevel(approvalAction);
+                if (ApprovalResult.Success <= 0)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = ApprovalResult?.ResponseMessage ?? "Failed to update loan approval status"
+                    };
+                }
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    ResponseMessage = ApprovalResult.ResponseMessage
+                };
+            }
+            catch (Exception err)
+            {
+
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to update record. Please try again later!"
+                };
+            }
+        }
+
     }
 
 }

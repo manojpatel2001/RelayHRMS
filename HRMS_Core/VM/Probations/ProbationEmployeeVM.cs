@@ -53,7 +53,7 @@ namespace HRMS_Core.VM.Probations
         public int RequesterEmployeeId { get; set; }
         public string RequesterName { get; set; }
 
-      
+
         public int ApproverEmployeeId { get; set; }
         public string ApproverName { get; set; }
 
@@ -80,7 +80,7 @@ namespace HRMS_Core.VM.Probations
         public int RequesterEmployeeId { get; set; }
         public string RequesterName { get; set; }
 
-      
+
         public int ApproverEmployeeId { get; set; }
         public string ApproverName { get; set; }
         public int NoOfInstallment { get; set; }
@@ -184,10 +184,11 @@ namespace HRMS_Core.VM.Probations
         public string? StatusName { get; set; }
         public DateTime? ActionDate { get; set; }
         public string? Location { get; set; }
-       public string ConfirmationPdf { get; set; }
+        public string ConfirmationPdf { get; set; }
         public bool IsMailSent { get; set; } = false;
 
     }
+
 
 
 }

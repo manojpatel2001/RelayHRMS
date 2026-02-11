@@ -1,5 +1,7 @@
 ﻿using HRMS_Core.VM;
+using HRMS_Core.VM.ApprovalManagement;
 using HRMS_Core.VM.OtherMaster;
+using HRMS_Core.VM.Probations;
 using HRMS_Utility;
 using System;
 using System.Collections.Generic;
@@ -15,6 +17,9 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
         Task<APIResponse> UpdateManpowerRelation(ManpowerRelationModel model);
         Task<APIResponse> DeleteManpowerRelation(DeleteRecordVM delete);
         Task<APIResponse> GetAllManpowerRelation(int manpowerRequisitionId);
+        Task<APIResponse> GetPendingManpowerApprovalRequestsWithHistory(ManpowerApprovalRequestFilter parameters);
+        Task<APIResponse> GetAllManPowerStatus();
+
     }
 
 }

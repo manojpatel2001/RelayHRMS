@@ -1,8 +1,12 @@
 ﻿using Dapper;
 using HRMS_Core.DbContext;
 using HRMS_Core.Master.JobMaster;
+using HRMS_Core.Master.Scheme;
 using HRMS_Core.VM;
+using HRMS_Core.VM.ApprovalManagement;
 using HRMS_Core.VM.OtherMaster;
+using HRMS_Core.VM.Report;
+using HRMS_Core.VM.Salary;
 using HRMS_Core.VM.UpdateEmployee;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Utility;
@@ -203,8 +207,8 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                         {
                             ReportingEmployees = (await multi.ReadAsync<ReportingEmployeeViewModel>()).AsList(),
 
-                           Designations = (await multi.ReadAsync<DesignationViewModel>()).AsList(),
-                            Departments = (await multi.ReadAsync<DepartmentViewModel>()).AsList(),
+                           Designations = (await multi.ReadAsync<HRMS_Core.VM.UpdateEmployee.DesignationViewModel>()).AsList(),
+                            Departments = (await multi.ReadAsync<HRMS_Core.VM.UpdateEmployee.DepartmentViewModel>()).AsList(),
                             Branches = (await multi.ReadAsync<branchViewModel>()).AsList()
                         };
 
@@ -393,6 +397,24 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
             return response;
         }
 
+        public async Task<SP_Response> ApprovalManPower(ManPowerfilter model)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+                EXEC usp_UpdateManpower
+                 @ManpowerRequisitionId ={model.ManpowerRequisitionId},
+                    @UpdatedBy = {model.@UpdatedBy},
+                    @Status = {model.Status}
+            ").ToListAsync();
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Some thing went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
+            }
+        }
     }
 
 }
