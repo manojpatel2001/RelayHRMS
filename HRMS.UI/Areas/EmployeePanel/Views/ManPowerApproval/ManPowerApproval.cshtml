@@ -1,6 +1,6 @@
 ﻿@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Loan Management";
+    ViewData["Title"] = "Manpower Management";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
     string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
@@ -14,7 +14,7 @@
             <div class="row">
                 <div class="col-6">
                     <h6 class="p-2 mb-0">
-                        Manage Loan Applications
+                        Manage Manpower Applications
                     </h6>
                 </div>
             </div>
@@ -37,21 +37,21 @@
     </div>
 </div>
 
-<!-- Modal for Loan Status Update -->
-<div class="modal fade" id="loanStatusModal" tabindex="-1" role="dialog" aria-labelledby="loanStatusModalLabel" aria-hidden="true">
+<!-- Modal for Manpower Status Update -->
+<div class="modal fade" id="manpowerStatusModal" tabindex="-1" role="dialog" aria-labelledby="manpowerStatusModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="loanStatusModalLabel">Update Loan Status</h5>
+                <h5 class="modal-title" id="manpowerStatusModalLabel">Update Manpower Status</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <form id="loanStatusForm">
+                <form id="manpowerStatusForm">
                     <div class="form-group">
-                        <label for="loanStatus">Loan Status <span class="text-danger">*</span></label>
-                        <select class="form-control" id="loanStatus" required>
+                        <label for="manpowerStatus">Manpower Status <span class="text-danger">*</span></label>
+                        <select class="form-control" id="manpowerStatus" required>
                             <option value="">Select Status</option>
                         </select>
                     </div>
@@ -77,93 +77,101 @@
     const EmployeeId = localStorage.getItem("EmployeeId");
     var Token = localStorage.getItem("authToken");
     var gridInstance;
-    var currentLoanData = null;
-    var loanStatusList = [];
+    var currentManpowerData = null;
+    var manpowerStatusList = [];
 
     $(() => {
-        // Load loan statuses first, then load the grid
-        loadLoanStatuses();
+        // Load manpower statuses first, then load the grid
+        loadManpowerStatuses();
 
-        // Close button handlers - Fixed
-        $('#loanStatusModal .close, #loanStatusModal [data-dismiss="modal"]').on('click', function() {
-            $('#loanStatusModal').modal('hide');
+        // Close button handlers
+        $('#manpowerStatusModal .close, #manpowerStatusModal [data-dismiss="modal"]').on('click', function() {
+            $('#manpowerStatusModal').modal('hide');
         });
 
         // Confirm button click handler
         $('#confirmBtn').on('click', function() {
-            const statusId = $('#loanStatus').val();
+            const statusId = $('#manpowerStatus').val();
             const remarks = $('#remarks').val().trim();
 
             if (!statusId) {
-                round_error_noti('Please select a loan status'); // Changed from alert
+                round_error_noti('Please select a manpower status');
                 return;
             }
 
             if (!remarks) {
-                round_error_noti('Please enter remarks'); // Changed from alert
+                round_error_noti('Please enter remarks');
                 return;
             }
 
-            if (currentLoanData) {
-                // Find the selected status object
-                const selectedStatus = loanStatusList.find(s => {
+            if (currentManpowerData) {
+                // Get the selected status name from dropdown
+                const selectedStatusText = $('#manpowerStatus option:selected').text();
+
+                // Also try to find from the array as backup
+                const selectedStatus = manpowerStatusList.find(s => {
                     const id = s.probationStatusId || s.ProbationStatusId ||
                               s.statusId || s.StatusId ||
                               s.id || s.Id;
                     return id == statusId;
                 });
 
-                let statusName = '';
-                if (selectedStatus) {
-                    statusName = selectedStatus.probationStatusName || selectedStatus.ProbationStatusName ||
-                                selectedStatus.statusName || selectedStatus.StatusName ||
-                                selectedStatus.name || selectedStatus.Name || '';
+                let statusName = selectedStatusText; // Use dropdown text as primary source
+
+                // If dropdown text is empty or "Select Status", try to get from array
+                if (!statusName || statusName === 'Select Status') {
+                    if (selectedStatus) {
+                        statusName = selectedStatus.probationStatusName || selectedStatus.ProbationStatusName ||
+                                    selectedStatus.statusName || selectedStatus.StatusName ||
+                                    selectedStatus.name || selectedStatus.Name || '';
+                    }
                 }
 
-                updateLoanApplication(currentLoanData, statusId, statusName, remarks);
+                console.log('Selected Status ID:', statusId);
+                console.log('Selected Status Name:', statusName);
+
+                updateManpowerApplication(currentManpowerData, statusId, statusName, remarks);
             }
         });
 
         // Reset form when modal is closed
-        $('#loanStatusModal').on('hidden.bs.modal', function () {
-            $('#loanStatusForm')[0].reset();
-            currentLoanData = null;
+        $('#manpowerStatusModal').on('hidden.bs.modal', function () {
+            $('#manpowerStatusForm')[0].reset();
+            currentManpowerData = null;
         });
 
-        // Additional fix: Handle ESC key
+        // Handle ESC key
         $(document).on('keydown', function(e) {
-            if (e.key === 'Escape' && $('#loanStatusModal').hasClass('show')) {
-                $('#loanStatusModal').modal('hide');
+            if (e.key === 'Escape' && $('#manpowerStatusModal').hasClass('show')) {
+                $('#manpowerStatusModal').modal('hide');
             }
         });
     });
 
-    function loadLoanStatuses() {
+    function loadManpowerStatuses() {
         $.ajax({
             type: "GET",
-            url: '@baseUrl/LoanApplicationAPI/GetAllLoanStatus',
+            url: '@baseUrl/ManpowerRelationAPI/GetAllManPowerStatus',
             headers: {
                 'Authorization': 'Bearer ' + Token,
                 'Content-Type': 'application/json'
             },
             success: function (response) {
-                console.log("Loan Status API Response:", response);
-
                 if (response.isSuccess && response.data) {
-                    loanStatusList = response.data;
+                    manpowerStatusList = response.data;
 
                     // Log first item to check property names
-                    if (loanStatusList.length > 0) {
-                        console.log("First status object:", loanStatusList[0]);
-                        console.log("Available properties:", Object.keys(loanStatusList[0]));
+                    if (manpowerStatusList.length > 0) {
+                        console.log("First status object:", manpowerStatusList[0]);
+                        console.log("Available properties:", Object.keys(manpowerStatusList[0]));
                     }
 
                     // Populate dropdown
-                    const dropdown = $('#loanStatus');
+                    const dropdown = $('#manpowerStatus');
                     dropdown.empty();
                     dropdown.append('<option value="">Select Status</option>');
 
-                    loanStatusList.forEach(function(status) {
+                    manpowerStatusList.forEach(function(status) {
                         // Try different possible property name combinations
                         const statusId = status.probationStatusId || status.ProbationStatusId ||
                                        status.statusId || status.StatusId ||
@@ -172,12 +180,13 @@
                                          status.statusName || status.StatusName ||
                                          status.name || status.Name;
 
-                        console.log(`Adding status - ID: ${statusId}, Name: ${statusName}`);
-                        dropdown.append(`<option value="${statusId}">${statusName}</option>`);
+                        if (statusId && statusName) {
+                            dropdown.append(`<option value="${statusId}">${statusName}</option>`);
+                        }
                     });
 
                     // Load grid after statuses are loaded
-                    PendingLoanApplicationsDataTable();
+                    PendingManpowerApplicationsDataTable();
                 } else {
                     console.error("Failed to load loan statuses");
                     round_error_noti('Failed to load loan statuses. Please refresh the page.'); // Changed from alert
@@ -191,17 +200,17 @@
         });
     }
 
-    function PendingLoanApplicationsDataTable() {
+    function PendingManpowerApplicationsDataTable() {
         try {
             $('#grid-loader').addClass('d-flex').show();
 
             const approverEmployeeId = EmployeeId;
-            const status = "7";
-            const approvalMasterId = 2;
+            const status = 10;
+            const approvalMasterId = 5; // Changed to 3 for Manpower
 
             $.ajax({
                 type: "POST",
-                url: '@baseUrl/ProbationPerformanceAPI/GetPendingApprovalRequestsWithHistory1',
+                url: '@baseUrl/ManpowerRelationAPI/GetPendingManpowerApprovalRequestsWithHistory',
                 headers: {
                     'Authorization': 'Bearer ' + Token,
                     'Content-Type': 'application/json'
@@ -212,26 +221,26 @@
                     ApprovalMasterId: approvalMasterId
                 }),
                 success: function (data) {
-                    console.log("Pending loan applications:", data);
+                    console.log("Pending manpower applications:", data);
 
                     gridInstance = $("#GridContainer").dxDataGrid({
                         dataSource: data.data || [],
                         columns: [
                             {
                                 dataField: "requesterName",
-                                caption: "Applicant",
+                                caption: "Requester",
                                 minWidth: 250
                             },
+
                             {
-                                dataField: "loanName",
-                                caption: "Loan Type",
+                                dataField: "departmentName",
+                                caption: "Department",
                                 minWidth: 150
                             },
                             {
-                                dataField: "loanAmount",
-                                caption: "Amount",
-                                dataType: "number",
-                                minWidth: 120
+                                dataField: "requirementType",
+                                caption: "Requirement Type",
+                                width: 120
                             },
                             {
                                 dataField: "currentLevelStatus",
@@ -244,8 +253,8 @@
                                 width: 80
                             },
                             {
-                                dataField: "loanApplicationID",
-                                caption: "loanApplicationID",
+                                dataField: "manpowerRequisitionID",
+                                caption: "manpowerRequisitionID",
                                 visible: false
                             },
                             {
@@ -340,48 +349,59 @@
                                     $("<p>No approval history available</p>").appendTo(historyTab);
                                 }
 
-                                // Loan Details Tab
-                                const loanTab = $("<div>").addClass("tab-pane fade").attr("id", "loan").appendTo(tabContent);
+                                // Manpower Details Tab
+                                const manpowerTab = $("<div>").addClass("tab-pane fade").attr("id", "manpower").appendTo(tabContent);
 
-                                $("<h6>Loan Application Details</h6>").appendTo(loanTab);
+                                $("<h6>Manpower Requisition Details</h6>").appendTo(manpowerTab);
 
-                                const detailsTable = $("<table>").addClass("table table-bordered").appendTo(loanTab);
+                                const detailsTable = $("<table>").addClass("table table-bordered").appendTo(manpowerTab);
                                 const tbody = $("<tbody>").appendTo(detailsTable);
 
                                 $("<tr>")
-                                    .append($("<th>").text("Applicant Name"))
-                                    .append($("<td>").text(data.applicantName || "N/A"))
+                                    .append($("<th>").text("Requester Name"))
+                                    .append($("<td>").text(data.requesterName || "N/A"))
                                     .appendTo(tbody);
 
                                 $("<tr>")
-                                    .append($("<th>").text("Loan Type"))
-                                    .append($("<td>").text(data.loanType || "N/A"))
+                                    .append($("<th>").text("Position"))
+                                    .append($("<td>").text(data.positionName || "N/A"))
                                     .appendTo(tbody);
 
                                 $("<tr>")
-                                    .append($("<th>").text("Loan Amount"))
-                                    .append($("<td>").text(data.loanAmount ? '₹' + data.loanAmount.toLocaleString() : "N/A"))
-                                    .appendTo(tbody);
-
-                                $("<tr>")
-                                    .append($("<th>").text("Application Date"))
-                                    .append($("<td>").text(data.applicationDate ?
-                                        new Date(data.applicationDate).toLocaleDateString('en-GB') : "N/A"))
-                                    .appendTo(tbody);
-
-                                $("<tr>")
-                                    .append($("<th>").text("Tenure (Months)"))
-                                    .append($("<td>").text(data.tenureMonths || "N/A"))
-                                    .appendTo(tbody);
-
-                                $("<tr>")
-                                    .append($("<th>").text("Purpose"))
-                                    .append($("<td>").text(data.purpose || "N/A"))
+                                    .append($("<th>").text("Department"))
+                                    .append($("<td>").text(data.departmentName || "N/A"))
                                     .appendTo(tbody);
 
                                 $("<tr>")
                                     .append($("<th>").text("Branch"))
                                     .append($("<td>").text(data.branchName || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("No. of Positions"))
+                                    .append($("<td>").text(data.noOfPositions || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Employment Type"))
+                                    .append($("<td>").text(data.employmentType || "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Request Date"))
+                                    .append($("<td>").text(data.requestDate ?
+                                        new Date(data.requestDate).toLocaleDateString('en-GB') : "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Required By"))
+                                    .append($("<td>").text(data.requiredByDate ?
+                                        new Date(data.requiredByDate).toLocaleDateString('en-GB') : "N/A"))
+                                    .appendTo(tbody);
+
+                                $("<tr>")
+                                    .append($("<th>").text("Justification"))
+                                    .append($("<td>").text(data.justification || "N/A"))
                                     .appendTo(tbody);
 
                                 loadingIndicator.remove();
@@ -426,31 +446,27 @@
                 },
                 error: function (xhr, status, error) {
                     $('#grid-loader').removeClass('d-flex').hide();
-                    console.error("Error loading loan applications:", error);
-                    round_error_noti('Error loading loan applications. Please try again.'); // Changed from alert
+                    console.error("Error loading manpower applications:", error);
+                    round_error_noti('Error loading manpower applications. Please try again.');
                 }
             });
         } catch (e) {
-            console.error("Error in PendingLoanApplicationsDataTable:", e);
+            console.error("Error in PendingManpowerApplicationsDataTable:", e);
             $('#grid-loader').removeClass('d-flex').hide();
         }
     }
 
     function openStatusModal(data) {
-        currentLoanData = data;
-        $('#loanStatusModal').modal('show');
+        currentManpowerData = data;
+        $('#manpowerStatusModal').modal('show');
     }
 
-    function updateLoanApplication(data, statusId, statusName, remarks) {
-    
-        $('#loanStatusModal').modal('hide');
-
-        // Show loader
+    function updateManpowerApplication(data, statusId, statusName, remarks) {
+        $('#manpowerStatusModal').modal('hide');
         $('#grid-loader').addClass('d-flex').show();
 
-        // Prepare update data
         const updateData = {
-            LoanApplicationId: data.loanApplicationID,
+            ManpowerRequisitionId: data.manpowerRequisitionId,
             ApprovalRequestLevelId: data.currentApprovalRequestLevelId,
             ApprovalRequestId: data.approvalRequestId,
             ApproverEmployeeId: parseInt(EmployeeId),
@@ -460,12 +476,9 @@
             UpdatedBy: parseInt(EmployeeId),
             Remarks: remarks
         };
-
-        console.log("Update data being sent:", updateData);
-
         $.ajax({
             type: "PUT",
-            url: '@baseUrl/LoanApplicationAPI/LoanApproval',
+            url: '@baseUrl/ManpowerRequisitionAPI/ManPowerApproval',
             headers: {
                 'Authorization': 'Bearer ' + Token,
                 'Content-Type': 'application/json'
@@ -475,23 +488,21 @@
                 $('#grid-loader').removeClass('d-flex').hide();
 
                 if (response.isSuccess) {
-                    // Use round_success_noti instead of alert
-                    const message = response.responseMessage || `Loan application ${statusName.toLowerCase()} successfully!`;
+                    const message = response.responseMessage || `Manpower application ${statusName.toLowerCase()} successfully!`;
                     round_success_noti(message);
 
                     // Refresh the grid
-                    PendingLoanApplicationsDataTable();
+                    PendingManpowerApplicationsDataTable();
                 } else {
-                    // Use round_error_noti for errors
-                    const errorMessage = response.responseMessage || 'Failed to update loan application';
+                    const errorMessage = response.responseMessage || 'Failed to update manpower application';
                     round_error_noti(errorMessage);
                 }
             },
             error: function (xhr, status, error) {
                 $('#grid-loader').removeClass('d-flex').hide();
-                console.error("Error updating loan application:", error);
+                console.error("Error updating manpower application:", error);
                 console.error("Response:", xhr.responseText);
-                round_error_noti('Error updating loan application. Please try again.');
+                round_error_noti('Error updating manpower application. Please try again.');
             }
         });
     }
@@ -508,16 +519,13 @@
 
 <style>
     @@keyframes spin {
-        0%
+        0% {
+            transform: rotate(0deg);
+        }
 
-    {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     .gap-2 {
@@ -553,7 +561,6 @@
         border-top: 2px solid #dee2e6;
     }
 
-    /* Ensure Bootstrap Icons are properly styled */
     .btn i.bi {
         font-size: 1rem;
         line-height: 1;

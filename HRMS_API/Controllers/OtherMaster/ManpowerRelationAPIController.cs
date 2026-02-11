@@ -1,5 +1,7 @@
 ﻿using HRMS_Core.VM;
+using HRMS_Core.VM.ApprovalManagement;
 using HRMS_Core.VM.OtherMaster;
+using HRMS_Core.VM.Probations;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -74,6 +76,44 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve relations. Please try again later." };
             }
         }
+
+        [HttpPost("GetPendingManpowerApprovalRequestsWithHistory")]
+        public async Task<APIResponse> GetPendingManpowerApprovalRequestsWithHistory(ManpowerApprovalRequestFilter model)
+        {
+            try
+            {
+                var result = await _unitOfWork.ManpowerRelationRepository.GetPendingManpowerApprovalRequestsWithHistory(model);
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to fetch up comming probation ."
+                };
+            }
+        }
+
+        [HttpGet("GetAllManPowerStatus")]
+        public async Task<APIResponse> GetAllManPowerStatus()
+        {
+            try
+            {
+                var result = await _unitOfWork.ManpowerRelationRepository.GetAllManPowerStatus();
+                return result;
+            }
+            catch (Exception)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Unable to fetch probation status ."
+                };
+            }
+        }
+
     }
 
 }

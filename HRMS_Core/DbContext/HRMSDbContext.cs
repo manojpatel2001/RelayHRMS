@@ -14,6 +14,7 @@ using HRMS_Core.Report;
 using HRMS_Core.Salary;
 using HRMS_Core.SuperAdmin;
 using HRMS_Core.VM;
+using HRMS_Core.VM.ApprovalManagement;
 using HRMS_Core.VM.CompanyInformation;
 using HRMS_Core.VM.CompanyStructure;
 using HRMS_Core.VM.EmailService;
@@ -374,6 +375,9 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<letterInformation>().HasNoKey().ToView(null);
              modelBuilder.Entity<NewsAnnouncement>().HasNoKey().ToView(null);
              modelBuilder.Entity<NewsAnnouncementDto>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ManpowerApprovalRequestFilter>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ManpowerApprovalRequestWithHistory>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ManPowerfilter>().HasNoKey().ToView(null);
 
 
 
