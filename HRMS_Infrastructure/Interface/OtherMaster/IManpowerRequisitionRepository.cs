@@ -15,6 +15,7 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
     public interface IManpowerRequisitionRepository
     {
         Task<APIResponse> GetAllManpowerRequisitions(CommonParameter commonParameter);
+        Task<APIResponse> GetAllManpowerRequisitionsAdmin(CommonParameter commonParameter);
         Task<SP_Response> CreateManpowerRequisition(ManpowerRequisition manpowerRequisition);
         Task<SP_Response> UpdateManpowerRequisition(ManpowerRequisition manpowerRequisition);
         Task<SP_Response> DeleteManpowerRequisition(DeleteRecordVM model);

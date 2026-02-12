@@ -73,9 +73,6 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
         }
         return response;
     }
-
-
-
     public async Task<SP_Response> CreateManpowerRequisition(ManpowerRequisition manpowerRequisition)
         {
             try
@@ -268,23 +265,26 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
         {
             try
             {
-                var data= await _db.Set<SerialNoViewModel>()
-                    .FromSqlInterpolated($@"EXEC GetAllSerialNo @CompanyId={commonParameter.CompanyId}")
+
+                var companyIdParam = new SqlParameter("@CompanyId", commonParameter.CompanyId);
+                var empIdParam = new SqlParameter("@EmpId", commonParameter.EmployeeId);
+
+                var data = await _db.Set<SerialNoViewModel>()
+                    .FromSqlRaw("EXEC GetAllSerialNo @CompanyId, @EmpId", companyIdParam, empIdParam)
                     .ToListAsync();
 
-                if (data.Any())
+                if (data == null || !data.Any())
                 {
-                    return new APIResponse { isSuccess = true ,Data=data ,ResponseMessage = "Fetch successfully!" };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No record found!" };
                 }
-                else
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "No Record found!" };
-                }
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Fetch successfully!" };
             }
             catch (Exception ex)
             {
-                // Log exception here if needed
-                return new APIResponse { isSuccess = false ,ResponseMessage="Some thing went wrong!"};
+                // Log exception details
+                Console.WriteLine($"Error in GetAllSerialNo: {ex}");
+                return new APIResponse { isSuccess = false, ResponseMessage = "Something went wrong!" };
             }
         }
 
@@ -414,6 +414,45 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
             {
                 return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
             }
+        }
+
+        public async Task<APIResponse> GetAllManpowerRequisitionsAdmin(CommonParameter commonParameter)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@CompanyId", commonParameter.CompanyId);
+           
+                    // Execute the stored procedure and map results to a dynamic list
+                    var result = await connection.QueryAsync<dynamic>(
+                        "GetAllManpowerRequisitionsAdmin",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (!result.AsList().Any())
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No records found.";
+                        response.Data = new List<dynamic>();
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result.AsList();
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+                response.Data = new List<dynamic>();
+            }
+            return response;
         }
     }
 
