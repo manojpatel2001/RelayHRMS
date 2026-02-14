@@ -467,16 +467,12 @@
                 var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
             const CompanyId=companyDetails.CompanyId;
             let manpowerRequisitionId=0;
-		$("#addManpower").click( () => 
-        {
-              resetFormAndValidation();
-		  $("#addManpowerModal").modal('show');
 
-		})
-
-
-		
-
+                $("#addManpower").click(async () => {
+        resetFormAndValidation();
+        await loadDropDownForManpower(); // Load dropdowns for add as well
+        $("#addManpowerModal").modal('show');
+    });
 
         $(document).ready(function(){
                  manpowerDataTable();
@@ -760,34 +756,34 @@
             }
         });
     });
-   
-         async function loadDropDownForManpower(){
-           $.ajax({
-                    url: '@baseUrl/ManpowerRequisitionAPI/GetDropDownForManpower/'+CompanyId,
-                    method: 'GET',
-                    success: function(response) {
-                            if (response.isSuccess)
-                            {
-                              
-                                bindDesignation(response.data.designations);
-                                bindReporting(response.data.reportingEmployees);
-                                bindDepartment(response.data.departments);
-                                    bindBranch(response.data.branches);
-                                     
-                            }
-                            else{
-                                round_error_noti(data.responseMessage);
-                              
-                            }
-                                   
-                    },
-                    error: function(error) {
-                        console.error('Error fetching  data:', error);
+
+      async function loadDropDownForManpower() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/ManpowerRequisitionAPI/GetDropDownForManpower/' + CompanyId,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function(response) {
+                    if (response.isSuccess) {
+                        bindDesignation(response.data.designations);
+                        bindReporting(response.data.reportingEmployees);
+                        bindDepartment(response.data.departments);
+                        bindBranch(response.data.branches);
+                        resolve(); // Resolve promise when done
+                    } else {
+                        round_error_noti(response.responseMessage);
+                        reject();
                     }
-                });
-
-        }
-
+                },
+                error: function(error) {
+                    console.error('Error fetching data:', error);
+                    reject(error);
+                }
+            });
+        });
+    }
     async  function bindDepartment(data)
     {
             var dropdown = $('#ddlDepartment');
@@ -850,7 +846,8 @@ $('#btnSubmitManpower').click( async function() {
                 
         return;
     }
-        const formData = await  collectFormData();
+
+            const formData = await collectFormData(manpowerRequisitionId);
 
     $.ajax({
          url: manpowerRequisitionId==0?'@baseUrl/ManpowerRequisitionAPI/CreateManpowerRequisition':'@baseUrl/ManpowerRequisitionAPI/UpdateManpowerRequisition',
@@ -1081,10 +1078,17 @@ function getValueOrNull(value) {
         // Checkboxes don't have error messages in this form
     });
 
-    async function updateManpower(data) {
+
+        async function updateManpower(data) {
         await resetFormAndValidation();
 
-        // Set dropdown values
+        // Set the manpower requisition ID first
+        manpowerRequisitionId = data.ManpowerRequisitionId;
+
+        // Load dropdowns and wait for completion
+        await loadDropDownForManpower();
+
+        // Now set values - dropdowns are fully loaded
         $('#ddlDepartment').val(data.DepartmentId);
         $('#ddlRequirementType').val(data.RequirementType);
         $('#ddlDesignation').val(data.DesignationId);
@@ -1102,6 +1106,8 @@ function getValueOrNull(value) {
         $('#txtJobResponsibility').val(data.JobResponsibility);
         $('#txtAge').val(data.Age);
         $('#txtTakeHomeSalary').val(data.TakeHomeSalary);
+        $('#txtCTC_Monthly').val(data.CTC_Monthly);
+        $('#txtGrossSalary').val(data.GrossSalary);
 
         // Set gender radio button
         if (data.Gender) {
@@ -1119,18 +1125,18 @@ function getValueOrNull(value) {
         $('#chkSIMRequire').prop('checked', data.SIMRequire === "Yes");
         $('#chkMobileHandsetRequire').prop('checked', data.MobileHandsetRequire === "Yes");
 
-        // Set OtherBenefits (assuming it's a dxTagBox or similar)
+        // Set OtherBenefits
         if (data.OtherBenefits) {
             const benefitsArray = data.OtherBenefits.split(',').map(item => item.trim());
             $('#otherBenefitsSelectBox').dxTagBox('instance').option('value', benefitsArray);
         }
 
-        // Set the manpower requisition ID and update UI
-        manpowerRequisitionId = data.ManpowerRequisitionId;
+        // Update UI
         $("#btnSubmitManpower").text("Update");
-        $("#formType").text("Update");
+        $(".formType").text("Update");
         $("#addManpowerModal").modal('show');
     }
+
 
      function resetFormAndValidation() {
              manpowerRequisitionId=0;
@@ -1216,13 +1222,15 @@ function getValueOrNull(value) {
 
     function deleteManpower(data)
     {
+                        console.log('data' ,data)
+
         if (!confirm("Are you sure you want to delete this?"))
         {
             return; // Cancel the delete operation
         }
 
         var deleteObj = {
-            id: data.manpowerRequisitionId,
+                id: data.ManpowerRequisitionId,
             deletedBy: EmployeeId 
         };
 
