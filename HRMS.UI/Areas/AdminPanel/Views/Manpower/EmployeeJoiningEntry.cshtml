@@ -765,13 +765,18 @@
 <script src="~/assets/js/jquery.min.js"></script>
 
 <script>
-        var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
     const CompanyId = companyDetails.CompanyId;
     const EmployeeId = localStorage.getItem('EmployeeId');
     const Token = localStorage.getItem("authToken");
 
-    // Show modal on Add button click
+    // =============================================
+    // GLOBAL: Update ke liye data store karna
+    // =============================================
+    var _updateManpowerRequisitionId = null;
+
     $("#addEmployeeJoining").click(() => {
+        _updateManpowerRequisitionId = null;
         resetAllForms();
         loadRefrence();
         loadDocumentType();
@@ -800,9 +805,12 @@
 
     $(document).ready(function () {
         employeeJoiningDataTable();
+        loadRefrence();
+        loadDocumentType();
+        loadBindRelationShiptOption();
     });
 
-    // Main data table with full width fix
+    // Main data table
     function employeeJoiningDataTable() {
         var data = { CompanyId: CompanyId };
         try {
@@ -819,36 +827,12 @@
                     $("#GridContainer").dxDataGrid({
                         dataSource: data.data || [],
                         columns: [
-                            {
-                                dataField: 'SerialNo',
-                                caption: 'Serial No',
-                                minWidth: 100
-                            },
-                            {
-                                dataField: 'EmployeeName',
-                                caption: 'Employee Name',
-                                minWidth: 150
-                            },
-                            {
-                                dataField: 'PersonalEmail',
-                                caption: 'Email',
-                                minWidth: 180
-                            },
-                            {
-                                dataField: 'ContactNumber',
-                                caption: 'Contact',
-                                minWidth: 120
-                            },
-                            {
-                                dataField: 'DepartmentName',
-                                caption: 'Department',
-                                minWidth: 150
-                            },
-                            {
-                                dataField: 'DesignationName',
-                                caption: 'Designation',
-                                minWidth: 150
-                            },
+                            { dataField: 'SerialNo', caption: 'Serial No', minWidth: 100 },
+                            { dataField: 'EmployeeName', caption: 'Employee Name', minWidth: 150 },
+                            { dataField: 'PersonalEmail', caption: 'Email', minWidth: 180 },
+                            { dataField: 'ContactNumber', caption: 'Contact', minWidth: 120 },
+                            { dataField: 'DepartmentName', caption: 'Department', minWidth: 150 },
+                            { dataField: 'DesignationName', caption: 'Designation', minWidth: 150 },
                             {
                                 dataField: 'DateOfJoining',
                                 caption: 'Date of Joining',
@@ -932,24 +916,19 @@
         }
     }
 
-
     function deleteEmployeeJoining(data) {
         if (!confirm("Are you sure you want to delete this employee joining entry?")) {
             return;
         }
-
         var deleteObj = {
             id: data.ManpowerRequisitionId,
             deletedBy: EmployeeId
         };
-
         $.ajax({
             url: '@baseUrl/ManpowerRequisitionAPI/DeleteManpowerRequisition',
             type: 'DELETE',
             contentType: 'application/json',
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
+            headers: { 'Authorization': 'Bearer ' + Token },
             data: JSON.stringify(deleteObj),
             success: function (response) {
                 if (response.isSuccess) {
@@ -966,8 +945,169 @@
         });
     }
 
+    // =============================================
+    // BIND SERIAL - autoSelectId support ke sath
+    // =============================================
+    function bindSerial(data, autoSelectId) {
+        const existing = $('#referenceNo').data('searchableSelect');
+        if (existing) existing.destroy();
+
+        $('#referenceNo').val('');
+
+        $('#referenceNo').searchableSelect({
+            data: data || [],
+            valueKey: 'manpowerRequisitionId',
+            textKey: 'serialNo',
+            placeholder: 'Select Reference',
+            searchPlaceholder: 'Search reference...',
+            onChange: function (item) {
+                if (item && item.manpowerRequisitionId) {
+                    loadManpowerDetails(item.manpowerRequisitionId);
+                    ManpowerRelationDataTable();
+                    ManpowerDocumentDataTable();
+                }
+            }
+        });
+
+        // =============================================
+        // AUTO SELECT - Update ke waqt reference auto fill
+        // =============================================
+        if (autoSelectId) {
+            setTimeout(function () {
+                var matchedItem = null;
+                (data || []).forEach(function (item) {
+                    if (String(item.manpowerRequisitionId) === String(autoSelectId)) {
+                        matchedItem = item;
+                    }
+                });
+
+                if (matchedItem) {
+                    // Step 1: Input mein serialNo dikhao
+                    $('#referenceNo').val(matchedItem.serialNo);
+
+                    // Step 2: Plugin ke internal getValue ke liye - plugin instance se setValue try karo
+                    var pluginInstance = $('#referenceNo').data('searchableSelect');
+                    if (pluginInstance) {
+                        if (typeof pluginInstance.setValue === 'function') {
+                            pluginInstance.setValue(autoSelectId);
+                        }
+                        // Plugin ke internal selected value manually set karo
+                        if (pluginInstance.hasOwnProperty('selectedValue')) {
+                            pluginInstance.selectedValue = autoSelectId;
+                        }
+                        if (pluginInstance.hasOwnProperty('_value')) {
+                            pluginInstance._value = autoSelectId;
+                        }
+                        if (pluginInstance.hasOwnProperty('currentValue')) {
+                            pluginInstance.currentValue = autoSelectId;
+                        }
+                    }
+
+                    // Step 3: Plugin ke dropdown options mein selected class lagao
+                    setTimeout(function () {
+                        $('#referenceWrapper .searchable-select-options .option-item, #referenceWrapper .searchable-select-options li, #referenceWrapper .searchable-select-options div[data-value]').each(function () {
+                            var itemVal = $(this).attr('data-value') || $(this).data('value');
+                            if (String(itemVal) === String(autoSelectId)) {
+                                $(this).addClass('selected active');
+                            }
+                        });
+                    }, 100);
+                }
+            }, 400);
+        } else {
+            setTimeout(() => {
+                const instance = $('#referenceNo').data('searchableSelect');
+                if (instance && !instance.getValue()) {
+                    $('#referenceNo').attr('placeholder', 'Select Reference');
+                    $('#referenceNo').val('');
+                }
+            }, 100);
+        }
+    }
+
+    async function bindDocument(data) {
+        const existing = $('#documentName').data('searchableSelect');
+        if (existing) existing.destroy();
+
+        $('#documentName').val('');
+
+        $('#documentName').searchableSelect({
+            data: data || [],
+            valueKey: 'documentTypeId',
+            textKey: 'documentName',
+            placeholder: 'Select Document',
+            searchPlaceholder: 'Search document...',
+            onChange: function (item) { }
+        });
+
+        setTimeout(() => {
+            const instance = $('#documentName').data('searchableSelect');
+            if (instance && !instance.getValue()) {
+                $('#documentName').attr('placeholder', 'Select Document');
+                $('#documentName').val('');
+            }
+        }, 100);
+    }
+
+    async function bindRelationShipOptions(data) {
+        const existing = $('#contactPersonRelation').data('searchableSelect');
+        if (existing) existing.destroy();
+
+        $('#contactPersonRelation').val('');
+
+        $('#contactPersonRelation').searchableSelect({
+            data: data || [],
+            valueKey: 'relationShipId',
+            textKey: 'relationName',
+            placeholder: 'Select Relation',
+            searchPlaceholder: 'Search relation...',
+            onChange: function (item) { }
+        });
+
+        setTimeout(() => {
+            const instance = $('#contactPersonRelation').data('searchableSelect');
+            if (instance && !instance.getValue()) {
+                $('#contactPersonRelation').attr('placeholder', 'Select Relation');
+                $('#contactPersonRelation').val('');
+            }
+        }, 100);
+    }
+
     function resetAllForms() {
-        $("form").trigger("reset");
+        $('#operationType').val('');
+        $('#employeeName').val('');
+        $('#employeeEmail').val('');
+        $('#presentAddress').val('');
+        $('#permanentAddress').val('');
+        $('#lastEducation').val('');
+        $('#maritalStatus').val('');
+        $('#dateOfBirth').val('');
+        $('#totalExperience').val('');
+        $('#mobileNo').val('');
+        $('#bloodGroup').val('');
+        $('#branchName').val('');
+        $('#reportingTo').val('');
+        $('#department').val('');
+        $('#designation').val('');
+        $('#dateOfJoining').val('');
+        $('#interviewedBy').val('');
+        $('#interviewDate').val('');
+        $('#interviewPlace').val('');
+        $('#clientName').val('');
+        $('#erpCode').val('');
+        $('#previousCompanyUAN').val('');
+        $('#previousCompanyESIC').val('');
+        $('#pfUAN').val('');
+        $('#esicNo').val('');
+        $('#pan').val('');
+        $('#grossSalary').val('');
+        $('#netSalary').val('');
+        $('#contactPersonName').val('');
+        $('#contactMobileNo').val('');
+        $('#comment').val('');
+        $('#dateOfExpiry').val('');
+        $('#document').val('');
+
         $(".error-message").hide();
         $(".is-invalid").removeClass("is-invalid");
 
@@ -976,7 +1116,15 @@
         $(".tab:first").addClass("active");
         $("#employee-info").addClass("active");
 
-        // Clear grids
+        const refInstance = $('#referenceNo').data('searchableSelect');
+        if (refInstance) refInstance.clear();
+
+        const docInstance = $('#documentName').data('searchableSelect');
+        if (docInstance) docInstance.clear();
+
+        const relInstance = $('#contactPersonRelation').data('searchableSelect');
+        if (relInstance) relInstance.clear();
+
         if ($("#GridRelationContainer").data("dxDataGrid")) {
             $("#GridRelationContainer").dxDataGrid("instance").option("dataSource", []);
         }
@@ -985,21 +1133,20 @@
         }
     }
 
-    // Load Reference Numbers - Returns Promise
-    function loadRefrence() {
+    // Load Reference - autoSelectId support ke sath
+    function loadRefrence(autoSelectId) {
         return new Promise((resolve, reject) => {
             $.ajax({
                 type: 'POST',
                 url: '@baseUrl/ManpowerRequisitionAPI/GetAllSerialNo',
                 data: JSON.stringify({ CompanyId: CompanyId, EmployeeId: EmployeeId }),
                 contentType: 'application/json',
-                headers: {
-                    'Authorization': 'Bearer ' + Token
-                },
+                headers: { 'Authorization': 'Bearer ' + Token },
                 success: function (response) {
                     if (response.isSuccess) {
-                        bindSerial(response.data);
-                        resolve();
+                        // autoSelectId pass karo bindSerial mein
+                        bindSerial(response.data, autoSelectId || null);
+                        resolve(response.data);
                     } else {
                         reject();
                     }
@@ -1012,68 +1159,97 @@
         });
     }
 
-    function bindSerial(data) {
-        console.log('data', data);
-        $('#referenceNo').searchableSelect({
-            data: data || [],
-            valueKey: 'manpowerRequisitionId',  // ध्यान दें: camelCase में है
-            textKey: 'serialNo',                // ध्यान दें: camelCase में है
-            placeholder: 'Reference',
-            searchPlaceholder: 'Search reference...',
-            onChange: function (item) {
-                if (item && item.manpowerRequisitionId) {
-                    loadManpowerDetails(item.manpowerRequisitionId);
-                    ManpowerRelationDataTable();
-                    ManpowerDocumentDataTable();
-                }
-            }
-        });
-    }
-
-    function updateEmployeeJoining(data) {
+        function updateEmployeeJoining(data) {
         resetAllForms();
 
-        // Change button text to Update
+        _updateManpowerRequisitionId = data.ManpowerRequisitionId;
+
         $(".formType").text("Update");
         $("#btnEmployeeInfo").text("Update");
         $("#btnJoiningDetails").text("Update");
         $("#btnSalary").text("Update");
 
-        // Load all dropdowns first
-        Promise.all([
-            loadRefrence(),
-            loadDocumentType(),
-            loadBindRelationShiptOption()
-        ]).then(() => {
-            // Wait for dropdowns to initialize - increased timeout
-            setTimeout(() => {
-                if (data.ManpowerRequisitionId) {
-                    // Set reference number using setValue method
-                    const searchableSelect = $('#referenceNo').data('searchableSelect');
-                    if (searchableSelect) {
-                        // Use setValue with the ID directly
-                        searchableSelect.setValue(data.ManpowerRequisitionId);
+        $("#employeeJoiningModal").modal('show');
 
-                        // Trigger the data load manually
-                        loadManpowerDetails(data.ManpowerRequisitionId);
-                        ManpowerRelationDataTable();
-                        ManpowerDocumentDataTable();
+        // Step 1: Seedha API se data lo
+        $.ajax({
+            type: 'GET',
+            url: '@baseUrl/ManpowerRequisitionAPI/GetManpowerRequisitionByManpowerRequisitionId/' + data.ManpowerRequisitionId,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response.isSuccess) {
+                    var apiData = response.data;
+
+                    // Step 2: Reference field mein SerialNo directly set karo
+                    $('#referenceNo').val(apiData.SerialNo || data.SerialNo || '');
+
+                    // Step 3: Sabhi form fields fill karo
+                    $('#operationType').val(apiData.OperationType || '');
+                    $('#employeeName').val(apiData.EmployeeName || '');
+                    $('#employeeEmail').val(apiData.PersonalEmail || '');
+                    $('#presentAddress').val(apiData.PresentAddress || '');
+                    $('#permanentAddress').val(apiData.PermanentAddress || '');
+                    $('#lastEducation').val(apiData.EducationalQualification || '');
+                    $('#maritalStatus').val(apiData.MaritalStatus || '');
+
+                    if (apiData.DateOfBirth) {
+                        $('#dateOfBirth').val(new Date(apiData.DateOfBirth).toISOString().split('T')[0]);
                     }
+
+                    $('#totalExperience').val(apiData.ExperienceRange || '');
+                    $('#mobileNo').val(apiData.ContactNumber || '');
+                    $('#bloodGroup').val(apiData.BloodGroup || '');
+                    $('#branchName').val(apiData.BranchName || '');
+                    $('#reportingTo').val(apiData.ReportingName || '');
+                    $('#department').val(apiData.DepartmentName || '');
+                    $('#designation').val(apiData.DesignationName || '');
+
+                    if (apiData.DateOfJoining) {
+                        $('#dateOfJoining').val(new Date(apiData.DateOfJoining).toISOString().split('T')[0]);
+                    }
+
+                    $('#interviewedBy').val(apiData.InterviewedBy || '');
+
+                    if (apiData.InterviewDate) {
+                        $('#interviewDate').val(new Date(apiData.InterviewDate).toISOString().split('T')[0]);
+                    }
+
+                    $('#interviewPlace').val(apiData.InterviewPlace || '');
+                    $('#clientName').val(apiData.ClientName || '');
+                    $('#erpCode').val(apiData.ErpCode || '');
+                    $('#previousCompanyUAN').val(apiData.PreviousCompanyUAN || '');
+                    $('#previousCompanyESIC').val(apiData.PreviousCompanyESIC || '');
+                    $('#grossSalary').val(apiData.GrossSalary || '');
+                    $('#netSalary').val(apiData.TakeHomeSalary || '');
+                    $('#esicNo').val(apiData.EsicNo || '');
+                    $('#pfUAN').val(apiData.PFUAN || '');
+                    $('#pan').val(apiData.Pan || '');
                 }
-            }, 800); // Timeout बढ़ाया गया
+            },
+            error: function (xhr, status, error) {
+                console.error("Error loading data:", error);
+                round_error_noti("Data load karne mein error aaya");
+            }
         });
 
-        $("#employeeJoiningModal").modal('show');
-    } 
+        // Step 4: Dropdowns aur grids load karo
+        Promise.all([
+            loadRefrence(data.ManpowerRequisitionId),
+            loadDocumentType(),
+            loadBindRelationShiptOption()
+        ]).then(function () {
+            setTimeout(function () {
+                ManpowerRelationDataTable();
+                ManpowerDocumentDataTable();
+            }, 500);
+        });
+    }
 
     async function loadManpowerDetails(Id) {
-        debugger;
         $.ajax({
             type: 'GET',
             url: '@baseUrl/ManpowerRequisitionAPI/GetManpowerRequisitionByManpowerRequisitionId/' + Id,
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
+            headers: { 'Authorization': 'Bearer ' + Token },
             success: function (response) {
                 if (response.isSuccess) {
                     console.log('response', response);
@@ -1088,7 +1264,6 @@
 
     function populateFormWithApiData(apiData) {
         $('#operationType').val(apiData.OperationType || '');
-
         $('#employeeName').val(apiData.EmployeeName || '');
         $('#employeeEmail').val(apiData.PersonalEmail || '');
         $('#presentAddress').val(apiData.PresentAddress || '');
@@ -1105,7 +1280,6 @@
         $('#totalExperience').val(apiData.ExperienceRange || '');
         $('#mobileNo').val(apiData.ContactNumber || '');
         $('#bloodGroup').val(apiData.BloodGroup || '');
-
         $('#branchName').val(apiData.BranchName || '');
         $('#reportingTo').val(apiData.ReportingName || '');
         $('#department').val(apiData.DepartmentName || '');
@@ -1130,7 +1304,6 @@
         $('#erpCode').val(apiData.ErpCode || '');
         $('#previousCompanyUAN').val(apiData.PreviousCompanyUAN || '');
         $('#previousCompanyESIC').val(apiData.PreviousCompanyESIC || '');
-
         $('#grossSalary').val(apiData.GrossSalary || '');
         $('#netSalary').val(apiData.TakeHomeSalary || '');
         $('#esicNo').val(apiData.EsicNo || '');
@@ -1142,7 +1315,7 @@
     async function getFormData() {
         const formData = {
             Action: "UPDATE_EmployeeInfo",
-            ManpowerRequisitionId: $('#referenceNo').data('searchableSelect').getValue() || null,
+            ManpowerRequisitionId: $('#referenceNo').data('searchableSelect').getValue() || _updateManpowerRequisitionId || null,
             operationType: $('#operationType').val() || null,
             employeeName: $('#employeeName').val() || null,
             employeeEmail: $('#employeeEmail').val() || null,
@@ -1161,10 +1334,11 @@
     $("#btnEmployeeInfo").click(async () => {
         $(".btn-save").prop("disabled", true);
         let isValid = true;
-
         $('.error-message').hide();
 
-        const referenceNo = $('#referenceNo').data('searchableSelect').getValue();
+        const referenceNo = ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+            || _updateManpowerRequisitionId;
+
         if (!referenceNo) {
             $('#errorReference').show();
             round_error_noti("Please select reference no");
@@ -1175,14 +1349,11 @@
             return;
         }
         const formData = await getFormData();
-
         $.ajax({
             url: '@baseUrl/ManpowerRequisitionAPI/UpdateJoinningDetails',
             type: 'POST',
             contentType: 'application/json',
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
+            headers: { 'Authorization': 'Bearer ' + Token },
             data: JSON.stringify(formData),
             success: function (response) {
                 if (response.isSuccess) {
@@ -1190,14 +1361,13 @@
                     employeeJoiningDataTable();
                     loadManpowerDetails(referenceNo);
                 } else {
-                    round_error_noti(response.responseMessage)
+                    round_error_noti(response.responseMessage);
                 }
                 $(".btn-save").prop("disabled", false);
             },
             error: function (xhr, status, error) {
                 $(".btn-save").prop("disabled", false);
                 round_error_noti('Error saving data: ' + error);
-                console.log('Error saving data: ' + error);
             }
         });
     });
@@ -1206,7 +1376,8 @@
     async function getJoiningFormData() {
         const formJoinData = {
             Action: "UPDATE_JoiningDetails",
-            ManpowerRequisitionId: $('#referenceNo').data('searchableSelect').getValue() || null,
+            ManpowerRequisitionId: ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+                || _updateManpowerRequisitionId || null,
             branchName: $('#branchName').val() || null,
             reportingTo: $('#reportingTo').val() || null,
             department: $('#department').val() || null,
@@ -1225,12 +1396,12 @@
 
     $("#btnJoiningDetails").click(async () => {
         $(".btn-save").prop("disabled", true);
-
         let isValid = true;
-
         $('.error-message').hide();
 
-        const referenceNo = $('#referenceNo').data('searchableSelect').getValue();
+        const referenceNo = ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+            || _updateManpowerRequisitionId;
+
         if (!referenceNo) {
             round_error_noti("Please select reference no");
             $('#errorReference').show();
@@ -1241,14 +1412,11 @@
             return;
         }
         const formJoiningData = await getJoiningFormData();
-
         $.ajax({
             url: '@baseUrl/ManpowerRequisitionAPI/UpdateJoinningDetails',
             type: 'POST',
             contentType: 'application/json',
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
+            headers: { 'Authorization': 'Bearer ' + Token },
             data: JSON.stringify(formJoiningData),
             success: function (response) {
                 if (response.isSuccess) {
@@ -1256,14 +1424,13 @@
                     employeeJoiningDataTable();
                     loadManpowerDetails(referenceNo);
                 } else {
-                    round_error_noti(response.responseMessage)
+                    round_error_noti(response.responseMessage);
                 }
                 $(".btn-save").prop("disabled", false);
             },
             error: function (xhr, status, error) {
                 $(".btn-save").prop("disabled", false);
                 round_error_noti('Error saving data: ' + error);
-                console.log('Error saving data: ' + error);
             }
         });
     });
@@ -1272,7 +1439,8 @@
     async function getSalaryFormData() {
         const formSalaryData = {
             Action: "UPDATE_SalaryDetails",
-            ManpowerRequisitionId: $('#referenceNo').data('searchableSelect').getValue() || null,
+            ManpowerRequisitionId: ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+                || _updateManpowerRequisitionId || null,
             PFUAN: $('#pfUAN').val() || null,
             ESICNo: $('#esicNo').val() || null,
             PAN: $('#pan').val() || null,
@@ -1286,7 +1454,10 @@
         $(".btn-save").prop("disabled", true);
         let isValid = true;
         $('.error-message').hide();
-        const referenceNo = $('#referenceNo').data('searchableSelect').getValue();
+
+        const referenceNo = ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+            || _updateManpowerRequisitionId;
+
         if (!referenceNo) {
             round_error_noti("Please select reference no");
             $('#errorReference').show();
@@ -1294,22 +1465,13 @@
         }
 
         const pfUAN = $('#pfUAN').val();
-        if (!pfUAN) {
-            $('#errorpfuan').show();
-            isValid = false;
-        }
+        if (!pfUAN) { $('#errorpfuan').show(); isValid = false; }
 
         const esicNo = $('#esicNo').val();
-        if (!esicNo) {
-            $('#errorESICNo').show();
-            isValid = false;
-        }
+        if (!esicNo) { $('#errorESICNo').show(); isValid = false; }
 
         const pan = $('#pan').val();
-        if (!pan) {
-            $('#errorPanPAN').show();
-            isValid = false;
-        }
+        if (!pan) { $('#errorPanPAN').show(); isValid = false; }
 
         if (!isValid) {
             $(".btn-save").prop("disabled", false);
@@ -1321,9 +1483,7 @@
             url: '@baseUrl/ManpowerRequisitionAPI/UpdateJoinningDetails',
             type: 'POST',
             contentType: 'application/json',
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
+            headers: { 'Authorization': 'Bearer ' + Token },
             data: JSON.stringify(formSalaryData),
             success: function (response) {
                 if (response.isSuccess) {
@@ -1336,39 +1496,28 @@
             },
             error: function (xhr, status, error) {
                 round_error_noti('Error saving data: ' + error);
-                console.log('Error saving data: ' + error);
                 $(".btn-save").prop("disabled", false);
             }
         });
     });
 
     // Document Section
-    $(document).ready(function () {
-        loadDocumentType();
-    });
-
     function loadDocumentType() {
         return new Promise((resolve, reject) => {
             $.ajax({
                 url: '@baseUrl/AttachmentDetailsAPI/GetAllDocumentTypes',
                 method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + Token
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (response.isSuccess) {
+                        bindDocument(response.data);
+                        resolve();
+                    } else {
+                        reject();
+                    }
                 },
-                success: function(response) {
-                    $('#documentName').searchableSelect({
-                        data: response.data || [],
-                        valueKey: 'documentTypeId',
-                        textKey: 'documentName',
-                        placeholder: 'Document',
-                        searchPlaceholder: 'Search document...',
-                        onChange: function (item) {
-                        }
-                    });
-                    resolve();
-                },
-                error: function(error) {
-                    console.error('Error fetching data:', error);
+                error: function (xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
                     reject(error);
                 }
             });
@@ -1376,8 +1525,8 @@
     }
 
     let selectedManpowerAttachmentId = null;
+
     $("#btnDocument").click(function () {
-        debugger;
         $(".btn-save").prop("disabled", true);
         if (ValidateDocumentForm()) {
             SaveManpowerDocument();
@@ -1389,7 +1538,9 @@
         let isValid = true;
         const documentName = $("#documentName").data('searchableSelect').getValue();
         const documentFile = $("#document")[0].files[0];
-        const manpowerRequisitionId = $('#referenceNo').data('searchableSelect').getValue();
+        const manpowerRequisitionId = ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+            || _updateManpowerRequisitionId;
+
         if (!manpowerRequisitionId) {
             round_error_noti("Please select a reference no");
             return false;
@@ -1400,22 +1551,21 @@
         } else {
             $("#errorDocument").hide();
         }
-
         if (!documentFile && !selectedManpowerAttachmentId) {
             round_error_noti("Please upload a document");
             isValid = false;
         }
-
         return isValid;
     }
 
     function SaveManpowerDocument() {
-        debugger;
         const formData = new FormData();
         const documentFile = $("#document")[0].files[0];
+        const manpowerRequisitionId = ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+            || _updateManpowerRequisitionId;
 
         formData.append("ManpowerAttachmentId", selectedManpowerAttachmentId || "");
-        formData.append("ManpowerRequisitionId", $('#referenceNo').data('searchableSelect').getValue() || "");
+        formData.append("ManpowerRequisitionId", manpowerRequisitionId || "");
         formData.append("DocumentTypeId", $('#documentName').data('searchableSelect').getValue() || "");
         formData.append("Comment", $("#comment").val().trim() || "");
         formData.append("DateOfExpiry", $("#dateOfExpiry").val() || "");
@@ -1462,10 +1612,10 @@
     }
 
     function ManpowerDocumentDataTable() {
-        const manpowerRequisitionId = $('#referenceNo').data('searchableSelect').getValue();
-        if (!manpowerRequisitionId) {
-            return;
-        }
+        const manpowerRequisitionId = ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+            || _updateManpowerRequisitionId;
+
+        if (!manpowerRequisitionId) return;
 
         $('#grid-loader-document').addClass('d-flex').show();
         $.ajax({
@@ -1478,50 +1628,36 @@
                     columns: [
                         { dataField: 'DocumentName', caption: 'Document Name', alignment: 'left', minWidth: 150 },
                         {
-                            dataField: 'DocumentUrl', caption: 'Document', alignment: 'left', minWidth: 150, cellTemplate: function (container, options) {
+                            dataField: 'DocumentUrl', caption: 'Document', alignment: 'left', minWidth: 150,
+                            cellTemplate: function (container, options) {
                                 $('<a>').attr('href', options.value).attr('target', '_blank').text('View Document').appendTo(container);
                             }
                         },
                         { dataField: 'DateOfExpiry', caption: 'Expiry Date', alignment: 'left', minWidth: 120, dataType: 'date', format: 'dd-MM-yyyy' },
                         { dataField: 'Comment', caption: 'Comment', alignment: 'left', minWidth: 150 },
                         {
-                            dataField: '',
-                            caption: '',
-                            alignment: 'center',
-                            width: 50,
+                            dataField: '', caption: '', alignment: 'center', width: 50,
                             cellTemplate: function (container, options) {
                                 $('<div>').addClass('d-flex order-actions')
-                                    .append(
-                                        $('<a>').attr('href', 'javascript:;')
-                                            .addClass('edit-action')
-                                            .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>')
-                                            .on('click', function () { UpdateManpowerDocument(options.data); })
-                                    )
+                                    .append($('<a>').attr('href', 'javascript:;').addClass('edit-action')
+                                        .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>')
+                                        .on('click', function () { UpdateManpowerDocument(options.data); }))
                                     .appendTo(container);
                             }
                         },
                         {
-                            dataField: '',
-                            caption: '',
-                            alignment: 'center',
-                            width: 50,
+                            dataField: '', caption: '', alignment: 'center', width: 50,
                             cellTemplate: function (container, options) {
                                 $('<div>').addClass('d-flex order-actions')
-                                    .append(
-                                        $('<a>').attr('href', 'javascript:;')
-                                            .addClass('delete-action')
-                                            .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/></svg>')
-                                            .on('click', function () { DeleteManpowerDocument(options.data.ManpowerAttachmentId); })
-                                    )
+                                    .append($('<a>').attr('href', 'javascript:;').addClass('delete-action')
+                                        .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/></svg>')
+                                        .on('click', function () { DeleteManpowerDocument(options.data.ManpowerAttachmentId); }))
                                     .appendTo(container);
                             }
                         }
                     ],
-                    columnAutoWidth: true,
-                    width: '100%',
-                    wordWrapEnabled: false,
-                    rowAlternationEnabled: false,
-                    showBorders: true,
+                    columnAutoWidth: true, width: '100%', wordWrapEnabled: false,
+                    rowAlternationEnabled: false, showBorders: true,
                     paging: { pageSize: 10 },
                     pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
                     headerFilter: { visible: false },
@@ -1529,12 +1665,7 @@
                     allowColumnResizing: false,
                     groupPanel: { visible: false },
                     searchPanel: { visible: true, width: 240, placeholder: "Search..." },
-                    scrolling: {
-                        mode: "standard",
-                        useNative: false,
-                        showScrollbar: "always",
-                        columnRenderingMode: "virtual"
-                    },
+                    scrolling: { mode: "standard", useNative: false, showScrollbar: "always", columnRenderingMode: "virtual" },
                     onContentReady: function (e) {
                         $('#rowCountDocument').html('Total Records: ' + e.component.totalCount());
                     }
@@ -1574,7 +1705,7 @@
                         round_error_noti(response.responseMessage);
                     }
                 },
-                error: function (xhr, status, error) {
+                error: function () {
                     round_error_noti("Unable to delete document. Please try again later.");
                 }
             });
@@ -1583,42 +1714,26 @@
 
     // Relation Section
     var selectedManpowerRelationId = null;
-    $(document).ready(function () {
-        loadBindRelationShiptOption();
-    });
 
     function loadBindRelationShiptOption() {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const response = await fetch('@baseUrl/RelationShipAPI/GetAllRelationShips', {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' }
-                });
-                const data = await response.json();
-                if (data.isSuccess) {
-                    console.log("Dropdown data:", data.data); // Check data
-                    if ($('#contactPersonRelation').length) { // Check element exists
-                        $('#contactPersonRelation').searchableSelect({
-                            data: data.data || [],
-                            valueKey: 'relationShipId',
-                            textKey: 'relationName',
-                            placeholder: 'Relation',
-                            searchPlaceholder: 'Search relation...',
-                            onChange: function(item) {}
-                        });
-                        console.log("Plugin initialized:", $('#contactPersonRelation').data('searchableSelect'));
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                type: 'GET',
+                url: '@baseUrl/RelationShipAPI/GetAllRelationShips',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (response.isSuccess) {
+                        bindRelationShipOptions(response.data);
                         resolve();
                     } else {
-                        console.error("Dropdown element not found!");
-                        reject("Element not found");
+                        reject();
                     }
-                } else {
-                    reject();
+                },
+                error: function (xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
+                    reject(error);
                 }
-            } catch (error) {
-                console.error('Fetch error:', error);
-                reject(error);
-            }
+            });
         });
     }
 
@@ -1635,42 +1750,43 @@
         const name = $("#contactPersonName").val().trim();
         const mobile = $("#contactMobileNo").val().trim();
         const contactPersonRelation = $("#contactPersonRelation").data('searchableSelect').getValue();
-        const referenceNo = $('#referenceNo').data('searchableSelect').getValue();
+        const referenceNo = ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+            || _updateManpowerRequisitionId;
+
         if (!referenceNo) {
             round_error_noti("Please select reference no");
             $('#errorReference').show();
             isValid = false;
         }
-
         if (!name) {
             $("#errorContactName").show();
             isValid = false;
         } else {
             $("#errorContactName").hide();
         }
-
         if (!contactPersonRelation) {
             $("#errorRelation").show();
             isValid = false;
         } else {
             $("#errorRelation").hide();
         }
-
         if (!mobile || !/^[0-9]{10}$/.test(mobile)) {
             $("#errorMobile").show();
             isValid = false;
         } else {
             $("#errorMobile").hide();
         }
-
         return isValid;
     }
 
     function SaveManpowerRelation() {
+        const manpowerRequisitionId = ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+            || _updateManpowerRequisitionId;
+
         const model = {
             ManpowerRelationId: selectedManpowerRelationId,
             Name: $("#contactPersonName").val().trim(),
-            ManpowerRequisitionId: $('#referenceNo').data('searchableSelect').getValue(),
+            ManpowerRequisitionId: manpowerRequisitionId,
             RelationShipId: $('#contactPersonRelation').data('searchableSelect').getValue(),
             MobileNo: $("#contactMobileNo").val().trim(),
             CreatedBy: EmployeeId,
@@ -1696,7 +1812,7 @@
                     round_error_noti(response.responseMessage);
                 }
             },
-            error: function (xhr, status, error) {
+            error: function () {
                 round_error_noti("Unable to save relation. Please try again later.");
             }
         });
@@ -1712,10 +1828,11 @@
     }
 
     function ManpowerRelationDataTable() {
-        const manpowerRequisitionId = $('#referenceNo').data('searchableSelect').getValue();
-        if (!manpowerRequisitionId) {
-            return;
-        }
+        const manpowerRequisitionId = ($('#referenceNo').data('searchableSelect') && $('#referenceNo').data('searchableSelect').getValue())
+            || _updateManpowerRequisitionId;
+
+        if (!manpowerRequisitionId) return;
+
         $('#grid-loader-relation').addClass('d-flex').show();
         $.ajax({
             type: "GET",
@@ -1726,57 +1843,31 @@
                     dataSource: data.data || [],
                     columns: [
                         { dataField: 'Name', caption: 'Contact Person Name', alignment: 'left', minWidth: 150 },
-                        {
-                            dataField: 'RelationName',
-                            caption: 'Relationship',
-                            alignment: 'left',
-                            minWidth: 120
-                        },
+                        { dataField: 'RelationName', caption: 'Relationship', alignment: 'left', minWidth: 120 },
                         { dataField: 'MobileNo', caption: 'Mobile No.', alignment: 'left', minWidth: 120 },
                         {
-                            dataField: '',
-                            caption: '',
-                            alignment: 'center',
-                            width: 50,
+                            dataField: '', caption: '', alignment: 'center', width: 50,
                             cellTemplate: function (container, options) {
                                 $('<div class="d-flex order-actions">')
-                                    .append(
-                                        $('<a>').attr('href', 'javascript:;')
-                                            .addClass('edit-action')
-                                            .attr('title', 'Edit Relation')
-                                            .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>')
-                                            .on('dxclick', function () {
-                                                UpdateManpowerRelation(options.data);
-                                            })
-                                    )
+                                    .append($('<a>').attr('href', 'javascript:;').addClass('edit-action').attr('title', 'Edit Relation')
+                                        .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>')
+                                        .on('dxclick', function () { UpdateManpowerRelation(options.data); }))
                                     .appendTo(container);
                             }
                         },
                         {
-                            dataField: '',
-                            caption: '',
-                            alignment: 'center',
-                            width: 50,
+                            dataField: '', caption: '', alignment: 'center', width: 50,
                             cellTemplate: function (container, options) {
                                 $('<div class="d-flex order-actions">')
-                                    .append(
-                                        $('<a>').attr('href', 'javascript:;')
-                                            .addClass('delete-action')
-                                            .attr('title', 'Delete Relation')
-                                            .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/></svg>')
-                                            .on('dxclick', function () {
-                                                DeleteManpowerRelation(options.data.ManpowerRelationId);
-                                            })
-                                    )
+                                    .append($('<a>').attr('href', 'javascript:;').addClass('delete-action').attr('title', 'Delete Relation')
+                                        .html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/></svg>')
+                                        .on('dxclick', function () { DeleteManpowerRelation(options.data.ManpowerRelationId); }))
                                     .appendTo(container);
                             }
                         }
                     ],
-                    columnAutoWidth: true,
-                    width: '100%',
-                    wordWrapEnabled: false,
-                    rowAlternationEnabled: false,
-                    showBorders: true,
+                    columnAutoWidth: true, width: '100%', wordWrapEnabled: false,
+                    rowAlternationEnabled: false, showBorders: true,
                     paging: { pageSize: 10 },
                     pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
                     headerFilter: { visible: false },
@@ -1784,17 +1875,11 @@
                     allowColumnResizing: false,
                     groupPanel: { visible: false },
                     searchPanel: { visible: true, width: 240, placeholder: "Search..." },
-                    scrolling: {
-                        mode: "standard",
-                        useNative: false,
-                        showScrollbar: "always",
-                        columnRenderingMode: "virtual"
-                    },
+                    scrolling: { mode: "standard", useNative: false, showScrollbar: "always", columnRenderingMode: "virtual" },
                     onContentReady: function (e) {
                         $('#rowCountRelation').html('Total Records: ' + e.component.totalCount());
                     }
                 });
-
                 $('#grid-loader-relation').removeClass('d-flex').hide();
             },
             error: function (xhr, status, error) {
@@ -1828,7 +1913,7 @@
                         round_error_noti(response.responseMessage);
                     }
                 },
-                error: function (xhr, status, error) {
+                error: function () {
                     round_error_noti("Unable to delete relation. Please try again later.");
                 }
             });
