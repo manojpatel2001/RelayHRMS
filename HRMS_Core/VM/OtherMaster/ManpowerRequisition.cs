@@ -30,8 +30,8 @@ namespace HRMS_Core.VM.OtherMaster
         public int? ReportingToId { get; set; }
         public DateTime? DateOfJoining { get; set; }
         public string? CategoryOfEmployment { get; set; }
-        public decimal? CTC_Monthly { get; set; }
-        public decimal? GrossSalary { get; set; }
+        //public decimal? CTC_Monthly { get; set; }
+        //public decimal? GrossSalary { get; set; }
         public decimal? TakeHomeSalary { get; set; }
         public bool IsEnabled { get; set; } = true;
         public bool IsDeleted { get; set; } = false;
@@ -39,8 +39,10 @@ namespace HRMS_Core.VM.OtherMaster
         public DateTime? CreatedDate { get; set; }
         public string? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
-       
+
         public int? CompanyId { get; set; }
+        public DateTime DateOfBirth { get; set; }
+        public decimal Amount { get; set; }
     }
 
 }

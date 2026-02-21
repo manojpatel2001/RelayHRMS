@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.VM;
 using HRMS_Core.VM.ApprovalManagement;
+using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
@@ -16,11 +17,13 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
     {
         Task<APIResponse> GetAllManpowerRequisitions(CommonParameter commonParameter);
         Task<APIResponse> GetAllManpowerRequisitionsAdmin(CommonParameter commonParameter);
-        Task<SP_Response> CreateManpowerRequisition(ManpowerRequisition manpowerRequisition);
-        Task<SP_Response> UpdateManpowerRequisition(ManpowerRequisition manpowerRequisition);
-        Task<SP_Response> DeleteManpowerRequisition(DeleteRecordVM model);
+        Task<APIResponse> GetAllManpowerRequisitionsEss(SearchVmCompOff model);
+        Task<APIResponse> CreateManpowerRequisition(ManpowerRequisition manpowerRequisition);
+        Task<APIResponse> UpdateManpowerRequisition(ManpowerRequisition manpowerRequisition);
+        Task<APIResponse> DeleteManpowerRequisition(DeleteRecordVM model);
         Task<APIResponse> GetDropDownForManpower(int CompanyId);
         Task<APIResponse> GetManpowerRequisitionByManpowerRequisitionId(int ManpowerRequisitionId);
+        Task<APIResponse> GetManpowerRequisitionEmailDetails(int? ManpowerRequisitionId);
         Task<APIResponse> GetAllSerialNo(CommonParameter commonParameter);
         Task<APIResponse> UpdateJoinningDetails(UpdateJoinningDetailsModel model);
         Task<APIResponse> GetAllJoiningManpowerRequisitions(CommonParameter commonParameter);

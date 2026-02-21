@@ -252,13 +252,7 @@ namespace HRMS_API.Controllers.Employee
             try
             {
                 if (attendances == null || !attendances.Any())
-                {
-                    return new APIResponse
-                    {
-                        isSuccess = false,
-                        ResponseMessage = "No attendance records provided."
-                    };
-                }
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No attendance records provided." };
 
                 bool finalSuccess = true;
                 string finalMessage = string.Empty;
@@ -272,98 +266,51 @@ namespace HRMS_API.Controllers.Employee
                     );
                     if (record == null) continue;
 
-                    // Update status fields
+                    // Update status fields on record
                     record.Status = attendance.Status;
                     record.IsApproved = attendance.Status == "Approved";
                     record.IsRejected = attendance.Status == "Rejected";
                     record.IsPending = attendance.Status == "Pending";
-
                     record.UpdatedBy = attendance.CreatedBy;
                     record.UpdatedDate = DateTime.UtcNow;
 
-                    // Save changes and get result from stored procedure
+                    // SP now handles both AttendanceRegularization + AttendanceDetails
                     var result = await _unitOfWork.AttendanceRegularizationRepository.Update(record);
 
-                    // Check if update failed (attendance locked or salary generated)
                     if (!result.isSuccess)
-                    {
-                        return new APIResponse
-                        {
-                            isSuccess = false,
-                            ResponseMessage = result.ResponseMessage
-                        };
-                    }
+                        return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
 
-                    // Store success message from repository
                     finalSuccess = result.isSuccess;
                     finalMessage = result.ResponseMessage;
 
-                    // If approved, update or create InOut records
-                    if (record.IsApproved)
-                    {
-                        var existingInOutList = await _unitOfWork.AttendanceRegularizationRepository.GetEmployeeInOut(attendance.EmpId, attendance.ForDate);
-                        var existingInOut = existingInOutList.FirstOrDefault();
-                        if (existingInOut != null)
-                        {
-                            int empInOutId = existingInOut.Id;
-                            var updateModel = new AttendanceDetailsViewModel
-                            {
-                                AttendanceDetailsid = empInOutId,
-                                EmployeeId = attendance.EmpId,
-                                ShiftDate = attendance.ForDate,
-                                InTime = attendance.InTime ?? DateTime.Now,
-                                OutTime = attendance.OutTime ?? DateTime.Now,
-                                WorkingHours = attendance.Duration,
-                                SalaryDay = 1,
-                                CreatedOn = DateTime.Now
-                            };
-                            await _unitOfWork.EmployeeInOutRepository.UpdateAttendanceDetails(updateModel);
-                        }
-                        else
-                        {
-                            var newInOut = new AttendanceDetailsViewModel
-                            {
-                                EmployeeId = attendance.EmpId,
-                                ShiftDate = attendance.ForDate,
-                                InTime = attendance.InTime ?? DateTime.Now,
-                                OutTime = attendance.OutTime ?? DateTime.Now,
-                                WorkingHours = attendance.Duration,
-                                SalaryDay = 1,
-                                CreatedOn = DateTime.Now
-                            };
-                            await _unitOfWork.EmployeeInOutRepository.CreateAttendanceDetails(newInOut);
-                            var updateNotification = await _unitOfWork.NotificationRemainderRepository.UpdateNotificationRemainder(
-                                new NotificationRemainders
-                                {
-                                    NotificationType = NotificationType.AttendanceApplication,
-                                    SenderId = attendance.EmpId.ToString()
-                                }
-                            );
-                        }
-                    }
+                    // Send notification
+                    var employeeDetails = await _unitOfWork.EmployeeManageRepository
+                        .GetEmployeeById(Convert.ToInt32(attendance.CreatedBy));
 
-                    // Send notification to the reporting person
-                    var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(Convert.ToInt32(attendance.CreatedBy));
                     if (employeeDetails != null)
                     {
-                        var notification = new NotificationRemainders()
+                        var notification = new NotificationRemainders
                         {
-                            NotificationMessage = $"Your attendance for Date: {attendance.ForDate:dd-MM-yyyy} has been {attendance.Status?.ToLower()} by {employeeDetails?.FullName}.",
+                            NotificationMessage = $"Your attendance for Date: {attendance.ForDate:dd-MM-yyyy} has been {attendance.Status?.ToLower()} by {employeeDetails.FullName}.",
                             NotificationTime = DateTime.UtcNow,
-                            SenderId = employeeDetails?.Id.ToString(),
-                            ReceiverIds = attendance?.EmpId.ToString(),
+                            SenderId = employeeDetails.Id.ToString(),
+                            ReceiverIds = attendance.EmpId.ToString(),
                             NotificationType = NotificationType.AttendanceApproval,
-                            NotificationAffectedId = Convert.ToInt32(attendance?.EmpId)
+                            NotificationAffectedId = Convert.ToInt32(attendance.EmpId)
                         };
-                        var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+
+                        var savedNotification = await _unitOfWork.NotificationRemainderRepository
+                            .CreateNotificationRemainder(notification);
+
                         if (savedNotification.Success > 0)
                         {
                             notification.NotificationRemainderId = savedNotification.Success;
-                            var reportingConnection = NotificationRemainderConnectionManager.GetConnections(attendance?.EmpId.ToString());
-                            if (reportingConnection.Any())
-                            {
-                                await _hubContext.Clients.Clients(reportingConnection).SendAsync("ReceiveNotificationRemainder", notification);
-                            }
+                            var connections = NotificationRemainderConnectionManager
+                                .GetConnections(attendance.EmpId.ToString());
+
+                            if (connections.Any())
+                                await _hubContext.Clients.Clients(connections)
+                                    .SendAsync("ReceiveNotificationRemainder", notification);
                         }
                     }
                 }
@@ -371,18 +318,17 @@ namespace HRMS_API.Controllers.Employee
                 return new APIResponse
                 {
                     isSuccess = finalSuccess,
-                    ResponseMessage = !string.IsNullOrEmpty(finalMessage) ? finalMessage : "Attendance and In/Out records processed successfully."
+                    ResponseMessage = !string.IsNullOrEmpty(finalMessage)
+                        ? finalMessage
+                        : "Attendance records processed successfully."
                 };
             }
             catch (Exception ex)
             {
-                return new APIResponse
-                {
-                    isSuccess = false,
-                    ResponseMessage = ex.Message
-                };
+                return new APIResponse { isSuccess = false, ResponseMessage = ex.Message };
             }
         }
+
         [HttpDelete("Delete")]
         public async Task<APIResponse> Delete([FromBody] DeleteRecordVModel DeleteRecord)
         {

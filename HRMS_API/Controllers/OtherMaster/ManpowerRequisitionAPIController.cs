@@ -1,5 +1,9 @@
-﻿using HRMS_Core.VM;
+﻿using HRMS_API.Services;
+using HRMS_Core.Services;
+using HRMS_Core.VM;
 using HRMS_Core.VM.ApprovalManagement;
+using HRMS_Core.VM.EmailService;
+using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
@@ -15,10 +19,11 @@ namespace HRMS_API.Controllers.OtherMaster
     public class ManpowerRequisitionAPIController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
-
-        public ManpowerRequisitionAPIController(IUnitOfWork unitOfWork)
+        private readonly EmailService _emailService;
+        public ManpowerRequisitionAPIController(IUnitOfWork unitOfWork, EmailService emailService)
         {
             _unitOfWork = unitOfWork;
+            _emailService = emailService;
         }
 
         [HttpPost("GetAllManpowerRequisitions")]
@@ -58,20 +63,78 @@ namespace HRMS_API.Controllers.OtherMaster
                 if (model == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Manpower requisition details cannot be null." };
 
-                // Set default values for required fields if needed
                 model.CreatedDate = DateTime.UtcNow;
                 model.IsEnabled = true;
                 model.IsDeleted = false;
 
+                // Step 1: Create karo
                 var result = await _unitOfWork.ManpowerRequisitionRepository.CreateManpowerRequisition(model);
-                if (result.Success > 0)
+
+                if (result.isSuccess)
                 {
+                    var createdData = result.Data as ManpowerRequisitionCreatedData;
+                    int newId = createdData.ManpowerRequisitionId;
+
+                    var requisitionData = await _unitOfWork.ManpowerRequisitionRepository
+                                                .GetManpowerRequisitionEmailDetails(newId);
+
+                    if (requisitionData != null && requisitionData.isSuccess)
+                    {
+                        var manpowerData = requisitionData.Data as dynamic;
+
+                        var emailReport = await _unitOfWork.EmailReportRepository
+                                                .GetEmailSendTime(EmailReportType.ManpowerRequisition.ToString());
+
+                        if (emailReport != null && !string.IsNullOrEmpty(emailReport.ToEmails))
+                        {
+                            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId",      manpowerData?.RequestId?.ToString() ?? "N/A" },
+                { "Department",     manpowerData?.Department ?? "N/A" },
+                { "Designation",    manpowerData?.Designation ?? "N/A" },
+                { "RequestedBy",    manpowerData?.RequestedByName ?? "N/A" },
+                { "RequestedDate",  manpowerData?.CreatedDate != null
+                                    ? ((DateTime)manpowerData.CreatedDate).ToString("dd-MM-yyyy")
+                                    : "N/A" },
+                { "CompanyName",    manpowerData?.CompanyName ?? "N/A" },
+                { "Year",           DateTime.Now.Year.ToString() }
+            };
+
+                            var emailRequest = new EmailRequest
+                            {
+                                ToEmails = emailReport.ToEmails.Split(',').ToList(),
+                                BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
+                                CcEmails = emailReport?.CcEmails?.Split(',').ToList(),
+                                Subject = $"New Manpower Requisition Request - {createdData.SerialNo}", // ✅ SerialNo use karo
+                                TemplateName = "ManpowerRequisitionEmailTemplate.html",
+                                Placeholders = placeholders
+                            };
+
+                            var emailLogger = new EmailLogger
+                            {
+                                ToEmail = emailReport.ToEmails,
+                                BCCEmail = emailReport?.BccEmails,
+                                CCEmail = emailReport?.CcEmails,
+                                Subject = emailRequest.Subject,
+                                Body = emailRequest.TemplateName,
+                                Status = EmailStatus.Pending,
+                                SentAt = DateTime.UtcNow,
+                                Comments = "Email ready for sent"
+                            };
+
+                            await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(emailLogger, "CREATE");
+                            bool emailSent = await _emailService.SendEmailAsync(emailRequest);
+                        }
+                    }
+
                     return new APIResponse
                     {
                         isSuccess = true,
-                        ResponseMessage = result.ResponseMessage
+                        ResponseMessage = result.ResponseMessage,
+                        Data = result.Data
                     };
                 }
+
                 return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
             catch (Exception ex)
@@ -79,7 +142,6 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to create manpower requisition. Please try again later." };
             }
         }
-
         [HttpPost("UpdateManpowerRequisition")]
         public async Task<APIResponse> UpdateManpowerRequisition([FromBody] ManpowerRequisition model)
         {
@@ -88,15 +150,15 @@ namespace HRMS_API.Controllers.OtherMaster
                 if (model == null || model.ManpowerRequisitionId == 0)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Manpower requisition details cannot be null." };
 
-                // Set updated date and user
                 model.UpdatedDate = DateTime.UtcNow;
 
                 var result = await _unitOfWork.ManpowerRequisitionRepository.UpdateManpowerRequisition(model);
-                if (result.Success > 0)
+
+                return new APIResponse
                 {
-                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
-                }
-                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+                    isSuccess = result.isSuccess,
+                    ResponseMessage = result.ResponseMessage
+                };
             }
             catch (Exception ex)
             {
@@ -113,18 +175,18 @@ namespace HRMS_API.Controllers.OtherMaster
                     return new APIResponse { isSuccess = false, ResponseMessage = "Manpower requisition ID cannot be zero." };
 
                 var result = await _unitOfWork.ManpowerRequisitionRepository.DeleteManpowerRequisition(model);
-                if (result.Success > 0)
+
+                return new APIResponse
                 {
-                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
-                }
-                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+                    isSuccess = result.isSuccess,
+                    ResponseMessage = result.ResponseMessage
+                };
             }
             catch (Exception ex)
             {
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete manpower requisition. Please try again later." };
             }
         }
-
         [HttpPost("GetAllSerialNo")]
         public async Task<APIResponse> GetAllSerialNo(CommonParameter model)
         {
@@ -249,6 +311,39 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve manpower requisitions. Please try again later." };
             }
         }
+
+        [HttpPost("GetAllManpowerRequisitionsEss")]
+        public async Task<APIResponse> GetAllManpowerRequisitionsEss([FromBody] SearchVmCompOff filter)
+        {
+            try
+            {
+                var result = await _unitOfWork.ManpowerRequisitionRepository.GetAllManpowerRequisitionsEss(filter);
+                if (result == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        ResponseMessage = "Data Fetched not Sucessfully"
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = result,
+                    ResponseMessage = "Data Fetched Sucessfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    ResponseMessage = "Data not fetched successfully."
+                };
+            }
+        }
+
 
     }
 

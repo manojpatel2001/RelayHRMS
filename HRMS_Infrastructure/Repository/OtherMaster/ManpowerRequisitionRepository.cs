@@ -4,6 +4,7 @@ using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.Scheme;
 using HRMS_Core.VM;
 using HRMS_Core.VM.ApprovalManagement;
+using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.OtherMaster;
 using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
@@ -72,121 +73,182 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
             response.Data = new List<dynamic>(); 
         }
         return response;
-    }
-    public async Task<SP_Response> CreateManpowerRequisition(ManpowerRequisition manpowerRequisition)
+        }
+        public async Task<APIResponse> CreateManpowerRequisition(ManpowerRequisition manpowerRequisition)
+        {
+            try
+            {
+                using var command = _db.Database.GetDbConnection().CreateCommand();
+                command.CommandText = "ManageManpowerRequisition";
+                command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                command.Parameters.Add(new SqlParameter("@Action", "CREATE"));
+                command.Parameters.Add(new SqlParameter("@DepartmentId", manpowerRequisition.DepartmentId));
+                command.Parameters.Add(new SqlParameter("@RequirementType", manpowerRequisition.RequirementType));
+                command.Parameters.Add(new SqlParameter("@EmployeeName", manpowerRequisition.EmployeeName ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@PersonalEmail", manpowerRequisition.PersonalEmail ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@ContactNumber", manpowerRequisition.ContactNumber ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@ClosureBy", manpowerRequisition.ClosureBy ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@DesignationId", manpowerRequisition.DesignationId));
+                command.Parameters.Add(new SqlParameter("@ExperienceRange", manpowerRequisition.ExperienceRange ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@EducationalQualification", manpowerRequisition.EducationalQualification ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@ComputerSkills", manpowerRequisition.ComputerSkills ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@JobResponsibility", manpowerRequisition.JobResponsibility ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@Age", manpowerRequisition.Age));
+                command.Parameters.Add(new SqlParameter("@Gender", manpowerRequisition.Gender ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@OtherBenefits", manpowerRequisition.OtherBenefits ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@SystemRequire", manpowerRequisition.SystemRequire ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@EmailIdRequire", manpowerRequisition.EmailIdRequire ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@SIMRequire", manpowerRequisition.SIMRequire ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@MobileHandsetRequire", manpowerRequisition.MobileHandsetRequire ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@ReportingToId", manpowerRequisition.ReportingToId));
+                command.Parameters.Add(new SqlParameter("@DateOfJoining", manpowerRequisition.DateOfJoining));
+                command.Parameters.Add(new SqlParameter("@CategoryOfEmployment", manpowerRequisition.CategoryOfEmployment ?? (object)DBNull.Value));
+                //command.Parameters.Add(new SqlParameter("@CTC_Monthly", manpowerRequisition.CTC_Monthly));
+                //command.Parameters.Add(new SqlParameter("@GrossSalary", manpowerRequisition.GrossSalary));
+                command.Parameters.Add(new SqlParameter("@TakeHomeSalary", manpowerRequisition.TakeHomeSalary));
+                command.Parameters.Add(new SqlParameter("@CreatedBy", manpowerRequisition.CreatedBy ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@CompanyId", manpowerRequisition.CompanyId));
+                command.Parameters.Add(new SqlParameter("@DateOfBirth", manpowerRequisition.DateOfBirth));
+                command.Parameters.Add(new SqlParameter("@Amount", manpowerRequisition.Amount));
+
+                await _db.Database.OpenConnectionAsync();
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    int success = reader.GetInt32(reader.GetOrdinal("Success"));
+                    string responseMessage = reader["ResponseMessage"].ToString();
+
+                    if (success == 1)
+                    {
+                        int manpowerRequisitionId = reader.GetInt32(reader.GetOrdinal("ManpowerRequisitionId"));
+                        string serialNo = reader["SerialNo"].ToString();
+
+                        return new APIResponse
+                        {
+                            isSuccess = true,
+                            ResponseMessage = responseMessage,
+                            Data = new ManpowerRequisitionCreatedData
+                            {
+                                ManpowerRequisitionId = manpowerRequisitionId,
+                                SerialNo = serialNo
+                            }
+                        };
+                    }
+                    else
+                    {
+                        return new APIResponse
+                        {
+                            isSuccess = false,
+                            ResponseMessage = responseMessage,
+                            Data = null
+                        };
+                    }
+                }
+
+                return new APIResponse { isSuccess = false, ResponseMessage = "No response from database.", Data = null };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = $"Error: {ex.Message}", Data = null };
+            }
+            finally
+            {
+                await _db.Database.CloseConnectionAsync();
+            }
+        }
+        public async Task<APIResponse> UpdateManpowerRequisition(ManpowerRequisition manpowerRequisition)
         {
             try
             {
                 var result = await _db.Set<SP_Response>()
                     .FromSqlInterpolated($@"
-                    EXEC ManageManpowerRequisition
-                        @Action = {"CREATE"},
-                        @DepartmentId = {manpowerRequisition.DepartmentId},
-                        @RequirementType = {manpowerRequisition.RequirementType},
-                        @EmployeeName = {manpowerRequisition.EmployeeName},
-                        @PersonalEmail = {manpowerRequisition.PersonalEmail},
-                        @ContactNumber = {manpowerRequisition.ContactNumber},
-                        @ClosureBy = {manpowerRequisition.ClosureBy},
-                        @DesignationId = {manpowerRequisition.DesignationId},
-                        @ExperienceRange = {manpowerRequisition.ExperienceRange},
-                        @EducationalQualification = {manpowerRequisition.EducationalQualification},
-                        @ComputerSkills = {manpowerRequisition.ComputerSkills},
-                        @JobResponsibility = {manpowerRequisition.JobResponsibility},
-                        @Age = {manpowerRequisition.Age},
-                        @Gender = {manpowerRequisition.Gender},
-                        @OtherBenefits = {manpowerRequisition.OtherBenefits},
-                        @SystemRequire = {manpowerRequisition.SystemRequire},
-                        @EmailIdRequire = {manpowerRequisition.EmailIdRequire},
-                        @SIMRequire = {manpowerRequisition.SIMRequire},
-                        @MobileHandsetRequire = {manpowerRequisition.MobileHandsetRequire},
-                        @ReportingToId = {manpowerRequisition.ReportingToId},
-                        @DateOfJoining = {manpowerRequisition.DateOfJoining},
-                        @CategoryOfEmployment = {manpowerRequisition.CategoryOfEmployment},
-                        @CTC_Monthly = {manpowerRequisition.CTC_Monthly},
-                        @GrossSalary = {manpowerRequisition.GrossSalary},
-                        @TakeHomeSalary = {manpowerRequisition.TakeHomeSalary},
-                        @CreatedBy = {manpowerRequisition.CreatedBy},
-                        @CompanyId = {manpowerRequisition.CompanyId}
-                    ")
+            EXEC ManageManpowerRequisition
+                @Action = {"UPDATE"},
+                @ManpowerRequisitionId = {manpowerRequisition.ManpowerRequisitionId},
+                @DepartmentId = {manpowerRequisition.DepartmentId},
+                @RequirementType = {manpowerRequisition.RequirementType},
+                @EmployeeName = {manpowerRequisition.EmployeeName},
+                @PersonalEmail = {manpowerRequisition.PersonalEmail},
+                @ContactNumber = {manpowerRequisition.ContactNumber},
+                @ClosureBy = {manpowerRequisition.ClosureBy},
+                @DesignationId = {manpowerRequisition.DesignationId},
+                @ExperienceRange = {manpowerRequisition.ExperienceRange},
+                @EducationalQualification = {manpowerRequisition.EducationalQualification},
+                @ComputerSkills = {manpowerRequisition.ComputerSkills},
+                @JobResponsibility = {manpowerRequisition.JobResponsibility},
+                @Age = {manpowerRequisition.Age},
+                @Gender = {manpowerRequisition.Gender},
+                @OtherBenefits = {manpowerRequisition.OtherBenefits},
+                @SystemRequire = {manpowerRequisition.SystemRequire},
+                @EmailIdRequire = {manpowerRequisition.EmailIdRequire},
+                @SIMRequire = {manpowerRequisition.SIMRequire},
+                @MobileHandsetRequire = {manpowerRequisition.MobileHandsetRequire},
+                @ReportingToId = {manpowerRequisition.ReportingToId},
+                @DateOfJoining = {manpowerRequisition.DateOfJoining},
+                @CategoryOfEmployment = {manpowerRequisition.CategoryOfEmployment},
+                @TakeHomeSalary = {manpowerRequisition.TakeHomeSalary},
+                @IsEnabled = {manpowerRequisition.IsEnabled},
+                @IsDeleted = {manpowerRequisition.IsDeleted},
+                @UpdatedBy = {manpowerRequisition.UpdatedBy}
+                @DateOfBirth = {manpowerRequisition.DateOfBirth}
+                @Amount = {manpowerRequisition.Amount}
+            ")
                     .ToListAsync();
 
-                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Failed to create requisition." };
+                var spResult = result.FirstOrDefault();
+
+                if (spResult == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update requisition.", Data = null };
+
+                return new APIResponse
+                {
+                    isSuccess = spResult.Success == 1,
+                    ResponseMessage = spResult.ResponseMessage,
+                    Data = null
+                };
             }
             catch (Exception ex)
             {
-                return new SP_Response { Success = -1, ResponseMessage = $"Error: {ex.Message}" };
+                return new APIResponse { isSuccess = false, ResponseMessage = $"Error: {ex.Message}", Data = null };
             }
         }
 
-        public async Task<SP_Response> UpdateManpowerRequisition(ManpowerRequisition manpowerRequisition)
+        public async Task<APIResponse> DeleteManpowerRequisition(DeleteRecordVM model)
         {
             try
             {
                 var result = await _db.Set<SP_Response>()
                     .FromSqlInterpolated($@"
-                    EXEC ManageManpowerRequisition
-                        @Action = {"UPDATE"},
-                        @ManpowerRequisitionId = {manpowerRequisition.ManpowerRequisitionId},
-                        @DepartmentId = {manpowerRequisition.DepartmentId},
-                        @RequirementType = {manpowerRequisition.RequirementType},
-                        @EmployeeName = {manpowerRequisition.EmployeeName},
-                        @PersonalEmail = {manpowerRequisition.PersonalEmail},
-                        @ContactNumber = {manpowerRequisition.ContactNumber},
-                        @ClosureBy = {manpowerRequisition.ClosureBy},
-                        @DesignationId = {manpowerRequisition.DesignationId},
-                        @ExperienceRange = {manpowerRequisition.ExperienceRange},
-                        @EducationalQualification = {manpowerRequisition.EducationalQualification},
-                        @ComputerSkills = {manpowerRequisition.ComputerSkills},
-                        @JobResponsibility = {manpowerRequisition.JobResponsibility},
-                        @Age = {manpowerRequisition.Age},
-                        @Gender = {manpowerRequisition.Gender},
-                        @OtherBenefits = {manpowerRequisition.OtherBenefits},
-                        @SystemRequire = {manpowerRequisition.SystemRequire},
-                        @EmailIdRequire = {manpowerRequisition.EmailIdRequire},
-                        @SIMRequire = {manpowerRequisition.SIMRequire},
-                        @MobileHandsetRequire = {manpowerRequisition.MobileHandsetRequire},
-                        @ReportingToId = {manpowerRequisition.ReportingToId},
-                        @DateOfJoining = {manpowerRequisition.DateOfJoining},
-                        @CategoryOfEmployment = {manpowerRequisition.CategoryOfEmployment},
-                        @CTC_Monthly = {manpowerRequisition.CTC_Monthly},
-                        @GrossSalary = {manpowerRequisition.GrossSalary},
-                        @TakeHomeSalary = {manpowerRequisition.TakeHomeSalary},
-                        @IsEnabled = {manpowerRequisition.IsEnabled},
-                        @IsDeleted = {manpowerRequisition.IsDeleted},
-                        @UpdatedBy = {manpowerRequisition.UpdatedBy}
-                ")
+            EXEC ManageManpowerRequisition
+                @Action = {"DELETE"},
+                @ManpowerRequisitionId = {model.Id},
+                @UpdatedBy = {model.DeletedBy}
+            ")
                     .ToListAsync();
 
-                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Failed to update requisition." };
+                var spResult = result.FirstOrDefault();
+
+                if (spResult == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Failed to delete requisition.", Data = null };
+
+                return new APIResponse
+                {
+                    isSuccess = spResult.Success == 1,
+                    ResponseMessage = spResult.ResponseMessage,
+                    Data = null
+                };
             }
             catch (Exception ex)
             {
-                return new SP_Response { Success = -1, ResponseMessage = $"Error: {ex.Message}" };
+                return new APIResponse { isSuccess = false, ResponseMessage = $"Error: {ex.Message}", Data = null };
             }
         }
 
-        public async Task<SP_Response> DeleteManpowerRequisition(DeleteRecordVM model)
-        {
-            try
-            {
-                var result = await _db.Set<SP_Response>()
-                    .FromSqlInterpolated($@"
-                    EXEC ManageManpowerRequisition
-                        @Action = {"DELETE"},
-                        @ManpowerRequisitionId = {model.Id},
-                        @UpdatedBy = {model.DeletedBy}
-                ")
-                    .ToListAsync();
 
-                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Failed to delete requisition." };
-            }
-            catch (Exception ex)
-            {
-                return new SP_Response { Success = -1, ResponseMessage = $"Error: {ex.Message}" };
-            }
-        }
 
-   
         public async Task<APIResponse> GetDropDownForManpower(int CompanyId)
         {
             try
@@ -444,6 +506,91 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                     response.isSuccess = true;
                     response.ResponseMessage = "Success!";
                     response.Data = result.AsList();
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+                response.Data = new List<dynamic>();
+            }
+            return response;
+        }
+
+        public async Task<APIResponse> GetManpowerRequisitionEmailDetails(int? ManpowerRequisitionId)
+        {
+
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@ManpowerRequisitionId", ManpowerRequisitionId);
+
+                    // Execute the stored procedure and map the result to a dynamic object
+                    var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                        "GetManpowerRequisitionEmailDetails",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (result != null)
+                    {
+                        response.isSuccess = true;
+                        response.Data = result;
+                        response.ResponseMessage = "Fetch successfully!";
+                    }
+                    else
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No Record found!";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log exception here if needed
+                response.isSuccess = false;
+                response.ResponseMessage = "Something went wrong!";
+                response.Data = null;
+            }
+            return response;
+        }
+
+        public async Task<APIResponse> GetAllManpowerRequisitionsEss(SearchVmCompOff model)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@CompanyId", model.CompId);
+                    parameters.Add("@BranchId", model.BranchId ?? 0);
+                    parameters.Add("@Status", string.IsNullOrWhiteSpace(model.Status) ? null : model.Status);
+                    parameters.Add("@SearchBy", string.IsNullOrWhiteSpace(model.SearchType) ? null : model.SearchType);
+                    parameters.Add("@SearchFor", string.IsNullOrWhiteSpace(model.SearchFor) ? null : model.SearchFor);
+
+                    var result = await connection.QueryAsync<dynamic>(
+                        "GetAllManpowerRequisitionsEss",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    var list = result.AsList();
+
+                    if (!list.Any())
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No records found.";
+                        response.Data = new List<dynamic>();
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = list;
                 }
             }
             catch (Exception ex)
