@@ -593,7 +593,31 @@
 
             if (permissions.includes("view-weekoffmaster")) { }
             if (permissions.includes("block-weekoffmaster")) { }
-
+            let Emp_Id = localStorage.getItem("EmployeeId");
+            if (Emp_Id) {
+                $.ajax({
+                    type: "GET",
+                    url: BaseUrlLayout + "/ManpowerRequisitionAPI/GetActiveEmployee/" + Emp_Id,
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem("authToken"),
+                        'Content-Type': 'application/json'
+                    },
+                    success: function (result) {
+                        console.log('result', result);
+                        debugger;
+                        if (result.isSuccess === true && result.data != null) {
+                            $('.essManpowerMenu').show();
+                            $('.essJoiningMenu').show();
+                        } else {
+                            $('.essManpowerMenu').hide();
+                            $('.essJoiningMenu').hide();
+                        }
+                    },
+                    error: function () {
+                        console.log('Manpower access check failed');
+                    }
+                });
+            }
 
 
         }

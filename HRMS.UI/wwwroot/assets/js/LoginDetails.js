@@ -26,4 +26,5 @@ function setEmployeeLoginDetails(data) {
 	}
 	$(".user-name").text(data.fullName);
 	//$(".designattion").text(data.userPrivilege);
+	
 }

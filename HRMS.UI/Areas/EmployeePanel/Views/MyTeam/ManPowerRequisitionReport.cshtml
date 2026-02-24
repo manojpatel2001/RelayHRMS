@@ -523,7 +523,7 @@
 
         var filter = {
             CompId: CompanyId,
-            BranchId: 0,
+            BranchId: EmployeeId,
             Status: statusValue,
             SearchType: searchBy === '0' ? null : searchBy,
             SearchFor: searchFor || null
@@ -648,26 +648,34 @@
                             .appendTo(container);
                     }
                 },
-                                 {
-                        caption: "Edit",
-                        width: 60,
-                        alignment: "center",
-                        cssClass: "text-center-cell",
-                        cellTemplate: function (container, options) {
-                            var status = (options.data.Status || '').trim();
-                            // Only allow edit if Pending
-                            if (status !== 'Pending') {
-                                $('<span>').text('-').appendTo(container);
-                                return;
+                      // ✅ FIXED - Use this
+    {
+                            caption: "Edit",
+                            width: 60,
+                            alignment: "center",
+                            cssClass: "text-center-cell",
+                            cellTemplate: function (container, options) {
+                                var status = (options.data.Status || '').trim();
+
+                                // Allow edit for Pending OR empty/N/A status
+                                var canEdit = (status === 'Pending' || status === '' || status === 'N/A');
+
+                                if (!canEdit) {
+                                    $('<span>').text('-').appendTo(container);
+                                    return;
+                                }
+
+                                $('<a href="javascript:;" title="Edit">')
+                                    .append('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#3e4b6d" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg>')
+                                    .on('click', function () {
+                                        // ✅ Use editPageUrl variable (defined at top of script), not inline Razor
+                                        var url = editPageUrl + '?id=' + options.data.ManpowerRequisitionId;
+                                        console.log('Navigating to:', url); // Debug - remove after testing
+                                        window.location.href = url;
+                                    })
+                                    .appendTo(container);
                             }
-                            $('<a href="javascript:;" title="Edit">')
-                                .append('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#3e4b6d" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg>')
-                                .on('click', function () {
-                                    window.location.href = '@Url.Action("ManPowerRequisitionEss", "MyTeam", new { area = "EmployeePanel" })' + '?id=' + options.data.ManpowerRequisitionId;
-                                })
-                                .appendTo(container);
-                        }
-                    },
+                        },
                 {
                     caption: "Delete",
                     width: 60,
@@ -677,7 +685,7 @@
                         $('<a href="javascript:;" title="Delete">')
                             .append('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#dc3545" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/></svg>')
                             .on('click', function () {
-                                deleteManpower(options.data.ManpowerRequisitionId);
+                                deleteManpower(options.data.ManpowerRequisitionId,options.data.Status);
                             })
                             .appendTo(container);
                     }
@@ -728,43 +736,31 @@
         $('#showManpowerDetailsModal').modal('show');
     }
 
-    function deleteManpower(id) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: 'This record will be deleted permanently.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel'
-        }).then(function (result) {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: baseUrl + '/ManpowerRequisitionAPI/DeleteManpowerRequisition',
-                    type: 'DELETE',
-                    contentType: 'application/json',
-                    headers: { 'Authorization': 'Bearer ' + Token },
-                    data: JSON.stringify({ id: id, deletedBy: EmployeeId.toString() }),
-                    success: function (res) {
-                        if (res.isSuccess) {
-                            Swal.fire({
-                                title: 'Deleted!',
-                                text: res.responseMessage,
-                                icon: 'success',
-                                timer: 2000
-                            }).then(function () {
-                                fetchManpowerData();
-                            });
-                        } else {
-                            Swal.fire('Error', res.responseMessage, 'error');
-                        }
-                    },
-                    error: function (xhr) {
-                        Swal.fire('Error', 'Something went wrong during deletion.', 'error');
-                        console.error('Delete error:', xhr);
-                    }
-                });
+
+        function deleteManpower(id, status) {
+        var st = (status || '').trim();
+        if (st === 'Approved' || st === 'Rejected') {
+            Swal.fire('Not Allowed', 'Approved or Rejected records cannot be deleted.', 'warning');
+            return;
+        }
+
+        $.ajax({
+            url: baseUrl + '/ManpowerRequisitionAPI/DeleteManpowerRequisition',
+            type: 'DELETE',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify({ id: id, deletedBy: EmployeeId.toString() }),
+            success: function (res) {
+                if (res.isSuccess) {
+                    Swal.fire({ title: 'Deleted!', text: res.responseMessage, icon: 'success', timer: 2000 })
+                        .then(function () { fetchManpowerData(); });
+                } else {
+                    Swal.fire('Error', res.responseMessage, 'error');
+                }
+            },
+            error: function (xhr) {
+                Swal.fire('Error', 'Something went wrong during deletion.', 'error');
+                console.error('Delete error:', xhr);
             }
         });
     }

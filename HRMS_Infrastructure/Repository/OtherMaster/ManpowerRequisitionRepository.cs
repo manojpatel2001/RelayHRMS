@@ -192,8 +192,8 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 @TakeHomeSalary = {manpowerRequisition.TakeHomeSalary},
                 @IsEnabled = {manpowerRequisition.IsEnabled},
                 @IsDeleted = {manpowerRequisition.IsDeleted},
-                @UpdatedBy = {manpowerRequisition.UpdatedBy}
-                @DateOfBirth = {manpowerRequisition.DateOfBirth}
+                @UpdatedBy = {manpowerRequisition.UpdatedBy},
+                @DateOfBirth = {manpowerRequisition.DateOfBirth},
                 @Amount = {manpowerRequisition.Amount}
             ")
                     .ToListAsync();
@@ -591,6 +591,130 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                     response.isSuccess = true;
                     response.ResponseMessage = "Success!";
                     response.Data = list;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+                response.Data = new List<dynamic>();
+            }
+            return response;
+        }
+
+        public async Task<APIResponse> GetAllJoingWithApprovalCheck(SearchVmCompOff model)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@CompanyId", model.CompId);
+                    parameters.Add("@EmployeeId", model.Emplooyeid ?? 0);
+                    parameters.Add("@Status", string.IsNullOrWhiteSpace(model.Status) ? null : model.Status);
+                    parameters.Add("@SearchBy", string.IsNullOrWhiteSpace(model.SearchType) ? null : model.SearchType);
+                    parameters.Add("@SearchFor", string.IsNullOrWhiteSpace(model.SearchFor) ? null : model.SearchFor);
+
+                    var result = await connection.QueryAsync<dynamic>(
+                        "GetAllJoingWithApprovalCheck",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    var list = result.AsList();
+
+                    if (!list.Any())
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No records found.";
+                        response.Data = new List<dynamic>();
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = list;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+                response.Data = new List<dynamic>();
+            }
+            return response;
+        }
+
+        public async Task<APIResponse> sp_GetActiveEmployee(int Employeeid)
+        {
+
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmployeeId", Employeeid);
+
+                    // Execute the stored procedure and map the result to a dynamic object
+                    var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                        "sp_GetActiveEmployee",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (result != null)
+                    {
+                        response.isSuccess = true;
+                        response.Data = result;
+                        response.ResponseMessage = "Fetch successfully!";
+                    }
+                    else
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No Record found!";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log exception here if needed
+                response.isSuccess = false;
+                response.ResponseMessage = "Something went wrong!";
+                response.Data = null;
+            }
+            return response;
+        }
+
+        public async Task<APIResponse> GetAllJoiningWithApprovalCheck_Admin(CommonParameter commonParameter)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@CompanyId", commonParameter.CompanyId);
+
+                    // Execute the stored procedure and map results to a dynamic list
+                    var result = await connection.QueryAsync<dynamic>(
+                        "GetAllJoiningWithApprovalCheck_Admin",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (!result.AsList().Any())
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No records found.";
+                        response.Data = new List<dynamic>();
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result.AsList();
                 }
             }
             catch (Exception ex)

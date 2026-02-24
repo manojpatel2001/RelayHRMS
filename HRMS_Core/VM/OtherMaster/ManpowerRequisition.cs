@@ -41,8 +41,8 @@ namespace HRMS_Core.VM.OtherMaster
         public DateTime? UpdatedDate { get; set; }
 
         public int? CompanyId { get; set; }
-        public DateTime DateOfBirth { get; set; }
-        public decimal Amount { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public decimal? Amount { get; set; }
     }
 
 }
