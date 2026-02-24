@@ -1,4 +1,7 @@
-﻿using HRMS_API.Services;
+﻿using HRMS_API.NotificationService.HubService;
+using HRMS_API.NotificationService.ManageService;
+using HRMS_API.Services;
+using HRMS_Core.Notifications;
 using HRMS_Core.Services;
 using HRMS_Core.VM;
 using HRMS_Core.VM.ApprovalManagement;
@@ -11,6 +14,7 @@ using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace HRMS_API.Controllers.OtherMaster
 {
@@ -20,10 +24,12 @@ namespace HRMS_API.Controllers.OtherMaster
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly EmailService _emailService;
-        public ManpowerRequisitionAPIController(IUnitOfWork unitOfWork, EmailService emailService)
+        private readonly IHubContext<NotificationRemainderHub> _hubContext;
+        public ManpowerRequisitionAPIController(IUnitOfWork unitOfWork, EmailService emailService, IHubContext<NotificationRemainderHub> hubContext)
         {
             _unitOfWork = unitOfWork;
             _emailService = emailService;
+            _hubContext = hubContext;
         }
 
         [HttpPost("GetAllManpowerRequisitions")]
@@ -88,24 +94,23 @@ namespace HRMS_API.Controllers.OtherMaster
                         if (emailReport != null && !string.IsNullOrEmpty(emailReport.ToEmails))
                         {
                             var placeholders = new Dictionary<string, string>
-            {
-                { "RequestId",      manpowerData?.RequestId?.ToString() ?? "N/A" },
-                { "Department",     manpowerData?.Department ?? "N/A" },
-                { "Designation",    manpowerData?.Designation ?? "N/A" },
-                { "RequestedBy",    manpowerData?.RequestedByName ?? "N/A" },
-                { "RequestedDate",  manpowerData?.CreatedDate != null
-                                    ? ((DateTime)manpowerData.CreatedDate).ToString("dd-MM-yyyy")
-                                    : "N/A" },
-                { "CompanyName",    manpowerData?.CompanyName ?? "N/A" },
-                { "Year",           DateTime.Now.Year.ToString() }
-            };
+                    {
+                        { "Department",     manpowerData?.Department ?? "N/A" },
+                        { "Designation",    manpowerData?.Designation ?? "N/A" },
+                        { "RequestedBy",    manpowerData?.RequestedByName ?? "N/A" },
+                        { "RequestedDate",  manpowerData?.CreatedDate != null
+                                            ? ((DateTime)manpowerData.CreatedDate).ToString("dd-MM-yyyy")
+                                            : "N/A" },
+                        { "CompanyName",    manpowerData?.CompanyName ?? "N/A" },
+                        { "Year",           DateTime.Now.Year.ToString() }
+                    };
 
                             var emailRequest = new EmailRequest
                             {
                                 ToEmails = emailReport.ToEmails.Split(',').ToList(),
                                 BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
                                 CcEmails = emailReport?.CcEmails?.Split(',').ToList(),
-                                Subject = $"New Manpower Requisition Request - {createdData.SerialNo}", // ✅ SerialNo use karo
+                                Subject = $"New Manpower Requisition Request - {createdData.SerialNo}",
                                 TemplateName = "ManpowerRequisitionEmailTemplate.html",
                                 Placeholders = placeholders
                             };
@@ -124,6 +129,39 @@ namespace HRMS_API.Controllers.OtherMaster
 
                             await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(emailLogger, "CREATE");
                             bool emailSent = await _emailService.SendEmailAsync(emailRequest);
+                        }
+                    }
+
+                    var employeeDetails = await _unitOfWork.EmployeeManageRepository
+                                                .GetEmployeeById(Convert.ToInt32(model.CreatedBy));
+
+                    if (employeeDetails != null)
+                    {
+                        var notification = new NotificationRemainders()
+                        {
+                            NotificationMessage = $"{employeeDetails.FullName} has requested approval for Manpower Requisition: {createdData.SerialNo}",
+                            NotificationTime = DateTime.UtcNow,
+                            SenderId = model.CreatedBy.ToString(),
+                            ReceiverIds = model.ReportingToId.ToString(),
+                            NotificationType = NotificationType.ManpowerRequisition, 
+                            NotificationAffectedId = newId
+                        };
+
+                        var savedNotification = await _unitOfWork.NotificationRemainderRepository
+                                                      .CreateNotificationRemainder(notification);
+
+                        if (savedNotification.Success > 0)
+                        {
+                            notification.NotificationRemainderId = savedNotification.Success;
+
+                            var reportingConnection = NotificationRemainderConnectionManager
+                                                        .GetConnections(model.ReportingToId.ToString());
+
+                            if (reportingConnection.Any())
+                            {
+                                await _hubContext.Clients.Clients(reportingConnection)
+                                      .SendAsync("ReceiveNotificationRemainder", notification);
+                            }
                         }
                     }
 
@@ -250,7 +288,6 @@ namespace HRMS_API.Controllers.OtherMaster
         {
             try
             {
-
                 if (model == null)
                 {
                     return new APIResponse
@@ -271,15 +308,64 @@ namespace HRMS_API.Controllers.OtherMaster
                     ActionBy = Convert.ToInt32(model.UpdatedBy)
                 };
 
-                var approvalActionResult = await _unitOfWork.ApprovalManagementRepository.ManpowerApprovalRequestLevel(approvalAction);
+                var approvalActionResult = await _unitOfWork.ApprovalManagementRepository
+                                                 .ManpowerApprovalRequestLevel(approvalAction);
+
                 if (ApprovalResult.Success <= 0)
                 {
                     return new APIResponse
                     {
                         isSuccess = false,
-                        ResponseMessage = ApprovalResult?.ResponseMessage ?? "Failed to update loan approval status"
+                        ResponseMessage = ApprovalResult?.ResponseMessage ?? "Failed to update manpower approval status"
                     };
                 }
+
+                // ✅ Attendance Update wala notification logic
+                var approverDetails = await _unitOfWork.EmployeeManageRepository
+                                            .GetEmployeeById(Convert.ToInt32(model.UpdatedBy));
+                var requisitionData = await _unitOfWork.ManpowerRequisitionRepository
+                                               .GetManpowerRequisitionEmailDetails(model.ManpowerRequisitionId);
+                if (approverDetails != null)
+                {
+                    var manpowerData = requisitionData.Data as dynamic;
+                    string requestCreatedBy = manpowerData?.CreatedBy?.ToString();
+                    // Status label decide karo StatusId se
+                    string statusLabel = model.StatusId switch
+                    {
+                        1 => "approved",
+                        2 => "rejected",
+                        3 => "pending",
+                        _ => "updated"
+                    };
+
+                    var notification = new NotificationRemainders
+                    {
+                        NotificationMessage = $"Your Manpower Requisition request has been {statusLabel} by {approverDetails.FullName}.",
+                        NotificationTime = DateTime.UtcNow,
+                        SenderId = approverDetails.Id.ToString(),
+                        ReceiverIds = requestCreatedBy.ToString(), // ✅ Jo request kiya tha usse notify karo
+                        NotificationType = NotificationType.ManpowerRequisitionApproval,
+                        NotificationAffectedId = model.ManpowerRequisitionId
+                    };
+
+                    var savedNotification = await _unitOfWork.NotificationRemainderRepository
+                                                  .CreateNotificationRemainder(notification);
+
+                    if (savedNotification.Success > 0)
+                    {
+                        notification.NotificationRemainderId = savedNotification.Success;
+
+                        var connections = NotificationRemainderConnectionManager
+                                            .GetConnections(requestCreatedBy.ToString());
+
+                        if (connections.Any())
+                        {
+                            await _hubContext.Clients.Clients(connections)
+                                  .SendAsync("ReceiveNotificationRemainder", notification);
+                        }
+                    }
+                }
+
                 return new APIResponse
                 {
                     isSuccess = true,
@@ -288,7 +374,6 @@ namespace HRMS_API.Controllers.OtherMaster
             }
             catch (Exception err)
             {
-
                 return new APIResponse
                 {
                     isSuccess = false,
@@ -297,13 +382,25 @@ namespace HRMS_API.Controllers.OtherMaster
                 };
             }
         }
-
         [HttpPost("GetAllManpowerRequisitionsAdmin")]
         public async Task<APIResponse> GetAllManpowerRequisitionsAdmin(CommonParameter commonParameter)
         {
             try
             {
                 var data = await _unitOfWork.ManpowerRequisitionRepository.GetAllManpowerRequisitionsAdmin(commonParameter);
+                return data;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve manpower requisitions. Please try again later." };
+            }
+        }
+        [HttpPost("GetAllJoiningWithApprovalCheck_Admin")]
+        public async Task<APIResponse> GetAllJoiningWithApprovalCheck_Admin(CommonParameter commonParameter)
+        {
+            try
+            {
+                var data = await _unitOfWork.ManpowerRequisitionRepository.GetAllJoiningWithApprovalCheck_Admin(commonParameter);
                 return data;
             }
             catch (Exception ex)
@@ -343,8 +440,53 @@ namespace HRMS_API.Controllers.OtherMaster
                 };
             }
         }
+        [HttpPost("GetAllJoingWithApprovalCheck")]
+        public async Task<APIResponse> GetAllJoingWithApprovalCheck([FromBody] SearchVmCompOff filter)
+        {
+            try
+            {
+                var result = await _unitOfWork.ManpowerRequisitionRepository.GetAllJoingWithApprovalCheck(filter);
+                if (result == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        ResponseMessage = "Data Fetched not Sucessfully"
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = result,
+                    ResponseMessage = "Data Fetched Sucessfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    ResponseMessage = "Data not fetched successfully."
+                };
+            }
+        }
 
 
+        [HttpGet("GetActiveEmployee/{Employeeid}")]
+        public async Task<APIResponse> GetActiveEmployee(int Employeeid)
+        {
+            try
+            {
+                var data = await _unitOfWork.ManpowerRequisitionRepository.sp_GetActiveEmployee(Employeeid);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
     }
 
 }

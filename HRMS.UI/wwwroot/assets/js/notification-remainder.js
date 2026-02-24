@@ -232,7 +232,8 @@ async function redirectPage(pageUrl,notificationType)
 {
     if (notificationType == "Attendance Application" || notificationType == "Leave Application" || notificationType == "Leave Approval"
         || notificationType == "CompOff Application" || notificationType == "CompOff Approval" || notificationType == "Attendance Approval" ||
-        notificationType == "Ticket FollowUp" || notificationType == "Ticket Application" || notificationType == "Ticket Response" || notificationType == "Leave Cancellation Request" || notificationType == "Leave Cancellation Approval" || notificationType == "Exit Approval")
+        notificationType == "Ticket FollowUp" || notificationType == "Ticket Application" || notificationType == "Ticket Response" || notificationType == "Leave Cancellation Request" ||
+        notificationType == "Leave Cancellation Approval" || notificationType == "Exit Approval" || notificationType == "Manpower Requisition Request" || notificationType == "Manpower Requisition Request Approval")
     {
         await readNotification(notificationType);
     }
@@ -319,7 +320,13 @@ function updateNotificationList(notificationDetails) {
                break;
             case 'Exit Approval':
                 href = '/EmployeePanel/ExitApplicationEss/ExitApplicationReport';
-               break;
+                break;
+            case 'Manpower Requisition Request':
+                href = '/EmployeePanel/ManPowerApproval/ManPowerApproval';
+                break;
+            case 'Manpower Requisition Request Approval':
+                href = '/EmployeePanel/MyTeam/ManPowerRequisitionReport';
+                break;
             default:
                 href = '#'; // Default fallback
         } 

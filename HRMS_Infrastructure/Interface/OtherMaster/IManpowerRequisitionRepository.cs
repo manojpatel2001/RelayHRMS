@@ -17,7 +17,9 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
     {
         Task<APIResponse> GetAllManpowerRequisitions(CommonParameter commonParameter);
         Task<APIResponse> GetAllManpowerRequisitionsAdmin(CommonParameter commonParameter);
+        Task<APIResponse> GetAllJoiningWithApprovalCheck_Admin(CommonParameter commonParameter);
         Task<APIResponse> GetAllManpowerRequisitionsEss(SearchVmCompOff model);
+        Task<APIResponse> GetAllJoingWithApprovalCheck(SearchVmCompOff model);
         Task<APIResponse> CreateManpowerRequisition(ManpowerRequisition manpowerRequisition);
         Task<APIResponse> UpdateManpowerRequisition(ManpowerRequisition manpowerRequisition);
         Task<APIResponse> DeleteManpowerRequisition(DeleteRecordVM model);
@@ -28,6 +30,7 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
         Task<APIResponse> UpdateJoinningDetails(UpdateJoinningDetailsModel model);
         Task<APIResponse> GetAllJoiningManpowerRequisitions(CommonParameter commonParameter);
         Task<SP_Response> ApprovalManPower(ManPowerfilter model);
+        Task<APIResponse> sp_GetActiveEmployee(int Employeeid);
     }
 
 }

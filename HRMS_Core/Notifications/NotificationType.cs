@@ -15,6 +15,8 @@
         public static readonly string LeaveCancellation = "Leave Cancellation Request";
         public static readonly string LeaveCancellationApproval = "Leave Cancellation Approval"; 
         public static readonly string ExitApproval = "Exit Approval"; 
+        public static readonly string ManpowerRequisition = "Manpower Requisition Request"; 
+        public static readonly string ManpowerRequisitionApproval = "Manpower Requisition Request Approval"; 
     }
 
 }

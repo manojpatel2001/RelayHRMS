@@ -507,6 +507,40 @@
         manpowerDataTable();
     });
 
+    // ─── DOB → Age Auto Calculate (validateForm ke BAHAR - FIX #1) ──────────
+    $(document).on('change', '#txtDateOfBirth', function () {
+        var dob = $(this).val();
+        if (dob) {
+            var today = new Date();
+            var birthDate = new Date(dob);
+
+            if (birthDate >= today) {
+                $('#errorDateOfBirth').text('Date of Birth cannot be a future date');
+                $('#txtDateOfBirth').addClass('is-invalid');
+                $('#txtAge').val('');
+                return;
+            }
+
+            var age = today.getFullYear() - birthDate.getFullYear();
+            var monthDiff = today.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+
+            if (age < 18 || age > 100) {
+                $('#errorDateOfBirth').text('Age must be between 18 and 100');
+                $('#txtDateOfBirth').addClass('is-invalid');
+                $('#txtAge').val('');
+                return;
+            }
+
+            $('#txtAge').val(age);
+            $('#errorDateOfBirth').text('');
+            $('#txtDateOfBirth').removeClass('is-invalid');
+        } else {
+            $('#txtAge').val('');
+        }
+    });
 
     function manpowerDataTable() {
         var data = { CompanyId: CompanyId };
@@ -738,15 +772,24 @@
         });
     }
 
-    // ─── Submit (Save / Update) ───────────────────────────────────────────────
+    // ─── Submit (Save / Update) - FIX #2: Double Save Prevent ────────────────
     $('#btnSubmitManpower').click(async function () {
+        var $btn = $(this);
+
+        // Agar already processing chal raha hai to return karo
+        if ($btn.prop('disabled')) return;
+
         var validate = await validateForm();
         if (!validate) return;
 
         const formData = await collectFormData(manpowerRequisitionId);
+        const isNew = manpowerRequisitionId == 0;
+
+        // Button disable karo - double click prevent
+        $btn.prop('disabled', true).text('Saving...');
 
         $.ajax({
-            url: manpowerRequisitionId == 0
+            url: isNew
                 ? '@baseUrl/ManpowerRequisitionAPI/CreateManpowerRequisition'
                 : '@baseUrl/ManpowerRequisitionAPI/UpdateManpowerRequisition',
             type: 'POST',
@@ -756,14 +799,19 @@
             success: function (response) {
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage);
+                    // FIX #3: Success pe modal close karo
                     $('#addManpowerModal').modal('hide');
                     manpowerDataTable();
                 } else {
                     round_error_noti(response.responseMessage);
+                    // Error pe button wapas enable karo
+                    $btn.prop('disabled', false).text(isNew ? 'Save' : 'Update');
                 }
             },
             error: function () {
                 round_error_noti("Something went wrong!");
+                // Error pe button wapas enable karo
+                $btn.prop('disabled', false).text(isNew ? 'Save' : 'Update');
             }
         });
     });
@@ -846,47 +894,23 @@
             isValid = false;
         }
 
-
-    $('#txtDateOfBirth').on('change', function () {
-        var dob = $(this).val();
-        if (dob) {
-            var today = new Date();
-            var birthDate = new Date(dob);
-
-            if (birthDate >= today) {
-                $('#errorDateOfBirth').text('Date of Birth cannot be a future date');
-                $('#txtDateOfBirth').addClass('is-invalid');
-                $('#txtAge').val('');
-                return;
-            }
-
-            var age = today.getFullYear() - birthDate.getFullYear();
-            var monthDiff = today.getMonth() - birthDate.getMonth();
-            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                age--;
-            }
-
-            if (age < 18 || age > 100) {
-                $('#errorDateOfBirth').text('Age must be between 18 and 100');
-                $('#txtDateOfBirth').addClass('is-invalid');
-                $('#txtAge').val('');
-                return;
-            }
-
-            $('#txtAge').val(age);
-            $('#errorDateOfBirth').text('');
-            $('#txtDateOfBirth').removeClass('is-invalid');
-        } else {
-            $('#txtAge').val('');
+        // FIX #1: DOB validation (age auto-fill upar $(document).on('change') se hogi)
+        if (!$('#txtDateOfBirth').val()) {
+            $('#errorDateOfBirth').text('Date of Birth is required');
+            $('#txtDateOfBirth').addClass('is-invalid');
+            isValid = false;
+        } else if ($('#txtAge').val() === '') {
+            // Age blank hai matlab DOB invalid tha (future/out of range)
+            $('#errorDateOfBirth').text('Please enter a valid Date of Birth (Age 18-100)');
+            $('#txtDateOfBirth').addClass('is-invalid');
+            isValid = false;
         }
-    });
 
         // Gender validation
         if (!$('input[name="gender"]:checked').length) {
             $('#errorGender').text('Gender is required');
             isValid = false;
         }
-
 
         if (!$('#ddlReportingTo').val()) {
             $('#errorReportingTo').text('Reporting To is required');
@@ -992,11 +1016,27 @@
         $('#txtOtherBenefitsRemark').val(data.OtherBenefits || '');
         $('#txtOtherBenefitsAmount').val(data.Amount || '');
 
-        // Date of Birth → triggers age auto-calculate
-        if (data.DateOfBirth) {
-            $('#txtDateOfBirth').val(data.DateOfBirth.split('T')[0]);
-            $('#txtDateOfBirth').trigger('change'); // auto-fill age
-        }
+        // Date of Birth → triggers age auto-calculate (FIX #1 ki wajah se ab sahi chalega)
+                if (data.DateOfBirth) {
+                    var dobStr = data.DateOfBirth.split('T')[0];
+                    $('#txtDateOfBirth').val(dobStr);
+
+                    // Directly calculate age (don't rely only on trigger)
+                    var today = new Date();
+                    var birthDate = new Date(dobStr);
+                    var age = today.getFullYear() - birthDate.getFullYear();
+                    var monthDiff = today.getMonth() - birthDate.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                    }
+                    if (age >= 18 && age <= 100) {
+                        $('#txtAge').val(age);
+                        $('#errorDateOfBirth').text('');
+                        $('#txtDateOfBirth').removeClass('is-invalid');
+                    } else {
+                        $('#txtAge').val('');
+                    }
+                }
 
         // Date of Joining
         if (data.DateOfJoining) {
@@ -1062,7 +1102,7 @@
         $('#chkMobileHandsetRequire').prop('checked', false);
 
         // Button reset
-        $("#btnSubmitManpower").text("Save");
+        $("#btnSubmitManpower").prop('disabled', false).text("Save");
         $(".formType").text("Add");
     }
 
