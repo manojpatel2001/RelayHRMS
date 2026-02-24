@@ -56,7 +56,9 @@ namespace HRMS_Core.VM.Probations
 
         public int ApproverEmployeeId { get; set; }
         public string ApproverName { get; set; }
-
+        public DateTime? ProbationEndDate { get; set; }
+        public DateTime? DateOfJoining { get; set; }
+        public string? RemarksOfApprover { get; set; }
         public string PreviousApprovalLevelsJson { get; set; }
         public List<ApprovalLevelHistory> PreviousApprovalLevels { get; set; }
     }
@@ -106,7 +108,7 @@ namespace HRMS_Core.VM.Probations
 
         public DateTime AssignedOn { get; set; }
         public DateTime? EscalationDueOn { get; set; }
-
+        public string HistoryRemarksOfApprover { get; set; }
         public DateTime? CreatedDate { get; set; }
         public DateTime? UpdatedDate { get; set; }
     }
@@ -134,6 +136,7 @@ namespace HRMS_Core.VM.Probations
         public string? StatusName { get; set; }
         public DateTime? ActionDate { get; set; }
         public DateTime? ProbationEndDate { get; set; }
+        public DateTime? ProbationDueDate { get; set; }
         public DateTime? DateOfJoining { get; set; }
         public string? Location { get; set; }
         public bool IsMailSent { get; set; } = false;
