@@ -155,46 +155,30 @@ namespace HRMS_API.Controllers.EmployeeMaster
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
-
-
         [HttpPost("CreateEmployee")]
         public async Task<APIResponse> CreateEmployee(vmEmployeeData employeeData)
         {
-            
+
             try
             {
-                if (employeeData == null||employeeData.LoginAlias==null)
+                if (employeeData == null || employeeData.LoginAlias == null)
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
                 }
 
-                // Check if the user already exists
-                var existingUser = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.LoginAlias == employeeData.LoginAlias);
-                if (existingUser.Any())
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Login Alias already exists." };
-                }
 
-                var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u =>u.EmployeeCode == employeeData.EmployeeCode);
+                var employee = new vmUpdateEmployee
+                {
 
-                if (existingUserByEmployeeCode.Any())
-                {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Employee Code already exists." };
-                }
-                
-                var employee = new HRMSUserIdentity
-                {
-                    UserName = employeeData.LoginAlias,
-                    Email = employeeData.LoginAlias,
-                    Password=employeeData.Password,
+                    Password = employeeData.Password,
                     Initial = employeeData.Initial,
                     FirstName = employeeData.FirstName,
                     MiddleName = employeeData.MiddleName,
                     LastName = employeeData.LastName,
                     FullName = employeeData.FullName,
                     EmployeeCode = employeeData.EmployeeCode,
-                    AlfaCode=employeeData.AlfaCode,
-                    AlfaEmployeeCode=employeeData.AlfaEmployeeCode,
+                    AlfaCode = employeeData.AlfaCode,
+                    AlfaEmployeeCode = employeeData.AlfaEmployeeCode,
                     DateOfJoining = employeeData.DateOfJoining,
                     BranchId = employeeData.BranchId,
                     GradeId = employeeData.GradeId,
@@ -214,67 +198,150 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     EnrollNo = employeeData.EnrollNo,
                     CompanyId = employeeData.CompanyId,
                     Pt = employeeData.Pt,
-                    WeekOffDetailsId=(int)employeeData.WeekOffDetailsId,
-                    IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut,
-                    IsLeft=employeeData.IsLeft,
-                    IsPFApplicable=employeeData.IsPFApplicable,
+                    WeekOffDetailsId = (int)employeeData.WeekOffDetailsId,
+                    IsPermissionPunchInOut = employeeData.IsPermissionPunchInOut,
+                    IsPFApplicable = employeeData.IsPFApplicable,
                     Probation = employeeData.Probation,
-                    AttendanceLimit=employeeData.AttendanceLimit
+                    AttendanceLimit = employeeData.AttendanceLimit,
+                    RoleId=employeeData.RoleId
 
                 };
 
                 // Create the user
-                var result = await _userManager.CreateAsync(employee, employeeData.Password);
 
-                if (result.Succeeded)
-                {
-                    var userRole = new HRMSUserRole
-                    {
-                        EmployeeId = employee.Id,
-                        CompanyId= employee.CompanyId,
-                        RoleId = (int)employeeData.RoleId,
-                        CreatedBy= employeeData.CreatedBy,
-                        CreatedDate=DateTime.UtcNow,
-                    };
-                      var resultUserRole=await _unitOfWork.HRMSUserRoleRepository.CreateUserRole(userRole);
+                var data = await _unitOfWork.EmployeeManageRepository.CreateEmployee(employee);
 
-                    var salary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId= employee.Id,CompanyId= employee.CompanyId, GrossSalary=employee.GrossSalary, BasicSalary = employeeData.BasicSalary, IsPFApplicable = employeeData.IsPFApplicable });
-
-                    var getRole = await _unitOfWork.RoleRepository.GetAsync(x => x.Id == (int)employeeData.RoleId && x.IsDeleted == false && x.IsEnabled == true);
-                    var companyPermission = new VMUserCompanyPermission
-                    {
-                        EmployeeId = employee.Id,
-                        CompanyId = employee.CompanyId,
-                        IsAdmin = getRole.Slug.ToString().ToLower() == "admin" ? true :false
-                    };
-                    var assignCompany=await _unitOfWork.UserCompanyPermissionsRepository.CreateUserCompanyPermissions(companyPermission);
-
-                    var history = new PasswordHistory
-                    {
-                        EMPID = employee.Id,
-                        NewPassword = employee.Password,
-                        CreatedBy = employee.Id.ToString()
-                    };
-                    var CreateHistory = await _unitOfWork.PasswordHistory.CreateHistoryPassword(history);
-
-                    var reporting = await _unitOfWork.ReportingManagerDetailsRepository.CreateReportingManagerDetail(new ReportingManagerDetails { EffectedDate=DateTime.UtcNow,EmployeeId= employee .Id,ReportingManagerId=(int) employee.ReportingManagerId,MethodName= "In Person" });
-                    if (employee.Probation!=null && employee.Probation==true)
-                    {
-                        var addprobationEndDate = await _unitOfWork.EmployeeManageRepository.AddProbationEndDate(new vmAddProbationEndDate { Id = employee.Id, GradeId = employee.GradeId, DateOfJoining = employee.DateOfJoining });
-                    }
-                    return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
-
-                }
-                return new APIResponse { isSuccess = false,ResponseMessage = "Unable to create employee, Please try again later!" };
+                return data;
 
             }
             catch (Exception ex)
             {
-              return new APIResponse { isSuccess = false, ResponseMessage = "Unable to create employee, Please try again later!" };
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to create employee, Please try again later!" };
 
             }
 
         }
+
+
+
+        //[HttpPost("CreateEmployee")]
+        //public async Task<APIResponse> CreateEmployee(vmEmployeeData employeeData)
+        //{
+
+        //    try
+        //    {
+        //        if (employeeData == null||employeeData.LoginAlias==null)
+        //        {
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "Employee details cannot be null" };
+        //        }
+
+        //        // Check if the user already exists
+        //        var existingUser = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u => u.LoginAlias == employeeData.LoginAlias);
+        //        if (existingUser.Any())
+        //        {
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Login Alias already exists." };
+        //        }
+
+        //        var existingUserByEmployeeCode = await _unitOfWork.EmployeeManageRepository.GetAllAsync(u =>u.EmployeeCode == employeeData.EmployeeCode);
+
+        //        if (existingUserByEmployeeCode.Any())
+        //        {
+        //            return new APIResponse { isSuccess = false, ResponseMessage = "An employee with the same Employee Code already exists." };
+        //        }
+
+        //        var employee = new HRMSUserIdentity
+        //        {
+        //            UserName = employeeData.LoginAlias,
+        //            Email = employeeData.LoginAlias,
+        //            Password=employeeData.Password,
+        //            Initial = employeeData.Initial,
+        //            FirstName = employeeData.FirstName,
+        //            MiddleName = employeeData.MiddleName,
+        //            LastName = employeeData.LastName,
+        //            FullName = employeeData.FullName,
+        //            EmployeeCode = employeeData.EmployeeCode,
+        //            AlfaCode=employeeData.AlfaCode,
+        //            AlfaEmployeeCode=employeeData.AlfaEmployeeCode,
+        //            DateOfJoining = employeeData.DateOfJoining,
+        //            BranchId = employeeData.BranchId,
+        //            GradeId = employeeData.GradeId,
+        //            ShiftMasterId = employeeData.ShiftMasterId,
+        //            CTC = employeeData.CTC,
+        //            DesignationId = employeeData.DesignationId,
+        //            GrossSalary = employeeData.GrossSalary,
+        //            CategoryId = employeeData.CategoryId,
+        //            BasicSalary = employeeData.BasicSalary,
+        //            DepartmentId = employeeData.DepartmentId,
+        //            EmployeeTypeId = employeeData.EmployeeTypeId,
+        //            DateOfBirth = employeeData.DateOfBirth,
+        //            UserPrivilege = employeeData.UserPrivilege,
+        //            LoginAlias = employeeData.LoginAlias,
+        //            ReportingManagerId = employeeData.ReportingManagerId,
+        //            SubBranch = employeeData.SubBranch,
+        //            EnrollNo = employeeData.EnrollNo,
+        //            CompanyId = employeeData.CompanyId,
+        //            Pt = employeeData.Pt,
+        //            WeekOffDetailsId=(int)employeeData.WeekOffDetailsId,
+        //            IsPermissionPunchInOut =employeeData.IsPermissionPunchInOut,
+        //            IsLeft=employeeData.IsLeft,
+        //            IsPFApplicable=employeeData.IsPFApplicable,
+        //            Probation = employeeData.Probation,
+        //            AttendanceLimit=employeeData.AttendanceLimit
+
+        //        };
+
+        //        // Create the user
+        //        var result = await _userManager.CreateAsync(employee, employeeData.Password);
+
+        //        if (result.Succeeded)
+        //        {
+        //            var userRole = new HRMSUserRole
+        //            {
+        //                EmployeeId = employee.Id,
+        //                CompanyId= employee.CompanyId,
+        //                RoleId = (int)employeeData.RoleId,
+        //                CreatedBy= employeeData.CreatedBy,
+        //                CreatedDate=DateTime.UtcNow,
+        //            };
+        //              var resultUserRole=await _unitOfWork.HRMSUserRoleRepository.CreateUserRole(userRole);
+
+        //            var salary = await _unitOfWork.EmployeeSalaryAllowanceRepository.CreateEmployeeSalaryAllowance(new vmEmployeeSalary { EmployeeId= employee.Id,CompanyId= employee.CompanyId, GrossSalary=employee.GrossSalary, BasicSalary = employeeData.BasicSalary, IsPFApplicable = employeeData.IsPFApplicable });
+
+        //            var getRole = await _unitOfWork.RoleRepository.GetAsync(x => x.Id == (int)employeeData.RoleId && x.IsDeleted == false && x.IsEnabled == true);
+        //            var companyPermission = new VMUserCompanyPermission
+        //            {
+        //                EmployeeId = employee.Id,
+        //                CompanyId = employee.CompanyId,
+        //                IsAdmin = getRole.Slug.ToString().ToLower() == "admin" ? true :false
+        //            };
+        //            var assignCompany=await _unitOfWork.UserCompanyPermissionsRepository.CreateUserCompanyPermissions(companyPermission);
+
+        //            var history = new PasswordHistory
+        //            {
+        //                EMPID = employee.Id,
+        //                NewPassword = employee.Password,
+        //                CreatedBy = employee.Id.ToString()
+        //            };
+        //            var CreateHistory = await _unitOfWork.PasswordHistory.CreateHistoryPassword(history);
+
+        //            var reporting = await _unitOfWork.ReportingManagerDetailsRepository.CreateReportingManagerDetail(new ReportingManagerDetails { EffectedDate=DateTime.UtcNow,EmployeeId= employee .Id,ReportingManagerId=(int) employee.ReportingManagerId,MethodName= "In Person" });
+        //            if (employee.Probation!=null && employee.Probation==true)
+        //            {
+        //                var addprobationEndDate = await _unitOfWork.EmployeeManageRepository.AddProbationEndDate(new vmAddProbationEndDate { Id = employee.Id, GradeId = employee.GradeId, DateOfJoining = employee.DateOfJoining });
+        //            }
+        //            return new APIResponse { isSuccess = true, Data = employee, ResponseMessage = "Employee has been created successfully" };
+
+        //        }
+        //        return new APIResponse { isSuccess = false,ResponseMessage = "Unable to create employee, Please try again later!" };
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //      return new APIResponse { isSuccess = false, ResponseMessage = "Unable to create employee, Please try again later!" };
+
+        //    }
+
+        //}
 
 
         [HttpPost("UpdateEmployee")]
