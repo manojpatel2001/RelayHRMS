@@ -603,8 +603,7 @@
                         'Content-Type': 'application/json'
                     },
                     success: function (result) {
-                        console.log('result', result);
-                        debugger;
+                     
                         if (result.isSuccess === true && result.data != null) {
                             $('.essManpowerMenu').show();
                             $('.essJoiningMenu').show();
