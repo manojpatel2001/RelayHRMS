@@ -300,16 +300,16 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     parameters.Add("@EmployeeNamePrmaryBank", employee.EmployeeNamePrmaryBank);
                     parameters.Add("@CreatedBy", employee.CreatedBy);
                     parameters.Add("@AttendanceLimit", employee.AttendanceLimit);
+                    parameters.Add("@RoleId", employee.RoleId);
 
                     parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
                     parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 255);
-                    parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
-
+                   
                     await connection.ExecuteAsync("usp_ManageEmployee", parameters, commandType: CommandType.StoredProcedure);
 
                     response.isSuccess = parameters.Get<bool>("@Success");
                     response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
-                    response.Data = parameters.Get<int?>("@Id");
+                   
                 }
             }
             catch (Exception ex)
