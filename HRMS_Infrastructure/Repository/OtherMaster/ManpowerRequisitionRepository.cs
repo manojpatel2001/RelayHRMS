@@ -99,8 +99,8 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 command.Parameters.Add(new SqlParameter("@OtherBenefits", manpowerRequisition.OtherBenefits ?? (object)DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@SystemRequire", manpowerRequisition.SystemRequire ?? (object)DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@EmailIdRequire", manpowerRequisition.EmailIdRequire ?? (object)DBNull.Value));
-                command.Parameters.Add(new SqlParameter("@SIMRequire", manpowerRequisition.SIMRequire ?? (object)DBNull.Value));
-                command.Parameters.Add(new SqlParameter("@ERP_ID", manpowerRequisition.ERP_ID ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@SIMRequire", manpowerRequisition.Simrequire ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@ERP_ID", manpowerRequisition.ErpId ?? (object)DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@ReportingToId", manpowerRequisition.ReportingToId));
                 command.Parameters.Add(new SqlParameter("@DateOfJoining", manpowerRequisition.DateOfJoining));
                 command.Parameters.Add(new SqlParameter("@CategoryOfEmployment", manpowerRequisition.CategoryOfEmployment ?? (object)DBNull.Value));
@@ -112,7 +112,10 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 command.Parameters.Add(new SqlParameter("@DateOfBirth", manpowerRequisition.DateOfBirth));
                 command.Parameters.Add(new SqlParameter("@Amount", manpowerRequisition.Amount));
                 command.Parameters.Add(new SqlParameter("@NumberOfPosition", manpowerRequisition.NumberOfPosition));
-                command.Parameters.Add(new SqlParameter("@JobCategory", manpowerRequisition.JobCategory));
+                command.Parameters.Add(new SqlParameter("@JobCategory", SqlDbType.Int)
+                {
+                    Value = (object?)manpowerRequisition.JobCategory ?? DBNull.Value
+                });
 
                 await _db.Database.OpenConnectionAsync();
 
@@ -186,8 +189,8 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 @OtherBenefits = {manpowerRequisition.OtherBenefits},
                 @SystemRequire = {manpowerRequisition.SystemRequire},
                 @EmailIdRequire = {manpowerRequisition.EmailIdRequire},
-                @SIMRequire = {manpowerRequisition.SIMRequire},
-                @ERP_ID = {manpowerRequisition.ERP_ID},
+                @SIMRequire = {manpowerRequisition.Simrequire},
+                @ERP_ID = {manpowerRequisition.ErpId},
                 @ReportingToId = {manpowerRequisition.ReportingToId},
                 @DateOfJoining = {manpowerRequisition.DateOfJoining},
                 @CategoryOfEmployment = {manpowerRequisition.CategoryOfEmployment},

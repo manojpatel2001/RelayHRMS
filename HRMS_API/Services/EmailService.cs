@@ -32,11 +32,11 @@ namespace HRMS_API.Services
         {
             try
             {
-                //if (!_enableEmail || _environment.Equals("Local", StringComparison.OrdinalIgnoreCase))
-                //{
-                //    Console.WriteLine("⚙️ Email sending skipped (Environment: Local or Disabled)");
-                //    return false;
-                //}
+                if (!_enableEmail || _environment.Equals("Local", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine("⚙️ Email sending skipped (Environment: Local or Disabled)");
+                    return false;
+                }
 
                 // ✅ Read SMTP configuration
                 string smtpHost = _configuration["MailSettings:Host"];
