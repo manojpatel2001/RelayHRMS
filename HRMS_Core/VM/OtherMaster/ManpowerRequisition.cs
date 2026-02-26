@@ -26,7 +26,7 @@ namespace HRMS_Core.VM.OtherMaster
         public string? SystemRequire { get; set; }
         public string? EmailIdRequire { get; set; }
         public string? SIMRequire { get; set; }
-        public string? MobileHandsetRequire { get; set; }
+        public string? ERP_ID { get; set; }
         public int? ReportingToId { get; set; }
         public DateTime? DateOfJoining { get; set; }
         public string? CategoryOfEmployment { get; set; }
@@ -43,6 +43,8 @@ namespace HRMS_Core.VM.OtherMaster
         public int? CompanyId { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public decimal? Amount { get; set; }
+        public int? NumberOfPosition { get; set; }
+        public string? JobCategory { get; set; }
     }
 
 }

@@ -89,7 +89,7 @@ namespace HRMS_API.Controllers.OtherMaster
                         var manpowerData = requisitionData.Data as dynamic;
 
                         var emailReport = await _unitOfWork.EmailReportRepository
-                                                .GetEmailSendTime(EmailReportType.ManpowerRequisition.ToString());
+                                                .GetManpowerRequisitionEmail(newId);
 
                         if (emailReport != null && !string.IsNullOrEmpty(emailReport.ToEmails))
                         {
@@ -320,7 +320,6 @@ namespace HRMS_API.Controllers.OtherMaster
                     };
                 }
 
-                // ✅ Attendance Update wala notification logic
                 var approverDetails = await _unitOfWork.EmployeeManageRepository
                                             .GetEmployeeById(Convert.ToInt32(model.UpdatedBy));
                 var requisitionData = await _unitOfWork.ManpowerRequisitionRepository
@@ -329,7 +328,6 @@ namespace HRMS_API.Controllers.OtherMaster
                 {
                     var manpowerData = requisitionData.Data as dynamic;
                     string requestCreatedBy = manpowerData?.CreatedBy?.ToString();
-                    // Status label decide karo StatusId se
                     string statusLabel = model.StatusId switch
                     {
                         1 => "approved",
@@ -343,7 +341,7 @@ namespace HRMS_API.Controllers.OtherMaster
                         NotificationMessage = $"Your Manpower Requisition request has been {statusLabel} by {approverDetails.FullName}.",
                         NotificationTime = DateTime.UtcNow,
                         SenderId = approverDetails.Id.ToString(),
-                        ReceiverIds = requestCreatedBy.ToString(), // ✅ Jo request kiya tha usse notify karo
+                        ReceiverIds = requestCreatedBy.ToString(), 
                         NotificationType = NotificationType.ManpowerRequisitionApproval,
                         NotificationAffectedId = model.ManpowerRequisitionId
                     };

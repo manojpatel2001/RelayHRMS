@@ -3,6 +3,7 @@ using HRMS_Core.DbContext;
 using HRMS_Core.VM;
 using HRMS_Core.VM.EmailService;
 using HRMS_Core.VM.EmployeeMaster;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface.EmailService;
 using HRMS_Utility;
 using Microsoft.Data.SqlClient;
@@ -90,6 +91,39 @@ namespace HRMS_Infrastructure.Repository.EmailService
                     var result = await connection.QueryFirstOrDefaultAsync<EmailReport>(
                         "GetEmailSendTime",
                         new { ReportName = reportName },
+                        commandType: CommandType.StoredProcedure,
+                        commandTimeout: 120 // Optional: Increase timeout if needed
+                    );
+
+                    return result;
+                }
+            }
+            catch (TaskCanceledException ex)
+            {
+                // Log the exception
+                Console.WriteLine($"Task was canceled: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // Log other exceptions
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<ManpowerRequisitionEmailDetailsModel> GetManpowerRequisitionEmail(int ManpowerRequisitionId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    // Set a longer command timeout if needed (e.g., 120 seconds)
+                    var result = await connection.QueryFirstOrDefaultAsync<ManpowerRequisitionEmailDetailsModel>(
+                        "GetManpowerRequisitionEmail",
+                        new { ManpowerRequisitionId },
                         commandType: CommandType.StoredProcedure,
                         commandTimeout: 120 // Optional: Increase timeout if needed
                     );
