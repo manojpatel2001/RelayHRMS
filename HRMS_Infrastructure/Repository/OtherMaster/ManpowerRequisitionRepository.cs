@@ -100,7 +100,7 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 command.Parameters.Add(new SqlParameter("@SystemRequire", manpowerRequisition.SystemRequire ?? (object)DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@EmailIdRequire", manpowerRequisition.EmailIdRequire ?? (object)DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@SIMRequire", manpowerRequisition.SIMRequire ?? (object)DBNull.Value));
-                command.Parameters.Add(new SqlParameter("@MobileHandsetRequire", manpowerRequisition.MobileHandsetRequire ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@ERP_ID", manpowerRequisition.ERP_ID ?? (object)DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@ReportingToId", manpowerRequisition.ReportingToId));
                 command.Parameters.Add(new SqlParameter("@DateOfJoining", manpowerRequisition.DateOfJoining));
                 command.Parameters.Add(new SqlParameter("@CategoryOfEmployment", manpowerRequisition.CategoryOfEmployment ?? (object)DBNull.Value));
@@ -111,6 +111,8 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 command.Parameters.Add(new SqlParameter("@CompanyId", manpowerRequisition.CompanyId));
                 command.Parameters.Add(new SqlParameter("@DateOfBirth", manpowerRequisition.DateOfBirth));
                 command.Parameters.Add(new SqlParameter("@Amount", manpowerRequisition.Amount));
+                command.Parameters.Add(new SqlParameter("@NumberOfPosition", manpowerRequisition.NumberOfPosition));
+                command.Parameters.Add(new SqlParameter("@JobCategory", manpowerRequisition.JobCategory));
 
                 await _db.Database.OpenConnectionAsync();
 
@@ -185,7 +187,7 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 @SystemRequire = {manpowerRequisition.SystemRequire},
                 @EmailIdRequire = {manpowerRequisition.EmailIdRequire},
                 @SIMRequire = {manpowerRequisition.SIMRequire},
-                @MobileHandsetRequire = {manpowerRequisition.MobileHandsetRequire},
+                @ERP_ID = {manpowerRequisition.ERP_ID},
                 @ReportingToId = {manpowerRequisition.ReportingToId},
                 @DateOfJoining = {manpowerRequisition.DateOfJoining},
                 @CategoryOfEmployment = {manpowerRequisition.CategoryOfEmployment},
@@ -194,7 +196,9 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 @IsDeleted = {manpowerRequisition.IsDeleted},
                 @UpdatedBy = {manpowerRequisition.UpdatedBy},
                 @DateOfBirth = {manpowerRequisition.DateOfBirth},
-                @Amount = {manpowerRequisition.Amount}
+                @Amount = {manpowerRequisition.Amount},
+                @NumberOfPosition = {manpowerRequisition.NumberOfPosition},
+                @JobCategory = {manpowerRequisition.JobCategory}
             ")
                     .ToListAsync();
 

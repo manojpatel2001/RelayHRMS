@@ -1,5 +1,6 @@
 ﻿
 using HRMS_Core.VM.EmailService;
+using HRMS_Core.VM.Report;
 using HRMS_Utility;
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,7 @@ namespace HRMS_Infrastructure.Interface.EmailService
     {
         Task<List<DailyAbsentReportResult>> GetDailyAbsentReport();
         Task<EmailReport?> GetEmailSendTime(string ReportName);
+        Task<ManpowerRequisitionEmailDetailsModel> GetManpowerRequisitionEmail(int ManpowerRequisitionId);
         Task<List<TodayLeftEmployeeEmailVM>> GetTodayLeftEmployeesEmailData();
      }
 }
