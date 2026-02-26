@@ -197,6 +197,27 @@
         #btnExportExcel:hover {
             background-color: #1e7e34;
         }
+
+    /* ✅ FIX 3: Approval table - clean layout without row label headers */
+    .approval-table td {
+        vertical-align: top;
+        padding: 8px;
+    }
+
+    .approval-table .approval-label {
+        font-weight: bold;
+        font-size: 12px;
+        color: #555;
+        margin-bottom: 2px;
+    }
+
+    .approval-table .approval-value {
+        font-size: 13px;
+        min-height: 18px;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 3px;
+        margin-bottom: 8px;
+    }
 </style>
 
 <!-- Search Panel Header -->
@@ -281,7 +302,7 @@
 </div>
 
 
-<!-- ========== Manpower Detail View Modal (Admin jaisa) ========== -->
+<!-- ========== Manpower Detail View Modal ========== -->
 <div class="modal fade" id="showManpowerDetailsModal" tabindex="-1" aria-labelledby="manpowerDetailLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -296,21 +317,27 @@
             </div>
             <div class="modal-body modal-body-font" id="pdfContent">
 
-                <!-- Logo + Title + Sr No/Date Row (Admin jaisa) -->
+                <!-- ✅ FIX 1 & 3: Logo on left only, Title in center, Sr.No/Date on right. No title beside logo. -->
                 <div class="row mb-3 align-items-center">
+                    <!-- Logo ONLY - no title text beside it -->
                     <div class="col-md-3">
-                        <img src="@baseAPIDomainUrl/default-image/relaylogo.jpeg" alt="Relay Express Logo" class="responsive-logo">
+                        <img id="companyLogoImg" src="@baseAPIDomainUrl/default-image/relaylogo.jpeg"
+                             alt="Relay Express Logo" class="responsive-logo"
+                             crossorigin="anonymous"
+                             style="max-height: 70px; object-fit: contain;">
                     </div>
+                    <!-- Title in center ONLY -->
                     <div class="col-md-6 text-center">
                         <h5 class="fw-bold mb-0">Manpower Requisition Form</h5>
                     </div>
+                    <!-- Sr.No and Date on right -->
                     <div class="col-md-3 text-end">
                         <p class="mb-1"><strong>Sr. No.:</strong> <span id="popSerialNo"></span></p>
                         <p class="mb-0"><strong>Date:</strong> <span id="popDate"></span></p>
                     </div>
                 </div>
 
-                <!-- Main Details Table (Admin jaisa same structure) -->
+                <!-- Main Details Table -->
                 <table class="table table-bordered">
                     <tbody>
                         <tr>
@@ -346,7 +373,7 @@
                         <tr>
                             <td><strong>Experience (Years):</strong></td>
                             <td id="popExperienceRange"></td>
-                            <td><strong>Higher Qualification:</strong></td>
+                            <td><strong>Highest Qualification:</strong></td>
                             <td id="popEducationalQualification"></td>
                         </tr>
                         <tr>
@@ -400,8 +427,7 @@
                     </tbody>
                 </table>
 
-                <!-- ✅ Approval Table - 3 columns, Name/Designation/Date as row headers inside each cell -->
-                <table class="table table-bordered">
+                <table class="table table-bordered approval-table">
                     <thead>
                         <tr>
                             <th>Requested By</th>
@@ -411,19 +437,33 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><strong>Name:</strong> <span id="popRequestedByName"></span></td>
-                            <td><strong>Name:</strong> <span id="popApprovedBy"></span></td>
-                            <td><strong>Name:</strong> <span id="popReceivedBy"></span></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Designation:</strong> <span id="popRequestedByDesignation"></span></td>
-                            <td><strong>Designation:</strong> <span id="popApprovedByDesignation"></span></td>
-                            <td><strong>Designation:</strong></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Date:</strong> <span id="popRequestedByDate"></span></td>
-                            <td><strong>Date:</strong> <span id="popApprovedByDate"></span></td>
-                            <td><strong>Date:</strong> <span id="popReceivedByDate"></span></td>
+                            <!-- Requested By column -->
+                            <td>
+                                <div class="approval-label">Name:</div>
+                                <div class="approval-value"><span id="popRequestedByName"></span></div>
+                                <div class="approval-label">Designation:</div>
+                                <div class="approval-value"><span id="popRequestedByDesignation"></span></div>
+                                <div class="approval-label">Date:</div>
+                                <div class="approval-value"><span id="popRequestedByDate"></span></div>
+                            </td>
+                            <!-- Approved By column -->
+                            <td>
+                                <div class="approval-label">Name:</div>
+                                <div class="approval-value"><span id="popApprovedBy"></span></div>
+                                <div class="approval-label">Designation:</div>
+                                <div class="approval-value"><span id="popApprovedByDesignation"></span></div>
+                                <div class="approval-label">Date:</div>
+                                <div class="approval-value"><span id="popApprovedByDate"></span></div>
+                            </td>
+                            <!-- Received By (HRD) column -->
+                            <td>
+                                <div class="approval-label">Name:</div>
+                                <div class="approval-value"><span id="popReceivedBy"></span></div>
+                                <div class="approval-label">Designation:</div>
+                                <div class="approval-value">&nbsp;</div>
+                                <div class="approval-label">Date:</div>
+                                <div class="approval-value"><span id="popReceivedByDate"></span></div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -449,7 +489,38 @@
     // Edit page URL base
     var editPageUrl = '@Url.Action("ManPowerRequisitionEss", "MyTeam", new { area = "EmployeePanel" })';
 
+    // ✅ FIX 1: Pre-load logo as base64 so html2canvas can render it in PDF
+    var logoBase64 = null;
+
+    function loadLogoAsBase64(url, callback) {
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function () {
+            var canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            try {
+                logoBase64 = canvas.toDataURL('image/jpeg');
+                var logoEl = document.getElementById('companyLogoImg');
+                if (logoEl) logoEl.src = logoBase64;
+            } catch (e) {
+                console.warn('Logo base64 conversion failed:', e);
+            }
+            if (callback) callback();
+        };
+        img.onerror = function () {
+            console.warn('Logo load failed, PDF will render without logo.');
+            if (callback) callback();
+        };
+        img.src = url + '?t=' + new Date().getTime(); // cache-bust
+    }
+
     $(document).ready(function () {
+        // Pre-load logo as base64 on page load
+        loadLogoAsBase64('@baseAPIDomainUrl/default-image/relaylogo.jpeg');
+
         fetchManpowerData();
 
         // Enable search input when Search By is selected
@@ -475,134 +546,106 @@
             fetchManpowerData();
         });
 
-        // ✅ Export to Excel Button
-        $('#btnExportExcel').on('click', function () {
-            var gridInstance = null;
-            try {
-                gridInstance = $("#manpowerGrid").dxDataGrid('instance');
-            } catch (ex) {
-                Swal.fire('Warning', 'Grid abhi load nahi hua. Thodi der baad try karein.', 'warning');
-                return;
-            }
+            // ✅ Export to Excel Button
+    $('#btnExportExcel').on('click', function () {
+        var gridInstance = null;
+        try {
+            gridInstance = $("#manpowerGrid").dxDataGrid('instance');
+        } catch (ex) {
+            Swal.fire('Warning', 'The grid has not loaded yet. Please try again after some time.', 'warning');
+            return;
+        }
 
-            if (!gridInstance) {
-                Swal.fire('Warning', 'Grid abhi load nahi hua. Thodi der baad try karein.', 'warning');
-                return;
-            }
+        if (!gridInstance) {
+            Swal.fire('Warning', 'The grid has not loaded yet. Please try again after some time.', 'warning');
+            return;
+        }
 
-            var selectedRows = gridInstance.getSelectedRowsData();
-            if (selectedRows.length === 0) {
-                Swal.fire('Warning', 'Please select at least one row to export.', 'warning');
-                return;
-            }
+        var selectedRows = gridInstance.getSelectedRowsData();
+        if (selectedRows.length === 0) {
+            Swal.fire('Warning', 'Please select at least one row to export.', 'warning');
+            return;
+        }
 
-            var workbook = new ExcelJS.Workbook();
-            var worksheet = workbook.addWorksheet('Manpower');
+        var workbook = new ExcelJS.Workbook();
+        var worksheet = workbook.addWorksheet('Manpower');
 
-            DevExpress.excelExporter.exportDataGrid({
-                component: gridInstance,
-                worksheet: worksheet,
-                selectedRowsOnly: true,
-                autoFilterEnabled: true,
-                customizeCell: function (options) {
-                    var excelCell = options.excelCell;
-                    // ✅ Header row - Green background, white bold text
-                    if (excelCell.row === 1) {
-                        excelCell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                        excelCell.fill = {
-                            type: 'pattern',
-                            pattern: 'solid',
-                            fgColor: { argb: 'FF28A745' }
-                        };
-                    }
-                    // ✅ All cells border
-                    excelCell.border = {
-                        top: { style: 'thin' },
-                        left: { style: 'thin' },
-                        bottom: { style: 'thin' },
-                        right: { style: 'thin' }
+        DevExpress.excelExporter.exportDataGrid({
+            component: gridInstance,
+            worksheet: worksheet,
+            selectedRowsOnly: true,
+            autoFilterEnabled: true,
+            customizeCell: function (options) {
+                var excelCell = options.excelCell;
+                if (excelCell.row === 1) {
+                    excelCell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                    excelCell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FF28A745' }
                     };
-                    excelCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
                 }
-            }).then(function () {
-                workbook.xlsx.writeBuffer().then(function (buffer) {
-                    saveAs(
-                        new Blob([buffer], { type: 'application/octet-stream' }),
-                        'ManpowerData.xlsx'
-                    );
-                });
-            });
-        });
-
-        // Bulk Delete button
-        $('#bulkDeleteBtn').on('click', function () {
-            var grid = $("#manpowerGrid").dxDataGrid("instance");
-            var selectedKeys = grid.getSelectedRowKeys();
-            if (selectedKeys.length === 0) {
-                Swal.fire('Warning', 'Please select at least one record to delete.', 'warning');
-                return;
+                excelCell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+                excelCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
             }
-            Swal.fire({
-                title: 'Are you sure?',
-                text: selectedKeys.length + ' record(s) will be deleted permanently.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, delete!',
-                cancelButtonText: 'Cancel'
-            }).then(function (result) {
-                if (result.isConfirmed) {
-                    var deletePromises = selectedKeys.map(function (id) {
-                        return $.ajax({
-                            url: baseUrl + '/ManpowerRequisitionAPI/DeleteManpowerRequisition',
-                            type: 'DELETE',
-                            contentType: 'application/json',
-                            headers: { 'Authorization': 'Bearer ' + Token },
-                            data: JSON.stringify({ id: id, deletedBy: EmployeeId.toString() })
-                        });
-                    });
-                    Promise.all(deletePromises).then(function () {
-                        Swal.fire({ title: 'Deleted!', text: 'Selected records deleted.', icon: 'success', timer: 2000 })
-                            .then(function () { fetchManpowerData(); });
-                    }).catch(function () {
-                        Swal.fire('Error', 'Something went wrong during deletion.', 'error');
-                    });
-                }
+        }).then(function () {
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(
+                    new Blob([buffer], { type: 'application/octet-stream' }),
+                    'ManpowerData.xlsx'
+                );
             });
         });
+    });
 
-        // Download PDF button
+        // ✅ FIX 1: Download PDF - ensure logo is loaded as base64 before capturing
         document.getElementById('downloadPDF').addEventListener('click', function () {
-            const { jsPDF } = window.jspdf;
-            const element = document.getElementById('pdfContent');
+            function generatePDF() {
+                const { jsPDF } = window.jspdf;
+                const element = document.getElementById('pdfContent');
 
-            html2canvas(element, {
-                scale: 2,
-                logging: false,
-                useCORS: true,
-                allowTaint: false
-            }).then(function (canvas) {
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const pageHeight = 295;
-                const imgHeight = canvas.height * imgWidth / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
+                html2canvas(element, {
+                    scale: 2,
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: false,
+                    imageTimeout: 15000
+                }).then(function (canvas) {
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const imgWidth = 210;
+                    const pageHeight = 295;
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
 
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
                     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
-                }
 
-                pdf.save('Manpower_Requisition_Form.pdf');
-            });
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+
+                    pdf.save('Manpower_Requisition_Form.pdf');
+                });
+            }
+
+            // If logo not yet loaded as base64, load first then generate
+            if (!logoBase64) {
+                loadLogoAsBase64('@baseAPIDomainUrl/default-image/relaylogo.jpeg', function () {
+                    setTimeout(generatePDF, 300);
+                });
+            } else {
+                generatePDF();
+            }
         });
     });
 
@@ -690,7 +733,6 @@
                 useNative: true,
                 showScrollbar: "always"
             },
-            // ✅ Grid ka built-in export DISABLED - upar wala custom button use hoga
             export: { enabled: false },
             onContentReady: function (e) {
                 $('#recordSummary').text('Total Records: ' + e.component.totalCount());
@@ -802,7 +844,6 @@
         });
     }
 
-    // ✅ Populate Detail Modal - Admin jaisa same
     function populateManpowerModal(data) {
         $('#popSerialNo').text(data.SerialNo || '');
         $('#popDate').text(data.CreatedDate ? new Date(data.CreatedDate).toLocaleDateString('en-GB') : '');
@@ -814,7 +855,7 @@
         $('#popContactNumber').text(data.ContactNumber || '');
         $('#popClosureBy').text(data.ClosureBy || '');
         $('#popDesignationName').text(data.DesignationName || '');
-        $('#popJobCategory').text(data.JobCategory || '');
+        $('#popJobCategory').text(data.CategoryName || '');
         $('#popExperienceRange').text(data.ExperienceRange || '');
         $('#popEducationalQualification').text(data.EducationalQualification || '');
         $('#popComputerSkills').text(data.ComputerSkills || '');
@@ -830,11 +871,11 @@
         $('#popTakeHomeSalary').text(data.TakeHomeSalary || '');
         $('#popSystemRequire').text(data.SystemRequire || '');
         $('#popEmailIdRequire').text(data.EmailIdRequire || '');
-        $('#popSimRequire').text(data.SimRequire || data.SIMRequire || '');
-        $('#popErpId').text(data.ErpId || '');
+        $('#popSimRequire').text(data.Simrequire || data.SIMRequire || '');
+        $('#popErpId').text(data.ErpId ||data.ERP_ID || '');
         $('#popNumberPosition').text(data.NumberPosition || '');
 
-        // ✅ Approval section - Authorized removed, Requested By data fill karo
+        // Approval section
         $('#popRequestedByName').text(data.RequestedBy || '');
         $('#popRequestedByDesignation').text(data.DesignationName || '');
         $('#popRequestedByDate').text(data.CreatedDate ? new Date(data.CreatedDate).toLocaleDateString('en-GB') : '');
@@ -845,6 +886,11 @@
 
         $('#popReceivedBy').text(data.ReceivedBy || '');
         $('#popReceivedByDate').text(data.ReceivedByDate ? new Date(data.ReceivedByDate).toLocaleDateString('en-GB') : '');
+
+        // ✅ Ensure logo is set as base64 in modal before showing
+        if (logoBase64) {
+            $('#companyLogoImg').attr('src', logoBase64);
+        }
 
         $('#showManpowerDetailsModal').modal('show');
     }

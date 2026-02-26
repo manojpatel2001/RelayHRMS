@@ -380,6 +380,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<ManPowerfilter>().HasNoKey().ToView(null);
              modelBuilder.Entity<ManpowerRequisitionCreatedData>().HasNoKey().ToView(null);
              modelBuilder.Entity<ManpowerRequisitionEmailDetailsModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ManpowerRequisitionEmailViewModel>().HasNoKey().ToView(null);
 
 
 

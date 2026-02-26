@@ -60,7 +60,6 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
             }
         }
-
         [HttpPost("CreateManpowerRequisition")]
         public async Task<APIResponse> CreateManpowerRequisition([FromBody] ManpowerRequisition model)
         {
@@ -73,13 +72,14 @@ namespace HRMS_API.Controllers.OtherMaster
                 model.IsEnabled = true;
                 model.IsDeleted = false;
 
-                // Step 1: Create karo
                 var result = await _unitOfWork.ManpowerRequisitionRepository.CreateManpowerRequisition(model);
 
                 if (result.isSuccess)
                 {
                     var createdData = result.Data as ManpowerRequisitionCreatedData;
                     int newId = createdData.ManpowerRequisitionId;
+
+                    dynamic emailReport = null;
 
                     var requisitionData = await _unitOfWork.ManpowerRequisitionRepository
                                                 .GetManpowerRequisitionEmailDetails(newId);
@@ -88,28 +88,32 @@ namespace HRMS_API.Controllers.OtherMaster
                     {
                         var manpowerData = requisitionData.Data as dynamic;
 
-                        var emailReport = await _unitOfWork.EmailReportRepository
-                                                .GetManpowerRequisitionEmail(newId);
+                        emailReport = await _unitOfWork.EmailReportRepository
+                                            .GetManpowerRequisitionEmail(newId);
 
-                        if (emailReport != null && !string.IsNullOrEmpty(emailReport.ToEmails))
+                        if (emailReport != null && !string.IsNullOrEmpty((string)emailReport.ToEmail_1stApprover_RM))
                         {
                             var placeholders = new Dictionary<string, string>
                     {
-                        { "Department",     manpowerData?.Department ?? "N/A" },
-                        { "Designation",    manpowerData?.Designation ?? "N/A" },
-                        { "RequestedBy",    manpowerData?.RequestedByName ?? "N/A" },
-                        { "RequestedDate",  manpowerData?.CreatedDate != null
-                                            ? ((DateTime)manpowerData.CreatedDate).ToString("dd-MM-yyyy")
-                                            : "N/A" },
-                        { "CompanyName",    manpowerData?.CompanyName ?? "N/A" },
-                        { "Year",           DateTime.Now.Year.ToString() }
+                        { "Department",    manpowerData?.Department ?? "N/A" },
+                        { "Designation",   manpowerData?.Designation ?? "N/A" },
+                        { "RequestedBy",   manpowerData?.RequestedByName ?? "N/A" },
+                        { "RequestedDate", manpowerData?.CreatedDate != null
+                                           ? ((DateTime)manpowerData.CreatedDate).ToString("dd-MM-yyyy")
+                                           : "N/A" },
+                        { "CompanyName",   manpowerData?.CompanyName ?? "N/A" },
+                        { "Year",          DateTime.Now.Year.ToString() }
                     };
 
                             var emailRequest = new EmailRequest
                             {
-                                ToEmails = emailReport.ToEmails.Split(',').ToList(),
-                                BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
-                                CcEmails = emailReport?.CcEmails?.Split(',').ToList(),
+                                ToEmails = ((string)emailReport.ToEmail_1stApprover_RM).Split(',').ToList(),
+                                BccEmails = emailReport.BccEmail_Director != null
+                                            ? ((string)emailReport.BccEmail_Director).Split(',').ToList()
+                                            : null,
+                                CcEmails = emailReport.ToEmail_2ndApprover_HOD != null
+                                            ? ((string)emailReport.ToEmail_2ndApprover_HOD).Split(',').ToList()
+                                            : null,
                                 Subject = $"New Manpower Requisition Request - {createdData.SerialNo}",
                                 TemplateName = "ManpowerRequisitionEmailTemplate.html",
                                 Placeholders = placeholders
@@ -117,9 +121,9 @@ namespace HRMS_API.Controllers.OtherMaster
 
                             var emailLogger = new EmailLogger
                             {
-                                ToEmail = emailReport.ToEmails,
-                                BCCEmail = emailReport?.BccEmails,
-                                CCEmail = emailReport?.CcEmails,
+                                ToEmail = (string)emailReport.ToEmail_1stApprover_RM,
+                                BCCEmail = (string)emailReport.BccEmail_Director,
+                                CCEmail = (string)emailReport.ToEmail_2ndApprover_HOD,
                                 Subject = emailRequest.Subject,
                                 Body = emailRequest.TemplateName,
                                 Status = EmailStatus.Pending,
@@ -135,15 +139,17 @@ namespace HRMS_API.Controllers.OtherMaster
                     var employeeDetails = await _unitOfWork.EmployeeManageRepository
                                                 .GetEmployeeById(Convert.ToInt32(model.CreatedBy));
 
-                    if (employeeDetails != null)
+                    if (employeeDetails != null && emailReport != null)
                     {
+                        var rmId = (int?)emailReport.RM_Id;
+
                         var notification = new NotificationRemainders()
                         {
                             NotificationMessage = $"{employeeDetails.FullName} has requested approval for Manpower Requisition: {createdData.SerialNo}",
                             NotificationTime = DateTime.UtcNow,
                             SenderId = model.CreatedBy.ToString(),
-                            ReceiverIds = model.ReportingToId.ToString(),
-                            NotificationType = NotificationType.ManpowerRequisition, 
+                            ReceiverIds = rmId?.ToString() ?? string.Empty,
+                            NotificationType = NotificationType.ManpowerRequisition.ToString(),
                             NotificationAffectedId = newId
                         };
 
@@ -154,13 +160,17 @@ namespace HRMS_API.Controllers.OtherMaster
                         {
                             notification.NotificationRemainderId = savedNotification.Success;
 
-                            var reportingConnection = NotificationRemainderConnectionManager
-                                                        .GetConnections(model.ReportingToId.ToString());
-
-                            if (reportingConnection.Any())
+                            if (rmId.HasValue)
                             {
-                                await _hubContext.Clients.Clients(reportingConnection)
-                                      .SendAsync("ReceiveNotificationRemainder", notification);
+                                var reportingConnection = NotificationRemainderConnectionManager
+                                                            .GetConnections(rmId.Value.ToString()) as IEnumerable<string>
+                                                            ?? Enumerable.Empty<string>();
+
+                                if (reportingConnection.Any())
+                                {
+                                    await _hubContext.Clients.Clients(reportingConnection)
+                                          .SendAsync("ReceiveNotificationRemainder", notification);
+                                }
                             }
                         }
                     }
@@ -180,6 +190,7 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to create manpower requisition. Please try again later." };
             }
         }
+
         [HttpPost("UpdateManpowerRequisition")]
         public async Task<APIResponse> UpdateManpowerRequisition([FromBody] ManpowerRequisition model)
         {

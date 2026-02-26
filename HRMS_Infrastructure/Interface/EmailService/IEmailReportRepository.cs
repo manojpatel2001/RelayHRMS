@@ -14,7 +14,7 @@ namespace HRMS_Infrastructure.Interface.EmailService
     {
         Task<List<DailyAbsentReportResult>> GetDailyAbsentReport();
         Task<EmailReport?> GetEmailSendTime(string ReportName);
-        Task<ManpowerRequisitionEmailDetailsModel> GetManpowerRequisitionEmail(int ManpowerRequisitionId);
+        Task<ManpowerRequisitionEmailViewModel> GetManpowerRequisitionEmail(int ManpowerRequisitionId);
         Task<List<TodayLeftEmployeeEmailVM>> GetTodayLeftEmployeesEmailData();
      }
 }

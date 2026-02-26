@@ -112,7 +112,7 @@ namespace HRMS_Infrastructure.Repository.EmailService
             }
         }
 
-        public async Task<ManpowerRequisitionEmailDetailsModel> GetManpowerRequisitionEmail(int ManpowerRequisitionId)
+        public async Task<ManpowerRequisitionEmailViewModel> GetManpowerRequisitionEmail(int ManpowerRequisitionId)
         {
             try
             {
@@ -121,7 +121,7 @@ namespace HRMS_Infrastructure.Repository.EmailService
                     await connection.OpenAsync();
 
                     // Set a longer command timeout if needed (e.g., 120 seconds)
-                    var result = await connection.QueryFirstOrDefaultAsync<ManpowerRequisitionEmailDetailsModel>(
+                    var result = await connection.QueryFirstOrDefaultAsync<ManpowerRequisitionEmailViewModel>(
                         "GetManpowerRequisitionEmail",
                         new { ManpowerRequisitionId },
                         commandType: CommandType.StoredProcedure,
