@@ -252,11 +252,11 @@ namespace HRMS_API.Services
                  );
 
             //// ✅ Daily 10 AM
-            //RecurringJob.AddOrUpdate(
-            //    "probation-daily-notification",
-            //    () => ScheduleDailyProbationNotification(),
-            //    "39 15 * * *"
-            //);
+            RecurringJob.AddOrUpdate(
+                "probation-daily-notification",
+                () => ScheduleDailyProbationNotification(),
+                "30 4 * * *"
+            );
         }
 
 
