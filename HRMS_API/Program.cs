@@ -1,6 +1,6 @@
 
 using Hangfire;
-using Hangfire.MemoryStorage;
+using Hangfire.AspNetCore;
 using HRMS_API.Midleware;
 using HRMS_API.NotificationService.HubService;
 using HRMS_API.Services;
@@ -108,7 +108,8 @@ builder.Services.AddHangfire(config =>
 {
     config.UseSimpleAssemblyNameTypeSerializer()
           .UseRecommendedSerializerSettings()
-          .UseMemoryStorage(); // Use SQL Server in production
+        .UseSqlServerStorage(builder.Configuration.GetConnectionString("HRMSConnection"));
+ // Use SQL Server in production
 });
 
 builder.Services.AddHangfireServer();
@@ -119,7 +120,10 @@ builder.Services.AddScoped<AutoJobService>();
 
 
 var app = builder.Build();
-
+GlobalConfiguration.Configuration
+    .UseActivator(new AspNetCoreJobActivator(
+        app.Services.GetRequiredService<IServiceScopeFactory>()
+    ));
 // Configure pipeline
 if (app.Environment.IsDevelopment())
 {

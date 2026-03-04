@@ -424,7 +424,7 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
         }
 
 
-     
+
         public async Task<APIResponse> GetAllApprovalLevelsByCompanyId(int companyId)
         {
             var response = new APIResponse();
@@ -853,6 +853,30 @@ namespace HRMS_Infrastructure.Repository.ApprovalManagement
                     IsSuccess = false,
                     ResponseMessage = $"Error: {ex.Message}"
                 };
+            }
+        }
+
+        public async Task<List<ProbationAlertDto>> GetTodayProbationAlertsAsync()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var result = await connection.QueryAsync<ProbationAlertDto>(
+                        "USP_GetProbationConfirmationAlerts",
+                          new { Today = DateTime.Now.Date },
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result?.ToList() ?? new List<ProbationAlertDto>();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error: {ex.Message}");
+                return new List<ProbationAlertDto>();
             }
         }
     }
