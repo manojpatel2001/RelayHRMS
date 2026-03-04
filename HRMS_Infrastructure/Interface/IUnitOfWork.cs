@@ -152,6 +152,7 @@ namespace HRMS_Infrastructure.Interface
         IExitApplicationRepository ExitApplicationRepository { get; }
         INOCRepository NOCRepository { get; }
         INewsAnnouncementRepository NewsAnnouncementRepository { get; }
+        IProbationEvaluationFormRepository ProbationEvaluationFormRepository { get; }
         void Commit();
         Task CommitAsync();
     }

@@ -12,6 +12,7 @@
         public static readonly string TicketFollowUp = "Ticket FollowUp";
         public static readonly string TicketResponse = "Ticket Response";
         public static readonly string ProbationOver = "Probation Over";
+        public static readonly string PerformanceEvaluation = "Performance Evaluation";
         public static readonly string LeaveCancellation = "Leave Cancellation Request";
         public static readonly string LeaveCancellationApproval = "Leave Cancellation Approval"; 
         public static readonly string ExitApproval = "Exit Approval"; 

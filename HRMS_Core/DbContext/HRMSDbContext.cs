@@ -9,6 +9,7 @@ using HRMS_Core.Master.JobMaster;
 using HRMS_Core.Master.OtherMaster;
 using HRMS_Core.Notifications;
 using HRMS_Core.PrivilegeSetting;
+using HRMS_Core.Probations;
 using HRMS_Core.ProfileManage;
 using HRMS_Core.Report;
 using HRMS_Core.Salary;
@@ -381,6 +382,9 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<ManpowerRequisitionCreatedData>().HasNoKey().ToView(null);
              modelBuilder.Entity<ManpowerRequisitionEmailDetailsModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<ManpowerRequisitionEmailViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ProbationAlertDto>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ProbationEvaluationForm>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ProbationEvaluationFormListVM>().HasNoKey().ToView(null);
 
 
 

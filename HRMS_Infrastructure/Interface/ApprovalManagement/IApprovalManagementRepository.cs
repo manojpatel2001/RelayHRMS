@@ -42,8 +42,8 @@ namespace HRMS_Infrastructure.Interface.ApprovalManagement
         Task<ApprovalRequestLevelActionVm> ManpowerApprovalRequestLevel(ApprovalRequestLevelActionPara para);
         Task<APIResponse> GetPendingApprovalRequests(GetPendingApprovalRequestsPara para);
         Task<APIResponse> GetUpcomingProbationDetails(GetUpcomingProbationDetailsPara para);
-       
 
+        Task<List<ProbationAlertDto>> GetTodayProbationAlertsAsync();
     }
 }
 

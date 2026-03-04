@@ -25,11 +25,13 @@ namespace HRMS_API.Controllers.OtherMaster
         private readonly IUnitOfWork _unitOfWork;
         private readonly EmailService _emailService;
         private readonly IHubContext<NotificationRemainderHub> _hubContext;
-        public ManpowerRequisitionAPIController(IUnitOfWork unitOfWork, EmailService emailService, IHubContext<NotificationRemainderHub> hubContext)
+        private readonly AutoJobService _autoJobService;
+        public ManpowerRequisitionAPIController(IUnitOfWork unitOfWork, EmailService emailService, IHubContext<NotificationRemainderHub> hubContext, AutoJobService autoJobService)
         {
             _unitOfWork = unitOfWork;
             _emailService = emailService;
             _hubContext = hubContext;
+            _autoJobService = autoJobService;
         }
 
         [HttpPost("GetAllManpowerRequisitions")]
@@ -352,7 +354,7 @@ namespace HRMS_API.Controllers.OtherMaster
                         NotificationMessage = $"Your Manpower Requisition request has been {statusLabel} by {approverDetails.FullName}.",
                         NotificationTime = DateTime.UtcNow,
                         SenderId = approverDetails.Id.ToString(),
-                        ReceiverIds = requestCreatedBy.ToString(), 
+                        ReceiverIds = requestCreatedBy.ToString(),
                         NotificationType = NotificationType.ManpowerRequisitionApproval,
                         NotificationAffectedId = model.ManpowerRequisitionId
                     };
@@ -496,6 +498,12 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
             }
         }
+
+        //[HttpGet("TestProbation")]
+        //public async Task TestProbation()
+        //{
+        //    await _autoJobService.ScheduleDailyProbationNotification();
+        //}
     }
 
 }
