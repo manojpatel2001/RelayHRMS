@@ -116,5 +116,36 @@ namespace HRMS_API.Controllers.Probations
             }
         }
 
+        [HttpPost("UploadFormFile")]
+        public async Task<APIResponse> UploadFormFile([FromForm] IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Please select a file." };
+
+                // ✅ File save karo wwwroot/Form/ me
+                var fileName = $"ProbationForm_{DateTime.Now.Ticks}{Path.GetExtension(file.FileName)}";
+                var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Form");
+
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
+
+                var filePath = Path.Combine(folderPath, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                var fileUrl = $"/Form/{fileName}";
+
+                return new APIResponse { isSuccess = true, Data = fileUrl, ResponseMessage = "File uploaded successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "File upload failed." };
+            }
+        }
     }
 }

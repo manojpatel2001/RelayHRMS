@@ -81,8 +81,7 @@
 
             $.ajax({
                 type: "GET",
-                // ✅ Updated API
-                url: '@baseUrl/ProbationEvaluationForm/GetProbationEvaluationFormList?loggedInUserId=' + EmployeeId,
+                url: '@baseUrl/ProbationEvaluationAPI/GetProbationEvaluationFormList?loggedInUserId=' + EmployeeId,
                 headers: {
                     'Authorization': 'Bearer ' + Token,
                     'Content-Type': 'application/json'
@@ -93,21 +92,9 @@
                     $("#GridContainer").dxDataGrid({
                         dataSource: data,
                         columns: [
-                            {
-                                dataField: "employeeCode",
-                                caption: "Employee Code",
-                                width: 140
-                            },
-                            {
-                                dataField: "fullName",
-                                caption: "Full Name",
-                                minWidth: 200
-                            },
-                            {
-                                dataField: "branchName",
-                                caption: "Branch",
-                                minWidth: 150
-                            },
+                            { dataField: "employeeCode", caption: "Employee Code", width: 140 },
+                            { dataField: "fullName", caption: "Full Name", minWidth: 200 },
+                            { dataField: "branchName", caption: "Branch", minWidth: 150 },
                             {
                                 dataField: "probationEndDate",
                                 caption: "Probation End Date",
@@ -160,7 +147,7 @@
                                         })
                                         .appendTo(container);
 
-                                    // ✅ Upload Button — sirf tab dikhao jab form upload nahi hua
+                                    // ✅ Upload Button — sirf tab jab upload nahi hua
                                     if (!row.isUploaded) {
                                         $('<a/>')
                                             .attr('href', 'javascript:;')
@@ -184,16 +171,9 @@
                             allowedPageSizes: [10, 25, 50],
                             showInfo: true
                         },
-                        searchPanel: {
-                            visible: true,
-                            width: 240,
-                            placeholder: "Search..."
-                        },
+                        searchPanel: { visible: true, width: 240, placeholder: "Search..." },
                         allowColumnResizing: true,
-                        scrolling: {
-                            mode: "standard",
-                            useNative: false
-                        }
+                        scrolling: { mode: "standard", useNative: false }
                     });
 
                     $('#grid-loader').removeClass('d-flex').hide();
@@ -209,12 +189,14 @@
         }
     }
 
-    // ✅ Download blank PDF
+    // ✅ Download blank PDF — Form folder sahi kiya
     function downloadForm(row) {
         var link = document.createElement('a');
-        link.href = '@baseAPIDomainUrl/forms/Performance_Evaluation_Form.pdf';
+        link.href = '@baseAPIDomainUrl/Form/Performance_Evaluation_Form.pdf'; // ✅ Form (capital F)
         link.download = 'Performance_Evaluation_Form_' + row.employeeCode + '.pdf';
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
     }
 
     // ✅ Open Upload Modal
@@ -226,8 +208,8 @@
         $('#uploadModal').modal('show');
     }
 
-    // ✅ Submit Upload
-    function submitUpload() {
+    // ✅ Submit Upload — 2 step: file upload then DB save
+      function submitUpload() {
         var file = $('#evaluationFormFile')[0].files[0];
 
         if (!file) {
@@ -235,41 +217,78 @@
             return;
         }
 
+        // ✅ File size validation (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            $('#uploadError').removeClass('d-none').text('File size must be less than 5MB.');
+            return;
+        }
+
         $('#uploadSpinner').removeClass('d-none');
         $('#btnUploadSubmit').prop('disabled', true);
+        $('#uploadError').addClass('d-none').text('');
 
         var formData = new FormData();
         formData.append('file', file);
-        formData.append('employeeId', selectedEmployeeId);
-        formData.append('createdBy', EmployeeId);
 
-        $.ajax({
-            type: "POST",
-            // ✅ Updated API
-            url: '@baseUrl/ProbationEvaluationForm/UploadEvaluationForm',
+        // ✅ Use fetch instead of $.ajax for FormData uploads
+        fetch('@baseUrl/ProbationEvaluationAPI/UploadFormFile', {
+            method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + Token
+                // ❌ DO NOT set Content-Type — browser sets it automatically with boundary for FormData
             },
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function (response) {
-                $('#uploadSpinner').addClass('d-none');
-                $('#btnUploadSubmit').prop('disabled', false);
-
-                if (response.isSuccess) {
-                    $('#uploadModal').modal('hide');
-                    DevExpress.ui.notify("Form uploaded successfully!", "success", 3000);
-                    LoadProbationEvaluationGrid(); // ✅ Grid refresh
-                } else {
-                    $('#uploadError').removeClass('d-none').text(response.responseMessage || 'Upload failed.');
-                }
-            },
-            error: function (xhr) {
-                $('#uploadSpinner').addClass('d-none');
-                $('#btnUploadSubmit').prop('disabled', false);
-                $('#uploadError').removeClass('d-none').text('Something went wrong. Please try again.');
+            body: formData
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('HTTP error! Status: ' + response.status);
             }
+            return response.json();
+        })
+        .then(function(uploadResponse) {
+            if (uploadResponse.isSuccess) {
+                var fileUrl = uploadResponse.data;
+
+                // Step 2 - Save to DB
+                return fetch('@baseUrl/ProbationEvaluationAPI/CreateProbationEvaluationForm', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + Token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        employeeId: selectedEmployeeId,
+                        probationEvaluationFormUrl: fileUrl,
+                        isUploaded: true,
+                        isEnabled: true,
+                        isDeleted: false,
+                        createdBy: EmployeeId
+                    })
+                })
+                .then(r => r.json())
+                .then(function(response) {
+                    $('#uploadSpinner').addClass('d-none');
+                    $('#btnUploadSubmit').prop('disabled', false);
+
+                    if (response.isSuccess) {
+                        $('#uploadModal').modal('hide');
+                        DevExpress.ui.notify("Form uploaded successfully!", "success", 3000);
+                        $("#GridContainer").dxDataGrid("instance").refresh();
+                    } else {
+                        $('#uploadError').removeClass('d-none').text(response.responseMessage || 'Save failed.');
+                    }
+                });
+            } else {
+                $('#uploadSpinner').addClass('d-none');
+                $('#btnUploadSubmit').prop('disabled', false);
+                $('#uploadError').removeClass('d-none').text(uploadResponse.responseMessage || 'File upload failed.');
+            }
+        })
+        .catch(function(err) {
+            $('#uploadSpinner').addClass('d-none');
+            $('#btnUploadSubmit').prop('disabled', false);
+            console.error("Upload error:", err);
+            $('#uploadError').removeClass('d-none').text('Upload failed: ' + err.message);
         });
     }
 </script>
