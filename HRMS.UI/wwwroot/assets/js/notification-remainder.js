@@ -329,7 +329,7 @@ function updateNotificationList(notificationDetails) {
                 href = '/EmployeePanel/MyTeam/ManPowerRequisitionReport';
                 break;
             case 'Performance Evaluation':
-                href = '/EmployeePanel/MyTeam/ManPowerRequisitionReport';
+                href = '/EmployeePanel/ProbationSelfRating/ProbationEvaluation';
                 break;
             default:
                 href = '#'; // Default fallback
