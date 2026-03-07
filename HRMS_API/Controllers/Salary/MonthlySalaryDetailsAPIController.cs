@@ -143,22 +143,19 @@ namespace HRMS_API.Controllers.Salary
         {
             try
             {
-                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetMonthlySalaryData(vm);
-                if (data == null || !data.Any())
-                {
-                    return new APIResponse()
+                var response = await _unitOfWork.MonthlySalaryDetailsRepository.GetMonthlySalaryData(vm);
+
+                var result = response.FirstOrDefault();
+
+                if (result == null)
+                    return new APIResponse
                     {
                         isSuccess = false,
-                        ResponseMessage = "Record fetched successfully"
+                        ResponseMessage = "No response from server.",
+                        Data = null
                     };
-                }
 
-                return new APIResponse()
-                {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Record fetched successfully"
-                };
+                return result;
             }
             catch (Exception err)
             {
@@ -170,7 +167,6 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
         }
-
 
         [HttpGet("GetYearlySalaryCard")]
         public async Task<APIResponse> GetYearlySalaryCard(int year, int EmployeeId)
@@ -488,6 +484,44 @@ namespace HRMS_API.Controllers.Salary
                     Data = null,
                     ResponseMessage = $"Error: {err.Message}"
                 };
+            }
+        }
+
+
+        [HttpGet("GetLeftEmployeedropDown/{CompanyId}")]
+        public async Task<APIResponse> GetLeftEmployeedropDown(int CompanyId)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetLeftEmployeedropDown(CompanyId);
+                if (data == null)
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found" };
+                }
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully" };
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (e.g., using ILogger)
+                return new APIResponse { isSuccess = false, ResponseMessage = "An error occurred. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetLeftEmployeeDetails/{Employeeid}")]
+        public async Task<APIResponse> GetLeftEmployeeDetails(int Employeeid)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetLeftEmployeeDetails(Employeeid);
+                if (data == null)
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found" };
+                }
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve record, Please try again later!" };
             }
         }
 

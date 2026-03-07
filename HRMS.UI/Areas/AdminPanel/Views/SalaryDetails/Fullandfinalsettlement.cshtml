@@ -1,0 +1,1530 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Full & Final Settlement";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+    *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: 'DM Sans', sans-serif;
+        background: #f0f2f7;
+    }
+
+    /* ── Page Header ── */
+    .page-header {
+        background: linear-gradient(135deg, #1e2d5a 0%, #3e4b6d 100%);
+        padding: 10px 18px;
+        border-radius: 8px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+        .page-header h5 {
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: .4px;
+            margin: 0;
+        }
+
+    /* ── Cards ── */
+    .card {
+        background: #fff;
+        border-radius: 10px;
+        border: 1px solid #e2e6f0;
+        margin-bottom: 14px;
+        overflow: visible;
+        box-shadow: 0 1px 4px rgba(30,45,90,.06);
+    }
+
+    .card-head {
+        background: #f5f7fc;
+        border-bottom: 2px solid #3e4b6d;
+        padding: 8px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 10px 10px 0 0;
+    }
+
+        .card-head .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e2d5a;
+        }
+
+    .card-body {
+        padding: 14px 16px;
+    }
+
+    /* ── Form Controls ── */
+    .form-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #444;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+        .form-label.req::after {
+            content: " *";
+            color: #e53e3e;
+        }
+
+    .form-control, .form-select {
+        width: 100%;
+        height: 32px;
+        font-size: 13px;
+        padding: 4px 10px;
+        border: 1px solid #d0d5e8;
+        border-radius: 6px;
+        background: #fff;
+        color: #1e2d5a;
+        transition: border-color .2s, box-shadow .2s;
+        font-family: 'DM Sans', sans-serif;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #3e4b6d;
+            box-shadow: 0 0 0 3px rgba(62,75,109,.12);
+            outline: none;
+        }
+
+        .form-control[readonly] {
+            background: #f5f7fc;
+            color: #666;
+        }
+
+        .form-control.is-invalid {
+            border-color: #e53e3e !important;
+        }
+
+    .err-msg {
+        color: #e53e3e;
+        font-size: 11px;
+        margin-top: 3px;
+        display: none;
+    }
+
+    /* ── Custom Searchable Single-Select ── */
+    .ss-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .ss-trigger {
+        width: 100%;
+        height: 32px;
+        padding: 0 32px 0 10px;
+        border: 1px solid #d0d5e8;
+        border-radius: 6px;
+        background: #fff;
+        color: #1e2d5a;
+        font-size: 13px;
+        font-family: 'DM Sans', sans-serif;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        user-select: none;
+        transition: border-color .2s, box-shadow .2s;
+        position: relative;
+    }
+
+        .ss-trigger:hover {
+            border-color: #3e4b6d;
+        }
+
+        .ss-trigger.open {
+            border-color: #3e4b6d;
+            box-shadow: 0 0 0 3px rgba(62,75,109,.12);
+        }
+
+        .ss-trigger.is-invalid {
+            border-color: #e53e3e !important;
+        }
+
+    .ss-display {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+        .ss-display.placeholder {
+            color: #aaa;
+        }
+
+    .ss-arrow {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
+        .ss-arrow svg {
+            width: 11px;
+            height: 11px;
+            fill: #666;
+            transition: transform .2s;
+        }
+
+    .ss-trigger.open .ss-arrow svg {
+        transform: rotate(180deg);
+    }
+
+    .ss-dropdown {
+        position: absolute;
+        top: 35px;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+        background: #fff;
+        border: 1px solid #d0d5e8;
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(30,45,90,.14);
+        display: none;
+        overflow: hidden;
+    }
+
+    .ss-wrapper.open .ss-dropdown {
+        display: block;
+    }
+
+    .ss-search-wrap {
+        padding: 7px 8px;
+        border-bottom: 1px solid #eef0f6;
+    }
+
+    .ss-search {
+        width: 100%;
+        height: 28px;
+        padding: 3px 10px;
+        border: 1px solid #d0d5e8;
+        border-radius: 5px;
+        font-size: 12.5px;
+        font-family: 'DM Sans', sans-serif;
+        color: #1e2d5a;
+    }
+
+        .ss-search:focus {
+            border-color: #3e4b6d;
+            outline: none;
+        }
+
+    .ss-options {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .ss-option {
+        padding: 7px 12px;
+        font-size: 12.5px;
+        color: #1e2d5a;
+        cursor: pointer;
+        transition: background .12s;
+    }
+
+        .ss-option:hover {
+            background: #eef1fa;
+        }
+
+        .ss-option.selected {
+            background: #eef1fa;
+            font-weight: 700;
+        }
+
+    .ss-no-results {
+        padding: 10px 12px;
+        font-size: 12.5px;
+        color: #999;
+        text-align: center;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+        height: 32px;
+        padding: 0 18px;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'DM Sans', sans-serif;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all .2s;
+    }
+
+    .btn-primary {
+        background: #3e4b6d;
+        color: #fff;
+    }
+
+        .btn-primary:hover {
+            background: #1e2d5a;
+        }
+
+        .btn-primary:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+        }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: #fff;
+    }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+    .btn-success {
+        background: #2e7d5e;
+        color: #fff;
+    }
+
+        .btn-success:hover {
+            background: #1e5a43;
+        }
+
+        .btn-success:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+        }
+
+    /* ── Two-column layout ── */
+    .fnf-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 14px;
+    }
+
+    @@media (max-width: 900px) {
+        .fnf-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ── Employee Detail Table ── */
+    .emp-detail-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .emp-detail-table tr {
+            border-bottom: 1px solid #eef0f6;
+        }
+
+            .emp-detail-table tr:last-child {
+                border-bottom: none;
+            }
+
+        .emp-detail-table td {
+            padding: 6px 10px;
+            font-size: 12.5px;
+            vertical-align: top;
+        }
+
+            .emp-detail-table td:first-child {
+                color: #7a85a0;
+                font-weight: 600;
+                width: 44%;
+                white-space: nowrap;
+            }
+
+            .emp-detail-table td:last-child {
+                color: #1e2d5a;
+                font-weight: 700;
+            }
+
+    /* ── Reason Badge ── */
+    .reason-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 12px;
+        border-radius: 20px;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: .3px;
+        color: #fff;
+    }
+
+    .reason-resignation {
+        background: #e67e22;
+    }
+
+    .reason-retirement {
+        background: #2980b9;
+    }
+
+    .reason-death {
+        background: #7f8c8d;
+    }
+
+    /* ── Leave Balance Table ── */
+    .leave-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 4px;
+    }
+
+        .leave-table th {
+            background: #1e2d5a;
+            color: #fff;
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 7px 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .leave-table td {
+            border: 1px solid #e2e6f0;
+            padding: 5px 8px;
+            font-size: 12px;
+            text-align: center;
+            color: #1e2d5a;
+        }
+
+        .leave-table tbody tr:nth-child(even) {
+            background: #f8f9fd;
+        }
+
+        .leave-table td:first-child {
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .leave-table td input[type="number"] {
+            width: 65px;
+            height: 26px;
+            text-align: center;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 12px;
+            font-family: 'DM Mono', monospace;
+        }
+
+            .leave-table td input[type="number"]:focus {
+                border-color: #3e4b6d;
+                outline: none;
+            }
+
+        .leave-table td input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+            accent-color: #3e4b6d;
+        }
+
+    /* ── Salary Grid ── */
+    .salary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+        gap: 10px;
+    }
+
+    .salary-field label {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    .salary-field input {
+        width: 100%;
+        height: 32px;
+        border: 1.5px solid #d0d5e8;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 13px;
+        font-family: 'DM Mono', monospace;
+        color: #1e2d5a;
+        background: #fff;
+        transition: border-color .2s;
+    }
+
+        .salary-field input:focus {
+            border-color: #3e4b6d;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(62,75,109,.1);
+        }
+
+        .salary-field input[readonly] {
+            background: #f0f3fa;
+            color: #555;
+        }
+
+    .section-divider {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #3e4b6d;
+        padding: 6px 0 4px;
+        border-bottom: 1px dashed #cdd3e5;
+        margin-bottom: 10px;
+        margin-top: 4px;
+        grid-column: 1 / -1;
+    }
+
+    .net-salary-box {
+        grid-column: 1 / -1;
+        background: linear-gradient(135deg, #1e2d5a, #3e4b6d);
+        border-radius: 8px;
+        padding: 12px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 4px;
+    }
+
+        .net-salary-box .net-label {
+            color: rgba(255,255,255,.75);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .net-salary-box .net-value {
+            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+        }
+
+    /* ── Days Grid ── */
+    .days-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 10px;
+    }
+
+    .day-chip {
+        background: #f5f7fc;
+        border: 1.5px solid #e2e6f0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        text-align: center;
+    }
+
+        .day-chip .chip-label {
+            font-size: 10.5px;
+            color: #888;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .day-chip input {
+            width: 100%;
+            height: 30px;
+            border: 1.5px solid #d0d5e8;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            color: #1e2d5a;
+            background: #fff;
+        }
+
+            .day-chip input:focus {
+                border-color: #3e4b6d;
+                outline: none;
+            }
+
+            .day-chip input[readonly] {
+                background: #f0f3fa;
+                color: #777;
+            }
+
+        .day-chip.highlight {
+            border-color: #3e4b6d;
+            background: #eef1fa;
+        }
+
+            .day-chip.highlight input {
+                background: #eef1fa;
+            }
+
+    /* ── Row / Col utilities ── */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -6px;
+    }
+
+        .row > [class*="col-"] {
+            padding: 0 6px;
+            margin-bottom: 10px;
+        }
+
+    .col-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .col-md-2 {
+        flex: 0 0 16.666%;
+        max-width: 16.666%;
+    }
+
+    .col-md-3 {
+        flex: 0 0 25%;
+        max-width: 25%;
+    }
+
+    .col-md-4 {
+        flex: 0 0 33.333%;
+        max-width: 33.333%;
+    }
+
+    .col-md-5 {
+        flex: 0 0 41.666%;
+        max-width: 41.666%;
+    }
+
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    @@media (max-width: 768px) {
+        .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+
+    .d-flex {
+        display: flex;
+    }
+
+    .align-items-end {
+        align-items: flex-end;
+    }
+
+    .justify-content-end {
+        justify-content: flex-end;
+    }
+
+    .gap-2 {
+        gap: 8px;
+    }
+
+    .mb-4 {
+        margin-bottom: 20px;
+    }
+
+    .text-muted {
+        color: #888;
+        font-size: 12.5px;
+        text-align: center;
+        padding: 10px;
+    }
+
+    /* ── Spinner ── */
+    @@keyframes fnf-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .spin-sm {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255,255,255,.35);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: fnf-spin .7s linear infinite;
+        vertical-align: middle;
+    }
+
+    #detailsArea {
+        display: none;
+    }
+</style>
+
+<div class="container-fluid" style="padding:10px 16px;">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h5>&#9889; Full &amp; Final Settlement</h5>
+    </div>
+
+    <!-- Search Panel -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">&#128269; Search Panel</span>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-end">
+
+                <!-- Employee searchable single-select -->
+                <div class="col-md-4">
+                    <label class="form-label req">Employee</label>
+                    <div class="ss-wrapper" id="empWrapper">
+                        <div class="ss-trigger" id="empTrigger" tabindex="0">
+                            <span class="ss-display placeholder" id="empDisplay">-- Select Left Employee --</span>
+                            <span class="ss-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                    <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="ss-dropdown" id="empDDPanel">
+                            <div class="ss-search-wrap">
+                                <input type="text" class="ss-search" id="empSearch" placeholder="Search employee..." autocomplete="off">
+                            </div>
+                            <div class="ss-options" id="empOptions"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="empHidden">
+                    <div class="err-msg" id="empErr">Please select an employee</div>
+                </div>
+
+                <!-- Start Date -->
+                <div class="col-md-2">
+                    <label class="form-label req">Start Date</label>
+                    <input type="date" class="form-control" id="startDate">
+                    <div class="err-msg" id="startDateErr">Please select start date</div>
+                </div>
+
+                <!-- End Date -->
+                <div class="col-md-2">
+                    <label class="form-label req">End Date</label>
+                    <input type="date" class="form-control" id="endDate">
+                    <div class="err-msg" id="endDateErr">Please select end date</div>
+                </div>
+
+                <!-- Go -->
+                <div class="col-md-2">
+                    <button class="btn btn-primary" id="goBtn" style="margin-top:18px;width:100%;">
+                        <span id="goText">Go</span>
+                        <span id="goLoader" class="spin-sm" style="display:none;"></span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Area -->
+    <div id="detailsArea">
+
+        <!-- Two-column: LEFT = Leave | RIGHT = Employee Details -->
+        <div class="fnf-layout">
+
+            <div class="card" style="margin-bottom:0;">
+                <div class="card-head">
+                    <span class="card-title">&#127958; Leave Encashment</span>
+                </div>
+                <div class="card-body" style="padding:10px 12px;overflow-x:auto;">
+                    <div id="leaveBalanceArea">
+                        <div class="text-muted">Loading leave balance...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:0;">
+                <div class="card-head" style="justify-content:space-between;">
+                    <span class="card-title">&#128100; Employee Details</span>
+                    <span class="reason-badge" id="reasonBadge"></span>
+                </div>
+                <div class="card-body" style="padding:8px 12px;">
+                    <table class="emp-detail-table" id="empDetailTable"></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance & Payable Days -->
+        <div class="card">
+            <div class="card-head">
+                <span class="card-title">&#128197; Attendance &amp; Payable Days</span>
+            </div>
+            <div class="card-body">
+                <div class="days-grid">
+                    <div class="day-chip">
+                        <div class="chip-label">Month Days</div>
+                        <input type="number" id="inp_monthDays" min="0" step="1" readonly>
+                    </div>
+                    <div class="day-chip">
+                        <div class="chip-label">Present Days</div>
+                        <input type="number" id="inp_present" min="0" step="0.5">
+                    </div>
+                    <div class="day-chip">
+                        <div class="chip-label">Absent Days</div>
+                        <input type="number" id="inp_absent" min="0" step="0.5">
+                    </div>
+                    <div class="day-chip">
+                        <div class="chip-label">Leave Days</div>
+                        <input type="number" id="inp_leave" min="0" step="0.5">
+                    </div>
+                    <div class="day-chip">
+                        <div class="chip-label">Week Off</div>
+                        <input type="number" id="inp_weekoff" min="0" step="0.5">
+                    </div>
+                    <div class="day-chip">
+                        <div class="chip-label">Holiday</div>
+                        <input type="number" id="inp_holiday" min="0" step="0.5">
+                    </div>
+                    <div class="day-chip">
+                        <div class="chip-label">Half Days</div>
+                        <input type="number" id="inp_halfDay" min="0" step="0.5">
+                    </div>
+                    <div class="day-chip">
+                        <div class="chip-label">LWP Days</div>
+                        <input type="number" id="inp_lwp" min="0" step="0.5">
+                    </div>
+                    <div class="day-chip highlight">
+                        <div class="chip-label">Payable Days &#11088;</div>
+                        <input type="number" id="inp_payable" min="0" step="0.5">
+                    </div>
+                    <div class="day-chip">
+                        <div class="chip-label">Arrear Days</div>
+                        <input type="number" id="inp_arrearDays" min="0" step="1" value="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Salary Details -->
+        <div class="card">
+            <div class="card-head">
+                <span class="card-title">&#128176; Salary Details</span>
+            </div>
+            <div class="card-body">
+                <div class="salary-grid" id="salaryGrid">
+                    <div class="text-muted" style="grid-column:1/-1;">Select employee with dates and click Go to load salary data.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Other Calculations -->
+        <div class="card">
+            <div class="card-head">
+                <span class="card-title">&#129518; Other Calculations</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <label class="form-label">Arrear Month</label>
+                        <select class="form-control" id="inp_arrearMonth">
+                            <option value="">-- Month --</option>
+                            <option>January</option>
+                            <option>February</option>
+                            <option>March</option>
+                            <option>April</option>
+                            <option>May</option>
+                            <option>June</option>
+                            <option>July</option>
+                            <option>August</option>
+                            <option>September</option>
+                            <option>October</option>
+                            <option>November</option>
+                            <option>December</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Arrear Year</label>
+                        <select class="form-control" id="inp_arrearYear">
+                            <option value="">-- Year --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Gratuity Amount</label>
+                        <input type="number" class="form-control" id="inp_gratuity" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Bonus Amount</label>
+                        <input type="number" class="form-control" id="inp_bonus" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">TDS Amount</label>
+                        <input type="number" class="form-control" id="inp_tds" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Other Deduction</label>
+                        <input type="number" class="form-control" id="inp_otherDed" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Remarks</label>
+                        <input type="text" class="form-control" id="inp_remarks" maxlength="500" placeholder="Enter remarks...">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end gap-2 mb-4">
+            <button class="btn btn-secondary" id="clearBtn">&#10005; Clear</button>
+            <button class="btn btn-success" id="saveBtn">
+                <span id="saveBtnText">&#128190; Save Settlement</span>
+                <span id="saveBtnLoader" class="spin-sm" style="display:none;"></span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    /* ──────────────────────────────────────────
+       CONFIG & STATE
+    ────────────────────────────────────────── */
+    var API_BASE      = '@baseDomainUrl' + '/api';
+    var savedCompany  = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany || '{}');
+    var COMP_ID       = parseInt(companyDetails.CompanyId) || 0;
+    var LOGGED_EMP_ID = parseInt(localStorage.getItem('EmployeeId')) || 0;
+
+    console.log('API_BASE:', API_BASE);
+    console.log('COMP_ID:', COMP_ID);
+
+    var currentEmp   = null;
+    var leaveRows    = [];
+    var ssAllOptions = [];
+
+    var EARNINGS = [
+        { key: 'basicSalary',             label: 'Basic Salary' },
+        { key: 'hra',                     label: 'HRA' },
+        { key: 'conveyanceAllowance',     label: 'Conveyance' },
+        { key: 'childEducationAllowance', label: 'Child Edu.' },
+        { key: 'medicalAllowance',        label: 'Medical' },
+        { key: 'deputationAllowance',     label: 'Deputation' },
+        { key: 'arrears',                 label: 'Arrears' },
+        { key: 'totalGrossSalary',        label: 'Total Gross', ro: true }
+    ];
+    var DEDUCTIONS = [
+        { key: 'pf',              label: 'PF' },
+        { key: 'esic',            label: 'ESIC' },
+        { key: 'professionalTax', label: 'Prof. Tax' },
+        { key: 'groupMedical',    label: 'Group Medical' },
+        { key: 'termInsurance',   label: 'Term Insurance' },
+        { key: 'lwf',             label: 'LWF' },
+        { key: 'tds',             label: 'TDS' },
+        { key: 'loan',            label: 'Loan' },
+        { key: 'otherDeduction',  label: 'Other Deduction' },
+        { key: 'totalDeductions', label: 'Total Deductions', ro: true }
+    ];
+
+    /* ──────────────────────────────────────────
+       INIT
+    ────────────────────────────────────────── */
+    $(document).ready(function () {
+        fillYears();
+        initSsDropdown();
+        loadLeftEmployees();
+
+        $('#goBtn').on('click', handleGo);
+        $('#saveBtn').on('click', handleSave);
+        $('#clearBtn').on('click', handleClear);
+    });
+
+    function fillYears() {
+        var yr = new Date().getFullYear();
+        var el = document.getElementById('inp_arrearYear');
+        for (var y = yr; y >= yr - 10; y--) {
+            el.innerHTML += '<option value="' + y + '">' + y + '</option>';
+        }
+    }
+
+    /* ──────────────────────────────────────────
+       CUSTOM SEARCHABLE DROPDOWN
+    ────────────────────────────────────────── */
+    function initSsDropdown() {
+        var wrapper = document.getElementById('empWrapper');
+        var trigger = document.getElementById('empTrigger');
+        var panel   = document.getElementById('empDDPanel');
+        var search  = document.getElementById('empSearch');
+
+        trigger.addEventListener('click', function () {
+            var opening = !wrapper.classList.contains('open');
+            wrapper.classList.toggle('open', opening);
+            trigger.classList.toggle('open', opening);
+            if (opening) {
+                search.value = '';
+                renderSsOpts(ssAllOptions);
+                setTimeout(function () { search.focus(); }, 40);
+            }
+        });
+
+        trigger.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeSs();
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); trigger.click(); }
+        });
+
+        search.addEventListener('input', function () {
+            var q = this.value.toLowerCase().trim();
+            renderSsOpts(q ? ssAllOptions.filter(function (o) { return o.label.toLowerCase().indexOf(q) >= 0; }) : ssAllOptions);
+        });
+
+        panel.addEventListener('click', function (e) { e.stopPropagation(); });
+        document.addEventListener('click', function (e) { if (!wrapper.contains(e.target)) closeSs(); });
+    }
+
+    function closeSs() {
+        document.getElementById('empWrapper').classList.remove('open');
+        document.getElementById('empTrigger').classList.remove('open');
+    }
+
+    function renderSsOpts(opts) {
+        var el  = document.getElementById('empOptions');
+        var cur = document.getElementById('empHidden').value;
+        if (!opts || opts.length === 0) {
+            el.innerHTML = '<div class="ss-no-results">No employees found</div>';
+            return;
+        }
+        var html = '';
+        opts.forEach(function (o) {
+            var sel = (cur && String(cur) === String(o.value)) ? ' selected' : '';
+            html += '<div class="ss-option' + sel + '" data-val="' + escHtml(String(o.value)) + '">' + escHtml(o.label) + '</div>';
+        });
+        el.innerHTML = html;
+        el.querySelectorAll('.ss-option').forEach(function (node) {
+            node.addEventListener('click', function () {
+                var v     = this.getAttribute('data-val');
+                var found = ssAllOptions.find(function (o) { return String(o.value) === v; });
+                if (found) pickSsOpt(found);
+            });
+        });
+    }
+
+    function pickSsOpt(opt) {
+        var hid = document.getElementById('empHidden');
+        hid.value = opt.value;
+        var d = opt.data || {};
+        Object.keys(d).forEach(function (k) { hid.setAttribute('data-' + k, d[k]); });
+
+        var disp = document.getElementById('empDisplay');
+        disp.textContent = opt.label;
+        disp.classList.remove('placeholder');
+
+        document.getElementById('empTrigger').classList.remove('is-invalid');
+        document.getElementById('empErr').style.display = 'none';
+        closeSs();
+    }
+
+    function resetSs() {
+        var hid = document.getElementById('empHidden');
+        hid.value = '';
+        Array.from(hid.attributes)
+            .filter(function (a) { return a.name.startsWith('data-'); })
+            .forEach(function (a) { hid.removeAttribute(a.name); });
+        var disp = document.getElementById('empDisplay');
+        disp.textContent = '-- Select Left Employee --';
+        disp.classList.add('placeholder');
+        document.getElementById('empTrigger').classList.remove('is-invalid');
+        renderSsOpts(ssAllOptions);
+    }
+
+    /* ──────────────────────────────────────────
+       LOAD LEFT EMPLOYEES DROPDOWN
+    ────────────────────────────────────────── */
+    function loadLeftEmployees() {
+        $.ajax({
+            url: API_BASE + '/MonthlySalaryDetailsAPI/GetLeftEmployeedropDown/' + COMP_ID,
+            method: 'GET',
+            success: function (res) {
+                console.log('Employees RAW:', res);
+                // Handle nested response: res.data.data OR res.data
+                var list = [];
+                if (res && res.isSuccess) {
+                    if (res.data && Array.isArray(res.data.data)) {
+                        list = res.data.data;           // nested: { data: { data: [...] } }
+                    } else if (Array.isArray(res.data)) {
+                        list = res.data;                // flat:   { data: [...] }
+                    }
+                }
+                console.log('Employees list:', list.length);
+                buildSsOpts(list);
+            },
+            error: function (xhr, status, error) {
+                console.error('Employees load error:', error);
+                Swal.fire('Error', 'Failed to load employee list.', 'error');
+            }
+        });
+    }
+
+    function buildSsOpts(data) {
+        ssAllOptions = (data || []).map(function (e) {
+            return {
+                value: e.Id || e.employeeId,
+                label: (e.EmployeeCode || e.employeeCode || '') + ' - ' + (e.FullName || e.fullName || ''),
+                data: {
+                    name:   e.FullName            || e.fullName            || '',
+                    code:   e.EmployeeCode        || e.employeeCode        || '',
+                    doj:    e.DateOfJoining       || e.dateOfJoining       || '',
+                    left:   e.LeftDate            || e.leftDate            || '',
+                    resign: e.RegAcceptDate       || e.regAcceptDate       || '',
+                    reason: e.LeftReason          || e.leftReason          || 'Resignation',
+                    desig:  e.DesignationName     || e.designationName     || '',
+                    dept:   e.DepartmentName      || e.departmentName      || '',
+                    branch: e.BranchName          || e.branchName          || '',
+                    gross:  e.GrossSalary         || e.grossSalary         || 0,
+                    years:  e.TotalYearsInCompany || e.totalYearsInCompany || 0
+                }
+            };
+        });
+        renderSsOpts(ssAllOptions);
+    }
+
+    /* ──────────────────────────────────────────
+       GO
+    ────────────────────────────────────────── */
+    function handleGo() {
+        clearErrors();
+        var err       = false;
+        var empId     = document.getElementById('empHidden').value;
+        var startDate = $('#startDate').val();
+        var endDate   = $('#endDate').val();
+
+        if (!empId)     { $('#empErr').show(); document.getElementById('empTrigger').classList.add('is-invalid'); err = true; }
+        if (!startDate) { $('#startDateErr').show(); $('#startDate').addClass('is-invalid'); err = true; }
+        if (!endDate)   { $('#endDateErr').show();   $('#endDate').addClass('is-invalid');   err = true; }
+        if (err) return;
+
+        showGoLoader(true);
+
+        var hid = document.getElementById('empHidden');
+
+        // Set basic info from dropdown (code + name at minimum)
+        currentEmp = {
+            employeeId:          parseInt(empId),
+            employeeCode:        hid.getAttribute('data-code')   || '',
+            employeeName:        hid.getAttribute('data-name')   || '',
+            dateOfJoining:       hid.getAttribute('data-doj')    || '',
+            leftDate:            hid.getAttribute('data-left')   || '',
+            resignationDate:     hid.getAttribute('data-resign') || '',
+            leftReason:          hid.getAttribute('data-reason') || 'Resignation',
+            designationName:     hid.getAttribute('data-desig')  || '',
+            departmentName:      hid.getAttribute('data-dept')   || '',
+            branchName:          hid.getAttribute('data-branch') || '',
+            grossSalary:         parseFloat(hid.getAttribute('data-gross')) || 0,
+            totalYearsInCompany: parseFloat(hid.getAttribute('data-years')) || 0
+        };
+
+        // Render initial info (may be partial from dropdown)
+        renderEmpInfo(currentEmp);
+
+        $('#detailsArea').slideDown(250);
+
+        // Fire all API calls
+        fetchLeaveBalance(empId);
+
+        Promise.all([
+            fetchEmpDetails(empId),          // ← GetLeftEmployeeDetails for full details
+            fetchSalary(startDate, endDate)
+        ]).finally(function () { showGoLoader(false); });
+    }
+
+    /* ──────────────────────────────────────────
+       API CALLS
+    ────────────────────────────────────────── */
+
+    // 1. Full Employee Details
+    function fetchEmpDetails(empId) {
+        return new Promise(function (resolve) {
+            $.ajax({
+                url: API_BASE + '/MonthlySalaryDetailsAPI/GetLeftEmployeeDetails/' + empId,
+                method: 'GET',
+                 success: function (res) {
+                console.log('EmpDetails res:', res);
+                var d = null;
+                if (res && res.isSuccess) {
+                    if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+                        d = res.data.data[0];   // ← nested array, take first item
+                    } else if (res.data && !Array.isArray(res.data)) {
+                        d = res.data;            // flat object
+                    }
+                }
+                if (d) fillEmpDetailsFromAPI(d);
+                resolve();
+            },
+                error: function (xhr) {
+                    console.error('EmpDetails error:', xhr.responseText);
+                    resolve(); // don't block other calls
+                }
+            });
+        });
+    }
+
+    // Fill employee detail table from API response
+      function fillEmpDetailsFromAPI(d) {
+        currentEmp.designationName     = d.DesignationName  || d.designationName  || currentEmp.designationName  || '';
+        currentEmp.departmentName      = d.DepartmentName   || d.departmentName   || currentEmp.departmentName   || '';
+        currentEmp.branchName          = d.BranchName       || d.branchName       || currentEmp.branchName       || '';
+        currentEmp.dateOfJoining       = d.DateOfJoining    || d.dateOfJoining    || currentEmp.dateOfJoining    || '';
+        currentEmp.leftDate            = d.LeftDate         || d.leftDate         || currentEmp.leftDate         || '';
+        currentEmp.resignationDate     = d.RegAcceptDate    || d.regAcceptDate    || currentEmp.resignationDate  || '';
+        currentEmp.grossSalary         = d.GrossSalary      || d.grossSalary      || currentEmp.grossSalary      || 0;
+        currentEmp.totalYearsInCompany = d.TotalYearsInCompany || d.totalYearsInCompany || currentEmp.totalYearsInCompany || 0;
+
+        // ← IsDeath / IsRetire se reason determine karo
+        if (d.IsDeath || d.isDeath) {
+            currentEmp.leftReason = 'Death';
+        } else if (d.IsRetire || d.isRetire) {
+            currentEmp.leftReason = 'Retirement';
+        } else {
+            currentEmp.leftReason = d.LeftReason || d.leftReason || 'Resignation';
+        }
+
+        renderEmpInfo(currentEmp);
+    }
+
+    // 2. Salary Details
+    function fetchSalary(startDate, endDate) {
+        return new Promise(function (resolve) {
+            $.ajax({
+                url: API_BASE + '/MonthlySalaryDetailsAPI/GetMonthlySalary',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    StartDate:     startDate,
+                    EndDate:       endDate,
+                    EmployeeCodes: currentEmp.employeeCode,
+                    CompanyId:     COMP_ID,
+                    Action:        'GetData',
+                    CreatedBy:     LOGGED_EMP_ID
+                }),
+                success: function (res) {
+                    console.log('Salary res:', res);
+                    var d = (res && res.isSuccess && res.data && res.data.length > 0)
+                        ? res.data[0]
+                        : null;
+                    renderSalGrid(d);
+                    resolve();
+                },
+                error: function (xhr) {
+                    console.error('Salary error:', xhr.responseText);
+                    renderSalGrid(null);
+                    resolve();
+                }
+            });
+        });
+    }
+
+    // 3. Leave Balance
+    function fetchLeaveBalance(empId) {
+        $('#leaveBalanceArea').html('<div class="text-muted">Loading leave balance...</div>');
+        $.ajax({
+            url: API_BASE + '/LeaveApplication/GetLeaveType',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ Compid: COMP_ID, Empid: empId }),
+            success: function (res) {
+                console.log('Leave res:', res);
+                // Handle nested response
+                var data = null;
+                if (res && res.isSuccess) {
+                    if (res.data && Array.isArray(res.data.data)) {
+                        data = res.data.data;
+                    } else if (Array.isArray(res.data)) {
+                        data = res.data;
+                    }
+                }
+                leaveRows = data || [];
+                renderLeave(leaveRows);
+            },
+            error: function (xhr) {
+                console.error('Leave error:', xhr.responseText);
+                $('#leaveBalanceArea').html('<div class="text-muted">Failed to load leave balance.</div>');
+            }
+        });
+    }
+
+    /* ──────────────────────────────────────────
+       RENDER
+    ────────────────────────────────────────── */
+    function renderEmpInfo(emp) {
+        var rMap = { Resignation: 'reason-resignation', Retirement: 'reason-retirement', Death: 'reason-death' };
+        $('#reasonBadge')
+            .attr('class', 'reason-badge ' + (rMap[emp.leftReason] || 'reason-resignation'))
+            .text(emp.leftReason || 'Resignation');
+
+        var fmt = function (v) { return v ? new Date(v).toLocaleDateString('en-IN') : '\u2014'; };
+            var rows = [
+                ['Employee Code',    emp.employeeCode      || '\u2014'],
+                ['Employee Name',    emp.employeeName      || '\u2014'],
+                ['Designation',      emp.designationName   || '\u2014'],   // ✅ camelCase
+                ['Department',       emp.departmentName    || '\u2014'],   // ✅ camelCase
+                ['Branch',           emp.branchName        || '\u2014'],   // ✅ camelCase
+                ['Date of Joining',  fmt(emp.dateOfJoining)],              // ✅ camelCase
+                ['Total in Company', emp.totalYearsInCompany ? emp.totalYearsInCompany.toFixed(1) + ' Yrs' : '\u2014'],
+                ['Resignation Date', fmt(emp.resignationDate)],            // ✅ camelCase
+                ['Left Date',        fmt(emp.leftDate)],                   // ✅ camelCase
+                ['Gross Salary',     emp.grossSalary ? '\u20b9\u00a0' + Number(emp.grossSalary).toLocaleString('en-IN') : '\u2014']  // ✅ camelCase
+            ];
+        var html = '';
+        rows.forEach(function (r) { html += '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; });
+        $('#empDetailTable').html(html);
+    }
+
+    function fillDays(d) {
+        $('#inp_monthDays').val(d.monthDays  || d.MonthDays  || 0);
+        $('#inp_present').val(d.presentDays  || d.PresentDays  || 0);
+        $('#inp_absent').val(d.absentDays    || d.AbsentDays    || 0);
+        $('#inp_leave').val(d.leaveDays      || d.LeaveDays      || 0);
+        $('#inp_weekoff').val(d.weekOffDays  || d.WeekOffDays  || 0);
+        $('#inp_holiday').val(d.holidayDays  || d.HolidayDays  || 0);
+        $('#inp_halfDay').val(d.halfDays     || d.HalfDays     || 0);
+        $('#inp_lwp').val(d.lwpDays          || d.LwpDays          || 0);
+        $('#inp_payable').val(d.payableDays  || d.PayableDays  || 0);
+    }
+
+    function resetDays() {
+        ['monthDays','present','absent','leave','weekoff','holiday','halfDay','lwp','payable'].forEach(function (k) {
+            $('#inp_' + k).val('');
+        });
+        $('#inp_arrearDays').val(0);
+    }
+
+    function renderSalGrid(d) {
+        if (!d) {
+            $('#salaryGrid').html('<div class="text-muted" style="grid-column:1/-1;">No salary data found for selected period.</div>');
+            return;
+        }
+        var html = '';
+
+        html += '<div class="section-divider">&#128176; Earnings</div>';
+        EARNINGS.forEach(function (f) {
+            var v  = (d[f.key] !== undefined) ? d[f.key] : 0;
+            var ro = f.ro ? ' readonly' : '';
+            html += '<div class="salary-field"><label>' + f.label + '</label>'
+                  + '<input type="number" id="sal_' + f.key + '" value="' + v + '" min="0" step="0.01"' + ro + '></div>';
+        });
+
+        html += '<div class="section-divider">&#128197; Deductions</div>';
+        DEDUCTIONS.forEach(function (f) {
+            var v  = (d[f.key] !== undefined) ? d[f.key] : 0;
+            var ro = f.ro ? ' readonly' : '';
+            html += '<div class="salary-field"><label>' + f.label + '</label>'
+                  + '<input type="number" id="sal_' + f.key + '" value="' + v + '" min="0" step="0.01"' + ro + '></div>';
+        });
+
+        var net = Number(d.netSalary || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        html += '<div class="net-salary-box">'
+              + '<div class="net-label">Net Salary (Auto Calculated)</div>'
+              + '<div class="net-value" id="netDisplay">\u20b9 ' + net + '</div></div>';
+
+        $('#salaryGrid').html(html);
+        $('#salaryGrid input:not([readonly])').on('input', recalcNet);
+    }
+
+    function recalcNet() {
+        var gross = 0, ded = 0;
+        EARNINGS.forEach(function (f)   { if (!f.ro) gross += parseFloat($('#sal_' + f.key).val()) || 0; });
+        DEDUCTIONS.forEach(function (f) { if (!f.ro) ded   += parseFloat($('#sal_' + f.key).val()) || 0; });
+        $('#sal_totalGrossSalary').val(gross.toFixed(2));
+        $('#sal_totalDeductions').val(ded.toFixed(2));
+        $('#netDisplay').text('\u20b9 ' + Number(gross - ded).toLocaleString('en-IN', { minimumFractionDigits: 2 }));
+    }
+
+    function renderLeave(data) {
+        if (!data || !data.length) {
+            $('#leaveBalanceArea').html('<div class="text-muted">No leave balance found.</div>');
+            return;
+        }
+        var html = '<table class="leave-table"><thead><tr>'
+            + '<th>Leave Type</th><th>Opening</th><th>Credit</th><th>Used</th>'
+            + '<th>Pending</th><th>Balance</th><th>Encashable</th><th>Approved</th><th>Tax Free</th>'
+            + '</tr></thead><tbody>';
+
+        data.forEach(function (r, i) {
+            // Support both PascalCase and camelCase
+            var leaveType     = r.LeaveType     || r.leaveType     || r.leave     || '';
+            var opening       = r.Opening       || r.opening       || 0;
+            var credit        = r.Credit        || r.credit        || 0;
+            var used          = r.Used          || r.used          || 0;
+            var pendingLeaves = r.PendingLeaves || r.pendingLeaves || 0;
+            var balance       = r.Balance       || r.balance       || 0;
+            var isEncashable  = r.IsEncashable  || r.isEncashable  || false;
+            var encashableDays = r.EncashableDays || r.encashableDays || 0;
+
+            var encCol = isEncashable
+                ? '<input type="number" class="leave-approved" data-idx="' + i + '" value="' + encashableDays + '" min="0" step="0.5" max="' + encashableDays + '">'
+                : '<span style="color:#bbb">\u2014</span>';
+            var taxCol = isEncashable
+                ? '<input type="checkbox" class="leave-taxfree" data-idx="' + i + '">'
+                : '<span style="color:#bbb">\u2014</span>';
+
+            html += '<tr>'
+                + '<td>' + escHtml(leaveType) + '</td>'
+                + '<td>' + opening + '</td>'
+                + '<td>' + credit  + '</td>'
+                + '<td>' + used    + '</td>'
+                + '<td>' + pendingLeaves + '</td>'
+                + '<td><strong>' + balance + '</strong></td>'
+                + '<td>' + (isEncashable ? encashableDays : '<span style="color:#bbb">\u2014</span>') + '</td>'
+                + '<td>' + encCol + '</td>'
+                + '<td>' + taxCol + '</td>'
+                + '</tr>';
+        });
+        html += '</tbody></table>';
+        $('#leaveBalanceArea').html(html);
+    }
+
+    /* ──────────────────────────────────────────
+       SAVE
+    ────────────────────────────────────────── */
+    async function handleSave() {
+        if (!currentEmp) {
+            Swal.fire('Warning', 'Please click Go to load employee data first.', 'warning');
+            return;
+        }
+
+        // Gather leave encash
+        var encashDays = 0, encashDetails = [];
+        $('.leave-approved').each(function () {
+            var days = parseFloat($(this).val()) || 0;
+            var idx  = parseInt($(this).data('idx'));
+            var tax  = $('.leave-taxfree[data-idx="' + idx + '"]').prop('checked') || false;
+            encashDays += days;
+            if (days > 0 && leaveRows[idx]) {
+                encashDetails.push({
+                    leaveType: leaveRows[idx].leaveType || leaveRows[idx].LeaveType || leaveRows[idx].leave,
+                    days: days,
+                    taxFree: tax
+                });
+            }
+        });
+
+        // Gather salary fields
+        var earn = {}, ded = {};
+        EARNINGS.forEach(function (f)   { earn[f.key] = parseFloat($('#sal_' + f.key).val()) || 0; });
+        DEDUCTIONS.forEach(function (f) { ded[f.key]  = parseFloat($('#sal_' + f.key).val()) || 0; });
+        var netSal = (earn.totalGrossSalary || 0) - (ded.totalDeductions || 0);
+
+        var payload = Object.assign({
+            Action:             'SaveFnF',
+            CompanyId:          COMP_ID,
+            EmployeeId:         currentEmp.employeeId,
+            EmployeeCode:       currentEmp.employeeCode,
+            StartDate:          $('#startDate').val() || null,
+            EndDate:            $('#endDate').val()   || null,
+            MonthDays:          parseInt($('#inp_monthDays').val())  || 0,
+            PresentDays:        parseFloat($('#inp_present').val())  || 0,
+            AbsentDays:         parseFloat($('#inp_absent').val())   || 0,
+            LeaveDays:          parseFloat($('#inp_leave').val())    || 0,
+            WeekOffDays:        parseFloat($('#inp_weekoff').val())  || 0,
+            HolidayDays:        parseFloat($('#inp_holiday').val())  || 0,
+            HalfDays:           parseFloat($('#inp_halfDay').val())  || 0,
+            LWPDays:            parseFloat($('#inp_lwp').val())      || 0,
+            PayableDays:        parseFloat($('#inp_payable').val())  || 0,
+            ArrearDays:         parseInt($('#inp_arrearDays').val()) || 0,
+            ArrearMonth:        $('#inp_arrearMonth').val()          || null,
+            ArrearYear:         parseInt($('#inp_arrearYear').val()) || null,
+            LeaveEncashDays:    encashDays,
+            LeaveEncashDetails: encashDetails,
+            GratuityAmount:     parseFloat($('#inp_gratuity').val()) || 0,
+            BonusAmount:        parseFloat($('#inp_bonus').val())    || 0,
+            TDSAmount:          parseFloat($('#inp_tds').val())      || 0,
+            OtherDeduction:     parseFloat($('#inp_otherDed').val()) || 0,
+            Remarks:            $('#inp_remarks').val().trim()       || null,
+            NetSalary:          netSal,
+            CreatedBy:          LOGGED_EMP_ID
+        }, earn, ded);
+
+        var netFmt = Number(netSal).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        var result = await Swal.fire({
+            title: 'Confirm Settlement',
+            html:  'Save Full &amp; Final Settlement for <strong>' + escHtml(currentEmp.employeeName) + '</strong>?'
+                 + '<br><small style="color:#666">Net Payable: <strong>\u20b9 ' + netFmt + '</strong></small>',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2e7d5e',
+            cancelButtonColor:  '#6c757d',
+            confirmButtonText:  'Yes, Save',
+            cancelButtonText:   'Cancel'
+        });
+        if (!result.isConfirmed) return;
+
+        showSaveLoader(true);
+
+        $.ajax({
+            url: API_BASE + '/FullFinalSettlementAPI/SaveFnFSettlement',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function (res) {
+                showSaveLoader(false);
+                if (res && res.isSuccess) {
+                    Swal.fire('Success', res.responseMessage || 'Saved successfully.', 'success');
+                    handleClear();
+                } else {
+                    Swal.fire('Error', (res && res.responseMessage) || 'Failed to save.', 'error');
+                }
+            },
+            error: function (xhr) {
+                showSaveLoader(false);
+                var msg = xhr.responseJSON && xhr.responseJSON.responseMessage;
+                Swal.fire('Error', msg || 'Failed to save settlement.', 'error');
+            }
+        });
+    }
+
+    /* ──────────────────────────────────────────
+       CLEAR
+    ────────────────────────────────────────── */
+    function handleClear() {
+        clearErrors();
+        resetSs();
+        $('#startDate, #endDate').val('');
+        $('#detailsArea').slideUp(200);
+        currentEmp = null;
+        leaveRows  = [];
+        resetDays();
+        $('#inp_arrearMonth').val('');
+        $('#inp_arrearYear').val('');
+        $('#inp_gratuity, #inp_bonus, #inp_tds, #inp_otherDed').val(0);
+        $('#inp_remarks').val('');
+        $('#empDetailTable').html('');
+        $('#reasonBadge').text('').attr('class', 'reason-badge');
+        $('#leaveBalanceArea').html('<div class="text-muted">Loading leave balance...</div>');
+        $('#salaryGrid').html('<div class="text-muted" style="grid-column:1/-1;">Select employee and click Go to load salary data.</div>');
+    }
+
+    /* ──────────────────────────────────────────
+       HELPERS & LOADERS
+    ────────────────────────────────────────── */
+    function clearErrors() {
+        $('.err-msg').hide();
+        $('.is-invalid').removeClass('is-invalid');
+        document.getElementById('empTrigger').classList.remove('is-invalid');
+    }
+
+    function showGoLoader(on) {
+        if (on) { $('#goText').hide();  $('#goLoader').show(); $('#goBtn').prop('disabled', true);  }
+        else    { $('#goText').show();  $('#goLoader').hide(); $('#goBtn').prop('disabled', false); }
+    }
+
+    function showSaveLoader(on) {
+        if (on) { $('#saveBtnText').text('Saving...'); $('#saveBtnLoader').show(); $('#saveBtn').prop('disabled', true);  }
+        else    { $('#saveBtnText').html('&#128190; Save Settlement'); $('#saveBtnLoader').hide(); $('#saveBtn').prop('disabled', false); }
+    }
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+</script>
