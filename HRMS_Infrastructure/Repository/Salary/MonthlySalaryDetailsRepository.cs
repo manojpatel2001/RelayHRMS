@@ -9,12 +9,14 @@ using HRMS_Core.VM.JobMaster;
 using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Salary;
+using HRMS_Utility;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Data;
+using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -41,26 +43,50 @@ namespace HRMS_Infrastructure.Repository.Salary
 
         public async Task<SP_Response> CreateSalaryDetails(MonthlySalaryRequestViewModel vm)
         {
+            var connection = _db.Database.GetDbConnection();
+
             try
             {
-                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
-            EXEC [USP_CalculateMonthlySalary_V2] 
-            @StartDate = {vm.StartDate:yyyy-MM-dd}, 
-            @EndDate = {vm.EndDate:yyyy-MM-dd}, 
-            @EmployeeCodes = {vm.EmployeeCodes}, 
-            @CompanyId ={vm.CompanyId},
-            @Action = {vm.Action ?? "Insert"},
-              @CreatedBy = {vm.CreatedBy}
-        ").ToListAsync();
+                if (connection.State != ConnectionState.Open)
+                    await connection.OpenAsync();
 
-                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+                using var command = connection.CreateCommand();
+                command.CommandText = "[dbo].[USP_CalculateMonthlySalary_V2]";
+                command.CommandType = CommandType.StoredProcedure;
+                command.CommandTimeout = 180;
+
+                command.Parameters.Add(new SqlParameter("@StartDate", vm.StartDate));
+                command.Parameters.Add(new SqlParameter("@EndDate", vm.EndDate));
+                command.Parameters.Add(new SqlParameter("@EmployeeCodes", (object)vm.EmployeeCodes ?? DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@BranchIds", (object)vm.BranchId ?? DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@CompanyId", vm.CompanyId));
+                command.Parameters.Add(new SqlParameter("@Action", "Insert"));
+                command.Parameters.Add(new SqlParameter("@CreatedBy", (object)vm.CreatedBy ?? DBNull.Value));
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (reader.HasRows)
+                {
+                    await reader.ReadAsync();
+                    return new SP_Response
+                    {
+                        ResponseMessage = reader["ResponseMessage"]?.ToString(),
+                        Success = Convert.ToInt32(reader["Success"])
+                    };
+                }
+
+                return new SP_Response { Success = 0, ResponseMessage = "No response from server." };
             }
-            catch
+            catch (Exception ex)
             {
-                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+                return new SP_Response { Success = -1, ResponseMessage = $"Error: {ex.Message}" };
+            }
+            finally
+            {
+                if (connection.State == ConnectionState.Open)
+                    await connection.CloseAsync();
             }
         }
-
         //public async Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm)
         //{
 
@@ -84,31 +110,117 @@ namespace HRMS_Infrastructure.Repository.Salary
         //        return new List<SalaryReportDTO>();
         //    }
         //}
-
-        public async Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm)
+        public async Task<List<APIResponse>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm)
         {
+            var results = new List<dynamic>();
+            string message = null;
+            bool success = true;
+
+            var connection = _db.Database.GetDbConnection();
+
             try
             {
-                return await _db.Set<SalaryReportDTO>()
-                    .FromSqlInterpolated($@"EXEC [dbo].[USP_CalculateMonthlySalary_V2]
-                @StartDate ={vm.StartDate},
-                @EndDate ={vm.EndDate},
-                @EmployeeCodes ={vm.EmployeeCodes},
-                @BranchIdS ={vm.BranchId},
-                @CompanyId ={vm.CompanyId},
-                @Action={vm.Action},       
-                @CreatedBy = {vm.CreatedBy}")
+                if (connection.State != ConnectionState.Open)
+                    await connection.OpenAsync();
 
+                using var command = connection.CreateCommand();
+                command.CommandText = "[dbo].[USP_CalculateMonthlySalary_V2]";
+                command.CommandType = CommandType.StoredProcedure;
+                command.CommandTimeout = 180;
 
+                command.Parameters.Add(new SqlParameter("@StartDate", vm.StartDate));
+                command.Parameters.Add(new SqlParameter("@EndDate", vm.EndDate));
+                command.Parameters.Add(new SqlParameter("@EmployeeCodes", (object)vm.EmployeeCodes ?? DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@BranchIds", (object)vm.BranchId ?? DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@CompanyId", vm.CompanyId));
+                command.Parameters.Add(new SqlParameter("@Action", vm.Action ?? "GetData"));
+                command.Parameters.Add(new SqlParameter("@CreatedBy", (object)vm.CreatedBy ?? DBNull.Value));
 
-                    .ToListAsync();
-            }
-            catch
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (reader.HasRows)
+                {
+                    var columns = Enumerable.Range(0, reader.FieldCount)
+                                            .Select(i => reader.GetName(i))
+                                            .ToList();
+
+                    bool isSalaryData = columns.Any(c => c.Equals("EmployeeId", StringComparison.OrdinalIgnoreCase));
+                    bool isMessageResult = columns.Any(c => c.Equals("ResponseMessage", StringComparison.OrdinalIgnoreCase));
+
+                    if (isSalaryData)
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            var row = new ExpandoObject() as IDictionary<string, object>;
+                            foreach (var col in columns)
+                            {
+                                var ordinal = reader.GetOrdinal(col);
+                                row[col] = reader.IsDBNull(ordinal) ? null : reader.GetValue(ordinal);
+                            }
+                            results.Add(row);
+                        }
+                    }
+                    else if (isMessageResult)
+                    {
+                        await reader.ReadAsync();
+                        message = reader["ResponseMessage"]?.ToString();
+                        success = Convert.ToInt32(reader["Success"]) == 1;
+                    }
+                }
+
+                // Handle additional result sets (InfoMessage)
+                while (await reader.NextResultAsync())
+                {
+                    if (reader.HasRows)
+                    {
+                        await reader.ReadAsync();
+                        message = reader[0]?.ToString();
+                    }
+                }
+
+                if (results.Count > 0)
+                {
+                    return new List<APIResponse>
             {
-                return new List<SalaryReportDTO>();
+                new APIResponse
+                {
+                    isSuccess       = true,
+                    ResponseMessage = message ?? "Data fetched successfully.",
+                    Data            = results   // ✅ All salary rows inside Data
+                }
+            };
+                }
+                else
+                {
+                    return new List<APIResponse>
+            {
+                new APIResponse
+                {
+                    isSuccess       = success,
+                    ResponseMessage = message ?? "No records found.",
+                    Data            = null
+                }
+            };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new List<APIResponse>
+        {
+            new APIResponse
+            {
+                isSuccess       = false,
+                ResponseMessage = $"Error: {ex.Message}",
+                Data            = null
+            }
+        };
+            }
+            finally
+            {
+                if (connection.State == ConnectionState.Open)
+                    await connection.CloseAsync();
             }
         }
-
         public Task<IEnumerable<SalaryDetailViewModel>> GetAllAsync(Expression<Func<SalaryDetailViewModel, bool>>? filter = null, string? includeProperties = null)
         {
             throw new NotImplementedException();
@@ -124,21 +236,21 @@ namespace HRMS_Infrastructure.Repository.Salary
             throw new NotImplementedException();
         }
 
-        
+
         public async Task<List<SalaryDetailViewModel>> GetSalaryDetails(SalaryDetailsParameterVm vm)
         {
 
 
             try
             {
-                var result= await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId ={vm.BranchId}").ToListAsync();
+                var result = await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId ={vm.BranchId}").ToListAsync();
                 return result;
             }
             catch
             {
                 return new List<SalaryDetailViewModel>();
             }
-            
+
         }
 
         public async Task<VMCommonResult> DeleteSalaryDetails(DeleteRecordVModel deleteRecordVM)
@@ -219,7 +331,7 @@ namespace HRMS_Infrastructure.Repository.Salary
             {
                 return new List<YearlySalarySummaryVM>();
             }
-            
+
         }
 
         public async Task<List<YearlySalaryComponent>> GetYearlySalaryCard(int Year, int EmpId)
@@ -367,7 +479,7 @@ namespace HRMS_Infrastructure.Repository.Salary
                 using (var connection = new SqlConnection(_connectionString))
                 {
                     var parameters = new DynamicParameters();
-                    
+
                     parameters.Add("@EmployeeID", model.EmployeeId, DbType.Int32);
                     parameters.Add("@Month", model.Month, DbType.Int32);
                     parameters.Add("@Year", model.Year, DbType.Int32);
@@ -396,5 +508,82 @@ namespace HRMS_Infrastructure.Repository.Salary
                 };
             }
         }
+
+        public async Task<APIResponse> GetLeftEmployeedropDown(int CompanyId)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@CompanyId", CompanyId);
+
+                    var result = await connection.QueryAsync<dynamic>(
+                        "GetLeftEmployeedropDown",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (!result.Any())
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No records found.";
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+                response.Data = null;
+            }
+            return response;
+        }
+
+
+        public async Task<APIResponse> GetLeftEmployeeDetails(int Employeeid)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Employeeid", Employeeid);
+
+                    var result = await connection.QueryAsync<dynamic>(
+                        "GetEmployeeDetails",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (!result.Any())
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No records found.";
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+                response.Data = null;
+            }
+            return response;
+        }
+
+  
     }
-    }
+}

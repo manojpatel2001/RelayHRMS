@@ -6,6 +6,7 @@ using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Repository;
+using HRMS_Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +19,7 @@ namespace HRMS_Infrastructure.Interface.Salary
     public interface IMonthlySalaryDetailsRepository:IRepository<SalaryDetailViewModel>
     {
         Task<SP_Response> CreateSalaryDetails(MonthlySalaryRequestViewModel vm);
-        Task<List<SalaryReportDTO>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm);
+        Task<List<APIResponse>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm);
         Task<List<SalaryDetailViewModel>> GetSalaryDetails(SalaryDetailsParameterVm vm);
         Task<List<SalaryDetailViewModel>>  GetSalarySlip(salaryslipParam vm);
         Task<List<SalarySlipReport>>  GetSalarySlipReport(salaryslipParamReport vm);
@@ -33,6 +34,8 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<List<EmployeeSalaryPublish>> GetEmployeeSalaryPublish(AttendanceLockParamVm model);
         Task<SP_Response> UpdateSalaryPublishStatus(SalaryPublishFilterViewModel model);
         Task<SP_Response> IsPayslipPublished(PayslipFilterViewModel model);
+        Task<APIResponse> GetLeftEmployeedropDown(int CompanyId);
+        Task<APIResponse> GetLeftEmployeeDetails(int Employeeid);
 
     }
 }
