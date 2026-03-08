@@ -36,6 +36,7 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<SP_Response> IsPayslipPublished(PayslipFilterViewModel model);
         Task<APIResponse> GetLeftEmployeedropDown(int CompanyId);
         Task<APIResponse> GetLeftEmployeeDetails(int Employeeid);
+        Task<APIResponse> SaveFnFSettlementAsync(FnFSettlementRequest req);
 
     }
 }

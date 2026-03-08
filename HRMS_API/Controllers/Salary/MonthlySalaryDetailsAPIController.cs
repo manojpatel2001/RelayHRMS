@@ -525,5 +525,40 @@ namespace HRMS_API.Controllers.Salary
             }
         }
 
+        [HttpPost("SaveFnFSettlement")]
+        public async Task<APIResponse> SaveFnFSettlement(FnFSettlementRequest request)
+        {
+            try
+            {
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.SaveFnFSettlementAsync(request);
+
+                if (result.isSuccess)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        Data = result.Data,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+                else
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Unable to save FnF settlement. Error: {ex.Message}"
+                };
+            }
+        }
     }
 }

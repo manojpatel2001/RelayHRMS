@@ -584,6 +584,94 @@ namespace HRMS_Infrastructure.Repository.Salary
             return response;
         }
 
-  
+
+        public async Task<APIResponse> SaveFnFSettlementAsync(FnFSettlementRequest request)
+        {
+            try
+            {
+                var parameters = new DynamicParameters();
+
+                parameters.Add("@Action", request.Action ?? "SaveFnF");
+                parameters.Add("@Id", request.Id);
+
+                // Employee
+                parameters.Add("@EmployeeId", request.EmployeeId);
+                parameters.Add("@EmployeeCode", request.EmployeeCode);
+                parameters.Add("@EmployeeName", request.EmployeeName);
+                parameters.Add("@CompanyId", request.CompanyId);
+
+                // Period — NO StartDate/EndDate
+                parameters.Add("@MonthNumber", request.MonthNumber);
+                parameters.Add("@MonthName", request.MonthName);
+                parameters.Add("@Year", request.Year);
+
+                // Attendance
+                parameters.Add("@MonthDays", request.MonthDays);
+                parameters.Add("@PresentDays", request.PresentDays);
+                parameters.Add("@AbsentDays", request.AbsentDays);
+                parameters.Add("@Leave", request.Leave);
+                parameters.Add("@WeekOff", request.WeekOff);
+                parameters.Add("@Holiday", request.Holiday);
+                parameters.Add("@HalfDays", request.HalfDays);
+                parameters.Add("@LWPDays", request.LWPDays);
+                parameters.Add("@PayableDays", request.PayableDays);
+                parameters.Add("@ArrearDays", request.ArrearDays);
+
+                // Earnings
+                parameters.Add("@GrossSalary", request.GrossSalary);
+                parameters.Add("@BasicSalary", request.BasicSalary);
+                parameters.Add("@HRA", request.HRA);
+                parameters.Add("@ConveyanceAllowance", request.ConveyanceAllowance);
+                parameters.Add("@ChildEducationAllowance", request.ChildEducationAllowance);
+                parameters.Add("@MedicalAllowance", request.MedicalAllowance);
+                parameters.Add("@DeputationAllowance", request.DeputationAllowance);
+                parameters.Add("@Arrears", request.Arrears);
+                parameters.Add("@TotalGrossSalary", request.TotalGrossSalary);
+
+                // Deductions
+                parameters.Add("@PF", request.PF);
+                parameters.Add("@ESIC", request.ESIC);
+                parameters.Add("@ProfessionalTax", request.ProfessionalTax);
+                parameters.Add("@GroupMedical", request.GroupMedical);
+                parameters.Add("@TermInsurance", request.TermInsurance);
+                parameters.Add("@LWF", request.LWF);
+                parameters.Add("@TDS", request.TDS);
+                parameters.Add("@Loan", request.Loan);
+                parameters.Add("@OtherDeduction", request.OtherDeduction);
+                parameters.Add("@TotalDeductions", request.TotalDeductions);
+                parameters.Add("@NetSalary", request.NetSalary);
+
+                // FnF Extras
+                parameters.Add("@GratuityAmount", request.GratuityAmount);
+                parameters.Add("@BonusAmount", request.BonusAmount);
+                parameters.Add("@TDSAmount", request.TDSAmount);
+                parameters.Add("@OtherDeductionExtra", request.OtherDeductionExtra);
+                parameters.Add("@LeaveEncashDays", request.LeaveEncashDays);
+                parameters.Add("@ArrearMonth", request.ArrearMonth);
+                parameters.Add("@ArrearYear", request.ArrearYear);
+                parameters.Add("@Remarks", request.Remarks);
+                parameters.Add("@CreatedBy", request.CreatedBy);
+
+                using var con = new SqlConnection(_connectionString);
+                var result = await con.QueryFirstOrDefaultAsync<APIResponse>(
+                    "sp_SaveFnFSettlement",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return result ?? new APIResponse { isSuccess = false, ResponseMessage = "No response from SP." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = "Error: " + ex.Message
+                };
+            }
+        }
+
+
     }
 }
