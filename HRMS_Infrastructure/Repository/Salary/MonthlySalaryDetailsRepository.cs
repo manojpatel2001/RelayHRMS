@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using Azure.Core;
+using Dapper;
 using HRMS_Core.DbContext;
 using HRMS_Core.Master.JobMaster;
 using HRMS_Core.PrivilegeSetting;
@@ -672,6 +673,45 @@ namespace HRMS_Infrastructure.Repository.Salary
             }
         }
 
+        public async Task<APIResponse> GetFullFinalStatementReport(FullFinalStatementRequestDto req)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Month", req.Month, DbType.Int32);
+                    parameters.Add("@Year", req.Year, DbType.Int32);
+                    parameters.Add("@EmployeeCode", req.EmployeeCode, DbType.String);
 
+                    // ✅ dynamic use kiya — SP ke columns automatically map honge
+                    var result = await connection.QueryAsync<dynamic>(
+                        "SP_GetFullFinalStatementReport",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (!result.Any())
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No records found.";
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+                response.Data = null;
+            }
+            return response;
+        }
     }
+    
 }

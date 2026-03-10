@@ -560,5 +560,41 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
         }
+
+        [HttpPost("GetFullFinalStatement")]
+        public async Task<APIResponse> GetFullFinalStatement(  [FromBody] FullFinalStatementRequestDto request)
+        {
+            try
+            {
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.GetFullFinalStatementReport(request);
+                if (result.isSuccess)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        Data = result.Data,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+                else
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Unable to fetch Full & Final Statement. Error: {ex.Message}"
+                };
+            }
+        }
+
     }
 }
