@@ -386,6 +386,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<ProbationEvaluationForm>().HasNoKey().ToView(null);
              modelBuilder.Entity<ProbationEvaluationFormListVM>().HasNoKey().ToView(null);
              modelBuilder.Entity<FnFSettlementRequest>().HasNoKey().ToView(null);
+             modelBuilder.Entity<FullFinalStatementRequestDto>().HasNoKey().ToView(null);
 
 
 

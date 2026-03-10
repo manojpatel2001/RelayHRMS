@@ -1,0 +1,807 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Full & Final Statement";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+    .salary-box {
+        background-color: white !important;
+        border: 1px solid #ccc;
+        padding: 12px;
+        border-radius: 5px;
+    }
+
+    .salary-header {
+        background-color: #3e4b6d;
+        color: white;
+        font-weight: bold;
+        padding: 8px 15px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+
+    .form-group-row {
+        margin-bottom: 20px;
+        gap: 15px;
+    }
+
+    .form-label {
+        min-width: 100px;
+        font-weight: 500;
+        color: #495057;
+        font-size: 14px;
+        margin-bottom: 0;
+    }
+
+    .btn-go {
+        padding: 5px 30px;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin: 0 5px;
+    }
+
+    #btnGo, #btnGoing {
+        background-color: #2395c6;
+        color: #fff;
+    }
+
+    .btn-add {
+        padding: 5px 30px;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin: 0 5px;
+        background-color: #2395c6;
+        color: #fff;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+        .btn-add:hover {
+            background-color: #1a7aaa;
+            color: #fff;
+        }
+
+    #btnDelete, #btnDeleting {
+        padding: 5px 30px;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin: 0 5px;
+        background-color: #dc3545;
+        color: #fff;
+    }
+
+    #btnClear {
+        background-color: grey;
+        color: #fff;
+    }
+
+    .btn-go:last-child {
+        background-color: #6c757d;
+        color: #fff;
+    }
+
+        .btn-go:last-child:hover {
+            background-color: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+        }
+
+    .text-danger {
+        color: #dc3545;
+    }
+
+    .error-message {
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+    }
+
+    #salaryGridContainer {
+        max-height: 700px;
+    }
+
+    #btnExportExcel {
+        padding: 5px 18px;
+        font-size: 13px;
+        font-weight: 500;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background-color: #28a745;
+        color: #fff;
+        transition: all 0.2s;
+    }
+
+        #btnExportExcel:hover {
+            background-color: #218838;
+        }
+</style>
+
+<div class="salary-box">
+    <div class="salary-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="search-heading">Search Full &amp; Final Statement</div>
+            <a href="/AdminPanel/SalaryDetails/Fullandfinalsettlement" class="btn-add">Add</a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center mt-3">
+        <div class="col-lg-10">
+            <div class="row">
+                <!-- Left Column -->
+                <div class="col-md-6">
+                    <!-- Month Dropdown -->
+                    <div class="form-group-row d-flex align-items-center">
+                        <label class="form-label">Month<span class="text-danger">*</span> :</label>
+                        <div class="form-floating-custom flex-grow-1">
+                            <div class="searchable-select-wrapper" id="monthWrapper">
+                                <label for="monthDropdown">Select Month <span class="text-danger">*</span></label>
+                                <input type="text" class="searchable-select-input" id="monthDropdown" readonly>
+                                <span class="searchable-select-arrow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                    </svg>
+                                </span>
+                                <div class="searchable-select-dropdown">
+                                    <div class="searchable-select-search">
+                                        <input type="text" placeholder="Search month..." class="search-input">
+                                    </div>
+                                    <div class="multi-select-actions">
+                                        <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                        <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                    </div>
+                                    <div class="searchable-select-options"></div>
+                                </div>
+                            </div>
+                            <span class="text-danger error-message" id="errorMonth">Please select month</span>
+                        </div>
+                    </div>
+
+                    <!-- Employee Dropdown -->
+                    <div class="form-group-row d-flex align-items-center">
+                        <label class="form-label">Employee :</label>
+                        <div class="form-floating-custom flex-grow-1">
+                            <div class="searchable-select-wrapper" id="employeeWrapper">
+                                <label for="employeeDropdown">Select Employee</label>
+                                <input type="text" class="searchable-select-input" id="employeeDropdown" readonly>
+                                <span class="searchable-select-arrow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                    </svg>
+                                </span>
+                                <div class="searchable-select-dropdown">
+                                    <div class="searchable-select-search">
+                                        <input type="text" placeholder="Search employee..." class="search-input">
+                                    </div>
+                                    <div class="multi-select-actions">
+                                        <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                        <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                    </div>
+                                    <div class="searchable-select-options"></div>
+                                </div>
+                            </div>
+                            <span class="text-danger error-message" id="errorEmployee"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-md-6">
+                    <!-- Year Dropdown -->
+                    <div class="form-group-row d-flex align-items-center">
+                        <label class="form-label">Year<span class="text-danger">*</span> :</label>
+                        <div class="form-floating-custom flex-grow-1">
+                            <div class="searchable-select-wrapper" id="yearWrapper">
+                                <label for="yearDropdown">Select Year <span class="text-danger">*</span></label>
+                                <input type="text" class="searchable-select-input" id="yearDropdown" readonly>
+                                <span class="searchable-select-arrow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                    </svg>
+                                </span>
+                                <div class="searchable-select-dropdown">
+                                    <div class="searchable-select-search">
+                                        <input type="text" placeholder="Search year..." class="search-input">
+                                    </div>
+                                    <div class="multi-select-actions">
+                                        <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                        <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                    </div>
+                                    <div class="searchable-select-options"></div>
+                                </div>
+                            </div>
+                            <span class="text-danger error-message" id="errorYear">Please select year</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Buttons -->
+    <div class="col-md-12 text-center mt-4">
+        <button class="btn-go" id="btnGo">Go</button>
+        <button class="btn-go" id="btnGoing" disabled style="display:none;">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span> Go
+        </button>
+        <button class="btn-go" id="btnClear">Clear</button>
+        <button onclick="goBack()" class="btn-go">Back</button>
+    </div>
+
+    <div id="recordDetails" style="display:none;">
+        <hr class="my-3">
+        <div class="salary-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="search-heading">Full &amp; Final Records</div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-2 mb-1" id="actionButtons">
+            <!-- Left: Export Button -->
+            <div>
+                <button id="btnExportExcel" style="display:none;">
+                    <i class="fas fa-file-excel me-1"></i> Export to Excel
+                </button>
+            </div>
+            <!-- Right: Delete Button -->
+            <div>
+                <button id="btnDelete">Delete</button>
+                <button id="btnDeleting" disabled style="display:none;">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span> Deleting
+                </button>
+            </div>
+        </div>
+
+        <div id="salaryGridContainer" class="bg-white p-3 rounded"></div>
+    </div>
+</div>
+
+<!-- Salary Slip Modal -->
+<div class="modal fade" id="salarySlipModal" tabindex="-1" aria-labelledby="salarySlipLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title" id="salarySlipLabel">Full &amp; Final Slip - <span id="modalMonthYear"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="salarySlipContent"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+<script>
+    // ─── Globals ───────────────────────────────────────────────────────────────
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId    = companyDetails.CompanyId;
+    const EmployeeId   = localStorage.getItem('EmployeeId');
+    const Token        = localStorage.getItem("authToken");
+
+    // ─── Safe grid helper: returns instance or null (never throws E0009) ───────
+    function getGridInstance() {
+        try {
+            var inst = $("#salaryGridContainer").dxDataGrid("instance");
+            return inst || null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // ─── Safe grid destroy ─────────────────────────────────────────────────────
+    function destroyGrid() {
+        var inst = getGridInstance();
+        if (inst) {
+            try { inst.dispose(); } catch (e) { }
+        }
+        $("#salaryGridContainer").empty();
+    }
+
+    // ─── Loader helpers ────────────────────────────────────────────────────────
+    function showbtnLoader()       { $("#btnGoing").show();    $("#btnGo").hide();     }
+    function hidebtnLoader()       { $("#btnGoing").hide();    $("#btnGo").show();     }
+    function showbtnDeleteLoader() { $("#btnDeleting").show(); $("#btnDelete").hide(); }
+    function hidebtnDeleteLoader() { $("#btnDeleting").hide(); $("#btnDelete").show(); }
+
+    function goBack() {
+        window.location.href = '@UIBaseUrl/AdminPanel/Home/index';
+    }
+
+    // ─── Document ready ────────────────────────────────────────────────────────
+    $(document).ready(function () {
+        localStorage.removeItem("SalaryMonth");
+        localStorage.removeItem("SalaryYear");
+        localStorage.removeItem("SalaryEmpCodes");
+
+        const months = [
+            { monthNumber: 1,  monthName: 'January'   },
+            { monthNumber: 2,  monthName: 'February'  },
+            { monthNumber: 3,  monthName: 'March'     },
+            { monthNumber: 4,  monthName: 'April'     },
+            { monthNumber: 5,  monthName: 'May'       },
+            { monthNumber: 6,  monthName: 'June'      },
+            { monthNumber: 7,  monthName: 'July'      },
+            { monthNumber: 8,  monthName: 'August'    },
+            { monthNumber: 9,  monthName: 'September' },
+            { monthNumber: 10, monthName: 'October'   },
+            { monthNumber: 11, monthName: 'November'  },
+            { monthNumber: 12, monthName: 'December'  }
+        ];
+
+        const currentYear = new Date().getFullYear();
+        const years = [];
+        for (let i = currentYear - 1; i <= currentYear; i++) {
+            years.push({ yearName: i.toString() });
+        }
+
+        $('#monthDropdown').searchableSelect({
+            data: months,
+            valueKey: 'monthNumber',
+            textKey: 'monthName',
+            searchPlaceholder: 'Search month...',
+            onChange: function () { }
+        });
+
+        $('#yearDropdown').searchableSelect({
+            data: years,
+            valueKey: 'yearName',
+            textKey: 'yearName',
+            searchPlaceholder: 'Search year...',
+            onChange: function () { }
+        });
+
+        loadLeftEmployees();
+    });
+
+    // ─── Load left employees ───────────────────────────────────────────────────
+    function loadLeftEmployees() {
+        $.ajax({
+            url: '@baseUrl/MonthlySalaryDetailsAPI/GetLeftEmployeedropDown/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                var list = [];
+                if (res && res.isSuccess) {
+                    if (res.data && Array.isArray(res.data.data)) list = res.data.data;
+                    else if (Array.isArray(res.data))             list = res.data;
+                }
+                if (list.length > 0) {
+                    const seen = new Set();
+                    const uniqueList = list.filter(function (emp) {
+                        if (seen.has(emp.EmployeeCode)) return false;
+                        seen.add(emp.EmployeeCode);
+                        return true;
+                    });
+                    $('#employeeDropdown').searchableSelect({
+                        data: uniqueList,
+                        valueKey: 'EmployeeCode',
+                        textKey: 'FullName',
+                        searchPlaceholder: 'Search employee...',
+                        placeholder: 'Select Employee...',
+                        onChange: function () { }
+                    });
+                }
+            },
+            error: function () {
+                Swal.fire('Error', 'Failed to load employee list.', 'error');
+            }
+        });
+    }
+
+    // ─── GO button ─────────────────────────────────────────────────────────────
+    $('#btnGo').on('click', function () {
+        showbtnLoader();
+        $('#recordDetails').hide();
+        $('#btnExportExcel').hide();
+
+        var monthSel = $('#monthDropdown').data('searchableSelect');
+        var yearSel  = $('#yearDropdown').data('searchableSelect');
+        var empSel   = $('#employeeDropdown').data('searchableSelect');
+
+        var month   = monthSel ? monthSel.getValue() : '';
+        var year    = yearSel  ? yearSel.getValue()  : '';
+        var empCode = empSel   ? (empSel.getValue() || '') : '';
+
+        var isValid = true;
+        if (!month) { $('#errorMonth').show(); isValid = false; } else { $('#errorMonth').hide(); }
+        if (!year)  { $('#errorYear').show();  isValid = false; } else { $('#errorYear').hide();  }
+
+        if (!isValid) { hidebtnLoader(); return; }
+
+        fetchAndBindFFData(month, year, empCode);
+    });
+
+    // ─── Fetch & bind grid ─────────────────────────────────────────────────────
+    function fetchAndBindFFData(month, year, empCode) {
+        var requestData = {
+            Month:        parseInt(month),
+            Year:         parseInt(year),
+            EmployeeCode: empCode || ''
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetFullFinalStatement")',
+            type: 'POST',
+            data: JSON.stringify(requestData),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                hidebtnLoader();
+
+                if (response.isSuccess && response.data && response.data.length > 0) {
+
+                    // ── Always destroy old instance first ──
+                    destroyGrid();
+
+                    // ── Init fresh grid ──
+                    // Normalize: wrap single object in array if needed
+                    var gridData = Array.isArray(response.data) ? response.data : [response.data];
+
+                    // ── dynamic se SP PascalCase columns aate hain ──
+                    // e.g. EmployeeCode, EmployeeName, GrossSalary etc.
+                    $("#salaryGridContainer").dxDataGrid({
+                        dataSource:      gridData,
+                        keyExpr:         "Id",
+                        showBorders:     true,
+                        columnAutoWidth: true,
+                        height:          400,
+                        selection: {
+                            mode:               "multiple",
+                            showCheckBoxesMode: "always"
+                        },
+                        paging:    { enabled: false },
+                        scrolling: { mode: "virtual" },
+                        columns: [
+                            { dataField: "Id",                       caption: "ID",              visible: false },
+                            { dataField: "EmployeeCode",             caption: "Emp Code",        width: 100 },
+                            { dataField: "EmployeeName",             caption: "Name",            width: 180 },
+                            { dataField: "MonthName",                caption: "Month",           width: 90  },
+                            { dataField: "Year",                     caption: "Year",            width: 70  },
+                            { dataField: "GrossSalary",              caption: "Gross Salary",    dataType: "number", format: { type: "fixedPoint", precision: 2 } },
+                            { dataField: "TotalGrossSalary",         caption: "Total Gross",     dataType: "number", format: { type: "fixedPoint", precision: 2 } },
+                            { dataField: "NetSalary",                caption: "Net Salary",      dataType: "number", format: { type: "fixedPoint", precision: 2 } },
+                            { dataField: "TotalDeductions",          caption: "Deductions",      dataType: "number", format: { type: "fixedPoint", precision: 2 } },
+                            { dataField: "PresentDays",              caption: "Present",         width: 75  },
+                            { dataField: "AbsentDays",               caption: "Absent",          width: 70  },
+                            { dataField: "SalaryDays",               caption: "Salary Days",     width: 90  },
+                            { dataField: "PayableDays",              caption: "Payable Days",    width: 95  },
+                            { dataField: "Arrears",                  caption: "Arrears",         dataType: "number", format: { type: "fixedPoint", precision: 2 } },
+                            { dataField: "OtherDeduction",           caption: "Other Ded.",      dataType: "number", format: { type: "fixedPoint", precision: 2 } },
+                            { dataField: "CreatedDate",              caption: "Created",         dataType: "date",   format: "dd/MM/yyyy", width: 100 },
+                            {
+                                caption: "View",
+                                width: 55,
+                                alignment: "center",
+                                allowSorting: false,
+                                cellTemplate: function (container, options) {
+                                    $("<i>")
+                                        .addClass("fas fa-magnifying-glass")
+                                        .css({ cursor: "pointer", color: "#007bff", fontSize: "16px", padding: "5px" })
+                                        .attr("title", "View Full & Final Slip")
+                                        .on('click', function () { showSalarySlipModal(options.data); })
+                                        .appendTo(container);
+                                }
+                            }
+                        ]
+                    });
+
+                    $('#btnExportExcel').show();
+                    $('#recordDetails').show();
+
+                } else {
+                    destroyGrid();
+                    $('#recordDetails').hide();
+                    $('#btnExportExcel').hide();
+                    round_error_noti(response.responseMessage || "No records found.");
+                }
+            },
+            error: function () {
+                hidebtnLoader();
+                destroyGrid();
+                $('#recordDetails').hide();
+                $('#btnExportExcel').hide();
+                round_error_noti("An error occurred while fetching full & final records.");
+            }
+        });
+    }
+
+    // ─── Export to Excel ───────────────────────────────────────────────────────
+    $('#btnExportExcel').on('click', function () {
+        var grid = getGridInstance();
+        if (!grid) { round_error_noti("Grid not loaded."); return; }
+
+        var rowsToExport = grid.getSelectedRowsData();
+        if (!rowsToExport || rowsToExport.length === 0) {
+            rowsToExport = grid.option("dataSource");
+        }
+        if (!rowsToExport || rowsToExport.length === 0) {
+            round_error_noti("No data to export.");
+            return;
+        }
+
+        var exportData = rowsToExport.map(function (row) {
+            return {
+                "Employee Code":    row.EmployeeCode            || '',
+                "Employee Name":    row.EmployeeName            || '',
+                "Month":            row.MonthName               || '',
+                "Year":             row.Year                    || '',
+                "Basic Salary":     row.BasicSalary             || 0,
+                "HRA":              row.HRA                     || 0,
+                "Conveyance":       row.ConveyanceAllowance     || 0,
+                "Child Education":  row.ChildEducationAllowance || 0,
+                "Medical":          row.MedicalAllowance        || 0,
+                "Deputation":       row.DeputationAllowance     || 0,
+                "Arrears":          row.Arrears                 || 0,
+                "Gross Salary":     row.GrossSalary             || 0,
+                "Total Gross":      row.TotalGrossSalary        || 0,
+                "PF":               row.PF                      || 0,
+                "ESIC":             row.ESIC                    || 0,
+                "Prof. Tax":        row.ProfessionalTax         || 0,
+                "Group Medical":    row.GroupMedical            || 0,
+                "Term Insurance":   row.TermInsurance           || 0,
+                "LWF":              row.LWF                     || 0,
+                "TDS":              row.TDS                     || 0,
+                "Loan":             row.Loan                    || 0,
+                "Other Deduction":  row.OtherDeduction          || 0,
+                "Total Deductions": row.TotalDeductions         || 0,
+                "Net Salary":       row.NetSalary               || 0,
+                "Month Days":       row.MonthDays               || 0,
+                "Present Days":     row.PresentDays             || 0,
+                "Absent Days":      row.AbsentDays              || 0,
+                "Week Off":         row.WeekOff                 || 0,
+                "Holiday":          row.Holiday                 || 0,
+                "Leave":            row.Leave                   || 0,
+                "Salary Days":      row.SalaryDays              || 0,
+                "Payable Days":     row.PayableDays             || 0,
+                "Created Date":     row.CreatedDate ? new Date(row.CreatedDate).toLocaleDateString('en-IN') : ''
+            };
+        });
+
+        var worksheet = XLSX.utils.json_to_sheet(exportData);
+
+        // Auto column widths
+        var colWidths = Object.keys(exportData[0]).map(function (key) {
+            var maxLen = exportData.reduce(function (max, row) {
+                return Math.max(max, String(row[key] ?? '').length);
+            }, key.length);
+            return { wch: maxLen + 2 };
+        });
+        worksheet['!cols'] = colWidths;
+
+        var workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Full & Final");
+
+        var month    = ($('#monthDropdown').data('searchableSelect') || {getValue:()=>''}).getValue();
+        var year     = ($('#yearDropdown').data('searchableSelect')  || {getValue:()=>''}).getValue();
+        var fileName = "FullFinal_" + month + "_" + year + ".xlsx";
+
+        XLSX.writeFile(workbook, fileName);
+    });
+
+    // ─── Delete ────────────────────────────────────────────────────────────────
+    $('#btnDelete').on('click', function () { deleteFFDetails(); });
+
+    function deleteFFDetails() {
+        showbtnDeleteLoader();
+
+        var grid = getGridInstance();
+        if (!grid) {
+            hidebtnDeleteLoader();
+            round_error_noti("Grid not loaded.");
+            return;
+        }
+
+        var selectedRows = grid.getSelectedRowsData();
+        if (!selectedRows || selectedRows.length === 0) {
+            hidebtnDeleteLoader();
+            round_error_noti("Please select at least one row to delete.");
+            return;
+        }
+
+        // ── Save current filter values BEFORE delete ──
+        var currentMonth   = ($('#monthDropdown').data('searchableSelect')   || { getValue: function(){ return ''; } }).getValue();
+        var currentYear    = ($('#yearDropdown').data('searchableSelect')    || { getValue: function(){ return ''; } }).getValue();
+        var currentEmpCode = ($('#employeeDropdown').data('searchableSelect')|| { getValue: function(){ return ''; } }).getValue() || '';
+
+        var isConfirmed = confirm("Are you sure you want to delete the selected full & final record(s)?");
+        if (!isConfirmed) { hidebtnDeleteLoader(); return; }
+
+        var deleteIds = selectedRows.map(function (row) { return row.Id; });
+        var deleteObj = { id: deleteIds, deletedBy: EmployeeId };
+
+        $.ajax({
+            url: '@baseUrl/MonthlySalaryDetailsAPI/DeleteSalaryDetails',
+            type: 'DELETE',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(deleteObj),
+            success: function (response) {
+                hidebtnDeleteLoader();
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage || "Deleted successfully.");
+                    // ── Refresh grid with saved values ──
+                    destroyGrid();
+                    fetchAndBindFFData(currentMonth, currentYear, currentEmpCode);
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+            },
+            error: function () {
+                hidebtnDeleteLoader();
+                round_error_noti("Something went wrong!");
+            }
+        });
+    }
+
+    // ─── Salary Slip Modal ─────────────────────────────────────────────────────
+    function showSalarySlipModal(data) {
+        $('#modalMonthYear').text((data.MonthName || '') + ' ' + (data.Year || ''));
+
+        var positiveEarnings = [
+            { name: "Basic Salary",          actual: parseFloat(data.BasicSalary)             || 0 },
+            { name: "HRA",                   actual: parseFloat(data.HRA)                     || 0 },
+            { name: "Conveyance",            actual: parseFloat(data.ConveyanceAllowance)     || 0 },
+            { name: "Child Education",       actual: parseFloat(data.ChildEducationAllowance) || 0 },
+            { name: "Medical",               actual: parseFloat(data.MedicalAllowance)        || 0 },
+            { name: "Arrears",               actual: parseFloat(data.Arrears)                 || 0 }
+        ].filter(function (e) { return e.actual > 0; });
+
+        var deputationAllowance = parseFloat(data.DeputationAllowance) || 0;
+        if (deputationAllowance > 0) {
+            positiveEarnings.push({ name: "Deputation Allowance", actual: deputationAllowance });
+        }
+
+        var totalEarnings = positiveEarnings.reduce(function (sum, e) { return sum + e.actual; }, 0);
+
+        var deductions = [
+            { name: "PF",               actual: parseFloat(data.PF)              || 0 },
+            { name: "ESIC",             actual: parseFloat(data.ESIC)            || 0 },
+            { name: "Professional Tax", actual: parseFloat(data.ProfessionalTax) || 0 },
+            { name: "Group Medical",    actual: parseFloat(data.GroupMedical)    || 0 },
+            { name: "Term Insurance",   actual: parseFloat(data.TermInsurance)   || 0 },
+            { name: "LWF",              actual: parseFloat(data.LWF)             || 0 },
+            { name: "TDS",              actual: parseFloat(data.TDS)             || 0 },
+            { name: "Loan",             actual: parseFloat(data.Loan)            || 0 },
+            { name: "Other Deduction",  actual: parseFloat(data.OtherDeduction)  || 0 }
+        ].filter(function (d) { return d.actual > 0; });
+
+        if (deputationAllowance < 0) {
+            deductions.push({ name: "Deputation Allowance (Recovery)", actual: Math.abs(deputationAllowance) });
+        }
+
+        var totalded = deductions.reduce(function (sum, d) { return sum + d.actual; }, 0);
+
+        var headerInfo = `
+            <div class="row mb-1" style="font-size:12px;">
+                <div class="col-md-6 p-1"><strong>Employee:</strong> ${data.EmployeeCode} - ${data.EmployeeName}</div>
+                <div class="col-md-6 p-1"><strong>Present:</strong> ${data.PresentDays || 0} | <strong>Week Off:</strong> ${data.WeekOff || 0}</div>
+            </div>
+            <div class="row mb-1" style="font-size:12px;">
+                <div class="col-md-6 p-1"><strong>Month Days:</strong> ${data.MonthDays || 0} | <strong>Holiday:</strong> ${data.Holiday || 0}</div>
+                <div class="col-md-6 p-1"><strong>Absent:</strong> ${data.AbsentDays || 0} | <strong>Salary Days:</strong> ${data.SalaryDays || 0}</div>
+            </div>
+            <div class="row mb-1" style="font-size:12px;">
+                <div class="col-md-6 p-1"><strong>Leave:</strong> ${data.Leave || 0} | <strong>Payable Days:</strong> ${data.PayableDays || 0}</div>
+            </div>`;
+
+        var compactCSS = `
+            <style>
+                .compact-table { margin-bottom: 5px !important; font-size: 12px !important; }
+                .compact-table thead th { background-color: #f5f5f5 !important; padding: 4px 6px !important; }
+                .compact-table tbody td { padding: 3px 6px !important; }
+            </style>`;
+
+        var earningsRows = positiveEarnings.map(function (e) {
+            return `<tr><td>${e.name}</td><td class="text-end">&#8377;${e.actual.toFixed(2)}</td></tr>`;
+        }).join('');
+
+        var earningsTable = `
+            <div class="col-md-6" style="padding:0 3px;">
+                <table class="table table-bordered compact-table">
+                    <thead>
+                        <tr><th colspan="2" class="text-center">Earnings</th></tr>
+                        <tr class="table-light">
+                            <th style="width:70%">Component</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${earningsRows}
+                        <tr class="fw-bold">
+                            <td>Total Earnings</td>
+                            <td class="text-end">&#8377;${totalEarnings.toFixed(2)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>`;
+
+        var deductionRows = deductions.map(function (d) {
+            return `<tr><td>${d.name}</td><td class="text-end">&#8377;${d.actual.toFixed(2)}</td></tr>`;
+        }).join('');
+
+        var deductionsTable = `
+            <div class="col-md-6" style="padding:0 3px;">
+                <table class="table table-bordered compact-table">
+                    <thead>
+                        <tr><th colspan="2" class="text-center">Deductions</th></tr>
+                        <tr class="table-light">
+                            <th style="width:70%">Component</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${deductionRows}
+                        <tr class="fw-bold">
+                            <td>Total Deductions</td>
+                            <td class="text-end">&#8377;${totalded.toFixed(2)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>`;
+
+        var netSalary = parseFloat(data.NetSalary) || 0;
+        var content = `
+            ${compactCSS}
+            ${headerInfo}
+            <div class="row" style="margin:0 -3px;">${earningsTable}${deductionsTable}</div>
+            <div class="row mt-1">
+                <div class="col-md-12 text-end">
+                    <h6 class="text-success mb-0" style="font-size:13px;">
+                        Net Salary: &#8377;${netSalary.toFixed(2)}
+                    </h6>
+                </div>
+            </div>`;
+
+        $('#salarySlipModal .modal-dialog').removeClass('modal-xl').addClass('modal-lg');
+        $('#salarySlipContent').html(content);
+
+        var modal = new bootstrap.Modal(document.getElementById('salarySlipModal'));
+        modal.show();
+    }
+
+    // ─── Clear button ──────────────────────────────────────────────────────────
+    $('#btnClear').on('click', function () {
+        var yearSel = $('#yearDropdown').data('searchableSelect');
+        var monthSel = $('#monthDropdown').data('searchableSelect');
+        var empSel   = $('#employeeDropdown').data('searchableSelect');
+
+        if (yearSel)  yearSel.clear();
+        if (monthSel) monthSel.clear();
+        if (empSel)   empSel.clear();
+
+        destroyGrid();
+
+        $('#btnExportExcel').hide();
+        $('#recordDetails').hide();
+        $('#errorMonth').hide();
+        $('#errorYear').hide();
+
+        hidebtnLoader();
+        hidebtnDeleteLoader();
+    });
+</script>
