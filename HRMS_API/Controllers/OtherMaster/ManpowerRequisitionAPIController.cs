@@ -503,7 +503,33 @@ namespace HRMS_API.Controllers.OtherMaster
         //public async Task TestProbation()
         //{
         //    await _autoJobService.ScheduleDailyProbationNotification();
-        //}
+        //}  
+
+
+        [HttpPost("GetManpowerRequisitionApprovalStatus")]
+        public async Task<APIResponse> GetManpowerRequisitionApprovalStatus([FromBody] ManpowerApprovalStatusRequestDto request)
+        {
+            try
+            {
+                var result = await _unitOfWork.ManpowerRequisitionRepository.GetManpowerRequisitionApprovalStatus(request);
+
+                return new APIResponse
+                {
+                    isSuccess = result.isSuccess,
+                    Data = result.isSuccess ? result.Data : null,
+                    ResponseMessage = result.ResponseMessage
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Unable to fetch manpower approval status. Error: {ex.Message}"
+                };
+            }
+        }
     }
 
 }
