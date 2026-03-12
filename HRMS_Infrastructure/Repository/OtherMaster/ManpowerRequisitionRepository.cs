@@ -732,6 +732,75 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
             }
             return response;
         }
+
+        public async Task<APIResponse> GetManpowerRequisitionApprovalStatus(ManpowerApprovalStatusRequestDto request)
+        {
+            var response = new APIResponse();
+
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@ApprovalMasterId", request.ApprovalMasterId, DbType.Int32);
+                parameters.Add("@ManpowerRequisitionId", request.ManpowerRequisitionId, DbType.Int32);
+                // OUTPUT params
+                parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
+
+                // ── Execute SP — reads 3 result sets ──
+                using var multi = await connection.QueryMultipleAsync(
+                    "usp_GetManpowerRequisitionApprovalStatus",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+
+                // Result Set 1 — Header rows
+                var headers = (await multi.ReadAsync<ManpowerApprovalStatusDto>()).ToList();
+
+                // Result Set 2 — Level rows
+                var levels = (await multi.ReadAsync<ApprovalLevelStatusDto>()).ToList();
+
+                // Result Set 3 — History rows
+                var history = (await multi.ReadAsync<ApprovalHistoryDto>()).ToList();
+
+                // Read OUTPUT params
+                bool spSuccess = parameters.Get<bool>("@Success");
+                string spMessage = parameters.Get<string>("@ResponseMessage") ?? string.Empty;
+
+                if (!spSuccess || headers.Count == 0)
+                {
+                    response.isSuccess = false;
+                    response.ResponseMessage = spMessage.Length > 0 ? spMessage : "No records found.";
+                    return response;
+                }
+
+                // ── Join levels and history into each header ──
+                foreach (var header in headers)
+                {
+                    header.Levels = levels
+                        .Where(l => l.ManpowerRequisitionId == header.ManpowerRequisitionId)
+                        .OrderBy(l => l.LevelNo)
+                        .ToList();
+
+                    header.History = history
+                        .Where(h => h.ManpowerRequisitionId == header.ManpowerRequisitionId)
+                        .OrderBy(h => h.ActionDate)
+                        .ToList();
+                }
+
+                response.isSuccess = true;
+                response.ResponseMessage = spMessage.Length > 0 ? spMessage : "Success";
+                response.Data = headers;
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+                response.Data = null;
+            }
+
+            return response;
+        }
     }
 
 }

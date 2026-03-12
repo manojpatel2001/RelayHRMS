@@ -1,0 +1,827 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Manpower Requisition Approval Status";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+    .salary-box {
+        background-color: white !important;
+        border: 1px solid #ccc;
+        padding: 12px;
+        border-radius: 5px;
+        width: 100%;
+    }
+
+    .salary-header {
+        background-color: #3e4b6d;
+        color: white;
+        font-weight: bold;
+        padding: 8px 15px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+
+    #btnExportExcel {
+        padding: 5px 18px;
+        font-size: 13px;
+        font-weight: 500;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background-color: #28a745;
+        color: #fff;
+    }
+
+        #btnExportExcel:hover {
+            background-color: #218838;
+        }
+
+    /* Full width grid */
+    #manpowerGridContainer {
+        width: 100% !important;
+    }
+
+    /* ── Expand Panel ── */
+    .expand-panel {
+        background: #f8faff;
+        border-left: 4px solid #3e4b6d;
+        padding: 16px 20px;
+        margin-top: 10px;
+        border-radius: 0 6px 6px 0;
+        display: none;
+        width: 100%;
+    }
+
+        .expand-panel.open {
+            display: block;
+        }
+
+    .panel-cols {
+        display: flex;
+        gap: 28px;
+        flex-wrap: wrap;
+    }
+
+    .panel-col {
+        flex: 1;
+        min-width: 280px;
+    }
+
+    .col-heading {
+        font-size: 11px;
+        font-weight: 700;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: .7px;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    /* Timeline */
+    .level-timeline {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .level-item {
+        display: grid;
+        grid-template-columns: 32px 1fr auto;
+        gap: 0 12px;
+        position: relative;
+    }
+
+        .level-item:not(:last-child) .lv-line::after {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 32px;
+            width: 2px;
+            height: calc(100% - 8px);
+            background: #e0e0e0;
+        }
+
+    .lv-line {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+    }
+
+    .lv-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        border: 2px solid #ccc;
+        background: #f3f4f6;
+        position: relative;
+        z-index: 1;
+        flex-shrink: 0;
+    }
+
+        .lv-icon.approved {
+            border-color: #1a7f3c;
+            background: #e6f9ee;
+            color: #1a7f3c;
+        }
+
+        .lv-icon.pending {
+            border-color: #f59e0b;
+            background: #fff8e6;
+            color: #b45309;
+            animation: pls 1.4s infinite;
+        }
+
+        .lv-icon.auto {
+            border-color: #7c3aed;
+            background: #f0eaff;
+            color: #6d28d9;
+        }
+
+        .lv-icon.notyet {
+            border-color: #d1d5db;
+            background: #f9fafb;
+            color: #9ca3af;
+        }
+
+    @@keyframes pls {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(245,158,11,.4);
+        }
+
+        50% {
+            box-shadow: 0 0 0 5px rgba(245,158,11,0);
+        }
+    }
+
+    .lv-content {
+        padding: 5px 0 18px;
+    }
+
+    .lv-top {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 3px;
+    }
+
+    .lv-num {
+        font-size: 10px;
+        font-weight: 700;
+        color: #9ca3af;
+        text-transform: uppercase;
+    }
+
+    .lv-type {
+        font-size: 12px;
+        font-weight: 600;
+        color: #1e3a5f;
+    }
+
+    .lv-active {
+        font-size: 9px;
+        font-weight: 700;
+        background: #fff8e6;
+        color: #b45309;
+        border: 1px solid #fcd38d;
+        padding: 1px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+    }
+
+    .lv-overdue {
+        font-size: 9px;
+        font-weight: 700;
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fca5a5;
+        padding: 1px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+    }
+
+    .lv-sub {
+        font-size: 11px;
+        color: #6b7280;
+        margin-bottom: 2px;
+    }
+
+        .lv-sub span {
+            color: #374151;
+            font-weight: 500;
+        }
+
+    .lv-status-col {
+        padding: 5px 0 18px;
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 999px;
+        white-space: nowrap;
+    }
+
+    .bdot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .b-approved {
+        background: #e6f9ee;
+        color: #1a7f3c;
+        border: 1px solid #a3ddb5;
+    }
+
+    .b-pending {
+        background: #fff8e6;
+        color: #b45309;
+        border: 1px solid #fcd38d;
+    }
+
+    .b-auto {
+        background: #f0eaff;
+        color: #6d28d9;
+        border: 1px solid #ddd6fe;
+    }
+
+    .b-notyet {
+        background: #f3f4f6;
+        color: #6b7280;
+        border: 1px solid #d1d5db;
+    }
+
+    .b-overdue {
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fca5a5;
+    }
+
+    /* History table */
+    .hist-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+    }
+
+        .hist-table th {
+            background: #f3f4f6;
+            padding: 6px 8px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .hist-table td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #374151;
+            vertical-align: top;
+        }
+
+        .hist-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .hist-table tr:hover td {
+            background: #f9fafb;
+        }
+
+    .chip {
+        display: inline-block;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+    }
+
+    .chip-inserted {
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+    }
+
+    .chip-approved {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+
+    .chip-autoapproved {
+        background: #ede9fe;
+        color: #6d28d9;
+        border: 1px solid #ddd6fe;
+    }
+
+    .chip-assigned {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+
+    .chip-rejected {
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fca5a5;
+    }
+
+    .admin-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: linear-gradient(135deg,#ede9fe,#dbeafe);
+        border: 1px solid #c4b5fd;
+        color: #5b21b6;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+
+    .remark-cell {
+        color: #6b7280;
+        max-width: 250px;
+        line-height: 1.5;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    /* View button */
+    .btn-view-expand {
+        background: none;
+        border: 1px solid #2395c6;
+        border-radius: 4px;
+        padding: 3px 10px;
+        cursor: pointer;
+        color: #2395c6;
+        font-size: 11px;
+        font-weight: 600;
+        transition: all .15s;
+    }
+
+        .btn-view-expand:hover {
+            background: #e8f4fb;
+        }
+
+        .btn-view-expand.active {
+            background: #2395c6;
+            color: #fff;
+        }
+
+    /* Expand header */
+    .expand-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+        .expand-head strong {
+            font-size: 13px;
+            color: #1e3a5f;
+        }
+
+    .expand-meta {
+        font-size: 12px;
+        color: #888;
+    }
+</style>
+
+<div class="salary-box">
+    <div class="salary-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="search-heading">Manpower Requisition — Approval Status</div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center mt-2 mb-2 px-1">
+        <button id="btnExportExcel">
+            <i class="fas fa-file-excel me-1"></i> Export to Excel
+        </button>
+        <span id="loadingSpinner" style="display:none;font-size:12px;color:#666;">
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span> Loading...
+        </span>
+    </div>
+
+    <!-- Grid — full width -->
+    <div id="manpowerGridContainer"></div>
+
+    <!-- Expand Panel -->
+    <div id="expandPanel" class="expand-panel">
+        <div id="expandContent"></div>
+    </div>
+</div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+<script>
+    // ── Globals ──────────────────────────────────────────────────────────────
+    const savedCompany   = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany);
+    const CompanyId      = companyDetails.CompanyId;
+    const Token          = localStorage.getItem("authToken");
+    const ApprovalMasterId = 3;
+
+    var allData       = [];
+    var expandedReqId = null;
+
+    function getGrid() {
+        try { return $("#manpowerGridContainer").dxDataGrid("instance") || null; }
+        catch(e) { return null; }
+    }
+
+    // ── On Load ──────────────────────────────────────────────────────────────
+    $(document).ready(function () {
+        loadData();
+    });
+
+    // ── Fetch ────────────────────────────────────────────────────────────────
+    function loadData() {
+        $('#loadingSpinner').show();
+        $.ajax({
+            url: '@baseDomainUrl/api/ManpowerRequisitionAPI/GetManpowerRequisitionApprovalStatus',
+            type: 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify({
+                approvalMasterId:      ApprovalMasterId,
+                manpowerRequisitionId: null,
+                companyId:             CompanyId
+            }),
+            success: function (res) {
+                $('#loadingSpinner').hide();
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    allData = res.data;
+                    initGrid(allData);
+                } else {
+                    round_error_noti(res.responseMessage || "No records found.");
+                }
+            },
+            error: function () {
+                $('#loadingSpinner').hide();
+                round_error_noti("Failed to load data.");
+            }
+        });
+    }
+
+    // ── Grid ─────────────────────────────────────────────────────────────────
+    function initGrid(data) {
+        try { var g = getGrid(); if (g) g.dispose(); } catch(e) {}
+        $("#manpowerGridContainer").empty();
+
+        $("#manpowerGridContainer").dxDataGrid({
+            dataSource:      data,
+            keyExpr:         "manpowerRequisitionId",   // ✅ camelCase
+            showBorders:     true,
+            columnAutoWidth: false,                      // ✅ full width
+            width:           "100%",
+            height:          "auto",
+            paging:          { pageSize: 10 },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes:     [10, 25, 50, 100],
+                showInfo:             true
+            },
+            searchPanel:  { visible: true, width: 220, placeholder: "Search..." },
+            headerFilter: { visible: true },
+            columns: [
+                {
+                    dataField: "manpowerRequisitionId",
+                    caption:   "Req ID",
+                    width:     80,
+                    alignment: "center"
+                },
+                {
+                    dataField: "employeeName",
+                    caption:   "Employee Name",
+                    minWidth:  160
+                },
+                {
+                    dataField: "requirementType",
+                    caption:   "Req Type",
+                    width:     120
+                },
+                {
+                    dataField: "numberOfPosition",
+                    caption:   "Positions",
+                    width:     80,
+                    alignment: "center"
+                },
+                {
+                    dataField: "closureBy",
+                    caption:   "Closure By",
+                    width:     100
+                },
+                {
+                    dataField: "requisitionDate",
+                    caption:   "Req Date",
+                    dataType:  "date",
+                    format:    "dd/MM/yyyy",
+                    width:     110
+                },
+                {
+                    dataField: "requisitionStatus",
+                    caption:   "Status",
+                    width:     100,
+                    cellTemplate: function(container, opt) {
+                        var val = opt.value || '—';
+                        $('<span>').text(val).appendTo(container);
+                    }
+                },
+                {
+                    dataField: "overallApprovalStatus",
+                    caption:   "Approval Status",
+                    width:     160,
+                    cellTemplate: function(container, opt) {
+                        var row     = opt.data;
+                        var status  = opt.value || '';
+                        // ✅ camelCase
+                        var isAdmin = row.isAutoApprovedByAdminHR;
+                        var lvNo    = row.currentLevelNo || '';
+
+                        if (isAdmin) {
+                            $('<span>').addClass('badge b-auto')
+                                .append($('<span>').addClass('bdot').css('background','#7c3aed'))
+                                .append(' Auto Approved')
+                                .appendTo(container);
+                        } else if (status === 'Approved') {
+                            $('<span>').addClass('badge b-approved')
+                                .append($('<span>').addClass('bdot').css('background','#1a7f3c'))
+                                .append(' Approved')
+                                .appendTo(container);
+                        } else if (status === 'Pending') {
+                            $('<span>').addClass('badge b-pending')
+                                .append($('<span>').addClass('bdot').css('background','#f59e0b'))
+                                .append(' Pending (L' + lvNo + ')')
+                                .appendTo(container);
+                        } else {
+                            $('<span>').text(status).appendTo(container);
+                        }
+                    }
+                },
+                {
+                    caption:      "Details",
+                    width:        80,
+                    alignment:    "center",
+                    allowSorting: false,
+                    cellTemplate: function(container, opt) {
+                        var reqId = opt.data.manpowerRequisitionId; // ✅ camelCase
+                        $('<button>')
+                            .addClass('btn-view-expand')
+                            .attr('id', 'vbtn_' + reqId)
+                            .text('View')
+                            .on('click', function() {
+                                handleView(opt.data, this);
+                            })
+                            .appendTo(container);
+                    }
+                }
+            ]
+        });
+    }
+
+    // ── Toggle Expand ────────────────────────────────────────────────────────
+    function handleView(rowData, btnEl) {
+        var reqId = rowData.manpowerRequisitionId; // ✅ camelCase
+
+        // Reset all buttons
+        $('.btn-view-expand').removeClass('active').text('View');
+
+        if (expandedReqId === reqId) {
+            $('#expandPanel').removeClass('open');
+            expandedReqId = null;
+            return;
+        }
+
+        expandedReqId = reqId;
+        $(btnEl).addClass('active').text('Close');
+
+        buildExpandPanel(rowData);
+        $('#expandPanel').addClass('open');
+
+        setTimeout(function() {
+            document.getElementById('expandPanel')
+                .scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 150);
+    }
+
+    // ── Build Expand Panel ───────────────────────────────────────────────────
+    function buildExpandPanel(d) {
+        // ✅ ALL camelCase — matches API response exactly
+        var isAdmin = d.isAutoApprovedByAdminHR;
+        var levels  = d.levels  || [];   // ✅ camelCase
+        var history = d.history || [];   // ✅ camelCase
+
+        // Header
+        var hdr = `
+            <div class="expand-head">
+                <strong>ReqId: ${d.manpowerRequisitionId} — ${d.employeeName || ''}</strong>
+                ${isAdmin ? '<span class="admin-tag">⚡ Admin · ClosureBy HR · All Levels Auto Approved</span>' : ''}
+                <span class="expand-meta">
+                    Approval ID: #${d.approvalRequestId || 'N/A'}
+                    &nbsp;|&nbsp; Requester: ${d.requesterName || '—'}
+                    &nbsp;|&nbsp; Current Level: <strong>${d.currentLevelNo || '—'}</strong>
+                </span>
+            </div>`;
+
+        // ── Levels ──
+        var lvHtml = '<div class="level-timeline">';
+        if (!levels.length) {
+            lvHtml += '<p style="color:#aaa;font-size:12px;margin:0">No levels found.</p>';
+        }
+
+        levels.forEach(function(lv) {
+            // ✅ camelCase: lv.levelStatus, lv.levelNo, lv.approverType etc.
+            var st      = lv.levelStatus || '';
+            var isAuto  = st.indexOf('Auto') !== -1;
+            var iconCls, bCls, bDot, bTxt, icon;
+
+            if (isAuto) {
+                iconCls='auto';     bCls='b-auto';     bDot='#7c3aed';
+                bTxt='Auto Approved (Admin - ClosureBy HR)'; icon='⚡';
+            } else if (st === 'Approved') {
+                iconCls='approved'; bCls='b-approved'; bDot='#1a7f3c';
+                bTxt='Approved'; icon='✓';
+            } else if (st === 'Pending') {
+                iconCls='pending';
+                bCls = lv.isOverdue ? 'b-overdue' : 'b-pending';  // ✅ camelCase
+                bDot = lv.isOverdue ? '#b91c1c'   : '#f59e0b';
+                bTxt = lv.isOverdue ? 'Pending (Overdue)' : 'Pending';
+                icon = '⏳';
+            } else {
+                iconCls='notyet';   bCls='b-notyet';   bDot='#9ca3af';
+                bTxt='Not Yet Reached'; icon='○';
+            }
+
+            // ✅ camelCase: lv.assignedOn, lv.actionOn, lv.escalationDueOn, lv.actionRemarks, lv.daysPendingAtLevel
+            var dateInfo = '';
+            if (lv.actionOn) {
+                dateInfo = `<div class="lv-sub">
+                    Remarks: <span>${lv.actionRemarks || '—'}</span>
+                    &nbsp;|&nbsp; On: <span>${fmtDate(lv.actionOn)}</span>
+                </div>`;
+            } else if (lv.assignedOn) {
+                dateInfo = `<div class="lv-sub">
+                    Assigned: <span>${fmtDate(lv.assignedOn)}</span>
+                    &nbsp;|&nbsp; Due: <span>${fmtDate(lv.escalationDueOn)}</span>
+                    ${lv.daysPendingAtLevel != null
+                        ? `&nbsp;|&nbsp; Days Pending: <span style="color:#b45309;font-weight:700">${lv.daysPendingAtLevel}</span>`
+                        : ''}
+                </div>`;
+            } else {
+                dateInfo = '<div class="lv-sub" style="font-style:italic;color:#aaa">Waiting for previous level</div>';
+            }
+
+            lvHtml += `
+                <div class="level-item">
+                    <div class="lv-line">
+                        <div class="lv-icon ${iconCls}">${icon}</div>
+                    </div>
+                    <div class="lv-content">
+                        <div class="lv-top">
+                            <span class="lv-num">Level ${lv.levelNo}</span>
+                            <span class="lv-type">${lv.approverType || ''}</span>
+                            ${lv.isCurrentActiveLevel ? '<span class="lv-active">● Active</span>' : ''}
+                            ${lv.isOverdue            ? '<span class="lv-overdue">⚠ Overdue</span>' : ''}
+                        </div>
+                        <div class="lv-sub">Approver: <span>${lv.approverName || 'Not assigned'}</span></div>
+                        ${dateInfo}
+                    </div>
+                    <div class="lv-status-col">
+                        <span class="badge ${bCls}">
+                            <span class="bdot" style="background:${bDot}"></span>${bTxt}
+                        </span>
+                    </div>
+                </div>`;
+        });
+        lvHtml += '</div>';
+
+        // ── History ──
+        var histHtml = `
+            <table class="hist-table">
+                <thead>
+                    <tr><th>#</th><th>Action</th><th>By</th><th>Remarks</th><th>Status</th><th>Date</th></tr>
+                </thead>
+                <tbody>`;
+
+        if (!history.length) {
+            histHtml += '<tr><td colspan="6" style="text-align:center;color:#aaa;padding:14px">No history found.</td></tr>';
+        }
+
+        history.forEach(function(h, i) {
+            // ✅ camelCase: h.actionType, h.actionByName, h.remarks, h.newStatus, h.actionDate
+            var at = (h.actionType || '').toLowerCase();
+            var chipCls = 'chip-inserted';
+            if (at === 'approved')     chipCls = 'chip-approved';
+            if (at === 'autoapproved') chipCls = 'chip-autoapproved';
+            if (at === 'assigned')     chipCls = 'chip-assigned';
+            if (at === 'rejected')     chipCls = 'chip-rejected';
+
+            var ns = h.newStatus || '';
+            var sBadge = ns === 'Approved'
+                ? '<span class="badge b-approved" style="font-size:10px;padding:2px 8px">Approved</span>'
+                : ns === 'Pending'
+                    ? '<span class="badge b-pending" style="font-size:10px;padding:2px 8px">Pending</span>'
+                    : `<span style="font-size:11px">${ns}</span>`;
+
+            histHtml += `
+                <tr>
+                    <td style="color:#aaa;width:28px">${i+1}</td>
+                    <td><span class="chip ${chipCls}">${h.actionType || ''}</span></td>
+                    <td style="white-space:nowrap">${h.actionByName || ''}</td>
+                    <td class="remark-cell">${h.remarks || ''}</td>
+                    <td>${sBadge}</td>
+                    <td style="white-space:nowrap;color:#9ca3af">${fmtDate(h.actionDate)}</td>
+                </tr>`;
+        });
+        histHtml += '</tbody></table>';
+
+        // ── Render ──
+        $('#expandContent').html(`
+            ${hdr}
+            <div class="panel-cols">
+                <div class="panel-col">
+                    <div class="col-heading">Level-wise Approval</div>
+                    ${lvHtml}
+                </div>
+                <div class="panel-col">
+                    <div class="col-heading">Approval History</div>
+                    ${histHtml}
+                </div>
+            </div>`);
+    }
+
+    // ── Export Excel ─────────────────────────────────────────────────────────
+    $('#btnExportExcel').on('click', function() {
+        if (!allData.length) { round_error_noti("No data to export."); return; }
+
+        var rows = allData.map(function(r) {
+            return {
+                "Req ID":           r.manpowerRequisitionId,
+                "Employee Name":    r.employeeName           || '',
+                "Req Type":         r.requirementType        || '',
+                "Positions":        r.numberOfPosition       || '',
+                "Closure By":       r.closureBy              || '',
+                "Req Date":         r.requisitionDate
+                                        ? new Date(r.requisitionDate).toLocaleDateString('en-IN') : '',
+                "Status":           r.requisitionStatus      || '',
+                "Approval Status":  r.isAutoApprovedByAdminHR
+                                        ? 'Auto Approved (Admin-HR)'
+                                        : (r.overallApprovalStatus || ''),
+                "Current Level":    r.currentLevelNo         || '',
+                "Requester":        r.requesterName          || '',
+                "Current Approver": r.currentApproverName    || ''
+            };
+        });
+
+        var ws = XLSX.utils.json_to_sheet(rows);
+        ws['!cols'] = Object.keys(rows[0]).map(function(k) {
+            return { wch: Math.max(...rows.map(r => String(r[k]??'').length), k.length) + 2 };
+        });
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Manpower Approval");
+        XLSX.writeFile(wb, "ManpowerRequisitionApproval.xlsx");
+    });
+
+    // ── Date Helper ──────────────────────────────────────────────────────────
+    function fmtDate(d) {
+        if (!d) return '—';
+        try {
+            return new Date(d).toLocaleDateString('en-IN',
+                { day:'2-digit', month:'short', year:'numeric' });
+        } catch(e) { return d; }
+    }
+</script>
