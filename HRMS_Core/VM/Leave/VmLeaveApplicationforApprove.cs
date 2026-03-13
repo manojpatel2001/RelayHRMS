@@ -24,6 +24,7 @@ namespace HRMS_Core.VM.Leave
             public string? ApplicationType { get; set; }
             public string? LeaveStatus { get; set; }
             public string? BranchName { get; set; }
+            public string? Day { get; set; }
         
     }
 }
