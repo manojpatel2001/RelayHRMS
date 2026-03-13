@@ -45,6 +45,8 @@ namespace HRMS_Core.VM.OtherMaster
         public decimal? Amount { get; set; }
         public int? NumberOfPosition { get; set; }
         public int? JobCategory { get; set; }
+        public int? BranchId { get; set; }           // ✅ NEW
+        public string? CustomerName { get; set; }
     }
 
 }

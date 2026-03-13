@@ -104,8 +104,6 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 command.Parameters.Add(new SqlParameter("@ReportingToId", manpowerRequisition.ReportingToId));
                 command.Parameters.Add(new SqlParameter("@DateOfJoining", manpowerRequisition.DateOfJoining));
                 command.Parameters.Add(new SqlParameter("@CategoryOfEmployment", manpowerRequisition.CategoryOfEmployment ?? (object)DBNull.Value));
-                //command.Parameters.Add(new SqlParameter("@CTC_Monthly", manpowerRequisition.CTC_Monthly));
-                //command.Parameters.Add(new SqlParameter("@GrossSalary", manpowerRequisition.GrossSalary));
                 command.Parameters.Add(new SqlParameter("@TakeHomeSalary", manpowerRequisition.TakeHomeSalary));
                 command.Parameters.Add(new SqlParameter("@CreatedBy", manpowerRequisition.CreatedBy ?? (object)DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@CompanyId", manpowerRequisition.CompanyId));
@@ -115,6 +113,16 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 command.Parameters.Add(new SqlParameter("@JobCategory", SqlDbType.Int)
                 {
                     Value = (object?)manpowerRequisition.JobCategory ?? DBNull.Value
+                });
+                // ✅ NEW
+                command.Parameters.Add(new SqlParameter("@BranchId", SqlDbType.Int)
+                {
+                    Value = (object?)manpowerRequisition.BranchId ?? DBNull.Value
+                });
+                // ✅ NEW
+                command.Parameters.Add(new SqlParameter("@CustomerName", SqlDbType.NVarChar, 200)
+                {
+                    Value = (object?)manpowerRequisition.CustomerName ?? DBNull.Value
                 });
 
                 await _db.Database.OpenConnectionAsync();
@@ -170,39 +178,41 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
             {
                 var result = await _db.Set<SP_Response>()
                     .FromSqlInterpolated($@"
-            EXEC ManageManpowerRequisition
-                @Action = {"UPDATE"},
-                @ManpowerRequisitionId = {manpowerRequisition.ManpowerRequisitionId},
-                @DepartmentId = {manpowerRequisition.DepartmentId},
-                @RequirementType = {manpowerRequisition.RequirementType},
-                @EmployeeName = {manpowerRequisition.EmployeeName},
-                @PersonalEmail = {manpowerRequisition.PersonalEmail},
-                @ContactNumber = {manpowerRequisition.ContactNumber},
-                @ClosureBy = {manpowerRequisition.ClosureBy},
-                @DesignationId = {manpowerRequisition.DesignationId},
-                @ExperienceRange = {manpowerRequisition.ExperienceRange},
-                @EducationalQualification = {manpowerRequisition.EducationalQualification},
-                @ComputerSkills = {manpowerRequisition.ComputerSkills},
-                @JobResponsibility = {manpowerRequisition.JobResponsibility},
-                @Age = {manpowerRequisition.Age},
-                @Gender = {manpowerRequisition.Gender},
-                @OtherBenefits = {manpowerRequisition.OtherBenefits},
-                @SystemRequire = {manpowerRequisition.SystemRequire},
-                @EmailIdRequire = {manpowerRequisition.EmailIdRequire},
-                @SIMRequire = {manpowerRequisition.Simrequire},
-                @ERP_ID = {manpowerRequisition.ErpId},
-                @ReportingToId = {manpowerRequisition.ReportingToId},
-                @DateOfJoining = {manpowerRequisition.DateOfJoining},
-                @CategoryOfEmployment = {manpowerRequisition.CategoryOfEmployment},
-                @TakeHomeSalary = {manpowerRequisition.TakeHomeSalary},
-                @IsEnabled = {manpowerRequisition.IsEnabled},
-                @IsDeleted = {manpowerRequisition.IsDeleted},
-                @UpdatedBy = {manpowerRequisition.UpdatedBy},
-                @DateOfBirth = {manpowerRequisition.DateOfBirth},
-                @Amount = {manpowerRequisition.Amount},
-                @NumberOfPosition = {manpowerRequisition.NumberOfPosition},
-                @JobCategory = {manpowerRequisition.JobCategory}
-            ")
+        EXEC ManageManpowerRequisition
+            @Action = {"UPDATE"},
+            @ManpowerRequisitionId = {manpowerRequisition.ManpowerRequisitionId},
+            @DepartmentId = {manpowerRequisition.DepartmentId},
+            @RequirementType = {manpowerRequisition.RequirementType},
+            @EmployeeName = {manpowerRequisition.EmployeeName},
+            @PersonalEmail = {manpowerRequisition.PersonalEmail},
+            @ContactNumber = {manpowerRequisition.ContactNumber},
+            @ClosureBy = {manpowerRequisition.ClosureBy},
+            @DesignationId = {manpowerRequisition.DesignationId},
+            @ExperienceRange = {manpowerRequisition.ExperienceRange},
+            @EducationalQualification = {manpowerRequisition.EducationalQualification},
+            @ComputerSkills = {manpowerRequisition.ComputerSkills},
+            @JobResponsibility = {manpowerRequisition.JobResponsibility},
+            @Age = {manpowerRequisition.Age},
+            @Gender = {manpowerRequisition.Gender},
+            @OtherBenefits = {manpowerRequisition.OtherBenefits},
+            @SystemRequire = {manpowerRequisition.SystemRequire},
+            @EmailIdRequire = {manpowerRequisition.EmailIdRequire},
+            @SIMRequire = {manpowerRequisition.Simrequire},
+            @ERP_ID = {manpowerRequisition.ErpId},
+            @ReportingToId = {manpowerRequisition.ReportingToId},
+            @DateOfJoining = {manpowerRequisition.DateOfJoining},
+            @CategoryOfEmployment = {manpowerRequisition.CategoryOfEmployment},
+            @TakeHomeSalary = {manpowerRequisition.TakeHomeSalary},
+            @IsEnabled = {manpowerRequisition.IsEnabled},
+            @IsDeleted = {manpowerRequisition.IsDeleted},
+            @UpdatedBy = {manpowerRequisition.UpdatedBy},
+            @DateOfBirth = {manpowerRequisition.DateOfBirth},
+            @Amount = {manpowerRequisition.Amount},
+            @NumberOfPosition = {manpowerRequisition.NumberOfPosition},
+            @JobCategory = {manpowerRequisition.JobCategory},
+            @BranchId = {manpowerRequisition.BranchId},
+            @CustomerName = {manpowerRequisition.CustomerName}
+        ")
                     .ToListAsync();
 
                 var spResult = result.FirstOrDefault();
@@ -222,7 +232,6 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = $"Error: {ex.Message}", Data = null };
             }
         }
-
         public async Task<APIResponse> DeleteManpowerRequisition(DeleteRecordVM model)
         {
             try
