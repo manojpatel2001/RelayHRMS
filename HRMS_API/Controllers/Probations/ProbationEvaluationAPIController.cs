@@ -3,6 +3,7 @@ using HRMS_Core.Probations;
 using HRMS_Core.VM;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -124,10 +125,9 @@ namespace HRMS_API.Controllers.Probations
                 if (file == null || file.Length == 0)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Please select a file." };
 
-                // ✅ File save karo wwwroot/Form/ me
+              
                 var fileName = $"ProbationForm_{DateTime.Now.Ticks}{Path.GetExtension(file.FileName)}";
-                var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Form");
-
+                var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "forms");
                 if (!Directory.Exists(folderPath))
                     Directory.CreateDirectory(folderPath);
 
@@ -138,7 +138,7 @@ namespace HRMS_API.Controllers.Probations
                     await file.CopyToAsync(stream);
                 }
 
-                var fileUrl = $"/Form/{fileName}";
+                var fileUrl = $"/forms/{fileName}";
 
                 return new APIResponse { isSuccess = true, Data = fileUrl, ResponseMessage = "File uploaded successfully." };
             }
@@ -146,6 +146,18 @@ namespace HRMS_API.Controllers.Probations
             {
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "File upload failed." };
             }
+        }
+        [HttpGet("DownloadEvaluationForm")]
+        [AllowAnonymous]
+        public IActionResult DownloadEvaluationForm()
+        {
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "forms", "Performance_Evaluation_Form.pdf");
+
+            if (!System.IO.File.Exists(filePath))
+                return NotFound("Form not found.");
+
+            var fileBytes = System.IO.File.ReadAllBytes(filePath);
+            return File(fileBytes, "application/pdf", "Performance_Evaluation_Form.pdf");
         }
     }
 }
