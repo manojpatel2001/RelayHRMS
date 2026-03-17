@@ -30,6 +30,8 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     @Action = {"GET"},                   
                     @GrossSalary = {salaryPara.GrossSalary},
                     @BasicSalary = {salaryPara.BasicSalary},
+                    @EmployeeId = {salaryPara.EmployeeId},
+                    @CompanyId = {salaryPara.CompanyId},
                     @IsPFApplicable = {salaryPara.IsPFApplicable}
                     
             ").AsNoTracking().ToListAsync();

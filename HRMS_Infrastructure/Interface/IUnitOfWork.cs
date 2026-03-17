@@ -153,6 +153,7 @@ namespace HRMS_Infrastructure.Interface
         INOCRepository NOCRepository { get; }
         INewsAnnouncementRepository NewsAnnouncementRepository { get; }
         IProbationEvaluationFormRepository ProbationEvaluationFormRepository { get; }
+        ISalaryPayableDaysOverrideRepo SalaryPayableDaysOverrideRepository { get; }
         void Commit();
         Task CommitAsync();
     }
