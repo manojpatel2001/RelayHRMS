@@ -1,0 +1,483 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Salary Payable Days Override";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<div class="card">
+    <div class="card-header bg-transparent ml-0 py-0">
+        <div class="row">
+            <div class="col-6">
+                <h6 class="pt-2 mb-0">
+                    Manage Salary Payable Days Override
+                </h6>
+            </div>
+            <div class="col-6 d-flex justify-content-end align-items-center">
+                <button id="btnAddOverride"
+                        type="button"
+                        class="btn mr-1 rounded-1"
+                        style="background-color:#2395c6; color:white;">
+                    Add
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <div class="grid-wrapper" style="position: relative;">
+                            <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column"
+                                 style="display: none; inset: 0; background: rgba(255,255,255,0.6); z-index: 10;">
+                                <img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner"
+                                     style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+                                <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+                            </div>
+                            <div id="gridTag">
+                                <div class="rowCount" id="rowCount1"></div>
+                                <div id="gridContainer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Add / Edit Modal -->
+<div class="modal fade" id="overrideModal" tabindex="-1" aria-labelledby="overrideModalLabel"
+     aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title btn-heading-title" id="modalTitle">Add Salary Payable Days Override</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font" style="font-size:12px;">
+                <form id="overrideForm">
+                    <input type="hidden" id="overrideId" value="0" />
+
+                    <div class="row">
+
+                        <!-- Employee -->
+                        <div class="col-md-6">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="employeeOverrideWrapper">
+                                    <label for="employeeOverride">Employee <span class="text-danger">*</span></label>
+                                    <input type="text" class="searchable-select-input" id="employeeOverride" readonly />
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search employee..." class="search-input" />
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                                <span id="spnEmployeeOverride" style="color:red; display:none; font-size:0.85em;">Please Select Employee</span>
+                            </div>
+                        </div>
+
+                        <!-- Employee Code (readonly, auto-filled) -->
+                        <div class="col-md-6">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="text" class="form-control floating-input" id="employeeCode" placeholder="Employee Code" readonly />
+                                <label class="floating-label" for="employeeCode">Employee Code</label>
+                            </div>
+                        </div>
+
+                        <!-- Month -->
+                        <div class="col-md-6">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="monthOverrideWrapper">
+                                    <label for="monthOverride">Month <span class="text-danger">*</span></label>
+                                    <input type="text" class="searchable-select-input" id="monthOverride" readonly />
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search month..." class="search-input" />
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                                <span id="spnMonthOverride" style="color:red; display:none; font-size:0.85em;">Please Select Month</span>
+                            </div>
+                        </div>
+
+                        <!-- Year -->
+                        <div class="col-md-6">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="number" class="form-control floating-input" id="overrideYear" placeholder="Year" min="2000" max="2100" />
+                                <label class="floating-label" for="overrideYear">Year <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spnOverrideYear" style="color:red; display:none; font-size:0.85em;">Please Enter Year</span>
+                        </div>
+
+                        <!-- Override Payable Days -->
+                        <div class="col-md-6">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="number" class="form-control floating-input" id="overridePayableDays" placeholder="Override Payable Days" min="0" step="0.01" />
+                                <label class="floating-label" for="overridePayableDays">Override Payable Days <span class="text-danger">*</span></label>
+                            </div>
+                            <span id="spnOverridePayableDays" style="color:red; display:none; font-size:0.85em;">Please Enter Override Payable Days</span>
+                        </div>
+
+                        <!-- Adjustment Delta -->
+                        <div class="col-md-6">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="number" class="form-control floating-input" id="adjustmentDelta" placeholder="Adjustment Delta" step="0.01" />
+                                <label class="floating-label" for="adjustmentDelta">Adjustment Delta</label>
+                            </div>
+                        </div>
+
+                        <!-- Reason -->
+                        <div class="col-md-12">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="text" class="form-control floating-input" id="overrideReason" placeholder="Reason" />
+                                <label class="floating-label" for="overrideReason">Reason</label>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer btn-heading-title">
+                <button type="button" class="btn btn-primary" id="btnSaveOverride"
+                        style="background-color:#2395c6; color:white;">
+                    Save
+                </button>
+                <button type="button" class="btn btn-primary" id="btnSavingOverride"
+                        style="background-color:#2395c6; color:white; display:none;" disabled>
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span> Saving..
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="~/assets/js/jquery.min.js"></script>
+
+<script>
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails?.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    const months = [
+        { id: 1, name: 'January' }, { id: 2, name: 'February' }, { id: 3, name: 'March' },
+        { id: 4, name: 'April' }, { id: 5, name: 'May' }, { id: 6, name: 'June' },
+        { id: 7, name: 'July' }, { id: 8, name: 'August' }, { id: 9, name: 'September' },
+        { id: 10, name: 'October' }, { id: 11, name: 'November' }, { id: 12, name: 'December' }
+    ];
+
+    $(document).ready(function () {
+        loadGrid();
+        BindEmployeeDropdown();
+        BindMonthDropdown();
+
+        // Default year to current year
+        $('#overrideYear').val(new Date().getFullYear());
+    });
+
+    // ──────────────────────────────────────────────
+    //  Loader helpers
+    // ──────────────────────────────────────────────
+    function showBtnLoader(isUpdate) {
+        $('#btnSaveOverride').hide();
+        $('#btnSavingOverride')
+            .html('<span class="spinner-border spinner-border-sm me-2" role="status"></span> ' + (isUpdate ? 'Updating..' : 'Saving..'))
+            .show();
+    }
+
+    function hideBtnLoader() {
+        $('#btnSaveOverride').show();
+        $('#btnSavingOverride').hide();
+    }
+
+    // ──────────────────────────────────────────────
+    //  Bind Employee Dropdown
+    // ──────────────────────────────────────────────
+    function BindEmployeeDropdown() {
+        $.ajax({
+            url: '@baseUrl/EmployeeMasterAPI/GetAllEmployeeByCompanyId/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (data) {
+                if (data.isSuccess) {
+                    $('#employeeOverride').searchableSelect({
+                        data: data.data || [],
+                        valueKey: 'employeeId',
+                        textKey: 'employeeName',
+                        placeholder: 'Employee',
+                        searchPlaceholder: 'Search employee...',
+                        onChange: function (item) {
+                            $('#employeeCode').val(item.employeeCode || '');
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    // ──────────────────────────────────────────────
+    //  Bind Month Dropdown
+    // ──────────────────────────────────────────────
+    function BindMonthDropdown() {
+        $('#monthOverride').searchableSelect({
+            data: months,
+            valueKey: 'id',
+            textKey: 'name',
+            placeholder: 'Month',
+            searchPlaceholder: 'Search month...'
+        });
+    }
+
+    // ──────────────────────────────────────────────
+    //  Load Grid
+    // ──────────────────────────────────────────────
+    function loadGrid() {
+        $('#grid-loader').addClass('d-flex').show();
+        $.ajax({
+            url: '@baseUrl/SalaryPayableDaysOverrideAPI/Get',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                $("#gridContainer").dxDataGrid({
+                    dataSource: response.data || [],
+                    columns: [
+                        { dataField: 'employeeId',          caption: 'Employee ID',           visible: false },
+                        { dataField: 'employeeCode',        caption: 'Employee Code' },
+                        { dataField: 'monthNumber',         caption: 'Month',
+                          calculateCellValue: function(row) {
+                              var m = months.find(x => x.id === row.monthNumber);
+                              return m ? m.name : row.monthNumber;
+                          }
+                        },
+                        { dataField: 'year',                caption: 'Year' },
+                        { dataField: 'overridePayableDays', caption: 'Override Payable Days' },
+                        { dataField: 'adjustmentDelta',     caption: 'Adjustment Delta' },
+                        { dataField: 'reason',              caption: 'Reason' },
+                        {
+                            dataField: '',
+                            caption: 'Actions',
+                            width: '100px',
+                            cellTemplate: function (container, options) {
+                                var btn = $('<div class="d-flex order-actions">' +
+                                    '<a href="javascript:;" class="edit-action me-2" title="Edit">' +
+                                    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">' +
+                                    '<path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>' +
+                                    '<path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>' +
+                                    '</svg></a>' +
+                                    '<a href="javascript:;" class="delete-action" title="Delete">' +
+                                    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">' +
+                                    '<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>' +
+                                    '<path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>' +
+                                    '</svg></a>' +
+                                    '</div>');
+
+                                btn.find('.edit-action').on('click', function () { EditOverride(options.data); });
+                                btn.find('.delete-action').on('click', function () { DeleteOverride(options.data); });
+                                btn.appendTo(container);
+                            }
+                        }
+                    ],
+                    columnAutoWidth: true,
+                    allowColumnResizing: true,
+                    columnResizingMode: "widget",
+                    wordWrapEnabled: false,
+                    showBorders: true,
+                    scrolling: { mode: "standard", useNative: true, scrollByContent: true, scrollByThumb: true, showScrollbar: "always" },
+                    rowAlternationEnabled: false,
+                    paging: { pageSize: 10 },
+                    pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+                    headerFilter: { visible: false },
+                    filterRow: { visible: false, applyFilter: "auto" },
+                    groupPanel: { visible: false },
+                    searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+                    allowColumnReordering: false,
+                    onContentReady: function (e) {
+                        $('.rowCount').html('Total Records: ' + e.component.totalCount());
+                        e.component.updateDimensions();
+                        $('#grid-loader').removeClass('d-flex').hide();
+                    }
+                }).dxDataGrid('instance');
+
+                $('#grid-loader').removeClass('d-flex').hide();
+            },
+            error: function () {
+                $('#grid-loader').removeClass('d-flex').hide();
+            }
+        });
+    }
+
+    // ──────────────────────────────────────────────
+    //  Add button click
+    // ──────────────────────────────────────────────
+    $('#btnAddOverride').click(function () {
+        resetForm();
+        $('#modalTitle').text('Add Salary Payable Days Override');
+        $('#overrideModal').modal('show');
+    });
+
+    // ──────────────────────────────────────────────
+    //  Save / Update
+    // ──────────────────────────────────────────────
+    $('#btnSaveOverride').click(function () {
+        var id = parseInt($('#overrideId').val());
+        var isUpdate = id > 0;
+
+        showBtnLoader(isUpdate);
+
+        var employee     = $('#employeeOverride').data('searchableSelect').getValue();
+        var employeeCode = $('#employeeCode').val();
+        var month        = $('#monthOverride').data('searchableSelect').getValue();
+        var year         = $('#overrideYear').val();
+        var payableDays  = $('#overridePayableDays').val();
+        var delta        = $('#adjustmentDelta').val();
+        var reason       = $('#overrideReason').val();
+        var isValid      = true;
+
+        // Validation
+        if (!employee) { $('#spnEmployeeOverride').show(); isValid = false; } else { $('#spnEmployeeOverride').hide(); }
+        if (!month)    { $('#spnMonthOverride').show();    isValid = false; } else { $('#spnMonthOverride').hide(); }
+        if (!year)     { $('#spnOverrideYear').show();     isValid = false; } else { $('#spnOverrideYear').hide(); }
+        if (!payableDays || payableDays === '') { $('#spnOverridePayableDays').show(); isValid = false; } else { $('#spnOverridePayableDays').hide(); }
+
+        if (!isValid) { hideBtnLoader(); return; }
+
+        var payload = {
+            Id:                   id,
+            EmployeeId:           parseInt(employee),
+            EmployeeCode:         employeeCode,
+            MonthNumber:          parseInt(month),
+            Year:                 parseInt(year),
+            OverridePayableDays:  parseFloat(payableDays),
+            AdjustmentDelta:      delta !== '' ? parseFloat(delta) : null,
+            Reason:               reason.trim() || null,
+            CreatedBy:            parseInt(EmployeeId),
+            UpdatedBy:            parseInt(EmployeeId)
+        };
+
+        var apiUrl    = isUpdate ? '@baseUrl/SalaryPayableDaysOverrideAPI/Update' : '@baseUrl/SalaryPayableDaysOverrideAPI/Create';
+        var httpMethod = isUpdate ? 'PUT' : 'POST';
+
+        $.ajax({
+            url: apiUrl,
+            type: httpMethod,
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(payload),
+            success: function (response) {
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage);
+                    $('#overrideModal').modal('hide');
+                    loadGrid();
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+                hideBtnLoader();
+            },
+            error: function (xhr) {
+                hideBtnLoader();
+                console.error('Error:', xhr);
+                round_error_noti('Unable to save record.');
+            }
+        });
+    });
+
+    // ──────────────────────────────────────────────
+    //  Edit
+    // ──────────────────────────────────────────────
+    function EditOverride(data) {
+        resetForm();
+        $('#modalTitle').text('Update Salary Payable Days Override');
+        $('#btnSaveOverride').text('Update');
+
+        $('#overrideId').val(data.id || data.Id || 0);
+
+        var empDd = $('#employeeOverride').data('searchableSelect');
+        if (empDd) {
+            empDd.setValue(data.employeeId || data.EmployeeId);
+        }
+        $('#employeeCode').val(data.employeeCode || data.EmployeeCode || '');
+
+        var monthDd = $('#monthOverride').data('searchableSelect');
+        if (monthDd) {
+            monthDd.setValue(data.monthNumber || data.MonthNumber);
+        }
+
+        $('#overrideYear').val(data.year || data.Year || '');
+        $('#overridePayableDays').val(data.overridePayableDays || data.OverridePayableDays || '');
+        $('#adjustmentDelta').val(data.adjustmentDelta || data.AdjustmentDelta || '');
+        $('#overrideReason').val(data.reason || data.Reason || '');
+
+        $('#overrideModal').modal('show');
+    }
+
+    // ──────────────────────────────────────────────
+    //  Delete
+    // ──────────────────────────────────────────────
+    function DeleteOverride(data) {
+        var id = data.id || data.Id;
+        if (confirm('Are you sure you want to delete this record?')) {
+            $.ajax({
+                url: '@baseUrl/SalaryPayableDaysOverrideAPI/Delete',
+                type: 'DELETE',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify({ Id: id, UpdatedBy: parseInt(EmployeeId) }),
+                success: function (response) {
+                    if (response.isSuccess) {
+                        round_success_noti(response.responseMessage);
+                        loadGrid();
+                    } else {
+                        round_error_noti(response.responseMessage);
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error:', xhr);
+                    round_error_noti('Unable to delete record.');
+                }
+            });
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    //  Reset Form
+    // ──────────────────────────────────────────────
+    function resetForm() {
+        $('#overrideId').val('0');
+
+        var empDd = $('#employeeOverride').data('searchableSelect');
+        if (empDd) empDd.clear();
+
+        var monthDd = $('#monthOverride').data('searchableSelect');
+        if (monthDd) monthDd.clear();
+
+        $('#employeeCode').val('');
+        $('#overrideYear').val(new Date().getFullYear());
+        $('#overridePayableDays').val('');
+        $('#adjustmentDelta').val('');
+        $('#overrideReason').val('');
+
+        $('#spnEmployeeOverride, #spnMonthOverride, #spnOverrideYear, #spnOverridePayableDays').hide();
+
+        $('#btnSaveOverride').text('Save');
+        hideBtnLoader();
+    }
+</script>

@@ -178,7 +178,8 @@ namespace HRMS_Infrastructure.Repository
             ExitApplicationRepository = new ExitApplicationRepository(_dbContext);
             NOCRepository = new NOCRepository(_dbContext);
             NewsAnnouncementRepository = new NewsAnnouncementRepository(_dbContext);
-            ProbationEvaluationFormRepository =new ProbationEvaluationFormRepository(_dbContext);
+            ProbationEvaluationFormRepository = new ProbationEvaluationFormRepository(_dbContext);
+            SalaryPayableDaysOverrideRepository = new SalaryPayableDaysOverrideRepo(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -321,6 +322,8 @@ namespace HRMS_Infrastructure.Repository
         public INewsAnnouncementRepository NewsAnnouncementRepository { get; set; }
 
         public IProbationEvaluationFormRepository ProbationEvaluationFormRepository { get; set; }
+
+        public ISalaryPayableDaysOverrideRepo SalaryPayableDaysOverrideRepository { get; set; }
 
         public void Commit()
         {
