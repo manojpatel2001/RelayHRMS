@@ -114,9 +114,9 @@ namespace HRMS_Infrastructure.Repository.Salary
                     var parameters = new DynamicParameters();
                     parameters.Add("@MonthNumber", Para.MonthNumber);
                     parameters.Add("@Year", Para.Year);
-                    parameters.Add("@EmployeeCodes", Para.EmployeeCodes);
-                    parameters.Add("@BranchId", Para.BranchId);
-                    parameters.Add("@AdjustmentType", Para.AdjustmentType);
+                    //parameters.Add("@EmployeeCodes", Para.EmployeeCodes);
+                    //parameters.Add("@BranchId", Para.BranchId);
+                    //parameters.Add("@AdjustmentType", Para.AdjustmentType);
                     //parameters.Add("@EmployeeCode", Model.EmployeeCodes);
 
                     var result = await connection.QueryAsync<SalaryPayableDaysOverridevm>(
