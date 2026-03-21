@@ -389,6 +389,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<FullFinalStatementRequestDto>().HasNoKey().ToView(null);
              modelBuilder.Entity<ManpowerApprovalStatusRequestDto>().HasNoKey().ToView(null);
              modelBuilder.Entity<SalaryPayableDaysOverrideResponseDto>().HasNoKey().ToView(null);
+             modelBuilder.Entity<SalaryPayableDaysOverridevm>().HasNoKey().ToView(null);
+             modelBuilder.Entity<SalaryPayableDaysPara>().HasNoKey().ToView(null);
 
 
 

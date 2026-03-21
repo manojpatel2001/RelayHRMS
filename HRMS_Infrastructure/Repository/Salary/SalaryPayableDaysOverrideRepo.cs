@@ -1,10 +1,15 @@
-﻿using HRMS_Core.DbContext;
+﻿using Dapper;
+using HRMS_Core.DbContext;
 using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Report;
+using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Salary;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -97,6 +102,35 @@ namespace HRMS_Infrastructure.Repository.Salary
             catch
             {
                 return new SP_Response { Success = -1, ResponseMessage = "Some thing went wrong!" };
+            }
+        }
+
+        public async Task<List<SalaryPayableDaysOverridevm>> GetSalaryPayableDaysOverride(SalaryPayableDaysPara Para)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@MonthNumber", Para.MonthNumber);
+                    parameters.Add("@Year", Para.Year);
+                    parameters.Add("@EmployeeCodes", Para.EmployeeCodes);
+                    parameters.Add("@BranchId", Para.BranchId);
+                    parameters.Add("@AdjustmentType", Para.AdjustmentType);
+                    //parameters.Add("@EmployeeCode", Model.EmployeeCodes);
+
+                    var result = await connection.QueryAsync<SalaryPayableDaysOverridevm>(
+                        "GetSalaryPayableDaysOverride",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result.AsList();
+                }
+            }
+            catch
+            {
+                return new List<SalaryPayableDaysOverridevm>();
             }
         }
     }
