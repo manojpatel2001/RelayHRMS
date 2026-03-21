@@ -1,5 +1,7 @@
 ﻿using HRMS_Core.Salary;
 using HRMS_Core.VM;
+using HRMS_Core.VM.Report;
+using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -86,5 +88,44 @@ namespace HRMS_API.Controllers.Salary
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record. Please try again later." };
             }
         }
+
+
+        [HttpGet("GetSalaryPayableDaysOverride")]
+        public async Task<APIResponse> GetSalaryPayableDaysOverride([FromQuery] SalaryPayableDaysPara model) // Use [FromQuery] to accept query parameters
+        {
+            try
+            {
+                var data = await _unitOfWork.SalaryPayableDaysOverrideRepository.GetSalaryPayableDaysOverride(
+                  model
+                );
+
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No data found"
+                    };
+                }
+
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+
+
     }
 }
