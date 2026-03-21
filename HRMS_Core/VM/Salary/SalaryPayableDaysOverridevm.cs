@@ -16,6 +16,8 @@ namespace HRMS_Core.VM.Salary
         public int AdjustmentDelta { get; set; }
         public string Reason { get; set; }
         public string CreatedByName { get; set; }
+        public string BranchName { get; set; }
+        public DateTime CreatedOn { get; set; }
 
     }
 }

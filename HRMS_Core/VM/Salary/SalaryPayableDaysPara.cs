@@ -10,8 +10,8 @@ namespace HRMS_Core.VM.Salary
     {
         public int? MonthNumber { get; set; }
         public int? Year { get; set; }
-        public string? EmployeeCodes { get; set; }
-        public int? BranchId { get; set; }
-        public string? AdjustmentType { get; set; }
+        //public string? EmployeeCodes { get; set; }
+        //public int? BranchId { get; set; }
+        //public string? AdjustmentType { get; set; }
     }
 }
