@@ -12,9 +12,12 @@ namespace HRMS_Infrastructure.Interface.EmailService
 {
     public interface IEmailReportRepository
     {
-        Task<List<DailyAbsentReportResult>> GetDailyAbsentReport();
+        Task<List<DailyAbsentReportResult>> GetEmployeeEmailDataGrouped();
+         Task InsertAbsentEmployeeEmailData();
         Task<EmailReport?> GetEmailSendTime(string ReportName);
         Task<ManpowerRequisitionEmailViewModel> GetManpowerRequisitionEmail(int ManpowerRequisitionId);
         Task<List<TodayLeftEmployeeEmailVM>> GetTodayLeftEmployeesEmailData();
+        Task<List<EmailAllReport>> GetAllEmailSendTime();
+        Task UpdateEmailReport(EmailAllReport report);
      }
 }

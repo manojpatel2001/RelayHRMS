@@ -10,6 +10,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace HRMS_Infrastructure.Repository.EmailService
 {
@@ -23,61 +24,167 @@ namespace HRMS_Infrastructure.Repository.EmailService
             _db = db;
             _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
-
-        public async Task<List<DailyAbsentReportResult>> GetDailyAbsentReport()
+        public async Task<List<DailyAbsentReportResult>> GetEmployeeEmailDataGrouped()
         {
-            try
+            var flatList = new List<AbsentEmployeeEmailData>();
+
+            using (var connection = new SqlConnection(_connectionString))
             {
-                using var connection = new SqlConnection(_connectionString);
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("sp_PrepareAbsentEmployeeEmailData", connection)
+                using (var command = new SqlCommand("sp_GetEmployeeEmailData", connection))
                 {
-                    CommandType = CommandType.StoredProcedure,
-                    CommandTimeout = 300 // 5 minutes
-                };
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.CommandTimeout = 300;
 
-                // Add OUTPUT parameter
-                var jsonResultParam = new SqlParameter("@JsonResult", SqlDbType.NVarChar, -1)
-                {
-                    Direction = ParameterDirection.Output
-                };
-                command.Parameters.Add(jsonResultParam);
-
-                await command.ExecuteNonQueryAsync();
-                string jsonResult = command.Parameters["@JsonResult"].Value as string;
-
-                if (string.IsNullOrWhiteSpace(jsonResult))
-                {
-                    return new List<DailyAbsentReportResult>();
-                }
-
-                try
-                {
-                    var options = new JsonSerializerOptions
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
-                        PropertyNameCaseInsensitive = true,
-                        AllowTrailingCommas = true,
-                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-                    };
+                        while (await reader.ReadAsync())
+                        {
+                            flatList.Add(new AbsentEmployeeEmailData
+                            {
+                                EmployeeRecordId = reader.GetInt32(reader.GetOrdinal("EmployeeRecordId")),
+                                BranchId = reader.GetInt32(reader.GetOrdinal("BranchId")),
+                                AttendanceDate = reader.GetDateTime(reader.GetOrdinal("AttendanceDate")),
+                                EmployeeId = reader.GetInt32(reader.GetOrdinal("EmployeeId")),
+                                EmployeeCode = reader.GetString(reader.GetOrdinal("EmployeeCode")),
+                                EmployeeName = reader.GetString(reader.GetOrdinal("EmployeeName")),
+                                ReportingManagerId = reader.GetInt32(reader.GetOrdinal("ReportingManagerId")),
+                                ReportingManagerName = reader.GetString(reader.GetOrdinal("ReportingManagerName")),
+                                ReportingManagerEmail = reader.GetString(reader.GetOrdinal("ReportingManagerEmail")),
+                                Attendance = reader.GetString(reader.GetOrdinal("Attendance")),
+                                BranchName = reader.GetString(reader.GetOrdinal("BranchName")),
+                                IsEmailSent = reader.GetBoolean(reader.GetOrdinal("IsEmailSent")),
+                                CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate"))
+                            });
+                        }
+                    }
+                }
+            }
 
-                    var result = JsonSerializer.Deserialize<List<DailyAbsentReportResult>>(jsonResult, options);
-                    return result;
-                }
-                catch (JsonException jsonEx)
+            // ✅ GROUPING HERE
+            var groupedResult = flatList
+                .GroupBy(x => new
                 {
-                    return new List<DailyAbsentReportResult>();
+                    x.ReportingManagerId,
+                    x.ReportingManagerName,
+                    x.ReportingManagerEmail,
+                    x.AttendanceDate
+                })
+                .Select(g => new DailyAbsentReportResult
+                {
+                    ReportingManagerId = g.Key.ReportingManagerId,
+                    ReportingManagerName = g.Key.ReportingManagerName,
+                    ReportingManagerEmail = g.Key.ReportingManagerEmail,
+                    AttendanceDate = g.Key.AttendanceDate,
+
+                    Employees = g.Select(emp => new EmployeeRecord
+                    {
+                        EmployeeRecordId = emp.EmployeeRecordId,
+                        EmployeeId = emp.EmployeeId,
+                        BranchId = emp.BranchId,
+                        EmployeeCode = emp.EmployeeCode,
+                        EmployeeName = emp.EmployeeName,
+                        BranchName = emp.BranchName,
+                        Attendance = emp.Attendance
+                    }).ToList()
+                })
+                .ToList();
+
+            return groupedResult;
+        }
+        public async Task InsertAbsentEmployeeEmailData()
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                using (var command = new SqlCommand("sp_InsertAbsentEmployeeEmailData", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.CommandTimeout = 300;
+
+                    await command.ExecuteNonQueryAsync();
                 }
-            }
-            catch (SqlException sqlEx)
-            {
-                return new List<DailyAbsentReportResult>();
-            }
-            catch (Exception ex)
-            {
-                return new List<DailyAbsentReportResult>();
             }
         }
+
+        public async Task UpdateEmailReport(EmailAllReport report)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                using (var command = new SqlCommand("sp_UpdateEmailReport", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.CommandTimeout = 300;
+
+                    command.Parameters.Add("@ReportName", SqlDbType.VarChar, 200).Value = report.ReportName ?? (object)DBNull.Value;
+                    command.Parameters.Add("@LastRunDate", SqlDbType.DateTime).Value = (object?)report.LastRunDate ?? DBNull.Value;
+                    command.Parameters.Add("@IsForceSend", SqlDbType.Bit).Value = report.IsForceSend;
+                    command.Parameters.Add("@LastError", SqlDbType.NVarChar).Value = (object?)report.LastError ?? DBNull.Value;
+                    command.Parameters.Add("@IsSuccess", SqlDbType.Bit).Value = (object?)report.IsSuccess ?? DBNull.Value;
+
+                    await command.ExecuteNonQueryAsync();
+                }
+            }
+        }
+
+        //public async Task<List<DailyAbsentReportResult>> GetDailyAbsentReport()
+        //{
+        //    try
+        //    {
+        //        using var connection = new SqlConnection(_connectionString);
+        //        await connection.OpenAsync();
+
+        //        using var command = new SqlCommand("sp_PrepareAbsentEmployeeEmailData", connection)
+        //        {
+        //            CommandType = CommandType.StoredProcedure,
+        //            CommandTimeout = 300 // 5 minutes
+        //        };
+
+        //        // Add OUTPUT parameter
+        //        var jsonResultParam = new SqlParameter("@JsonResult", SqlDbType.NVarChar, -1)
+        //        {
+        //            Direction = ParameterDirection.Output
+        //        };
+        //        command.Parameters.Add(jsonResultParam);
+
+        //        await command.ExecuteNonQueryAsync();
+        //        string jsonResult = command.Parameters["@JsonResult"].Value as string;
+
+        //        if (string.IsNullOrWhiteSpace(jsonResult))
+        //        {
+        //            return new List<DailyAbsentReportResult>();
+        //        }
+
+        //        try
+        //        {
+        //            var options = new JsonSerializerOptions
+        //            {
+        //                PropertyNameCaseInsensitive = true,
+        //                AllowTrailingCommas = true,
+        //                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        //            };
+
+        //            var result = JsonSerializer.Deserialize<List<DailyAbsentReportResult>>(jsonResult, options);
+        //            return result;
+        //        }
+        //        catch (JsonException jsonEx)
+        //        {
+        //            return new List<DailyAbsentReportResult>();
+        //        }
+        //    }
+        //    catch (SqlException sqlEx)
+        //    {
+        //        return new List<DailyAbsentReportResult>();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new List<DailyAbsentReportResult>();
+        //    }
+        //}
 
         public async Task<EmailReport?> GetEmailSendTime(string reportName)
         {
@@ -109,6 +216,37 @@ namespace HRMS_Infrastructure.Repository.EmailService
                 // Log other exceptions
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 return null;
+            }
+        }
+        public async Task<List<EmailAllReport>> GetAllEmailSendTime()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    // Set a longer command timeout if needed (e.g., 120 seconds)
+                    var result = await connection.QueryAsync<EmailAllReport>(
+                        "GetAllEmailSendTime", 
+                        commandType: CommandType.StoredProcedure,
+                        commandTimeout: 120 // Optional: Increase timeout if needed
+                    );
+
+                    return result.ToList();
+                }
+            }
+            catch (TaskCanceledException ex)
+            {
+                // Log the exception
+                Console.WriteLine($"Task was canceled: {ex.Message}");
+                return new List<EmailAllReport>();
+            }
+            catch (Exception ex)
+            {
+                // Log other exceptions
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return new List<EmailAllReport>();
             }
         }
 
