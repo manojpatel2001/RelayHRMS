@@ -23,14 +23,102 @@ namespace HRMS_API.Services
             _fileUploadService = fileUploadService;
         }
 
+
+        public async Task ProcessJobsAdvanced()
+        {
+            var now = DateTime.UtcNow;
+
+            Console.WriteLine($"🕒 Checking at {now}");
+
+            // 🔥 Prepare Data
+            await RefreshPrepareEmailData();
+
+            List<EmailAllReport> reports = await _unitOfWork.EmailReportRepository.GetAllEmailSendTime();
+
+            foreach (var report in reports)
+            {
+                if (report.EmailSendTime == null)
+                    continue;
+
+                var time = report.EmailSendTime.Value;
+
+                // ✅ Time match (tolerance 1 min)
+                bool isMatch = time.Hours == now.Hour &&
+                               Math.Abs(time.Minutes - now.Minute) <= 1;
+
+                if (!isMatch)
+                    continue;
+
+                //// 🚫 Duplicate prevent
+             
+                if (report.LastRunDate == now.Date && !report.IsForceSend)
+                {
+                    continue;
+                }
+
+                Console.WriteLine($"🔥 Running: {report.ReportName}");
+
+                bool success = false;
+                int retry = 0;
+
+                while (!success && retry < 3)
+                {
+                    try
+                    {
+                        switch (report.ReportName)
+                        {
+                            case "Daily Absent Employees Report":
+                                await SendReportingEmailAsync(report);
+                                break;
+
+                            case "Daily Absent All Employees Report":
+                                await SendHrEmailAsync(report);
+                                break;
+
+                            case "Daily Left Employee Report":
+                                await SendLeftEmployeeEmailAsync(report);
+                                break;
+                        }
+
+                        success = true;
+
+                        report.LastRunDate = now;
+                        report.IsSuccess = true;
+
+                        await _unitOfWork.EmailReportRepository.UpdateEmailReport(report);
+
+                        Console.WriteLine($"✅ Success: {report.ReportName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        retry++;
+
+                        Console.WriteLine($"⚠️ Retry {retry}: {ex.Message}");
+
+                        if (retry == 3)
+                        {
+                            report.IsSuccess = false;
+                            report.LastError = ex.Message;
+
+                             await _unitOfWork.EmailReportRepository.UpdateEmailReport(report);
+
+                            Console.WriteLine($"❌ Failed: {report.ReportName}");
+                        }
+
+                        await Task.Delay(2000);
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Hangfire will call this method for recurring emails (Reporting Manager wise)
         /// </summary>
-        public async Task SendReportingDailyEmailAsync(EmailReport? emailReport)
+        public async Task SendReportingEmailAsync(EmailAllReport? emailReport)
         {
             try
             {
-                List<DailyAbsentReportResult>? AbsentReport = await _unitOfWork.EmailReportRepository.GetDailyAbsentReport();
+                List<DailyAbsentReportResult>? AbsentReport = await _unitOfWork.EmailReportRepository.GetEmployeeEmailDataGrouped();
 
                 if (emailReport == null || AbsentReport == null || !AbsentReport.Any())
                     return;
@@ -138,11 +226,11 @@ namespace HRMS_API.Services
         /// <summary>
         /// Sends combined absent report to HR only (all managers + employees in one email)
         /// </summary>
-        public async Task SendHrDailyEmailAsync(EmailReport? allEmailReport)
+        public async Task SendHrEmailAsync(EmailAllReport? allEmailReport)
         {
             try
             {
-                List<DailyAbsentReportResult>? AbsentReport = await _unitOfWork.EmailReportRepository.GetDailyAbsentReport();
+                List<DailyAbsentReportResult>? AbsentReport = await _unitOfWork.EmailReportRepository.GetEmployeeEmailDataGrouped();
 
                 if (allEmailReport == null || AbsentReport == null || !AbsentReport.Any())
                     return;
@@ -202,7 +290,7 @@ namespace HRMS_API.Services
 
                     if (string.IsNullOrEmpty(AllToEmails))
                         return;
-
+                    
                     var AllEmailRequest = new EmailRequest
                     {
                         ToEmails = AllToEmails.Split(',').ToList(),
@@ -213,7 +301,6 @@ namespace HRMS_API.Services
                         Placeholders = AllPlaceholders,
                         AttachmentPaths = allExcelDownloadLink
                     };
-
                     var allEmailLogger = new EmailLogger
                     {
                         ToEmail = AllToEmails,
@@ -238,15 +325,18 @@ namespace HRMS_API.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error in SendHrDailyEmailAsync: {ex.Message}");
+                Console.WriteLine($"❌ Error in SendHrEmailAsync: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
             }
         }
 
+
+
+
         /// <summary>
         /// Sends daily left employee report email
         /// </summary>
-        public async Task SendDailyLeftEmployeeEmailAsync(EmailReport? emailReport)
+        public async Task SendLeftEmployeeEmailAsync(EmailAllReport? emailReport)
         {
             try
             {
@@ -284,6 +374,7 @@ namespace HRMS_API.Services
 
                 if (string.IsNullOrEmpty(emailReport.ToEmails))
                     return;
+
 
                 var emailRequest = new EmailRequest
                 {
@@ -323,167 +414,12 @@ namespace HRMS_API.Services
         }
 
 
-        // =====================================================================
-        //   SCHEDULE METHODS — FIX APPLIED: Only re-register if cron changed
-        // =====================================================================
-
-        /// <summary>
-        /// ✅ FIXED: Only updates Hangfire job if send time has changed in DB.
-        /// Prevents double-firing caused by Remove + AddOrUpdate near execution time.
-        /// </summary>
-        public async Task ScheduleReportingDailyEmail()
+        public async Task RefreshPrepareEmailData()
         {
-            try
-            {
-                var emailReport = await _unitOfWork.EmailReportRepository
-                    .GetEmailSendTime(EmailReportType.DailyAbsentEmployeesReport.ToString());
+            Console.WriteLine("🔥 Preparing email data...");
 
-                if (emailReport?.EmailSendTime == null)
-                    return;
-
-                string newCron = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
-
-                // ✅ Check if job already registered with same cron — skip if same
-                var existingJob = JobStorage.Current
-                    .GetConnection()
-                    .GetRecurringJobs()
-                    .FirstOrDefault(j => j.Id == "reporting-daily-email");
-
-                if (existingJob != null && existingJob.Cron == newCron)
-                {
-                    Console.WriteLine("⏭️ Reporting job cron unchanged. Skipping re-registration.");
-                    return;
-                }
-
-                // Only update when time has actually changed
-                RecurringJob.RemoveIfExists("reporting-daily-email");
-                RecurringJob.AddOrUpdate(
-                    "reporting-daily-email",
-                    () => SendReportingDailyEmailAsync(emailReport),
-                    newCron
-                );
-
-                Console.WriteLine($"✅ Reporting daily email job updated to cron: {newCron}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Error scheduling reporting email job: {ex.Message}");
-            }
+            await _unitOfWork.EmailReportRepository.InsertAbsentEmployeeEmailData();
         }
-
-        /// <summary>
-        /// ✅ FIXED: Only updates Hangfire job if send time has changed in DB.
-        /// Prevents HR email from firing twice at scheduled time.
-        /// </summary>
-        public async Task ScheduleHrDailyEmail()
-        {
-            try
-            {
-                var emailReport = await _unitOfWork.EmailReportRepository
-                    .GetEmailSendTime(EmailReportType.DailyAbsentAllEmployeesReport.ToString());
-
-                if (emailReport?.EmailSendTime == null)
-                    return;
-
-                string newCron = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
-
-                // ✅ Check if job already registered with same cron — skip if same
-                var existingJob = JobStorage.Current
-                    .GetConnection()
-                    .GetRecurringJobs()
-                    .FirstOrDefault(j => j.Id == "hr-daily-email");
-
-                if (existingJob != null && existingJob.Cron == newCron)
-                {
-                    Console.WriteLine("⏭️ HR job cron unchanged. Skipping re-registration.");
-                    return;
-                }
-
-                // Only update when time has actually changed
-                RecurringJob.RemoveIfExists("hr-daily-email");
-                RecurringJob.AddOrUpdate(
-                    "hr-daily-email",
-                    () => SendHrDailyEmailAsync(emailReport),
-                    newCron
-                );
-
-                Console.WriteLine($"✅ HR daily email job updated to cron: {newCron}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Error scheduling HR email job: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// ✅ FIXED: Only updates Hangfire job if send time has changed in DB.
-        /// Prevents left employee email from firing twice.
-        /// </summary>
-        public async Task ScheduleDailyLeftEmployeeEmail()
-        {
-            try
-            {
-                var emailReport = await _unitOfWork.EmailReportRepository
-                    .GetEmailSendTime(EmailReportType.DailyLeftEmployeeReport.ToString());
-
-                if (emailReport?.EmailSendTime == null || emailReport == null)
-                    return;
-
-                string newCron = $"{emailReport.EmailSendTime.Value.Minutes} {emailReport.EmailSendTime.Value.Hours} * * *";
-
-                // ✅ Check if job already registered with same cron — skip if same
-                var existingJob = JobStorage.Current
-                    .GetConnection()
-                    .GetRecurringJobs()
-                    .FirstOrDefault(j => j.Id == "daily-left-employee-email");
-
-                if (existingJob != null && existingJob.Cron == newCron)
-                {
-                    Console.WriteLine("⏭️ Left Employee job cron unchanged. Skipping re-registration.");
-                    return;
-                }
-
-                // Only update when time has actually changed
-                RecurringJob.RemoveIfExists("daily-left-employee-email");
-                RecurringJob.AddOrUpdate(
-                    "daily-left-employee-email",
-                    () => SendDailyLeftEmployeeEmailAsync(emailReport),
-                    newCron
-                );
-
-                Console.WriteLine($"✅ Daily Left Employee email job updated to cron: {newCron}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Error scheduling Daily Left Employee email job: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Registers the 3 schedule-checker jobs (run every 2 min to detect DB time changes).
-        /// ✅ Safe now because each Schedule* method only re-registers when cron actually changes.
-        /// </summary>
-        public void StartScheduleDailyEmail()
-        {
-            RecurringJob.AddOrUpdate(
-                "reporting-schedule-check",
-                () => ScheduleReportingDailyEmail(),
-                "*/2 * * * *"
-            );
-
-            RecurringJob.AddOrUpdate(
-                "hr-schedule-check",
-                () => ScheduleHrDailyEmail(),
-                "*/2 * * * *"
-            );
-
-            RecurringJob.AddOrUpdate(
-                "left-employee-schedule-check",
-                () => ScheduleDailyLeftEmployeeEmail(),
-                "*/2 * * * *"
-            );
-        }
-
 
         // =====================================================================
         //   EXCEL GENERATION HELPERS
