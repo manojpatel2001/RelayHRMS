@@ -14,6 +14,7 @@ namespace HRMS_Infrastructure.Interface.NewFolder
         Task<ImportSPResult> ImportLeaveOpening(string jsonData, string createdBy);
         Task<ImportSPResult> ImportEmployeeType(string jsonData, string createdBy);
         Task<ImportSPResult> ImportEmployeeUpdate(string jsonData, string createdBy);
+        Task<ImportSPResult> SalaryPayableDays(string jsonData, string createdBy);
     }
     public class ImportSPResult
     {
