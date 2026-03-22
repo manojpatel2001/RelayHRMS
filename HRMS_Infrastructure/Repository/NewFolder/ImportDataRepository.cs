@@ -47,6 +47,10 @@ namespace HRMS_Infrastructure.Repository.NewFolder
         {
             return await ExecuteImportSP("sp_ImportEmployeeDesignation", jsonData , createdBy);
         }
+        public async Task<ImportSPResult> SalaryPayableDays(string jsonData, string createdBy)
+        {
+            return await ExecuteImportSP("sp_ImportSalaryPayableDaysOverride", jsonData , createdBy);
+        }
 
         // Common method to execute any import SP
         private async Task<ImportSPResult> ExecuteImportSP(string spName, string jsonData, string createdBy)

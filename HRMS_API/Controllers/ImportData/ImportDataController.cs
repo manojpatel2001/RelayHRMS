@@ -184,7 +184,8 @@ public class ImportDataController : ControllerBase
                type == "MonthlyDed" ||
                type == "LeaveOpening" ||
                type == "Employee" ||
-               type == "EmployeeUpdate";
+               type == "EmployeeUpdate" ||
+               type == "SalaryPayableDays";
     }
 
     private async Task<APIResponse> ProcessWithStoredProcedure(DataTable dt, string type, int startRow ,string createdBy)
@@ -220,6 +221,9 @@ public class ImportDataController : ControllerBase
                     break;
                 case "EmployeeUpdate":
                     result = await _unitOfWork.importDataRepository.ImportEmployeeUpdate(jsonData , createdBy);
+                    break;
+                case "SalaryPayableDays":
+                    result = await _unitOfWork.importDataRepository.SalaryPayableDays(jsonData , createdBy);
                     break;
 
                 default:
@@ -451,6 +455,9 @@ public class ImportDataController : ControllerBase
                 break;
             case "EmployeeUpdate":
                 expectedHeaders = new List<string> { "Alpha_Emp_Code", "Designation_Name", "Reporting_Manager_Code" , "AttendanceLimit" };
+                break;
+            case "SalaryPayableDays":
+                expectedHeaders = new List<string> { "Alpha_Emp_code", "MonthNumber", "Year", "OverridePayableDays", "AdjustmentDelta", "Reason" };
                 break;
             default:
                 error = $"No template defined for type '{type}'";
