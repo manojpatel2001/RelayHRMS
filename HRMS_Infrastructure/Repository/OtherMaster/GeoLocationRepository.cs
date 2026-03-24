@@ -125,6 +125,25 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
+        public async Task<SP_Response> UpdateAssignGeoLocation(AssignGeoLocation geoLocation)
+        {
+            try
+            {
+                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
+                    EXEC ManageAssignGeoLocation
+                        @Action = {"UPDATE"},
+                        @GeoLocationIds = {geoLocation.GeoLocationIds},
+                        @EmployeeIds = {geoLocation.EmployeeIds},
+                      
+                        @CreatedBy = {geoLocation.CreatedBy}
+                ").ToListAsync();
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+            }
+            catch
+            {
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
         public async Task<SP_Response> DeleteAssignGeoLocation(AssignGeoLocation deleteRecord)
         {
             try

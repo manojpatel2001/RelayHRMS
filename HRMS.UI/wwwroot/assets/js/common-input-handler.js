@@ -23,21 +23,17 @@
         }
         else if ($el.is('[data-decimal]')) {
             val = val.replace(/[^0-9.]/g, '');
-            // Handle leading decimal point (e.g., ".5" → "0.5")
+
+            // Handle leading decimal point (".5" → "0.5")
             if (val.startsWith('.')) {
                 val = '0' + val;
             }
 
+            // Ensure only one decimal point
             const parts = val.split('.');
-
             if (parts.length > 2) {
-                val = parts[0] + '.' + parts.slice(1).join('').substring(0, 2);
+                val = parts[0] + '.' + parts.slice(1).join('');
             }
-            else if (parts.length === 2) {
-                val = parts[0] + '.' + parts[1].substring(0, 2);
-            }
-
-           
         }
         else if ($el.is('[data-decimal-two]')) {
              val = $el.val();
