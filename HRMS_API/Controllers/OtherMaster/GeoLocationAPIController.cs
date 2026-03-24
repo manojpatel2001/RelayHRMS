@@ -114,6 +114,25 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to add record. Please try again later." };
             }
         }
+        [HttpPost("UpdateAssignGeoLocation")]
+        public async Task<APIResponse> UpdateAssignGeoLocation(AssignGeoLocation model)
+        {
+            try
+            {
+                if (model == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "GeoLocation details cannot be null." };
+                var result = await _unitOfWork.GeoLocationRepository.UpdateAssignGeoLocation(model);
+                if (result.Success > 0)
+                {
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
+                }
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to add record. Please try again later." };
+            }
+        }
 
         [HttpGet("GetAssignGeoLocationsWithLocation/{companyId}")]
         public async Task<APIResponse> GetAssignGeoLocationsWithLocation(int companyId)

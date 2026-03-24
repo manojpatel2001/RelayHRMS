@@ -16,6 +16,7 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
         Task<SP_Response> UpdateGeoLocation(GeoLocation geoLocation);
         Task<SP_Response> DeleteGeoLocation(DeleteRecordVM deleteRecord);
         Task<SP_Response> CreateAssignGeoLocation(AssignGeoLocation geoLocation);
+        Task<SP_Response> UpdateAssignGeoLocation(AssignGeoLocation geoLocation);
         Task<SP_Response> DeleteAssignGeoLocation(AssignGeoLocation deleteRecord);
         Task<List<GetAllAssignGeoLocation>> GetAssignGeoLocationsWithLocation(int companyId);
         Task<(List<vmEmployeeListDto> Employees, List<GeoLocation> Locations)> GetAllEmployeeAndLocation(CommonParameter commonParameter);
