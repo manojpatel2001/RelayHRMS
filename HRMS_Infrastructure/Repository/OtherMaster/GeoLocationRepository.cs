@@ -41,53 +41,71 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
             }
         }
 
-       
+
 
         public async Task<SP_Response> CreateGeoLocation(GeoLocation geoLocation)
         {
             try
             {
-                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
-                    EXEC ManageGeoLocation
-                        @Action = {"CREATE"},
-                        @BranchId = {geoLocation.BranchId},
-                        @Latitude = {geoLocation.Latitude},
-                        @Longitude = {geoLocation.Longitude},
-                        @Meter = {geoLocation.Meter},
-                        @CompanyId = {geoLocation.CompanyId},
-                        @CreatedBy = {geoLocation.CreatedBy}
-                ").ToListAsync();
-                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Action", "CREATE");
+                    parameters.Add("@BranchId", geoLocation.BranchId);
+                    parameters.Add("@Latitude", geoLocation.Latitude, DbType.Decimal);
+                    parameters.Add("@Longitude", geoLocation.Longitude, DbType.Decimal);
+                    parameters.Add("@Meter", geoLocation.Meter);
+                    parameters.Add("@CompanyId", geoLocation.CompanyId);
+                    parameters.Add("@CreatedBy", geoLocation.CreatedBy);
+
+                    var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                        "ManageGeoLocation",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+                }
             }
             catch
             {
                 return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
-
         public async Task<SP_Response> UpdateGeoLocation(GeoLocation geoLocation)
         {
             try
             {
-                var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
-                    EXEC ManageGeoLocation
-                        @Action = {"UPDATE"},
-                        @GeoLocationId = {geoLocation.GeoLocationId},
-                        @BranchId = {geoLocation.BranchId},
-                        @Latitude = {geoLocation.Latitude},
-                        @Longitude = {geoLocation.Longitude},
-                        @Meter = {geoLocation.Meter},
-                        @CompanyId = {geoLocation.CompanyId},
-                        @UpdatedBy = {geoLocation.UpdatedBy}
-                ").ToListAsync();
-                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Action", "UPDATE");
+                    parameters.Add("@GeoLocationId", geoLocation.GeoLocationId);
+                    parameters.Add("@BranchId", geoLocation.BranchId);
+                    parameters.Add("@Latitude", geoLocation.Latitude, DbType.Decimal);
+                    parameters.Add("@Longitude", geoLocation.Longitude, DbType.Decimal);
+                    parameters.Add("@Meter", geoLocation.Meter);
+                    parameters.Add("@CompanyId", geoLocation.CompanyId);
+                    parameters.Add("@UpdatedBy", geoLocation.UpdatedBy);
+
+                    var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                        "ManageGeoLocation",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
+                }
             }
             catch
             {
                 return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
-
         public async Task<SP_Response> DeleteGeoLocation(DeleteRecordVM deleteRecord)
         {
             try
