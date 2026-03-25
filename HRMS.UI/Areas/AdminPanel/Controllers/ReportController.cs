@@ -21,58 +21,62 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View();
         }
-        public IActionResult  SalaryRegisterAdmin()
+        public IActionResult SalaryRegisterAdmin()
         {
-            return View(); 
+            return View();
         }
-        public IActionResult  LeaveBalanceAdmin()
+        public IActionResult LeaveBalanceAdmin()
         {
-            return View(); 
+            return View();
         }
-        public IActionResult  TodaysAttendanceForAdmin()
+        public IActionResult TodaysAttendanceForAdmin()
         {
-            return View(); 
+            return View();
         }
-        public IActionResult  ActiveInActiveUsers()
+        public IActionResult ActiveInActiveUsers()
         {
-            return View(); 
+            return View();
         }
-        public IActionResult  ActiveInActiveMobileUsers()
+        public IActionResult ActiveInActiveMobileUsers()
         {
-            return View(); 
+            return View();
         }
-        public IActionResult  WhosOffReport()
+        public IActionResult WhosOffReport()
         {
-            return View(); 
+            return View();
         }
-        public IActionResult  LeaveODReport()
+        public IActionResult LeaveODReport()
         {
-            return View(); 
+            return View();
         }
-        public IActionResult  ProbationReport()
+        public IActionResult ProbationReport()
         {
-            return View(); 
+            return View();
         }
         public IActionResult ContinousAbsentReport()
         {
-            return View(); 
+            return View();
         }
         public IActionResult AttendanceRequestAdminReport()
         {
-            return View(); 
+            return View();
         }
         public IActionResult LeaveYearlySummary()
         {
-            return View(); 
+            return View();
         }
         public IActionResult AddLeavecancellationRequestAdmin()
         {
-            return View(); 
+            return View();
         }
         public IActionResult LeavecancellationRequestRepotAdmin()
         {
-            return View(); 
+            return View();
         }
-      
+
+        public IActionResult Reports()
+        {
+            return View();
+        }
     }
 }
