@@ -810,6 +810,46 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
 
             return response;
         }
+
+        public async Task<APIResponse> GetGradeByTakeHomeSalary(int TakeHomeSalary, int CompanyId)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@TakeHomeSalary", TakeHomeSalary);
+                    parameters.Add("@CompanyId", CompanyId);
+
+                    // Execute the stored procedure and map results to a dynamic list
+                    var result = await connection.QueryAsync<dynamic>(
+                        "USP_GetGradeByTakeHomeSalary",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (!result.AsList().Any())
+                    {
+                        response.isSuccess = false;
+                        response.ResponseMessage = "No records found.";
+                        response.Data = new List<dynamic>();
+                        return response;
+                    }
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Success!";
+                    response.Data = result.AsList();
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+                response.Data = new List<dynamic>();
+            }
+            return response;
+        }
     }
 
 }

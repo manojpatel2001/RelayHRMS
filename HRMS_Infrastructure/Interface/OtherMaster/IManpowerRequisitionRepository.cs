@@ -32,6 +32,7 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
         Task<SP_Response> ApprovalManPower(ManPowerfilter model);
         Task<APIResponse> sp_GetActiveEmployee(int Employeeid);
         Task<APIResponse> GetManpowerRequisitionApprovalStatus(ManpowerApprovalStatusRequestDto request);
+        Task<APIResponse> GetGradeByTakeHomeSalary(int TakeHomeSalary, int CompanyId);
     }
 
 }

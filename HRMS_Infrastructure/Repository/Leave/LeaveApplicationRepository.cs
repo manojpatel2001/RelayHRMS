@@ -60,7 +60,7 @@ namespace HRMS_Infrastructure.Repository.Leave
                     new SqlParameter("@SearchType", (object?)filter.SearchType ?? DBNull.Value),
                     new SqlParameter("@SearchFor", (object?)filter.SearchFor ?? DBNull.Value),
                     new SqlParameter("@EmpId", (object?)filter.Emplooyeid ?? DBNull.Value),
-                        new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
+                    new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
                 };
 
                         var result = await _db.Set<VmLeaveApplicationforApprove>()
@@ -85,11 +85,12 @@ namespace HRMS_Infrastructure.Repository.Leave
             new SqlParameter("@SearchType", (object?)filter.SearchType ?? DBNull.Value),
             new SqlParameter("@SearchFor", (object?)filter.SearchFor ?? DBNull.Value),
             new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
-            new SqlParameter("@BranchId", (object?)filter.BranchId ?? DBNull.Value)
+            new SqlParameter("@BranchId", (object?)filter.BranchId ?? DBNull.Value),
+            new SqlParameter("@LeaveStatus", (object?)filter.Status ?? DBNull.Value)
         };
 
                 var result = await _db.Set<VmLeaveApplicationforApprove>()
-                    .FromSqlRaw("EXEC SP_GetLeaveApplicationsForApprovalAdmin @SearchType = @SearchType, @SearchFor = @SearchFor, @CompId = @CompId, @BranchId = @BranchId", parameters)
+                    .FromSqlRaw("EXEC SP_GetLeaveApplicationsForApprovalAdmin @SearchType = @SearchType, @SearchFor = @SearchFor, @CompId = @CompId, @BranchId = @BranchId, @LeaveStatus=@LeaveStatus", parameters)
                     .ToListAsync();
                 return result;
             }

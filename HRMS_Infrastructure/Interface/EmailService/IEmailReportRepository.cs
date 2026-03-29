@@ -16,6 +16,7 @@ namespace HRMS_Infrastructure.Interface.EmailService
          Task InsertAbsentEmployeeEmailData();
         Task<EmailReport?> GetEmailSendTime(string ReportName);
         Task<ManpowerRequisitionEmailViewModel> GetManpowerRequisitionEmail(int ManpowerRequisitionId);
+        Task<AccessRequestViewModel> GetManpowerRequisitionEmailITandHR(int ManpowerRequisitionId);
         Task<List<TodayLeftEmployeeEmailVM>> GetTodayLeftEmployeesEmailData();
         Task<List<EmailAllReport>> GetAllEmailSendTime();
         Task UpdateEmailReport(EmailAllReport report);

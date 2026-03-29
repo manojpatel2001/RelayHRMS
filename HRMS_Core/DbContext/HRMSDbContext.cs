@@ -391,6 +391,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<SalaryPayableDaysOverrideResponseDto>().HasNoKey().ToView(null);
              modelBuilder.Entity<SalaryPayableDaysOverridevm>().HasNoKey().ToView(null);
              modelBuilder.Entity<SalaryPayableDaysPara>().HasNoKey().ToView(null);
+             modelBuilder.Entity<GetGradeByTakeHomeSalaryvm>().HasNoKey().ToView(null);
+             modelBuilder.Entity<AccessRequestViewModel>().HasNoKey().ToView(null);
 
 
 

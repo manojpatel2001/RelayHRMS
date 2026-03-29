@@ -62,6 +62,15 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
             }
         }
+        private static string BadgeHtml(string value)
+        {
+            bool isYes = string.Equals(value?.Trim(), "Yes", StringComparison.OrdinalIgnoreCase);
+            return isYes
+                ? "<span style=\"display:inline-block;padding:4px 16px;border-radius:20px;font-size:12px;font-weight:bold;background-color:#d1fae5;color:#065f46;\">&#10004; Yes</span>"
+                : "<span style=\"display:inline-block;padding:4px 16px;border-radius:20px;font-size:12px;font-weight:bold;background-color:#fee2e2;color:#991b1b;\">&#10008; No</span>";
+        }
+
+
         [HttpPost("CreateManpowerRequisition")]
         public async Task<APIResponse> CreateManpowerRequisition([FromBody] ManpowerRequisition model)
         {
@@ -82,64 +91,189 @@ namespace HRMS_API.Controllers.OtherMaster
                     int newId = createdData.ManpowerRequisitionId;
 
                     dynamic emailReport = null;
+                    dynamic manpowerData = null;
 
+                    // ─── Fetch common requisition details ────────────────────────────────────
                     var requisitionData = await _unitOfWork.ManpowerRequisitionRepository
-                                                .GetManpowerRequisitionEmailDetails(newId);
+                                               .GetManpowerRequisitionEmailDetails(newId);
 
                     if (requisitionData != null && requisitionData.isSuccess)
                     {
-                        var manpowerData = requisitionData.Data as dynamic;
+                        manpowerData = requisitionData.Data as dynamic;
 
+                        // ── Common placeholders (shared by all emails) ────────────────────────
+                        var commonPlaceholders = new Dictionary<string, string>
+                        {
+                            { "Department",    manpowerData?.Department      ?? "N/A" },
+                            { "Designation",   manpowerData?.Designation     ?? "N/A" },
+                            { "RequestedBy",   manpowerData?.RequestedByName ?? "N/A" },
+                            { "RequestedDate", manpowerData?.CreatedDate != null
+                                               ? ((DateTime)manpowerData.CreatedDate).ToString("dd-MM-yyyy")
+                                               : "N/A" },
+                            { "CompanyName",   manpowerData?.CompanyName     ?? "N/A" },
+                            { "SerialNo",      createdData.SerialNo },
+                            { "Year",          DateTime.Now.Year.ToString() }
+                        };
+
+                        // ════════════════════════════════════════════════════════════════════
+                        // 1.  RM Approval Email  (existing logic — unchanged)
+                        // ════════════════════════════════════════════════════════════════════
                         emailReport = await _unitOfWork.EmailReportRepository
                                             .GetManpowerRequisitionEmail(newId);
 
-                        if (emailReport != null && !string.IsNullOrEmpty((string)emailReport.ToEmail_1stApprover_RM))
+                        if (emailReport != null &&
+                            !string.IsNullOrEmpty((string)emailReport.ToEmail_1stApprover_RM))
                         {
-                            var placeholders = new Dictionary<string, string>
-                    {
-                        { "Department",    manpowerData?.Department ?? "N/A" },
-                        { "Designation",   manpowerData?.Designation ?? "N/A" },
-                        { "RequestedBy",   manpowerData?.RequestedByName ?? "N/A" },
-                        { "RequestedDate", manpowerData?.CreatedDate != null
-                                           ? ((DateTime)manpowerData.CreatedDate).ToString("dd-MM-yyyy")
-                                           : "N/A" },
-                        { "CompanyName",   manpowerData?.CompanyName ?? "N/A" },
-                        { "Year",          DateTime.Now.Year.ToString() }
-                    };
-
-                            var emailRequest = new EmailRequest
+                            var rmEmailRequest = new EmailRequest
                             {
                                 ToEmails = ((string)emailReport.ToEmail_1stApprover_RM).Split(',').ToList(),
                                 BccEmails = emailReport.BccEmail_Director != null
-                                            ? ((string)emailReport.BccEmail_Director).Split(',').ToList()
-                                            : null,
+                                               ? ((string)emailReport.BccEmail_Director).Split(',').ToList()
+                                               : null,
                                 CcEmails = emailReport.ToEmail_2ndApprover_HOD != null
-                                            ? ((string)emailReport.ToEmail_2ndApprover_HOD).Split(',').ToList()
-                                            : null,
+                                               ? ((string)emailReport.ToEmail_2ndApprover_HOD).Split(',').ToList()
+                                               : null,
                                 Subject = $"New Manpower Requisition Request - {createdData.SerialNo}",
                                 TemplateName = "ManpowerRequisitionEmailTemplate.html",
-                                Placeholders = placeholders
+                                Placeholders = commonPlaceholders
                             };
 
-                            var emailLogger = new EmailLogger
+                            var rmEmailLogger = new EmailLogger
                             {
                                 ToEmail = (string)emailReport.ToEmail_1stApprover_RM,
                                 BCCEmail = (string)emailReport.BccEmail_Director,
                                 CCEmail = (string)emailReport.ToEmail_2ndApprover_HOD,
-                                Subject = emailRequest.Subject,
-                                Body = emailRequest.TemplateName,
+                                Subject = rmEmailRequest.Subject,
+                                Body = rmEmailRequest.TemplateName,
                                 Status = EmailStatus.Pending,
                                 SentAt = DateTime.UtcNow,
                                 Comments = "Email ready for sent"
                             };
 
-                            await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(emailLogger, "CREATE");
-                            bool emailSent = await _emailService.SendEmailAsync(emailRequest);
+                            await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(rmEmailLogger, "CREATE");
+                            await _emailService.SendEmailAsync(rmEmailRequest);
+                        }
+
+                        // ════════════════════════════════════════════════════════════════════
+                        // 2.  IT / HR Department Email  (new logic)
+                        // ════════════════════════════════════════════════════════════════════
+                        var itHrReport = await _unitOfWork.EmailReportRepository
+                                               .GetManpowerRequisitionEmailITandHR(newId);
+
+                        if (itHrReport != null)
+                        {
+                            var itHr = itHrReport as dynamic;
+
+                            string systemRequire = (string)(itHr.SystemRequire ?? "No");
+                            string emailIdRequire = (string)(itHr.EmailIdRequire ?? "No");
+                            string simRequire = (string)(itHr.SIMRequire ?? "No");
+                            string erpId = (string)(itHr.ERP_ID ?? "No");
+
+                            // IT/HR-specific placeholders — extend common ones
+                            var itHrPlaceholders = new Dictionary<string, string>(commonPlaceholders)
+                            {
+                                { "BranchName",          (string)(itHr.BranchName        ?? "N/A") },
+                                { "HRContactEmail",      (string)(itHr.HRContactEmail    ?? "N/A") },
+                                { "HRContactNumber",     (string)(itHr.HRContactNumber   ?? "N/A") },
+                                // Raw values
+                                { "SystemRequire",       systemRequire  },
+                                { "EmailIdRequire",      emailIdRequire },
+                                { "SIMRequire",          simRequire     },
+                                { "ERP_ID",              erpId          },
+                                // Colored badge HTML — rendered directly in the template cell
+                                { "SystemRequireBadge",  BadgeHtml(systemRequire)  },
+                                { "EmailIdRequireBadge", BadgeHtml(emailIdRequire) },
+                                { "SIMRequireBadge",     BadgeHtml(simRequire)     },
+                                { "ERP_IDBadge",         BadgeHtml(erpId)          }
+                            };
+
+                            // CC: Zone HR — common to both IT and HR emails
+                            var itHrCcEmails = !string.IsNullOrEmpty((string?)itHr.CcEmail_ZoneHR)
+                                               ? ((string)itHr.CcEmail_ZoneHR).Split(',').ToList()
+                                               : null;
+
+                            // Additional To: Reporting Manager + Created By employee
+                            var infoToEmails = new List<string>();
+                            if (!string.IsNullOrEmpty((string?)itHr.ToEmail_ReportingTo))
+                                infoToEmails.AddRange(((string)itHr.ToEmail_ReportingTo).Split(','));
+                            if (!string.IsNullOrEmpty((string?)itHr.ToEmail_CreatedBy))
+                                infoToEmails.AddRange(((string)itHr.ToEmail_CreatedBy).Split(','));
+
+                            // ── 2a. IT Department email ──────────────────────────────────────
+                            //        Trigger: System OR Email ID OR ERP ID required
+                            bool needsIT = systemRequire == "Yes"
+                                        || emailIdRequire == "Yes"
+                                        || erpId == "Yes";
+
+                            if (needsIT && !string.IsNullOrEmpty((string?)itHr.ToEmail_ITDepartment))
+                            {
+                                var itToEmails = ((string)itHr.ToEmail_ITDepartment).Split(',').ToList();
+                                itToEmails.AddRange(infoToEmails); // RM + employee also notified
+
+                                var itEmailRequest = new EmailRequest
+                                {
+                                    ToEmails = itToEmails,
+                                    CcEmails = itHrCcEmails,
+                                    Subject = $"IT Access Request for New Employee - {createdData.SerialNo}",
+                                    TemplateName = "ITAccessRequestTemplate.html",
+                                    Placeholders = itHrPlaceholders
+                                };
+
+                                var itEmailLogger = new EmailLogger
+                                {
+                                    ToEmail = string.Join(",", itToEmails),
+                                    CCEmail = itHrCcEmails != null ? string.Join(",", itHrCcEmails) : null,
+                                    Subject = itEmailRequest.Subject,
+                                    Body = itEmailRequest.TemplateName,
+                                    Status = EmailStatus.Pending,
+                                    SentAt = DateTime.UtcNow,
+                                    Comments = "IT access request email ready for send"
+                                };
+
+                                await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(itEmailLogger, "CREATE");
+                                await _emailService.SendEmailAsync(itEmailRequest);
+                            }
+
+                            // ── 2b. HR Department email ──────────────────────────────────────
+                            //        Trigger: SIM card required
+                            bool needsHR = simRequire == "Yes";
+
+                            if (needsHR && !string.IsNullOrEmpty((string?)itHr.ToEmail_HRDepartment))
+                            {
+                                var hrToEmails = ((string)itHr.ToEmail_HRDepartment).Split(',').ToList();
+                                hrToEmails.AddRange(infoToEmails); // RM + employee also notified
+
+                                var hrEmailRequest = new EmailRequest
+                                {
+                                    ToEmails = hrToEmails,
+                                    CcEmails = itHrCcEmails,
+                                    Subject = $"SIM Card Request for New Employee - {createdData.SerialNo}",
+                                    TemplateName = "ITAccessRequestTemplate.html",
+                                    Placeholders = itHrPlaceholders
+                                };
+
+                                var hrEmailLogger = new EmailLogger
+                                {
+                                    ToEmail = string.Join(",", hrToEmails),
+                                    CCEmail = itHrCcEmails != null ? string.Join(",", itHrCcEmails) : null,
+                                    Subject = hrEmailRequest.Subject,
+                                    Body = hrEmailRequest.TemplateName,
+                                    Status = EmailStatus.Pending,
+                                    SentAt = DateTime.UtcNow,
+                                    Comments = "HR SIM card request email ready for send"
+                                };
+
+                                await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(hrEmailLogger, "CREATE");
+                                await _emailService.SendEmailAsync(hrEmailRequest);
+                            }
                         }
                     }
 
+                    // ════════════════════════════════════════════════════════════════════
+                    // 3.  In-App Notification to Reporting Manager  (existing logic)
+                    // ════════════════════════════════════════════════════════════════════
                     var employeeDetails = await _unitOfWork.EmployeeManageRepository
-                                                .GetEmployeeById(Convert.ToInt32(model.CreatedBy));
+                                               .GetEmployeeById(Convert.ToInt32(model.CreatedBy));
 
                     if (employeeDetails != null && emailReport != null)
                     {
@@ -267,6 +401,23 @@ namespace HRMS_API.Controllers.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
             }
         }
+
+        [HttpGet("GetGradeByTakeHomeSalary/{TakeHomeSalary}/{CompanyId}")]
+        public async Task<APIResponse> GetGradeByTakeHomeSalary(int TakeHomeSalary, int CompanyId)
+        {
+            try
+            {
+                var data = await _unitOfWork.ManpowerRequisitionRepository.GetGradeByTakeHomeSalary(TakeHomeSalary, CompanyId);
+
+                return data;
+            }
+            catch
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve data. Please try again later." };
+            }
+        }
+
+
         [HttpPost("UpdateJoinningDetails")]
         public async Task<APIResponse> UpdateJoinningDetails(UpdateJoinningDetailsModel model)
         {
