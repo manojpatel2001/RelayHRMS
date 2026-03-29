@@ -107,9 +107,7 @@ builder.Services.AddHttpClient();
 // Custom Services
 builder.Services.AddScoped<FileUploadService>();
 builder.Services.AddScoped<EmailService>();
-builder.Services.AddScoped<EmailJobService>();
 builder.Services.AddScoped<AutoJobService>();
-builder.Services.AddHostedService<EmailSchedulerService>();
 // ====================== HANGFIRE ======================
 
 builder.Services.AddHangfire(config =>
