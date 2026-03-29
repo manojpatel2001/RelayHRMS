@@ -305,5 +305,37 @@ namespace HRMS_Infrastructure.Repository.EmailService
             return response;
         }
 
+        public async Task<AccessRequestViewModel> GetManpowerRequisitionEmailITandHR(int ManpowerRequisitionId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    // Set a longer command timeout if needed (e.g., 120 seconds)
+                    var result = await connection.QueryFirstOrDefaultAsync<AccessRequestViewModel>(
+                        "GetManpowerRequisitionEmail_IT_HR",
+                        new { ManpowerRequisitionId },
+                        commandType: CommandType.StoredProcedure,
+                        commandTimeout: 120 // Optional: Increase timeout if needed
+                    );
+
+                    return result;
+                }
+            }
+            catch (TaskCanceledException ex)
+            {
+                // Log the exception
+                Console.WriteLine($"Task was canceled: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // Log other exceptions
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return null;
+            }
+        }
     }
 }
