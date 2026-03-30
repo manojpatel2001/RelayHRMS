@@ -4,6 +4,7 @@ using HRMS_Core.ProfileManage;
 using HRMS_Core.VM;
 using HRMS_Core.VM.PasswordHistory;
 using HRMS_Infrastructure.Interface.Employee;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -22,23 +23,23 @@ namespace HRMS_Infrastructure.Repository.Employee
             _db = db;
         }
 
-        public async Task<HRMSUserIdentity?> ChangePassword(PasswordHistory histroy)
+        public async Task<SP_Response?> ChangePassword(PasswordHistory histroy)
         {
             try
             {
-                var exist=await _db.HRMSUserIdentities.FirstOrDefaultAsync(x=>x.Id== histroy.EMPID);
-                if (exist == null)
-                {
-                    return null;
-                }
-                exist.IsPasswordChange = true;
-                exist.Password = histroy.NewPassword;
-                await _db.SaveChangesAsync();   
-                return exist;
+                var result = await _db.Set<SP_Response>()
+                    .FromSqlInterpolated($@"
+                        EXEC SP_ChangePassword
+                            @EmpId = {histroy.EMPID},
+                            @NewPassword = {histroy.NewPassword}
+                           
+                    ").ToListAsync();
+
+                return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
             }
             catch
             {
-                return null;
+                return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
             }
         }
 
