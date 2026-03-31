@@ -142,8 +142,11 @@ app.UseAuthorization();
 app.MapHub<NotificationRemainderHub>("/NotificationRemainderHub");
 
 // Hangfire Dashboard
-app.UseHangfireDashboard("/hangfire");
 
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireNoAuthorizationFilter() }
+});
 // ====================== JOB START ======================
 
 using (var scope = app.Services.CreateScope())
