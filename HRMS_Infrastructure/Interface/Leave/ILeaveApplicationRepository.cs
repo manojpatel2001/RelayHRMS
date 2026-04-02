@@ -2,6 +2,7 @@
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
+using HRMS_Core.VM.Report;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,5 +27,6 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<CompoffLeaveBalanceViewModel?> GetLastLeaveBalanceDate(int Emp_Id);
         Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(GetYearlyLeaveReportRequest request);
         Task<List<LeaveApplicationReportModel>> GetLeaveApplicationsReport(GetYearlyLeaveReportRequest request);
+        Task<List<VMYearlyLeaveReport>> GetYearlyLeaveReportAsync(SearchVmYearlyLeaveReport filter);
     }
 }
