@@ -242,22 +242,22 @@ namespace HRMS_API.Services
         }
 
         // ✅ Hangfire Jobs
-        public void StartAutoJobService()
-        {
-            // Existing job
-            RecurringJob.AddOrUpdate(
-                     "probation-schedule-check",
-                     () => ScheduleDailyCheckProbation(),
-                     "*/5 * * * *"
-                 );
+        //public void StartAutoJobService()
+        //{
+        //    // Existing job
+        //    RecurringJob.AddOrUpdate(
+        //             "probation-schedule-check",
+        //             () => ScheduleDailyCheckProbation(),
+        //             "*/5 * * * *"
+        //         );
 
-            //// ✅ Daily 10 AM
-            RecurringJob.AddOrUpdate(
-                "probation-daily-notification",
-                () => ScheduleDailyProbationNotification(),
-                "30 4 * * *"
-            );
-        }
+        //    //// ✅ Daily 10 AM
+        //    RecurringJob.AddOrUpdate(
+        //        "probation-daily-notification",
+        //        () => ScheduleDailyProbationNotification(),
+        //        "30 4 * * *"
+        //    );
+        //}
 
 
 

@@ -117,8 +117,8 @@ builder.Services.AddHangfire(config =>
           .UseSqlServerStorage(builder.Configuration.GetConnectionString("HRMSConnection"));
 });
 
-// ? IMPORTANT: Worker
-builder.Services.AddHangfireServer();
+//// ? IMPORTANT: Worker
+//builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
@@ -143,20 +143,20 @@ app.MapHub<NotificationRemainderHub>("/NotificationRemainderHub");
 
 // Hangfire Dashboard
 
-app.UseHangfireDashboard("/hangfire", new DashboardOptions
-{
-    Authorization = new[] { new HangfireNoAuthorizationFilter() }
-});
+//app.UseHangfireDashboard("/hangfire", new DashboardOptions
+//{
+//    Authorization = new[] { new HangfireNoAuthorizationFilter() }
+//});
 // ====================== JOB START ======================
 
-using (var scope = app.Services.CreateScope())
-{
-    //var emailJobService = scope.ServiceProvider.GetRequiredService<EmailJobService>();
-    //emailJobService.StartScheduleDailyJobEmail();
+//using (var scope = app.Services.CreateScope())
+//{
+//    //var emailJobService = scope.ServiceProvider.GetRequiredService<EmailJobService>();
+//    //emailJobService.StartScheduleDailyJobEmail();
 
-    var autoJobService = scope.ServiceProvider.GetRequiredService<AutoJobService>();
-    autoJobService.StartAutoJobService();
-}
+//    var autoJobService = scope.ServiceProvider.GetRequiredService<AutoJobService>();
+//    autoJobService.StartAutoJobService();
+//}
 
 app.MapControllers();
 
