@@ -393,6 +393,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<SalaryPayableDaysPara>().HasNoKey().ToView(null);
              modelBuilder.Entity<GetGradeByTakeHomeSalaryvm>().HasNoKey().ToView(null);
              modelBuilder.Entity<AccessRequestViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<VMYearlyLeaveReport>().HasNoKey().ToView(null); 
+             modelBuilder.Entity<SearchVmYearlyLeaveReport>().HasNoKey().ToView(null); 
 
 
 

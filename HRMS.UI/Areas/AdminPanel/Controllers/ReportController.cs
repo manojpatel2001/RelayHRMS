@@ -78,5 +78,9 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View();
         }
+        public IActionResult YearlyLeaveBalanceAdminReports()
+        {
+            return View();
+        }
     }
 }

@@ -1,0 +1,1069 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Yearly Leave Report";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<style>
+    body, html {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+    }
+
+        .btn-custom:hover, .btn-custom:focus, .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .search-panel-wrapper {
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 0;
+    }
+
+    .form-control-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: .875rem;
+        padding: .25rem .5rem;
+    }
+
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 500px;
+        padding: 10px;
+        box-sizing: border-box;
+        margin: 0;
+    }
+
+    .field-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+    }
+
+        .field-group label {
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            margin: 0;
+        }
+
+        .field-group .field-input-wrap {
+            display: flex;
+            flex-direction: column;
+        }
+
+    /* ── CSS Searchable Dropdown ── */
+    .css-wrapper {
+        position: relative;
+        width: 200px;
+    }
+
+    .css-selected-box {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0px 28px 0px 8px;
+        cursor: pointer;
+        background: #fff;
+        font-size: 13px;
+        height: calc(1.5em + .5rem + 2px);
+        display: flex;
+        align-items: center;
+        user-select: none;
+        position: relative;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+        .css-selected-box::after {
+            content: '▾';
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 11px;
+            pointer-events: none;
+        }
+
+        .css-selected-box.open {
+            border-color: #3e4b6d;
+        }
+
+    .css-placeholder {
+        color: #6c757d;
+        font-size: 13px;
+    }
+
+    .css-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 2px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-height: 260px;
+        overflow: hidden;
+        flex-direction: column;
+    }
+
+        .css-dropdown.open {
+            display: flex;
+        }
+
+    .css-search-box {
+        padding: 6px 8px;
+        border-bottom: 1px solid #eee;
+        flex-shrink: 0;
+    }
+
+        .css-search-box input {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+            .css-search-box input:focus {
+                border-color: #3e4b6d;
+            }
+
+    .css-options-list {
+        overflow-y: auto;
+        max-height: 200px;
+        flex: 1;
+    }
+
+    .css-option {
+        padding: 7px 12px;
+        cursor: pointer;
+        font-size: 13px;
+        border-bottom: 1px solid #f5f5f5;
+        transition: background .15s;
+    }
+
+        .css-option:hover {
+            background-color: #eef1f8;
+        }
+
+        .css-option.selected {
+            background-color: #3e4b6d;
+            color: #fff;
+        }
+
+    .css-no-result {
+        padding: 10px 12px;
+        color: #999;
+        font-size: 13px;
+        text-align: center;
+    }
+
+    /* ── Global Search Box ── */
+    .global-search-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+        .global-search-wrap input {
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 13px;
+            width: 280px;
+            outline: none;
+        }
+
+            .global-search-wrap input:focus {
+                border-color: #3e4b6d;
+            }
+
+        .global-search-wrap label {
+            font-size: 13px;
+            font-weight: 500;
+            margin: 0;
+        }
+
+    /* ── Table ── */
+    .yearly-leave-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin-top: 4px;
+    }
+
+        .yearly-leave-table thead {
+            background-color: #3e4b6d;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+            .yearly-leave-table thead th {
+                padding: 10px 8px;
+                text-align: center;
+                font-weight: bold;
+                border: 1px solid #2d3a52;
+                white-space: nowrap;
+            }
+
+        .yearly-leave-table tbody td {
+            padding: 7px 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+            .yearly-leave-table tbody td.text-left {
+                text-align: left;
+            }
+
+        .yearly-leave-table tbody tr.employee-first-row td {
+            border-top: 2px solid #3e4b6d !important;
+        }
+
+    .emp-merged-cell {
+        background-color: #eef1f8;
+        font-weight: 600;
+        color: #3e4b6d;
+        vertical-align: middle !important;
+    }
+
+    .leave-merged-cell {
+        background-color: #f4f6fb;
+        font-weight: 700;
+        vertical-align: middle !important;
+        color: #333;
+    }
+
+    .opening-merged-cell {
+        background-color: #f4f6fb;
+        font-weight: 600;
+        vertical-align: middle !important;
+    }
+
+    .closing-row td {
+        background-color: #f0f7ff;
+        font-weight: 600;
+    }
+
+    .badge-type {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .badge-credit {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .badge-debit {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .badge-laps {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .badge-closing {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+
+    .val-pos {
+        color: #155724;
+        font-weight: 600;
+    }
+
+    .val-neg {
+        color: #721c24;
+        font-weight: 600;
+    }
+
+    .val-zero {
+        color: #555;
+        font-weight: 500;
+    }
+
+    .val-empty {
+        color: #bbb;
+    }
+
+    .no-data-row td {
+        text-align: center;
+        padding: 30px !important;
+        color: #888;
+        font-size: 14px;
+    }
+
+    /* ── Pagination ── */
+    .pagination-wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .pagination-info {
+        font-size: 13px;
+        color: #555;
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+    }
+
+    .page-btn {
+        border: 1px solid #ced4da;
+        background: #fff;
+        padding: 3px 10px;
+        font-size: 13px;
+        border-radius: 4px;
+        cursor: pointer;
+        min-width: 32px;
+        text-align: center;
+        transition: background .15s;
+    }
+
+        .page-btn:hover {
+            background: #eef1f8;
+            border-color: #3e4b6d;
+        }
+
+        .page-btn.active {
+            background: #3e4b6d;
+            color: #fff;
+            border-color: #3e4b6d;
+            font-weight: 600;
+        }
+
+        .page-btn:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
+    .page-size-select {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 3px 6px;
+        font-size: 13px;
+        outline: none;
+        cursor: pointer;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        width: 100%;
+        display: none;
+    }
+
+        .table-container.show {
+            display: block;
+        }
+
+    @@keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+<!-- Search Panel -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search Panel</div>
+        </div>
+    </div>
+</div>
+
+<div class="form-section">
+    <div class="d-flex flex-column align-items-center gap-3">
+        <div class="d-flex justify-content-center align-items-start gap-3 flex-wrap">
+
+            <!-- Branch -->
+            <div class="field-group">
+                <label>Branch :</label>
+                <div class="field-input-wrap">
+                    <div class="css-wrapper">
+                        <div class="css-selected-box" id="cssBranch_box">
+                            <span id="cssBranch_text" class="css-placeholder">Select</span>
+                        </div>
+                        <div class="css-dropdown" id="cssBranch_dropdown">
+                            <div class="css-search-box">
+                                <input type="text" id="cssBranch_search" placeholder="Search branch..." />
+                            </div>
+                            <div class="css-options-list" id="cssbranch_options"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="hdnBranchId" />
+                    <span id="errorBranch" style="color:red; display:none; font-size:12px;"></span>
+                </div>
+            </div>
+
+            <!-- From Date -->
+            <div class="field-group">
+                <label for="fromdate">From Date<span class="text-danger">*</span> :</label>
+                <div class="field-input-wrap">
+                    <input type="date" class="form-control form-control-sm" id="fromdate" style="width:160px;" />
+                    <span id="spnfromdate" style="color:red; display:none; font-size:12px;">Please Select From Date</span>
+                </div>
+            </div>
+
+            <!-- To Date -->
+            <div class="field-group">
+                <label for="todate">To Date<span class="text-danger">*</span> :</label>
+                <div class="field-input-wrap">
+                    <input type="date" class="form-control form-control-sm" id="todate" style="width:160px;" />
+                    <span id="spntodate" style="color:red; display:none; font-size:12px;">Please Select To Date</span>
+                </div>
+            </div>
+
+        </div>
+        <div class="d-flex justify-content-center gap-2">
+            <button class="btn btn-custom" id="btnGo">Go</button>
+            <button class="btn btn-custom" id="btnClear">Clear</button>
+            <button class="btn btn-custom"
+                    onclick="window.location.href='@Url.Action("Index", "MyReports")'">
+                Back
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Report Panel -->
+<div class="search-panel-wrapper mt-2">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Yearly Leave Report</div>
+            <div id="recordCount" style="color:white; font-size:13px;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-2">
+
+    <!-- Loader -->
+    <div id="grid-loader"
+         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh;
+                background:rgba(255,255,255,0.6); backdrop-filter:blur(3px);
+                z-index:9999; justify-content:center; align-items:center; flex-direction:column;">
+        <img src="@baseDomainUrl/loders/loder.png"
+             style="width:40px; height:40px; animation:spin 1s linear infinite;" />
+        <div style="font-size:16px; margin-top:8px;">Loading...</div>
+    </div>
+
+    <div class="table-container show" id="tableWrapper" style="display:none;">
+
+        <!-- Top bar: Search + Page Size -->
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <div class="global-search-wrap">
+                <label>Search:</label>
+                <input type="text" id="globalSearch" placeholder="Search name, location, leave type..." />
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <label style="font-size:13px; margin:0;">Show</label>
+                <select class="page-size-select" id="pageSize">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <label style="font-size:13px; margin:0;">entries</label>
+            </div>
+        </div>
+
+        <table class="yearly-leave-table" id="yearlyLeaveTable">
+            <thead>
+                <tr>
+                    <th>Location</th>
+                    <th>Emp Code</th>
+                    <th>Name</th>
+                    <th>DOJ</th>
+                    <th>Leave Type</th>
+                    <th>Opening</th>
+                    <th>Type</th>
+                    <th>Jan</th>
+                    <th>Feb</th>
+                    <th>Mar</th>
+                    <th>Apr</th>
+                    <th>May</th>
+                    <th>Jun</th>
+                    <th>Jul</th>
+                    <th>Aug</th>
+                    <th>Sep</th>
+                    <th>Oct</th>
+                    <th>Nov</th>
+                    <th>Dec</th>
+                    <th>Closing</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="pagination-wrap" id="paginationWrap">
+            <div class="pagination-info" id="paginationInfo"></div>
+            <div class="pagination-controls" id="paginationControls"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        initializePage();
+    });
+
+    // ── Auth ──────────────────────────────────────────────────────────
+    const savedCompany   = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany);
+    const Compid         = companyDetails.CompanyId;
+    const Token          = localStorage.getItem("authToken");
+
+    // ── Pagination state ──────────────────────────────────────────────
+    let allEmployees  = [];   // grouped employee objects
+    let filteredEmps  = [];   // after global search
+    let currentPage   = 1;
+    let pageSize      = 10;
+
+    // ── Loader ────────────────────────────────────────────────────────
+    function showLoader() { $('#grid-loader').css('display','flex'); }
+    function hideLoader() { $('#grid-loader').css('display','none'); }
+
+    function setDefaultDates() {
+        const y = new Date().getFullYear();
+        $("#fromdate").val(`${y}-01-01`);
+        $("#todate").val(`${y}-12-31`);
+    }
+
+    function formatDate(val) {
+        if (!val) return '-';
+        const d    = new Date(val);
+        const day  = String(d.getDate()).padStart(2,'0');
+        const mons = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${day}-${mons[d.getMonth()]}-${String(d.getFullYear()).substr(-2)}`;
+    }
+
+    function formatVal(val, rowType) {
+        if (val === null || val === undefined) return `<span class="val-empty">-</span>`;
+        const n = parseFloat(val);
+        if (isNaN(n)) return `<span class="val-empty">-</span>`;
+        const f = n % 1 === 0 ? n.toFixed(0) : n.toFixed(2);
+        if (rowType === 'Debit' || rowType === 'Laps') return `<span class="val-neg">${f}</span>`;
+        if (rowType === 'Credit')                      return `<span class="val-pos">${f}</span>`;
+        if (n > 0) return `<span class="val-pos">${f}</span>`;
+        if (n < 0) return `<span class="val-neg">${f}</span>`;
+        return `<span class="val-zero">${f}</span>`;
+    }
+
+    function badge(rowType) {
+        const cls = {
+            Credit :'badge-credit',
+            Debit  :'badge-debit',
+            Laps   :'badge-laps',
+            Closing:'badge-closing'
+        }[rowType] || 'badge-closing';
+        return `<span class="badge-type ${cls}">${rowType}</span>`;
+    }
+
+    // ── Get field — handles camelCase & PascalCase ────────────────────
+    function fld(row, name) {
+        if (row[name] !== undefined) return row[name];
+        const pascal = name.charAt(0).toUpperCase() + name.slice(1);
+        if (row[pascal] !== undefined) return row[pascal];
+        const found = Object.keys(row).find(k => k.toLowerCase() === name.toLowerCase());
+        return found ? row[found] : null;
+    }
+
+    // ── Group flat API rows → employee objects ────────────────────────
+    function groupData(apiData) {
+        const rtOrder = { Opening:0, Credit:1, Debit:2, Laps:3, Closing:4 };
+        const empMap  = new Map();
+
+        apiData.forEach(row => {
+            const empCode = fld(row,'employeeCode');
+            const name    = fld(row,'name');
+            const loc     = fld(row,'location');
+            const empKey  = empCode
+                ? String(empCode).trim()
+                : `${String(name||'').trim()}_${loc||''}`;
+
+            if (!empMap.has(empKey)) {
+                empMap.set(empKey, {
+                    location:'', employeeCode:'', name:'', doj:null,
+                    leaveMap: new Map()
+                });
+            }
+            const emp = empMap.get(empKey);
+            if (!emp.location     && loc)            emp.location     = loc;
+            if (!emp.employeeCode && empCode)        emp.employeeCode = String(empCode);
+            if (!emp.name         && name)           emp.name         = name;
+            if (!emp.doj          && fld(row,'doj')) emp.doj          = fld(row,'doj');
+
+            const lt = fld(row,'leaveType') || 'Unknown';
+            if (!emp.leaveMap.has(lt)) emp.leaveMap.set(lt, []);
+            emp.leaveMap.get(lt).push(row);
+        });
+
+        // Sort rows within each leaveType
+        empMap.forEach(emp => {
+            emp.leaveMap.forEach((rows, lt) => {
+                rows.sort((a,b) =>
+                    (rtOrder[fld(a,'rowType')] ?? 99) - (rtOrder[fld(b,'rowType')] ?? 99));
+            });
+        });
+
+        return Array.from(empMap.values());
+    }
+
+    // ── Render one employee group into HTML rows ──────────────────────
+    function renderEmployee(emp) {
+        let html = '';
+
+        // Count total body rows (exclude Opening)
+        let empBodyRows = 0;
+        emp.leaveMap.forEach(rows => {
+            empBodyRows += rows.filter(r => fld(r,'rowType') !== 'Opening').length;
+        });
+        if (empBodyRows === 0) return '';
+
+        let isFirstEmpRow = true;
+
+        emp.leaveMap.forEach((leaveRows, leaveType) => {
+            // Opening value
+            const openRow = leaveRows.find(r => fld(r,'rowType') === 'Opening');
+            let   openVal = '-';
+            if (openRow) {
+                const ov = fld(openRow,'opening');
+                if (ov !== null && ov !== undefined) {
+                    const n = parseFloat(ov);
+                    openVal = isNaN(n) ? '-' : (n % 1 === 0 ? n.toFixed(0) : n.toFixed(2));
+                }
+            }
+
+            const bodyRows  = leaveRows.filter(r => fld(r,'rowType') !== 'Opening');
+            const ltRowSpan = bodyRows.length;
+            if (ltRowSpan === 0) return;
+
+            let isFirstLtRow = true;
+
+            bodyRows.forEach(row => {
+                const rt        = fld(row,'rowType') || '';
+                const isClosing = rt === 'Closing';
+
+                html += `<tr class="${isFirstEmpRow ? 'employee-first-row' : ''} ${isClosing ? 'closing-row' : ''}">`;
+
+                // Employee merged cells
+                if (isFirstEmpRow) {
+                    html += `
+                        <td rowspan="${empBodyRows}" class="text-left emp-merged-cell">${emp.location     || '-'}</td>
+                        <td rowspan="${empBodyRows}" class="text-left emp-merged-cell">${emp.employeeCode || '-'}</td>
+                        <td rowspan="${empBodyRows}" class="text-left emp-merged-cell">${emp.name         || '-'}</td>
+                        <td rowspan="${empBodyRows}" class="emp-merged-cell">${formatDate(emp.doj)}</td>`;
+                }
+
+                // LeaveType + Opening merged cells
+                if (isFirstLtRow) {
+                    html += `
+                        <td rowspan="${ltRowSpan}" class="leave-merged-cell">${leaveType}</td>
+                        <td rowspan="${ltRowSpan}" class="opening-merged-cell">${openVal}</td>`;
+                }
+
+                html += `<td>${badge(rt)}</td>`;
+
+                ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
+                .forEach(m => { html += `<td>${formatVal(fld(row,m), rt)}</td>`; });
+
+                html += `<td>${isClosing
+                    ? formatVal(fld(row,'closing'),'Closing')
+                    : '<span class="val-empty">-</span>'}</td>`;
+
+                html += `</tr>`;
+                isFirstEmpRow = false;
+                isFirstLtRow  = false;
+            });
+        });
+
+        return html;
+    }
+
+    // ── Render current page ───────────────────────────────────────────
+    function renderPage() {
+        const tbody  = $('#tableBody');
+        const start  = (currentPage - 1) * pageSize;
+        const end    = Math.min(start + pageSize, filteredEmps.length);
+        const pageEmps = filteredEmps.slice(start, end);
+
+        if (pageEmps.length === 0) {
+            tbody.html(`<tr class="no-data-row"><td colspan="20">No records found.</td></tr>`);
+        } else {
+            tbody.html(pageEmps.map(renderEmployee).join(''));
+        }
+
+        updatePagination(start, end);
+    }
+
+    // ── Pagination controls ───────────────────────────────────────────
+    function updatePagination(start, end) {
+        const total     = filteredEmps.length;
+        const totalPages = Math.ceil(total / pageSize);
+
+        $('#paginationInfo').text(
+            total === 0
+                ? 'No records found'
+                : `Showing ${start + 1} to ${end} of ${total} employees`
+        );
+
+        let html = '';
+
+        // Prev
+        html += `<button class="page-btn" id="btnPrev" ${currentPage === 1 ? 'disabled' : ''}>‹ Prev</button>`;
+
+        // Page numbers
+        const delta = 2;
+        let pages = [];
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages ||
+                (i >= currentPage - delta && i <= currentPage + delta)) {
+                pages.push(i);
+            }
+        }
+
+        let prev = 0;
+        pages.forEach(p => {
+            if (prev && p - prev > 1) {
+                html += `<button class="page-btn" disabled>…</button>`;
+            }
+            html += `<button class="page-btn ${p === currentPage ? 'active' : ''}"
+                             data-page="${p}">${p}</button>`;
+            prev = p;
+        });
+
+        // Next
+        html += `<button class="page-btn" id="btnNext" ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}>Next ›</button>`;
+
+        const ctrl = $('#paginationControls');
+        ctrl.html(html);
+
+        // Events
+        ctrl.find('.page-btn[data-page]').on('click', function () {
+            currentPage = parseInt($(this).data('page'));
+            renderPage();
+        });
+        ctrl.find('#btnPrev').on('click', function () {
+            if (currentPage > 1) { currentPage--; renderPage(); }
+        });
+        ctrl.find('#btnNext').on('click', function () {
+            if (currentPage < totalPages) { currentPage++; renderPage(); }
+        });
+    }
+
+    // ── Global Search ─────────────────────────────────────────────────
+    function applySearch(query) {
+        const q = query.toLowerCase().trim();
+        if (!q) {
+            filteredEmps = [...allEmployees];
+        } else {
+            filteredEmps = allEmployees.filter(emp => {
+                // Search in name, location, employeeCode
+                if ((emp.name         || '').toLowerCase().includes(q)) return true;
+                if ((emp.location     || '').toLowerCase().includes(q)) return true;
+                if ((emp.employeeCode || '').toLowerCase().includes(q)) return true;
+                // Search in leaveType
+                let found = false;
+                emp.leaveMap.forEach((rows, lt) => {
+                    if (lt.toLowerCase().includes(q)) found = true;
+                });
+                return found;
+            });
+        }
+        currentPage = 1;
+        renderPage();
+        $('#recordCount').text(`Total Employees: ${filteredEmps.length}`);
+    }
+
+    // ── Build Table from API data ─────────────────────────────────────
+    function buildTable(apiData) {
+        if (!apiData || !Array.isArray(apiData) || apiData.length === 0) {
+            $('#tableBody').html(`<tr class="no-data-row"><td colspan="20">No records found for the selected period.</td></tr>`);
+            $('#tableWrapper').show();
+            $('#paginationWrap').hide();
+            $('#recordCount').text('');
+            return;
+        }
+
+        console.log("API keys  :", Object.keys(apiData[0]));
+        console.log("API row[0]:", apiData[0]);
+
+        allEmployees  = groupData(apiData);
+        filteredEmps  = [...allEmployees];
+        currentPage   = 1;
+        pageSize      = parseInt($('#pageSize').val()) || 10;
+
+        $('#globalSearch').val('');
+        $('#tableWrapper').show();
+        $('#paginationWrap').show();
+        $('#recordCount').text(`Total Employees: ${allEmployees.length}`);
+
+        renderPage();
+    }
+
+    // ── Load Branch List ──────────────────────────────────────────────
+    function loadBranchList() {
+        if (!Compid) return;
+        $.ajax({
+            url     : '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + Compid,
+            method  : 'GET',
+            headers : { 'Authorization': 'Bearer ' + Token },
+            success : function (response) {
+                buildBranchDropdown(response?.data || []);
+            },
+            error: function () { console.error('Branch load failed'); }
+        });
+    }
+
+    function buildBranchDropdown(data) {
+        const optList = $('#cssbranch_options');
+        optList.empty();
+
+        const allOpt = $(`<div class="css-option selected" data-id="" data-name="All Branches">All Branches</div>`);
+        allOpt.on('click', function () { selectBranch('', 'All Branches'); });
+        optList.append(allOpt);
+        selectBranch('', 'All Branches');
+
+        (data || []).forEach(function (item) {
+            const id   = item.branchId   || item.BranchId   || '';
+            const name = item.branchName || item.BranchName || '';
+            const opt  = $(`<div class="css-option" data-id="${id}" data-name="${name}">${name}</div>`);
+            opt.on('click', function () { selectBranch(id, name); });
+            optList.append(opt);
+        });
+    }
+
+    function selectBranch(id, name) {
+        $('#hdnBranchId').val(id);
+        $('#cssBranch_text').text(name).removeClass('css-placeholder');
+        $('#cssBranch_dropdown').removeClass('open');
+        $('#cssBranch_box').removeClass('open');
+        $('#errorBranch').hide();
+        $('#cssbranch_options .css-option').removeClass('selected');
+        $(`#cssbranch_options .css-option[data-id="${id}"]`).addClass('selected');
+    }
+
+    function resetBranchDropdown() {
+        selectBranch('', 'All Branches');
+        $('#cssBranch_search').val('');
+        $('#cssbranch_options .css-option').show();
+    }
+
+    function initBranchDropdownEvents() {
+        $('#cssBranch_box').on('click', function (e) {
+            e.stopPropagation();
+            const isOpen = $('#cssBranch_dropdown').hasClass('open');
+            closeAllDropdowns();
+            if (!isOpen) {
+                $('#cssBranch_dropdown').addClass('open');
+                $('#cssBranch_box').addClass('open');
+                $('#cssBranch_search').val('').trigger('input').focus();
+            }
+        });
+
+        $('#cssBranch_search').on('input', function () {
+            const q = $(this).val().toLowerCase().trim();
+            let hasResult = false;
+            $('#cssbranch_options .css-option').each(function () {
+                const show = !q || $(this).data('name').toLowerCase().includes(q);
+                $(this).toggle(show);
+                if (show) hasResult = true;
+            });
+            $('#cssbranch_options .css-no-result').remove();
+            if (!hasResult) {
+                $('#cssbranch_options').append('<div class="css-no-result">No results found</div>');
+            }
+        });
+
+        $('#cssBranch_dropdown').on('click', function (e) { e.stopPropagation(); });
+        $(document).on('click', function () { closeAllDropdowns(); });
+    }
+
+    function closeAllDropdowns() {
+        $('.css-dropdown').removeClass('open');
+        $('.css-selected-box').removeClass('open');
+    }
+
+    // ── Page Init ─────────────────────────────────────────────────────
+    function initializePage() {
+        setDefaultDates();
+        loadBranchList();
+        initBranchDropdownEvents();
+
+        // Page size change
+        $('#pageSize').on('change', function () {
+            pageSize    = parseInt($(this).val());
+            currentPage = 1;
+            renderPage();
+        });
+
+        // Global search
+        $('#globalSearch').on('input', function () {
+            applySearch($(this).val());
+        });
+
+        // Go
+        $('#btnGo').off('click').on('click', function () {
+            const fromDate = $("#fromdate").val();
+            const toDate   = $("#todate").val();
+            const branchId = $("#hdnBranchId").val();
+            let   isValid  = true;
+
+            if (!fromDate) {
+                $("#spnfromdate").show(); isValid = false;
+            } else {
+                $("#spnfromdate").hide();
+            }
+            if (!toDate) {
+                $("#spntodate").text("Please Select To Date").show(); isValid = false;
+            } else {
+                $("#spntodate").hide();
+            }
+            if (fromDate && toDate && new Date(fromDate) > new Date(toDate)) {
+                $("#spntodate").text("To Date must be >= From Date").show(); isValid = false;
+            }
+            if (!isValid) return;
+
+            showLoader();
+
+            const model = {
+                EmpIds    : null,
+                CompanyId : Compid,
+                BranchId  : branchId ? parseInt(branchId) : null,
+                StartDate : fromDate,
+                EndDate   : toDate
+            };
+
+            $.ajax({
+                url         : '@baseUrl/api/LeaveApplication/GetYearlyLeaveReportAsync',
+                type        : 'POST',
+                data        : JSON.stringify(model),
+                contentType : 'application/json',
+                headers     : { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    if (res.isSuccess) {
+                        buildTable(res.data);
+                    } else {
+                        $('#tableBody').html(`
+                            <tr class="no-data-row">
+                                <td colspan="20">${res.responseMessage || 'No records found.'}</td>
+                            </tr>`);
+                        $('#tableWrapper').show();
+                        $('#paginationWrap').hide();
+                        $('#recordCount').text('');
+                    }
+                },
+                error: function (xhr) {
+                    console.error("API Error:", xhr);
+                    $('#tableBody').html(`
+                        <tr class="no-data-row">
+                            <td colspan="20">An error occurred. Please try again.</td>
+                        </tr>`);
+                    $('#tableWrapper').show();
+                    $('#paginationWrap').hide();
+                    $('#recordCount').text('');
+                },
+                complete: function () { hideLoader(); }
+            });
+        });
+
+        // Clear
+        $("#btnClear").off('click').on('click', function () {
+            $("#fromdate, #todate").val('');
+            $("#spnfromdate, #spntodate").hide();
+            $('#tableBody').empty();
+            $('#tableWrapper').hide();
+            $('#paginationWrap').hide();
+            $('#recordCount').text('');
+            $('#globalSearch').val('');
+            allEmployees = [];
+            filteredEmps = [];
+            currentPage  = 1;
+            resetBranchDropdown();
+            setDefaultDates();
+        });
+    }
+</script>

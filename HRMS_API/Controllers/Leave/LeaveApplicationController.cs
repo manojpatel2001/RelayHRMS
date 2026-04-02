@@ -5,6 +5,7 @@ using HRMS_Core.Leave;
 using HRMS_Core.Notifications;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
+using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
@@ -473,6 +474,40 @@ namespace HRMS_API.Controllers.Leave
             try
             {
                 var data = await _unitOfWork.LeaveApplicationRepository.GetLeaveApplicationsReport(request);
+
+                if (data == null || data.Count == 0)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No leave records found."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Leave records fetched successfully."
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve leave records. Please try again later!"
+                };
+            }
+        }
+
+        [HttpPost("GetYearlyLeaveReportAsync")]
+        public async Task<APIResponse> GetYearlyLeaveReportAsync([FromBody] SearchVmYearlyLeaveReport request)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveApplicationRepository.GetYearlyLeaveReportAsync(request);
 
                 if (data == null || data.Count == 0)
                 {
