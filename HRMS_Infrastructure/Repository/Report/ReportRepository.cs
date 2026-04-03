@@ -98,6 +98,28 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+        public async Task<List<BranchWiseJoiningCountVM>> GetBranchWiseJoiningCount(int Companyid, DateTime StartDate, DateTime EndDate)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                var parameters = new DynamicParameters();
+
+        
+                parameters.Add("@CompanyId", Companyid);
+                parameters.Add("@FromDate", StartDate);
+                parameters.Add("@ToDate", EndDate);
+                var result = (await connection.QueryAsync<BranchWiseJoiningCountVM>(
+                    "SP_GetBranchWiseJoiningCount",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                )).ToList();
+
+                return result;
+            }
+        }
+
         public async Task<List<CompoffLapseReminderViewModel>> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays)
         {
             try
@@ -352,6 +374,29 @@ namespace HRMS_Infrastructure.Repository.Report
             catch (Exception)
             {
                 return new List<MonthlySalarySummaryViewModel>();
+            }
+        }
+
+        public async Task<List<LateEarlyMarkReportViewModel>> LateEarlyMarkReport(string EmpId, string BranchId, DateTime StartDate, DateTime EndDate)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                var parameters = new DynamicParameters();
+
+                parameters.Add("@StartDate", StartDate);
+                parameters.Add("@EndDate", EndDate);
+                parameters.Add("@BranchIds", BranchId);
+                parameters.Add("@EmpIds", EmpId);
+
+                var result = (await connection.QueryAsync<LateEarlyMarkReportViewModel>(
+                    "sp_LateEarlyMarkReport",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                )).ToList();
+
+                return result;
             }
         }
 

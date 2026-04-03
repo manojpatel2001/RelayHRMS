@@ -310,6 +310,52 @@ namespace HRMS_API.Controllers.Report
                 };
             }
         }
+        [HttpGet("GetBranchWiseJoiningCount")]
+        public async Task<APIResponse> GetBranchWiseJoiningCount(int Companyid, DateTime StratDate, DateTime EndDate)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetBranchWiseJoiningCount(Companyid, StratDate, EndDate);
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+        [HttpGet("LateEarlyMarkReport")]
+        public async Task<APIResponse> LateEarlyMarkReport(string EmpId, string BranchId, DateTime StartDate, DateTime EndDate)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.LateEarlyMarkReport(EmpId, BranchId, StartDate, EndDate);
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
 
 
         [HttpGet("GetEmployeeDetailsForLetter")]
