@@ -24,6 +24,8 @@ namespace HRMS_Infrastructure.Interface.Report
                GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear, int CompId);
         Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(string EmpId, int CompId, int Year);
         Task<List<LeaveYearlySummaryViewModel>> GetLeaveYearlySummary(string EmpCode, DateTime StartDate, DateTime EndDate);
+        Task<List<BranchWiseJoiningCountVM>> GetBranchWiseJoiningCount(int Companyid, DateTime StartDate, DateTime EndDate);
+        Task<List<LateEarlyMarkReportViewModel>> LateEarlyMarkReport(string EmpId, string BranchId, DateTime StartDate, DateTime EndDate);
 
         Task<List<ProbationStatusSearchViewModel>> GetProbationStatusSearchAsync(GetProbationSearchParam Model); 
         Task<List<EmployeeDetailsForLettervm>> GetEmployeeDetailsForLetter(int EmployeeId); 

@@ -395,6 +395,8 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<AccessRequestViewModel>().HasNoKey().ToView(null);
              modelBuilder.Entity<VMYearlyLeaveReport>().HasNoKey().ToView(null); 
              modelBuilder.Entity<SearchVmYearlyLeaveReport>().HasNoKey().ToView(null); 
+             modelBuilder.Entity<BranchWiseJoiningCountVM>().HasNoKey().ToView(null); 
+             modelBuilder.Entity<LateEarlyMarkReportViewModel>().HasNoKey().ToView(null); 
 
 
 
