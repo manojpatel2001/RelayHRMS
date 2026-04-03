@@ -1,4 +1,5 @@
 ﻿using Azure.Core;
+using Dapper;
 using HRMS_Core.DbContext;
 using HRMS_Core.Leave;
 using HRMS_Core.Notifications;
@@ -11,6 +12,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,10 +22,12 @@ namespace HRMS_Infrastructure.Repository.Leave
     public class LeaveApplicationRepository : Repository<HRMS_Core.Leave.LeaveApplication>, ILeaveApplicationRepository
     {
         private HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public LeaveApplicationRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
         public async Task<List<VMLeaveApplicationSearchResult>> GetLeaveApplicationsAsync(SearchVmCompOff filter)
         {
@@ -347,70 +351,29 @@ namespace HRMS_Infrastructure.Repository.Leave
         }
         public async Task<List<VMYearlyLeaveReport>> GetYearlyLeaveReportAsync(SearchVmYearlyLeaveReport request)
         {
-            var result = new List<VMYearlyLeaveReport>();
-
             try
             {
-                var conn = _db.Database.GetDbConnection();
-                if (conn.State != System.Data.ConnectionState.Open)
-                    await conn.OpenAsync();
+                using var connection = new SqlConnection(_connectionString);
 
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = "GetYearlyLeaveReport_MultipleEmployeesTest";
-                cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                cmd.CommandTimeout = 120;
+                var parameters = new DynamicParameters();
+                parameters.Add("@EmpIds", request.EmpIds, DbType.String);
+                parameters.Add("@CompanyId", request.CompanyId, DbType.Int32);
+                parameters.Add("@BranchId", request.BranchId, DbType.Int32);
+                parameters.Add("@StartDate", request.StartDate, DbType.Date);
+                parameters.Add("@EndDate", request.EndDate, DbType.Date);
 
-                // Parameters
-                cmd.Parameters.Add(new SqlParameter("@EmpIds", (object?)request.EmpIds ?? DBNull.Value));
-                cmd.Parameters.Add(new SqlParameter("@CompanyId", (object?)request.CompanyId ?? DBNull.Value));
-                cmd.Parameters.Add(new SqlParameter("@BranchId", (object?)request.BranchId ?? DBNull.Value));
-                cmd.Parameters.Add(new SqlParameter("@StartDate", request.StartDate));
-                cmd.Parameters.Add(new SqlParameter("@EndDate", request.EndDate));
+                var result = await connection.QueryAsync<VMYearlyLeaveReport>(
+                    "GetYearlyLeaveReport_MultipleEmployeesTest",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
 
-                using var reader = await cmd.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
-                {
-                    result.Add(new VMYearlyLeaveReport
-                    {
-                        Location = reader["Location"] == DBNull.Value ? null : reader["Location"].ToString(),
-                        EmployeeCode = reader["EmployeeCode"] == DBNull.Value ? null : reader["EmployeeCode"].ToString(),
-                        Name = reader["Name"] == DBNull.Value ? null : reader["Name"].ToString(),
-                        DOJ = reader["DOJ"] == DBNull.Value ? null : Convert.ToDateTime(reader["DOJ"]),
-                        LeaveType = reader["LeaveType"] == DBNull.Value ? null : reader["LeaveType"].ToString(),
-                        Opening = reader["Opening"] == DBNull.Value ? null : Convert.ToDecimal(reader["Opening"]),
-                        RowType = reader["RowType"] == DBNull.Value ? null : reader["RowType"].ToString(),
-
-                        Jan = reader["Jan"] == DBNull.Value ? null : Convert.ToDecimal(reader["Jan"]),
-                        Feb = reader["Feb"] == DBNull.Value ? null : Convert.ToDecimal(reader["Feb"]),
-                        Mar = reader["Mar"] == DBNull.Value ? null : Convert.ToDecimal(reader["Mar"]),
-                        Apr = reader["Apr"] == DBNull.Value ? null : Convert.ToDecimal(reader["Apr"]),
-                        May = reader["May"] == DBNull.Value ? null : Convert.ToDecimal(reader["May"]),
-                        Jun = reader["Jun"] == DBNull.Value ? null : Convert.ToDecimal(reader["Jun"]),
-                        Jul = reader["Jul"] == DBNull.Value ? null : Convert.ToDecimal(reader["Jul"]),
-                        Aug = reader["Aug"] == DBNull.Value ? null : Convert.ToDecimal(reader["Aug"]),
-                        Sep = reader["Sep"] == DBNull.Value ? null : Convert.ToDecimal(reader["Sep"]),
-                        Oct = reader["Oct"] == DBNull.Value ? null : Convert.ToDecimal(reader["Oct"]),
-                        Nov = reader["Nov"] == DBNull.Value ? null : Convert.ToDecimal(reader["Nov"]),
-                        Dec = reader["Dec"] == DBNull.Value ? null : Convert.ToDecimal(reader["Dec"]),
-
-                        Closing = reader["Closing"] == DBNull.Value ? null : Convert.ToDecimal(reader["Closing"]),
-
-                        // Convert.ToInt32 handles both INT and BIGINT from SQL safely
-                        EmpRowSpan = reader["EmpRowSpan"] == DBNull.Value ? 0 : Convert.ToInt32(reader["EmpRowSpan"]),
-                        RowNumInGroup = reader["RowNumInGroup"] == DBNull.Value ? 0 : Convert.ToInt32(reader["RowNumInGroup"]),
-                        LeaveTypeRowSpan = reader["LeaveTypeRowSpan"] == DBNull.Value ? 0 : Convert.ToInt32(reader["LeaveTypeRowSpan"]),
-                        RowNumInLeaveType = reader["RowNumInLeaveType"] == DBNull.Value ? 0 : Convert.ToInt32(reader["RowNumInLeaveType"]),
-                    });
-                }
+                return result.ToList();
             }
             catch (Exception ex)
             {
-                Console.WriteLine("GetYearlyLeaveReportAsync Error: " + ex.Message);
-                return new List<VMYearlyLeaveReport>();
+                throw new Exception("GetYearlyLeaveReportAsync : " + ex.Message);
             }
-
-            return result;
         }
     }
 }

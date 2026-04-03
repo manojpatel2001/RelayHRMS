@@ -8,15 +8,13 @@ namespace HRMS_Core.VM.Report
 {
     public class VMYearlyLeaveReport
     {
-        public string? Location { get; set; }
-        public string? EmployeeCode { get; set; }
-        public string? Name { get; set; }
+        public string Location { get; set; }
+        public string EmployeeCode { get; set; }
+        public string Name { get; set; }
         public DateTime? DOJ { get; set; }
-
-        public string? LeaveType { get; set; }
+        public string LeaveType { get; set; }
         public decimal? Opening { get; set; }
-        public string? RowType { get; set; }
-
+        public string RowType { get; set; }
         public decimal? Jan { get; set; }
         public decimal? Feb { get; set; }
         public decimal? Mar { get; set; }
@@ -30,11 +28,6 @@ namespace HRMS_Core.VM.Report
         public decimal? Nov { get; set; }
         public decimal? Dec { get; set; }
         public decimal? Closing { get; set; }
-
-        // ── Fix: back to int (SP is casting to INT) ──
-        public int EmpRowSpan { get; set; }
-        public int RowNumInGroup { get; set; }
-        public int LeaveTypeRowSpan { get; set; }
-        public int RowNumInLeaveType { get; set; }
     }
+ 
 }
