@@ -27,7 +27,7 @@ namespace HRMS_API.Controllers.Authentication
         private readonly SignInManager<HRMSUserIdentity> _signInManager;
         private readonly IConfiguration _configuration;
 
-        public AuthenticationAPIController(IUnitOfWork unitOfWork,UserManager<HRMSUserIdentity> userManager, SignInManager<HRMSUserIdentity> signInManager, IConfiguration configuration)
+        public AuthenticationAPIController(IUnitOfWork unitOfWork, UserManager<HRMSUserIdentity> userManager, SignInManager<HRMSUserIdentity> signInManager, IConfiguration configuration)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -40,32 +40,32 @@ namespace HRMS_API.Controllers.Authentication
         public async Task<APIResponse> Login(vmLogin model)
         {
             // Check if the model state is valid
-            if (model==null)
+            if (model == null)
             {
-                return new APIResponse { isSuccess = false ,ResponseMessage="Login details cannot be null"};
+                return new APIResponse { isSuccess = false, ResponseMessage = "Login details cannot be null" };
             }
 
             var SuperAdmin = await _unitOfWork.SuperAdminDetailsRepository.GetSuperAdminByCredentials(model);
 
             if (SuperAdmin != null)
             {
-                var company= await _unitOfWork.CompanyDetailsRepository.GetAllCompanyDetailsList();
+                var company = await _unitOfWork.CompanyDetailsRepository.GetAllCompanyDetailsList();
 
                 var userDetails = new UserDetailsDto
                 {
                     Id = SuperAdmin.Id,
                     Email = SuperAdmin.Email,
                     FullName = SuperAdmin?.FullName,
-                    EmployeeCode="0",
+                    EmployeeCode = "0",
                     Designation = "Super Admin",
-                    BranchId=0,
+                    BranchId = 0,
                     ProfileUrl = SuperAdmin?.ProfileImageUrl,
                     Password = SuperAdmin?.Password,
                     RoleName = "Super Admin",
                     RoleSlug = "super-admin",
                     //Permissions = new List<string> { "all-admin" },
                     Company = JsonSerializer.Serialize(company),
-                    IsPasswordChange=true
+                    IsPasswordChange = true
                 };
 
                 // Generate JWT token
@@ -76,34 +76,34 @@ namespace HRMS_API.Controllers.Authentication
 
 
                 // Return the token
-                return new APIResponse { isSuccess = true,Data=new {Token=token }, ResponseMessage = "Login Successfully!" };
+                return new APIResponse { isSuccess = true, Data = new { Token = token }, ResponseMessage = "Login Successfully!" };
 
             }
             else
             {
-               
+
                 var user = await _unitOfWork.EmployeeManageRepository.UserLogin(model);
                 if (user == null)
                 {
                     return new APIResponse { isSuccess = false, ResponseMessage = "Invalid email or password." };
                 }
                 var emp_company = await _unitOfWork.UserCompanyPermissionsRepository.GetCompanyPermissionsListByEmployeeId((int)user.Id);
-                
+
                 var userDetails = new UserDetailsDto
                 {
                     Id = (int)user.Id,
                     Email = user.Email,
-                    FullName=user?.FullName,
-                    EmployeeCode=user?.EmployeeCode,
+                    FullName = user?.FullName,
+                    EmployeeCode = user?.EmployeeCode,
                     Designation = user?.DesignationName,
                     BranchId = user?.BranchId,
-                    ProfileUrl =user?.EmployeeProfileUrl,
+                    ProfileUrl = user?.EmployeeProfileUrl,
                     Password = user?.Password,
                     RoleName = user?.RoleName,
                     RoleSlug = user?.RoleSlug,
                     //Permissions = permssions,
                     Company = JsonSerializer.Serialize(emp_company),
-                    IsPasswordChange= user?.IsPasswordChange
+                    IsPasswordChange = user?.IsPasswordChange
                 };
 
                 // Generate JWT token
@@ -154,6 +154,14 @@ namespace HRMS_API.Controllers.Authentication
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private string GetDeviceType(string userAgent)
+        {
+            userAgent = userAgent.ToLower();
+            if (userAgent.Contains("mobile")) return "Mobile";
+            if (userAgent.Contains("tablet") || userAgent.Contains("ipad")) return "Tablet";
+            return "Desktop";
         }
     }
 }

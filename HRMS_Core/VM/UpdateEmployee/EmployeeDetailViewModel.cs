@@ -58,6 +58,7 @@ namespace HRMS_Core.VM.UpdateEmployee
         public string? EmployeeProfileUrl { get; set; }
         public string? EmployeeSignatureUrl { get; set; }
         public int AttendanceLimit { get; set; }
+        public string Remark { get; set; }
    
     }
 

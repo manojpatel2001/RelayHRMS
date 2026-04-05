@@ -203,6 +203,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     IsPFApplicable = employeeData.IsPFApplicable,
                     Probation = employeeData.Probation,
                     AttendanceLimit = employeeData.AttendanceLimit,
+                    Remark = employeeData.Remark,
                     RoleId=employeeData.RoleId
 
                 };
