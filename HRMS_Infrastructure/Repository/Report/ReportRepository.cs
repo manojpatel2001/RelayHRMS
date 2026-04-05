@@ -377,7 +377,8 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
-        public async Task<List<LateEarlyMarkReportViewModel>> LateEarlyMarkReport(string EmpId, string BranchId, DateTime StartDate, DateTime EndDate)
+
+        public async Task<List<LateEarlyMarkReportViewModel>> LateEarlyMarkReport(Reportvm reportvm)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
@@ -385,13 +386,36 @@ namespace HRMS_Infrastructure.Repository.Report
 
                 var parameters = new DynamicParameters();
 
-                parameters.Add("@StartDate", StartDate);
-                parameters.Add("@EndDate", EndDate);
-                parameters.Add("@BranchIds", BranchId);
-                parameters.Add("@EmpIds", EmpId);
+                parameters.Add("@StartDate", reportvm.StartDate);
+                parameters.Add("@EndDate", reportvm.EndDate);
+                parameters.Add("@BranchIds", reportvm.BranchId);
+                parameters.Add("@EmpIds", reportvm.EmpId);
 
                 var result = (await connection.QueryAsync<LateEarlyMarkReportViewModel>(
                     "sp_LateEarlyMarkReport",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                )).ToList();
+
+                return result;
+            }
+        }
+
+        public async Task<List<MobileInOutSummaryVM>> MobileInOutSummary(Reportvm reportvm)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                var parameters = new DynamicParameters();
+
+                parameters.Add("@StartDate", reportvm.StartDate);
+                parameters.Add("@EndDate", reportvm.EndDate);
+                parameters.Add("@BranchId", reportvm.BranchId);
+                parameters.Add("@EmpId", reportvm.EmpId);
+
+                var result = (await connection.QueryAsync<MobileInOutSummaryVM>(
+                    "usp_MobileInOutSummary",
                     parameters,
                     commandType: CommandType.StoredProcedure
                 )).ToList();

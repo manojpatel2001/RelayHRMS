@@ -1,4 +1,5 @@
-﻿using HRMS_Core.VM.Employee;
+﻿using DocumentFormat.OpenXml.Bibliography;
+using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
@@ -334,11 +335,34 @@ namespace HRMS_API.Controllers.Report
             }
         }
         [HttpGet("LateEarlyMarkReport")]
-        public async Task<APIResponse> LateEarlyMarkReport(string EmpId, string BranchId, DateTime StartDate, DateTime EndDate)
+        public async Task<APIResponse> LateEarlyMarkReport(Reportvm reportvm)
         {
             try
             {
-                var data = await _unitOfWork.ReportRepository.LateEarlyMarkReport(EmpId, BranchId, StartDate, EndDate);
+                var data = await _unitOfWork.ReportRepository.LateEarlyMarkReport(reportvm);
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+        [HttpGet("MobileInOutSummary")]
+        public async Task<APIResponse> MobileInOutSummary(Reportvm reportvm)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.MobileInOutSummary(reportvm);
                 return new APIResponse
                 {
                     isSuccess = true,

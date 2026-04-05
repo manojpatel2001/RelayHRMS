@@ -300,6 +300,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     parameters.Add("@EmployeeNamePrmaryBank", employee.EmployeeNamePrmaryBank);
                     parameters.Add("@CreatedBy", employee.CreatedBy);
                     parameters.Add("@AttendanceLimit", employee.AttendanceLimit);
+                    parameters.Add("@Remark", employee.Remark);
                     parameters.Add("@RoleId", employee.RoleId);
 
                     parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
@@ -402,6 +403,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     parameters.Add("@WeekOffDetailsId", employee.WeekOffDetailsId);
                     parameters.Add("@IsPermissionPunchInOut", employee.IsPermissionPunchInOut);
                     parameters.Add("@AttendanceLimit", employee.AttendanceLimit);
+                    parameters.Add("@Remark", employee.Remark);
                     parameters.Add("@UpdatedBy", employee.UpdatedBy);
 
                     parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);

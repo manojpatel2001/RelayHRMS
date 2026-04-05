@@ -1,4 +1,5 @@
-﻿using HRMS_Core.SuperAdmin;
+﻿using HRMS_Core.Employee;
+using HRMS_Core.SuperAdmin;
 using HRMS_Core.VM;
 using System;
 using System.Collections.Generic;
@@ -11,5 +12,6 @@ namespace HRMS_Infrastructure.Interface.SuperAdmin
     public interface ISuperAdminDetailsRepository:IRepository<SuperAdminDetails>
     {
         Task<SuperAdminDetails?> GetSuperAdminByCredentials(vmLogin vmLogin);
+        Task<int> InsertLoginHistory(LoginHistory model);
     }
 }
