@@ -161,7 +161,7 @@ namespace HRMS_Core.VM.EmployeeMaster
         public string? EmployeeESIReport{ get; set; }
         public string? EmployeeNamePrmaryBank{ get; set; }
         public int AttendanceLimit { get; set; }
-        public string Remark { get; set; }
+        public string? Remark { get; set; }
 
     }
 
