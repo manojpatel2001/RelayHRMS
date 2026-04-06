@@ -9,6 +9,12 @@
 <title>Leave Cancellation Approval</title>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- ✅ ExcelJS + FileSaver for Export -->
+<!-- ❌ xlsx.full.min.js (SheetJS) NOT included — causes conflicts -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -41,6 +47,22 @@
             color: white;
             outline: none;
             box-shadow: none;
+        }
+
+    .btn-excel {
+        background-color: #1e7e34;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+        .btn-excel:hover {
+            background-color: #155724;
+            color: white;
         }
 
     .search-panel-wrapper {
@@ -88,7 +110,6 @@
         padding: .25rem .5rem;
     }
 
-    /* Grid width fixes */
     .container {
         max-width: 100% !important;
         width: 100% !important;
@@ -140,15 +161,6 @@
         width: 100%;
         margin-bottom: 10px;
     }
-
-    .btn-add {
-        background-color: orange;
-        color: white;
-        font-size: 14px;
-        padding: 6px 15px;
-        border: none;
-        border-radius: 4px;
-    }
 </style>
 
 <!-- Search Panel Header -->
@@ -160,6 +172,7 @@
         </div>
     </div>
 </div>
+
 <!-- Form Starts -->
 <div class="form-section">
     <!-- Row 1: Search By & Search For -->
@@ -214,7 +227,7 @@
                 <!-- Action Buttons -->
                 <div class="d-flex align-items-center mt-2 mt-md-0">
                     <button class="btn btn-custom me-2" id="btnGo">Go</button>
-                    <button class="btn btn-custom" id="btnClear">Clear</button>
+                    <button class="btn btn-custom me-2" id="btnClear">Clear</button>
                     <button class="btn btn-custom" onclick="goBack()">Back</button>
                 </div>
             </div>
@@ -233,63 +246,61 @@
 
 <!-- Action Buttons + Grid Container -->
 <div class="container mt-3">
+
     <!-- Action Buttons Row -->
     <div id="actionButtons" class="custom-action-buttons text-end mb-2" style="display: none;">
-        <button id="btnApprove" class="btn btn-custom">Approve</button>
+        <!-- Export to Excel — unique function name avoids conflict with any shared export-data.js -->
+        <button class="btn btn-excel me-2" onclick="exportLeaveCancellationToExcel()">
+            <i class="fas fa-file-excel"></i> Export to Excel
+        </button>
+        <button id="btnApprove" class="btn btn-custom me-2">Approve</button>
         <button id="btnReject" class="btn btn-custom">Reject</button>
     </div>
 
-    <!--Loader-->
+    <!-- Loader -->
     <div id="grid-loader"
          class="grid-loader justify-content-center align-items-center flex-column"
          style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+                background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
         <img src="@(baseDomainUrl)/loders/loder.png"
              class="grid-logo-spinner"
              style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
         <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
     </div>
 
-    <!-- Grid Container with proper width -->
+    <!-- Grid Container -->
     <div class="grid-container">
         <div id="leaveCancellationGrid"></div>
     </div>
 </div>
 
 <script>
-    const EmployeeId = localStorage.getItem('EmployeeId');
-      const savedCompany = localStorage.getItem('selectedCompany');
-      var companyDetails = JSON.parse(savedCompany);
-      const CompanyId = companyDetails.CompanyId;
-    // Safe grid disposal function
+    var EmployeeId     = localStorage.getItem('EmployeeId');
+    var savedCompany   = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    var CompanyId      = companyDetails.CompanyId;
+
+    var selectedKeys = [];
+
+    /* ── Safe grid disposal ─────────────────────── */
     function safeDisposeGrid() {
         try {
             var gridInstance = $("#leaveCancellationGrid").data("dxDataGrid");
-            if (gridInstance) {
-                gridInstance.dispose();
-            }
-        } catch (e) {
-
-        }
+            if (gridInstance) { gridInstance.dispose(); }
+        } catch (e) {}
         $("#leaveCancellationGrid").empty();
     }
 
+    /* ── Document Ready ─────────────────────────── */
     $(document).ready(function () {
-        $('#r2').prop('checked', true); // Default to Pending
-        $('#btnGo').click(); // Trigger initial load
+        $('#r2').prop('checked', true);
+        $('#btnGo').click();
 
-        $("#btnApprove").click(function () {
-            updateLeaveCancellationStatus("Approved");
-        });
-
-        $("#btnReject").click(function () {
-            updateLeaveCancellationStatus("Rejected");
-        });
+        $("#btnApprove").click(function () { updateLeaveCancellationStatus("Approved"); });
+        $("#btnReject").click(function ()  { updateLeaveCancellationStatus("Rejected"); });
     });
 
-    let selectedKeys = [];
-
-    // Get selected status from radio buttons
+    /* ── Helpers ────────────────────────────────── */
     function getStatus() {
         if ($('#r2').is(':checked')) return 'Pending';
         if ($('#r3').is(':checked')) return 'Approved';
@@ -297,40 +308,27 @@
         return null;
     }
 
-    // Map dropdown value to parameter
     function getSearchByText(value) {
         switch (value) {
             case '1': return 'EmpName';
             case '2': return 'EmpCode';
             case '3': return 'LeaveType';
             case '4': return 'ManagerName';
-            default: return null;
+            default:  return null;
         }
     }
 
-        function goBack() {
-            window.history.back(); // Navigates to the previous page
-        }
-    async function showLoder() {
-        $('#grid-loader').addClass('d-flex').show();
-    }
+    function goBack() { window.history.back(); }
 
-    async function hideLoder() {
-        $('#grid-loader').removeClass('d-flex').hide();
-    }
+    function showLoder() { $('#grid-loader').addClass('d-flex').show(); }
+    function hideLoder()  { $('#grid-loader').removeClass('d-flex').hide(); }
 
+    /* ── Load Grid ──────────────────────────────── */
     function loadGrid(data) {
-        // Dispose existing grid first to prevent conflicts
         try {
-            const gridInstance = $("#leaveCancellationGrid").dxDataGrid("instance");
-            if (gridInstance) {
-                gridInstance.dispose();
-            }
-        } catch (e) {
-            // Grid doesn't exist yet, that's okay
-        }
-
-        // Clear the container
+            var gridInstance = $("#leaveCancellationGrid").dxDataGrid("instance");
+            if (gridInstance) { gridInstance.dispose(); }
+        } catch (e) {}
         $("#leaveCancellationGrid").empty();
 
         if (!data || data.length === 0) {
@@ -339,51 +337,39 @@
             return;
         }
 
-        // Show heading if data exists
         $(".search-panel-wrapper").last().show();
 
         $("#leaveCancellationGrid").dxDataGrid({
-            dataSource: data,
-            keyExpr: "leaveCancellationId",
-            showBorders: true,
-            width: "100%",
-            height: 400,
-            columnAutoWidth: true,
-            wordWrapEnabled: false,
-            paging: {
-                enabled: false
-            },
-            scrolling: {
-                mode: "standard",
-                useNative: true,
-                showScrollbar: "always"
-            },
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "always"
-            },
-            filterRow: { visible: false },
-            searchPanel: { visible: false },
-            onSelectionChanged: function (e) {
+            dataSource      : data,
+            keyExpr         : "leaveCancellationId",
+            showBorders     : true,
+            width           : "100%",
+            height          : 400,
+            columnAutoWidth : true,
+            wordWrapEnabled : false,
+            paging          : { enabled: false },
+            scrolling       : { mode: "standard", useNative: true, showScrollbar: "always" },
+            selection       : { mode: "multiple", showCheckBoxesMode: "always" },
+            filterRow       : { visible: false },
+            searchPanel     : { visible: false },
+            onSelectionChanged : function (e) {
                 selectedKeys = e.selectedRowKeys;
             },
-            columns: [
-                { dataField: "employeeCode", caption: "Employee Code", width: 80 },
-                { dataField: "id", visible: false },
-                { dataField: "fullName", caption: "Employee Name", width: 200 },
-                { dataField: "leave_Name", caption: "Leave Type", width: 120 },
-                { dataField: "fromDate", caption: "From Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
-                { dataField: "toDate", caption: "To Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
-                { dataField: "no_Of_Date", caption: "Days", width: 60 },
-                { dataField: "reason", caption: "Cancellation Reason", width: 200 },
-                { dataField: "leaveStatus", caption: "Leave Status", width: 200 },
-                // { dataField: "CreatedDate", caption: "Request Date", dataType: "date", format: "dd/MM/yyyy", width: 110 },
-
+            columns : [
+                { dataField: "employeeCode",   caption: "Employee Code",      width: 80 },
+                { dataField: "id",             visible: false },
+                { dataField: "fullName",       caption: "Employee Name",      width: 200 },
+                { dataField: "leave_Name",     caption: "Leave Type",         width: 120 },
+                { dataField: "fromDate",       caption: "From Date",          dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "toDate",         caption: "To Date",            dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "no_Of_Date",     caption: "Days",               width: 60 },
+                { dataField: "reason",         caption: "Cancellation Reason", width: 200 },
+                { dataField: "leaveStatus",    caption: "Leave Status",       width: 200 },
                 {
                     dataField: "updatedBy",
                     caption: "Approved By",
                     width: 150,
-                    calculateCellValue: function(rowData) {
+                    calculateCellValue: function (rowData) {
                         return rowData.updatedBy ? rowData.updatedBy : "-";
                     }
                 },
@@ -393,13 +379,13 @@
                     dataType: "date",
                     format: "dd/MM/yyyy",
                     width: 120,
-                    calculateCellValue: function(rowData) {
+                    calculateCellValue: function (rowData) {
                         if (!rowData.updatedDate) return "-";
-                        const date = new Date(rowData.updatedDate);
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const year = date.getFullYear();
-                        return `${day}/${month}/${year}`;
+                        var date  = new Date(rowData.updatedDate);
+                        var day   = String(date.getDate()).padStart(2, '0');
+                        var month = String(date.getMonth() + 1).padStart(2, '0');
+                        var year  = date.getFullYear();
+                        return day + '/' + month + '/' + year;
                     }
                 }
             ]
@@ -408,32 +394,173 @@
         $("#actionButtons").show();
     }
 
+    /* ══════════════════════════════════════════════════════════
+       exportLeaveCancellationToExcel()
+       Unique name — cannot be overwritten by shared export-data.js
+       Uses ExcelJS only. SheetJS (xlsx.full.min.js) NOT loaded.
+    ══════════════════════════════════════════════════════════ */
+    function exportLeaveCancellationToExcel() {
+        var $grid = $("#leaveCancellationGrid");
+
+        if (!$grid.length || !$grid.data("dxDataGrid")) {
+            Swal.fire('Warning', 'Grid not initialized.', 'warning');
+            return;
+        }
+
+        var grid         = $grid.dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
+
+        /* If nothing selected → export all visible DATA rows */
+        if (!selectedRows || selectedRows.length === 0) {
+            selectedRows = grid.getVisibleRows()
+                .filter(function (r) { return r && r.data && r.rowType === 'data'; })
+                .map(function (r) { return r.data; });
+
+            if (!selectedRows || selectedRows.length === 0) {
+                Swal.fire('Warning', 'No data available to export.', 'warning');
+                return;
+            }
+        }
+
+        if (typeof ExcelJS === 'undefined') {
+            Swal.fire('Error', 'ExcelJS library not loaded. Please refresh the page.', 'error');
+            return;
+        }
+
+        var workbook  = new ExcelJS.Workbook();
+        var worksheet = workbook.addWorksheet('Leave Cancellation');
+
+        /* Column definitions */
+        worksheet.columns = [
+            { header: 'Employee Code',       key: 'employeeCode', width: 15 },
+            { header: 'Employee Name',        key: 'fullName',     width: 25 },
+            { header: 'Leave Type',           key: 'leave_Name',   width: 18 },
+            { header: 'From Date',            key: 'fromDate',     width: 14 },
+            { header: 'To Date',              key: 'toDate',       width: 14 },
+            { header: 'Days',                 key: 'no_Of_Date',   width: 8  },
+            { header: 'Cancellation Reason',  key: 'reason',       width: 30 },
+            { header: 'Leave Status',         key: 'leaveStatus',  width: 15 },
+            { header: 'Approved By',          key: 'updatedBy',    width: 20 },
+            { header: 'Approved Date',        key: 'approvedDate', width: 15 }
+        ];
+
+        /* Header row styling */
+        var headerRow = worksheet.getRow(1);
+        headerRow.eachCell(function (cell) {
+            cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3E4B6D' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border    = {
+                top    : { style: 'thin' },
+                left   : { style: 'thin' },
+                bottom : { style: 'thin' },
+                right  : { style: 'thin' }
+            };
+        });
+        headerRow.height = 25;
+
+        /* Helpers */
+        function fmtDate(val) {
+            if (!val) return '-';
+            var d = new Date(val);
+            if (isNaN(d.getTime())) return String(val);
+            return String(d.getDate()).padStart(2, '0') + '/' +
+                   String(d.getMonth() + 1).padStart(2, '0') + '/' +
+                   d.getFullYear();
+        }
+
+        function safe(val) {
+            return (val === null || val === undefined) ? '' : String(val);
+        }
+
+        /* Data rows */
+        selectedRows.forEach(function (row) {
+            if (!row) return;
+
+            var approvedDate = '-';
+            if (row.updatedDate) {
+                var d = new Date(row.updatedDate);
+                if (!isNaN(d.getTime())) {
+                    approvedDate = String(d.getDate()).padStart(2, '0') + '/' +
+                                   String(d.getMonth() + 1).padStart(2, '0') + '/' +
+                                   d.getFullYear();
+                }
+            }
+
+            var dataRow = worksheet.addRow({
+                employeeCode : safe(row.employeeCode),
+                fullName     : safe(row.fullName),
+                leave_Name   : safe(row.leave_Name),
+                fromDate     : fmtDate(row.fromDate),
+                toDate       : fmtDate(row.toDate),
+                no_Of_Date   : safe(row.no_Of_Date),
+                reason       : safe(row.reason),
+                leaveStatus  : safe(row.leaveStatus),
+                updatedBy    : row.updatedBy ? safe(row.updatedBy) : '-',
+                approvedDate : approvedDate
+            });
+
+            dataRow.eachCell(function (cell) {
+                cell.border = {
+                    top    : { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left   : { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom : { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right  : { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                };
+                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            });
+        });
+
+        /* Build filename */
+        var status  = getStatus() || 'Export';
+        var today   = new Date();
+        var dateStr = String(today.getDate()).padStart(2, '0') + '-' +
+                      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                      today.getFullYear();
+        var fileName = 'LeaveCancellation_' + status + '_' + dateStr + '.xlsx';
+
+        /* Download */
+        workbook.xlsx.writeBuffer()
+            .then(function (buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+                Swal.fire({
+                    icon              : 'success',
+                    title             : 'Exported!',
+                    text              : selectedRows.length + ' record(s) exported successfully.',
+                    timer             : 2000,
+                    showConfirmButton : false
+                });
+            })
+            .catch(function (err) {
+                console.error('Export error:', err);
+                Swal.fire('Error', 'Export failed: ' + err.message, 'error');
+            });
+    }
+
+    /* ── GO Button ──────────────────────────────── */
     $('#btnGo').on('click', function () {
-        let model = {
-            SearchBy: getSearchByText($('#searchby').val()),
-            SearchValue: $('#searchfor').val(),
-            FromDate: $('#fromdate').val() || null,
-            ToDate: $('#todate').val() || null,
-            LeaveStatus: getStatus(),
-            Companyid: CompanyId
+        var model = {
+            SearchBy    : getSearchByText($('#searchby').val()),
+            SearchValue : $('#searchfor').val(),
+            FromDate    : $('#fromdate').val() || null,
+            ToDate      : $('#todate').val() || null,
+            LeaveStatus : getStatus(),
+            Companyid   : CompanyId
         };
 
         showLoder();
 
         $.ajax({
-            url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/GetLeaveCancellationReportAdmin")',
-            type: 'POST',
-            data: JSON.stringify(model),
-            contentType: 'application/json',
-            success: function (res) {
+            url         : '@(baseDomainUrl + "/api/LeaveCancellationAPI/GetLeaveCancellationReportAdmin")',
+            type        : 'POST',
+            data        : JSON.stringify(model),
+            contentType : 'application/json',
+            success     : function (res) {
                 hideLoder();
-                console.log('Response received:', res);
-
                 if (res.isSuccess) {
                     if (res.data && res.data.length > 0) {
                         loadGrid(res.data);
                     } else {
-
                         $("#actionButtons").hide();
                         $(".search-panel-wrapper").last().hide();
                         safeDisposeGrid();
@@ -446,15 +573,9 @@
                     round_error_noti(res.responseMessage || 'No Data');
                 }
             },
-            error: function (xhr, status, error) {
+            error : function (xhr, status, error) {
                 hideLoder();
-                console.error('AJAX Error:', {
-                    status: status,
-                    error: error,
-                    responseText: xhr.responseText,
-                    statusCode: xhr.status
-                });
-
+                console.error('AJAX Error:', { status: status, error: error, responseText: xhr.responseText });
                 $("#actionButtons").hide();
                 $(".search-panel-wrapper").last().hide();
                 safeDisposeGrid();
@@ -463,80 +584,69 @@
         });
     });
 
+    /* ── Clear Button ───────────────────────────── */
     $("#btnClear").click(function () {
-        // Reset form
         $('#searchby').val("1");
         $('#searchfor').val('');
         $('#fromdate').val('');
         $('#todate').val('');
         $("input[name='type']").prop('checked', false);
         $('#r2').prop('checked', true);
-
         safeDisposeGrid();
         $("#actionButtons").hide();
         $(".search-panel-wrapper").last().hide();
     });
 
+    /* ── Approve / Reject ───────────────────────── */
     function updateLeaveCancellationStatus(status) {
-        debugger;
-        var grid = $("#leaveCancellationGrid").dxDataGrid("instance");
+        var grid         = $("#leaveCancellationGrid").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
 
-     if (selectedRows.length === 0) {
-        round_error_noti("Please select at least one record.");
-        return;
-    }
+        if (selectedRows.length === 0) {
+            round_error_noti("Please select at least one record.");
+            return;
+        }
 
-    const hasApproved = selectedRows.some(row => row.isApproved);
-    const hasRejected = selectedRows.some(row => row.isRejected);
+        var hasApproved = selectedRows.some(function (row) { return row.isApproved; });
+        var hasRejected = selectedRows.some(function (row) { return row.isRejected; });
 
-    if (hasApproved) {
-        Swal.fire({
-            title: "Not Allowed",
-            text: "Approved records cannot be modified.",
-            icon: "error",
-            customClass: { popup: 'swal-small' }
+        if (hasApproved) {
+            Swal.fire({ title: "Not Allowed", text: "Approved records cannot be modified.", icon: "error" });
+            return;
+        }
+
+        if (hasRejected) {
+            Swal.fire({ title: "Not Allowed", text: "Rejected records cannot be modified.", icon: "error" });
+            return;
+        }
+
+        var payload = selectedRows.map(function (row) {
+            return {
+                leaveCancellationId : row.leaveCancellationId,
+                employeeId          : row.id,
+                isApproved          : (status === "Approved"),
+                isRejected          : (status === "Rejected"),
+                updatedBy           : EmployeeId
+            };
         });
-        return;
-    }
-
-    if (hasRejected) {
-        Swal.fire({
-            title: "Not Allowed",
-            text: "Rejected records cannot be modified.",
-            icon: "error",
-            customClass: { popup: 'swal-small' }
-        });
-        return;
-    }
-
-    var payload = selectedRows.map(function (row) {
-        return {
-            leaveCancellationId: row.leaveCancellationId,
-            employeeId: row.id,
-            isApproved: (status === "Approved"),
-            isRejected: (status === "Rejected"),
-            updatedBy: EmployeeId
-        };
-    });
-
 
         showLoder();
+
         $.ajax({
-            url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/UpdateLeaveCancellationStatus")',
-            type: "PUT",
-            data: JSON.stringify(payload), // Send the list of requests
-            contentType: "application/json",
-            success: function (response) {
+            url         : '@(baseDomainUrl + "/api/LeaveCancellationAPI/UpdateLeaveCancellationStatus")',
+            type        : "PUT",
+            data        : JSON.stringify(payload),
+            contentType : "application/json",
+            success     : function (response) {
                 hideLoder();
                 if (response.isSuccess) {
                     round_success_noti(response.responseMessage);
-                    $('#btnGo').click(); // Refresh the grid
+                    $('#btnGo').click();
                 } else {
                     round_error_noti(response.responseMessage);
                 }
             },
-            error: function (xhr, status, error) {
+            error : function (xhr, status, error) {
                 hideLoder();
                 console.error("AJAX Error:", error);
                 round_error_noti("Something went wrong during update.");
@@ -544,13 +654,11 @@
         });
     }
 
-    //Handle window resize
-    $(window).on('resize', function() {
+    /* ── Window Resize ──────────────────────────── */
+    $(window).on('resize', function () {
         var gridInstance = $("#leaveCancellationGrid").data("dxDataGrid");
         if (gridInstance) {
-            setTimeout(function() {
-                gridInstance.updateDimensions();
-            }, 100);
+            setTimeout(function () { gridInstance.updateDimensions(); }, 100);
         }
     });
 </script>

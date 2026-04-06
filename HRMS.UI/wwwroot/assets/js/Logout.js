@@ -115,12 +115,25 @@ $(document).ready(async function () {
             $(".body-hiden-wrapper").hide();
             localStorage.clear();
             window.location.href = uiBaseUrlLayout + '/AuthManage/Login';
-        }
-        $('#btnLogout').click(function () {
+    }
+
+    $('#btnLogout').click(async function () {
+        try {
+            const token = localStorage.getItem("authToken");
+            await fetch(BaseUrlLayout + '/AuthenticationAPI/Logout', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
             localStorage.clear();
-            window.location.href = uiBaseUrlLayout+'/AuthManage/Login';
-            
-        });
+            window.location.href = uiBaseUrlLayout + '/AuthManage/Login';
+        }
+    });
 
 
      
