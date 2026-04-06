@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace HRMS_Infrastructure.Repository.SuperAdmin
 {
-    internal class SuperAdminDetailsRepository:Repository<SuperAdminDetails>, ISuperAdminDetailsRepository
+    internal class SuperAdminDetailsRepository : Repository<SuperAdminDetails>, ISuperAdminDetailsRepository
     {
 
         private readonly HRMSDbContext _db;
@@ -30,7 +30,7 @@ namespace HRMS_Infrastructure.Repository.SuperAdmin
         {
             try
             {
-                var  result= await _db.Set<SuperAdminDetails>().FromSqlInterpolated($"EXEC GetSuperAdminByCredentials @Email={vmLogin.Email},@Password={vmLogin.Password}").ToListAsync();
+                var result = await _db.Set<SuperAdminDetails>().FromSqlInterpolated($"EXEC GetSuperAdminByCredentials @Email={vmLogin.Email},@Password={vmLogin.Password}").ToListAsync();
                 return result.FirstOrDefault() ?? null;
             }
             catch
@@ -55,7 +55,7 @@ namespace HRMS_Infrastructure.Repository.SuperAdmin
                     param.Add("@FailureReason", model.FailureReason);
                     param.Add("@SessionID", model.SessionID);
 
-                    var result = await connection.QuerySingleAsync<int>(
+                    var result = await connection.ExecuteScalarAsync<int>(
                         "SP_InsertLoginHistory", param, commandType: CommandType.StoredProcedure
                     );
                     return result;
@@ -64,6 +64,26 @@ namespace HRMS_Infrastructure.Repository.SuperAdmin
                 {
                     Console.WriteLine($"LoginHistory Insert Error: {ex.Message}");
                     return 0;
+                }
+            }
+        }
+        public async Task UpdateLogoutTime(int loginHistoryId)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                try
+                {
+                    var param = new DynamicParameters();
+                    param.Add("@LoginHistoryID", loginHistoryId);
+
+                    await connection.ExecuteAsync(
+                        "SP_UpdateLogoutTime", param, commandType: CommandType.StoredProcedure
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"UpdateLogoutTime Error: {ex.Message}");
                 }
             }
         }

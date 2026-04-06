@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.DbContext;
+using HRMS_Core.Employee;
 using HRMS_Core.ManagePermission;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Authentication;
@@ -6,6 +7,7 @@ using HRMS_Core.VM.ManagePermision;
 using HRMS_Infrastructure.Interface;
 using HRMS_Infrastructure.Repository;
 using HRMS_Utility;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -39,11 +41,18 @@ namespace HRMS_API.Controllers.Authentication
         [HttpPost("Login")]
         public async Task<APIResponse> Login(vmLogin model)
         {
-            // Check if the model state is valid
             if (model == null)
             {
                 return new APIResponse { isSuccess = false, ResponseMessage = "Login details cannot be null" };
             }
+
+            // ✅ STEP 5 — ye 4 lines add karo (model null check ke baad)
+            string ip = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                                ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+            string userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+            string deviceType = GetDeviceType(userAgent);
+            //string sessionId = HttpContext.Session.Id;
+            int sessionId = 10;
 
             var SuperAdmin = await _unitOfWork.SuperAdminDetailsRepository.GetSuperAdminByCredentials(model);
 
@@ -63,31 +72,49 @@ namespace HRMS_API.Controllers.Authentication
                     Password = SuperAdmin?.Password,
                     RoleName = "Super Admin",
                     RoleSlug = "super-admin",
-                    //Permissions = new List<string> { "all-admin" },
                     Company = JsonSerializer.Serialize(company),
                     IsPasswordChange = true
                 };
 
-                // Generate JWT token
-                var token = GenerateJwtToken(userDetails);
+                // ✅ STEP 5 — ye 6 lines add karo (GenerateJwtToken se pehle)
+                int loginHistoryId = await _unitOfWork.SuperAdminDetailsRepository.InsertLoginHistory(new LoginHistory
+                {
+                    EmpID = SuperAdmin.Id,
+                    IPAddress = ip,
+                    BrowserInfo = userAgent,
+                    DeviceType = deviceType,
+                    LoginStatus = true,
+                    SessionID = sessionId.ToString()
+                });
+                userDetails.LoginHistoryID = loginHistoryId;
 
+                var token = GenerateJwtToken(userDetails); // existing line
 
-                var lastlogin = await _unitOfWork.EmployeeManageRepository.UpdateLastLogin(SuperAdmin.Id, 0);
+                var lastlogin = await _unitOfWork.EmployeeManageRepository.UpdateLastLogin(SuperAdmin.Id, 0); // existing line
 
-
-                // Return the token
                 return new APIResponse { isSuccess = true, Data = new { Token = token }, ResponseMessage = "Login Successfully!" };
-
             }
             else
             {
-
                 var user = await _unitOfWork.EmployeeManageRepository.UserLogin(model);
+
                 if (user == null)
                 {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Invalid email or password." };
+                    // ✅ STEP 5 — ye block add karo (return se pehle)
+                    await _unitOfWork.SuperAdminDetailsRepository.InsertLoginHistory(new LoginHistory
+                    {
+                        IPAddress = ip,
+                        BrowserInfo = userAgent,
+                        DeviceType = deviceType,
+                        LoginStatus = false,
+                        FailureReason = "Invalid email or password",
+                        SessionID = sessionId.ToString()
+                    });
+
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Invalid email or password." }; // existing line
                 }
-                var emp_company = await _unitOfWork.UserCompanyPermissionsRepository.GetCompanyPermissionsListByEmployeeId((int)user.Id);
+
+                var emp_company = await _unitOfWork.UserCompanyPermissionsRepository.GetCompanyPermissionsListByEmployeeId((int)user.Id); // existing line
 
                 var userDetails = new UserDetailsDto
                 {
@@ -101,17 +128,26 @@ namespace HRMS_API.Controllers.Authentication
                     Password = user?.Password,
                     RoleName = user?.RoleName,
                     RoleSlug = user?.RoleSlug,
-                    //Permissions = permssions,
                     Company = JsonSerializer.Serialize(emp_company),
                     IsPasswordChange = user?.IsPasswordChange
                 };
 
-                // Generate JWT token
-                var token = GenerateJwtToken(userDetails);
+                // ✅ STEP 5 — ye 6 lines add karo (GenerateJwtToken se pehle)
+                int loginHistoryId = await _unitOfWork.SuperAdminDetailsRepository.InsertLoginHistory(new LoginHistory
+                {
+                    EmpID = (int)user.Id,
+                    IPAddress = ip,
+                    BrowserInfo = userAgent,
+                    DeviceType = deviceType,
+                    LoginStatus = true,
+                    SessionID = sessionId.ToString()
+                });
+                userDetails.LoginHistoryID = loginHistoryId;
 
-                var lastlogin = await _unitOfWork.EmployeeManageRepository.UpdateLastLogin((int)user.Id, user.CompanyId.Value);
+                var token = GenerateJwtToken(userDetails); // existing line
 
-                // Return the token
+                var lastlogin = await _unitOfWork.EmployeeManageRepository.UpdateLastLogin((int)user.Id, user.CompanyId.Value); // existing line
+
                 return new APIResponse { isSuccess = true, Data = new { Token = token }, ResponseMessage = "Login Successfully!" };
             }
         }
@@ -136,6 +172,7 @@ namespace HRMS_API.Controllers.Authentication
                 new Claim("Designation", user?.Designation ?? ""),
                 new Claim("ProfileUrl", user?.ProfileUrl ?? ""),
                 new Claim("IsPasswordChange", user?.IsPasswordChange.ToString() ?? ""),
+                new Claim("LoginHistoryID", user.LoginHistoryID.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
@@ -156,6 +193,19 @@ namespace HRMS_API.Controllers.Authentication
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        [HttpPost("Logout")]
+        [Authorize]
+        public async Task<APIResponse> Logout()
+        {
+            var claim = User.FindFirst("LoginHistoryID")?.Value;
+
+            if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out int loginHistoryId) && loginHistoryId > 0)
+            {
+                await _unitOfWork.SuperAdminDetailsRepository.UpdateLogoutTime(loginHistoryId);
+            }
+
+            return new APIResponse { isSuccess = true, ResponseMessage = "Logged out successfully." };
+        }
         private string GetDeviceType(string userAgent)
         {
             userAgent = userAgent.ToLower();

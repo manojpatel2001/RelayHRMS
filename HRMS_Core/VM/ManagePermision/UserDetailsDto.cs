@@ -22,6 +22,7 @@ namespace HRMS_Core.VM.ManagePermision
 
         public string? RoleName { get; set; }
         public bool? IsPasswordChange { get; set; }
+        public int LoginHistoryID { get; set; }
 
         // Permissions can be a list of strings or a complex object
         public List<string>? Permissions { get; set; }
