@@ -192,19 +192,33 @@ namespace HRMS_API.Controllers.Authentication
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
         [HttpPost("Logout")]
         [Authorize]
         public async Task<APIResponse> Logout()
         {
+            // ✅ Try JWT claim first
             var claim = User.FindFirst("LoginHistoryID")?.Value;
 
-            if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out int loginHistoryId) && loginHistoryId > 0)
+            // ✅ Fallback to header
+            if (string.IsNullOrEmpty(claim) || claim == "0")
+            {
+                claim = Request.Headers["X-LoginHistoryID"].FirstOrDefault();
+            }
+
+            Console.WriteLine($"Logout LoginHistoryID = {claim}");
+
+            if (!string.IsNullOrEmpty(claim)
+                && int.TryParse(claim, out int loginHistoryId)
+                && loginHistoryId > 0)
             {
                 await _unitOfWork.SuperAdminDetailsRepository.UpdateLogoutTime(loginHistoryId);
             }
 
-            return new APIResponse { isSuccess = true, ResponseMessage = "Logged out successfully." };
+            return new APIResponse
+            {
+                isSuccess = true,
+                ResponseMessage = "Logged out successfully."
+            };
         }
         private string GetDeviceType(string userAgent)
         {
@@ -213,5 +227,6 @@ namespace HRMS_API.Controllers.Authentication
             if (userAgent.Contains("tablet") || userAgent.Contains("ipad")) return "Tablet";
             return "Desktop";
         }
+
     }
 }
