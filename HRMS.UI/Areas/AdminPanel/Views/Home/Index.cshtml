@@ -1944,45 +1944,57 @@
                 }
             });
         }
-    function LoadAttendanceRegularizationCount() {
+     function LoadAttendanceRegularizationCount() {
+        const payload = {
+            SearchBy: null,
+            SearchValue: null,
+            FromDate: null,
+            ToDate: null,
+            Status: 'Pending',
+            CompanyId: CompanyId,
+            EmployeeId: userId,
+            PageNumber: 1,
+            PageSize: 1  // Step 1: fetch just 1 record to get totalRecords
+        };
 
-    const payload = {
-        SearchBy: null,
-        SearchValue: null,
-        FromDate: null,
-        ToDate: null,
-        Status: 'Pending',
-        CompanyId: CompanyId,
-        EmployeeId:userId,
-        PageNumber: 1,
-        PageSize: 100
-    };
         $.ajax({
-            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetAttendanceRegularizationForAdmin")', // Use a dedicated count endpoint
+            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetAttendanceRegularizationForAdmin")',
             type: 'POST',
             data: JSON.stringify(payload),
             contentType: 'application/json',
             success: function (res) {
-           
                 if (res.isSuccess) {
-                       const count = Array.isArray(res.data) ? res.data.length : 0;
-                    
-                    $('#attendanceRegCount').text(`(${count})`);  
-                 
-                    if (count > 0) {
+                    const totalRecords = res.data.totalRecords || 0;
+
+                    // Update badge immediately
+                    $('#attendanceRegCount').text(`(${totalRecords})`);
+                    if (totalRecords > 0) {
                         $('#attendanceRegCount').addClass('red-count');
                     } else {
                         $('#attendanceRegCount').removeClass('red-count');
                     }
-                } else {
-                    $('#attendanceRegCount').text('(0)');
-                    // round_error_noti(res.responseMessage || 'Failed to load count');
+
+                    // Step 2: if you need all data, fetch again with correct PageSize
+                    if (totalRecords > 1) {
+                        payload.PageSize = totalRecords;
+                        $.ajax({
+                            url: '@(baseDomainUrl + "/api/AttendanceRegularizationAPI/GetAttendanceRegularizationForAdmin")',
+                            type: 'POST',
+                            data: JSON.stringify(payload),
+                            contentType: 'application/json',
+                            success: function (fullRes) {
+                                if (fullRes.isSuccess) {
+                                    const allItems = fullRes.data.items;
+                                    console.log('All records loaded:', allItems);
+                                    // Do whatever you need with allItems
+                                }
+                            }
+                        });
+                    }
                 }
             },
-            error: function (xhr, status, error) {
-                hideLoder();
+            error: function () {
                 $('#attendanceRegCount').text('(0)');
-                // round_error_noti('Error fetching count');
             }
         });
     }
