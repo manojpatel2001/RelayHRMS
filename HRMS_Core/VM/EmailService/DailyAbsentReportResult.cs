@@ -18,6 +18,7 @@ namespace HRMS_Core.VM.EmailService
         public string? HRContactNumber { get; set; }
         public string? HRContactEmail { get; set; }
         public TimeSpan? EmailSendTime { get; set; }
+        public string? ServerType { get; set; }
     }
     public class EmailAllReport
     {
