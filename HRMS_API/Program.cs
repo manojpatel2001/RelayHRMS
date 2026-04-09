@@ -1,4 +1,4 @@
-using Hangfire;
+﻿using Hangfire;
 using HRMS_API.Midleware;
 using HRMS_API.NotificationService.HubService;
 using HRMS_API.Services;
@@ -8,6 +8,7 @@ using HRMS_Infrastructure.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -62,7 +63,6 @@ builder.Services.AddAuthentication(options =>
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
 
-            // ? FIX: Case match
             if (!string.IsNullOrEmpty(accessToken) &&
                 path.StartsWithSegments("/NotificationRemainderHub"))
             {
@@ -74,7 +74,8 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS
+// ====================== CORS (FIXED) ======================
+
 var allowedOrigins = new[]
 {
     "https://localhost:7165",
@@ -82,15 +83,13 @@ var allowedOrigins = new[]
     "http://164.52.206.29:81"
 };
 
-// CORS
-
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAllOrigins", policy =>
-       policy.SetIsOriginAllowed(_ => true)  // allow any origin
+    options.AddPolicy("AllowSpecificOrigins", policy =>
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader()
-               .AllowCredentials()); // needed for SignalR
+              .AllowCredentials());
 });
 
 // Controllers + Swagger
@@ -108,8 +107,14 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<FileUploadService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<AutoJobService>();
+builder.Services.AddScoped<EmailJobService>();
+builder.Services.AddMemoryCache();
+
 // ====================== HANGFIRE ======================
 
+var isHangfireEnabled = builder.Configuration.GetValue<bool>("Hangfire:Enabled");
+
+// 👉 Use separate DB if possible
 builder.Services.AddHangfire(config =>
 {
     config.UseSimpleAssemblyNameTypeSerializer()
@@ -117,8 +122,11 @@ builder.Services.AddHangfire(config =>
           .UseSqlServerStorage(builder.Configuration.GetConnectionString("HRMSConnection"));
 });
 
-//// ? IMPORTANT: Worker
-//builder.Services.AddHangfireServer();
+// 👉 Run Hangfire server only when enabled
+if (isHangfireEnabled)
+{
+    builder.Services.AddHangfireServer();
+}
 
 var app = builder.Build();
 
@@ -130,7 +138,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowAllOrigins");
+app.UseCors("AllowSpecificOrigins");
 
 app.UseStaticFiles();
 app.UseHttpsRedirection();
@@ -141,22 +149,37 @@ app.UseAuthorization();
 // SignalR
 app.MapHub<NotificationRemainderHub>("/NotificationRemainderHub");
 
-// Hangfire Dashboard
+// ====================== HANGFIRE DASHBOARD ======================
+if (app.Environment.IsDevelopment())
+{
+    // ✅ Local में open (testing के लिए)
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = new[] { new HangfireNoAuthorizationFilter() }
+    });
+}
+else
+{
+    // 🔒 Live में secure
+    var cache = app.Services.GetRequiredService<IMemoryCache>();
 
-//app.UseHangfireDashboard("/hangfire", new DashboardOptions
-//{
-//    Authorization = new[] { new HangfireNoAuthorizationFilter() }
-//});
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = new[] { new HangfireAuthorizationFilter(cache) }
+    });
+}
 // ====================== JOB START ======================
 
-//using (var scope = app.Services.CreateScope())
-//{
-//    //var emailJobService = scope.ServiceProvider.GetRequiredService<EmailJobService>();
-//    //emailJobService.StartScheduleDailyJobEmail();
-
-//    var autoJobService = scope.ServiceProvider.GetRequiredService<AutoJobService>();
-//    autoJobService.StartAutoJobService();
-//}
+if (isHangfireEnabled)
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var emailJobService = scope.ServiceProvider.GetRequiredService<EmailJobService>();
+        emailJobService.StartScheduleDailyEmail();
+        var emailautoJobService = scope.ServiceProvider.GetRequiredService<AutoJobService>();
+        emailautoJobService.StartAutoJobService();
+    }
+}
 
 app.MapControllers();
 

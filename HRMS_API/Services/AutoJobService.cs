@@ -82,13 +82,19 @@ namespace HRMS_API.Services
                             };
 
 
-                            var emailReport = await _unitOfWork.EmailReportRepository.GetEmailSendTime(EmailReportType.EscalatedReport.ToString());
-                            if (emailReport == null || string.IsNullOrEmpty(emailReport.ToEmails))
+
+                            var emailReport = await _unitOfWork.EmailReportRepository
+                    .GetEmailSendTime(EmailReportType.EscalatedReport.ToString());
+
+                            // ✅ NULL + SERVER CHECK
+                            if (emailReport == null|| string.IsNullOrEmpty(emailReport.ToEmails)
+                                || emailReport.EmailSendTime == null
+                                || emailReport.ServerType?.ToUpper() != "LIVE")
                             {
+                                Console.WriteLine("⛔ Scheduler skipped");
+   
                                 return;
                             }
-
-
                             var Subject = $"Probation Escalation Notification";
                             var TemplateName = "ApprovalEscalatedEmailTemplate.html";
 
@@ -241,23 +247,24 @@ namespace HRMS_API.Services
             };
         }
 
-        // ✅ Hangfire Jobs
-        //public void StartAutoJobService()
-        //{
-        //    // Existing job
-        //    RecurringJob.AddOrUpdate(
-        //             "probation-schedule-check",
-        //             () => ScheduleDailyCheckProbation(),
-        //             "*/5 * * * *"
-        //         );
+         //✅ Hangfire Jobs
+        public void StartAutoJobService()
+        {
+           
+            // Existing job
+            RecurringJob.AddOrUpdate(
+                     "probation-schedule-check",
+                     () => ScheduleDailyCheckProbation(),
+                     "*/5 * * * *"
+                 );
 
-        //    //// ✅ Daily 10 AM
-        //    RecurringJob.AddOrUpdate(
-        //        "probation-daily-notification",
-        //        () => ScheduleDailyProbationNotification(),
-        //        "30 4 * * *"
-        //    );
-        //}
+            //// ✅ Daily 10 AM
+            RecurringJob.AddOrUpdate(
+                "probation-daily-notification",
+                () => ScheduleDailyProbationNotification(),
+                "30 4 * * *"
+            );
+        }
 
 
 
