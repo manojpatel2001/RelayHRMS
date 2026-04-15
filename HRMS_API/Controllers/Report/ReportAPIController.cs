@@ -335,7 +335,7 @@ namespace HRMS_API.Controllers.Report
             }
         }
         [HttpGet("LateEarlyMarkReport")]
-        public async Task<APIResponse> LateEarlyMarkReport(Reportvm reportvm)
+        public async Task<APIResponse> LateEarlyMarkReport([FromQuery] Reportvm reportvm)  // ← [FromQuery] add karo
         {
             try
             {
