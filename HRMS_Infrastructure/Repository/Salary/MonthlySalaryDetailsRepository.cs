@@ -238,18 +238,18 @@ namespace HRMS_Infrastructure.Repository.Salary
         }
 
 
-        public async Task<List<SalaryDetailViewModel>> GetSalaryDetails(SalaryDetailsParameterVm vm)
+        public async Task<List<GetSalaryvm>> GetSalaryDetails(SalaryDetailsParameterVm vm)
         {
 
 
             try
             {
-                var result = await _db.Set<SalaryDetailViewModel>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId ={vm.BranchId}").ToListAsync();
+                var result = await _db.Set<GetSalaryvm>().FromSqlInterpolated($"EXEC GetAllSalaryDetails @MonthNumber={vm.Month},@Year={vm.Year},@EmployeeCodes={vm.EmployeeCodes}, @BranchId ={vm.BranchId}").ToListAsync();
                 return result;
             }
             catch
             {
-                return new List<SalaryDetailViewModel>();
+                return new List<GetSalaryvm>();
             }
 
         }

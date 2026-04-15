@@ -20,7 +20,7 @@ namespace HRMS_Infrastructure.Interface.Salary
     {
         Task<SP_Response> CreateSalaryDetails(MonthlySalaryRequestViewModel vm);
         Task<List<APIResponse>> GetMonthlySalaryData(MonthlySalaryRequestViewModel vm);
-        Task<List<SalaryDetailViewModel>> GetSalaryDetails(SalaryDetailsParameterVm vm);
+        Task<List<GetSalaryvm>> GetSalaryDetails(SalaryDetailsParameterVm vm);
         Task<List<SalaryDetailViewModel>>  GetSalarySlip(salaryslipParam vm);
         Task<List<SalarySlipReport>>  GetSalarySlipReport(salaryslipParamReport vm);
         Task<List<YearlySalarySummaryVM>>  GetYearlySalarySummaryReport(int Year ,int EmpId);
