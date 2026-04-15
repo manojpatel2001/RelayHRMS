@@ -377,27 +377,34 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
-
         public async Task<List<LateEarlyMarkReportViewModel>> LateEarlyMarkReport(Reportvm reportvm)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-
                 var parameters = new DynamicParameters();
-
                 parameters.Add("@StartDate", reportvm.StartDate);
                 parameters.Add("@EndDate", reportvm.EndDate);
                 parameters.Add("@BranchIds", reportvm.BranchId);
-                parameters.Add("@EmpIds", reportvm.EmpId);
+                parameters.Add("@EmpCodes", reportvm.EmpId);  // @EmpIds → @EmpCodes fix
 
-                var result = (await connection.QueryAsync<LateEarlyMarkReportViewModel>(
-                    "sp_LateEarlyMarkReport",
-                    parameters,
-                    commandType: CommandType.StoredProcedure
-                )).ToList();
-
-                return result;
+                try
+                {
+                    var result = (await connection.QueryAsync<LateEarlyMarkReportViewModel>(
+                        "sp_LateEarlyMarkReport",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    )).ToList();
+                    return result;
+                }
+                catch (SqlException sqlEx)
+                {
+                    throw new Exception($"SQL Error [{sqlEx.Number}]: {sqlEx.Message}");
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Repository Error: {ex.Message}");
+                }
             }
         }
 
