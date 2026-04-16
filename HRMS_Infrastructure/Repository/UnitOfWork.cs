@@ -180,6 +180,7 @@ namespace HRMS_Infrastructure.Repository
             NewsAnnouncementRepository = new NewsAnnouncementRepository(_dbContext);
             ProbationEvaluationFormRepository = new ProbationEvaluationFormRepository(_dbContext);
             SalaryPayableDaysOverrideRepository = new SalaryPayableDaysOverrideRepo(_dbContext);
+            UniformMasterRepository = new UniformMasterRepo(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -324,6 +325,8 @@ namespace HRMS_Infrastructure.Repository
         public IProbationEvaluationFormRepository ProbationEvaluationFormRepository { get; set; }
 
         public ISalaryPayableDaysOverrideRepo SalaryPayableDaysOverrideRepository { get; set; }
+
+        public IUniformMasterRepo UniformMasterRepository { get; set; }
 
         public void Commit()
         {
