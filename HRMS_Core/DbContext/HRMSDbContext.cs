@@ -401,6 +401,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<Reportvm>().HasNoKey().ToView(null); 
              modelBuilder.Entity<LoginHistory>().HasNoKey().ToView(null); 
              modelBuilder.Entity<GetSalaryvm>().HasNoKey().ToView(null); 
+             modelBuilder.Entity<UniformMaster>().HasNoKey().ToView(null); 
 
 
 

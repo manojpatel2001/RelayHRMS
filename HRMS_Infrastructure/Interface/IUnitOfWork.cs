@@ -154,6 +154,7 @@ namespace HRMS_Infrastructure.Interface
         INewsAnnouncementRepository NewsAnnouncementRepository { get; }
         IProbationEvaluationFormRepository ProbationEvaluationFormRepository { get; }
         ISalaryPayableDaysOverrideRepo SalaryPayableDaysOverrideRepository { get; }
+        IUniformMasterRepo UniformMasterRepository { get; }
         void Commit();
         Task CommitAsync();
     }
