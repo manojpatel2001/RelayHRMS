@@ -19,6 +19,25 @@ namespace HRMS_API.Controllers.Employee
         {
             _unitOfWork = unitOfWork;
         }
+
+        [HttpGet("GetAllUniformMaster")]
+        public async Task<APIResponse> GetAllUniformMaster()
+        {
+            try
+            {
+                var data = await _unitOfWork.UniformMasterRepository.GetAllUniformMaster();
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found" };
+                }
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records, Please try again later!" };
+            }
+        }
+
         [HttpPost("CreateUniformMaster")]
         public async Task<APIResponse> CreateUniformMaster([FromBody] UniformMaster model)
         {
@@ -72,7 +91,7 @@ namespace HRMS_API.Controllers.Employee
         }
 
         [HttpDelete("Delete")]
-        public async Task<APIResponse> Delete(DeleteRecordVM DeleteRecord)
+        public async Task<APIResponse> Delete([FromQuery] DeleteRecordVM DeleteRecord)
         {
             try
             {
