@@ -3,6 +3,7 @@ using HRMS_Core.Master.JobMaster;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Infrastructure.Interface.OtherMaster;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -60,6 +61,24 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
             catch
             {
                 return new SP_Response { Success = -1, ResponseMessage = "Something went wrong!" };
+            }
+        }
+
+        public async Task<List<UniformMaster>> GetAllUniformMaster()
+        {
+            try
+            {
+                var uniforms = await _db.Set<UniformMaster>()
+                                        .FromSqlRaw("EXEC dbo.sp_UniformMaster_CRUD @Operation",
+                                                    new SqlParameter("@Operation", "GET"))
+                                        .ToListAsync();
+
+                return uniforms;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching uniforms: {ex.Message}");
+                return new List<UniformMaster>();
             }
         }
 

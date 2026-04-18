@@ -43,5 +43,9 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View();
         }
+        public IActionResult UniformMaster()
+        {
+            return View();
+        }
     }
 }

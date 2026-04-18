@@ -14,5 +14,6 @@ namespace HRMS_Infrastructure.Interface.OtherMaster
         Task<SP_Response> CreateUniformMaster(UniformMaster model);
         Task<SP_Response> UpdateUniformMaster(UniformMaster model);
         Task<SP_Response> DeleteUniformMaster(DeleteRecordVM deleteRecord);
+        Task<List<UniformMaster>> GetAllUniformMaster();
     }
 }
