@@ -91,7 +91,7 @@ namespace HRMS_API.Controllers.Employee
         }
 
         [HttpDelete("Delete")]
-        public async Task<APIResponse> Delete([FromQuery] DeleteRecordVM DeleteRecord)
+        public async Task<APIResponse> Delete([FromBody] DeleteRecordVM DeleteRecord)
         {
             try
             {
