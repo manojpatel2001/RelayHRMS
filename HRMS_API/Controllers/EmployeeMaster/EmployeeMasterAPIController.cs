@@ -204,6 +204,8 @@ namespace HRMS_API.Controllers.EmployeeMaster
                     Probation = employeeData.Probation,
                     AttendanceLimit = employeeData.AttendanceLimit,
                     Remark = employeeData.Remark,
+                    IsGTL = employeeData.IsGTL,
+                    IsGMP = employeeData.IsGMP,
                     RoleId=employeeData.RoleId
 
                 };

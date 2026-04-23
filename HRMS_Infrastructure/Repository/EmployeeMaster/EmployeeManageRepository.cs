@@ -301,6 +301,8 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     parameters.Add("@CreatedBy", employee.CreatedBy);
                     parameters.Add("@AttendanceLimit", employee.AttendanceLimit);
                     parameters.Add("@Remark", employee.Remark);
+                    parameters.Add("@IsGTL", employee.IsGTL);
+                    parameters.Add("@IsGMP", employee.IsGMP);
                     parameters.Add("@RoleId", employee.RoleId);
 
                     parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
@@ -404,6 +406,8 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     parameters.Add("@IsPermissionPunchInOut", employee.IsPermissionPunchInOut);
                     parameters.Add("@AttendanceLimit", employee.AttendanceLimit);
                     parameters.Add("@Remark", employee.Remark);
+                    parameters.Add("@IsGMP", employee.IsGMP);
+                    parameters.Add("@IsGTL", employee.IsGTL);
                     parameters.Add("@UpdatedBy", employee.UpdatedBy);
 
                     parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
