@@ -162,7 +162,8 @@ namespace HRMS_Core.VM.EmployeeMaster
         public string? EmployeeNamePrmaryBank{ get; set; }
         public int AttendanceLimit { get; set; }
         public string? Remark { get; set; }
-
+        public bool? IsGTL { get; set; } = true;
+        public bool? IsGMP { get; set; }
     }
 
     public class vmAddProbationEndDate
