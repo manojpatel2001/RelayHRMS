@@ -22,6 +22,7 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<AttendanceRegularization>> SoftDelete(DeleteRecordVModel DeleteRecord);
         Task<List<AttendanceRegularizationVM>> GetAttendanceRegularization(AttendanceRegularizationSearchFilterVM attendance);
         Task<List<AttendanceRegularizationVM>> GetAttendanceRegularizationApproval(AttendanceRegularizationSearchFilterVM attendance);
+        Task<List<AttendanceRegularizationVM>> GetAttendanceRegularizationApprovalForHRD(AttendanceRegularizationSearchFilterVM attendance);
         Task<List<AttendanceRegularizationAdmin>> GetAttendanceRegularizationForAdmin(AttendanceRegularizationSearchFilterForAdminVM attendance);
         Task<List<AttendanceRegularizationAdmin>> GetAttendanceRequestAdminReport(AttendanceRequestReportFilterVm attendance);
         Task<bool> Update(AttendanceRegularization Record ,int empInOutId);
@@ -33,5 +34,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<APIResponse> Delete(DeleteRecordVModel deleteRecord);
         Task<List<AttendanceDetails>> GetAttendanceDetails(EmployeeInOutFilterVM outFilterVM);
         Task<List<LimitedReasonvm>> GetAttendanceReasonsByLimitType();
+        Task<APIResponse> UpdateHRD(AttendanceRegularization model);
     }
 }
