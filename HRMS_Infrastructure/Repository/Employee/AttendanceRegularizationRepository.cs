@@ -429,6 +429,63 @@ namespace HRMS_Infrastructure.Repository.Employee
                 return result.AsList();
             }
         }
+
+        public async Task<List<AttendanceRegularizationVM>> GetAttendanceRegularizationApprovalForHRD(AttendanceRegularizationSearchFilterVM attendance)
+        {
+            try
+            {
+                var searchbyParam = new SqlParameter("@SearchBy", (object?)attendance.SearchBy ?? DBNull.Value);
+                var searchforParam = new SqlParameter("@SearchValue", (object?)attendance.SearchValue ?? DBNull.Value);
+                var fromdateParam = new SqlParameter("@FromDate", (object?)attendance.FromDate ?? DBNull.Value);
+                var todateParam = new SqlParameter("@ToDate", (object?)attendance.ToDate ?? DBNull.Value);
+                var statustypeParam = new SqlParameter("@Status", (object?)attendance.Status ?? DBNull.Value);
+                var userlogin = new SqlParameter("@LoggedInUserId", (object?)attendance.LoggedInUserId ?? DBNull.Value);
+
+                return await _db.Set<AttendanceRegularizationVM>()
+              .FromSqlRaw("EXEC [dbo].[GetAttendanceRegularizationApprovalForHRD] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status,@LoggedInUserId",
+                  searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam, userlogin)
+              .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+
+                return new List<AttendanceRegularizationVM>();
+            }
+        }
+
+        public async Task<APIResponse> UpdateHRD(AttendanceRegularization model)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@AttendanceRegularizationId", model.AttendanceRegularizationId);
+                    parameters.Add("@Status", model.Status);     // 'ProceedToHRD' or 'Rejected'
+                    parameters.Add("@UpdatedBy", model.UpdatedBy);  // comes from BaseModel
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
+
+                    await connection.ExecuteAsync(
+                        "UpdateHRDAttendanceRegularization",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                    response.Data = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
+            }
+            return response;
+        }
     }
 }
 
