@@ -484,7 +484,40 @@ namespace HRMS_Infrastructure.Repository.Probations
                 };
             }
         }
+        public async Task<APIResponse> GetApproverEmailsAllLevels(int employeeId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
 
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmployeeId", employeeId);
+
+                    var result = await connection.QueryFirstOrDefaultAsync<string>(
+                        "GetApproverEmails_AllLevels",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        ResponseMessage = "Approver emails fetched successfully.",
+                        Data = result   // string ya null dono aa sakta hai
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = ex.Message
+                };
+            }
+        }
 
     }
 }

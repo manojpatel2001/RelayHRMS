@@ -23,5 +23,6 @@ namespace HRMS_Infrastructure.Interface.Probations
         Task<ApproverDetailsViewModel?> GetApproverDetails(int ApprovalRequestId);
         Task<APIResponse> GetAllConfirmationProbationDetails(GetAllConfirmationProbationDetailsPara parameters);
         Task<APIResponse> UpdateMailRequest(int approvalRequestId, bool isMailSent);
+        Task<APIResponse> GetApproverEmailsAllLevels(int employeeId);
     }
 }

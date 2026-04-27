@@ -129,16 +129,21 @@ namespace HRMS_Core.VM.Probations
         public int? EmployeeId { get; set; }
         public int ApprovalRequestId { get; set; }
         public string? EmployeeCode { get; set; }
+        public string? Initial { get; set; }
+        public string? FirstName { get; set; }
+        public string? MiddleName { get; set; }
+        public string? LastName { get; set; }
         public string? EmployeeName { get; set; }
         public string? PersonalEmailId { get; set; }
         public string? CompanyName { get; set; }
+        public string? BranchName { get; set; }
         public int? StatusId { get; set; }
         public string? StatusName { get; set; }
         public DateTime? ActionDate { get; set; }
         public DateTime? ProbationEndDate { get; set; }
         public DateTime? ProbationDueDate { get; set; }
         public DateTime? DateOfJoining { get; set; }
-        public string? Location { get; set; }
+        public string? ReferenceNo { get; set; }
         public bool IsMailSent { get; set; } = false;
         public string? ReportingManagerName { get; set; }
         public string? ReportingMangerId { get; set; }
@@ -193,5 +198,8 @@ namespace HRMS_Core.VM.Probations
     }
 
 
-
+    public class ApproverEmailModel
+    {
+        public string? ApproverEmails { get; set; }
+    }
 }

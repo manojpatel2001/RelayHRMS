@@ -279,7 +279,7 @@ namespace HRMS_API.Controllers.Probations
 
         [HttpPost("SendProbationConfirmationEmail")]
         public async Task<APIResponse> SendProbationConfirmationEmail(ConfirmationProbationDetailsPara model)
-        {
+       {
             try
             {
                 if (model == null || model.PersonalEmailId == null)
@@ -300,9 +300,25 @@ namespace HRMS_API.Controllers.Probations
                     ToEmails = $"{ToEmails},{model.ReportingManagerEmail}";
                 }
 
-                
+                var ccList = new List<string>();
 
+                // Default HR email
+                ccList.Add("hrd@relayexpress.in");
 
+                // Get approver emails
+                var approverEmails = await _unitOfWork.ProbationPerformanceRepository.GetApproverEmailsAllLevels((int)model.EmployeeId);
+
+                if (approverEmails.isSuccess && approverEmails.Data != null)
+                {
+                    var emailsFromDb = approverEmails.Data.ToString()
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(x => x.Trim());
+
+                    ccList.AddRange(emailsFromDb);
+                }
+
+                // ✅ Remove duplicates
+                ccList = ccList.Distinct().ToList();
                 byte[] pdfBytes = Convert.FromBase64String(model.ConfirmationPdf);
 
 
@@ -320,8 +336,9 @@ namespace HRMS_API.Controllers.Probations
 
                 var emailRequest = new EmailRequest
                 {
-                    ToEmails = ToEmails.Split(',').ToList(),
-                   // BccEmails = ToBccEmails?.Split(',').ToList(),
+                    ToEmails = ToEmails.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToList(),
+                   CcEmails = ccList,
+
                     Subject = Subject,
                     TemplateName = TemplateName,
                     Placeholders = placeholders,
@@ -330,13 +347,12 @@ namespace HRMS_API.Controllers.Probations
                 var EmailLogger = new EmailLogger
                 {
                     ToEmail = ToEmails,
-                    //BCCEmail = ToBccEmails,
+                    CCEmail = string.Join(",", ccList),   
                     Subject = Subject,
                     Body = TemplateName,
                     Status = EmailStatus.Pending,
                     SentAt = DateTime.UtcNow,
                     Comments = "Email ready for sent"
-
                 };
 
                 await _unitOfWork.EmailLoggerRepository.ManageEmailLoggerAsync(EmailLogger, "CREATE");
