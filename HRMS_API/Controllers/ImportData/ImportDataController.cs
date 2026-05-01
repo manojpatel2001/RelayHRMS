@@ -188,44 +188,37 @@ public class ImportDataController : ControllerBase
                type == "SalaryPayableDays";
     }
 
-    private async Task<APIResponse> ProcessWithStoredProcedure(DataTable dt, string type, int startRow ,string createdBy)
+    public async Task<APIResponse> ProcessWithStoredProcedure(DataTable dt, string type, int startRow, string createdBy)
     {
         try
         {
-        
             var jsonData = ConvertDataTableToJson(dt, type, startRow);
-
-        
             ImportSPResult result = null;
 
-            // Call appropriate repository method based on import type
+            // Call the appropriate repository method based on import type
             switch (type)
             {
                 case "Attendance":
                     result = await _unitOfWork.importDataRepository.ImportAttendance(jsonData, createdBy);
                     break;
-
                 case "MonthlyEar":
-                    result = await _unitOfWork.importDataRepository.ImportMonthlyEarnings(jsonData , createdBy);
+                    result = await _unitOfWork.importDataRepository.ImportMonthlyEarnings(jsonData, createdBy);
                     break;
-
                 case "MonthlyDed":
-                    result = await _unitOfWork.importDataRepository.ImportMonthlyDeductions(jsonData , createdBy);
+                    result = await _unitOfWork.importDataRepository.ImportMonthlyDeductions(jsonData, createdBy);
                     break;
-
                 case "LeaveOpening":
-                    result = await _unitOfWork.importDataRepository.ImportLeaveOpening(jsonData , createdBy);
+                    result = await _unitOfWork.importDataRepository.ImportLeaveOpening(jsonData, createdBy);
                     break;
                 case "Employee":
-                    result = await _unitOfWork.importDataRepository.ImportEmployeeType(jsonData , createdBy);
+                    result = await _unitOfWork.importDataRepository.ImportEmployeeType(jsonData, createdBy);
                     break;
                 case "EmployeeUpdate":
-                    result = await _unitOfWork.importDataRepository.ImportEmployeeUpdate(jsonData , createdBy);
+                    result = await _unitOfWork.importDataRepository.ImportEmployeeUpdate(jsonData, createdBy);
                     break;
                 case "SalaryPayableDays":
-                    result = await _unitOfWork.importDataRepository.SalaryPayableDays(jsonData , createdBy);
+                    result = await _unitOfWork.importDataRepository.SalaryPayableDays(jsonData, createdBy);
                     break;
-
                 default:
                     return new APIResponse
                     {
@@ -248,14 +241,25 @@ public class ImportDataController : ControllerBase
 
             // Create success message
             string msg = $"{result.InsertedCount} row(s) inserted successfully.";
-            if (result.DuplicateCount > 0 || result.BlankCount > 0)
-            {
-                msg += $" {result.DuplicateCount} duplicate(s) and {result.BlankCount} blank row(s) were skipped.";
-            }
+
+            var errorDetails = new List<string>();
+
+            // Common validations for all imports
+            if (result.DuplicateCount > 0)
+                errorDetails.Add($"{result.DuplicateCount} duplicate(s)");
+            if (result.BlankCount > 0)
+                errorDetails.Add($"{result.BlankCount} blank row(s)");
+
+            // Type-specific validations
+            if (type == "SalaryPayableDays" && result.InvalidPayableDaysCount > 0)
+                errorDetails.Add($"{result.InvalidPayableDaysCount} invalid payable days");
+
+            if (errorDetails.Any())
+                msg += $" {string.Join(", ", errorDetails)} were skipped.";
 
             return new APIResponse
             {
-                isSuccess = result.InsertedCount > 0,
+                isSuccess = result.InsertedCount > 0 || result.Errors.Any(),
                 ResponseMessage = msg,
                 Data = errors.Any() ? errors : null
             };

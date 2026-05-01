@@ -38,6 +38,6 @@ namespace HRMS_Infrastructure.Interface.Salary
         Task<APIResponse> GetLeftEmployeeDetails(int Employeeid);
         Task<APIResponse> SaveFnFSettlementAsync(FnFSettlementRequest req);
         Task<APIResponse> GetFullFinalStatementReport(FullFinalStatementRequestDto req);
-
+        Task<EmployeePayableDaysResponse?> GetEmployeePayableDays(GetEmployeePayableDaysRequest request);
     }
 }

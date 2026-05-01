@@ -850,6 +850,65 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
             }
             return response;
         }
+
+
+        public async Task<EscalationReturnPara> EscalatePendingManpowerApprovalRequests()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var parameters = new DynamicParameters();
+
+                    // Output parameters
+                    parameters.Add(
+                        "@Success",
+                        dbType: DbType.Boolean,
+                        direction: ParameterDirection.Output
+                    );
+
+                    parameters.Add(
+                        "@ResponseMessage",
+                        dbType: DbType.String,
+                        size: 1000,
+                        direction: ParameterDirection.Output
+                    );
+
+                    parameters.Add(
+                        "@EscalatedData",
+                        dbType: DbType.String,
+                        size: -1, // NVARCHAR(MAX)
+                        direction: ParameterDirection.Output
+                    );
+
+                    // Execute the stored procedure for Manpower Requisitions
+                    await connection.ExecuteAsync(
+                        "usp_EscalatePendingManpowerApprovalRequests",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return new EscalationReturnPara
+                    {
+                        IsSuccess = parameters.Get<bool>("@Success"),
+                        ResponseMessage = parameters.Get<string>("@ResponseMessage"),
+                        EscalatedData = parameters.Get<string>("@EscalatedData")
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new EscalationReturnPara
+                {
+                    IsSuccess = false,
+                    ResponseMessage = $"Error: {ex.Message}",
+                    EscalatedData = null
+                };
+            }
+        }
+
     }
 
 }
