@@ -1,0 +1,2294 @@
+--Rita Changes
+------------------------------
+
+ALTER TABLE dbo.AspNetUsers
+ADD IsGTL BIT NOT NULL DEFAULT(1),
+    IsGMP BIT NOT NULL DEFAULT(0);
+--------------------------------------------------
+ALTER TABLE dbo.AttendanceRegularization
+ADD Proceed_To_HRD BIT NOT NULL DEFAULT(0);
+
+
+-----------------------
+
+
+update AttendanceRegularization set proceed_to_HRD=1 where IsPending=1;
+
+----------------------------------------------
+
+
+update [dbo].[AttendanceDetails]  set intime='2026-04-15 09:00:00.000',outtime='2026-04-15 18:00:00.000',WorkingHours=9.00,AttendanceStatus='P',SalaryDay=1.00 where employeeid=1030 and shiftdate='2026-04-15'
+update [dbo].[AttendanceDetails]  set intime='2026-04-15 09:00:00.000',outtime='2026-04-15 18:00:00.000',WorkingHours=9.00,AttendanceStatus='P',SalaryDay=1.00 where employeeid=1145 and shiftdate='2026-04-15'
+
+update [dbo].[AttendanceDetails]  set intime='2026-04-17 09:00:00.000',outtime='2026-04-17 18:00:00.000',WorkingHours=9.00,AttendanceStatus='P',SalaryDay=1.00 where employeeid=1229 and shiftdate='2026-04-17'
+
+update [dbo].[AttendanceDetails]  set intime='2026-04-21 09:00:00.000',outtime='2026-04-21 18:00:00.000',WorkingHours=9.00,AttendanceStatus='P',SalaryDay=1.00 where employeeid=1235 and shiftdate='2026-04-21'
+
+
+---------------------------------------------------------------------
+
+USE [HRMS_Pro]
+GO
+/****** Object:  StoredProcedure [dbo].[usp_ManageEmployee]    Script Date: 27-04-2026 13:34:09 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[usp_ManageEmployee]
+    @Action NVARCHAR(20), -- 'CREATE', 'UPDATE_BASIC', 'UPDATE_PERSONAL', 'UPDATE_CONTACT', 'UPDATE_SALARY', 'DELETE', 'IsBlocked'
+    @Id INT = NULL,
+    -- Basic Info (for CREATE and UPDATE_BASIC)
+    @Initial NVARCHAR(50) = NULL,
+    @FirstName NVARCHAR(100) = NULL,
+    @MiddleName NVARCHAR(100) = NULL,
+    @LastName NVARCHAR(100) = NULL,
+    @FullName NVARCHAR(MAX) = NULL,
+    @EmployeeCode NVARCHAR(50) = NULL,
+    @AlfaCode NVARCHAR(MAX) = NULL,
+    @AlfaEmployeeCode NVARCHAR(MAX) = NULL,
+    @DateOfJoining DATETIME = NULL,
+    @BranchId INT = NULL,
+    @GradeId INT = NULL,
+    @ShiftMasterId NVARCHAR(100) = NULL,
+    @CTC NVARCHAR(100) = NULL,
+    @DesignationId INT = NULL,
+    @GrossSalary DECIMAL(18,2) = NULL,
+    @CategoryId NVARCHAR(100) = NULL,
+    @BasicSalary DECIMAL(18,2) = NULL,
+    @DepartmentId INT = NULL,
+    @EmployeeTypeId NVARCHAR(100) = NULL,
+    @DateOfBirth DATETIME = NULL,
+    @LoginAlias NVARCHAR(100) = NULL,
+    @Password NVARCHAR(100) = NULL,
+    @ReportingManagerId INT = NULL,
+    @SubBranch NVARCHAR(100) = NULL,
+    @EnrollNo NVARCHAR(100) = NULL,
+    @CompanyId INT = NULL,
+    @Overtime BIT = 0,
+    @Latemark BIT = 0,
+    @Earlymark BIT = 0,
+    @Fullpf BIT = 0,
+    @Pt BIT = 0,
+    @Fixsalary BIT = 0,
+    @Probation BIT = 0,
+    @Trainee BIT = 0,
+    @EmployeeProfileUrl NVARCHAR(255) = NULL,
+    @EmployeeSignatureUrl NVARCHAR(255) = NULL,
+    @IsPFApplicable BIT = 1,
+    @WeekOffDetailsId INT = NULL,
+    @IsPermissionPunchInOut BIT = 0,
+    @IsLeft BIT = 0,
+    -- Personal Info (for UPDATE_PERSONAL)
+    @Gender NVARCHAR(20) = NULL,
+    @PersonalEmailId NVARCHAR(100) = NULL,
+    @FatherName NVARCHAR(100) = NULL,
+    @MotherName NVARCHAR(100) = NULL,
+    @BloodGroup NVARCHAR(10) = NULL,
+    @Height NVARCHAR(50) = NULL,
+    @MaritalStatus NVARCHAR(50) = NULL,
+    @MarriageDate DATETIME = NULL,
+    @MarkIdentification NVARCHAR(255) = NULL,
+    @Religion NVARCHAR(100) = NULL,
+    @Caste NVARCHAR(100) = NULL,
+    @CastCategory NVARCHAR(100) = NULL,
+    @AadharCardNo NVARCHAR(20) = NULL,
+    @PANNo NVARCHAR(20) = NULL,
+    @Dispensary NVARCHAR(255) = NULL,
+    @DoctorName NVARCHAR(100) = NULL,
+    @DispensaryAddress NVARCHAR(255) = NULL,
+    @UANNumber NVARCHAR(20) = NULL,
+    @DrivingLicense NVARCHAR(50) = NULL,
+    @DrivingLicenseExpiry DATETIME = NULL,
+    @RationCardType NVARCHAR(50) = NULL,
+    @RationCardNo NVARCHAR(50) = NULL,
+    @ProbationCompletionPeriod DECIMAL = NULL,
+    @ProbationPeriodType NVARCHAR(50) = NULL,
+    @ManagerProbationId INT = NULL,
+    @ConfirmDate DATETIME = NULL,
+    @RetirementDate DATETIME = NULL,
+    @OfferDate DATETIME = NULL,
+    @TraineeCompletionPeriod DECIMAL = NULL,
+    @TraineePeriodType NVARCHAR(50) = NULL,
+    @NoOfChildren NVARCHAR(50) = NULL,
+    @ESICNo NVARCHAR(50) = NULL,
+    @PFNo NVARCHAR(50) = NULL,
+    -- Contact Info (for UPDATE_CONTACT)
+    @PresentAddress NVARCHAR(MAX) = NULL,
+    @PresentTehsil NVARCHAR(100) = NULL,
+    @PresentDistrict NVARCHAR(100) = NULL,
+    @PresentCity NVARCHAR(100) = NULL,
+    @PresentStateId INT = NULL,
+    @PresentPincode NVARCHAR(20) = NULL,
+    @PresentThanaId INT = NULL,
+    @PermanentAddress NVARCHAR(MAX) = NULL,
+    @PermanentTehsil NVARCHAR(100) = NULL,
+    @PermanentDistrict NVARCHAR(100) = NULL,
+    @PermanentCity NVARCHAR(100) = NULL,
+    @PermanentStateId INT = NULL,
+    @PermanentPincode NVARCHAR(20) = NULL,
+    @PermanentThanaId INT = NULL,
+    @CountryId INT = NULL,
+    @WorkPhone NVARCHAR(20) = NULL,
+    @PersonalPhone NVARCHAR(20) = NULL,
+    @OfficialEmail NVARCHAR(100) = NULL,
+    @Nationality NVARCHAR(50) = NULL,
+    @ExtensionNo NVARCHAR(10) = NULL,
+    @MobileNo NVARCHAR(20) = NULL,
+    @SameAsPresentAddress BIT = 0,
+    -- Salary Info (for UPDATE_SALARY)
+    @PrimaryPaymentMode NVARCHAR(50) = NULL,
+    @PrimaryBankName NVARCHAR(MAX) = NULL,
+    @PrimaryIFSCCode NVARCHAR(20) = NULL,
+    @PrimaryAccountNumber NVARCHAR(50) = NULL,
+    @PrimaryBankBranchName NVARCHAR(100) = NULL,
+    @WagesTypes NVARCHAR(50) = NULL,
+    @GroupJoiningDate DATETIME = NULL,
+    @BusinessSegmentId INT = NULL,
+    @EmployeeSalaryReport NVARCHAR(MAX) = NULL,
+    @EmployeePFReport NVARCHAR(MAX) = NULL,
+    @EmployeePTReport NVARCHAR(MAX) = NULL,
+    @EmployeeTaxReport NVARCHAR(MAX) = NULL,
+    @EmployeeESIReport NVARCHAR(MAX) = NULL,
+    @EmployeeNamePrmaryBank NVARCHAR(100) = NULL,
+    -- Common
+    @IsDeleted BIT = 0,
+    @IsEnabled BIT = 1,
+    @IsBlocked BIT = 0,
+    @CreatedDate DATETIME = NULL,
+    @CreatedBy NVARCHAR(100) = NULL,
+    @AttendanceLimit INT = NULL,
+    @Remark NVARCHAR(MAX) = NULL,
+    @UpdatedDate DATETIME = NULL,
+    @UpdatedBy NVARCHAR(100) = NULL,
+    @DeletedDate DATETIME = NULL,
+    @DeletedBy NVARCHAR(100) = NULL,
+    @ResponseMessage NVARCHAR(255) OUTPUT,
+    @Success BIT OUTPUT,
+    @RoleId INT = NULL,
+    @PhoneNumberConfirmed BIT = 0,
+    @TwoFactorEnabled BIT = 0,
+    @EmailConfirmed BIT = 0,
+    @LockoutEnabled BIT = 0,
+    @IsPasswordChange BIT = 0,
+    @IsMobileAccess BIT = 0,
+    @IsSelfiRequired BIT = 0,
+    @IsProbationEvaluated BIT = 0,
+    @IsGTL BIT = 1,
+    @IsGMP BIT = 0,
+    @isInPunchMandatoryBiomatrix BIT = 0,
+    @AccessFailedCount INT = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        SET @Success = 0;
+        SET @ResponseMessage = '';
+        DECLARE @ProbationEndDate DATETIME = NULL;
+
+        -- Start transaction at the beginning
+        BEGIN TRANSACTION;
+
+        -- CREATE: Insert a new employee
+        IF @Action = 'CREATE'
+        BEGIN
+            -- Null checks
+            IF @EmployeeCode IS NULL OR LTRIM(RTRIM(@EmployeeCode)) = ''
+            BEGIN
+                SET @Success = 0;
+                SET @ResponseMessage = 'EmployeeCode cannot be null or empty.';
+                ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            IF @LoginAlias IS NULL OR LTRIM(RTRIM(@LoginAlias)) = ''
+            BEGIN
+                SET @Success = 0;
+                SET @ResponseMessage = 'LoginAlias cannot be null or empty.';
+                ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            -- Check if EmployeeCode already exists
+            IF EXISTS (SELECT 1 FROM AspNetUsers WHERE EmployeeCode = @EmployeeCode AND IsDeleted = 0)
+            BEGIN
+                SET @Success = 0;
+                SET @ResponseMessage = 'EmployeeCode already exists.';
+                ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            -- Check if LoginAlias already exists
+            IF EXISTS (SELECT 1 FROM AspNetUsers WHERE LoginAlias = @LoginAlias AND IsDeleted = 0)
+            BEGIN
+                SET @Success = 0;
+                SET @ResponseMessage = 'LoginAlias already exists.';
+                ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            -- Check if RoleId is valid
+            IF @RoleId IS NULL OR NOT EXISTS (
+                SELECT 1
+                FROM aspnetRoles
+                WHERE Id = @RoleId
+                  AND IsDeleted = 0
+                  AND IsEnabled = 1
+            )
+            BEGIN
+                SET @Success = 0;
+                SET @ResponseMessage = 'Invalid or inactive RoleId.';
+                ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            -- Calculate ProbationEndDate if ProbationCompletionPeriod is provided
+            IF @ProbationCompletionPeriod IS NOT NULL AND @ProbationCompletionPeriod <> 0
+            BEGIN
+                IF @ProbationPeriodType = 'Months'
+                    SET @ProbationEndDate = DATEADD(MONTH, @ProbationCompletionPeriod, @DateOfJoining);
+                ELSE
+                    SET @ProbationEndDate = DATEADD(DAY, @ProbationCompletionPeriod, @DateOfJoining);
+            END
+
+            -- Insert into AspNetUsers
+            INSERT INTO AspNetUsers (
+                FullName, Email, UserName, PasswordHash, Initial, FirstName, MiddleName, LastName, EmployeeCode,
+                AlfaEmployeeCode, AlfaCode, DateOfJoining, BranchId, GradeId, ShiftMasterId, CTC, DesignationId,
+                GrossSalary, CategoryId, BasicSalary, DepartmentId, EmployeeTypeId, DateOfBirth, LoginAlias,
+                ReportingManagerId, SubBranch, EnrollNo, CompanyId, Overtime, Latemark, Earlymark, Fullpf, Pt,
+                Fixsalary, Probation, Trainee, IsPFApplicable, WeekOffDetailsId, IsPermissionPunchInOut,
+                ProbationEndDate, Gender, PersonalEmailId, FatherName, MotherName, BloodGroup, Height, MaritalStatus,
+                MarriageDate, MarkIdentification, Religion, Caste, CastCategory, AadharCardNo, PANNo, Dispensary,
+                DoctorName, DispensaryAddress, UANNumber, DrivingLicense, DrivingLicenseExpiry, RationCardType,
+                RationCardNo, ProbationCompletionPeriod, ProbationPeriodType, ManagerProbationId, ConfirmDate,
+                RetirementDate, OfferDate, TraineeCompletionPeriod, TraineePeriodType, NoOfChildren, ESICNo, PFNo,
+                PresentAddress, PresentTehsil, PresentDistrict, PresentCity, PresentStateId, PresentPincode,
+                PresentThanaId, PermanentAddress, PermanentTehsil, PermanentDistrict, PermanentCity,
+                PermanentStateId, PermanentPincode, PermanentThanaId, CountryId, WorkPhone, PersonalPhone,
+                OfficialEmail, Nationality, ExtensionNo, MobileNo, SameAsPresentAddress, PrimaryPaymentMode,
+                PrimaryBankName, PrimaryIFSCCode, PrimaryAccountNumber, PrimaryBankBranchName, WagesTypes,
+                GroupJoiningDate, BusinessSegmentId, EmployeeSalaryReport, EmployeePFReport, EmployeePTReport,
+                EmployeeTaxReport, EmployeeESIReport, EmployeeNamePrmaryBank, IsDeleted, IsEnabled, IsBlocked,
+                CreatedDate, CreatedBy, AttendanceLimit,Remark, IsLeft, EmailConfirmed, PhoneNumberConfirmed, TwoFactorEnabled,
+                LockoutEnabled, IsPasswordChange, IsMobileAccess, IsProbationEvaluated,IsGTL,IsGMP, isInPunchMandatoryBiomatrix, AccessFailedCount
+            )
+            VALUES (
+                @FullName, @LoginAlias, @LoginAlias, @Password, @Initial, @FirstName, @MiddleName, @LastName, @EmployeeCode,
+                @AlfaEmployeeCode, @AlfaCode, @DateOfJoining, @BranchId, @GradeId, @ShiftMasterId, @CTC, @DesignationId,
+                @GrossSalary, @CategoryId, @BasicSalary, @DepartmentId, @EmployeeTypeId, @DateOfBirth, @LoginAlias,
+                @ReportingManagerId, @SubBranch, @EnrollNo, @CompanyId, @Overtime, @Latemark, @Earlymark, @Fullpf, @Pt,
+                @Fixsalary, @Probation, @Trainee, @IsPFApplicable, @WeekOffDetailsId, @IsPermissionPunchInOut,
+                @ProbationEndDate, @Gender, @PersonalEmailId, @FatherName, @MotherName, @BloodGroup, @Height, @MaritalStatus,
+                @MarriageDate, @MarkIdentification, @Religion, @Caste, @CastCategory, @AadharCardNo, @PANNo, @Dispensary,
+                @DoctorName, @DispensaryAddress, @UANNumber, @DrivingLicense, @DrivingLicenseExpiry, @RationCardType,
+                @RationCardNo, @ProbationCompletionPeriod, @ProbationPeriodType, @ManagerProbationId, @ConfirmDate,
+                @RetirementDate, @OfferDate, @TraineeCompletionPeriod, @TraineePeriodType, @NoOfChildren, @ESICNo, @PFNo,
+                @PresentAddress, @PresentTehsil, @PresentDistrict, @PresentCity, @PresentStateId, @PresentPincode,
+                @PresentThanaId, @PermanentAddress, @PermanentTehsil, @PermanentDistrict, @PermanentCity,
+                @PermanentStateId, @PermanentPincode, @PermanentThanaId, @CountryId, @WorkPhone, @PersonalPhone,
+                @OfficialEmail, @Nationality, @ExtensionNo, @MobileNo, @SameAsPresentAddress, @PrimaryPaymentMode,
+                @PrimaryBankName, @PrimaryIFSCCode, @PrimaryAccountNumber, @PrimaryBankBranchName, @WagesTypes,
+                @GroupJoiningDate, @BusinessSegmentId, @EmployeeSalaryReport, @EmployeePFReport, @EmployeePTReport,
+                @EmployeeTaxReport, @EmployeeESIReport, @EmployeeNamePrmaryBank, 0, 1, 0, GETUTCDATE(), @CreatedBy,
+                @AttendanceLimit,@Remark, @IsLeft, @EmailConfirmed, @PhoneNumberConfirmed, @TwoFactorEnabled, @LockoutEnabled,
+                @IsPasswordChange, @IsMobileAccess, @IsProbationEvaluated,@IsGTL,@IsGMP, @isInPunchMandatoryBiomatrix, @AccessFailedCount
+            );
+
+            DECLARE @NewEmployeeId INT = SCOPE_IDENTITY();
+
+            -- Call ManageHRMSUserRole SP
+            EXEC ManageHRMSUserRole
+                @Action = 'CREATE',
+                @EmployeeId = @NewEmployeeId,
+                @RoleId = @RoleId,
+                @CompanyId = @CompanyId,
+                @IsEnabled = @IsEnabled,
+                @IsDeleted = @IsDeleted,
+                @CreatedBy = @CreatedBy,
+                @CreatedDate = @CreatedDate;
+
+            -- Call USP_CalculateSalaryStructure SP
+            EXEC USP_CalculateSalaryStructure
+                @Action = 'CREATE',
+                @EmployeeId = @NewEmployeeId,
+                @CompanyId = @CompanyId,
+                @GrossSalary = @GrossSalary,
+                @BasicSalary = @BasicSalary,
+                @IsPFApplicable = @IsPFApplicable;
+
+            -- Call ManageUserCompanyPermission SP
+            DECLARE @IsAdmin BIT = 0;
+            SELECT @IsAdmin = CASE WHEN LOWER(Slug) = 'admin' THEN 1 ELSE 0 END
+            FROM aspnetRoles
+            WHERE Id = @RoleId AND IsDeleted = 0 AND IsEnabled = 1;
+
+            EXEC ManageUserCompanyPermission
+                @Action = 'CREATE',
+                @EmployeeId = @NewEmployeeId,
+                @CompanyId = @CompanyId,
+                @IsAdmin = @IsAdmin,
+                @CreatedBy = @CreatedBy;
+
+            -- Call ManagePasswordHistory SP
+            EXEC ManagePasswordHistory
+                @Action = 'CREATE',
+                @EMPID = @NewEmployeeId,
+                @NewPassword = @Password,
+                @CreatedBy = @CreatedBy;
+
+            -- Call ManageReportingManagerDetails SP
+            EXEC ManageReportingManagerDetails
+                @Action = 'CREATE',
+                @EmployeeId = @NewEmployeeId,
+                @ReportingManagerId = @ReportingManagerId,
+                @MethodName = 'In Person',
+                @CreatedBy = @CreatedBy;
+
+            -- Call sp_AddProbationEndDate SP if Probation is true
+            IF @Probation = 1
+            BEGIN
+                EXEC sp_AddProbationEndDate
+                    @Id = @NewEmployeeId,
+                    @GradeId = @GradeId,
+                    @DateOfJoining = @DateOfJoining;
+            END
+
+            COMMIT TRANSACTION;
+            SET @Success = 1;
+            SET @ResponseMessage = 'Employee created successfully.';
+            SELECT @NewEmployeeId AS Id;
+        END
+
+        -- UPDATE_BASIC: Update basic employee info
+        ELSE IF @Action = 'UPDATE_BASIC'
+        BEGIN
+            -- Old values ko JSON mein store karein
+            DECLARE @OldValues_Basic NVARCHAR(MAX);
+            SELECT @OldValues_Basic = (
+                SELECT *
+                FROM AspNetUsers
+                WHERE Id = @Id
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+            );
+
+            UPDATE AspNetUsers
+            SET
+                FullName = ISNULL(@FullName, FullName),
+                Initial = ISNULL(@Initial, Initial),
+                FirstName = ISNULL(@FirstName, FirstName),
+                MiddleName = ISNULL(@MiddleName, MiddleName),
+                LastName = ISNULL(@LastName, LastName),
+                EmployeeCode = ISNULL(@EmployeeCode, EmployeeCode),
+                AlfaEmployeeCode = ISNULL(@AlfaEmployeeCode, AlfaEmployeeCode),
+                AlfaCode = ISNULL(@AlfaCode, AlfaCode),
+                DateOfJoining = ISNULL(@DateOfJoining, DateOfJoining),
+                BranchId = ISNULL(@BranchId, BranchId),
+                GradeId = ISNULL(@GradeId, GradeId),
+                ShiftMasterId = ISNULL(@ShiftMasterId, ShiftMasterId),
+                CTC = ISNULL(@CTC, CTC),
+                DesignationId = ISNULL(@DesignationId, DesignationId),
+                GrossSalary = ISNULL(@GrossSalary, GrossSalary),
+                CategoryId = ISNULL(@CategoryId, CategoryId),
+                BasicSalary = ISNULL(@BasicSalary, BasicSalary),
+                DepartmentId = ISNULL(@DepartmentId, DepartmentId),
+                EmployeeTypeId = ISNULL(@EmployeeTypeId, EmployeeTypeId),
+                DateOfBirth = ISNULL(@DateOfBirth, DateOfBirth),
+                LoginAlias = ISNULL(@LoginAlias, LoginAlias),
+                Email = ISNULL(@LoginAlias, LoginAlias),
+                ReportingManagerId = ISNULL(@ReportingManagerId, ReportingManagerId),
+                SubBranch = ISNULL(@SubBranch, SubBranch),
+                EnrollNo = ISNULL(@EnrollNo, EnrollNo),
+                CompanyId = ISNULL(@CompanyId, CompanyId),
+                Overtime = ISNULL(@Overtime, Overtime),
+                Latemark = ISNULL(@Latemark, Latemark),
+                Earlymark = ISNULL(@Earlymark, Earlymark),
+                Fullpf = ISNULL(@Fullpf, Fullpf),
+                Pt = ISNULL(@Pt, Pt),
+                Fixsalary = ISNULL(@Fixsalary, Fixsalary),
+                Probation = ISNULL(@Probation, Probation),
+                Trainee = ISNULL(@Trainee, Trainee),
+                IsPFApplicable = ISNULL(@IsPFApplicable, IsPFApplicable),
+                WeekOffDetailsId = ISNULL(@WeekOffDetailsId, WeekOffDetailsId),
+                IsPermissionPunchInOut = ISNULL(@IsPermissionPunchInOut, IsPermissionPunchInOut),
+                ProbationEndDate = @ProbationEndDate,
+                AttendanceLimit = ISNULL(@AttendanceLimit, AttendanceLimit),
+			    Remark = ISNULL(@Remark, Remark),
+			    IsGTL = ISNULL(@IsGTL, IsGTL),
+			    IsGMP = ISNULL(@IsGMP, IsGMP),
+                UpdatedDate = ISNULL(@UpdatedDate, GETUTCDATE()),
+                UpdatedBy = @UpdatedBy
+            WHERE Id = @Id;
+
+            -- Probation end date update
+            IF EXISTS (
+                SELECT 1
+                FROM AspNetUsers
+                WHERE Id = @Id
+                  AND Probation = 1
+                  AND IsProbationEvaluated = 0
+            )
+            BEGIN
+                DECLARE @DueConfirmationDurationMonth INT = 0;
+                SELECT @DueConfirmationDurationMonth = DueConfirmationDurationMonth
+                FROM Grade
+                WHERE GradeId = @GradeId;
+
+                SET @ProbationEndDate = DATEADD(MONTH, @DueConfirmationDurationMonth, @DateOfJoining);
+                UPDATE AspNetUsers
+                SET ProbationEndDate = @ProbationEndDate
+                WHERE Id = @Id;
+            END
+
+            -- New values ko JSON mein store karein
+            DECLARE @NewValues_Basic NVARCHAR(MAX);
+            SELECT @NewValues_Basic = (
+                SELECT *
+                FROM AspNetUsers
+                WHERE Id = @Id
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+            );
+
+            -- Log dalein
+            DECLARE @ColumnName_Basic NVARCHAR(100);
+            DECLARE @OldValue_Basic NVARCHAR(MAX);
+            DECLARE @NewValue_Basic NVARCHAR(MAX);
+            DECLARE @Columns_Basic TABLE (ColumnName NVARCHAR(100));
+            INSERT INTO @Columns_Basic (ColumnName)
+            VALUES
+                ('FullName'), ('Initial'), ('FirstName'), ('MiddleName'), ('LastName'),
+                ('EmployeeCode'), ('AlfaEmployeeCode'), ('AlfaCode'), ('DateOfJoining'),
+                ('BranchId'), ('GradeId'), ('ShiftMasterId'), ('CTC'), ('DesignationId'),
+                ('GrossSalary'), ('CategoryId'), ('BasicSalary'), ('DepartmentId'),
+                ('EmployeeTypeId'), ('DateOfBirth'), ('LoginAlias'), ('ReportingManagerId'),
+                ('SubBranch'), ('EnrollNo'), ('CompanyId'), ('Overtime'), ('Latemark'),
+                ('Earlymark'), ('Fullpf'), ('Pt'), ('Fixsalary'), ('Probation'), ('Trainee'),
+                ('IsPFApplicable'), ('WeekOffDetailsId'), ('IsPermissionPunchInOut'),
+                ('ProbationEndDate'), ('AttendanceLimit'),('Remark'),('IsGTL'),('IsGMP');
+
+            DECLARE ColumnCursor_Basic CURSOR FOR
+            SELECT ColumnName FROM @Columns_Basic;
+
+            OPEN ColumnCursor_Basic;
+            FETCH NEXT FROM ColumnCursor_Basic INTO @ColumnName_Basic;
+
+            WHILE @@FETCH_STATUS = 0
+            BEGIN
+                SET @OldValue_Basic = JSON_VALUE(@OldValues_Basic, CONCAT('$.', @ColumnName_Basic));
+                SET @NewValue_Basic = JSON_VALUE(@NewValues_Basic, CONCAT('$.', @ColumnName_Basic));
+
+                IF (@OldValue_Basic <> @NewValue_Basic
+                    OR (@OldValue_Basic IS NULL AND @NewValue_Basic IS NOT NULL)
+                    OR (@OldValue_Basic IS NOT NULL AND @NewValue_Basic IS NULL))
+                BEGIN
+                    INSERT INTO EmployeeLog (
+                        EmployeeId, ChangedBy, ChangedColumnName, OldValue, NewValue
+                    )
+                    VALUES (
+                        @Id, @UpdatedBy, @ColumnName_Basic, ISNULL(@OldValue_Basic, 'NULL'), ISNULL(@NewValue_Basic, 'NULL')
+                    );
+                END
+                FETCH NEXT FROM ColumnCursor_Basic INTO @ColumnName_Basic;
+            END
+
+            CLOSE ColumnCursor_Basic;
+            DEALLOCATE ColumnCursor_Basic;
+
+            -- Role and salary update logic
+            IF NOT EXISTS (SELECT 1 FROM HRMSUserRoles WHERE EmployeeId = @Id AND IsDeleted = 0 AND IsEnabled = 1)
+            BEGIN
+                EXEC ManageHRMSUserRole
+                    @Action = 'CREATE',
+                    @EmployeeId = @Id,
+                    @RoleId = @RoleId,
+                    @CompanyId = @CompanyId,
+                    @IsEnabled = @IsEnabled,
+                    @IsDeleted = @IsDeleted;
+            END
+            ELSE
+            BEGIN
+                EXEC ManageHRMSUserRole
+                    @Action = 'UPDATE',
+                    @EmployeeId = @Id,
+                    @RoleId = @RoleId;
+            END
+
+            IF NOT EXISTS (
+                SELECT 1
+                FROM EmployeeSalaryAllowance
+                WHERE EmployeeId = @Id
+                    AND IsDeleted = 0
+                    AND IsEnabled = 1
+            )
+            BEGIN
+                EXEC USP_CalculateSalaryStructure
+                    @Action = 'CREATE',
+                    @EmployeeId = @Id,
+                    @CompanyId = @CompanyId,
+                    @GrossSalary = @GrossSalary,
+                    @BasicSalary = @BasicSalary,
+                    @IsPFApplicable = @IsPFApplicable;
+            END
+            ELSE
+            BEGIN
+                EXEC USP_CalculateSalaryStructure
+                    @Action = 'UPDATE',
+                    @EmployeeId = @Id,
+                    @CompanyId = @CompanyId,
+                    @GrossSalary = @GrossSalary,
+                    @BasicSalary = @BasicSalary,
+                    @IsPFApplicable = @IsPFApplicable;
+            END
+
+            DECLARE @LastReportingManagerId INT;
+            SELECT TOP 1 @LastReportingManagerId = ReportingManagerId
+            FROM ReportingManagerDetails
+            WHERE EmployeeId = @Id AND IsDeleted = 0 AND IsEnabled = 1
+            ORDER BY ReportingManagerDetailsId DESC;
+
+            IF (@ReportingManagerId <> @LastReportingManagerId)
+            BEGIN
+                INSERT INTO ReportingManagerDetails (
+                    EmployeeId, ReportingManagerId, EffectedDate, IsDeleted, IsEnabled, MethodName, CreatedDate, CreatedBy
+                )
+                VALUES (
+                    @Id, @ReportingManagerId, GETUTCDATE(), 0, 1, 'In Person', GETUTCDATE(), @UpdatedBy
+                );
+            END
+
+            COMMIT TRANSACTION;
+            SET @Success = 1;
+            SET @ResponseMessage = 'Basic employee info updated successfully.';
+            SELECT @Id AS Id;
+        END
+
+        -- UPDATE_PERSONAL: Update personal info
+        ELSE IF @Action = 'UPDATE_PERSONAL'
+        BEGIN
+            -- Old values ko JSON mein store karein
+            DECLARE @OldValues_Personal NVARCHAR(MAX);
+            SELECT @OldValues_Personal = (
+                SELECT *
+                FROM AspNetUsers
+                WHERE Id = @Id
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+            );
+
+            UPDATE AspNetUsers
+            SET
+                Gender = ISNULL(@Gender, Gender),
+                PersonalEmailId = ISNULL(@PersonalEmailId, PersonalEmailId),
+                FatherName = ISNULL(@FatherName, FatherName),
+                MotherName = ISNULL(@MotherName, MotherName),
+                BloodGroup = ISNULL(@BloodGroup, BloodGroup),
+                Height = ISNULL(@Height, Height),
+                MaritalStatus = ISNULL(@MaritalStatus, MaritalStatus),
+                MarriageDate = ISNULL(@MarriageDate, MarriageDate),
+                MarkIdentification = ISNULL(@MarkIdentification, MarkIdentification),
+                Religion = ISNULL(@Religion, Religion),
+                Caste = ISNULL(@Caste, Caste),
+                CastCategory = ISNULL(@CastCategory, CastCategory),
+                AadharCardNo = ISNULL(@AadharCardNo, AadharCardNo),
+                PANNo = ISNULL(@PANNo, PANNo),
+                Dispensary = ISNULL(@Dispensary, Dispensary),
+                DoctorName = ISNULL(@DoctorName, DoctorName),
+                DispensaryAddress = ISNULL(@DispensaryAddress, DispensaryAddress),
+                UANNumber = ISNULL(@UANNumber, UANNumber),
+                DrivingLicense = ISNULL(@DrivingLicense, DrivingLicense),
+                DrivingLicenseExpiry = ISNULL(@DrivingLicenseExpiry, DrivingLicenseExpiry),
+                RationCardType = ISNULL(@RationCardType, RationCardType),
+                RationCardNo = ISNULL(@RationCardNo, RationCardNo),
+                ProbationCompletionPeriod = ISNULL(@ProbationCompletionPeriod, ProbationCompletionPeriod),
+                ProbationPeriodType = ISNULL(@ProbationPeriodType, ProbationPeriodType),
+                ManagerProbationId = ISNULL(@ManagerProbationId, ManagerProbationId),
+                ConfirmDate = ISNULL(@ConfirmDate, ConfirmDate),
+                RetirementDate = ISNULL(@RetirementDate, RetirementDate),
+                OfferDate = ISNULL(@OfferDate, OfferDate),
+                TraineeCompletionPeriod = ISNULL(@TraineeCompletionPeriod, TraineeCompletionPeriod),
+                TraineePeriodType = ISNULL(@TraineePeriodType, TraineePeriodType),
+                NoOfChildren = ISNULL(@NoOfChildren, NoOfChildren),
+                ESICNo = ISNULL(@ESICNo, ESICNo),
+                PFNo = ISNULL(@PFNo, PFNo),
+                UpdatedDate = ISNULL(@UpdatedDate, GETUTCDATE()),
+                UpdatedBy = @UpdatedBy
+            WHERE Id = @Id;
+
+            -- New values ko JSON mein store karein
+            DECLARE @NewValues_Personal NVARCHAR(MAX);
+            SELECT @NewValues_Personal = (
+                SELECT *
+                FROM AspNetUsers
+                WHERE Id = @Id
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+            );
+
+            -- Log dalein
+            DECLARE @ColumnName_Personal NVARCHAR(100);
+            DECLARE @OldValue_Personal NVARCHAR(MAX);
+            DECLARE @NewValue_Personal NVARCHAR(MAX);
+            DECLARE @Columns_Personal TABLE (ColumnName NVARCHAR(100));
+            INSERT INTO @Columns_Personal (ColumnName)
+            VALUES
+                ('Gender'), ('PersonalEmailId'), ('FatherName'), ('MotherName'), ('BloodGroup'),
+                ('Height'), ('MaritalStatus'), ('MarriageDate'), ('MarkIdentification'), ('Religion'),
+                ('Caste'), ('CastCategory'), ('AadharCardNo'), ('PANNo'), ('Dispensary'),
+                ('DoctorName'), ('DispensaryAddress'), ('UANNumber'), ('DrivingLicense'),
+                ('DrivingLicenseExpiry'), ('RationCardType'), ('RationCardNo'),
+                ('ProbationCompletionPeriod'), ('ProbationPeriodType'), ('ManagerProbationId'),
+                ('ConfirmDate'), ('RetirementDate'), ('OfferDate'), ('TraineeCompletionPeriod'),
+                ('TraineePeriodType'), ('NoOfChildren'), ('ESICNo'), ('PFNo');
+
+            DECLARE ColumnCursor_Personal CURSOR FOR
+            SELECT ColumnName FROM @Columns_Personal;
+
+            OPEN ColumnCursor_Personal;
+            FETCH NEXT FROM ColumnCursor_Personal INTO @ColumnName_Personal;
+
+            WHILE @@FETCH_STATUS = 0
+            BEGIN
+                SET @OldValue_Personal = JSON_VALUE(@OldValues_Personal, CONCAT('$.', @ColumnName_Personal));
+                SET @NewValue_Personal = JSON_VALUE(@NewValues_Personal, CONCAT('$.', @ColumnName_Personal));
+
+                IF (@OldValue_Personal <> @NewValue_Personal
+                    OR (@OldValue_Personal IS NULL AND @NewValue_Personal IS NOT NULL)
+                    OR (@OldValue_Personal IS NOT NULL AND @NewValue_Personal IS NULL))
+                BEGIN
+                    INSERT INTO EmployeeLog (
+                        EmployeeId, ChangedBy, ChangedColumnName, OldValue, NewValue
+                    )
+                    VALUES (
+                        @Id, @UpdatedBy, @ColumnName_Personal, ISNULL(@OldValue_Personal, 'NULL'), ISNULL(@NewValue_Personal, 'NULL')
+                    );
+                END
+                FETCH NEXT FROM ColumnCursor_Personal INTO @ColumnName_Personal;
+            END
+
+            CLOSE ColumnCursor_Personal;
+            DEALLOCATE ColumnCursor_Personal;
+
+            COMMIT TRANSACTION;
+            SET @Success = 1;
+            SET @ResponseMessage = 'Personal info updated successfully.';
+            SELECT @Id AS Id;
+        END
+
+        -- UPDATE_CONTACT: Update contact info
+        ELSE IF @Action = 'UPDATE_CONTACT'
+        BEGIN
+            -- Old values ko JSON mein store karein
+            DECLARE @OldValues_Contact NVARCHAR(MAX);
+            SELECT @OldValues_Contact = (
+                SELECT *
+                FROM AspNetUsers
+                WHERE Id = @Id
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+            );
+
+            UPDATE AspNetUsers
+            SET
+                PresentAddress = ISNULL(@PresentAddress, PresentAddress),
+                PresentTehsil = ISNULL(@PresentTehsil, PresentTehsil),
+                PresentDistrict = ISNULL(@PresentDistrict, PresentDistrict),
+                PresentCity = ISNULL(@PresentCity, PresentCity),
+                PresentStateId = ISNULL(@PresentStateId, PresentStateId),
+                PresentPincode = ISNULL(@PresentPincode, PresentPincode),
+                PresentThanaId = ISNULL(@PresentThanaId, PresentThanaId),
+                PermanentAddress = ISNULL(@PermanentAddress, PermanentAddress),
+                PermanentTehsil = ISNULL(@PermanentTehsil, PermanentTehsil),
+                PermanentDistrict = ISNULL(@PermanentDistrict, PermanentDistrict),
+                PermanentCity = ISNULL(@PermanentCity, PermanentCity),
+                PermanentStateId = ISNULL(@PermanentStateId, PermanentStateId),
+                PermanentPincode = ISNULL(@PermanentPincode, PermanentPincode),
+                PermanentThanaId = ISNULL(@PermanentThanaId, PermanentThanaId),
+                CountryId = ISNULL(@CountryId, CountryId),
+                WorkPhone = ISNULL(@WorkPhone, WorkPhone),
+                PersonalPhone = ISNULL(@PersonalPhone, PersonalPhone),
+                OfficialEmail = ISNULL(@OfficialEmail, OfficialEmail),
+                Nationality = ISNULL(@Nationality, Nationality),
+                ExtensionNo = ISNULL(@ExtensionNo, ExtensionNo),
+                MobileNo = ISNULL(@MobileNo, MobileNo),
+                SameAsPresentAddress = ISNULL(@SameAsPresentAddress, SameAsPresentAddress),
+                UpdatedDate = ISNULL(@UpdatedDate, GETUTCDATE()),
+                UpdatedBy = @UpdatedBy
+            WHERE Id = @Id;
+
+            -- New values ko JSON mein store karein
+            DECLARE @NewValues_Contact NVARCHAR(MAX);
+            SELECT @NewValues_Contact = (
+                SELECT *
+                FROM AspNetUsers
+                WHERE Id = @Id
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+            );
+
+            -- Log dalein
+            DECLARE @ColumnName_Contact NVARCHAR(100);
+            DECLARE @OldValue_Contact NVARCHAR(MAX);
+            DECLARE @NewValue_Contact NVARCHAR(MAX);
+            DECLARE @Columns_Contact TABLE (ColumnName NVARCHAR(100));
+            INSERT INTO @Columns_Contact (ColumnName)
+            VALUES
+                ('PresentAddress'), ('PresentTehsil'), ('PresentDistrict'), ('PresentCity'), ('PresentStateId'),
+                ('PresentPincode'), ('PresentThanaId'), ('PermanentAddress'), ('PermanentTehsil'), ('PermanentDistrict'),
+                ('PermanentCity'), ('PermanentStateId'), ('PermanentPincode'), ('PermanentThanaId'), ('CountryId'),
+                ('WorkPhone'), ('PersonalPhone'), ('OfficialEmail'), ('Nationality'), ('ExtensionNo'), ('MobileNo'),
+                ('SameAsPresentAddress');
+
+            DECLARE ColumnCursor_Contact CURSOR FOR
+            SELECT ColumnName FROM @Columns_Contact;
+
+            OPEN ColumnCursor_Contact;
+            FETCH NEXT FROM ColumnCursor_Contact INTO @ColumnName_Contact;
+
+            WHILE @@FETCH_STATUS = 0
+            BEGIN
+                SET @OldValue_Contact = JSON_VALUE(@OldValues_Contact, CONCAT('$.', @ColumnName_Contact));
+                SET @NewValue_Contact = JSON_VALUE(@NewValues_Contact, CONCAT('$.', @ColumnName_Contact));
+
+                IF (@OldValue_Contact <> @NewValue_Contact
+                    OR (@OldValue_Contact IS NULL AND @NewValue_Contact IS NOT NULL)
+                    OR (@OldValue_Contact IS NOT NULL AND @NewValue_Contact IS NULL))
+                BEGIN
+                    INSERT INTO EmployeeLog (
+                        EmployeeId, ChangedBy, ChangedColumnName, OldValue, NewValue
+                    )
+                    VALUES (
+                        @Id, @UpdatedBy, @ColumnName_Contact, ISNULL(@OldValue_Contact, 'NULL'), ISNULL(@NewValue_Contact, 'NULL')
+                    );
+                END
+                FETCH NEXT FROM ColumnCursor_Contact INTO @ColumnName_Contact;
+            END
+
+            CLOSE ColumnCursor_Contact;
+            DEALLOCATE ColumnCursor_Contact;
+
+            COMMIT TRANSACTION;
+            SET @Success = 1;
+            SET @ResponseMessage = 'Contact info updated successfully.';
+            SELECT @Id AS Id;
+        END
+
+        -- UPDATE_SALARY: Update salary info
+        ELSE IF @Action = 'UPDATE_SALARY'
+        BEGIN
+            -- Old values ko JSON mein store karein
+            DECLARE @OldValues_Salary NVARCHAR(MAX);
+            SELECT @OldValues_Salary = (
+                SELECT *
+                FROM AspNetUsers
+                WHERE Id = @Id
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+            );
+
+            UPDATE AspNetUsers
+            SET
+                PrimaryPaymentMode = ISNULL(@PrimaryPaymentMode, PrimaryPaymentMode),
+                PrimaryBankName = ISNULL(@PrimaryBankName, PrimaryBankName),
+                PrimaryIFSCCode = ISNULL(@PrimaryIFSCCode, PrimaryIFSCCode),
+                PrimaryAccountNumber = ISNULL(@PrimaryAccountNumber, PrimaryAccountNumber),
+                PrimaryBankBranchName = ISNULL(@PrimaryBankBranchName, PrimaryBankBranchName),
+                WagesTypes = ISNULL(@WagesTypes, WagesTypes),
+                GroupJoiningDate = ISNULL(@GroupJoiningDate, GroupJoiningDate),
+                BusinessSegmentId = ISNULL(@BusinessSegmentId, BusinessSegmentId),
+                EmployeeSalaryReport = ISNULL(@EmployeeSalaryReport, EmployeeSalaryReport),
+                EmployeePFReport = ISNULL(@EmployeePFReport, EmployeePFReport),
+                EmployeePTReport = ISNULL(@EmployeePTReport, EmployeePTReport),
+                EmployeeTaxReport = ISNULL(@EmployeeTaxReport, EmployeeTaxReport),
+                EmployeeESIReport = ISNULL(@EmployeeESIReport, EmployeeESIReport),
+                EmployeeNamePrmaryBank = ISNULL(@EmployeeNamePrmaryBank, EmployeeNamePrmaryBank),
+                UpdatedDate = ISNULL(@UpdatedDate, GETUTCDATE()),
+                UpdatedBy = @UpdatedBy
+            WHERE Id = @Id;
+
+            -- New values ko JSON mein store karein
+            DECLARE @NewValues_Salary NVARCHAR(MAX);
+            SELECT @NewValues_Salary = (
+                SELECT *
+                FROM AspNetUsers
+                WHERE Id = @Id
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+            );
+
+            -- Log dalein
+            DECLARE @ColumnName_Salary NVARCHAR(100);
+            DECLARE @OldValue_Salary NVARCHAR(MAX);
+            DECLARE @NewValue_Salary NVARCHAR(MAX);
+            DECLARE @Columns_Salary TABLE (ColumnName NVARCHAR(100));
+            INSERT INTO @Columns_Salary (ColumnName)
+            VALUES
+                ('PrimaryPaymentMode'), ('PrimaryBankName'), ('PrimaryIFSCCode'), ('PrimaryAccountNumber'),
+                ('PrimaryBankBranchName'), ('WagesTypes'), ('GroupJoiningDate'), ('BusinessSegmentId'),
+                ('EmployeeSalaryReport'), ('EmployeePFReport'), ('EmployeePTReport'), ('EmployeeTaxReport'),
+                ('EmployeeESIReport'), ('EmployeeNamePrmaryBank');
+
+            DECLARE ColumnCursor_Salary CURSOR FOR
+            SELECT ColumnName FROM @Columns_Salary;
+
+            OPEN ColumnCursor_Salary;
+            FETCH NEXT FROM ColumnCursor_Salary INTO @ColumnName_Salary;
+
+            WHILE @@FETCH_STATUS = 0
+            BEGIN
+                SET @OldValue_Salary = JSON_VALUE(@OldValues_Salary, CONCAT('$.', @ColumnName_Salary));
+                SET @NewValue_Salary = JSON_VALUE(@NewValues_Salary, CONCAT('$.', @ColumnName_Salary));
+
+                IF (@OldValue_Salary <> @NewValue_Salary
+                    OR (@OldValue_Salary IS NULL AND @NewValue_Salary IS NOT NULL)
+                    OR (@OldValue_Salary IS NOT NULL AND @NewValue_Salary IS NULL))
+                BEGIN
+                    INSERT INTO EmployeeLog (
+                        EmployeeId, ChangedBy, ChangedColumnName, OldValue, NewValue
+                    )
+                    VALUES (
+                        @Id, @UpdatedBy, @ColumnName_Salary, ISNULL(@OldValue_Salary, 'NULL'), ISNULL(@NewValue_Salary, 'NULL')
+                    );
+                END
+                FETCH NEXT FROM ColumnCursor_Salary INTO @ColumnName_Salary;
+            END
+
+            CLOSE ColumnCursor_Salary;
+            DEALLOCATE ColumnCursor_Salary;
+
+            COMMIT TRANSACTION;
+            SET @Success = 1;
+            SET @ResponseMessage = 'Salary info updated successfully.';
+            SELECT @Id AS Id;
+        END
+
+        -- DELETE: Soft delete employee
+        ELSE IF @Action = 'DELETE'
+        BEGIN
+            UPDATE AspNetUsers
+            SET
+                IsDeleted = 1,
+                IsEnabled = 0,
+                DeletedDate = ISNULL(@DeletedDate, GETUTCDATE()),
+                DeletedBy = @DeletedBy
+            WHERE Id = @Id;
+
+            COMMIT TRANSACTION;
+            SET @Success = 1;
+            SET @ResponseMessage = 'Employee deleted successfully.';
+            SELECT @Id AS Id;
+        END
+
+        -- IsBlocked: Block/unblock employee
+        ELSE IF @Action = 'IsBlocked'
+        BEGIN
+            UPDATE AspNetUsers
+            SET
+                IsBlocked = @IsBlocked
+            WHERE Id = @Id;
+
+            COMMIT TRANSACTION;
+            SET @Success = 1;
+            SET @ResponseMessage = 'Employee block status updated successfully.';
+            SELECT @Id AS Id;
+        END
+
+        -- Invalid Action
+        ELSE
+        BEGIN
+            SET @Success = 0;
+            SET @ResponseMessage = 'Invalid action specified.';
+            ROLLBACK TRANSACTION;
+        END
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        SET @Success = 0;
+        SET @ResponseMessage = ERROR_MESSAGE();
+    END CATCH
+END;
+
+
+----------------------------------------
+
+USE [HRMS_Pro]
+GO
+/****** Object:  StoredProcedure [dbo].[GetRecordsForUpdate]    Script Date: 27-04-2026 13:43:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ ALTER PROCEDURE [dbo].[GetRecordsForUpdate]
+@CompanyId int =0,
+@EmployeeId int=0
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+---------------------------------------------------------------------
+	--Employee
+    SELECT
+    U.Id,U.FullName,
+	U.Initial, U.FirstName,
+	U.MiddleName, U.LastName,
+	U.EmployeeCode, U.AlfaCode,
+	U.AlfaEmployeeCode,
+            U.DateOfJoining,
+			U.BranchId, 
+			U.GradeId, 
+			U.ShiftMasterId, 
+			U.CTC, 
+			U.DesignationId, 
+			U.GrossSalary, 
+			U.CategoryId,
+            U.BasicSalary, 
+			U.DepartmentId, 
+			U.EmployeeTypeId, 
+			U.DateOfBirth, 
+			U.LoginAlias, 
+			U.ReportingManagerId, 
+			U.SubBranch,
+            U.EnrollNo, U.CompanyId, 
+			U.Overtime, 
+			U.Latemark, 
+			U.Earlymark, U.Fullpf,
+			U.Pt, 
+			U.Fixsalary, U.Probation, 
+			U.Trainee,
+            U.IsPFApplicable,
+			U.WeekOffDetailsId, U.IsPermissionPunchInOut,
+			U.EmployeeSignatureUrl,
+			U.EmployeeProfileUrl,
+			U.AttendanceLimit,
+			U.Remark,
+			U.Password,
+	   CreatedBy.FullName AS CreatedByName,
+	r.RoleId
+    FROM AspNetUsers U
+   left join HrmsUserRoles r on r.EmployeeId=U.Id and r.isdeleted=0 and r.isenabled=1
+   left join aspnetusers CreatedBy on CreatedBy.Id=U.CreatedBy
+    WHERE U.IsDeleted = 0 and u.Isenabled=1 and U.Id=@EmployeeId and U.CompanyId=@companyId
+---------------------------------------------------------------------
+	--Branch Details (Optimized with direct join instead of STRING_SPLIT)
+    SELECT b.BranchId, b.BranchName, b.BranchCode
+    FROM Branch b
+  
+    WHERE b.IsDeleted = 0
+      AND b.IsEnabled = 1;
+
+-----------------------------------------------
+	--Grade Details
+	Select GradeId,GradeName from Grade where isdeleted=0 and isenabled=1
+
+--------------------------------------------------
+--Shifts details
+select ShiftId,ShiftName from  [dbo].[ShiftMaster] where Isdeleted=0 and isenabled=1 and Isactive=1
+
+-------------------------------------------------------
+--Designation Details
+ select DesignationId,DesignationName from designation where Isdeleted=0 and isenabled=1 
+ --AND (
+ --     CompanyId = @CompanyId
+ --     OR (@CompanyId = 11 AND CompanyId = 9)
+ -- );
+
+--------------------------------------------------------
+ -- Category Details
+select CategoryId,CategoryName from Category where isdeleted=0 and isenabled=1
+
+-------------------------------------------------------
+---Department Details
+select DepartmentId,DepartmentName from Department where isdeleted=0 and Isenabled=1  
+--AND (
+--      CompanyId = @CompanyId
+--      OR (@CompanyId = 11 AND CompanyId = 9)
+--  );
+
+-----------------------------------------------------------
+--EmployeeType Details
+select EmployeeTypeId,EmployeeTypeName from EmployeeType where isdeleted=0 and isenabled=1
+
+------------------------------------------------------------------
+--Role details
+select Id as RoleId,Name as RoleName from aspnetroles where IsDeleted=0 and IsEnabled=1
+
+------------------------------------------------------------------
+--Reporting Details (Added ISNULL check for clarity)
+select Id as EmployeeId,FullName,EmployeeCode,
+(FullName+' - '+EmployeeCode)as EmployeeName
+from aspnetusers
+where Isdeleted=0 and isenabled=1 and isnull(isleft,0)=0
+order by EmployeeCode
+END
+
+
+---------------------------------------------------
+USE [HRMS_Pro]
+GO
+/****** Object:  StoredProcedure [dbo].[GetAttendanceRegularizationSearchForAdmin]    Script Date: 27-04-2026 13:46:55 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[GetAttendanceRegularizationSearchForAdmin]
+    @SearchBy NVARCHAR(20) = NULL,
+    @SearchValue NVARCHAR(100) = NULL,
+    @FromDate DATE = NULL,
+    @ToDate DATE = NULL,
+    @Status NVARCHAR(20) = 'Pending',
+    @CompanyId INT,
+    @EmployeeId INT,
+    @PageNumber INT = 1,
+    @PageSize INT = 100
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+IF @EmployeeId = 10 OR @EmployeeId = 14
+    BEGIN
+        -- Use subquery to get total count and paginated data in one go
+        SELECT 
+            *,
+            COUNT(*) OVER() AS TotalRecords
+        FROM
+        (
+            SELECT
+                Att.AttendanceRegularizationId,
+                Att.EmpId,
+                Att.FullName,
+                Users.EmployeeCode,
+                Att.ForDate,
+                Att.CreatedDate,
+                Att.ShiftTime,
+                Att.InTime,
+                Att.OutTime,
+                Att.Duration,
+                Att.[Day],
+                com.Reason,
+                Att.IsApproved,
+                Att.IsPending,
+                Att.IsRejected,
+                Att.Remark,
+                Approvedby.FullName AS UpdatedBy,
+                Att.UpdatedDate,
+				B.BranchName,
+                CONCAT(Manager.FullName, '-', Manager.EmployeeCode) AS ReportingManager
+            FROM
+                AttendanceRegularization Att
+            LEFT JOIN
+                AspNetUsers Users ON Users.Id = Att.EmpId
+                AND Users.IsLeft = 0
+                AND Users.IsDeleted = 0
+                AND Users.IsEnabled = 1
+                AND Users.CompanyId = @CompanyId
+		  Left Join 
+			Branch B On B.Branchid=Users.BranchId
+            LEFT JOIN
+                AspNetUsers Manager ON Manager.Id = Users.ReportingManagerId
+            LEFT JOIN
+                AspNetUsers Approvedby ON Approvedby.Id = Att.UpdatedBy
+            LEFT JOIN
+                CommonReasons com ON com.ReasonId = Att.Reason
+		
+            WHERE
+                Users.IsLeft = 0
+                AND Users.IsDeleted = 0
+                AND Users.IsEnabled = 1
+                AND Att.IsDeleted = 0
+                AND Att.IsEnabled = 1
+                AND (
+                    @FromDate IS NULL OR CAST(Att.ForDate AS DATE) >= @FromDate
+                )
+                AND (
+                    @ToDate IS NULL OR CAST(Att.ForDate AS DATE) <= @ToDate
+                )
+                AND (
+                    @Status IS NULL
+                    OR (@Status = 'Approved' AND Att.IsApproved = 1)
+                    OR (@Status = 'Pending' AND Att.IsPending = 1)
+                    OR (@Status = 'Rejected' AND Att.IsRejected = 1)
+                )
+                AND (
+                    @SearchBy IS NULL
+                    OR (@SearchBy = 'EmpCode' AND Users.EmployeeCode LIKE '%' + @SearchValue + '%')
+                    OR (@SearchBy = 'EmpName' AND Att.FullName LIKE '%' + @SearchValue + '%')
+                    OR (@SearchBy = 'Reason' AND com.Reason LIKE '%' + @SearchValue + '%')
+                    OR (@SearchBy = 'ManagerName' AND Manager.FullName LIKE '%' + @SearchValue + '%')
+                )
+AND (
+    -- Rule 1: Forgot/Other → show directly, no HRD check needed
+    com.Reason IN ('Forgot To Punch/Sign', 'Other')
+    OR
+    -- Rule 2: Any other reason (including NULL) → only show if proceed_to_HRD = 1
+    (com.Reason NOT IN ('Forgot To Punch/Sign', 'Other') OR com.Reason IS NULL)
+    AND ISNULL(Att.proceed_to_HRD, 0) = 1
+)
+        ) AS SourceData
+        ORDER BY ForDate DESC
+        OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+    END
+    ELSE
+    BEGIN
+        -- Return no data if @EmployeeId is not 10
+        SELECT
+            CAST(NULL AS INT) AS AttendanceRegularizationId,
+            CAST(NULL AS INT) AS EmpId,
+            CAST(NULL AS NVARCHAR(100)) AS FullName,
+            CAST(NULL AS NVARCHAR(50)) AS EmployeeCode,
+            CAST(NULL AS DATE) AS ForDate,
+            CAST(NULL AS DATETIME) AS CreatedDate,
+            CAST(NULL AS NVARCHAR(50)) AS ShiftTime,
+            CAST(NULL AS DATETIME) AS InTime,
+            CAST(NULL AS DATETIME) AS OutTime,
+            CAST(NULL AS NVARCHAR(50)) AS Duration,
+            CAST(NULL AS NVARCHAR(50)) AS [Day],
+            CAST(NULL AS NVARCHAR(100)) AS Reason,
+            CAST(NULL AS BIT) AS IsApproved,
+            CAST(NULL AS BIT) AS IsPending,
+            CAST(NULL AS BIT) AS IsRejected,
+            CAST(NULL AS NVARCHAR(200)) AS Remark,
+            CAST(NULL AS NVARCHAR(100)) AS UpdatedBy,
+            CAST(NULL AS DATETIME) AS UpdatedDate,
+		    CAST(NULL AS NVARCHAR(100)) AS BranchName,
+            CAST(NULL AS NVARCHAR(100)) AS ReportingManager,
+            0 AS TotalRecords
+        WHERE 1 = 0;
+    END
+END;
+
+------------------------------------------------------------------
+
+USE [HRMS_Pro]
+GO
+/****** Object:  StoredProcedure [dbo].[UpdateHRDAttendanceRegularization]    Script Date: 27-04-2026 14:00:04 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[UpdateHRDAttendanceRegularization]
+    @AttendanceRegularizationId BIGINT,
+    @Status                     NVARCHAR(20),    -- 'ProceedToHRD' or 'Rejected'
+    @UpdatedBy                  NVARCHAR(128),
+    @Success                    BIT          OUTPUT,
+    @ResponseMessage            NVARCHAR(MAX) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- 1. Record not found
+    IF NOT EXISTS (
+        SELECT 1 FROM AttendanceRegularization
+        WHERE AttendanceRegularizationId = @AttendanceRegularizationId
+          AND IsEnabled = 1
+          AND IsDeleted = 0
+    )
+    BEGIN
+        SET @Success         = 0;
+        SET @ResponseMessage = 'Record not found.';
+        RETURN;
+    END
+
+    -- 2. Already approved
+    IF @Status = 'ProceedToHRD' AND EXISTS (
+        SELECT 1 FROM AttendanceRegularization
+        WHERE AttendanceRegularizationId = @AttendanceRegularizationId
+          AND proceed_to_HRD = 1
+    )
+    BEGIN
+        SET @Success         = 0;
+        SET @ResponseMessage = 'Record is already approved.';
+        RETURN;
+    END
+
+    -- 3. Already rejected
+    IF @Status = 'Rejected' AND EXISTS (
+        SELECT 1 FROM AttendanceRegularization
+        WHERE AttendanceRegularizationId = @AttendanceRegularizationId
+          AND IsRejected = 1
+    )
+    BEGIN
+        SET @Success         = 0;
+        SET @ResponseMessage = 'Record is already rejected.';
+        RETURN;
+    END
+
+    -- 4. Apply update
+    UPDATE AttendanceRegularization
+    SET
+        proceed_to_HRD  = CASE WHEN @Status = 'ProceedToHRD' THEN 1 ELSE 0 END,
+        IsPending   = 1,
+        IsRejected  = CASE WHEN @Status = 'Rejected'     THEN 1 ELSE 0 END,
+        UpdatedBy   = @UpdatedBy,
+        UpdatedDate = GETUTCDATE()
+    WHERE
+        AttendanceRegularizationId = @AttendanceRegularizationId
+        AND IsEnabled = 1
+        AND IsDeleted = 0;
+
+    SET @Success         = 1;
+    SET @ResponseMessage = 'HRD status updated successfully.';
+END;
+
+
+
+---------------------------------------------------
+
+
+USE [HRMS_Pro]
+GO
+/****** Object:  StoredProcedure [dbo].[GetAttendanceRegularizationApprovalForHRD]    Script Date: 27-04-2026 14:02:04 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[GetAttendanceRegularizationApprovalForHRD]
+    @SearchBy NVARCHAR(20) = NULL,
+    @SearchValue NVARCHAR(100) = NULL,
+    @FromDate DATE = NULL,
+    @ToDate DATE = NULL,
+    @Status NVARCHAR(20) = NULL,
+    @LoggedInUserId NVARCHAR(128) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @LoggedInUserDepartment NVARCHAR(100);
+    SELECT @LoggedInUserDepartment = Desig.DepartmentName
+    FROM AspNetUsers LoggedUser
+    LEFT JOIN department Desig ON Desig.departmentid = LoggedUser.departmentid
+    WHERE LoggedUser.Id = @LoggedInUserId;
+
+    SELECT
+        Att.AttendanceRegularizationId,
+        Att.EmpId,
+        Att.FullName,
+        Users.EmployeeCode,
+        Att.ForDate,
+        Att.CreatedDate,
+        Att.ShiftTime,
+        Att.InTime,
+        Att.OutTime,
+        Att.Duration,
+        Att.[Day],
+        com.Reason,
+		Att.Remark,
+        Att.IsApproved,
+        Att.IsPending,
+        Att.IsRejected,
+        Appr.FullName AS [UpdatedBy],
+        Att.UpdatedDate
+    FROM
+        AttendanceRegularization Att
+    LEFT JOIN
+        AspNetUsers Users ON Users.Id = Att.EmpId
+    LEFT JOIN
+        AspNetUsers Appr ON Appr.Id = Att.UpdatedBy
+    LEFT JOIN
+        CommonReasons com ON com.ReasonId = Att.Reason
+    WHERE
+        Att.IsDeleted = 0
+        AND Att.IsEnabled = 1
+        AND Users.IsBlocked = 0
+        AND Users.IsDeleted = 0
+        AND Users.IsEnabled = 1
+        AND (
+            @FromDate IS NULL OR CAST(Att.ForDate AS DATE) >= @FromDate
+        )
+        AND (
+            @ToDate IS NULL OR CAST(Att.ForDate AS DATE) <= @ToDate
+        )
+        AND (
+            @Status IS NULL
+            OR (@Status = 'Approved' AND Att.IsApproved = 1)
+            OR (@Status = 'Pending' AND Att.IsPending = 1)
+            OR (@Status = 'Rejected' AND Att.IsRejected = 1)
+        )
+        AND (
+            @SearchBy IS NULL
+            OR (@SearchBy = 'EmpCode' AND Users.EmployeeCode LIKE '%' + @SearchValue + '%')
+            OR (@SearchBy = 'EmpName' AND Att.FullName LIKE '%' + @SearchValue + '%')
+            OR (@SearchBy = 'Reason' AND com.Reason LIKE '%' + @SearchValue + '%')
+        )
+	    AND (
+        (
+            @LoggedInUserDepartment = 'HR'
+            AND com.Reason NOT IN ('Forgot To Punch/Sign', 'Other')
+        )
+        OR
+        (
+            Users.ReportingManagerId = @LoggedInUserId
+            AND com.Reason NOT IN ('Forgot To Punch/Sign', 'Other')
+        )
+    )
+    ORDER BY
+        Att.ForDate DESC;
+END; 
+
+
+--------------------------------------------------------------
+--------------------------------------------------------------------
+
+---------Ramesh changes
+---------------------------------------------------
+
+Create PROCEDURE GetApproverEmails_AllLevels
+(
+    @EmployeeId INT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        STRING_AGG(OfficialEmail, ',') AS ApproverEmails
+    FROM
+    (
+        SELECT DISTINCT approver.OfficialEmail
+        FROM ApprovalRequestLevel al
+        INNER JOIN ApprovalRequest ar 
+            ON ar.ApprovalRequestId = al.ApprovalRequestId
+        INNER JOIN AspNetUsers approver 
+            ON approver.Id = al.ApproverEmployeeId
+        WHERE 
+            ar.IsActive = 1
+            AND ar.RequesterEmployeeId = @EmployeeId and ar.ApprovalMasterId=1
+            AND approver.OfficialEmail IS NOT NULL
+    ) AS DistinctEmails;
+END
+
+
+
+------------------------------
+ALTER TABLE ApprovalRequest
+ADD ReferenceNo NVARCHAR(50) NULL;
+
+------------------------------------
+
+ALTER PROCEDURE [dbo].[sp_ApprovalRequestLevel_Action]
+(
+    @StatusId INT,
+    @ApprovalRequestId INT,
+    @ApprovalRequestLevelId INT,
+    @ActionBy INT,
+    @Remarks NVARCHAR(MAX) = NULL,
+
+    @Success BIT OUTPUT,
+    @ResponseMessage NVARCHAR(500) OUTPUT,
+    @IsAllLevelsCompleted BIT OUTPUT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE
+        @PendingStatusId INT = 1,
+        @CompleteStatusId INT = 2,
+        @HoldStatusId INT = 3,
+        @ExtendStatusId INT = 4,
+        @RejectStatusId INT = 5;
+
+    SET @Success = 0;
+    SET @IsAllLevelsCompleted = 0;
+
+    DECLARE
+        @OldStatusId INT,
+        @CurrentLevelNo INT,
+        @ApprovalLevelId INT,
+        @ApprovalMasterId INT,
+        @RequesterEmployeeId INT,
+        @PrevApproverId INT,
+        @LastLevelNo INT,
+        @LastApproverEmployeeId INT;
+
+    SELECT
+        @OldStatusId = StatusId,
+        @CurrentLevelNo = LevelNo,
+        @ApprovalLevelId = ApprovalLevelId,
+        @PrevApproverId = ApproverEmployeeId
+    FROM ApprovalRequestLevel
+    WHERE ApprovalRequestLevelId = @ApprovalRequestLevelId
+      AND IsActive = 1;
+
+    SELECT
+        @ApprovalMasterId = ApprovalMasterId,
+        @RequesterEmployeeId = RequesterEmployeeId
+    FROM ApprovalRequest
+    WHERE ApprovalRequestId = @ApprovalRequestId
+      AND IsActive = 1;
+
+    /* ================= ONLY FOR MASTER ID = 1 ================= */
+    IF @ApprovalMasterId <> 1
+    BEGIN
+        SET @Success = 0;
+        SET @ResponseMessage = 'This action is allowed only for ApprovalMasterId = 1';
+        RETURN;
+    END
+
+    /* ================= TERMINAL ACTIONS ================= */
+    IF @StatusId IN (@HoldStatusId, @ExtendStatusId, @RejectStatusId)
+    BEGIN
+        UPDATE ApprovalRequestLevel
+        SET StatusId=@StatusId, ActionBy=@ActionBy, ActionOn=GETUTCDATE(),
+            ActionRemarks=@Remarks, UpdatedBy=@ActionBy, UpdatedDate=GETUTCDATE()
+        WHERE ApprovalRequestLevelId=@ApprovalRequestLevelId;
+
+        UPDATE ApprovalRequest
+        SET StatusId=@StatusId, UpdatedBy=@ActionBy,
+            UpdatedDate=GETUTCDATE(), ActionDate=GETUTCDATE()
+        WHERE ApprovalRequestId=@ApprovalRequestId;
+
+        INSERT INTO ApprovalRequestHistory
+        (
+            ApprovalRequestId, ApprovalRequestLevelId,
+            ActionType, ActionBy, ActionOn,
+            Remarks, OldStatusId, NewStatusId,
+            CreatedBy, CreatedDate
+        )
+        VALUES
+        (
+            @ApprovalRequestId, @ApprovalRequestLevelId,
+            'Terminal', @ActionBy, GETUTCDATE(),
+            @Remarks, @OldStatusId, @StatusId,
+            @ActionBy, GETUTCDATE()
+        );
+
+        SET @Success = 1;
+        SET @IsAllLevelsCompleted = 1;
+        SET @ResponseMessage = 'Request processed successfully.';
+        RETURN;
+    END
+
+    /* ================= APPROVE ================= */
+    IF @StatusId = @CompleteStatusId
+    BEGIN
+        UPDATE ApprovalRequestLevel
+        SET StatusId=@CompleteStatusId, ActionBy=@ActionBy,
+            ActionOn=GETUTCDATE(), ActionRemarks=@Remarks,
+            UpdatedBy=@ActionBy, UpdatedDate=GETUTCDATE()
+        WHERE ApprovalRequestLevelId=@ApprovalRequestLevelId;
+
+        INSERT INTO ApprovalRequestHistory
+        (
+            ApprovalRequestId, ApprovalRequestLevelId,
+            ActionType, ActionBy, ActionOn,
+            Remarks, OldStatusId, NewStatusId,
+            CreatedBy, CreatedDate
+        )
+        VALUES
+        (
+            @ApprovalRequestId, @ApprovalRequestLevelId,
+            'Approved', @ActionBy, GETUTCDATE(),
+            ISNULL(@Remarks,'Approved'),
+            @OldStatusId, @CompleteStatusId,
+            @ActionBy, GETUTCDATE()
+        );
+
+        DECLARE
+            @NextLevelNo INT = @CurrentLevelNo,
+            @NextApprovalLevelId INT,
+            @ApproverEmployeeId INT,
+            @EscalationDays INT,
+            @IsDepartmentBased BIT,
+            @IsNotMandatory BIT,
+            @DepartmentId INT,
+            @ShouldSkip BIT;
+
+        SELECT @DepartmentId = DepartmentId
+        FROM AspNetUsers
+        WHERE Id = @RequesterEmployeeId;
+
+        WHILE 1 = 1
+        BEGIN
+            SET @ShouldSkip = 0;
+            SET @ApproverEmployeeId = NULL;
+
+            SELECT TOP 1
+                @NextApprovalLevelId = al.ApprovalLevelId,
+                @NextLevelNo = al.LevelNo,
+                @EscalationDays = al.EscalationDays,
+                @IsDepartmentBased = al.IsDepartmentBased
+            FROM ApprovalLevel al
+            WHERE al.ApprovalMasterId = @ApprovalMasterId
+              AND al.LevelNo > @NextLevelNo
+              AND al.IsActive = 1
+            ORDER BY al.LevelNo;
+
+            /* ================= LAST LEVEL ================= */
+            IF @NextApprovalLevelId IS NULL
+            BEGIN
+                SET @LastLevelNo = @NextLevelNo;
+                SET @LastApproverEmployeeId = @PrevApproverId;
+
+                /* ===== GENERATE REF NO ===== */
+                DECLARE @RefNo NVARCHAR(50);
+                DECLARE @Year NVARCHAR(4) = CAST(YEAR(GETDATE()) AS NVARCHAR(4));
+                DECLARE @NextNo INT;
+
+                SELECT @NextNo = ISNULL(MAX(CAST(RIGHT(ReferenceNo,3) AS INT)),0) + 1
+                FROM ApprovalRequest WITH (UPDLOCK, HOLDLOCK)
+                WHERE ApprovalMasterId = 1
+                  AND ReferenceNo IS NOT NULL
+                  AND LEFT(ReferenceNo,4) = @Year;
+
+                SET @RefNo = @Year + '/' + RIGHT('000' + CAST(@NextNo AS NVARCHAR),3);
+
+                UPDATE ApprovalRequest
+                SET StatusId=@CompleteStatusId,
+                    CurrentLevelNo=@LastLevelNo,
+                    CurrentApprover=@LastApproverEmployeeId,
+                    ReferenceNo=@RefNo,
+                    UpdatedBy=@ActionBy,
+                    UpdatedDate=GETUTCDATE(),
+                    ActionDate=GETUTCDATE()
+                WHERE ApprovalRequestId=@ApprovalRequestId;
+
+                INSERT INTO ApprovalRequestHistory
+                (
+                    ApprovalRequestId,
+                    ActionType, ActionBy, ActionOn,
+                    Remarks, OldStatusId, NewStatusId,
+                    CreatedBy, CreatedDate
+                )
+                VALUES
+                (
+                    @ApprovalRequestId,
+                    'Completed', @ActionBy, GETUTCDATE(),
+                    'All approval levels completed',
+                    @OldStatusId, @CompleteStatusId,
+                    @ActionBy, GETUTCDATE()
+                );
+
+                SET @IsAllLevelsCompleted = 1;
+                SET @Success = 1;
+                SET @ResponseMessage = 'Approval completed successfully.';
+                RETURN;
+            END
+
+            /* ================= NORMAL FLOW ================= */
+            IF @IsDepartmentBased = 1
+            BEGIN
+                SELECT TOP 1
+                    @ApproverEmployeeId = ald.ApproverEmployeeId,
+                    @IsNotMandatory = ald.IsNotMandatory
+                FROM ApprovalLevelDepartment ald
+                WHERE ald.ApprovalLevelId = @NextApprovalLevelId
+                  AND ald.DepartmentId = @DepartmentId
+                  AND ald.IsActive = 1;
+
+                IF @ApproverEmployeeId IS NULL AND ISNULL(@IsNotMandatory,0)=1
+                    SET @ShouldSkip = 1;
+            END
+            ELSE
+            BEGIN
+                SELECT @ApproverEmployeeId = ApproverEmployeeId
+                FROM ApprovalLevel
+                WHERE ApprovalLevelId = @NextApprovalLevelId;
+            END
+
+            IF @ApproverEmployeeId = @PrevApproverId
+                SET @ShouldSkip = 1;
+
+            IF @ShouldSkip = 1
+                CONTINUE;
+
+            INSERT INTO ApprovalRequestLevel
+            (
+                ApprovalRequestId, ApprovalLevelId, LevelNo,
+                ApproverEmployeeId, StatusId, IsActive,
+                CreatedBy, CreatedDate, AssignedOn, EscalationDueOn
+            )
+            VALUES
+            (
+                @ApprovalRequestId, @NextApprovalLevelId, @NextLevelNo,
+                @ApproverEmployeeId, @PendingStatusId, 1,
+                @ActionBy, GETUTCDATE(), GETUTCDATE(),
+                DATEADD(DAY, ISNULL(@EscalationDays,0), GETUTCDATE())
+            );
+
+            UPDATE ApprovalRequest
+            SET CurrentLevelNo = @NextLevelNo,
+                CurrentApprover = @ApproverEmployeeId,
+                UpdatedBy = @ActionBy,
+                UpdatedDate = GETUTCDATE()
+            WHERE ApprovalRequestId = @ApprovalRequestId;
+
+            SET @Success = 1;
+            SET @ResponseMessage = 'Approved and next level assigned.';
+            RETURN;
+        END
+    END
+END
+
+-----------------------------
+
+
+
+
+
+ALTER PROC [dbo].[GetAllConfirmationProbationDetails_new]
+(
+    @CompanyId INT,
+    @StatusId INT = NULL,
+    @Year INT = NULL,
+    @EmployeeId INT = NULL,
+    @ApprovalMasterId INT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    CREATE TABLE #MainRequests
+    (
+        EmployeeId INT,
+        EmployeeCode NVARCHAR(50),
+		Initial NVARCHAR(50),
+FirstName NVARCHAR(100),
+MiddleName NVARCHAR(100),
+LastName NVARCHAR(100),
+        EmployeeName NVARCHAR(200),
+        PersonalEmailId NVARCHAR(200),
+        CompanyName NVARCHAR(200),
+		BranchName NVARCHAR(200),
+        ApprovalRequestId INT,
+        ReferenceNo NVARCHAR(50),
+        DateOfJoining DATE,
+        ProbationEndDate DATE,
+        ProbationDueDate DATE,
+
+        StatusId INT,
+        StatusName NVARCHAR(100),
+        ActionDate DATETIME,
+
+        IsMailSent BIT,
+
+        ReportingMangerId INT,
+        ReportingManagerCode NVARCHAR(50),
+        ReportingManagerName NVARCHAR(200),
+        ReportingManagerEmail NVARCHAR(200),
+
+        CurrentLevelNo INT,
+        CurrentApprover NVARCHAR(300),
+        RemarksOfApprover NVARCHAR(MAX),
+        ProbationEvaluationDays VARCHAR(100)
+    );
+
+    INSERT INTO #MainRequests
+    SELECT
+        emp.Id AS EmployeeId,
+        emp.EmployeeCode,
+		emp.Initial,
+    emp.FirstName,
+    emp.MiddleName,
+    emp.LastName,
+        emp.FullName AS EmployeeName,
+        emp.PersonalEmailId,
+        cd.CompanyName,
+		b.BranchName,
+
+        ar.ApprovalRequestId,
+
+        -- ✅ SAME alias
+        ISNULL(ar.ReferenceNo, 'Pending') AS ReferenceNo,
+
+        emp.DateOfJoining,
+        emp.ProbationEndDate,
+        emp.ProbationDueDate,
+
+        ar.StatusId,
+        ps.ProbationStatusName AS StatusName,
+        ar.ActionDate,
+
+        ar.IsMailSent,
+
+        reporting.Id AS ReportingMangerId,
+        reporting.EmployeeCode AS ReportingManagerCode,
+        reporting.FullName AS ReportingManagerName,
+        reporting.OfficialEmail AS ReportingManagerEmail,
+
+        ar.CurrentLevelNo,
+
+        -- ✅ SAME alias
+        (currentApprover.EmployeeCode + ' - ' + currentApprover.FullName) AS CurrentApprover,
+
+        -- ✅ SAME alias
+        ISNULL(NULLIF(LTRIM(RTRIM(pp.RemarksOfApprover)), ''), 'N/A') AS RemarksOfApprover,
+
+        -- ✅ SAME alias
+        ISNULL(
+            CAST(pep.ProbationEvaluationDays AS VARCHAR(10)) + ' Days',
+            'N/A'
+        ) AS ProbationEvaluationDays
+
+    FROM ApprovalRequest ar
+    INNER JOIN ProbationStatus ps
+        ON ps.ProbationStatusId = ar.StatusId
+       AND ps.IsActive = 1
+    INNER JOIN AspNetUsers emp
+        ON emp.Id = ar.RequesterEmployeeId
+    LEFT JOIN AspNetUsers reporting
+        ON reporting.Id = emp.ReportingManagerId
+    LEFT JOIN CompanyDetails cd
+        ON cd.CompanyId = emp.CompanyId
+    LEFT JOIN AspNetUsers currentApprover
+        ON currentApprover.Id = ar.CurrentApprover
+    LEFT JOIN ProbationPerformance pp
+        ON pp.ApprovalRequestId = ar.ApprovalRequestId
+       AND pp.LevelNo = ar.CurrentLevelNo
+       AND pp.IsActive = 1
+    LEFT JOIN ProbationEvaluationPeriod pep
+        ON pep.ProbationEvaluationPeriodId = pp.ProbationEvaluationPeriodId
+		LEFT JOIN Branch b
+    ON b.BranchId = emp.BranchId
+    WHERE ar.IsActive = 1
+      AND emp.CompanyId = @CompanyId
+      AND (@StatusId IS NULL OR ar.StatusId = @StatusId)
+      AND (@EmployeeId IS NULL OR emp.Id = @EmployeeId)
+      AND (
+            @Year IS NULL
+            OR (
+                emp.DateOfJoining >= DATEFROMPARTS(@Year, 1, 1)
+                AND emp.DateOfJoining < DATEFROMPARTS(@Year + 1, 1, 1)
+            )
+          )
+      AND ar.ApprovalMasterId = @ApprovalMasterId;
+
+    SELECT
+        mr.*,
+
+        (
+            SELECT
+                arl.ApprovalRequestLevelId AS HistoryApprovalRequestLevelId,
+                arl.LevelNo AS HistoryLevelNo,
+                arl.StatusId AS HistoryStatusId,
+                ps2.ProbationStatusName AS HistoryStatus,
+                arl.ApproverEmployeeId AS HistoryApproverEmployeeId,
+                (u.FullName + ' - ' + u.EmployeeCode) AS HistoryApproverName,
+                arl.AssignedOn AS HistoryAssignedOn,
+                arl.EscalatedOn AS HistoryEscalatedOn,
+                arl.ActionOn AS HistoryActionOn,
+                arl.CreatedDate AS HistoryCreatedDate,
+                arl.UpdatedDate AS HistoryUpdatedDate,
+
+                -- ✅ SAME alias
+                ISNULL(NULLIF(LTRIM(RTRIM(pp.RemarksOfApprover)), ''), 'N/A') AS HistoryRemarksOfApprover
+
+            FROM ApprovalRequestLevel arl
+            LEFT JOIN AspNetUsers u
+                ON u.Id = arl.ApproverEmployeeId
+            LEFT JOIN ProbationStatus ps2
+                ON ps2.ProbationStatusId = arl.StatusId
+            LEFT JOIN ProbationPerformance pp
+                ON pp.ApprovalRequestLevelId = arl.ApprovalRequestLevelId
+               AND pp.IsActive = 1
+
+            WHERE arl.ApprovalRequestId = mr.ApprovalRequestId
+              AND (arl.LevelNo < mr.CurrentLevelNo OR mr.CurrentLevelNo IS NULL)
+              AND arl.IsActive = 1
+
+            ORDER BY arl.LevelNo
+            FOR JSON PATH
+        ) AS ApprovalHistoryJson
+
+    FROM #MainRequests mr
+    ORDER BY mr.ActionDate DESC;
+
+    DROP TABLE #MainRequests;
+END
+
+
+
+
+
+
+-----------------------------------------------------
+
+ALTER PROCEDURE [dbo].[usp_EscalatePendingApprovalRequests]
+(
+    @Success BIT = NULL OUTPUT,
+    @ResponseMessage NVARCHAR(MAX) = NULL OUTPUT,
+    @EscalatedData NVARCHAR(MAX) = NULL OUTPUT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Now DATETIME = GETUTCDATE();
+    DECLARE @PendingStatusId INT = 1;
+    DECLARE @EscalateStatusId INT = 6;
+
+    SET @Success = 1;
+    SET @ResponseMessage = '';
+    SET @EscalatedData = NULL;
+
+    CREATE TABLE #EscalatedRequests
+    (
+        ApprovalRequestId INT,
+        ApprovalRequestLevelId INT,
+        LevelNo INT
+    );
+
+    /* ================= ESCALATE (ONLY IF NEXT LEVEL EXISTS) ================= */
+    UPDATE arl
+    SET
+        arl.StatusId = @EscalateStatusId,
+        arl.EscalatedOn = @Now,
+        arl.EscalationDueOn = DATEADD(DAY, 1, @Now),
+        arl.UpdatedBy = 0,
+        arl.UpdatedDate = @Now
+    OUTPUT
+        inserted.ApprovalRequestId,
+        inserted.ApprovalRequestLevelId,
+        inserted.LevelNo
+    INTO #EscalatedRequests
+    FROM dbo.ApprovalRequestLevel arl
+    INNER JOIN dbo.ApprovalRequest ar 
+        ON ar.ApprovalRequestId = arl.ApprovalRequestId
+    WHERE
+        arl.StatusId = @PendingStatusId
+        AND arl.IsActive = 1
+        AND arl.EscalationDueOn <= @Now
+        AND ar.ApprovalMasterId = 1
+        AND EXISTS (
+            SELECT 1
+            FROM ApprovalLevel al
+            WHERE al.ApprovalMasterId = ar.ApprovalMasterId
+              AND al.LevelNo > arl.LevelNo
+              AND al.IsActive = 1
+        );
+
+    /* ================= HISTORY ================= */
+    INSERT INTO dbo.ApprovalRequestHistory
+    (
+        ApprovalRequestId,
+        ApprovalRequestLevelId,
+        ActionType,
+        ActionBy,
+        Remarks,
+        OldStatusId,
+        NewStatusId,
+        CreatedDate
+    )
+    SELECT
+        ApprovalRequestId,
+        ApprovalRequestLevelId,
+        'Escalated',
+        1,
+        'Request escalated due to inaction',
+        @PendingStatusId,
+        @EscalateStatusId,
+        @Now
+    FROM #EscalatedRequests;
+
+    /* ================= VARIABLES ================= */
+    DECLARE
+        @RequestId INT,
+        @LevelId INT,
+        @LevelNo INT,
+        @ApprovalMasterId INT,
+        @ApprovalLevelId INT,
+        @ApproverEmployeeId INT,
+        @EscalationDays INT,
+        @DepartmentId INT,
+        @IsNotMandatory BIT,
+        @ShouldSkip BIT,
+        @PrevApproverId INT;
+
+    /* ================= CURSOR ================= */
+    DECLARE EscalatedCursor CURSOR FOR
+        SELECT ApprovalRequestId, ApprovalRequestLevelId, LevelNo
+        FROM #EscalatedRequests;
+
+    OPEN EscalatedCursor;
+    FETCH NEXT FROM EscalatedCursor INTO @RequestId, @LevelId, @LevelNo;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SELECT @PrevApproverId = ApproverEmployeeId
+        FROM ApprovalRequestLevel
+        WHERE ApprovalRequestLevelId = @LevelId;
+
+        SELECT @ApprovalMasterId = ApprovalMasterId
+        FROM ApprovalRequest
+        WHERE ApprovalRequestId = @RequestId
+          AND IsActive = 1;
+
+        SELECT @DepartmentId = DepartmentId
+        FROM AspNetUsers
+        WHERE Id = (
+            SELECT RequesterEmployeeId
+            FROM ApprovalRequest
+            WHERE ApprovalRequestId = @RequestId
+        );
+
+        SELECT TOP 1
+            @ApprovalLevelId = al.ApprovalLevelId,
+            @EscalationDays = al.EscalationDays
+        FROM ApprovalLevel al
+        WHERE al.ApprovalMasterId = @ApprovalMasterId
+          AND al.LevelNo > @LevelNo
+          AND al.IsActive = 1
+        ORDER BY al.LevelNo;
+
+        WHILE @ApprovalLevelId IS NOT NULL
+        BEGIN
+            SET @ShouldSkip = 0;
+            SET @ApproverEmployeeId = NULL;
+            SET @IsNotMandatory = 0;
+
+            IF EXISTS (
+                SELECT 1
+                FROM ApprovalLevel
+                WHERE ApprovalLevelId = @ApprovalLevelId
+                  AND IsDepartmentBased = 1
+            )
+            BEGIN
+                SELECT TOP 1
+                    @ApproverEmployeeId = ald.ApproverEmployeeId,
+                    @IsNotMandatory = ald.IsNotMandatory
+                FROM ApprovalLevelDepartment ald
+                WHERE ald.ApprovalLevelId = @ApprovalLevelId
+                  AND ald.DepartmentId = @DepartmentId
+                  AND ald.IsActive = 1;
+
+                IF @ApproverEmployeeId IS NULL AND ISNULL(@IsNotMandatory, 0) = 1
+                    SET @ShouldSkip = 1;
+            END
+
+            IF @ApproverEmployeeId = @PrevApproverId
+                SET @ShouldSkip = 1;
+
+            IF @ShouldSkip = 1
+            BEGIN
+                SET @LevelNo = @LevelNo + 1;
+
+                SELECT TOP 1
+                    @ApprovalLevelId = al.ApprovalLevelId,
+                    @EscalationDays = al.EscalationDays
+                FROM ApprovalLevel al
+                WHERE al.ApprovalMasterId = @ApprovalMasterId
+                  AND al.LevelNo > @LevelNo
+                  AND al.IsActive = 1
+                ORDER BY al.LevelNo;
+
+                CONTINUE;
+            END
+
+            IF @ApproverEmployeeId IS NULL
+            BEGIN
+                SELECT @ApproverEmployeeId = ApproverEmployeeId
+                FROM ApprovalLevel
+                WHERE ApprovalLevelId = @ApprovalLevelId;
+            END
+
+            IF EXISTS (
+                SELECT 1 FROM ApprovalLevel
+                WHERE ApprovalLevelId = @ApprovalLevelId
+                  AND IsReportingPerson = 1
+            )
+            BEGIN
+                SELECT @ApproverEmployeeId = ReportingManagerId
+                FROM AspNetUsers
+                WHERE Id = (
+                    SELECT RequesterEmployeeId
+                    FROM ApprovalRequest
+                    WHERE ApprovalRequestId = @RequestId
+                );
+            END
+
+            INSERT INTO ApprovalRequestLevel
+            (
+                ApprovalRequestId,
+                ApprovalLevelId,
+                LevelNo,
+                ApproverEmployeeId,
+                StatusId,
+                IsActive,
+                CreatedBy,
+                CreatedDate,
+                AssignedOn,
+                EscalationDueOn
+            )
+            VALUES
+            (
+                @RequestId,
+                @ApprovalLevelId,
+                @LevelNo + 1,
+                @ApproverEmployeeId,
+                @PendingStatusId,
+                1,
+                1,
+                @Now,
+                @Now,
+                DATEADD(DAY, ISNULL(@EscalationDays, 0), @Now)
+            );
+
+            DECLARE @NewLevelId INT = SCOPE_IDENTITY();
+
+            UPDATE ApprovalRequest
+            SET
+                CurrentLevelNo = @LevelNo + 1,
+                CurrentApprover = @ApproverEmployeeId,
+                UpdatedDate = @Now,
+                ActionDate = @Now
+            WHERE ApprovalRequestId = @RequestId;
+
+            INSERT INTO ApprovalRequestHistory
+            (
+                ApprovalRequestId,
+                ApprovalRequestLevelId,
+                ActionType,
+                ActionBy,
+                Remarks,
+                OldStatusId,
+                NewStatusId,
+                CreatedDate
+            )
+            VALUES
+            (
+                @RequestId,
+                @NewLevelId,
+                'Assigned',
+                1,
+                'Assigned after escalation',
+                @EscalateStatusId,
+                @PendingStatusId,
+                @Now
+            );
+
+            BREAK;
+        END
+
+        FETCH NEXT FROM EscalatedCursor INTO @RequestId, @LevelId, @LevelNo;
+    END
+
+    CLOSE EscalatedCursor;
+    DEALLOCATE EscalatedCursor;
+
+    /* ================= JSON OUTPUT ================= */
+    IF EXISTS (SELECT 1 FROM #EscalatedRequests)
+    BEGIN
+        SELECT @EscalatedData =
+        (
+            SELECT
+                ar.RequesterEmployeeId AS EmployeeId,
+                emp.FullName AS EmployeeName,
+                emp.EmployeeCode AS EmployeeCode,
+                prev.OfficialEmail AS PreviousApproverEmail,
+                prev.FullName AS PreviousApprover,
+                prev.EmployeeCode AS PreviousApproverCode,
+                arl.LevelNo AS PreviousLevelNo,
+                nextAppr.OfficialEmail AS NextApproverEmail,
+                nextAppr.FullName AS NextApprover,
+                nextAppr.EmployeeCode AS NextApproverCode,
+                nl.LevelNo AS NextLevelNo,
+                c.CompanyName,
+                arl.EscalatedOn AS EscalationDate
+            FROM #EscalatedRequests er
+            JOIN ApprovalRequest ar ON ar.ApprovalRequestId = er.ApprovalRequestId
+            JOIN ApprovalRequestLevel arl ON arl.ApprovalRequestLevelId = er.ApprovalRequestLevelId
+            LEFT JOIN AspNetUsers emp ON emp.Id = ar.RequesterEmployeeId
+            LEFT JOIN AspNetUsers prev ON prev.Id = arl.ApproverEmployeeId
+            LEFT JOIN ApprovalRequestLevel nl ON nl.ApprovalRequestId = ar.ApprovalRequestId
+                                             AND nl.LevelNo = ar.CurrentLevelNo
+            LEFT JOIN AspNetUsers nextAppr ON nextAppr.Id = nl.ApproverEmployeeId
+            LEFT JOIN CompanyDetails c ON c.CompanyId = emp.CompanyId
+            FOR JSON PATH, INCLUDE_NULL_VALUES
+        );
+    END
+
+    DROP TABLE #EscalatedRequests;
+
+    SET @ResponseMessage = 'Escalation completed (last level untouched)';
+END
+
+
+
+------------------------------------------
+
+ALTER PROCEDURE [dbo].[usp_AutomateProbationEndApprovalRequests]
+(
+    @ApprovalMasterId INT,
+    @StartDate DATE = NULL,
+    @EndDate DATE = NULL,
+    @Success BIT = NULL OUTPUT,
+    @ResponseMessage NVARCHAR(MAX) = NULL OUTPUT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Now DATETIME = GETUTCDATE();
+
+    /* ===== DEFAULT DATE LOGIC ===== */
+    IF @StartDate IS NULL OR @EndDate IS NULL
+    BEGIN
+        SET @StartDate = CAST(@Now AS DATE);
+        SET @EndDate = DATEADD(DAY, 15, @StartDate);
+    END
+
+    DECLARE 
+        @EmployeeId INT,
+        @EmployeeName NVARCHAR(200),
+        @ApprovalRequestId INT,
+        @RequestTitle NVARCHAR(250) = 'Probation End Approval Request',
+        @CreatedBy INT = 0,
+        @PendingStatusId INT = 1;
+
+    SET @Success = 1;
+    SET @ResponseMessage = 'Automation started';
+
+    DECLARE EmployeeCursor CURSOR FOR
+        SELECT Id, FullName + ' - ' + EmployeeCode
+        FROM AspNetUsers
+        WHERE
+            IsEnabled = 1
+            AND IsDeleted = 0
+            AND ISNULL(IsLeft, 0) = 0
+            AND Probation = 1
+            AND ProbationEndDate BETWEEN @StartDate AND @EndDate;
+
+    OPEN EmployeeCursor;
+    FETCH NEXT FROM EmployeeCursor INTO @EmployeeId, @EmployeeName;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM ApprovalRequest
+            WHERE RequesterEmployeeId = @EmployeeId
+              AND ApprovalMasterId = @ApprovalMasterId
+              AND IsActive = 1
+        )
+        BEGIN
+            INSERT INTO ApprovalRequest
+            (
+                ApprovalMasterId, RequesterEmployeeId, RequestTitle,
+                CurrentLevelNo, StatusId, IsActive,
+                CreatedBy, CreatedDate, IsMailSent
+            )
+            VALUES
+            (
+                @ApprovalMasterId, @EmployeeId, @RequestTitle,
+                1, @PendingStatusId, 1,
+                @CreatedBy, @Now, 0
+            );
+
+            SET @ApprovalRequestId = SCOPE_IDENTITY();
+
+            /* ===== FIRST LEVEL ===== */
+            DECLARE 
+                @ApprovalLevelId INT,
+                @ApproverEmployeeId INT,
+                @EscalationDays INT,
+                @IsDepartmentBased BIT,
+                @DepartmentId INT;
+
+            SELECT TOP 1
+                @ApprovalLevelId = al.ApprovalLevelId,
+                @ApproverEmployeeId = al.ApproverEmployeeId,
+                @EscalationDays = al.EscalationDays,
+                @IsDepartmentBased = al.IsDepartmentBased
+            FROM ApprovalLevel al
+            WHERE al.ApprovalMasterId = @ApprovalMasterId
+              AND al.LevelNo = 1
+              AND al.IsActive = 1;
+
+            /* ===== GET EMPLOYEE DEPARTMENT ===== */
+            SELECT @DepartmentId = DepartmentId
+            FROM AspNetUsers
+            WHERE Id = @EmployeeId;
+
+            /* ===== APPROVER LOGIC ===== */
+            IF @IsDepartmentBased = 1
+            BEGIN
+                SELECT @ApproverEmployeeId = ald.ApproverEmployeeId
+                FROM ApprovalLevelDepartment ald
+                WHERE ald.ApprovalLevelId = @ApprovalLevelId
+                  AND ald.DepartmentId = @DepartmentId
+                  AND ald.IsActive = 1;
+            END
+            ELSE IF EXISTS (
+                SELECT 1 FROM ApprovalLevel
+                WHERE ApprovalLevelId = @ApprovalLevelId
+                  AND IsReportingPerson = 1
+            )
+            BEGIN
+                SELECT @ApproverEmployeeId = ReportingManagerId
+                FROM AspNetUsers
+                WHERE Id = @EmployeeId;
+            END
+
+            /* ===== FALLBACK SAFETY ===== */
+            IF @ApproverEmployeeId IS NULL
+            BEGIN
+                SELECT @ApproverEmployeeId = ApproverEmployeeId
+                FROM ApprovalLevel
+                WHERE ApprovalLevelId = @ApprovalLevelId;
+            END
+
+            /* ===== UPDATE CURRENT APPROVER ===== */
+            UPDATE ApprovalRequest
+            SET CurrentApprover = @ApproverEmployeeId
+            WHERE ApprovalRequestId = @ApprovalRequestId;
+
+            /* ===== INSERT LEVEL ===== */
+            INSERT INTO ApprovalRequestLevel
+            (
+                ApprovalRequestId, ApprovalLevelId, LevelNo,
+                ApproverEmployeeId, StatusId, IsActive,
+                CreatedBy, CreatedDate, AssignedOn, EscalationDueOn
+            )
+            VALUES
+            (
+                @ApprovalRequestId, @ApprovalLevelId, 1,
+                @ApproverEmployeeId, @PendingStatusId, 1,
+                @CreatedBy, @Now, @Now,
+                DATEADD(DAY, ISNULL(@EscalationDays,0), @Now)
+            );
+
+            /* ===== HISTORY ===== */
+            INSERT INTO ApprovalRequestHistory
+            (
+                ApprovalRequestId, ActionType, ActionBy,
+                Remarks, NewStatusId, CreatedDate
+            )
+            VALUES
+            (
+                @ApprovalRequestId, 'Inserted', @CreatedBy,
+                CONCAT('Approval request created for ', @EmployeeName),
+                @PendingStatusId, @Now
+            );
+        END
+
+        FETCH NEXT FROM EmployeeCursor INTO @EmployeeId, @EmployeeName;
+    END
+
+    CLOSE EmployeeCursor;
+    DEALLOCATE EmployeeCursor;
+
+    SET @ResponseMessage = CONCAT('Completed from ', @StartDate, ' to ', @EndDate);
+END
+
+
+
+
+------------------------------
+
+-- for Refrence genrate existing 
+
+
+DECLARE @Year NVARCHAR(4) = CAST(YEAR(GETDATE()) AS NVARCHAR(4));
+
+;WITH CTE AS
+(
+    SELECT 
+        ApprovalRequestId,
+        ROW_NUMBER() OVER (ORDER BY ApprovalRequestId) AS RowNum
+    FROM ApprovalRequest
+    WHERE 
+        ApprovalMasterId = 1
+        AND ReferenceNo IS NULL
+)
+UPDATE ar
+SET ReferenceNo = 
+    @Year + '/' + RIGHT('000' + CAST(cte.RowNum AS NVARCHAR), 3)
+FROM ApprovalRequest ar
+INNER JOIN CTE cte
+    ON ar.ApprovalRequestId = cte.ApprovalRequestId;
+
+
