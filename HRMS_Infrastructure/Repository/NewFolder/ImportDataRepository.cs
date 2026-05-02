@@ -14,10 +14,13 @@ namespace HRMS_Infrastructure.Repository.NewFolder
     public class ImportDataRepository : IImportDataRepository
     {
         private readonly HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public ImportDataRepository(HRMSDbContext db)
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
+
         }
 
         public async Task<ImportSPResult> ImportAttendance(string jsonData , string createdBy)
@@ -55,47 +58,46 @@ namespace HRMS_Infrastructure.Repository.NewFolder
         // Common method to execute any import SP
         private async Task<ImportSPResult> ExecuteImportSP(string spName, string jsonData, string createdBy)
         {
-            var result = new ImportSPResult { Errors = new List<ImportError>() }; 
+            var result = new ImportSPResult { Errors = new List<ImportError>() };
 
             try
             {
-                var connectionString = _db.Database.GetConnectionString();
-                using var connection = new SqlConnection(connectionString);
+                using var connection = new SqlConnection(_connectionString);
                 await connection.OpenAsync();
 
                 using var command = new SqlCommand(spName, connection);
                 command.CommandType = CommandType.StoredProcedure;
                 command.CommandTimeout = 600;
 
-                // Add BOTH parameters
                 command.Parameters.AddWithValue("@ImportData", jsonData);
-                command.Parameters.AddWithValue("@CreatedBy", createdBy); // ⭐ ADD THIS
+                command.Parameters.AddWithValue("@CreatedBy", createdBy);
 
                 using var reader = await command.ExecuteReaderAsync();
 
-                // FIRST RESULT SET: Summary
+                // FIRST RESULT SET: Summary (read only available fields)
                 if (await reader.ReadAsync())
                 {
-                    result.InsertedCount = reader.GetInt32(reader.GetOrdinal("InsertedCount"));
-                    result.DuplicateCount = reader.GetInt32(reader.GetOrdinal("DuplicateCount"));
-                    result.BlankCount = reader.GetInt32(reader.GetOrdinal("BlankCount"));
+                    // Always read common fields
+                    result.InsertedCount = GetSafeInt32(reader, "InsertedCount");
+                    result.ErrorCount = GetSafeInt32(reader, "ErrorCount");
+                    result.DuplicateCount = GetSafeInt32(reader, "DuplicateCount");
+                    result.BlankCount = GetSafeInt32(reader, "BlankCount");
 
-                    // ⭐ REMOVE ErrorCount - it's not in SP output anymore
+                    // Safely read optional fields (default to 0 if not present)
+                    result.InvalidPayableDaysCount = GetSafeInt32(reader, "InvalidPayableDaysCount");
                 }
 
-                // SECOND RESULT SET: Error Details
+                // SECOND RESULT SET: Error Details (if exists)
                 if (await reader.NextResultAsync())
                 {
                     while (await reader.ReadAsync())
                     {
                         result.Errors.Add(new ImportError
                         {
-                            RowNumber = reader.GetInt32(reader.GetOrdinal("RowNumber")),
-                            EmployeeCode = reader.IsDBNull(reader.GetOrdinal("EmployeeCode"))
-                                ? ""
-                                : reader.GetString(reader.GetOrdinal("EmployeeCode")),
-                            ErrorType = reader.GetString(reader.GetOrdinal("ErrorType")),
-                            ErrorMessage = reader.GetString(reader.GetOrdinal("ErrorMessage"))
+                            RowNumber = GetSafeInt32(reader, "RowNumber"),
+                            EmployeeCode = GetSafeString(reader, "EmployeeCode"),
+                            ErrorType = GetSafeString(reader, "ErrorType"),
+                            ErrorMessage = GetSafeString(reader, "ErrorMessage")
                         });
                     }
                 }
@@ -112,5 +114,31 @@ namespace HRMS_Infrastructure.Repository.NewFolder
             return result;
         }
 
+        // Helper methods to safely read from SqlDataReader
+        private int GetSafeInt32(SqlDataReader reader, string columnName)
+        {
+            try
+            {
+                int ordinal = reader.GetOrdinal(columnName);
+                return reader.IsDBNull(ordinal) ? 0 : reader.GetInt32(ordinal);
+            }
+            catch
+            {
+                return 0; // Column doesn't exist or error occurred
+            }
+        }
+
+        private string GetSafeString(SqlDataReader reader, string columnName)
+        {
+            try
+            {
+                int ordinal = reader.GetOrdinal(columnName);
+                return reader.IsDBNull(ordinal) ? "" : reader.GetString(ordinal);
+            }
+            catch
+            {
+                return ""; // Column doesn't exist or error occurred
+            }
+        }
     }
 }

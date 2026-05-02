@@ -28,5 +28,20 @@ namespace HRMS_Core.VM.Salary
     
 
     }
+    public class GetEmployeePayableDaysRequest
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string EmployeeIds { get; set; } // Single Emp_Id (or comma-separated if needed)
+    }
+    public class EmployeePayableDaysResponse
+    {
+        public string BranchName { get; set; }
+        public string EmployeeCode { get; set; }
+        public string FullName { get; set; }
+        public int Emp_Id { get; set; }
+        public decimal TotalPayableDays { get; set; }
+        public int TotalMonthDays { get; set; }
+    }
 }
     

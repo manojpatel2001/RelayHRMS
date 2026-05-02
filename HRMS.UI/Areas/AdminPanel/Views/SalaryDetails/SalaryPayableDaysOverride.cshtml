@@ -169,24 +169,7 @@
                         </span>
                     </div>
 
-                    <div id="employeeInfoCard"
-                         style="display:none; background:#eef4fb; border:1px solid #d0e3f5;
-                                border-radius:6px; padding:12px 16px; margin-bottom:16px;">
-                        <div class="row" style="font-size:11px; font-weight:600; color:#6c757d;
-                                                letter-spacing:0.5px; margin-bottom:6px;">
-                            <div class="col-4">EMPLOYEE</div>
-                            <div class="col-2 text-center">CODE</div>
-                            <div class="col-3 text-center">CURRENT DAYS</div>
-                            <div class="col-3 text-center">MONTH DAYS</div>
-                        </div>
-                        <div class="row align-items-center" style="font-size:13px; font-weight:600; color:#2c3e50;">
-                            <div class="col-4" id="cardEmployeeName">—</div>
-                            <div class="col-2 text-center" id="cardEmployeeCode">—</div>
-                            <div class="col-3 text-center" id="cardCurrentDays">—</div>
-                            <div class="col-3 text-center" id="cardMonthDays">—</div>
-                        </div>
-                    </div>
-
+                 
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label style="font-size:11px; font-weight:600; color:#6c757d; letter-spacing:0.5px;">
@@ -210,6 +193,25 @@
                         </div>
                     </div>
 
+                    <div id="employeeInfoCard"
+                         style="display:none; background:#eef4fb; border:1px solid #d0e3f5;
+                                border-radius:6px; padding:12px 16px; margin-bottom:16px;">
+                        <div class="row" style="font-size:11px; font-weight:600; color:#6c757d;
+                                                letter-spacing:0.5px; margin-bottom:6px;">
+                            <div class="col-4">EMPLOYEE</div>
+                            <div class="col-2 text-center">CODE</div>
+                            <div class="col-3 text-center">CURRENT DAYS</div>
+                            <div class="col-3 text-center">MONTH DAYS</div>
+                        </div>
+                        <div class="row align-items-center" style="font-size:13px; font-weight:600; color:#2c3e50;">
+                            <div class="col-4" id="cardEmployeeName">—</div>
+                            <div class="col-2 text-center" id="cardEmployeeCode">—</div>
+                            <div class="col-3 text-center" id="cardCurrentDays">—</div>
+                            <div class="col-3 text-center" id="cardMonthDays">—</div>
+                        </div>
+                    </div>
+
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label style="font-size:11px; font-weight:600; color:#6c757d; letter-spacing:0.5px;">
@@ -217,6 +219,9 @@
                             </label>
                             <input type="number" class="form-control" id="adjustmentDelta"
                                    placeholder="e.g. 2 or -1" step="0.01" style="font-size:13px;" />
+                            <span id="spnadjustmentDelta" style="color:red; display:none; font-size:0.85em;">
+                            Delta Value Can  Be 0 or Empty
+                            </span>
                         </div>
                         <div class="col-md-6">
                             <label style="font-size:11px; font-weight:600; color:#6c757d; letter-spacing:0.5px;">
@@ -495,56 +500,56 @@
         $('#cardCurrentDays').html('<span style="color:#aaa;">Loading...</span>');
         $('#cardMonthDays').html('<span style="color:#aaa;">Loading...</span>');
         $('#employeeInfoCard').show();
-        fetchEmployeeSalaryDays(emp.employeeCode || '');
+        fetchEmployeeSalaryDays(emp.id || '');
     }
 
-    function fetchEmployeeSalaryDays(empCode) {
+    function fetchEmployeeSalaryDays(empId) {
         var now      = new Date();
         var year     = parseInt($('#overrideYear').val())  || now.getFullYear();
         var monthNum = parseInt($('#monthOverride').val()) || (now.getMonth() + 1);
         var lastDay  = new Date(year, monthNum, 0).getDate();
         var pad      = function (n) { return String(n).padStart(2, '0'); };
 
-        $.ajax({
-            type:        'POST',
-            url:         '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetMonthlySalary")',
-            data:        JSON.stringify({
-                             StartDate:     year + '-' + pad(monthNum) + '-01',
-                             EndDate:       year + '-' + pad(monthNum) + '-' + pad(lastDay),
-                             EmployeeCodes: String(empCode),
-                             CompanyId:     CompanyId,
-                             Action:        'GetData',
-                             CreatedBy:     EmployeeId
-                         }),
-            contentType: 'application/json',
-            success: function (response) {
-                if (response && response.data && response.data.length > 0) {
-                    var rec         = response.data[0];
-                    var currentDays = rec.payableDays ?? rec.PayableDays ??
-                                      rec.currentPayableDays ?? rec.CurrentPayableDays ?? 0;
-                    var monthDays   = rec.totalDays ?? rec.TotalDays ??
-                                      rec.monthDays ?? rec.MonthDays ?? 0;
-                    currentPayableDays = parseFloat(currentDays) || 0;
-                    $('#cardCurrentDays').text(currentPayableDays);
-                    $('#cardMonthDays').text(monthDays || '—');
-                } else {
-                    currentPayableDays = 0;
-                    $('#cardCurrentDays').text('N/A');
-                    $('#cardMonthDays').text('N/A');
-                }
-                updateLiveCalc();
-            },
-            error: function () {
+          $.ajax({
+        type: 'POST',
+        url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeePayableDays")',
+        data: JSON.stringify({
+            StartDate: year + '-' + pad(monthNum) + '-01',
+            EndDate: year + '-' + pad(monthNum) + '-' + pad(lastDay),
+            EmployeeIds: String(empId)
+        }),
+        contentType: 'application/json',
+        success: function (response) {
+            if (response.isSuccess) {
+                var currentDays = response.data.totalPayableDays || 0;
+                var monthDays = response.data.totalMonthDays || 0;
+                currentPayableDays = parseFloat(currentDays) || 0;
+                $('#cardCurrentDays').text(currentPayableDays);
+                $('#cardMonthDays').text(monthDays || '—');
+            } else {
                 currentPayableDays = 0;
                 $('#cardCurrentDays').text('N/A');
                 $('#cardMonthDays').text('N/A');
-                updateLiveCalc();
             }
-        });
+            updateLiveCalc();
+        },
+        error: function (xhr) {
+            if (xhr.status === 404) {
+                currentPayableDays = 0;
+                $('#cardCurrentDays').text('N/A');
+                $('#cardMonthDays').text('N/A');
+            } else {
+                currentPayableDays = 0;
+                $('#cardCurrentDays').text('Error');
+                $('#cardMonthDays').text('Error');
+            }
+            updateLiveCalc();
+        }
+    });
     }
 
     $('#monthOverride, #overrideYear').on('change', function () {
-        if (selectedEmployee) fetchEmployeeSalaryDays(selectedEmployee.employeeCode || '');
+        if (selectedEmployee) fetchEmployeeSalaryDays(selectedEmployee.id || '');
     });
 
     function updateLiveCalc() {
@@ -565,26 +570,58 @@
         $('#overrideModal').modal('show');
     });
 
+        // Add validation for Adjustment Delta input
+    $('#adjustmentDelta').on('input', function () {
+        var delta = parseFloat($(this).val()) || 0;
+        var maxAllowedDelta = $('#cardMonthDays').text() === '—' ? 0 : parseFloat($('#cardMonthDays').text()) - currentPayableDays;
+        var minAllowedDelta = -currentPayableDays; // Prevents final days from going below 0
+
+        // Check if delta is valid
+        if (delta > maxAllowedDelta || delta < minAllowedDelta) {
+            $(this).val('');
+            round_error_noti('Adjustment Delta cannot make final payable days exceed month days or go below zero.');
+            updateLiveCalc(); // Reset calculation
+        } else {
+            updateLiveCalc(); // Update calculation if valid
+        }
+    });
+
+
+
+
+
+
+
     $('#btnSaveOverride').on('click', function () {
-        var id       = parseInt($('#overrideId').val());
-        var isUpdate = id > 0;
-        showBtnLoader(isUpdate);
+        var delta = parseFloat($('#adjustmentDelta').val()) || 0;
+    var maxAllowedDelta = $('#cardMonthDays').text() === '—' ? 0 : parseFloat($('#cardMonthDays').text()) - currentPayableDays;
+    var minAllowedDelta = -currentPayableDays;
 
-        var empId       = $('#selectedEmployeeId').val();
-        var empCode     = $('#employeeCode').val();
-        var month       = $('#monthOverride').val();
-        var year        = $('#overrideYear').val();
-        var payableDays = $('#overridePayableDays').val();
-        var delta       = $('#adjustmentDelta').val();
-        var reason      = $('#overrideReason').val();
-        var isValid     = true;
+    if (delta > maxAllowedDelta || delta < minAllowedDelta) {
+        round_error_noti('Adjustment Delta cannot make final payable days exceed month days or go below zero.');
+        return false;
+    }
 
-        if (!empId)       { $('#spnEmployeeOverride').show();    isValid = false; } else { $('#spnEmployeeOverride').hide(); }
-        if (!month)       { $('#spnMonthOverride').show();       isValid = false; } else { $('#spnMonthOverride').hide(); }
-        if (!year)        { $('#spnOverrideYear').show();        isValid = false; } else { $('#spnOverrideYear').hide(); }
-        if (!payableDays) { $('#spnOverridePayableDays').show(); isValid = false; } else { $('#spnOverridePayableDays').hide(); }
+    // Rest of your existing validation logic...
+    var id = parseInt($('#overrideId').val());
+    var isUpdate = id > 0;
+    showBtnLoader(isUpdate);
 
-        if (!isValid) { hideBtnLoader(); return; }
+    var empId = $('#selectedEmployeeId').val();
+    var empCode = $('#employeeCode').val();
+    var month = $('#monthOverride').val();
+    var year = $('#overrideYear').val();
+    var payableDays = $('#overridePayableDays').val();AdminPanel/ImportData/ImportData
+    var reason = $('#overrideReason').val();
+    var isValid = true;
+
+    if (!empId) { $('#spnEmployeeOverride').show(); isValid = false; } else { $('#spnEmployeeOverride').hide(); }
+    if (!month) { $('#spnMonthOverride').show(); isValid = false; } else { $('#spnMonthOverride').hide(); }
+    if (!year) { $('#spnOverrideYear').show(); isValid = false; } else { $('#spnOverrideYear').hide(); }
+    if (!delta || delta == "0") { $('#spnadjustmentDelta').show(); isValid = false; } else { $('#spnadjustmentDelta').hide(); }
+    if (!payableDays) { $('#spnOverridePayableDays').show(); isValid = false; } else { $('#spnOverridePayableDays').hide(); }
+
+    if (!isValid) { hideBtnLoader(); return; }
 
         var payload = {
             Id:                  id,
@@ -695,7 +732,7 @@
         $('#adjustmentDelta').val('');
         $('#overridePayableDays').val('');
         $('#overrideReason').val('');
-        $('#spnEmployeeOverride, #spnMonthOverride, #spnOverrideYear, #spnOverridePayableDays').hide();
+        $('#spnEmployeeOverride, #spnMonthOverride, #spnOverrideYear, #spnOverridePayableDays,#spnadjustmentDelta').hide();
         $('#btnSaveOverride').text('Save Override');
         hideBtnLoader();
     }

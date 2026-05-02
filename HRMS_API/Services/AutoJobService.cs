@@ -38,7 +38,9 @@ namespace HRMS_API.Services
                 var check = await _unitOfWork.ApprovalManagementRepository
                     .AutomateProbationEndApprovalRequests(1);
 
+                var escalatedManpower = await _unitOfWork.ManpowerRequisitionRepository.EscalatePendingManpowerApprovalRequests();
                 var escalated = await _unitOfWork.ApprovalManagementRepository.EscalatePendingApprovalRequests();
+
                 if (escalated.IsSuccess)
                 {
                     if (!string.IsNullOrEmpty(escalated.EscalatedData))

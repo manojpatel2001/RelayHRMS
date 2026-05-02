@@ -3,6 +3,7 @@ using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Repository;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -166,6 +167,28 @@ namespace HRMS_API.Controllers.Salary
                     ResponseMessage = $"Error: {err.Message}"
                 };
             }
+        }
+
+        [HttpPost("GetEmployeePayableDays")]
+        public async Task<APIResponse> GetEmployeePayableDays([FromBody] GetEmployeePayableDaysRequest request)
+        {
+            var result = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeePayableDays(request);
+
+            if (result == null)
+            {
+                return new APIResponse 
+                {
+                    isSuccess = false,
+                    ResponseMessage = "No record found"
+                };
+            }
+
+            return  new APIResponse
+            {
+                isSuccess = true,
+                ResponseMessage = "successfully!",
+                Data=result
+            }; ;
         }
 
         [HttpGet("GetYearlySalaryCard")]

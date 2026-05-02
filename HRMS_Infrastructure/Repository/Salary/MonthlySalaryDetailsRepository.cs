@@ -22,6 +22,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using static HRMS_Infrastructure.Repository.Salary.MonthlySalaryDetailsRepository;
 
 namespace HRMS_Infrastructure.Repository.Salary
 {
@@ -220,6 +221,35 @@ namespace HRMS_Infrastructure.Repository.Salary
             {
                 if (connection.State == ConnectionState.Open)
                     await connection.CloseAsync();
+            }
+        }
+
+        public async Task<EmployeePayableDaysResponse?> GetEmployeePayableDays(GetEmployeePayableDaysRequest request)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var result = await connection.QueryFirstOrDefaultAsync<EmployeePayableDaysResponse>(
+                        "sp_GetEmployeePayableDaysWithMonthDays",
+                        new
+                        {
+                            StartDate = request.StartDate,
+                            EndDate = request.EndDate,
+                            EmployeeIds = request.EmployeeIds
+                        },
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error: {ex.Message}");
+                return null;
             }
         }
         public Task<IEnumerable<SalaryDetailViewModel>> GetAllAsync(Expression<Func<SalaryDetailViewModel, bool>>? filter = null, string? includeProperties = null)

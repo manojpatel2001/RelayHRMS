@@ -22,6 +22,8 @@ namespace HRMS_Infrastructure.Interface.NewFolder
         public int? ErrorCount { get; set; }
         public int? DuplicateCount { get; set; }
         public int? BlankCount { get; set; }
+        // Optional fields (returned only by specific SPs)
+        public int InvalidPayableDaysCount { get; set; } = 0; // Default to 0
         public List<ImportError> Errors { get; set; } = new List<ImportError>();
     }
 
