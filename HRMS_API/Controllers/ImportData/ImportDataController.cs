@@ -188,7 +188,7 @@ public class ImportDataController : ControllerBase
                type == "SalaryPayableDays";
     }
 
-    public async Task<APIResponse> ProcessWithStoredProcedure(DataTable dt, string type, int startRow, string createdBy)
+    private async Task<APIResponse> ProcessWithStoredProcedure(DataTable dt, string type, int startRow, string createdBy)
     {
         try
         {
