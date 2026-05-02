@@ -91,7 +91,7 @@ namespace HRMS_API.Services
                             // ✅ NULL + SERVER CHECK
                             if (emailReport == null|| string.IsNullOrEmpty(emailReport.ToEmails)
                                 || emailReport.EmailSendTime == null
-                                || emailReport.ServerType?.ToUpper() != "LIVE")
+                                )
                             {
                                 Console.WriteLine("⛔ Scheduler skipped");
    
