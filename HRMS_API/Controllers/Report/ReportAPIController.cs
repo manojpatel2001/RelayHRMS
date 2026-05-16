@@ -382,6 +382,26 @@ namespace HRMS_API.Controllers.Report
         }
 
 
+        [HttpGet("GetActiveEmployeeDetailsForLetter")]
+        public async Task<APIResponse> GetActiveEmployeeDetailsForLetter(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetActiveEmployeeDetailsForLetter(EmployeeId);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
         [HttpGet("GetEmployeeDetailsForLetter")]
         public async Task<APIResponse> GetEmployeeDetailsForLetter(int EmployeeId)
         {
@@ -429,6 +449,27 @@ namespace HRMS_API.Controllers.Report
                                : BranchId.Split(',').ToList();
 
                 var data = await _unitOfWork.ReportRepository.GetAllLeftEmployee(companyId, BranchId,Year);
+
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+        [HttpGet("GetAllEmployeeforletter/{companyId}")]
+        public async Task<APIResponse> GetAllEmployeeforletter(int companyId, [FromQuery] string BranchId, int Year)
+        {
+            try
+            {
+                // Split comma-separated BranchIds if multiple branches are sent
+                var branchIds = string.IsNullOrEmpty(BranchId) ? new List<string>()
+                               : BranchId.Split(',').ToList();
+
+                var data = await _unitOfWork.ReportRepository.GetAllEmployeeforletter(companyId, BranchId,Year);
 
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
