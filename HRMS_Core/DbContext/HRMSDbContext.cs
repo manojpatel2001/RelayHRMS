@@ -402,6 +402,7 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<LoginHistory>().HasNoKey().ToView(null); 
              modelBuilder.Entity<GetSalaryvm>().HasNoKey().ToView(null); 
              modelBuilder.Entity<UniformMaster>().HasNoKey().ToView(null); 
+             modelBuilder.Entity<ActiveEmployeeDetailsForLetterViewModel>().HasNoKey().ToView(null); 
 
 
 

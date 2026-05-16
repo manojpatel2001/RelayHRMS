@@ -34,6 +34,23 @@ namespace HRMS_Infrastructure.Repository.Report
             _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
 
+        public async Task<List<ActiveEmployeeDetailsForLetterViewModel>> GetActiveEmployeeDetailsForLetter(int EmployeeId)
+        {
+            try
+            {
+                var result = await _db.Set<ActiveEmployeeDetailsForLetterViewModel?>().FromSqlInterpolated($@"
+                    EXEC GetActiveEmployeeDetailsForLetter
+                        @Employeeid = {EmployeeId}
+                ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public async Task<List<MobileUserViewModel>> GetActiveOrInactiveMobileUsers(string Action, int Compid)
         {
             try
@@ -81,6 +98,20 @@ namespace HRMS_Infrastructure.Repository.Report
             catch (Exception)
             {
                 return new List<ActiveorInactiveUsers>();
+            }
+        }
+
+        public async Task<List<GetAllLeftEmployeeVm>> GetAllEmployeeforletter(int companyId, string BranchId, int Year)
+        {
+            try
+            {
+                return await _db.Set<GetAllLeftEmployeeVm>()
+                                .FromSqlInterpolated($"EXEC GetAllEmployeeforletter @CompanyId={companyId} , @BranchIds={BranchId}, @Year={Year}")
+                                .ToListAsync();
+            }
+            catch (Exception)
+            {
+                return new List<GetAllLeftEmployeeVm>();
             }
         }
 

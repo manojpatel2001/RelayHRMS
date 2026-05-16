@@ -1,6 +1,6 @@
 ﻿@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Offer Letter";
+    ViewData["Title"] = "Appointment Letter";
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
     var uri = new Uri(baseUrl);
@@ -8,7 +8,7 @@
 }
 
 <meta charset="UTF-8">
-<title>Offer Letter</title>
+<title>Appointment Letter</title>
 
 <!-- DevExtreme -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/devextreme@23.2.3/dist/css/dx.light.css">
@@ -203,7 +203,7 @@
         padding: 30px 20px !important;
     }
 
-    #offerLetterBody {
+    #appointmentLetterBody {
         overflow-y: auto;
         max-height: 75vh;
     }
@@ -250,15 +250,10 @@
         height: 30px;
         animation: spin 1s linear infinite;
     }
-
-    .page-break {
-        border-top: 2px dashed #aaa;
-        margin: 40px 0;
-    }
 </style>
 
 <div class="header">
-    OFFER LETTER GENERATION
+    APPOINTMENT LETTER GENERATION
 </div>
 
 <div class="main">
@@ -292,7 +287,7 @@
         <div id="recordCount">0 Records found.</div>
 
         <div class="search-view-container" id="searchViewContainer">
-            <input type="text" id="employeeSearch" placeholder="Search candidates..." />
+            <input type="text" id="employeeSearch" placeholder="Search employees..." />
         </div>
 
         <div class="action-buttons-container" id="actionButtonsContainer">
@@ -307,7 +302,7 @@
             </div>
 
             <div class="no-data-message" id="noDataMessage">
-                No data to display. Please select a branch and click Find to load candidate data.
+                No data to display. Please select a branch and click Find to load employee data.
             </div>
 
             <div id="employeeGrid"></div>
@@ -315,16 +310,16 @@
     </div>
 </div>
 
-<!-- Offer Letter Modal -->
-<div class="modal fade" id="offerLetterModal" tabindex="-1" aria-labelledby="offerLetterModalLabel" aria-hidden="true">
+<!-- Appointment Letter Modal -->
+<div class="modal fade" id="appointmentLetterModal" tabindex="-1" aria-labelledby="appointmentLetterModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl custom-modal-width">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Offer Letter</h5>
+                <h5 class="modal-title">Appointment Letter</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="offerLetterBody">
-                <!-- Offer letter will be injected here -->
+            <div class="modal-body" id="appointmentLetterBody">
+                <!-- Appointment letter will be injected here -->
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -472,7 +467,6 @@
         const branchIdsParam = selectedBranchIds.join(',');
 
         $.ajax({
-            // ✅ FIX: Correct endpoint — matches backend route exactly
             url: `@baseDomainUrl/api/ReportAPI/GetAllEmployeeforletter/${CompanyId}?BranchId=${branchIdsParam}&Year=${selectedYear}`,
             type: "GET",
             headers: { 'Authorization': 'Bearer ' + Token },
@@ -495,9 +489,9 @@
                         searchPanel: { visible: false },
                         height: 500,
                         columns: [
-                            { dataField: "employeeCode", caption: "Candidate Code", width: 150 },
-                            { dataField: "id", caption: "CandidateId", visible: false },
-                            { dataField: "fullName", caption: "Candidate Name" },
+                            { dataField: "employeeCode", caption: "Employee Code", width: 150 },
+                            { dataField: "id", caption: "EmployeeId", visible: false },
+                            { dataField: "fullName", caption: "Employee Name" },
                             { dataField: "branchName", caption: "Branch", width: 150 }
                         ],
                         onContentReady: function () { updateRecordCount(); }
@@ -522,7 +516,7 @@
                     $('#recordCount').text(`${employeeData.length} Records found.`).css('color', '#28a745');
                 } else {
                     hideDataElements();
-                    $('#noDataMessage').text('No candidates found for the selected branch(es).').show();
+                    $('#noDataMessage').text('No employees found for the selected branch(es).').show();
                 }
 
                 $('#grid-loader').removeClass('d-flex').hide();
@@ -530,8 +524,8 @@
             error: function () {
                 $('#grid-loader').removeClass('d-flex').hide();
                 hideDataElements();
-                $('#noDataMessage').text('Failed to load candidates. Please try again.').show();
-                Swal.fire('Error', 'Failed to load candidates.', 'error');
+                $('#noDataMessage').text('Failed to load employees. Please try again.').show();
+                Swal.fire('Error', 'Failed to load employees.', 'error');
             }
         });
     }
@@ -545,7 +539,7 @@
         if (grid) grid.option("dataSource", []);
 
         hideDataElements();
-        $('#noDataMessage').text('No data to display. Please select a branch and click Find to load candidate data.');
+        $('#noDataMessage').text('No data to display. Please select a branch and click Find to load employee data.');
         $('#employeeSearch').val('');
         originalEmployeeData = [];
     }
@@ -556,23 +550,20 @@
         const selected = grid.getSelectedRowsData();
 
         if (!selected.length) {
-            Swal.fire('Warning', 'Please select at least one candidate.', 'warning');
+            Swal.fire('Warning', 'Please select at least one employee.', 'warning');
             return;
         }
         if (selected.length > 1) {
-            Swal.fire('Warning', 'Please select only one candidate to view.', 'warning');
+            Swal.fire('Warning', 'Please select only one employee to view.', 'warning');
             return;
         }
 
-        const candidateId = selected[0].id;
+        const employeeId = selected[0].id;
         const $btn = $(this);
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...');
 
         $.ajax({
-            // ✅ FIX: Changed from GetEmployeeDetailsForLetter (did not exist in backend)
-            //         to GetActiveEmployeeDetailsForLetter (correct backend endpoint)
-            //         Also fixed param name: CandidateId → EmployeeId (matches backend)
-            url: `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${candidateId}`,
+            url: `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${employeeId}`,
             type: "GET",
             headers: { 'Authorization': 'Bearer ' + Token },
             dataType: "json",
@@ -581,21 +572,21 @@
                     let data = response.data || response.Data;
                     if (Array.isArray(data)) {
                         if (data.length === 0) {
-                            Swal.fire('Error', 'No candidate data found.', 'error');
+                            Swal.fire('Error', 'No employee data found.', 'error');
                             return;
                         }
                         data = data[0];
                     }
                     currentEmployeeData = data;
-                    renderOfferLetter(data);
-                    const modal = new bootstrap.Modal(document.getElementById('offerLetterModal'));
+                    renderAppointmentLetter(data);
+                    const modal = new bootstrap.Modal(document.getElementById('appointmentLetterModal'));
                     modal.show();
                 } else {
-                    Swal.fire('Error', response.responseMessage || 'Failed to fetch candidate details.', 'error');
+                    Swal.fire('Error', response.responseMessage || 'Failed to fetch employee details.', 'error');
                 }
             },
             error: function (xhr, status, error) {
-                Swal.fire('Error', `Failed to fetch candidate details: ${error}`, 'error');
+                Swal.fire('Error', `Failed to fetch employee details: ${error}`, 'error');
             },
             complete: function () {
                 $btn.prop('disabled', false).html('View');
@@ -609,7 +600,7 @@
         const selected = grid.getSelectedRowsData();
 
         if (!selected.length) {
-            Swal.fire('Warning', 'Please select at least one candidate.', 'warning');
+            Swal.fire('Warning', 'Please select at least one employee.', 'warning');
             return;
         }
 
@@ -619,10 +610,9 @@
         let completedCount = 0;
         const totalCount = selected.length;
 
-        selected.forEach((candidate) => {
+        selected.forEach((employee) => {
             $.ajax({
-                // ✅ FIX: Corrected param name from CandidateId → EmployeeId (matches backend)
-                url: `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${candidate.id}`,
+                url: `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${employee.id}`,
                 type: "GET",
                 headers: { 'Authorization': 'Bearer ' + Token },
                 dataType: "json",
@@ -633,7 +623,7 @@
                             if (data.length === 0) { finalize(); return; }
                             data = data[0];
                         }
-                        generatePDFForCandidate(data, finalize);
+                        generatePDFForEmployee(data, finalize);
                     } else { finalize(); }
                 },
                 error: function () { finalize(); }
@@ -650,16 +640,16 @@
     });
 
     // ── PDF Generation ───────────────────────────────────────────────────────
-    function generatePDFForCandidate(data, callback) {
+    function generatePDFForEmployee(data, callback) {
         const tempContainer = $('<div>').css({
             position: 'absolute',
             left: '-9999px',
             top: '0'
         }).appendTo('body');
 
-        tempContainer.html(generateOfferLetterHTML(data));
+        tempContainer.html(generateAppointmentLetterHTML(data));
 
-        const element = tempContainer.find('.offer-letter-container')[0];
+        const element = tempContainer.find('.appointment-letter-container')[0];
 
         html2canvas(element, { scale: 2, logging: false, useCORS: true }).then(canvas => {
             const imgData = canvas.toDataURL('image/png');
@@ -682,7 +672,7 @@
                 heightLeft -= pageHeight;
             }
 
-            const fileName = `Offer_Letter_${data.employeeCode || data.candidateCode || 'CANDIDATE'}_${new Date().getTime()}.pdf`;
+            const fileName = `Appointment_Letter_${data.employeeCode || 'EMPLOYEE'}_${new Date().getTime()}.pdf`;
             pdf.save(fileName);
 
             tempContainer.remove();
@@ -694,8 +684,8 @@
         });
     }
 
-    // ── Letter HTML Template ─────────────────────────────────────────────────
-    function generateOfferLetterHTML(data) {
+    // ── Appointment Letter HTML Template ─────────────────────────────────────
+    function generateAppointmentLetterHTML(data) {
 
         const formatDate = (dateStr) => {
             if (!dateStr) return 'N/A';
@@ -706,41 +696,53 @@
             return `${day}/${month}/${year}`;
         };
 
-        const today          = formatDate(new Date().toISOString());
-        const logoUrl        = '/assets/images/relaylogo.jpeg';
+        const today            = formatDate(new Date().toISOString());
+        const logoUrl          = '/assets/images/relaylogo.jpeg';
 
-        const refNo          = data.refNo          || `HR/OFL/${new Date().getFullYear()}/001`;
-        const fullName       = data.fullName        || '[Candidate Name]';
-        const email          = data.email           || data.emailId          || '';
-        const contactNo      = data.contactNo       || data.mobileNumber     || '';
-        const designation    = data.designationName || data.designation      || '[Designation]';
-        const department     = data.departmentName  || data.department       || '[Department]';
-        const branchLocation = data.branchName      || data.branchLocation   || '[Branch Location]';
-        const reportingMgr   = data.reportingManagerName || data.reportingManager || '[Reporting Manager Name]';
-        const reportingTitle = data.reportingManagerGender === 'Female' ? 'Ms' : 'Mr';
-        const joiningDate    = formatDate(data.joiningDate || data.dateOfJoining || data.expectedJoiningDate);
-        const annualCtc      = data.annualCtc       || data.ctc              || '';
-        const ctcInWords     = data.ctcInWords      || data.salaryInWords    || '';
-        const companyAddress = data.companyAddress  || '406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway, Makarba, Ahmedabad - 380051 Gujarat, India';
-        const directorName   = data.directorName    || 'Atri Patel';
+        // const refNo            = data.refNo            || `HR/APL/${new Date().getFullYear()}/001`;
+        const fullName         = data.fullName          || '[Employee Name]';
+        const employeeCode     = data.employeeCode      || '';
+        const address          = data.address           || data.presentAddress || '';
+        const statePincode     = data.statePincode      || data.state          || '';
+        const designation      = data.designationName   || data.designation    || '[Designation]';
+        const department       = data.departmentName    || data.department     || '[Department]';
+        const grade            = data.gradeName            || data.employeeGrade  || '';
+        const branchLocation   = data.branchName        || data.branchLocation || '[Branch Name]';
+        const joiningDate      = formatDate(data.joiningDate || data.dateOfJoining);
+        const annualCtc        = data.annualCtc         || data.ctc            || '';
+        const ctcInWords       = data.ctcInWords        || data.salaryInWords  || '';
+        const companyAddress   = data.companyAddress    || '406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway, Makarba, Ahmedabad - 380051 Gujarat, India';
+        const directorName     = data.directorName      || 'Atri Patel';
 
         let titlePrefix = 'Mr./Ms.';
         if (data.gender === 'Male')        titlePrefix = 'Mr.';
         else if (data.gender === 'Female') titlePrefix = 'Ms.';
 
-        const cleanName  = fullName.replace(/^(Mr\.|Mrs\.|Ms\.)\s*/i, '').trim();
-        const firstName  = cleanName.split(' ')[0];
+        const cleanName = fullName.replace(/^(Mr\.|Mrs\.|Ms\.)\s*/i, '').trim();
+
+        // Section heading style helper
+        const sectionHead = (title) => `
+            <p style="margin:18px 0 4px 0; font-size:14px; font-weight:bold; text-decoration:underline; color:#222;">
+                ${title}
+            </p>
+        `;
+
+        const para = (text) => `<p style="margin:6px 0; text-align:justify;">${text}</p>`;
+
+        const bullet = (text) => `
+            <p style="margin:4px 0 4px 20px;">&#8226; ${text}</p>
+        `;
 
         return `
-        <div class="offer-letter-container" style="
+        <div class="appointment-letter-container" style="
             width:100%; max-width:900px; margin:0 auto;
             padding:50px 70px; background:white;
             font-family:'Calibri','Arial',sans-serif;
-            font-size:14px; color:#222; box-sizing:border-box;
+            font-size:13.5px; color:#222; box-sizing:border-box;
             border:1px solid #ddd; line-height:1.8;
         ">
             <!-- ══ HEADER ROW ══ -->
-            <table style="width:100%; margin-bottom:30px;">
+            <table style="width:100%; margin-bottom:20px;">
                 <tr>
                     <td style="text-align:right; vertical-align:top;">
                         <img src="${logoUrl}" alt="Company Logo"
@@ -751,7 +753,7 @@
             </table>
 
             <!-- ══ DATE ══ -->
-            <p style="margin:0 0 18px 0; font-size:14px; text-align:right;">
+            <p style="margin:0 0 18px 0; font-size:13px; text-align:right;">
                 <strong>${today}</strong>
             </p>
 
@@ -760,88 +762,125 @@
             <p style="margin:4px 0;">
                 <strong><u style="color:#e74c3c;">${titlePrefix} ${cleanName}</u></strong>
             </p>
-            ${email     ? `<p style="margin:4px 0;"><strong>Email ID -</strong> ${email}</p>`      : ''}
-            ${contactNo ? `<p style="margin:4px 0;"><strong>Contact No. -</strong> ${contactNo}</p>` : ''}
+            ${employeeCode ? `<p style="margin:4px 0;"><strong>Employee Code:</strong> ${employeeCode}</p>` : ''}
+            ${address      ? `<p style="margin:4px 0;"><strong>Address :</strong> ${address}</p>`           : ''}
+            ${statePincode ? `<p style="margin:4px 0;">${statePincode}</p>`                                 : ''}
 
             <!-- ══ TITLE ══ -->
             <p style="text-align:center; font-size:16px; font-weight:bold;
-                      text-decoration:underline; margin:30px 0 20px 0; color:#3f4d6b;">
-                Employment Offer Letter
+                      text-decoration:underline; margin:28px 0 20px 0; color:#3f4d6b;">
+                Appointment Letter
             </p>
 
-            <!-- ══ BODY ══ -->
-            <p><strong>Dear ${titlePrefix} ${firstName},</strong></p>
+            <!-- ══ SALUTATION ══ -->
+            <p><strong>Dear ${titlePrefix} ${cleanName},</strong></p>
 
-            <p>
-                Further to the interviews you had with us, we are pleased to offer you the position of
-                <strong style="color:#e74c3c;">"${designation} - ${department}"</strong>
-                with <strong>Relay Express Pvt. Ltd.</strong>
+            <!-- ══ OPENING PARA ══ -->
+            ${para(`With reference to your application, subsequent interviews and our discussions, we are pleased to appoint you to the position of <strong style="color:#e74c3c;">"${designation} - ${department}"</strong> at Grade <strong style="color:#e74c3c;">${grade}</strong> w.e.f. <strong style="color:#e74c3c;">"${joiningDate}"</strong> with <strong>Relay Express Pvt. Ltd.</strong> on the following terms and conditions:`)}
+
+            <!-- ══ REFERENCES ══ -->
+            ${sectionHead('References:')}
+            ${para('Your appointment is subject to the verification of your educational certificates, qualifications and the submission of a copy of relevant documentation on your date of joining. Your employment is subject to references and background checks being obtained to the satisfaction of the organization if, any declaration given or information furnished by you to the organisation proves to be false or if you are found to have willfully suppressed any material information, you are liable to be terminated from the services of the Organization without any notice.')}
+            ${para('The appointment and its continuance are subject to your being found and remaining medically (physically &amp; mentally) fit. The organization reserves the right to ask you to undergo medical examination if and when considered necessary.')}
+
+            <!-- ══ COMPENSATION ══ -->
+            ${sectionHead('Compensation:')}
+            ${para(`Your Annual Fixed Remuneration will be <strong>INR. ${annualCtc} /-</strong> ${ctcInWords ? `<strong>(Rupees ${ctcInWords} )</strong>` : ''} subject to the deduction of applicable statutory taxes. The details of the Annual CTC as applicable to your grade is enclosed in <strong>Annexure – I</strong>.`)}
+            ${para('The variable pay component, if any included in your compensation, is directly dependent on:')}
+            ${bullet('You establishing and effecting a desirable and satisfactory performance in all parameters in respect of your key result areas.')}
+            ${bullet('Your department/team establishing and effecting a desirable and satisfactory performance in all parameters in respect of their key result areas.')}
+            ${bullet('The performance of the organisation.')}
+            ${para('At its sole discretion of Management, the Salary structure or components of the organisation may be altered/modified at any time without prior notice, and your remuneration package may accordingly be altered, modified from time to time. Further, salary, allowances and all other payments/benefits will be governed by the organisation rules as well as statutory provisions in force from time to time and subject to deductions of appropriate taxes at source.')}
+            ${para('The subject of compensation is confidential in nature and strictly between you and the organization and should not be discussed with anyone.')}
+
+            <!-- ══ PLACE / TRANSFER ══ -->
+            ${sectionHead('Place/Transfer:')}
+            ${para(`Your initial posting will be in <strong style="color:#e74c3c;">"${branchLocation}"</strong>, India. Your services are transferable to any of the organisation's establishment, client, worksites, sister concerns in India, which are in existence presently or which may be formed in future. In such an event you shall be governed by the service conditions, rules and regulations, which are applicable at the place of transfer from time to time.`)}
+
+            <!-- ══ PROBATION ══ -->
+            ${sectionHead('Probation:')}
+            ${para('You will be on a probation for a period of <strong>6 Months</strong> from your date of joining and the period of probation can be extended further if, your performance is not found satisfactory.')}
+            ${para('On successful completion of the probation period, if your performance is found to be satisfactory in all aspects, you will be confirmed and the organization will provide you a confirmation letter. Unless confirmed in writing, you will be deemed to be on probation.')}
+            ${para('During the probation period your employment can be terminated with <strong>fifteen (15) days</strong> notice on either side without any reason whatsoever.')}
+            ${para('After confirmation, either party will be at liberty to terminate this appointment by giving <strong>30 days</strong> notice or pay in lieu of notice.')}
+            ${para('Absence for a continuous period of <strong>7 days</strong> without prior approval of your superior (including overstay on leave/training) would result in you losing your lien on the employment and the same shall automatically come to an end without any notice or intimation.')}
+
+            <!-- ══ SEPARATION ══ -->
+            ${sectionHead('Separation:')}
+            ${para('After the confirmation of services, either party will be at liberty to terminate this appointment by giving <strong>Thirty Days (30 days)</strong> notice or the short fall of notice period can be adjusted by giving payment of Basic Salary in lieu of number of days of shortfall of notice period.')}
+            ${para('The employment can also be terminated without any notice or pay in lieu thereof provided:')}
+            ${bullet('If, any information provided by you in your application or during the subsequent interviews and discussions or thereafter, is found to be false or misleading.')}
+            ${bullet('Further in case of any fraudulent practices, misconduct, in case of involvement in any criminal offence, violation of terms of employment etc., your services are liable to be terminated immediately without notice or any compensation in lieu thereof.')}
+            ${bullet('If, at any point of time, in the opinion of the organisation, you become insolvent or are found guilty of dishonesty, disobedience, disorderly behavior, negligence, indiscipline or of any other conduct considered by the organisation as detrimental to its interest or violation of one or more terms of this appointment.')}
+            ${bullet('If, employee remains absent for seven consecutive days without written approval or information.')}
+            ${para('After Termination/Resignation from the services, Employee will surrender all the assets including laptop, mobile phone, sim card, data card etc. in the name of organisation; these should be returned in prescribed format on the day of leaving the organisation.')}
+            ${para('Employee will not be eligible for Leave during Notice Period and if, employee avails leave during Notice Period, leaves will be considered as <strong>Leave without Pay</strong>.')}
+            ${para('Full &amp; Final Settlement will be done as per the separation policy of the organization. No Full &amp; Final will be processed if there will be any breach of contract or the duly signed No Dues Claim Form is not received from the employee on the last date of leaving.')}
+
+            <!-- ══ PERFORMANCE ASSESSMENT ══ -->
+            ${sectionHead('Performance Assessment:')}
+            ${para('Your performance shall be assessed from time to time. Revision of position or compensation will not be automated; however, it will be subject to your overall performance in the organization. Any revision of position or compensation will be at the sole discretion of the Management.')}
+            ${para('The performance review is done yearly in the organization and subject to change at management discretion.')}
+
+            <!-- ══ ORGANIZATION PROPERTY ══ -->
+            ${sectionHead('Organization Property:')}
+            ${para('You will be responsible for the safe keeping and return in good condition and order, all property of the organization which may be in your use, custody, care, and charge. The organization shall have the right to deduct the sum necessary for repair of such property or the value of such property (in case the property is lost or is not repairable) from your dues and take such other action, as the organization deems proper in the event of your failure to account for such property to our satisfaction.')}
+
+            <!-- ══ CONFIDENTIALITY ══ -->
+            ${sectionHead('Confidentiality:')}
+            ${para('During your employment with the organisation you will, at all times, keep secrecy in respect of any technical, trade or business documents, customers\' names/business details or any other information that might come to your knowledge or possession, which according to the organisation are confidential and form valuable property of the organisation. You shall not discuss with outsiders any such data in any manner whatsoever.')}
+            ${para('In addition to this, in order to protect the organisation\'s confidential and proprietary information to which you will have access to, especially at your level of seniority, you agree and confirm that for a period of <strong>six months</strong> from date of termination or cessation of your employment agreement, you shall not, without written permission of the organisation, engage yourself in any organisation, firm or concern and/or be concerned in and/or set up or abet the setting up of, any business, profession or a vocation which is similar to and/or directly or indirectly competes with the business of the organisation and/or any of its companies and/or firms associated with the organisation. If you breach the above condition, organisation will have full right to take action against you.')}
+            ${para('You are to treat as strictly confidential the affairs of <strong>Relay Express Pvt. Ltd.</strong> and its customers and/or any information that may come to your knowledge during the course of your employment with Relay Express Pvt. Ltd., the disclosure of which to anyone outside the organisation might prove detrimental to the interests of Relay Express Pvt. Ltd. Breach of this condition on your part will entitle Relay Express Pvt. Ltd. to immediately terminate your employment.')}
+            ${para('You shall not remove from the organisation\'s premises any material (either in physical or electronic form) which might contain Confidential information except in the ordinary course of employment or with the prior consent of the organization.')}
+
+            <!-- ══ OTHER EMPLOYMENT ══ -->
+            ${sectionHead('Other Employment:')}
+            ${para('No employee shall directly or indirectly participate in the management of or hold employment or any other office of profit in other Companies, Firms and Institutions etc. But any employee affected by this rule may put his case to the management for consideration so that such participation may be permitted if it does not conflict with the interest of the Organisation or will not interfere in any manner with his work in the Organisation. The decision of the Management as to whether the employee is holding office of profit or not will be treated as final.')}
+
+            <!-- ══ SMOKING & DRINKING ══ -->
+            ${sectionHead('Smoking &amp; Drinking:')}
+            ${para('The Organisation owes and assures a smoke and alcohol free environment for its Employees. The entire warehouse/office premises including conference rooms, lobbies/washrooms are declared as <strong>"Non-Smoking Zones"</strong> &amp; <strong>"Alcohol Free Zones"</strong>.')}
+
+            <!-- ══ INSURANCE ══ -->
+            ${sectionHead('Insurance Coverage:')}
+            ${para('After <strong>Thirty Days (1 Month)</strong> of your date of joining you will be entitled to all Insurance Policy as per the applicability.')}
+
+            <!-- ══ RETIREMENT ══ -->
+            ${sectionHead('Retirement:')}
+            ${para('You will be retiring from the services of the organisation on attaining the age of <strong>58 years</strong>.')}
+
+            <!-- ══ GENERAL RULES ══ -->
+            ${sectionHead('General Rules &amp; Regulations:')}
+            ${para('In all matters including conduct, discipline, administrative orders and those not covered by this letter, you will be governed by such rules as may be applicable to the employee of your category in the organization from time to time.')}
+
+            <!-- ══ JURISDICTION ══ -->
+            ${sectionHead('Jurisdiction:')}
+            ${para('Your employment will be governed in accordance with the laws of India. The jurisdiction concerning any dispute arising out of your employment with the organisation shall be exclusively with <strong>Ahmedabad Courts</strong>.')}
+
+            <!-- ══ CLOSING ══ -->
+            <p style="margin-top:20px;">
+                Kindly return the duplicate copy duly signed by you as a token of your acceptance and
+                acknowledgement of the above terms &amp; conditions of your appointment.
             </p>
-
-            <p>
-                This job offer is for our <strong style="color:#e74c3c;">"${branchLocation}"</strong> Branch;
-                however as and when required, you may be transferred to any of the offices in India.
-                During probation, the notice period required for resignation is <strong>15 days</strong>
-                and after completion of Probation <strong>30 Days</strong>.
-            </p>
-
-            <p>
-                You will have to do your daily reporting to
-                <strong style="color:#e74c3c;">${reportingMgr}.</strong>
-            </p>
-
-            <p>
-                You are expected to join on or before
-                <strong style="color:#e74c3c;">"${joiningDate}".</strong>
-                This offer is valid only for <strong>3 days</strong> from the date of issuance.
-            </p>
-
-            <p>
-                Your <strong>Annual CTC</strong> will be
-                <strong>Rs. ${annualCtc} /-</strong>
-                ${ctcInWords ? `<strong>(Rupees ${ctcInWords} )</strong>` : ''}
-                <strong>(Annexure-I)</strong>
-            </p>
-
-            <p>
-                The appointment is on terms, mutually agreed between us during the course of interview.
-                Formal appointment Letter with terms &amp; conditions will be handed over to you upon
-                your joining and further completing the joining formalities.
-            </p>
-
-            <p>
-                This offer letter is based on the information furnished in your application for employment
-                and during the interviews you had with us. If, at any time in future, it comes to light
-                that any of this information is incorrect or any relevant information has been withheld,
-                then your employment is liable to be terminated without notice.
-            </p>
-
-            <p>
-                Kindly find attached the <strong>Joining HR Checklist (Annexure-II)</strong> which has
-                the list of documents to be submitted at the time of joining or before joining on the
-                mail <strong>hrd@relayexpress.in</strong>
-            </p>
-
-            <p>
-                Please sign a copy of this letter as a token of acceptance and return the same to the
-                Human Resource Department.
-            </p>
-
-            <p>We wish you all the best and look forward to a long and mutually rewarding association.</p>
+            <p>We look forward to your fruitful association and participation in our organisation.</p>
+            <p><strong>Welcome to Relay Family!!</strong></p>
 
             <!-- ══ SIGNATURE ══ -->
-            <div style="margin-top:50px;">
-                <p style="margin:4px 0;"><strong>For, Relay Express Pvt Ltd</strong></p>
-                <br/>
+            <div style="margin-top:40px;">
+                <p style="margin:4px 0;"><strong>For, Relay Express Private Limited</strong></p>
+                <br/><br/>
                 <p style="margin:4px 0; color:#e74c3c;"><strong><u>Mr. ${directorName}</u></strong></p>
                 <p style="margin:4px 0;"><strong>Director</strong></p>
+                <p style="margin:4px 0;">
+                    <a href="mailto:hrd@relayexpress.in" style="color:#3f4d6b;">hrd@relayexpress.in</a>
+                </p>
             </div>
 
             <!-- ══ ACCEPTANCE BLOCK ══ -->
             <div style="margin-top:40px; border-top:1px solid #ccc; padding-top:20px;">
                 <p style="margin:0 0 10px 0;">
-                    I, <strong>${titlePrefix} ${cleanName}</strong>, accept the offer mentioned
-                    herewith and undertake to abide the same.
+                    I, <strong>${titlePrefix} ${cleanName}</strong>, accept the appointment on the terms &amp;
+                    conditions mentioned herein and undertake to abide by the same.
                 </p>
                 <table style="width:100%; font-size:13px; margin-top:14px;">
                     <tr>
@@ -863,117 +902,20 @@
 
             <!-- ══ FOOTER NOTE ══ -->
             <div style="margin-top:30px; font-size:11px; text-align:center; color:#555;">
-                <p style="margin:2px 0;"><strong>This is a Computer-generated statement hence no signature required.</strong></p>
+                <p style="margin:2px 0;"><strong>Note: This is a Computer generated statement hence no signature required.</strong></p>
                 <p style="margin:2px 0;"><strong>Personal &amp; Confidential</strong></p>
             </div>
 
             <!-- ══ COMPANY ADDRESS ══ -->
             <div style="margin-top:10px; font-size:11px; text-align:center; color:#666;">
-                <p><strong>${companyAddress}</strong> &ndash; Page - 1</p>
-            </div>
-
-            <!-- ════════════════ PAGE BREAK ════════════════ -->
-            <div style="border-top:2px dashed #aaa; margin:40px 0;"></div>
-
-            <!-- ══ ANNEXURE I HEADER ══ -->
-            <p style="margin:0 0 6px 0; text-align:center; font-size:15px; font-weight:bold; text-decoration:underline; color:#3f4d6b;">
-                Annexure I
-            </p>
-            <p style="margin:0 0 20px 0; text-align:center; font-size:14px; font-weight:bold; text-decoration:underline; color:#3f4d6b;">
-                JOINING HR CHECK LIST
-            </p>
-
-            <!-- ══ ANNEXURE II ══ -->
-            <p style="margin:0 0 10px 0; font-size:14px; font-weight:bold; text-decoration:underline; color:#3f4d6b;">
-                Annexure II
-            </p>
-            <p style="margin:0 0 10px 0; font-style:italic; font-size:13px;">
-                Please send clear and readable Soft Copy only
-            </p>
-
-            <!-- MANDATORY -->
-            <p style="margin:0 0 6px 0; font-weight:bold; font-size:13px; color:#3f4d6b;">MANDATORY</p>
-            <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">
-                <thead>
-                    <tr style="background-color:#3f4d6b; color:white;">
-                        <th style="padding:6px 10px; text-align:left;">#</th>
-                        <th style="padding:6px 10px; text-align:left;">Document</th>
-                        <th style="padding:6px 10px; text-align:left;">Format</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${[
-                        ['1',  'Joining Form',                                      'Original'],
-                        ['2',  'Updated Resume',                                    'Soft Copy'],
-                        ['3',  '1 Passport Size Latest Photograph (Colour Scan)',   '.jpg'],
-                        ['4',  'Address Proof – Present and Permanent',             '.pdf'],
-                        ['5',  'Aadhaar Card',                                      'Colour Scan .pdf'],
-                        ['6',  'Electricity Bill / House Tax Bill / Rent Agreement','.pdf'],
-                        ['7',  'PAN Card',                                          'Colour Scan .pdf'],
-                        ['8',  'Valid Driving License',                             'Colour Scan .pdf'],
-                        ['9',  'Cancelled Cheque',                                  'Colour Scan .pdf'],
-                    ].map(([n, doc, fmt], i) => `
-                        <tr style="background-color:${i % 2 === 0 ? '#f9f9f9' : '#ffffff'};">
-                            <td style="padding:5px 10px; border:1px solid #ccc;">${n}</td>
-                            <td style="padding:5px 10px; border:1px solid #ccc;">${doc}</td>
-                            <td style="padding:5px 10px; border:1px solid #ccc;">${fmt}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-
-            <!-- NECESSARY -->
-            <p style="margin:0 0 6px 0; font-weight:bold; font-size:13px; color:#3f4d6b;">NECESSARY (Colour Scan Copy in .pdf)</p>
-            <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">
-                <thead>
-                    <tr style="background-color:#3f4d6b; color:white;">
-                        <th style="padding:6px 10px; text-align:left;">#</th>
-                        <th style="padding:6px 10px; text-align:left;">Document</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${[
-                        ['1', 'All Educational Documents / Certificates'],
-                        ['2', 'Appointment Letter of Previous Company'],
-                        ['3', 'Pay Slip for last 3 months / Bank Statement of Salary'],
-                        ['4', 'Previous Employer Experience Certificate'],
-                        ['5', 'Resignation Acceptance and Relieving Letter from Previous Employer'],
-                    ].map(([n, doc], i) => `
-                        <tr style="background-color:${i % 2 === 0 ? '#f9f9f9' : '#ffffff'};">
-                            <td style="padding:5px 10px; border:1px solid #ccc;">${n}</td>
-                            <td style="padding:5px 10px; border:1px solid #ccc;">${doc}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-
-            <!-- IF APPLICABLE -->
-            <p style="margin:0 0 6px 0; font-weight:bold; font-size:13px; color:#3f4d6b;">IF APPLICABLE</p>
-            <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">
-                <thead>
-                    <tr style="background-color:#3f4d6b; color:white;">
-                        <th style="padding:6px 10px; text-align:left;">#</th>
-                        <th style="padding:6px 10px; text-align:left;">Document</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr style="background-color:#f9f9f9;">
-                        <td style="padding:5px 10px; border:1px solid #ccc;">1</td>
-                        <td style="padding:5px 10px; border:1px solid #ccc;">Tax Saving Investment Details</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <!-- ══ PAGE 2 FOOTER ══ -->
-            <div style="margin-top:20px; font-size:11px; text-align:center; color:#666;">
-                <p><strong>${companyAddress}</strong> &ndash; Page - 2</p>
+                <p><strong>${companyAddress}</strong></p>
             </div>
         </div>
         `;
     }
 
-    function renderOfferLetter(data) {
-        $('#offerLetterBody').html(generateOfferLetterHTML(data));
+    function renderAppointmentLetter(data) {
+        $('#appointmentLetterBody').html(generateAppointmentLetterHTML(data));
     }
 
     // ── Download from modal ──────────────────────────────────────────────────
@@ -981,7 +923,7 @@
         const $btn = $(this);
         $btn.prop('disabled', true).addClass('btn-loading');
 
-        const element = document.getElementById('offerLetterBody').querySelector('.offer-letter-container');
+        const element = document.getElementById('appointmentLetterBody').querySelector('.appointment-letter-container');
 
         html2canvas(element, { scale: 2, logging: false, useCORS: true }).then(canvas => {
             const imgData = canvas.toDataURL('image/png');
@@ -1004,8 +946,8 @@
                 heightLeft -= pageHeight;
             }
 
-            const code = currentEmployeeData?.employeeCode || currentEmployeeData?.candidateCode || 'CANDIDATE';
-            pdf.save(`Offer_Letter_${code}_${new Date().getTime()}.pdf`);
+            const code = currentEmployeeData?.employeeCode || 'EMPLOYEE';
+            pdf.save(`Appointment_Letter_${code}_${new Date().getTime()}.pdf`);
             $btn.prop('disabled', false).removeClass('btn-loading');
         }).catch(error => {
             console.error('PDF generation error:', error);
@@ -1015,7 +957,7 @@
     });
 
     // Clear grid selection on modal close
-    $('#offerLetterModal').on('hidden.bs.modal', function () {
+    $('#appointmentLetterModal').on('hidden.bs.modal', function () {
         const grid = $('#employeeGrid').dxDataGrid("instance");
         if (grid) grid.clearSelection();
     });
