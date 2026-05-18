@@ -237,7 +237,7 @@
         position: absolute;
         display: none;
         inset: 0;
-        background: rgba(255, 255, 255, 0.6);
+        background: rgba(255,255,255,0.6);
         z-index: 10;
     }
 
@@ -257,26 +257,23 @@
     }
 </style>
 
-<div class="header">
-    OFFER LETTER GENERATION
-</div>
+<div class="header">OFFER LETTER GENERATION</div>
 
 <div class="main">
     <!-- Left Section -->
     <div class="left-section">
         <div class="filter-section">
             <div class="date-row">
-                <div class="form-group" style="width: 200px; display: inline-block; margin-right: 20px;">
+                <div class="form-group" style="width:200px; display:inline-block; margin-right:20px;">
                     <label for="branchDropdown">Branch:</label>
                     <div id="branchDropdown"></div>
                 </div>
-                <div class="form-group" style="width: 120px; display: inline-block;">
+                <div class="form-group" style="width:120px; display:inline-block;">
                     <label for="yearSelect">Year:</label>
                     <select id="yearSelect" class="form-control"></select>
                 </div>
             </div>
         </div>
-
         <div class="btn-group">
             <button onclick="onFind()" id="btnfind">Find</button>
             <button onclick="onClear()">Clear</button>
@@ -284,48 +281,40 @@
         </div>
     </div>
 
-    <!-- Vertical Separator -->
     <div class="separator"></div>
 
     <!-- Right Section -->
     <div class="right-section">
         <div id="recordCount">0 Records found.</div>
-
         <div class="search-view-container" id="searchViewContainer">
             <input type="text" id="employeeSearch" placeholder="Search candidates..." />
         </div>
-
         <div class="action-buttons-container" id="actionButtonsContainer">
             <button id="btnView">View</button>
             <button id="btnDownloadMultiple">Download PDF</button>
         </div>
-
-        <div class="grid-wrapper" style="position: relative;" id="gridTag">
+        <div class="grid-wrapper" style="position:relative;" id="gridTag">
             <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column">
                 <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" />
-                <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+                <div class="grid-loading-text text-dark" style="font-size:16px;">Loading...</div>
             </div>
-
             <div class="no-data-message" id="noDataMessage">
                 No data to display. Please select a branch and click Find to load candidate data.
             </div>
-
             <div id="employeeGrid"></div>
         </div>
     </div>
 </div>
 
 <!-- Offer Letter Modal -->
-<div class="modal fade" id="offerLetterModal" tabindex="-1" aria-labelledby="offerLetterModalLabel" aria-hidden="true">
+<div class="modal fade" id="offerLetterModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl custom-modal-width">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Offer Letter</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="offerLetterBody">
-                <!-- Offer letter will be injected here -->
-            </div>
+            <div class="modal-body" id="offerLetterBody"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary" id="btnDownloadPDF">Download PDF</button>
@@ -335,18 +324,39 @@
 </div>
 
 <script>
-    const Empid = parseInt(localStorage.getItem("EmployeeId"));
-    const Role = localStorage.getItem("RoleSlug");
-    const Token = localStorage.getItem("authToken");
+    const Empid        = parseInt(localStorage.getItem("EmployeeId"));
+    const Role         = localStorage.getItem("RoleSlug");
+    const Token        = localStorage.getItem("authToken");
     const savedCompany = localStorage.getItem('selectedCompany');
     const companyDetails = JSON.parse(savedCompany || '{}');
-    const Compname = companyDetails.CompanyName;
-    const CompanyId = companyDetails.CompanyId;
+    const Compname     = companyDetails.CompanyName;
+    const CompanyId    = companyDetails.CompanyId;
 
     let originalEmployeeData = [];
-    let currentEmployeeData = null;
-    let hrManagerData = null;
+    let currentEmployeeData  = null;
+    let hrManagerData        = null;
 
+    // ── Gender & Name Helpers ─────────────────────────────────────────────────
+    function getTitlePrefix(gender) {
+        if (!gender) return '';
+        const g = gender.toString().trim().toLowerCase();
+        if (g === 'male'   || g === 'm' || g === '1') return 'Mr.';
+        if (g === 'female' || g === 'f' || g === '2') return 'Ms.';
+        return '';
+    }
+
+    function cleanEmployeeName(fullName) {
+        return (fullName || '').replace(/^(Mr\.|Mrs\.|Ms\.|Mr\/Ms\.)\s*/i, '').trim();
+    }
+
+    // displayName = "Mr. Ramesh Shah" or "Ms. Priya" or just "Aminkhan" if no gender
+    function getDisplayName(fullName, gender) {
+        const prefix = getTitlePrefix(gender);
+        const name   = cleanEmployeeName(fullName);
+        return prefix ? `${prefix} ${name}` : name;
+    }
+
+    // ── On Ready ──────────────────────────────────────────────────────────────
     $(document).ready(function () {
         populateYearDropdown();
         BindBranchDropdown();
@@ -357,9 +367,7 @@
     $('#yearSelect').on('change', function () {
         const branchTagBox = $("#branchDropdown").dxTagBox("instance");
         const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
-        if (selectedBranchIds && selectedBranchIds.length > 0) {
-            onFind();
-        }
+        if (selectedBranchIds && selectedBranchIds.length > 0) onFind();
     });
 
     function hideDataElements() {
@@ -378,12 +386,10 @@
         $('#employeeGrid').show();
     }
 
-    function goBack() {
-        window.history.back();
-    }
+    function goBack() { window.history.back(); }
 
     function populateYearDropdown() {
-        const startYear = 2025;
+        const startYear   = 2025;
         const currentYear = new Date().getFullYear();
         const yearDropdown = $("#yearSelect");
         yearDropdown.empty();
@@ -413,15 +419,11 @@
                         multiline: false,
                         minSearchLength: 0,
                         width: "100%",
-                        onOpened: function () {
-                            $(".dx-overlay-content").css("max-width", "150px");
-                        }
+                        onOpened: function () { $(".dx-overlay-content").css("max-width", "150px"); }
                     });
                 }
             },
-            error: function () {
-                Swal.fire('Error', 'Failed to load branches.', 'error');
-            }
+            error: function () { Swal.fire('Error', 'Failed to load branches.', 'error'); }
         });
     }
 
@@ -432,11 +434,9 @@
             headers: { 'Authorization': 'Bearer ' + Token },
             success: function (response) {
                 if (response && response.isSuccess && response.data) {
-                    if (Array.isArray(response.data) && response.data.length > 0) {
-                        hrManagerData = response.data[0];
-                    } else {
-                        hrManagerData = { fullName: 'HR Manager', isHrManager: true, employeeId: null };
-                    }
+                    hrManagerData = Array.isArray(response.data) && response.data.length > 0
+                        ? response.data[0]
+                        : { fullName: 'HR Manager', isHrManager: true, employeeId: null };
                 } else {
                     hrManagerData = { fullName: 'HR Manager', isHrManager: true, employeeId: null };
                 }
@@ -465,14 +465,13 @@
             return;
         }
 
-        const selectedYear = $('#yearSelect').val();
+        const selectedYear   = $('#yearSelect').val();
+        const branchIdsParam = selectedBranchIds.join(',');
+
         $('#grid-loader').addClass('d-flex').show();
         hideDataElements();
 
-        const branchIdsParam = selectedBranchIds.join(',');
-
         $.ajax({
-            // ✅ FIX: Correct endpoint — matches backend route exactly
             url: `@baseDomainUrl/api/ReportAPI/GetAllEmployeeforletter/${CompanyId}?BranchId=${branchIdsParam}&Year=${selectedYear}`,
             type: "GET",
             headers: { 'Authorization': 'Bearer ' + Token },
@@ -496,9 +495,9 @@
                         height: 500,
                         columns: [
                             { dataField: "employeeCode", caption: "Candidate Code", width: 150 },
-                            { dataField: "id", caption: "CandidateId", visible: false },
-                            { dataField: "fullName", caption: "Candidate Name" },
-                            { dataField: "branchName", caption: "Branch", width: 150 }
+                            { dataField: "id",           caption: "CandidateId",    visible: false },
+                            { dataField: "fullName",     caption: "Candidate Name" },
+                            { dataField: "branchName",   caption: "Branch",         width: 150 }
                         ],
                         onContentReady: function () { updateRecordCount(); }
                     }).dxDataGrid("instance");
@@ -507,11 +506,9 @@
                         const searchValue = $(this).val();
                         if (searchValue) {
                             grid.filter([
-                                ['fullName', 'contains', searchValue],
-                                'or',
-                                ['employeeCode', 'contains', searchValue],
-                                'or',
-                                ['branchName', 'contains', searchValue]
+                                ['fullName',     'contains', searchValue], 'or',
+                                ['employeeCode', 'contains', searchValue], 'or',
+                                ['branchName',   'contains', searchValue]
                             ]);
                         } else {
                             grid.clearFilter();
@@ -550,9 +547,9 @@
         originalEmployeeData = [];
     }
 
-    // ── View button ──────────────────────────────────────────────────────────
+    // ── View button ───────────────────────────────────────────────────────────
     $('#btnView').on('click', function () {
-        const grid = $('#employeeGrid').dxDataGrid("instance");
+        const grid    = $('#employeeGrid').dxDataGrid("instance");
         const selected = grid.getSelectedRowsData();
 
         if (!selected.length) {
@@ -569,9 +566,6 @@
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...');
 
         $.ajax({
-            // ✅ FIX: Changed from GetEmployeeDetailsForLetter (did not exist in backend)
-            //         to GetActiveEmployeeDetailsForLetter (correct backend endpoint)
-            //         Also fixed param name: CandidateId → EmployeeId (matches backend)
             url: `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${candidateId}`,
             type: "GET",
             headers: { 'Authorization': 'Bearer ' + Token },
@@ -580,14 +574,11 @@
                 if (response && response.isSuccess) {
                     let data = response.data || response.Data;
                     if (Array.isArray(data)) {
-                        if (data.length === 0) {
-                            Swal.fire('Error', 'No candidate data found.', 'error');
-                            return;
-                        }
+                        if (data.length === 0) { Swal.fire('Error', 'No candidate data found.', 'error'); return; }
                         data = data[0];
                     }
                     currentEmployeeData = data;
-                    renderOfferLetter(data);
+                    $('#offerLetterBody').html(generateOfferLetterHTML(data));
                     const modal = new bootstrap.Modal(document.getElementById('offerLetterModal'));
                     modal.show();
                 } else {
@@ -603,9 +594,9 @@
         });
     });
 
-    // ── Download Multiple button ─────────────────────────────────────────────
+    // ── Download Multiple button ───────────────────────────────────────────────
     $('#btnDownloadMultiple').on('click', function () {
-        const grid = $('#employeeGrid').dxDataGrid("instance");
+        const grid    = $('#employeeGrid').dxDataGrid("instance");
         const selected = grid.getSelectedRowsData();
 
         if (!selected.length) {
@@ -617,11 +608,10 @@
         $btn.prop('disabled', true).addClass('btn-loading');
 
         let completedCount = 0;
-        const totalCount = selected.length;
+        const totalCount   = selected.length;
 
         selected.forEach((candidate) => {
             $.ajax({
-                // ✅ FIX: Corrected param name from CandidateId → EmployeeId (matches backend)
                 url: `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${candidate.id}`,
                 type: "GET",
                 headers: { 'Authorization': 'Bearer ' + Token },
@@ -633,7 +623,7 @@
                             if (data.length === 0) { finalize(); return; }
                             data = data[0];
                         }
-                        generatePDFForCandidate(data, finalize);
+                        generatePDFFromHTML(generateOfferLetterHTML(data), data.employeeCode || data.candidateCode || 'CANDIDATE', 'Offer', finalize);
                     } else { finalize(); }
                 },
                 error: function () { finalize(); }
@@ -649,28 +639,21 @@
         }
     });
 
-    // ── PDF Generation ───────────────────────────────────────────────────────
-    function generatePDFForCandidate(data, callback) {
-        const tempContainer = $('<div>').css({
-            position: 'absolute',
-            left: '-9999px',
-            top: '0'
-        }).appendTo('body');
-
-        tempContainer.html(generateOfferLetterHTML(data));
-
+    // ── Shared PDF generator ──────────────────────────────────────────────────
+    function generatePDFFromHTML(html, code, prefix, callback) {
+        const tempContainer = $('<div>').css({ position: 'absolute', left: '-9999px', top: '0' }).appendTo('body');
+        tempContainer.html(html);
         const element = tempContainer.find('.offer-letter-container')[0];
 
         html2canvas(element, { scale: 2, logging: false, useCORS: true }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
+            const imgData    = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-
-            const imgWidth = 210;
+            const pdf        = new jsPDF('p', 'mm', 'a4');
+            const imgWidth   = 210;
             const pageHeight = 297;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
+            const imgHeight  = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft   = imgHeight;
+            let position     = 0;
 
             pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
             heightLeft -= pageHeight;
@@ -682,9 +665,7 @@
                 heightLeft -= pageHeight;
             }
 
-            const fileName = `Offer_Letter_${data.employeeCode || data.candidateCode || 'CANDIDATE'}_${new Date().getTime()}.pdf`;
-            pdf.save(fileName);
-
+            pdf.save(`${prefix}_Letter_${code}_${new Date().getTime()}.pdf`);
             tempContainer.remove();
             if (callback) callback();
         }).catch(error => {
@@ -694,42 +675,39 @@
         });
     }
 
-    // ── Letter HTML Template ─────────────────────────────────────────────────
+    // ── Offer Letter HTML ─────────────────────────────────────────────────────
     function generateOfferLetterHTML(data) {
 
         const formatDate = (dateStr) => {
             if (!dateStr) return 'N/A';
-            const d = new Date(dateStr);
+            const d     = new Date(dateStr);
             const day   = String(d.getDate()).padStart(2, '0');
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const year  = d.getFullYear();
             return `${day}/${month}/${year}`;
         };
 
-        const today          = formatDate(new Date().toISOString());
-        const logoUrl        = '/assets/images/relaylogo.jpeg';
+        const today        = formatDate(new Date().toISOString());
+        const logoUrl      = '/assets/images/relaylogo.jpeg';
 
-        const refNo          = data.refNo          || `HR/OFL/${new Date().getFullYear()}/001`;
-        const fullName       = data.fullName        || '[Candidate Name]';
-        const email          = data.email           || data.emailId          || '';
-        const contactNo      = data.contactNo       || data.mobileNumber     || '';
-        const designation    = data.designationName || data.designation      || '[Designation]';
-        const department     = data.departmentName  || data.department       || '[Department]';
-        const branchLocation = data.branchName      || data.branchLocation   || '[Branch Location]';
+        // ── FIX: correct gender handling ──
+        const titlePrefix    = getTitlePrefix(data.gender);
+        const cleanName      = cleanEmployeeName(data.fullName || '[Candidate Name]');
+        const displayName    = titlePrefix ? `${titlePrefix} ${cleanName}` : cleanName;
+        const firstName      = cleanName.split(' ')[0];
+        const salutationName = titlePrefix ? `${titlePrefix} ${firstName}` : firstName;
+
+        const email          = data.email              || data.emailId          || '';
+        const contactNo      = data.contactNo          || data.mobileNumber     || '';
+        const designation    = data.designationName    || data.designation      || '[Designation]';
+        const department     = data.departmentName     || data.department       || '[Department]';
+        const branchLocation = data.branchName         || data.branchLocation   || '[Branch Location]';
         const reportingMgr   = data.reportingManagerName || data.reportingManager || '[Reporting Manager Name]';
-        const reportingTitle = data.reportingManagerGender === 'Female' ? 'Ms' : 'Mr';
         const joiningDate    = formatDate(data.joiningDate || data.dateOfJoining || data.expectedJoiningDate);
-        const annualCtc      = data.annualCtc       || data.ctc              || '';
-        const ctcInWords     = data.ctcInWords      || data.salaryInWords    || '';
-        const companyAddress = data.companyAddress  || '406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway, Makarba, Ahmedabad - 380051 Gujarat, India';
-        const directorName   = data.directorName    || 'Atri Patel';
-
-        let titlePrefix = 'Mr./Ms.';
-        if (data.gender === 'Male')        titlePrefix = 'Mr.';
-        else if (data.gender === 'Female') titlePrefix = 'Ms.';
-
-        const cleanName  = fullName.replace(/^(Mr\.|Mrs\.|Ms\.)\s*/i, '').trim();
-        const firstName  = cleanName.split(' ')[0];
+        const annualCtc      = data.annualCtc          || data.ctc              || '';
+        const ctcInWords     = data.ctcInWords         || data.salaryInWords    || '';
+        const companyAddress = data.companyAddress     || '406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway, Makarba, Ahmedabad - 380051 Gujarat, India';
+        const directorName   = data.directorName       || 'Atri Patel';
 
         return `
         <div class="offer-letter-container" style="
@@ -737,9 +715,9 @@
             padding:50px 70px; background:white;
             font-family:'Calibri','Arial',sans-serif;
             font-size:14px; color:#222; box-sizing:border-box;
-            border:1px solid #ddd; line-height:1.8;
-        ">
-            <!-- ══ HEADER ROW ══ -->
+            border:1px solid #ddd; line-height:1.8;">
+
+            <!-- HEADER -->
             <table style="width:100%; margin-bottom:30px;">
                 <tr>
                     <td style="text-align:right; vertical-align:top;">
@@ -750,27 +728,27 @@
                 </tr>
             </table>
 
-            <!-- ══ DATE ══ -->
+            <!-- DATE -->
             <p style="margin:0 0 18px 0; font-size:14px; text-align:right;">
                 <strong>${today}</strong>
             </p>
 
-            <!-- ══ TO BLOCK ══ -->
+            <!-- TO BLOCK -->
             <p style="margin:0;">To,</p>
             <p style="margin:4px 0;">
-                <strong><u style="color:#e74c3c;">${titlePrefix} ${cleanName}</u></strong>
+                <strong><u style="color:#e74c3c;">${displayName}</u></strong>
             </p>
-            ${email     ? `<p style="margin:4px 0;"><strong>Email ID -</strong> ${email}</p>`      : ''}
+            ${email     ? `<p style="margin:4px 0;"><strong>Email ID -</strong> ${email}</p>`        : ''}
             ${contactNo ? `<p style="margin:4px 0;"><strong>Contact No. -</strong> ${contactNo}</p>` : ''}
 
-            <!-- ══ TITLE ══ -->
+            <!-- TITLE -->
             <p style="text-align:center; font-size:16px; font-weight:bold;
                       text-decoration:underline; margin:30px 0 20px 0; color:#3f4d6b;">
                 Employment Offer Letter
             </p>
 
-            <!-- ══ BODY ══ -->
-            <p><strong>Dear ${titlePrefix} ${firstName},</strong></p>
+            <!-- SALUTATION -->
+            <p><strong>Dear ${salutationName},</strong></p>
 
             <p>
                 Further to the interviews you had with us, we are pleased to offer you the position of
@@ -799,7 +777,7 @@
             <p>
                 Your <strong>Annual CTC</strong> will be
                 <strong>Rs. ${annualCtc} /-</strong>
-                ${ctcInWords ? `<strong>(Rupees ${ctcInWords} )</strong>` : ''}
+                ${ctcInWords ? `<strong>(Rupees ${ctcInWords})</strong>` : ''}
                 <strong>(Annexure-I)</strong>
             </p>
 
@@ -829,7 +807,7 @@
 
             <p>We wish you all the best and look forward to a long and mutually rewarding association.</p>
 
-            <!-- ══ SIGNATURE ══ -->
+            <!-- SIGNATURE -->
             <div style="margin-top:50px;">
                 <p style="margin:4px 0;"><strong>For, Relay Express Pvt Ltd</strong></p>
                 <br/>
@@ -837,10 +815,10 @@
                 <p style="margin:4px 0;"><strong>Director</strong></p>
             </div>
 
-            <!-- ══ ACCEPTANCE BLOCK ══ -->
+            <!-- ACCEPTANCE BLOCK -->
             <div style="margin-top:40px; border-top:1px solid #ccc; padding-top:20px;">
                 <p style="margin:0 0 10px 0;">
-                    I, <strong>${titlePrefix} ${cleanName}</strong>, accept the offer mentioned
+                    I, <strong>${displayName}</strong>, accept the offer mentioned
                     herewith and undertake to abide the same.
                 </p>
                 <table style="width:100%; font-size:13px; margin-top:14px;">
@@ -861,21 +839,19 @@
                 </table>
             </div>
 
-            <!-- ══ FOOTER NOTE ══ -->
+            <!-- FOOTER -->
             <div style="margin-top:30px; font-size:11px; text-align:center; color:#555;">
                 <p style="margin:2px 0;"><strong>This is a Computer-generated statement hence no signature required.</strong></p>
                 <p style="margin:2px 0;"><strong>Personal &amp; Confidential</strong></p>
             </div>
-
-            <!-- ══ COMPANY ADDRESS ══ -->
             <div style="margin-top:10px; font-size:11px; text-align:center; color:#666;">
                 <p><strong>${companyAddress}</strong> &ndash; Page - 1</p>
             </div>
 
-            <!-- ════════════════ PAGE BREAK ════════════════ -->
+            <!-- PAGE BREAK -->
             <div style="border-top:2px dashed #aaa; margin:40px 0;"></div>
 
-            <!-- ══ ANNEXURE I HEADER ══ -->
+            <!-- ANNEXURE I -->
             <p style="margin:0 0 6px 0; text-align:center; font-size:15px; font-weight:bold; text-decoration:underline; color:#3f4d6b;">
                 Annexure I
             </p>
@@ -883,13 +859,9 @@
                 JOINING HR CHECK LIST
             </p>
 
-            <!-- ══ ANNEXURE II ══ -->
-            <p style="margin:0 0 10px 0; font-size:14px; font-weight:bold; text-decoration:underline; color:#3f4d6b;">
-                Annexure II
-            </p>
-            <p style="margin:0 0 10px 0; font-style:italic; font-size:13px;">
-                Please send clear and readable Soft Copy only
-            </p>
+            <!-- ANNEXURE II -->
+            <p style="margin:0 0 10px 0; font-size:14px; font-weight:bold; text-decoration:underline; color:#3f4d6b;">Annexure II</p>
+            <p style="margin:0 0 10px 0; font-style:italic; font-size:13px;">Please send clear and readable Soft Copy only</p>
 
             <!-- MANDATORY -->
             <p style="margin:0 0 6px 0; font-weight:bold; font-size:13px; color:#3f4d6b;">MANDATORY</p>
@@ -903,22 +875,21 @@
                 </thead>
                 <tbody>
                     ${[
-                        ['1',  'Joining Form',                                      'Original'],
-                        ['2',  'Updated Resume',                                    'Soft Copy'],
-                        ['3',  '1 Passport Size Latest Photograph (Colour Scan)',   '.jpg'],
-                        ['4',  'Address Proof – Present and Permanent',             '.pdf'],
-                        ['5',  'Aadhaar Card',                                      'Colour Scan .pdf'],
-                        ['6',  'Electricity Bill / House Tax Bill / Rent Agreement','.pdf'],
-                        ['7',  'PAN Card',                                          'Colour Scan .pdf'],
-                        ['8',  'Valid Driving License',                             'Colour Scan .pdf'],
-                        ['9',  'Cancelled Cheque',                                  'Colour Scan .pdf'],
+                        ['1', 'Joining Form',                                       'Original'],
+                        ['2', 'Updated Resume',                                     'Soft Copy'],
+                        ['3', '1 Passport Size Latest Photograph (Colour Scan)',    '.jpg'],
+                        ['4', 'Address Proof – Present and Permanent',              '.pdf'],
+                        ['5', 'Aadhaar Card',                                       'Colour Scan .pdf'],
+                        ['6', 'Electricity Bill / House Tax Bill / Rent Agreement', '.pdf'],
+                        ['7', 'PAN Card',                                           'Colour Scan .pdf'],
+                        ['8', 'Valid Driving License',                              'Colour Scan .pdf'],
+                        ['9', 'Cancelled Cheque',                                   'Colour Scan .pdf'],
                     ].map(([n, doc, fmt], i) => `
                         <tr style="background-color:${i % 2 === 0 ? '#f9f9f9' : '#ffffff'};">
                             <td style="padding:5px 10px; border:1px solid #ccc;">${n}</td>
                             <td style="padding:5px 10px; border:1px solid #ccc;">${doc}</td>
                             <td style="padding:5px 10px; border:1px solid #ccc;">${fmt}</td>
-                        </tr>
-                    `).join('')}
+                        </tr>`).join('')}
                 </tbody>
             </table>
 
@@ -942,8 +913,7 @@
                         <tr style="background-color:${i % 2 === 0 ? '#f9f9f9' : '#ffffff'};">
                             <td style="padding:5px 10px; border:1px solid #ccc;">${n}</td>
                             <td style="padding:5px 10px; border:1px solid #ccc;">${doc}</td>
-                        </tr>
-                    `).join('')}
+                        </tr>`).join('')}
                 </tbody>
             </table>
 
@@ -964,30 +934,24 @@
                 </tbody>
             </table>
 
-            <!-- ══ PAGE 2 FOOTER ══ -->
+            <!-- PAGE 2 FOOTER -->
             <div style="margin-top:20px; font-size:11px; text-align:center; color:#666;">
                 <p><strong>${companyAddress}</strong> &ndash; Page - 2</p>
             </div>
-        </div>
-        `;
+        </div>`;
     }
 
-    function renderOfferLetter(data) {
-        $('#offerLetterBody').html(generateOfferLetterHTML(data));
-    }
-
-    // ── Download from modal ──────────────────────────────────────────────────
+    // ── Download from modal ────────────────────────────────────────────────────
     $('#btnDownloadPDF').on('click', function () {
-        const $btn = $(this);
+        const $btn    = $(this);
         $btn.prop('disabled', true).addClass('btn-loading');
 
         const element = document.getElementById('offerLetterBody').querySelector('.offer-letter-container');
 
         html2canvas(element, { scale: 2, logging: false, useCORS: true }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
+            const imgData    = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-
+            const pdf        = new jsPDF('p', 'mm', 'a4');
             const imgWidth   = 210;
             const pageHeight = 297;
             const imgHeight  = (canvas.height * imgWidth) / canvas.width;
@@ -1014,7 +978,6 @@
         });
     });
 
-    // Clear grid selection on modal close
     $('#offerLetterModal').on('hidden.bs.modal', function () {
         const grid = $('#employeeGrid').dxDataGrid("instance");
         if (grid) grid.clearSelection();

@@ -194,6 +194,23 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+        public async Task<List<EmployeeDetailsForPromotionincrementlettervm>> GetEmployeeDetailsForPromotionincrementletter(int EmployeeId)
+        {
+            try
+            {
+                var result = await _db.Set<EmployeeDetailsForPromotionincrementlettervm?>().FromSqlInterpolated($@"
+                    EXEC GetEmployeeDetailsForPromotionincrementletter
+                        @Employeeid = {EmployeeId}
+                ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public async Task<List<GetAllLeftEmployeeVm>> GetEmployeeforPromotionincrementletter(int companyId, string BranchId, int Year, string Lettertype)
         {
             try

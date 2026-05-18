@@ -401,6 +401,25 @@ namespace HRMS_API.Controllers.Report
             }
         }
 
+        [HttpGet("GetEmployeeDetailsForPromotionincrementletter")]
+        public async Task<APIResponse> GetEmployeeDetailsForPromotionincrementletter(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.ReportRepository.GetEmployeeDetailsForPromotionincrementletter(EmployeeId);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
 
         [HttpGet("GetEmployeeDetailsForLetter")]
         public async Task<APIResponse> GetEmployeeDetailsForLetter(int EmployeeId)

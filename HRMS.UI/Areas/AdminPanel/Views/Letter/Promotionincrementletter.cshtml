@@ -635,7 +635,6 @@
         const selectedYear    = $('#yearSelect').val();
         const branchIdsParam  = selectedBranchIds.join(',');
 
-        // Single API — LetterType param controls which employees are returned (SP: GetEmployeeforPromotionincrementletter)
         const letterTypeParam = currentLetterType === 'increment' ? 'Increment' : 'Promotion';
         const apiUrl = `@baseDomainUrl/api/ReportAPI/GetEmployeeforPromotionincrementletter/${CompanyId}?BranchId=${branchIdsParam}&Year=${selectedYear}&LetterType=${letterTypeParam}`;
 
@@ -892,9 +891,11 @@
     const companyAddress   = '406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway, Makarba, Ahmedabad - 380051 Gujarat, India';
 
     function getTitlePrefix(gender) {
-        if (gender === 'Male')   return 'Mr.';
-        if (gender === 'Female') return 'Ms.';
-        return 'Mr./Ms.';
+        if (!gender) return '';
+        const g = gender.toString().trim().toLowerCase();
+        if (g === 'male'   || g === 'm' || g === '1') return 'Mr.';
+        if (g === 'female' || g === 'f' || g === '2') return 'Ms.';
+        return '';
     }
 
     function cleanEmployeeName(fullName) {
@@ -950,19 +951,20 @@
     // ── INCREMENT LETTER HTML ─────────────────────────────────────────────────
     // ══════════════════════════════════════════════════════════════════════════
     function generateIncrementLetterHTML(data) {
-        const titlePrefix  = getTitlePrefix(data.gender);
-        const cleanName    = cleanEmployeeName(data.fullName);
-        const employeeCode = data.employeeCode   || '';
-        const branchName   = data.branchName     || '';
-        const annualCtc    = data.annualCtc       || data.ctc          || '';
-        const effectiveDate = formatDate(data.effectiveDate || data.incrementDate || data.joiningDate);
-        const currentYear  = new Date().getFullYear();
-        const refNo        = `HR/IL/${currentYear}/001`;
+        const titlePrefix   = getTitlePrefix(data.gender);
+        const cleanName     = cleanEmployeeName(data.fullName);
+        const displayName   = titlePrefix ? `${titlePrefix} ${cleanName}` : cleanName;
+        const employeeCode  = data.employeeCode  || '';
+        const branchName    = data.branchName    || '';
+        const annualCtc     = data.annualCtc     || data.ctc || '';
+        const effectiveDate = formatDate(data.effectiveFromDate || data.incrementDate);
+        const currentYear   = new Date().getFullYear();
+        const refNo         = `HR/IL/${currentYear}/001`;
 
         const body = `
             <!-- TO BLOCK -->
             <p style="margin:0;">To,</p>
-            <p style="margin:4px 0;"><strong>Employee Name:</strong> ${titlePrefix} ${cleanName}</p>
+            <p style="margin:4px 0;"><strong>Employee Name:</strong> ${displayName}</p>
             ${employeeCode ? `<p style="margin:4px 0;"><strong>Employee Code:</strong> ${employeeCode}</p>` : ''}
             ${branchName   ? `<p style="margin:4px 0;"><strong>Branch:</strong> ${branchName}</p>`         : ''}
 
@@ -972,7 +974,7 @@
             </p>
 
             <!-- SALUTATION -->
-            <p style="margin-top:20px;"><strong>Dear ${titlePrefix} ${cleanName},</strong></p>
+            <p style="margin-top:20px;"><strong>Dear ${displayName},</strong></p>
 
             <!-- BODY -->
             <p style="margin:10px 0; text-align:justify;">
@@ -1013,20 +1015,21 @@
     // ── PROMOTION LETTER HTML ─────────────────────────────────────────════════
     // ══════════════════════════════════════════════════════════════════════════
     function generatePromotionLetterHTML(data) {
-        const titlePrefix    = getTitlePrefix(data.gender);
-        const cleanName      = cleanEmployeeName(data.fullName);
-        const employeeCode   = data.employeeCode      || '';
-        const designation    = data.designationName   || data.designation    || '[New Designation]';
-        const department     = data.departmentName    || data.department     || '[Department]';
-        const annualCtc      = data.annualCtc         || data.ctc            || '';
-        const effectiveDate  = formatDate(data.effectiveDate || data.promotionDate || data.joiningDate);
-        const currentYear    = new Date().getFullYear();
-        const refNo          = `HR/PL/${currentYear}/001`;
+        const titlePrefix   = getTitlePrefix(data.gender);
+        const cleanName     = cleanEmployeeName(data.fullName);
+        const displayName   = titlePrefix ? `${titlePrefix} ${cleanName}` : cleanName;
+        const employeeCode  = data.employeeCode    || '';
+        const designation   = data.designationName || data.designation || '[New Designation]';
+        const department    = data.departmentName  || data.department  || '[Department]';
+        const annualCtc     = data.annualCtc       || data.ctc         || '';
+        const effectiveDate = formatDate(data.effectiveFromDate || data.promotionDate || data.joiningDate);
+        const currentYear   = new Date().getFullYear();
+        const refNo         = `HR/PL/${currentYear}/001`;
 
         const body = `
             <!-- TO BLOCK -->
             <p style="margin:0;">To,</p>
-            <p style="margin:4px 0;"><strong>Employee Name:</strong> ${titlePrefix} ${cleanName}</p>
+            <p style="margin:4px 0;"><strong>Employee Name:</strong> ${displayName}</p>
             ${employeeCode ? `<p style="margin:4px 0;"><strong>Employee Code:</strong> ${employeeCode}</p>` : ''}
 
             <!-- SUBJECT -->
@@ -1035,7 +1038,7 @@
             </p>
 
             <!-- SALUTATION -->
-            <p style="margin-top:20px;"><strong>Dear ${titlePrefix} ${cleanName},</strong></p>
+            <p style="margin-top:20px;"><strong>Dear ${displayName},</strong></p>
 
             <!-- BODY -->
             <p style="margin:10px 0; text-align:justify;">
