@@ -194,6 +194,20 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
+        public async Task<List<GetAllLeftEmployeeVm>> GetEmployeeforPromotionincrementletter(int companyId, string BranchId, int Year, string Lettertype)
+        {
+            try
+            {
+                return await _db.Set<GetAllLeftEmployeeVm>()
+                                .FromSqlInterpolated($"EXEC GetEmployeeforPromotionincrementletter @CompanyId={companyId} , @BranchIds={BranchId}, @Year={Year}, @LetterType={Lettertype}")
+                                .ToListAsync();
+            }
+            catch (Exception)
+            {
+                return new List<GetAllLeftEmployeeVm>();
+            }
+        }
+
         public async Task<(List<EmployeeLeaveApplication>, List<EmployeeLeaveStatus>)>
        GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear ,int CompId)
         {
