@@ -448,11 +448,29 @@ namespace HRMS_API.Controllers.Report
                 var branchIds = string.IsNullOrEmpty(BranchId) ? new List<string>()
                                : BranchId.Split(',').ToList();
 
-                var data = await _unitOfWork.ReportRepository.GetAllLeftEmployee(companyId, BranchId,Year);
+                var data = await _unitOfWork.ReportRepository.GetAllLeftEmployee(companyId, BranchId, Year);
 
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetEmployeeforPromotionincrementletter/{companyId}")]
+        public async Task<APIResponse> GetEmployeeforPromotionincrementletter(int companyId, [FromQuery] string BranchId, int Year, string Lettertype)
+        {
+            try
+            {
+                var branchIds = string.IsNullOrEmpty(BranchId) ? new List<string>()
+                         : BranchId.Split(',').ToList();
+                var data = await _unitOfWork.ReportRepository.GetEmployeeforPromotionincrementletter(companyId, BranchId, Year, Lettertype);
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
                 return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
             }
             catch (Exception ex)

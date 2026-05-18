@@ -1,0 +1,1128 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Promotion / Increment Letter";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<meta charset="UTF-8">
+<title>Promotion / Increment Letter</title>
+
+<!-- DevExtreme -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/devextreme@23.2.3/dist/css/dx.light.css">
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/devextreme@23.2.3/dist/js/dx.all.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- PDF Generation Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    .header {
+        background-color: #3f4d6b;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    /* Letter type badge in header */
+    .letter-badge {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 12px;
+        margin-left: 10px;
+        transition: all 0.3s ease;
+    }
+
+        .letter-badge.increment {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .letter-badge.promotion {
+            background-color: #e67e22;
+            color: white;
+        }
+
+    .main {
+        display: flex;
+        height: calc(100vh - 50px);
+    }
+
+    .left-section, .right-section {
+        width: 50%;
+        padding: 30px;
+        background-color: #fff;
+        box-sizing: border-box;
+    }
+
+    .separator {
+        width: 1px;
+        background-color: #ccc;
+    }
+
+    .date-row {
+        display: flex;
+        gap: 20px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .form-group {
+        flex: 1;
+    }
+
+    label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 4px;
+        font-size: 13px;
+        color: #333;
+    }
+
+    select {
+        padding: 4px 6px;
+        font-size: 13px;
+        height: 32px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 130px;
+        box-sizing: border-box;
+    }
+
+    #branchDropdown {
+        width: 180px;
+    }
+
+    /* Letter Type Select */
+    #letterTypeSelect {
+        width: 140px;
+        height: 32px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        padding: 4px 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        background-color: #fff;
+        transition: border-color 0.2s;
+    }
+
+        #letterTypeSelect:focus {
+            outline: none;
+            border-color: #3f4d6b;
+        }
+
+        #letterTypeSelect.increment-mode {
+            border-color: #27ae60;
+            color: #27ae60;
+        }
+
+        #letterTypeSelect.promotion-mode {
+            border-color: #e67e22;
+            color: #e67e22;
+        }
+
+    .btn-group {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+
+        .btn-group button {
+            padding: 6px 14px;
+            font-size: 13px;
+            min-width: 70px;
+        }
+
+    button {
+        border: none;
+        background-color: #3f4d6b;
+        color: white;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+        button:hover {
+            background-color: #2d3a52;
+        }
+
+    #recordCount {
+        color: red;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: none;
+    }
+
+    #employeeGrid {
+        height: calc(100vh - 250px);
+    }
+
+    #yearSelect {
+        padding: 4px 6px;
+        font-size: 13px;
+        height: 32px;
+        width: 110px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+    }
+
+    .filter-section {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+
+    .search-view-container {
+        display: none;
+        margin-bottom: 15px;
+        align-items: center;
+        gap: 15px;
+    }
+
+        .search-view-container.show {
+            display: flex;
+        }
+
+        .search-view-container input {
+            padding: 6px 10px;
+            font-size: 13px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 240px;
+        }
+
+        .search-view-container button {
+            padding: 6px 14px;
+            font-size: 13px;
+            min-width: 70px;
+        }
+
+    .action-buttons-container {
+        display: none;
+        margin-bottom: 15px;
+        gap: 10px;
+    }
+
+        .action-buttons-container.show {
+            display: flex;
+        }
+
+        .action-buttons-container button {
+            padding: 8px 16px;
+            font-size: 13px;
+            min-width: 90px;
+        }
+
+            /* Dynamic button color based on letter type */
+            .action-buttons-container button.increment-btn {
+                background-color: #27ae60;
+            }
+
+                .action-buttons-container button.increment-btn:hover {
+                    background-color: #219a52;
+                }
+
+            .action-buttons-container button.promotion-btn {
+                background-color: #e67e22;
+            }
+
+                .action-buttons-container button.promotion-btn:hover {
+                    background-color: #cf6d17;
+                }
+
+    .no-data-message {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+        font-style: italic;
+        font-size: 14px;
+    }
+
+    #recordCount.show {
+        display: block;
+    }
+
+    .custom-modal-width {
+        max-width: 95% !important;
+        width: 95% !important;
+    }
+
+    .modal-body {
+        padding: 30px 20px !important;
+    }
+
+    #letterBody {
+        overflow-y: auto;
+        max-height: 75vh;
+    }
+
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.8;
+    }
+
+        .btn-loading::before {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+        }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .grid-loader {
+        position: absolute;
+        display: none;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.6);
+        z-index: 10;
+    }
+
+        .grid-loader.d-flex {
+            display: flex !important;
+        }
+
+    .grid-logo-spinner {
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+    }
+
+    /* Letter type indicator strip */
+    .letter-type-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+        .letter-type-indicator.increment {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #27ae60;
+        }
+
+        .letter-type-indicator.promotion {
+            background-color: #fde8d8;
+            color: #7b3f00;
+            border-left: 4px solid #e67e22;
+        }
+
+        .letter-type-indicator .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .letter-type-indicator.increment .dot {
+            background-color: #27ae60;
+        }
+
+        .letter-type-indicator.promotion .dot {
+            background-color: #e67e22;
+        }
+</style>
+
+<!-- ══ HEADER ══ -->
+<div class="header" id="pageHeader">
+    <span id="headerTitle">LETTER GENERATION</span>
+    <span class="letter-badge increment" id="headerBadge">INCREMENT</span>
+</div>
+
+<div class="main">
+    <!-- ══ LEFT SECTION ══ -->
+    <div class="left-section">
+        <div class="filter-section">
+            <div class="date-row">
+                <!-- Branch -->
+                <div class="form-group" style="width: 200px; display: inline-block; margin-right: 10px;">
+                    <label for="branchDropdown">Branch:</label>
+                    <div id="branchDropdown"></div>
+                </div>
+
+                <!-- Year -->
+                <div class="form-group" style="width: 110px; display: inline-block; margin-right: 10px;">
+                    <label for="yearSelect">Year:</label>
+                    <select id="yearSelect" class="form-control"></select>
+                </div>
+
+                <!-- Letter Type -->
+                <div class="form-group" style="width: 140px; display: inline-block;">
+                    <label for="letterTypeSelect">Letter Type:</label>
+                    <select id="letterTypeSelect" class="increment-mode">
+                        <option value="increment">Increment</option>
+                        <option value="promotion">Promotion</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Indicator strip below filters -->
+            <div class="letter-type-indicator increment" id="letterTypeIndicator">
+                <span class="dot"></span>
+                <span id="indicatorText">Showing Increment letter employees</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button onclick="onFind()" id="btnfind">Find</button>
+            <button onclick="onClear()">Clear</button>
+            <button onclick="goBack()">Back</button>
+        </div>
+    </div>
+
+    <!-- Vertical Separator -->
+    <div class="separator"></div>
+
+    <!-- ══ RIGHT SECTION ══ -->
+    <div class="right-section">
+        <div id="recordCount">0 Records found.</div>
+
+        <div class="search-view-container" id="searchViewContainer">
+            <input type="text" id="employeeSearch" placeholder="Search employees..." />
+        </div>
+
+        <div class="action-buttons-container" id="actionButtonsContainer">
+            <button id="btnView" class="increment-btn">View</button>
+            <button id="btnDownloadMultiple" class="increment-btn">Download PDF</button>
+        </div>
+
+        <div class="grid-wrapper" style="position: relative;" id="gridTag">
+            <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column">
+                <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" />
+                <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+            </div>
+
+            <div class="no-data-message" id="noDataMessage">
+                No data to display. Please select a branch and click Find to load employee data.
+            </div>
+
+            <div id="employeeGrid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ LETTER MODAL ══ -->
+<div class="modal fade" id="letterModal" tabindex="-1" aria-labelledby="letterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl custom-modal-width">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Letter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="letterBody">
+                <!-- Letter HTML will be injected here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btnDownloadPDF">Download PDF</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const Empid        = parseInt(localStorage.getItem("EmployeeId"));
+    const Role         = localStorage.getItem("RoleSlug");
+    const Token        = localStorage.getItem("authToken");
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany || '{}');
+    const Compname     = companyDetails.CompanyName;
+    const CompanyId    = companyDetails.CompanyId;
+
+    let originalEmployeeData = [];
+    let currentEmployeeData  = null;
+    let hrManagerData        = null;
+    let currentLetterType    = 'increment'; // 'increment' | 'promotion'
+
+    // ── On Ready ──────────────────────────────────────────────────────────────
+    $(document).ready(function () {
+        populateYearDropdown();
+        BindBranchDropdown();
+        fetchLetterInformation();
+        hideDataElements();
+        updateLetterTypeUI('increment');
+
+        // Letter type change handler
+        $('#letterTypeSelect').on('change', function () {
+            currentLetterType = $(this).val();
+            updateLetterTypeUI(currentLetterType);
+
+            // Auto re-find if branch already selected
+            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+            const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+            if (selectedBranchIds && selectedBranchIds.length > 0) {
+                onFind();
+            } else {
+                hideDataElements();
+                resetNoDataMessage();
+            }
+        });
+
+        $('#yearSelect').on('change', function () {
+            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+            const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+            if (selectedBranchIds && selectedBranchIds.length > 0) {
+                onFind();
+            }
+        });
+    });
+
+    // ── UI: Update everything when letter type changes ─────────────────────────
+    function updateLetterTypeUI(type) {
+        const isIncrement = (type === 'increment');
+        const label       = isIncrement ? 'INCREMENT' : 'PROMOTION';
+        const labelLower  = isIncrement ? 'Increment' : 'Promotion';
+        const colorClass  = isIncrement ? 'increment' : 'promotion';
+        const antiClass   = isIncrement ? 'promotion' : 'increment';
+
+        // Header badge
+        $('#headerBadge').text(label).removeClass(antiClass).addClass(colorClass);
+        $('#headerTitle').text(labelLower.toUpperCase() + ' LETTER GENERATION');
+
+        // Letter type select styling
+        $('#letterTypeSelect').removeClass('increment-mode promotion-mode').addClass(type + '-mode');
+
+        // Indicator strip
+        $('#letterTypeIndicator').removeClass(antiClass).addClass(colorClass);
+        $('#indicatorText').text(`Showing ${labelLower} letter employees`);
+
+        // Action buttons color
+        $('#btnView, #btnDownloadMultiple').removeClass('increment-btn promotion-btn').addClass(colorClass + '-btn');
+
+        // Modal title
+        $('#modalTitle').text(labelLower + ' Letter');
+    }
+
+    // ── Helper: Reset no-data message ─────────────────────────────────────────
+    function resetNoDataMessage() {
+        $('#noDataMessage').text('No data to display. Please select a branch and click Find to load employee data.').show();
+    }
+
+    function hideDataElements() {
+        $('#recordCount').removeClass('show').hide();
+        $('#searchViewContainer').removeClass('show').hide();
+        $('#actionButtonsContainer').removeClass('show').hide();
+        $('#noDataMessage').show();
+        $('#employeeGrid').hide();
+    }
+
+    function showDataElements() {
+        $('#recordCount').addClass('show').show();
+        $('#searchViewContainer').addClass('show').show();
+        $('#actionButtonsContainer').addClass('show').show();
+        $('#noDataMessage').hide();
+        $('#employeeGrid').show();
+    }
+
+    function goBack() { window.history.back(); }
+
+    function populateYearDropdown() {
+        const startYear   = 2025;
+        const currentYear = new Date().getFullYear();
+        const yearDropdown = $("#yearSelect");
+        yearDropdown.empty();
+        for (let year = currentYear; year >= startYear; year--) {
+            yearDropdown.append(`<option value="${year}">${year}</option>`);
+        }
+        yearDropdown.val(currentYear);
+    }
+
+    function BindBranchDropdown() {
+        $.ajax({
+            url: '@baseDomainUrl/api/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response?.data?.length > 0) {
+                    $("#branchDropdown").dxTagBox({
+                        items: response.data,
+                        displayExpr: "branchName",
+                        valueExpr: "branchId",
+                        placeholder: "--Select Branch--",
+                        showSelectionControls: true,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        maxDisplayedTags: 3,
+                        applyValueMode: "instantly",
+                        multiline: false,
+                        minSearchLength: 0,
+                        width: "100%",
+                        onOpened: function () {
+                            $(".dx-overlay-content").css("max-width", "150px");
+                        }
+                    });
+                }
+            },
+            error: function () {
+                Swal.fire('Error', 'Failed to load branches.', 'error');
+            }
+        });
+    }
+
+    function fetchLetterInformation() {
+        $.ajax({
+            url: '@baseDomainUrl/api/ReportAPI/GetLetterInformation',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response && response.isSuccess && response.data) {
+                    hrManagerData = Array.isArray(response.data) && response.data.length > 0
+                        ? response.data[0]
+                        : { fullName: 'HR Manager', isHrManager: true, employeeId: null };
+                } else {
+                    hrManagerData = { fullName: 'HR Manager', isHrManager: true, employeeId: null };
+                }
+            },
+            error: function () {
+                hrManagerData = { fullName: 'HR Manager', isHrManager: true, employeeId: null };
+            }
+        });
+    }
+
+    function updateRecordCount() {
+        const grid = $("#employeeGrid").dxDataGrid("instance");
+        if (grid) {
+            const filteredCount = grid.getVisibleRows().length;
+            $('#recordCount').text(`${filteredCount} Records found.`);
+            $('#recordCount').css('color', filteredCount > 0 ? '#28a745' : '#dc3545');
+        }
+    }
+
+    // ── Find ──────────────────────────────────────────────────────────────────
+    function onFind() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+
+        if (!selectedBranchIds || selectedBranchIds.length === 0) {
+            Swal.fire('Warning', 'Please select at least one branch.', 'warning');
+            return;
+        }
+
+        const selectedYear    = $('#yearSelect').val();
+        const branchIdsParam  = selectedBranchIds.join(',');
+
+        // Single API — LetterType param controls which employees are returned (SP: GetEmployeeforPromotionincrementletter)
+        const letterTypeParam = currentLetterType === 'increment' ? 'Increment' : 'Promotion';
+        const apiUrl = `@baseDomainUrl/api/ReportAPI/GetEmployeeforPromotionincrementletter/${CompanyId}?BranchId=${branchIdsParam}&Year=${selectedYear}&LetterType=${letterTypeParam}`;
+
+        $('#grid-loader').addClass('d-flex').show();
+        hideDataElements();
+
+        $.ajax({
+            url: apiUrl,
+            type: "GET",
+            headers: { 'Authorization': 'Bearer ' + Token },
+            dataType: "json",
+            success: function (response) {
+                const employeeData = response.data || response;
+                originalEmployeeData = employeeData;
+
+                if (employeeData && employeeData.length > 0) {
+                    showDataElements();
+
+                    // Build grid columns - promotion shows Designation column extra
+                    const columns = [
+                        { dataField: "employeeCode", caption: "Employee Code", width: 150 },
+                        { dataField: "id", caption: "EmployeeId", visible: false },
+                        { dataField: "fullName", caption: "Employee Name" },
+                        { dataField: "branchName", caption: "Branch", width: 150 }
+                    ];
+
+                    if (currentLetterType === 'promotion') {
+                        columns.splice(3, 0, { dataField: "designationName", caption: "New Designation", width: 160 });
+                    }
+
+                    $("#employeeGrid").dxDataGrid({
+                        dataSource: employeeData,
+                        keyExpr: "id",
+                        selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        paging: { enabled: false },
+                        scrolling: { mode: "standard", useNative: true, showScrollbar: "always" },
+                        searchPanel: { visible: false },
+                        height: 500,
+                        columns: columns,
+                        onContentReady: function () { updateRecordCount(); }
+                    });
+
+                    const grid = $("#employeeGrid").dxDataGrid("instance");
+
+                    $('#employeeSearch').off('input').on('input', function () {
+                        const searchValue = $(this).val();
+                        if (searchValue) {
+                            grid.filter([
+                                ['fullName', 'contains', searchValue],
+                                'or',
+                                ['employeeCode', 'contains', searchValue],
+                                'or',
+                                ['branchName', 'contains', searchValue]
+                            ]);
+                        } else {
+                            grid.clearFilter();
+                        }
+                        setTimeout(updateRecordCount, 100);
+                    });
+
+                    $('#recordCount').text(`${employeeData.length} Records found.`).css('color', '#28a745');
+                } else {
+                    hideDataElements();
+                    const typeLabel = currentLetterType === 'increment' ? 'Increment' : 'Promotion';
+                    $('#noDataMessage').text(`No employees found for ${typeLabel} letter in the selected branch(es).`).show();
+                }
+
+                $('#grid-loader').removeClass('d-flex').hide();
+            },
+            error: function () {
+                $('#grid-loader').removeClass('d-flex').hide();
+                hideDataElements();
+                $('#noDataMessage').text('Failed to load employees. Please try again.').show();
+                Swal.fire('Error', 'Failed to load employees.', 'error');
+            }
+        });
+    }
+
+    function onClear() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        if (branchTagBox) branchTagBox.option("value", []);
+        $('#yearSelect').val(new Date().getFullYear());
+        $('#letterTypeSelect').val('increment').trigger('change');
+
+        const grid = $("#employeeGrid").dxDataGrid("instance");
+        if (grid) grid.option("dataSource", []);
+
+        hideDataElements();
+        resetNoDataMessage();
+        $('#employeeSearch').val('');
+        originalEmployeeData = [];
+    }
+
+    // ── View button ───────────────────────────────────────────────────────────
+    $('#btnView').on('click', function () {
+        const grid    = $('#employeeGrid').dxDataGrid("instance");
+        const selected = grid.getSelectedRowsData();
+
+        if (!selected.length) {
+            Swal.fire('Warning', 'Please select at least one employee.', 'warning');
+            return;
+        }
+        if (selected.length > 1) {
+            Swal.fire('Warning', 'Please select only one employee to view.', 'warning');
+            return;
+        }
+
+        const employeeId = selected[0].id;
+        const $btn = $(this);
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...');
+
+        // Single API — same SP logic, LetterType filters the correct employee detail
+        const letterTypeParam = currentLetterType === 'increment' ? 'Increment' : 'Promotion';
+        const detailUrl = `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${employeeId}&LetterType=${letterTypeParam}`;
+
+        $.ajax({
+            url: detailUrl,
+            type: "GET",
+            headers: { 'Authorization': 'Bearer ' + Token },
+            dataType: "json",
+            success: function (response) {
+                if (response && response.isSuccess) {
+                    let data = response.data || response.Data;
+                    if (Array.isArray(data)) {
+                        if (data.length === 0) { Swal.fire('Error', 'No employee data found.', 'error'); return; }
+                        data = data[0];
+                    }
+                    currentEmployeeData = data;
+                    const html = currentLetterType === 'increment'
+                        ? generateIncrementLetterHTML(data)
+                        : generatePromotionLetterHTML(data);
+                    $('#letterBody').html(html);
+                    const modal = new bootstrap.Modal(document.getElementById('letterModal'));
+                    modal.show();
+                } else {
+                    Swal.fire('Error', response.responseMessage || 'Failed to fetch employee details.', 'error');
+                }
+            },
+            error: function (xhr, status, error) {
+                Swal.fire('Error', `Failed to fetch employee details: ${error}`, 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html('View');
+            }
+        });
+    });
+
+    // ── Download Multiple button ───────────────────────────────────────────────
+    $('#btnDownloadMultiple').on('click', function () {
+        const grid    = $('#employeeGrid').dxDataGrid("instance");
+        const selected = grid.getSelectedRowsData();
+
+        if (!selected.length) {
+            Swal.fire('Warning', 'Please select at least one employee.', 'warning');
+            return;
+        }
+
+        const $btn = $(this);
+        $btn.prop('disabled', true).addClass('btn-loading');
+
+        let completedCount = 0;
+        const totalCount   = selected.length;
+        const letterType   = currentLetterType;
+
+        selected.forEach((employee) => {
+            // Single API — LetterType param passed to get correct employee details
+            const letterTypeParam = letterType === 'increment' ? 'Increment' : 'Promotion';
+            const detailUrl = `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${employee.id}&LetterType=${letterTypeParam}`;
+
+            $.ajax({
+                url: detailUrl,
+                type: "GET",
+                headers: { 'Authorization': 'Bearer ' + Token },
+                dataType: "json",
+                success: function (response) {
+                    if (response && response.isSuccess) {
+                        let data = response.data || response.Data;
+                        if (Array.isArray(data)) {
+                            if (data.length === 0) { finalize(); return; }
+                            data = data[0];
+                        }
+                        const html = letterType === 'increment'
+                            ? generateIncrementLetterHTML(data)
+                            : generatePromotionLetterHTML(data);
+                        generatePDFFromHTML(html, data.employeeCode, letterType, finalize);
+                    } else { finalize(); }
+                },
+                error: function () { finalize(); }
+            });
+        });
+
+        function finalize() {
+            completedCount++;
+            if (completedCount === totalCount) {
+                $btn.prop('disabled', false).removeClass('btn-loading');
+                Swal.fire('Success', `${totalCount} PDF(s) generated successfully!`, 'success');
+            }
+        }
+    });
+
+    // ── PDF Generation ────────────────────────────────────────────────────────
+    function generatePDFFromHTML(html, employeeCode, letterType, callback) {
+        const tempContainer = $('<div>').css({ position: 'absolute', left: '-9999px', top: '0' }).appendTo('body');
+        tempContainer.html(html);
+        const element = tempContainer.find('.letter-container')[0];
+
+        html2canvas(element, { scale: 2, logging: false, useCORS: true }).then(canvas => {
+            const imgData    = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf        = new jsPDF('p', 'mm', 'a4');
+            const imgWidth   = 210;
+            const pageHeight = 297;
+            const imgHeight  = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft   = imgHeight;
+            let position     = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            const prefix   = letterType === 'increment' ? 'Increment' : 'Promotion';
+            const fileName = `${prefix}_Letter_${employeeCode || 'EMPLOYEE'}_${new Date().getTime()}.pdf`;
+            pdf.save(fileName);
+            tempContainer.remove();
+            if (callback) callback();
+        }).catch(error => {
+            console.error('PDF generation error:', error);
+            tempContainer.remove();
+            if (callback) callback();
+        });
+    }
+
+    // ── Shared helpers ─────────────────────────────────────────────────────────
+    const formatDate = (dateStr) => {
+        if (!dateStr) return 'N/A';
+        const d     = new Date(dateStr);
+        const day   = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year  = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
+    const logoUrl          = '/assets/images/relaylogo.jpeg';
+    const companyFullName  = 'Relay Express Pvt. Ltd.';
+    const directorName     = 'Atri Patel';
+    const companyAddress   = '406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway, Makarba, Ahmedabad - 380051 Gujarat, India';
+
+    function getTitlePrefix(gender) {
+        if (gender === 'Male')   return 'Mr.';
+        if (gender === 'Female') return 'Ms.';
+        return 'Mr./Ms.';
+    }
+
+    function cleanEmployeeName(fullName) {
+        return (fullName || '[Employee Name]').replace(/^(Mr\.|Mrs\.|Ms\.)\s*/i, '').trim();
+    }
+
+    // ── Shared letter wrapper ──────────────────────────────────────────────────
+    function letterWrapper(content, refNo) {
+        const today = formatDate(new Date().toISOString());
+        return `
+        <div class="letter-container" style="
+            width:100%; max-width:900px; margin:0 auto;
+            padding:50px 70px; background:white;
+            font-family:'Calibri','Arial',sans-serif;
+            font-size:13.5px; color:#222; box-sizing:border-box;
+            border:1px solid #ddd; line-height:1.8;
+        ">
+            <!-- HEADER -->
+            <table style="width:100%; margin-bottom:10px;">
+                <tr>
+                    <td style="vertical-align:top; font-size:12px; color:#555;">
+                        <strong>Ref No:</strong> ${refNo}
+                    </td>
+                    <td style="text-align:right; vertical-align:top;">
+                        <img src="${logoUrl}" alt="Company Logo"
+                             style="max-width:220px; height:auto;"
+                             onerror="this.style.display='none'" />
+                    </td>
+                </tr>
+            </table>
+
+            <!-- DATE -->
+            <p style="margin:0 0 18px 0; font-size:13px; text-align:right;">
+                <strong>${today}</strong>
+            </p>
+
+            ${content}
+
+            <!-- FOOTER NOTE -->
+            <div style="margin-top:30px; font-size:11px; text-align:center; color:#555;">
+                <p style="margin:2px 0;"><strong>Note: This is a Computer generated statement hence no signature required.</strong></p>
+                <p style="margin:2px 0;"><strong>Personal &amp; Confidential</strong></p>
+            </div>
+
+            <!-- COMPANY ADDRESS -->
+            <div style="margin-top:10px; font-size:11px; text-align:center; color:#666;">
+                <p><strong>${companyAddress}</strong></p>
+            </div>
+        </div>`;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ── INCREMENT LETTER HTML ─────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════════
+    function generateIncrementLetterHTML(data) {
+        const titlePrefix  = getTitlePrefix(data.gender);
+        const cleanName    = cleanEmployeeName(data.fullName);
+        const employeeCode = data.employeeCode   || '';
+        const branchName   = data.branchName     || '';
+        const annualCtc    = data.annualCtc       || data.ctc          || '';
+        const effectiveDate = formatDate(data.effectiveDate || data.incrementDate || data.joiningDate);
+        const currentYear  = new Date().getFullYear();
+        const refNo        = `HR/IL/${currentYear}/001`;
+
+        const body = `
+            <!-- TO BLOCK -->
+            <p style="margin:0;">To,</p>
+            <p style="margin:4px 0;"><strong>Employee Name:</strong> ${titlePrefix} ${cleanName}</p>
+            ${employeeCode ? `<p style="margin:4px 0;"><strong>Employee Code:</strong> ${employeeCode}</p>` : ''}
+            ${branchName   ? `<p style="margin:4px 0;"><strong>Branch:</strong> ${branchName}</p>`         : ''}
+
+            <!-- SUBJECT -->
+            <p style="margin:20px 0 0 0; text-align:center;">
+                <strong><u>Subject: Increment Letter</u></strong>
+            </p>
+
+            <!-- SALUTATION -->
+            <p style="margin-top:20px;"><strong>Dear ${titlePrefix} ${cleanName},</strong></p>
+
+            <!-- BODY -->
+            <p style="margin:10px 0; text-align:justify;">
+                We are pleased to inform you that, after reviewing your performance and contribution, your salary
+                has been revised and will be effective from
+                <strong style="color:#e74c3c;">${effectiveDate}</strong>.
+            </p>
+
+            <p style="margin:10px 0; text-align:justify;">
+                Your <strong>Revised CTC</strong> will be
+                <strong style="color:#e74c3c;">&#8377; ${annualCtc} /-</strong> per Annum and all other terms
+                and conditions of your employment remain unchanged.
+            </p>
+
+            <p style="margin:10px 0; text-align:justify;">
+                We appreciate your consistent efforts and dedication and Congratulate on your well-deserved
+                Increment, and we wish you continued success in your career with us.
+            </p>
+
+            <!-- SIGNATURE -->
+            <div style="margin-top:40px;">
+                <p style="margin:4px 0;"><strong>Best Regards,</strong></p>
+                <br/>
+                <p style="margin:4px 0;"><strong>Sincerely,</strong></p>
+                <p style="margin:4px 0;"><strong>${companyFullName}</strong></p>
+                <br/><br/>
+                <p style="margin:4px 0; color:#e74c3c;"><strong><u>Mr. ${directorName}</u></strong></p>
+                <p style="margin:4px 0;"><strong>Director</strong></p>
+                <p style="margin:4px 0;">
+                    <a href="mailto:hrd@relayexpress.in" style="color:#3f4d6b;">hrd@relayexpress.in</a>
+                </p>
+            </div>`;
+
+        return letterWrapper(body, refNo);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ── PROMOTION LETTER HTML ─────────────────────────────────────────════════
+    // ══════════════════════════════════════════════════════════════════════════
+    function generatePromotionLetterHTML(data) {
+        const titlePrefix    = getTitlePrefix(data.gender);
+        const cleanName      = cleanEmployeeName(data.fullName);
+        const employeeCode   = data.employeeCode      || '';
+        const designation    = data.designationName   || data.designation    || '[New Designation]';
+        const department     = data.departmentName    || data.department     || '[Department]';
+        const annualCtc      = data.annualCtc         || data.ctc            || '';
+        const effectiveDate  = formatDate(data.effectiveDate || data.promotionDate || data.joiningDate);
+        const currentYear    = new Date().getFullYear();
+        const refNo          = `HR/PL/${currentYear}/001`;
+
+        const body = `
+            <!-- TO BLOCK -->
+            <p style="margin:0;">To,</p>
+            <p style="margin:4px 0;"><strong>Employee Name:</strong> ${titlePrefix} ${cleanName}</p>
+            ${employeeCode ? `<p style="margin:4px 0;"><strong>Employee Code:</strong> ${employeeCode}</p>` : ''}
+
+            <!-- SUBJECT -->
+            <p style="margin:20px 0 0 0; text-align:center;">
+                <strong><u>Subject: Promotion Letter</u></strong>
+            </p>
+
+            <!-- SALUTATION -->
+            <p style="margin-top:20px;"><strong>Dear ${titlePrefix} ${cleanName},</strong></p>
+
+            <!-- BODY -->
+            <p style="margin:10px 0; text-align:justify;">
+                We are pleased to inform you that in recognition of your consistent performance, dedication, and
+                valuable contributions to the organization, you are being promoted to the position of
+                <strong style="color:#e74c3c;">${designation} - ${department}</strong>
+                effective from <strong style="color:#e74c3c;">${effectiveDate}</strong>.
+            </p>
+
+            <p style="margin:10px 0; text-align:justify;">
+                Your <strong>Revised CTC</strong> will be
+                <strong style="color:#e74c3c;">&#8377; ${annualCtc} /-</strong> per Annum and all other terms
+                and conditions of your employment remain unchanged.
+            </p>
+
+            <p style="margin:10px 0; text-align:justify;">
+                We are confident that you will continue to demonstrate the same level of commitment and
+                excellence in your new responsibilities.
+            </p>
+
+            <p style="margin:10px 0; text-align:justify;">
+                Congratulations on your well-deserved promotion, and we wish you continued success in
+                your career with us.
+            </p>
+
+            <p style="margin:10px 0;">
+                Kindly acknowledge the receipt of the same &amp; share the signed copy with the HRD.
+            </p>
+
+            <!-- SIGNATURE -->
+            <div style="margin-top:40px;">
+                <p style="margin:4px 0;"><strong>Best Regards,</strong></p>
+                <br/>
+                <p style="margin:4px 0;"><strong>Sincerely,</strong></p>
+                <p style="margin:4px 0;"><strong>${companyFullName}</strong></p>
+                <br/><br/>
+                <p style="margin:4px 0; color:#e74c3c;"><strong><u>Mr. ${directorName}</u></strong></p>
+                <p style="margin:4px 0;"><strong>Director</strong></p>
+                <p style="margin:4px 0;">
+                    <a href="mailto:hrd@relayexpress.in" style="color:#3f4d6b;">hrd@relayexpress.in</a>
+                </p>
+            </div>`;
+
+        return letterWrapper(body, refNo);
+    }
+
+    // ── Download from modal ────────────────────────────────────────────────────
+    $('#btnDownloadPDF').on('click', function () {
+        const $btn    = $(this);
+        $btn.prop('disabled', true).addClass('btn-loading');
+
+        const element = document.getElementById('letterBody').querySelector('.letter-container');
+
+        html2canvas(element, { scale: 2, logging: false, useCORS: true }).then(canvas => {
+            const imgData    = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf        = new jsPDF('p', 'mm', 'a4');
+            const imgWidth   = 210;
+            const pageHeight = 297;
+            const imgHeight  = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft   = imgHeight;
+            let position     = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            const code   = currentEmployeeData?.employeeCode || 'EMPLOYEE';
+            const prefix = currentLetterType === 'increment' ? 'Increment' : 'Promotion';
+            pdf.save(`${prefix}_Letter_${code}_${new Date().getTime()}.pdf`);
+            $btn.prop('disabled', false).removeClass('btn-loading');
+        }).catch(error => {
+            console.error('PDF generation error:', error);
+            Swal.fire('Error', 'Failed to generate PDF.', 'error');
+            $btn.prop('disabled', false).removeClass('btn-loading');
+        });
+    });
+
+    // Clear grid selection on modal close
+    $('#letterModal').on('hidden.bs.modal', function () {
+        const grid = $('#employeeGrid').dxDataGrid("instance");
+        if (grid) grid.clearSelection();
+    });
+</script>
