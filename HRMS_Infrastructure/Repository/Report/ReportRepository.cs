@@ -116,12 +116,12 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
-        public async Task<List<GetAllLeftEmployeeVm>> GetAllLeftEmployee(int companyId, string BranchId,  int Year)
+        public async Task<List<GetAllLeftEmployeeVm>> GetAllLeftEmployee(int companyId, string BranchId,  int Year,string LetterType)
         {
             try
             {
                 return await _db.Set<GetAllLeftEmployeeVm>()
-                                .FromSqlInterpolated($"EXEC GetAllLeftEmployee @CompanyId={companyId} , @BranchIds={BranchId}, @Year={Year}")
+                                .FromSqlInterpolated($"EXEC GetAllLeftEmployee @CompanyId={companyId} , @BranchIds={BranchId}, @Year={Year},@LetterType={LetterType}")
                                 .ToListAsync();
             }
             catch (Exception)
@@ -177,14 +177,15 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
-        public async Task<List<EmployeeDetailsForLettervm>> GetEmployeeDetailsForLetter(int EmployeeId)
+        public async Task<List<EmployeeDetailsForLettervm>> GetEmployeeDetailsForLetter(int EmployeeId , string LetterType)
         {
 
             try
             {
                 var result = await _db.Set<EmployeeDetailsForLettervm?>().FromSqlInterpolated($@"
                     EXEC GetEmployeeDetailsForLetter
-                        @Employeeid = {EmployeeId}
+                        @Employeeid = {EmployeeId},
+                        @LetterType ={LetterType}
                 ").ToListAsync();
 
                 return result;
@@ -195,13 +196,14 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
-        public async Task<List<EmployeeDetailsForPromotionincrementlettervm>> GetEmployeeDetailsForPromotionincrementletter(int EmployeeId)
+        public async Task<List<EmployeeDetailsForPromotionincrementlettervm>> GetEmployeeDetailsForPromotionincrementletter(int EmployeeId ,string LetterType)
         {
             try
             {
                 var result = await _db.Set<EmployeeDetailsForPromotionincrementlettervm?>().FromSqlInterpolated($@"
                     EXEC GetEmployeeDetailsForPromotionincrementletter
-                        @Employeeid = {EmployeeId}
+                        @Employeeid = {EmployeeId},
+                        @LetterType ={LetterType}
                 ").ToListAsync();
 
                 return result;

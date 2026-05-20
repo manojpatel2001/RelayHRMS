@@ -29,10 +29,10 @@ namespace HRMS_Infrastructure.Interface.Report
         Task<List<MobileInOutSummaryVM>> MobileInOutSummary(Reportvm reportvm);
 
         Task<List<ProbationStatusSearchViewModel>> GetProbationStatusSearchAsync(GetProbationSearchParam Model); 
-        Task<List<EmployeeDetailsForLettervm>> GetEmployeeDetailsForLetter(int EmployeeId); 
-        Task<List<EmployeeDetailsForPromotionincrementlettervm>> GetEmployeeDetailsForPromotionincrementletter(int EmployeeId); 
+        Task<List<EmployeeDetailsForLettervm>> GetEmployeeDetailsForLetter(int EmployeeId, string LetterType); 
+        Task<List<EmployeeDetailsForPromotionincrementlettervm>> GetEmployeeDetailsForPromotionincrementletter(int EmployeeId ,string LetterType); 
         Task<List<ActiveEmployeeDetailsForLetterViewModel>> GetActiveEmployeeDetailsForLetter(int EmployeeId ,string LetterType); 
-        Task<List<GetAllLeftEmployeeVm>> GetAllLeftEmployee(int companyId, string BranchId, int Year); 
+        Task<List<GetAllLeftEmployeeVm>> GetAllLeftEmployee(int companyId, string BranchId, int Year,string LetterType); 
         Task<List<GetAllLeftEmployeeVm>> GetEmployeeforPromotionincrementletter(int companyId, string BranchId, int Year ,string Lettertype); 
         Task<List<GetAllLeftEmployeeVm>> GetAllEmployeeforletter(int companyId, string BranchId, int Year, string LetterType); 
         Task<List<letterInformation>> GetLetterInformation(); 

@@ -18,5 +18,6 @@ namespace HRMS_Core.VM.Report
         public string? CompanyName { get; set; }
         public Decimal? NewGrossSalary { get; set; }
         public DateTime? EffectiveFromDate { get; set; }
+        public string? RefNumber { get; set; }
     }
 }
