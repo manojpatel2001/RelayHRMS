@@ -34,13 +34,14 @@ namespace HRMS_Infrastructure.Repository.Report
             _connectionString = db.Database.GetDbConnection().ConnectionString;
         }
 
-        public async Task<List<ActiveEmployeeDetailsForLetterViewModel>> GetActiveEmployeeDetailsForLetter(int EmployeeId)
+        public async Task<List<ActiveEmployeeDetailsForLetterViewModel>> GetActiveEmployeeDetailsForLetter(int EmployeeId ,string LetterType)
         {
             try
             {
                 var result = await _db.Set<ActiveEmployeeDetailsForLetterViewModel?>().FromSqlInterpolated($@"
                     EXEC GetActiveEmployeeDetailsForLetter
-                        @Employeeid = {EmployeeId}
+                        @Employeeid = {EmployeeId},
+                        @LetterType ={LetterType}
                 ").ToListAsync();
 
                 return result;
@@ -101,12 +102,12 @@ namespace HRMS_Infrastructure.Repository.Report
             }
         }
 
-        public async Task<List<GetAllLeftEmployeeVm>> GetAllEmployeeforletter(int companyId, string BranchId, int Year)
+        public async Task<List<GetAllLeftEmployeeVm>> GetAllEmployeeforletter(int companyId, string BranchId, int Year,string LetterType)
         {
             try
             {
                 return await _db.Set<GetAllLeftEmployeeVm>()
-                                .FromSqlInterpolated($"EXEC GetAllEmployeeforletter @CompanyId={companyId} , @BranchIds={BranchId}, @Year={Year}")
+                                .FromSqlInterpolated($"EXEC GetAllEmployeeforletter @CompanyId={companyId} , @BranchIds={BranchId}, @Year={Year} ,@LetterType={LetterType}")
                                 .ToListAsync();
             }
             catch (Exception)

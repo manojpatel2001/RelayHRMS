@@ -383,11 +383,11 @@ namespace HRMS_API.Controllers.Report
 
 
         [HttpGet("GetActiveEmployeeDetailsForLetter")]
-        public async Task<APIResponse> GetActiveEmployeeDetailsForLetter(int EmployeeId)
+        public async Task<APIResponse> GetActiveEmployeeDetailsForLetter(int EmployeeId ,string LetterType)
         {
             try
             {
-                var data = await _unitOfWork.ReportRepository.GetActiveEmployeeDetailsForLetter(EmployeeId);
+                var data = await _unitOfWork.ReportRepository.GetActiveEmployeeDetailsForLetter(EmployeeId, LetterType);
                 return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
             }
             catch (Exception err)
@@ -498,7 +498,7 @@ namespace HRMS_API.Controllers.Report
             }
         }
         [HttpGet("GetAllEmployeeforletter/{companyId}")]
-        public async Task<APIResponse> GetAllEmployeeforletter(int companyId, [FromQuery] string BranchId, int Year)
+        public async Task<APIResponse> GetAllEmployeeforletter(int companyId, [FromQuery] string BranchId, int Year ,string LetterType)
         {
             try
             {
@@ -506,7 +506,7 @@ namespace HRMS_API.Controllers.Report
                 var branchIds = string.IsNullOrEmpty(BranchId) ? new List<string>()
                                : BranchId.Split(',').ToList();
 
-                var data = await _unitOfWork.ReportRepository.GetAllEmployeeforletter(companyId, BranchId,Year);
+                var data = await _unitOfWork.ReportRepository.GetAllEmployeeforletter(companyId, BranchId,Year, LetterType);
 
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
