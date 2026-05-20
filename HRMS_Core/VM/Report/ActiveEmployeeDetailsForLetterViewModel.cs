@@ -30,5 +30,7 @@ namespace HRMS_Core.VM.Report
         public string? CompanyName { get; set; }
         public string? CompanyLogoUrl { get; set; }
         public string? GradeName { get; set; }
+        public string? RefNumber { get; set; }
+
     }
 }
