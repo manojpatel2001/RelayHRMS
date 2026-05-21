@@ -13,5 +13,21 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return View();
         }
+        public IActionResult AddLoanApplication()
+        {
+            return View();
+        }
+        public IActionResult Fullandfinalsettlement()
+        {
+            return View();
+        }
+        public IActionResult FullandfinalsettlementReport()
+        {
+            return View();
+        }
+        public IActionResult SalaryPayableDaysOverride()
+        {
+            return View();
+        }
     }
 }

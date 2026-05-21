@@ -1,26 +1,23 @@
-﻿using HRMS_Core.DbContext;
-using HRMS_Core.Master.JobMaster;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
 
 namespace HRMS_Core.Master.OtherMaster
 {
-    [Table("TicketType")]
-    public class TicketType : BaseModel
+    
+    public class TicketType 
     {
-        [Key]
-        public int? TicketTypeId { get; set; }
+        public int TicketTypeId { get; set; }
         public string? TicketTypeName { get; set; }
         public int? DepartmentId { get; set; }
-
-        // Foreign key relationship with the Department class
-        [ForeignKey("DepartmentId")]
-        public Department? DepartmentDetails { get; set; }
+        public string? DepartmentName { get; set; }
+        public int? CompanyId { get; set; }
+        public bool? IsEnabled { get; set; } = true;
+        public bool? IsDeleted { get; set; } = false;
+        public string? CreatedBy { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public string? DeletedBy { get; set; }
+        public DateTime? DeletedDate { get; set; }
+        public string? UpdatedBy { get; set; }
+        public DateTime? UpdatedDate { get; set; }
     }
 
 }

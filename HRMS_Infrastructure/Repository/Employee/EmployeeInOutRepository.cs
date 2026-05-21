@@ -1,15 +1,20 @@
-﻿using HRMS_Core.DbContext;
+﻿using Dapper;
+using HRMS_Core.DbContext;
 using HRMS_Core.Employee;
 using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
 using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Core.VM.Ess.InOut;
 using HRMS_Core.VM.importData;
+using HRMS_Core.VM.Report;
+using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface.Employee;
+using HRMS_Utility;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
@@ -19,11 +24,15 @@ namespace HRMS_Infrastructure.Repository.Employee
     public class EmployeeInOutRepository : Repository<EmployeeInOutRecord>, IEmployeeInOutRepository
     {
         private readonly HRMSDbContext _db;
+        private readonly string _connectionString;
 
         public EmployeeInOutRepository(HRMSDbContext db) : base(db)
         {
             _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
+
         }
+
 
         public async Task<List<AttendanceInOutReportVM>> AttendancefirstInOutReport(int empid, string Month, string Year)
         {
@@ -71,48 +80,74 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-        public async Task<VMCommonResult> CreateEmpInOut(vmInOut Record)
+        public async Task<APIResponse> CreateEmpInOut(vmInOut Record)
         {
+            var response = new APIResponse();
             try
             {
-                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
-                    EXEC USP_InsertAttendanceLog
-                        @EmployeeId = {Record.EmployeeId},
-                        @CompanyId = {Record.CompanyId},
-                        @Mode = {Record.Mode},
-                        @PunchDateTime = {Record.PunchDateTime},
-                        @CreatedBy = {Record.CreatedBy}
-                    
-                ").ToListAsync();
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmployeeId", Record.EmployeeId);
+                    parameters.Add("@CompanyId", Record.CompanyId);
+                    parameters.Add("@Mode", Record.Mode);
+                    parameters.Add("@PunchDateTime", Record.PunchDateTime);
+                    parameters.Add("@CreatedBy", Record.CreatedBy);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
 
-                return result.FirstOrDefault() ?? new VMCommonResult { Id = null };
-            }
-            catch (Exception)
-            {
-                return new VMCommonResult { Id = null };
-            }
-        }
+                    await connection.ExecuteAsync(
+                        "USP_InsertAttendanceLog",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
 
-        public async Task<List<EmployeeInOutReportVM>> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM)
-        {
-            try
-            {
-                var branchidParam = new SqlParameter("@BranchId", (object?)outFilterVM.BranchId ?? DBNull.Value);
-                var empCodeParam = new SqlParameter("@EmpId", (object?)outFilterVM.EmpId ?? DBNull.Value);
-                var monthParam = new SqlParameter("@StartDate", (object?)outFilterVM.StartDate ?? DBNull.Value);
-                var yearParam = new SqlParameter("@EndDate", (object?)outFilterVM.EndDate ?? DBNull.Value);
-                var recordtypeParam = new SqlParameter("@RecordType", (object?)outFilterVM.RecordType ?? DBNull.Value);
-
-                return await _db.Set<EmployeeInOutReportVM>()
-              .FromSqlRaw("EXEC [dbo].[GetEmployeeInOutReport] @BranchId, @EmpId, @StartDate,@EndDate, @RecordType",
-                  branchidParam, empCodeParam, monthParam, yearParam, recordtypeParam)
-              .ToListAsync();
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                    response.Data = null; // Insert operation mein data return nahi hota
+                }
             }
             catch (Exception ex)
             {
-
-                return new List<EmployeeInOutReportVM>();
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
             }
+            return response;
+        }
+        public async Task<APIResponse> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmpId", outFilterVM.EmpId);
+                    parameters.Add("@StartDate", outFilterVM.StartDate);
+                    parameters.Add("@EndDate", outFilterVM.EndDate);
+                    parameters.Add("@RecordType", outFilterVM.RecordType);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
+
+                    var reportData = (await connection.QueryAsync<EmployeeInOutReportVM>(
+                        "GetEmployeeInOutReport",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    )).ToList();
+
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                    response.Data = reportData; // Directly set the report data in response.Data
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
+            }
+            return response;
         }
 
         public async Task<List<VMInOutRecord>> GetInOutRecord(int empid, string month, string year)
@@ -144,7 +179,7 @@ namespace HRMS_Infrastructure.Repository.Employee
         {
             try
             {
-                var result= await _db.Set<vmGetMonthlyAttendanceLog>()
+                var result = await _db.Set<vmGetMonthlyAttendanceLog>()
                                 .FromSqlInterpolated($"EXEC GetMonthlyAttendanceLog  @MonthNumber={vmInOutParameter.MonthNumber}, @Year={vmInOutParameter.year},  @EmployeeId = {vmInOutParameter.EmployeeId},@CompanyId={vmInOutParameter.CompanyId}")
                                 .ToListAsync();
                 return result;
@@ -158,7 +193,7 @@ namespace HRMS_Infrastructure.Repository.Employee
         {
             try
             {
-                var result= await _db.Set<vmGetMonthlyAttendanceDetails>()
+                var result = await _db.Set<vmGetMonthlyAttendanceDetails>()
                                 .FromSqlInterpolated($"EXEC GetMonthlyAttendanceDetails  @MonthNumber={vmInOutParameter.MonthNumber}, @Year={vmInOutParameter.year},  @EmployeeId = {vmInOutParameter.EmployeeId},@CompanyId={vmInOutParameter.CompanyId}")
                                 .ToListAsync();
                 return result;
@@ -166,6 +201,35 @@ namespace HRMS_Infrastructure.Repository.Employee
             catch (Exception)
             {
                 return new List<vmGetMonthlyAttendanceDetails>();
+            }
+        }
+        public async Task<List<vmGetMonthlyAttendanceDetails>> GetDateWiseAttendanceDetails(vmInOutParameter vmInOutParameter)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetMonthlyAttendanceDetails>()
+                                .FromSqlInterpolated($"EXEC GetDateWiseAttendanceDetails  @FromDate={vmInOutParameter.FromDate}, @ToDate={vmInOutParameter.ToDate},  @EmployeeId = {vmInOutParameter.EmployeeId},@CompanyId={vmInOutParameter.CompanyId},@MemberId={vmInOutParameter.MemberId}")
+                                .ToListAsync();
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<vmGetMonthlyAttendanceDetails>();
+            }
+        }
+
+        public async Task<List<vmGetEmployeesByReportingManager>> GetEmployeesByReportingManager(int EmployeeId)
+        {
+            try
+            {
+                var result = await _db.Set<vmGetEmployeesByReportingManager>()
+                                .FromSqlInterpolated($"EXEC GetEmployeesByReportingManager  @EmployeeId={EmployeeId}")
+                                .ToListAsync();
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<vmGetEmployeesByReportingManager>();
             }
         }
         public async Task<List<VMInOutRecord>> GetMultipleInOutRecordAsync(int empid, string Month, string Year)
@@ -211,23 +275,132 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
         }
 
-
-
-        public async Task<bool> Update(AttendanceRegularization Record)
+        public async Task<VMCommonResult> CreateAttendanceDetails(AttendanceDetailsViewModel Record)
         {
-            var existingRecord = await _db.EmployeeInOutRecord.SingleOrDefaultAsync(asd => asd.Emp_Id == Record.EmpId && asd.For_Date == Record.ForDate);
-            if (existingRecord == null)
+            try
             {
-                return false;
-            }
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC SP_AttendanceDetails
+                        @Action = {"INSERT"},
+                        @EmployeeId = {Record.EmployeeId},
+                        @ShiftDate = {Record.ShiftDate},
+                        @InTime = {Record.InTime},
+                        @OutTime = {Record.OutTime},
+                        @WorkingHours = {Record.WorkingHours},                
+                        @SalaryDay = {Record.SalaryDay},
+                        @CreatedOn = {Record.CreatedOn}
+                    
+                ").ToListAsync();
 
-            existingRecord.In_Time = Record.InTime;
-            existingRecord.Out_Time = Record.OutTime;
-            //   existingRecord.Duration = Record.Duration;
-            existingRecord.Reason = Record.Reason;
-            existingRecord.UpdatedBy = Record.UpdatedBy;
-            existingRecord.UpdatedDate = DateTime.UtcNow;
-            return true;
+                return result.FirstOrDefault() ?? new VMCommonResult { Id = null };
+            }
+            catch (Exception)
+            {
+                return new VMCommonResult { Id = null };
+            }
         }
+
+
+        public async Task<VMCommonResult> UpdateAttendanceDetails(AttendanceDetailsViewModel model)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    EXEC SP_AttendanceDetails
+                        @Action = {"UPDATE"},
+                         @Id = {model.AttendanceDetailsid},
+                        @EmployeeId = {model.EmployeeId},
+                        @ShiftDate = {model.ShiftDate},
+                        @InTime = {model.InTime},
+                        @OutTime = {model.OutTime},
+                        @WorkingHours = {model.WorkingHours},              
+                        @SalaryDay = {model.SalaryDay},
+                        @CreatedOn = {model.CreatedOn}
+                    
+                ").ToListAsync();
+                return result.FirstOrDefault() ?? new VMCommonResult { Id = null };
+            }
+            catch (Exception)
+            {
+                return new VMCommonResult { Id = null };
+            }
+        }
+
+        public async Task<List<EmpInOutReportforAdmin>> GetEmpInOutReportForAdmin(EmpInOutReportFilter filter)
+        {
+            try
+            {
+
+
+                var result = await _db.Set<EmpInOutReportforAdmin>()
+                    .FromSqlInterpolated($@"EXEC [dbo].[GetEmpInOutReportForAdmin]
+                @StartDate ={filter.StartDate},
+                @EndDate ={filter.EndDate},
+                @BranchId ={filter.BranchId},
+                @EmployeeId ={filter.EmployeeCodes},
+                @CompanyId ={filter.CompanyId}")
+                .ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return new List<EmpInOutReportforAdmin>();
+            }
+        }
+
+
+        public async Task<APIResponse> GetAttendanceRegularizationAlerts(CommonParameter model)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmpId", model.EmployeeId);
+                    parameters.Add("@Month", model.Month);
+                    parameters.Add("@Year", model.Year);
+
+                    // Use QueryMultipleAsync to handle multiple result sets
+                    using (var multi = await connection.QueryMultipleAsync(
+                        "sp_GetAttendanceRegularizationAlerts",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    ))
+                    {
+                        // Read the first result set (e.g., AttendanceDetails)
+                        var attendanceDetails = (await multi.ReadAsync<dynamic>()).ToList();
+
+                        // Read the second result set (e.g., Summary)
+                        var summary = (await multi.ReadAsync<dynamic>()).ToList();
+
+                        if ((!attendanceDetails.Any() && !summary.Any()) || (attendanceDetails == null && summary == null))
+                        {
+                            response.Data = null;
+                            response.isSuccess = false;
+                            response.ResponseMessage = "No Record found!";
+                        }
+                        else
+                        {
+                            response.Data = new
+                            {
+                                AttendanceDetails = attendanceDetails,
+                                Summary = summary
+                            };
+                            response.isSuccess = true;
+                            response.ResponseMessage = "Fetched successfully!";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
+            }
+            return response;
+        }
+
     }
 }

@@ -1,0 +1,1361 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Approval Level Details";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<style>
+    /* Card and Scrollbar */
+    .card-body {
+        max-height: 70vh;
+        overflow-y: auto;
+        padding: 15px;
+    }
+
+    /* Level Card Styling */
+    .approval-level-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+    }
+
+    .approval-level-header {
+        background: #2395c6;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Smaller remove button */
+    .level-remove-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+        .level-remove-btn:hover {
+            background-color: #c82333;
+        }
+
+        .level-remove-btn i {
+            font-size: 12px;
+            margin: 0;
+        }
+
+    /* Radio and Checkbox Styling */
+    .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .radio-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    /* Selected Approvers Container */
+    .selected-approvals-container {
+        border: 1px dashed #ccc;
+        padding: 8px;
+        min-height: 40px;
+        border-radius: 4px;
+        background: #fff;
+    }
+
+    /* Approval Chip Styling */
+    .approval-chip {
+        display: inline-flex;
+        align-items: center;
+        background: #4caf50;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 16px;
+        margin: 2px;
+        font-size: 12px;
+    }
+
+        .approval-chip .remove-chip {
+            margin-left: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+    .escalation-days-input {
+        width: 80px;
+        padding: 4px;
+    }
+
+    @@media (max-width: 768px) {
+        .radio-group {
+            flex-direction: column;
+        }
+
+        .col-md-4, .col-md-6 {
+            margin-bottom: 10px;
+        }
+    }
+
+    /* Wrapper scrollbar after 3–4 rows */
+    .dept-table-wrapper {
+        max-height: 220px; /* ~4 rows */
+        overflow-y: auto;
+    }
+
+    /* Reduce row height */
+    .dept-table tbody tr td {
+        padding: 6px 8px !important; /* small padding */
+        vertical-align: middle;
+        font-size: 13px;
+    }
+
+    /* Keep header fixed */
+    .dept-table thead th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 2;
+        padding: 8px;
+    }
+
+    /* Small checkbox */
+    .dept-table input[type="checkbox"] {
+        transform: scale(0.9);
+    }
+
+    /* Small action button */
+    .dept-table .btn-sm {
+        padding: 2px 6px;
+        font-size: 12px;
+    }
+
+</style>
+
+<div class="card">
+    <div class="card-header bg-transparent ml-0 py-0">
+        <div class="row">
+            <div class="col-6">
+                <h6 class="p-2 mb-0">Approval Level Details</h6>
+            </div>
+            <div class="col-6 d-flex justify-content-end align-items-center">
+
+                <button type="button" id="backApproval" class="btn mr-1 rounded-1" style="background-color:#000; color:white;">
+                    Back
+                </button>
+
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Approval Type & Approval Selection -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="form-group position-relative">
+                    <div class="searchable-select-wrapper" id="schemeTypeWrapper">
+                        <input type="text" class="searchable-select-input" id="drpApprovalType" readonly placeholder="Select">
+                        <label class="floating-label" for="drpApprovalType">Approval Type</label>
+                        <span class="searchable-select-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                            </svg>
+                        </span>
+                        <div class="searchable-select-dropdown">
+                            <div class="searchable-select-search">
+                                <input type="text" placeholder="Search approval type..." class="search-input">
+                            </div>
+                            <div class="searchable-select-options"></div>
+                        </div>
+                    </div>
+                    <span id="spnSchemeType" style="color:red; display:none;">Please Select Approval Type</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group position-relative">
+                    <div class="searchable-select-wrapper" id="schemeWrapper">
+                        <input type="text" class="searchable-select-input" id="drpApproval" readonly placeholder="Select">
+                        <label class="floating-label" for="drpApproval">Approval<span class="text-danger">*</span></label>
+                        <span class="searchable-select-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                            </svg>
+                        </span>
+                        <div class="searchable-select-dropdown">
+                            <div class="searchable-select-search">
+                                <input type="text" placeholder="Search approval..." class="search-input">
+                            </div>
+                            <div class="searchable-select-options"></div>
+                        </div>
+                    </div>
+                    <span id="spnApproval" style="color:red; display:none;">Please Select Approval Name</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Only Level 1 initially -->
+        <div id="level1Card" class="approval-level-card">
+            <div class="approval-level-header">
+                <span>Level 1</span>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-group position-relative">
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" class="form-check-input level-radio" name="level1Approval" id="radioReportingPerson1" data-level="1" data-type="reportingManager" checked>
+                                <label class="form-check-label" for="radioReportingPerson1">Reporting Manager</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-6">
+                    <label>Escalation Days:</label>
+                    <input type="number" class="form-control escalation-days-input" id="escalationDays1" min="1" value="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Levels Container -->
+        <div id="dynamicLevelsContainer"></div>
+
+        <!-- Add Level Button -->
+        <div class="text-center mt-3 mb-3">
+            <button type="button" class="btn btn-outline-primary" id="btnAddLevel">
+                <i class="bx bx-plus"></i> Add Level
+            </button>
+        </div>
+
+        <!-- Save Button -->
+        <div class="text-end mt-3">
+            <button type="button" class="btn btn-primary" id="btnSave" style="background-color:#2395c6; color:white;">
+                Save All Levels
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Approver Selection Modal -->
+<div class="modal fade" id="modalApproverSelection" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Approver - <span id="approverModalTitle"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group position-relative">
+                            <div class="searchable-select-wrapper">
+                                <input type="text" class="searchable-select-input" id="drpApproverCompany" readonly placeholder="Select">
+                                <label class="floating-label">Company</label>
+                                <span class="searchable-select-arrow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                    </svg>
+                                </span>
+                                <div class="searchable-select-dropdown">
+                                    <div class="searchable-select-search">
+                                        <input type="text" placeholder="Search company..." class="search-input">
+                                    </div>
+                                    <div class="searchable-select-options"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group position-relative">
+                            <div class="searchable-select-wrapper">
+                                <input type="text" class="searchable-select-input" id="drpApproverEmployee" readonly placeholder="Select">
+                                <label class="floating-label">Approver<span class="text-danger">*</span></label>
+                                <span class="searchable-select-arrow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                    </svg>
+                                </span>
+                                <div class="searchable-select-dropdown">
+                                    <div class="searchable-select-search">
+                                        <input type="text" placeholder="Search employee..." class="search-input">
+                                    </div>
+                                    <div class="searchable-select-options"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmApprover">Confirm Selection</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Department Wise Approver Modal -->
+<div class="modal fade" id="modalDepartmentApprover" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Department-wise Approvers - Level <span id="deptModalLevelNo"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <strong>Instructions:</strong> Select department and assign approver for each department.
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-5 mt-3">
+                        <div class="form-group position-relative">
+                            <div class="searchable-select-wrapper">
+                                <input type="text" class="searchable-select-input" id="drpDepartment" readonly placeholder="Select">
+                                <label class="floating-label">Department<span class="text-danger">*</span></label>
+                                <span class="searchable-select-arrow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                    </svg>
+                                </span>
+                                <div class="searchable-select-dropdown">
+                                    <div class="searchable-select-search">
+                                        <input type="text" placeholder="Search department..." class="search-input">
+                                    </div>
+                                    <div class="searchable-select-options"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-5 mt-3">
+                        <div class="form-group position-relative">
+                            <div class="searchable-select-wrapper">
+                                <input type="text" class="searchable-select-input" id="drpDeptApprover" readonly placeholder="Select">
+                                <label class="floating-label">Approver</label>
+                                <span class="searchable-select-arrow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                    </svg>
+                                </span>
+                                <div class="searchable-select-dropdown">
+                                    <div class="searchable-select-search">
+                                        <input type="text" placeholder="Search approver..." class="search-input">
+                                    </div>
+                                    <div class="searchable-select-options"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 mt-3">
+                        <div class="checkbox-item">
+                            <input type="checkbox" class="form-check-input" id="checkDeptNotMandatory">
+                            <label class="form-check-label" for="checkDeptNotMandatory">Not Mandatory</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12 text-end">
+                        <button type="button" class="btn btn-success btn-sm" id="btnAddDeptApprover">
+                            <i class="bx bx-plus"></i> Add Department Approver
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive dept-table-wrapper">
+                    <table class="table table-bordered table-hover dept-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Department</th>
+                                <th>Approver</th>
+                                <th>Not Mandatory</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deptApproverTableBody"></tbody>
+                    </table>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmDeptApprovers">Confirm All</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/assets/js/jquery.min.js"></script>
+<script>
+        // Global Variables
+    const companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+    const approvalMasterId = localStorage.getItem("ApprovalMasterId");
+    let DepartDeatils = [];
+    let currentLevel = 2; // Start from level 2
+    let maxLevels = 5;
+    let approvalLevelsData = {};
+    let currentModalContext = {};
+
+    // Initialize Level 1 data
+    approvalLevelsData[1] = {
+        levelNo: 1,
+        approvalLevelId: 0,
+        approvals: [],
+        isDepartmentBased: false,
+        departmentApprovals: [],
+        escalationDays: 0,
+        selectedRadioType: 'reportingManager',
+        isFilled: true
+    };
+
+    // Radio type mapping
+     const radioTypes = {
+        nationalManager: 'National Manager',
+        hr: 'HR',
+        hod: 'HOD',
+        reportingManager: 'Reporting Manager',
+        departmentBased: 'Department Based'
+    };
+
+
+    // Initialize on document ready
+    $(document).ready(function () {
+        initializeDropdowns();
+                loadApproval();
+        loadApprovalDropdowns();
+        loadDepartmentApproverEmployees();
+        loadApproverEmployees();
+        setupEventHandlers();
+        if (approvalMasterId) {
+            UpdateApprovalLevel(approvalMasterId);
+        }
+
+        
+    });
+
+    $("#backApproval").click(() => {
+        window.location.href = '/AdminPanel/ManageApproval/ApprovalManagement';
+    });
+
+    // Initialize all dropdowns
+    function initializeDropdowns() {
+        $('#drpApprovalType').searchableSelect({
+            data: [],
+            valueKey: 'approvalTypeId',
+            textKey: 'approvalTypeName',
+            placeholder: 'Approval Type',
+            searchPlaceholder: 'Search approval type...',
+            onChange: function (item) { loadApproval(); }
+        });
+        $('#drpApproval').searchableSelect({
+            data: [],
+            valueKey: 'ApprovalMasterId',
+            textKey: 'ApprovalName',
+            placeholder: 'Approval Name',
+            searchPlaceholder: 'Search approval...'
+        });
+        $('#drpApproverCompany').searchableSelect({
+            data: [],
+            valueKey: 'companyId',
+            textKey: 'companyName',
+            placeholder: 'Company',
+            onChange: function (item) { loadApproverEmployees(); }
+        });
+        $('#drpApproverEmployee').searchableSelect({
+            data: [],
+            valueKey: 'EmployeeId',
+            textKey: 'EmployeeName',
+            placeholder: 'Approver'
+        });
+        $('#drpDepartment').searchableSelect({
+            data: [],
+            valueKey: 'departmentId',
+            textKey: 'departmentName',
+            placeholder: 'Department',
+            onChange: function (item) { loadDepartmentApproverEmployees(); }
+        });
+        $('#drpDeptApprover').searchableSelect({
+            data: [],
+            valueKey: 'EmployeeId',
+            textKey: 'EmployeeName',
+            placeholder: 'Approver'
+        });
+    }
+
+    // Load initial dropdown data
+    async function loadApprovalDropdowns() {
+        try {
+            const response = await $.ajax({
+                url: '@baseUrl/ApprovalManagementAPI/GetApprovalDropdownDetails',
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token }
+            });
+            if (response.isSuccess) {
+                $('#drpApprovalType').data('searchableSelect').setData(response.data.approvalTypes || []);
+                const companies = response.data.companies || [];
+                $('#drpApproverCompany').data('searchableSelect').setData(companies);
+                if (response.data.departments) {
+                    DepartDeatils = response.data.departments;
+                    $('#drpDepartment').data('searchableSelect').setData(response.data.departments);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading dropdown data:', error);
+            showNotification('Error loading data', 'error');
+        }
+    }
+
+    // Load schemes based on scheme type
+    async function loadApproval() {
+        const approvalTypeId = $('#drpApprovalType').data('searchableSelect').getValue();
+        let approvalUrl = approvalTypeId
+            ? `@baseUrl/ApprovalMasterAPI/GetAllApprovalMasterList?ApprovalTypeId=${approvalTypeId}`
+            : `@baseUrl/ApprovalMasterAPI/GetAllApprovalMasterList`;
+        try {
+            const response = await $.ajax({
+                url: approvalUrl,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token }
+            });
+            if (response.isSuccess) {
+                $('#drpApproval').data('searchableSelect').setData(response.data || []);
+            }
+        } catch (error) {
+            console.error('Error loading approval:', error);
+        }
+    }
+
+    // Load approver employees
+    async function loadApproverEmployees() {
+        var companyId = $('#drpApproverCompany').data('searchableSelect').getValue();
+        let urlPost = companyId
+            ? `@baseUrl/ApprovalManagementAPI/GetAllEmployByDepartmentId?CompanyId=${companyId}`
+            : `@baseUrl/ApprovalManagementAPI/GetAllEmployByDepartmentId`;
+        try {
+            const response = await $.ajax({
+                url: urlPost,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token }
+            });
+            if (response.isSuccess) {
+                $('#drpApproverEmployee').data('searchableSelect').setData(response.data || []);
+            }
+        } catch (error) {
+            console.error('Error loading employees:', error);
+        }
+    }
+
+     async function loadDepartmentApproverEmployees() {
+        const departmentId = $('#drpDepartment').data('searchableSelect').getValue();
+        let urlPost = departmentId
+            ? `@baseUrl/ApprovalManagementAPI/GetAllEmployByDepartmentId?departmentId=${departmentId}`
+            : `@baseUrl/ApprovalManagementAPI/GetAllEmployByDepartmentId`;
+
+        try {
+            const response = await $.ajax({
+                url: urlPost,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token }
+            });
+            if (response.isSuccess) {
+                $('#drpDeptApprover').data('searchableSelect').setData(response.data || []);
+            }
+        } catch (error) {
+            console.error('Error loading employees:', error);
+        }
+    }
+
+    // Setup event handlers
+    function setupEventHandlers() {
+        $('#btnAddLevel').click(function () {
+            if (currentLevel <= maxLevels) {
+                addApprovalLevel(currentLevel);
+                currentLevel++;
+            } else {
+                showNotification('Maximum 5 levels allowed', 'warning');
+            }
+        });
+        $('#btnSave').click(function () {
+            if (validateForm()) saveAllLevels();
+        });
+        $('#btnConfirmApprover').click(function () {
+            confirmApproverSelection();
+        });
+        $('#btnAddDeptApprover').click(function () {
+            addDepartmentApprover();
+        });
+        $('#btnConfirmDeptApprovers').click(function () {
+            confirmDepartmentApprovers();
+        });
+    }
+
+    function addApprovalLevel(levelNo, existingData = null) {
+        const levelHtml = `
+            <div class="approval-level-card" id="level${levelNo}Card" data-level="${levelNo}">
+                <div class="approval-level-header">
+                    <span>Level ${levelNo}</span>
+                    <button type="button" class="btn level-remove-btn" onclick="removeLevel(${levelNo})">
+                        <i class="bx bx-minus"></i>
+                    </button>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-12">
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" class="form-check-input level-radio" name="level${levelNo}Approval" id="radioNationalManager${levelNo}" data-level="${levelNo}" data-type="nationalManager">
+                                <label class="form-check-label" for="radioNationalManager${levelNo}">National Manager</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" class="form-check-input level-radio" name="level${levelNo}Approval" id="radioHr${levelNo}" data-level="${levelNo}" data-type="hr">
+                                <label class="form-check-label" for="radioHr${levelNo}">HR</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" class="form-check-input level-radio" name="level${levelNo}Approval" id="radioHod${levelNo}" data-level="${levelNo}" data-type="hod">
+                                <label class="form-check-label" for="radioHod${levelNo}">HOD</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio"
+                                        class="form-check-input level-radio"
+                                        name="level${levelNo}Approval"
+                                        id="radioDepartmentBased${levelNo}"
+                                        data-level="${levelNo}"
+                                        data-type="departmentBased">
+                                <label class="form-check-label" for="radioDepartmentBased${levelNo}">
+                                    Department Based Approval
+                                </label>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-md-12">
+                        <label><strong>Selected Approvers:</strong></label>
+                        <div class="selected-approvals-container" id="selectedApprovals${levelNo}">
+                            <span class="text-muted">No approvers selected</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label>Escalation Days:</label>
+                        <input type="number"
+                               class="form-control escalation-days-input"
+                               id="escalationDays${levelNo}"
+                               min="1"
+                               value="${existingData ? existingData.escalationDays : 1}">
+                    </div>
+                </div>
+            </div>
+        `;
+
+        $('#dynamicLevelsContainer').append(levelHtml);
+
+        // Initialize level data
+        approvalLevelsData[levelNo] = {
+            levelNo: levelNo,
+            approvalLevelId: existingData ? existingData.approvalLevelId : 0,
+            approvals: [],
+            isDepartmentBased: existingData ? existingData.isDepartmentBased : false,
+            departmentApprovals: existingData && existingData.approvalLevelDepartmentVMs ? existingData.approvalLevelDepartmentVMs.map(dept => ({
+                approvalLevelId: dept.approvalLevelId || 0,
+                departmentId: dept.departmentId,
+                departmentName: dept.departmentName,
+                employeeId: dept.approverEmployeeId,
+                employeeName: dept.approverName,
+                isNotMandatory: dept.isNotMandatory,
+                displayName: dept.approverName
+            })) : [],
+            escalationDays: existingData ? existingData.escalationDays : 0,
+            selectedRadioType: existingData ? getRadioTypeFromLevel(existingData) : null,
+            isFilled: true
+        };
+
+        // Set radio button if we have existing data
+        if (existingData) {
+            const radioType = getRadioTypeFromLevel(existingData);
+            if (radioType) {
+                $(`#radio${radioType.charAt(0).toUpperCase() + radioType.slice(1)}${levelNo}`).prop('checked', true);
+            }
+
+            // Set department based checkbox if needed
+            if (existingData.isDepartmentBased) {
+                $(`#checkDepartmentBased${levelNo}`).prop('checked', true);
+            }
+
+            // Update selected approvers display
+            updateSelectedApprovalsDisplay(levelNo);
+        }
+
+        attachLevelRadioHandlers(levelNo);
+    }
+
+    // Attach radio button and checkbox event handlers
+        function attachLevelRadioHandlers(levelNo) {
+
+        $(`.level-radio[name="level${levelNo}Approval"]`)
+            .off('click')
+            .on('click', function () {
+
+                const selectedType = $(this).data('type');
+                const levelData = approvalLevelsData[levelNo];
+
+                // 👉 DEPARTMENT BASED
+                if (selectedType === 'departmentBased') {
+
+                    levelData.isDepartmentBased = true;
+                    levelData.selectedRadioType = null;
+
+                    // 🔥 OPEN MODAL WITH EXISTING DATA
+                    openDepartmentApproverModal(
+                        levelNo,
+                        levelData.departmentApprovals || []
+                    );
+                }
+                // 👉 NORMAL APPROVER
+                else {
+
+                    levelData.isDepartmentBased = false;
+                    levelData.selectedRadioType = selectedType;
+
+                    // 🔥 Pass existing approver if available
+                    const existingApprover =
+                        levelData.approvals && levelData.approvals.length > 0
+                            ? levelData.approvals[0]
+                            : null;
+
+                    openApproverSelectionModal(
+                        levelNo,
+                        selectedType,
+                        existingApprover
+                    );
+                }
+            });
+    }
+
+
+    // Handle radio button selection logic
+    function handleRadioSelection(levelNo, radioType) {
+        approvalLevelsData[levelNo].selectedRadioType = radioType;
+    }
+
+    // Open approver selection modal
+    function openApproverSelectionModal(levelNo, radioType, existingApprover = null) {
+        $('#drpApproverCompany').data('searchableSelect').clear();
+        $('#drpApproverEmployee').data('searchableSelect').clear();
+        currentModalContext = { levelNo: levelNo, radioType: radioType };
+        $('#approverModalTitle').text(`${radioTypes[radioType]} - Level ${levelNo}`);
+
+        // // Load companies
+        // const company = $('#drpApproverCompany').data('searchableSelect').getValue();
+        // if (company!=null) {
+        //     // Select the first company by default (or use existing company if available)
+        //     $('#drpApproverCompany').data('searchableSelect').setValue(company);
+        // }
+
+        // If we have existing approver data, set it
+        if (existingApprover) {
+            $('#drpApproverEmployee').data('searchableSelect').setValue(existingApprover.employeeId);
+
+        }
+
+        $('#modalApproverSelection').modal('show');
+    }
+
+    // Confirm approver selection
+    function confirmApproverSelection() {
+        const employeeId = $('#drpApproverEmployee').data('searchableSelect').getValue();
+        const employeeName = $('#drpApproverEmployee').data('searchableSelect').getText();
+
+        if (!employeeId) {
+            showNotification('Please select an approver', 'warning');
+            return;
+        }
+
+        const approval = {
+            radioType: currentModalContext.radioType,
+            employeeId: employeeId,
+            employeeName: employeeName,
+            displayName: employeeName
+        };
+
+        if (approvalLevelsData[currentModalContext.levelNo]) {
+            approvalLevelsData[currentModalContext.levelNo].approvals = [approval];
+            approvalLevelsData[currentModalContext.levelNo].isFilled = true;
+            updateSelectedApprovalsDisplay(currentModalContext.levelNo);
+        }
+        $('#modalApproverSelection').modal('hide');
+    }
+
+    // Update selected approvals display
+    function updateSelectedApprovalsDisplay(levelNo) {
+        const container = $(`#selectedApprovals${levelNo}`);
+        const levelData = approvalLevelsData[levelNo];
+        if (!levelData) return;
+        container.empty();
+
+        if (levelData.isDepartmentBased && levelData.departmentApprovals.length > 0) {
+            levelData.departmentApprovals.forEach(dept => {
+                var displayName = dept.isNotMandatory === true ? "Is Not Mandatory" : (dept.displayName == null ? "Not Available" : dept.displayName);
+                const chip = `
+                    <div class="approval-chip">
+                        <strong>${dept.departmentName}:</strong> ${displayName}
+                        <span class="remove-chip" onclick="removeDeptApproval(${levelNo}, ${dept.departmentId})">×</span>
+                    </div>
+                `;
+                container.append(chip);
+            });
+        } else if (levelData.approvals.length > 0) {
+            levelData.approvals.forEach(approval => {
+                var displayName = approval.displayName == null ? "Not Available" : approval.displayName;
+                const chip = `
+                    <div class="approval-chip">
+                        <strong>${radioTypes[approval.radioType]}:</strong> ${displayName}
+                        <span class="remove-chip" onclick="removeApprovalChip(${levelNo}, '${approval.radioType}')">×</span>
+                    </div>
+                `;
+                container.append(chip);
+            });
+        } else {
+            container.html('<span class="text-muted">No approvers selected</span>');
+        }
+    }
+
+    // Open department approver modal
+    function openDepartmentApproverModal(levelNo, existingDepartments = []) {
+        $('#drpDepartment').data('searchableSelect').clear();
+        $('#drpDeptApprover').data('searchableSelect').clear();
+        $('#checkDeptNotMandatory').prop('checked', false);
+
+        currentModalContext = { levelNo: levelNo };
+        $('#deptModalLevelNo').text(levelNo);
+        $('#deptApproverTableBody').empty();
+
+        // If we have existing department data, populate the table
+        if (existingDepartments && existingDepartments.length > 0) {
+            existingDepartments.forEach(dept => {
+                addDepartmentRow(dept);
+            });
+        }
+
+        $('#modalDepartmentApprover').modal('show');
+    }
+
+    // Add department approver to table
+    function addDepartmentApprover() {
+        const deptId = $('#drpDepartment').data('searchableSelect').getValue();
+        const deptName = $('#drpDepartment').data('searchableSelect').getText();
+        const isNotMandatory = $('#checkDeptNotMandatory').is(':checked');
+        const approverId = isNotMandatory ? null : $('#drpDeptApprover').data('searchableSelect').getValue();
+        const approverName = isNotMandatory ? "Not Mandatory" : $('#drpDeptApprover').data('searchableSelect').getText();
+
+        if (!deptId) {
+            showNotification('Please select a department', 'warning');
+            return;
+        }
+        if ($('#drpDeptApprover').data('searchableSelect').getValue() == null && !isNotMandatory) {
+            showNotification('Please select an approver or check "Not Mandatory"', 'warning');
+            return;
+        }
+
+        const levelNo = currentModalContext.levelNo;
+        const levelData = approvalLevelsData[levelNo];
+
+        if (levelData.departmentApprovals && levelData.departmentApprovals.some(dept => dept.departmentId === deptId)) {
+            showNotification('This department is already added for this level', 'warning');
+            return;
+        }
+
+        const deptApproval = {
+            approvalLevelId: 0,
+            departmentId: deptId,
+            departmentName: deptName,
+            employeeId: approverId,
+            employeeName: approverName,
+            isNotMandatory: isNotMandatory,
+            displayName: approverName
+        };
+
+        addDepartmentRow(deptApproval);
+        if (!levelData.departmentApprovals) levelData.departmentApprovals = [];
+        levelData.departmentApprovals.push(deptApproval);
+        $('#drpDepartment').data('searchableSelect').clear();
+        $('#drpDeptApprover').data('searchableSelect').clear();
+        $('#checkDeptNotMandatory').prop('checked', false);
+    }
+
+    // Add department row
+    function addDepartmentRow(deptApproval) {
+        const row = `
+            <tr data-dept-id="${deptApproval.departmentId}" data-employee-id="${deptApproval.employeeId}">
+                <td>${deptApproval.departmentName}</td>
+                <td>${deptApproval.employeeName??"Not Mandatory"}</td>
+                <td>
+                    <input type="checkbox" ${deptApproval.isNotMandatory ? 'checked' : ''}
+                           onchange="toggleDeptNotMandatory(${deptApproval.departmentId}, this.checked)">
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm text-danger"
+                            onclick="removeDeptRow(${deptApproval.departmentId})">
+                       <i class="bx bx-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        $('#deptApproverTableBody').append(row);
+    }
+
+    // Toggle department not mandatory
+    window.toggleDeptNotMandatory = function (deptId, isChecked) {
+        const levelNo = currentModalContext.levelNo;
+        const levelData = approvalLevelsData[levelNo];
+        if (levelData) {
+            const dept = levelData.departmentApprovals.find(d => d.departmentId === deptId);
+            if (dept) {
+                dept.isNotMandatory = isChecked;
+                dept.employeeId = isChecked ? null : dept.employeeId;
+                dept.employeeName = isChecked ? "Not Mandatory" : dept.employeeName;
+                dept.displayName = isChecked ? "Not Mandatory" : dept.displayName;
+            }
+        }
+    };
+
+    // Remove department row
+    window.removeDeptRow = function (deptId) {
+        $(`#deptApproverTableBody tr[data-dept-id="${deptId}"]`).remove();
+        const levelNo = currentModalContext.levelNo;
+        if (approvalLevelsData[levelNo]) {
+            approvalLevelsData[levelNo].departmentApprovals =
+                approvalLevelsData[levelNo].departmentApprovals.filter(dept => dept.departmentId !== deptId);
+        }
+    };
+
+    // Confirm department approvers
+    function confirmDepartmentApprovers() {
+        const levelNo = currentModalContext.levelNo;
+        const departmentApprovals = [];
+
+        $('#deptApproverTableBody tr').each(function () {
+            const deptId = $(this).data('dept-id');
+            const deptName = $(this).find('td:eq(0)').text();
+            const approverName = $(this).find('td:eq(1)').text();
+            const isNotMandatory = $(this).find('input[type="checkbox"]').is(':checked');
+            const empId = $(this).data('employee-id');
+
+            departmentApprovals.push({
+                approvalLevelId: 0,
+                departmentId: deptId,
+                departmentName: deptName,
+                employeeId: isNotMandatory ? null : empId,
+                employeeName: approverName,
+                isNotMandatory: isNotMandatory,
+                displayName: approverName
+            });
+        });
+
+        if (departmentApprovals.length != DepartDeatils.length) {
+            showNotification('Please add all department approvers', 'warning');
+            return;
+        }
+
+        if (approvalLevelsData[levelNo]) {
+            approvalLevelsData[levelNo].departmentApprovals = departmentApprovals;
+            approvalLevelsData[levelNo].isFilled = true;
+            updateSelectedApprovalsDisplay(levelNo);
+        }
+        $('#modalDepartmentApprover').modal('hide');
+    }
+
+    // Remove department approval chip
+    window.removeDeptApproval = function (levelNo, deptId) {
+        const levelData = approvalLevelsData[levelNo];
+        if (levelData) {
+            levelData.departmentApprovals = levelData.departmentApprovals.filter(d => d.departmentId !== deptId);
+            levelData.isFilled = levelData.departmentApprovals.length > 0 || levelData.approvals.length > 0;
+            updateSelectedApprovalsDisplay(levelNo);
+        }
+    };
+
+    // Remove approval chip
+    window.removeApprovalChip = function (levelNo, radioType) {
+        $(`#radio${radioType.charAt(0).toUpperCase() + radioType.slice(1)}${levelNo}`).prop('checked', false);
+        const levelData = approvalLevelsData[levelNo];
+        if (levelData) {
+            levelData.approvals = [];
+            levelData.isFilled = levelData.departmentApprovals.length > 0 || levelData.approvals.length > 0;
+            updateSelectedApprovalsDisplay(levelNo);
+        }
+    };
+
+    // Remove level
+    window.removeLevel = function (levelNo) {
+        if (confirm(`Are you sure you want to remove Level ${levelNo}?`)) {
+            $(`#level${levelNo}Card`).remove();
+            delete approvalLevelsData[levelNo];
+            currentLevel--;
+        }
+    };
+
+    // Validate form
+    function validateForm() {
+        let isValid = true;
+
+        // Approval mandatory
+        if (!$('#drpApproval').data('searchableSelect').getValue()) {
+            $('#spnApproval').show();
+            isValid = false;
+        } else {
+            $('#spnApproval').hide();
+        }
+
+        // Validate each level
+        for (let levelNo in approvalLevelsData) {
+            const levelData = approvalLevelsData[levelNo];
+
+            // Escalation days validation
+            const escVal = parseInt($(`#escalationDays${levelNo}`).val());
+            if (isNaN(escVal) || escVal < 1) {
+                round_error_noti(`Escalation Days must be at least 1 (Level ${levelNo})`);
+                $(`#escalationDays${levelNo}`).focus();
+                return false;
+            }
+
+            // Department based validation
+            if (levelData.isDepartmentBased) {
+                if (!levelData.departmentApprovals || levelData.departmentApprovals.length === 0) {
+                    round_error_noti(`Please add departments for Level ${levelNo}`);
+                    return false;
+                }
+
+                // Validate each department row
+                for (let dept of levelData.departmentApprovals) {
+                    if (!dept.isNotMandatory && !dept.employeeId) {
+                        round_error_noti(
+                            `Approver OR Not Mandatory must be selected for department "${dept.departmentName}" (Level ${levelNo})`
+                        );
+                        return false;
+                    }
+                }
+            }
+            // Normal approver validation
+            else {
+                if ((!levelData.approvals || levelData.approvals.length === 0) && levelNo != 1) {
+                    round_error_noti(`Please select approver for Level ${levelNo}`);
+                    return false;
+                }
+            }
+        }
+
+        return isValid;
+    }
+
+    // Save all levels
+    async function saveAllLevels() {
+        $('#btnSave').prop('disabled', true).text('Saving...');
+        try {
+            const approvalId = $('#drpApproval').data('searchableSelect').getValue();
+            $("#spnApproval").hide();
+            if (approvalId == null) {
+                $("#spnApproval").show();
+                return;
+            }
+
+            const approvalLevels = [];
+
+            // Process Level 1 (always required)
+            approvalLevels.push({
+                ApprovalLevelId: approvalLevelsData[1].approvalLevelId || 0,
+                ApprovalMasterId: parseInt(approvalId),
+                LevelNo: 1,
+                ApproverEmployeeId: null,
+                IsReportingPerson: true,
+                IsHR: false,
+                IsNationalManager: false,
+                IsHOD: false,
+                IsDepartmentBased: false,
+                EscalationDays: parseInt($('#escalationDays1').val()) || 0,
+                CreatedBy: EmployeeId,
+                UpdatedBy: EmployeeId,
+                CompanyId: CompanyId,
+                ApprovalLevelDepartments: []
+            });
+
+            // Process dynamic levels (2-5)
+            for (let i = 2; i < currentLevel; i++) {
+                const levelData = approvalLevelsData[i];
+                if (!levelData) continue;
+
+                if (levelData.isDepartmentBased && levelData.departmentApprovals.length > 0) {
+                    approvalLevels.push({
+                        ApprovalLevelId: levelData.approvalLevelId || 0,
+                        ApprovalMasterId: parseInt(approvalId),
+                        LevelNo: i,
+                        ApproverEmployeeId: null,
+                        IsReportingPerson: false,
+                        IsHR: false,
+                        IsNationalManager: false,
+                        IsHOD: false,
+                        IsDepartmentBased: true,
+                        EscalationDays: parseInt($(`#escalationDays${i}`).val()) || 0,
+                        CreatedBy: EmployeeId,
+                        UpdatedBy: EmployeeId,
+                        CompanyId: CompanyId,
+                        ApprovalLevelDepartments: levelData.departmentApprovals.map(dept => ({
+                            ApprovalLevelId: dept.approvalLevelId || 0,
+                            DepartmentId: dept.departmentId,
+                            ApproverEmployeeId: dept.isNotMandatory ? null : dept.employeeId,
+                            IsNotMandatory: dept.isNotMandatory
+                        }))
+                    });
+                } else if (levelData.approvals.length > 0) {
+                    const approval = levelData.approvals[0];
+                    approvalLevels.push({
+                        ApprovalLevelId: levelData.approvalLevelId || 0,
+                        ApprovalMasterId: parseInt(approvalId),
+                        LevelNo: i,
+                        ApproverEmployeeId: approval.employeeId,
+                        IsReportingPerson: approval.radioType === 'reportingManager',
+                        IsHR: approval.radioType === 'hr',
+                        IsNationalManager: approval.radioType === 'nationalManager',
+                        IsHOD: approval.radioType === 'hod',
+                        IsDepartmentBased: false,
+                        EscalationDays: parseInt($(`#escalationDays${i}`).val()) || 0,
+                        CreatedBy: EmployeeId,
+                        UpdatedBy: EmployeeId,
+                        CompanyId: CompanyId,
+                        ApprovalLevelDepartments: []
+                    });
+                }
+            }
+
+            await $.ajax({
+                url: '@baseUrl/ApprovalManagementAPI/ManageApprovalLevel',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify(approvalLevels)
+            })
+                .done(function (response) {
+                    if (response.isSuccess) {
+                        round_success_noti(response.responseMessage);
+                        resetForm();
+                        setTimeout(() => {
+                            window.location.href = '/AdminPanel/ManageApproval/ApprovalManagement';
+                        }, 1000);
+                    } else {
+                        round_error_noti(response.responseMessage);
+                    }
+                })
+                .fail(function (xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    let errorMessage = 'An error occurred while saving';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    round_error_noti(errorMessage);
+                });
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            round_error_noti('An unexpected error occurred');
+        } finally {
+            $('#btnSave').prop('disabled', false).text('Save All Levels');
+        }
+    }
+
+    // Reset form
+    function resetForm() {
+        $('#drpApprovalType').data('searchableSelect').setValue(null);
+        $('#drpApproval').data('searchableSelect').setValue(null);
+        $('#escalationDays1').val(0);
+
+        // Remove all dynamic levels
+        $('#dynamicLevelsContainer').empty();
+
+        // Reset to only Level 1
+        approvalLevelsData = {
+            1: {
+                levelNo: 1,
+                approvalLevelId: 0,
+                approvals: [],
+                isDepartmentBased: false,
+                departmentApprovals: [],
+                escalationDays: 0,
+                selectedRadioType: 'reportingManager',
+                isFilled: true
+            }
+        };
+
+        currentLevel = 2;
+        $('[id^="spn"]').hide();
+    }
+
+    // Show notification
+    function showNotification(message, type) {
+        if (type === 'success') {
+            alert('✓ ' + message);
+        } else if (type === 'error') {
+            alert('✗ ' + message);
+        } else {
+            alert(message);
+        }
+    }
+
+    // Complete UpdateApprovalLevel function
+    async function UpdateApprovalLevel(approvalMasterId) {
+        try {
+            const response = await $.ajax({
+                url: `@baseUrl/ApprovalManagementAPI/GetAllApprovalLevelsByApprovalMasterId/${approvalMasterId}`,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                }
+            });
+
+            if (response.isSuccess) {
+                const levelsData = response.data;
+                $('.formType').text('Edit');
+                // Set the approval dropdown
+                $('#drpApproval').data('searchableSelect').setValue(approvalMasterId);
+
+                // Clear existing dynamic levels
+                $('#dynamicLevelsContainer').empty();
+
+                // Reset approvalLevelsData
+                approvalLevelsData = {};
+                currentLevel = 2;
+
+                // Sort levels by levelNo to ensure proper ordering
+                levelsData.sort((a, b) => a.levelNo - b.levelNo);
+
+                // Process each level from the response
+                levelsData.forEach(level => {
+                    const levelNo = level.levelNo;
+
+                    if (levelNo === 1) {
+                        // Level 1 is always Reporting Manager
+                        $('#escalationDays1').val(level.escalationDays);
+                        approvalLevelsData[1] = {
+                            levelNo: 1,
+                            approvalLevelId: level.approvalLevelId || 0,
+                            approvals: [],
+                            isDepartmentBased: false,
+                            departmentApprovals: [],
+                            escalationDays: level.escalationDays,
+                            selectedRadioType: 'reportingManager',
+                            isFilled: true
+                        };
+
+                        // Update the selected approvers display for level 1
+                        updateSelectedApprovalsDisplay(1);
+                    } else {
+                        // For other levels, add the level card
+                        addApprovalLevel(levelNo, level);
+
+                        // Set escalation days
+                        $(`#escalationDays${levelNo}`).val(level.escalationDays);
+
+                        // Initialize level data
+                        approvalLevelsData[levelNo] = {
+                            levelNo: levelNo,
+                            approvalLevelId: level.approvalLevelId || 0,
+                            approvals: [],
+                            isDepartmentBased: level.isDepartmentBased,
+                            departmentApprovals: [],
+                            escalationDays: level.escalationDays,
+                            selectedRadioType: getRadioTypeFromLevel(level),
+                            isFilled: true
+                        };
+
+                        // Set the radio button based on the level type
+                        const radioType = getRadioTypeFromLevel(level);
+                        if (radioType) {
+                            $(`#radio${radioType.charAt(0).toUpperCase() + radioType.slice(1)}${levelNo}`).prop('checked', true);
+                            approvalLevelsData[levelNo].selectedRadioType = radioType;
+
+                            // If it's a regular approver (not department-based)
+                            if (!level.isDepartmentBased && level.approverEmployeeId) {
+                                const approval = {
+                                    radioType: radioType,
+                                    employeeId: level.approverEmployeeId,
+                                    employeeName: level.approverName,
+                                    displayName: level.approverName
+                                };
+                                approvalLevelsData[levelNo].approvals = [approval];
+                                updateSelectedApprovalsDisplay(levelNo);
+                            }
+                        }
+
+                            if (level.isDepartmentBased) {
+                                $(`#radioDepartmentBased${levelNo}`).prop('checked', true);
+
+                                approvalLevelsData[levelNo].isDepartmentBased = true;
+
+                                level.approvalLevelDepartmentVMs.forEach(dept => {
+                                    approvalLevelsData[levelNo].departmentApprovals.push({
+                                        approvalLevelId: dept.approvalLevelId || 0,
+                                        departmentId: dept.departmentId,
+                                        departmentName: dept.departmentName,
+                                        employeeId: dept.deptApproverEmployeeId,
+                                        employeeName: dept.deptApproverName,
+                                        isNotMandatory: dept.isNotMandatory,
+                                        displayName: dept.deptApproverName
+                                    });
+                                });
+
+                                updateSelectedApprovalsDisplay(levelNo);
+                            }
+
+
+                        // Update currentLevel to be one more than the highest level
+                        if (levelNo >= currentLevel) {
+                            currentLevel = levelNo + 1;
+                        }
+                    }
+                });
+
+            } else {
+                showNotification(response.ResponseMessage || 'Error loading approval scheme details', 'error');
+            }
+        } catch (error) {
+            console.error('Error fetching approval levels:', error);
+            showNotification('Error loading approval levels', 'error');
+        }
+    }
+
+    function getRadioTypeFromLevel(level) {
+        if (level.isHR) return 'hr';
+        if (level.isNationalManager) return 'nationalManager';
+        if (level.isHOD) return 'hod';
+        if (level.isReportingPerson) return 'reportingManager';
+        return null;
+    }
+
+</script>

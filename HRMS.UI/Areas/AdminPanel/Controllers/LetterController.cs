@@ -1,0 +1,29 @@
+﻿using Microsoft.AspNetCore.Mvc;
+
+namespace HRMS.UI.Areas.AdminPanel.Controllers
+{
+    [Area("AdminPanel")]
+    public class LetterController : Controller
+    {
+        public IActionResult ExperienceLetter()
+        {
+            return View();
+        }
+        public IActionResult RelievingLetter()
+        {
+            return View();
+        }
+        public IActionResult OfferLetter()
+        {
+            return View();
+        }
+        public IActionResult AppointmentLetter()
+        {
+            return View();
+        }
+        public IActionResult Promotionincrementletter()
+        {
+            return View();
+        }
+    }
+}

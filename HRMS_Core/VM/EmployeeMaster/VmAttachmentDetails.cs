@@ -13,6 +13,7 @@ namespace HRMS_Core.VM.EmployeeMaster
         public int? EmployeeId { set; get; }
         public IFormFile? AttachmentFile { set; get; }
         public string? DocumentName { set; get; }
+        public int? DocumentTypeId { set; get; }
         public string? DocumentUrl { set; get; }
         public string? Comment { set; get; }
         public DateTime? DateOfExpiry { set; get; }

@@ -57,10 +57,26 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
         public IActionResult MemberDetails()
         {
             ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
-
             return View();
         }
+        public IActionResult ManPowerRequisitionEss()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+            return View();
 
+        }
+        public IActionResult ManPowerRequisitionReport()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+            return View();
+
+        }
+        public IActionResult EmployeeJoiningEntryEss()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+            return View();
+
+        }
 
     }
 }

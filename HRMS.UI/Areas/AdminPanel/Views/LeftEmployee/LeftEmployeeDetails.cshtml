@@ -3,7 +3,10 @@
     ViewData["Title"] = "Left Employee";
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
+
 
 <div class="card">
     <div class="card-header bg-transparent ml-0 py-0">
@@ -13,238 +16,1042 @@
                     Left Employee Details
                 </h6>
             </div>
-
+          
             <div class="col-6 d-flex justify-content-end align-items-center">
-                <div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
-                    <i class="fadeIn animated bx bx-refresh" id="refreshData" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Refresh Data"></i>
-                </div>
+                <button id="exportToExcel"
+                        type="button"
+                        class="btn mr-1 rounded-1"
+                        style="background-color:#28a745; color:white;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-excel" viewBox="0 0 16 16" style="margin-right: 5px;">
+                        <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z" />
+                        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z" />
+                    </svg>
+                    Export to Excel
+                </button>
+                <button id="addLeftEmployee"
+                        type="button"
+                        class="btn mr-1 rounded-1"
+                        style="background-color:#2395c6; color:white;">
+                    Add Left Employee
+                </button>
             </div>
         </div>
     </div>
     <div class="card-body">
-        <div class="row">
-            <div class="col-md-12 btn-heading-title">
-                <div class="input-group mb-2">
-                    <button id="addLeftEmployee"
-                            type="button"
-                            class="btn mr-1 rounded-1"
-                            style="background-color:#2395c6; color:white;">
-                        Add Left Employee
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-12">
-                <div class="form-group">
-                    <div class="rowCount" id="rowCountLeftEmployee"></div>
-                    <div id="gridContainerLeftEmployee">
-                       
-                        <div class="d-flex justify-content-center align-items-center" style="height: 10vh;">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
+       
+            <div class="card-body">
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+
+                            <div class="grid-wrapper " style="position: relative; ">
+                                <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+                                     style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+                                    <img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px;                                            height: 30px; animation: spin 1s linear infinite;" />
+                                    <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+                                </div>
+                                <div id="gridTag">
+                                    <div class="rowCount" id="rowCount1"></div>
+                                    <div id="gridContainer"></div>
+                                </div>
+                                <div id="noRecord" style="display:none;">
+                                    No Record Found!
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+       
+            </div>
         </div>
-    </div>
-
-</div>
 
 
-<div class="modal fade" id="addEmployeeLeftModal" tabindex="-1" aria-labelledby="addEmployeeLeftLabel" aria-hidden="true">
+<div class="modal fade" id="addEmployeeLeftModal" tabindex="-1" aria-labelledby="addEmployeeLeftLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-xl">
-        <!-- Wider modal -->
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title btn-heading-title" id="addEmployeeLeftLabel">Add Left Employee</h5>
+                <h6 class="modal-title btn-heading-title">Add Left Employee</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-
-            <div class="modal-body modal-body-font">
-
-                <!-- Reason Type: All checkboxes in one row -->
-                <div class="row mb-3">
-                    <div class="col-md-2">
-                        <label class="form-label fw-bold">Reason Type:</label>
-                    </div>
-
-                    <div class="col-md-2">
-                        <div class="form-check form-check-inline cursor-pointer">
-                            <input class="form-check-input reasonType" type="checkbox" id="resignation" value="Resignation">
-                            <label class="form-check-label" for="resignation">Resignation</label>
+            <div class="modal-body modal-body-font" style="font-size:12px;">
+                <form id="leftEmployeeForm">
+                    <!-- Reason Type: Checkboxes in a row -->
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Reason Type:</label>
+                        </div>
+                        <div class="col-md-10">
+                            <div class="form-check form-check-inline ">
+                                <input class="form-check-input reasonType cursor-pointer" type="checkbox" id="resignation" value="Resignation">
+                                <label class="form-check-label" for="resignation">Resignation</label>
+                            </div>
+                            <div class="form-check form-check-inline ">
+                                <input class="form-check-input reasonType cursor-pointer" type="checkbox" id="retirement" value="Retirement">
+                                <label class="form-check-label" for="retirement">Retirement</label>
+                            </div>
+                            <div class="form-check form-check-inline ">
+                                <input class="form-check-input reasonType cursor-pointer" type="checkbox" id="terminated" value="Terminated">
+                                <label class="form-check-label" for="terminated">Terminated</label>
+                            </div>
+                            <div class="form-check form-check-inline ">
+                                <input class="form-check-input reasonType cursor-pointer" type="checkbox" id="death" value="Death">
+                                <label class="form-check-label" for="death">Death</label>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="col-md-2">
-                        <div class="form-check form-check-inline cursor-pointer">
-                            <input class="form-check-input reasonType" type="checkbox" id="retirement" value="Retirement">
-                            <label class="form-check-label" for="retirement">Retirement</label>
+                    <!-- 3 fields per row -->
+                    <div class="row ">
+                        <!-- Left Date -->
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="date" class="form-control floating-input" id="leftDate">
+                                <label class="floating-label" for="leftDate" id="leftDateLabel">Left Date *</label>
+                                <span id="spnleftdate" style="color:red; display:none; font-size: 0.85em;">Please Enter Left Date</span>
+                               </div>
+                        </div>
+                        <!-- Branch -->
+                      @*   <div class="col-md-4">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="branchWrapper">
+                                    <label for="branch">Branch</label>
+                                    <input type="text" class="searchable-select-input" id="branch" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search branch..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> *@
+                        <!-- Employee -->
+                        <div class="col-md-4">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="branchempWrapper">
+                                    <label for="branchemps">Employee *</label>
+                                    <input type="text" class="searchable-select-input" id="branchemps" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search employee..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                                <span id="spnemp" style="color:red; display:none; font-size: 0.85em;">Please Select Employee</span>
+                            </div>
+                        </div>
+                    
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <input  type="date" class="form-control floating-input" id="joinDate" readonly>
+                                <label class="floating-label" for="joinDate">Join Date *</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 resignation-fields" style="display:none;">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="date" class="form-control floating-input" id="resignationDate">
+                                <label class="floating-label" for="resignationDate">Resignation Date</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 resignation-fields" style="display:none;">
+                            <div class="form-group mt-3 position-relative">
+                                <input type="date" class="form-control floating-input" id="resignationAcceptedDate">
+                                <label class="floating-label" for="resignationAcceptedDate">Resignation Accepted Date *</label>
+                                <span id="spnresignationAcceptedDate" style="color:red; display:none; font-size: 0.85em;">Please Enter Resignation Accepted Date.</span>
+                                <span id="spnresignationAcceptedDategreter" style="color:red; display:none; font-size: 0.85em;">Resignation acceptance date must be greater than the joining date.</span>
+                            </div>
+                        </div>
+                  
+                        <div class="col-md-4">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="reasonWrapper">
+                                    <label for="reason">Reason</label>
+                                    <input type="text" class="searchable-select-input" id="reason" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search reason..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mt-3 position-relative">
+                                <textarea class="form-control floating-input" id="otherReason" rows="1" placeholder=" "></textarea>
+                                <label class="floating-label" for="otherReason">Other Reason</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 resignation-fields terminated-fields" style="display:none;">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="uniformReturnWrapper">
+                                    <label for="uniformReturn">Uniform Return</label>
+                                    <input type="text" class="searchable-select-input" id="uniformReturn" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col-md-4 resignation-fields terminated-fields" style="display:none;">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="exitInterviewWrapper">
+                                    <label for="exitInterview">Exit Interview</label>
+                                    <input type="text" class="searchable-select-input" id="exitInterview" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 resignation-fields terminated-fields" style="display:none;">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="noticePeriodWrapper">
+                                    <label for="noticePeriod">Notice Period</label>
+                                    <input type="text" class="searchable-select-input" id="noticePeriod" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="replaceManagerWrapper">
+                                    <label for="replaceManager">Replace Reporting Manager</label>
+                                    <input type="text" class="searchable-select-input" id="replaceManager" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search manager..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col-md-4">
+                            <div class="mt-3 form-floating-custom">
+                                <div class="searchable-select-wrapper" id="leftReasonPfWrapper">
+                                    <label for="leftReasonPf">Left Reason (PF)</label>
+                                    <input type="text" class="searchable-select-input" id="leftReasonPf" readonly>
+                                    <span class="searchable-select-arrow">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        </svg>
+                                    </span>
+                                    <div class="searchable-select-dropdown">
+                                        <div class="searchable-select-search">
+                                            <input type="text" placeholder="Search reason..." class="search-input">
+                                        </div>
+                                        <div class="searchable-select-options"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="col-md-2">
-                        <div class="form-check form-check-inline cursor-pointer">
-                            <input class="form-check-input reasonType" type="checkbox" id="terminated" value="Terminated">
-                            <label class="form-check-label" for="terminated">Terminated</label>
-                        </div>
-                    </div>
-
-                    <div class="col-md-2">
-                        <div class="form-check form-check-inline cursor-pointer">
-                            <input class="form-check-input reasonType" type="checkbox" id="death" value="Death">
-                            <label class="form-check-label" for="death">Death</label>
-                        </div>
-                    </div>
-                </div>
-
-
-
-                <!-- 3 fields per row -->
-                <div class="row mb-3 gy-3">
-                    <div class="col-md-4 position-relative">
-                        <input type="date" class="form-control floating-input" id="leftDate">
-                        <label class="floating-label" id="leftDateLabel" for="leftDate">Left Date *</label>
-                    </div>
-                    <div class="col-md-4 position-relative">
-                        <select class="form-select floating-input" id="branch">
-                            <option selected>--Select--</option>
-                        </select>
-                        <label class="floating-label" for="branch">Branch</label>
-                    </div>
-                    <div class="col-md-4 position-relative">
-                        <select class="form-select floating-input" id="employee">
-                            <option selected>--Select Employee--</option>
-                        </select>
-                        <label class="floating-label" for="employee">Employee *</label>
-                    </div>
-
-
-                    <div class="col-md-4 position-relative">
-                        <input type="date" class="form-control floating-input" id="joinDate">
-                        <label class="floating-label" for="joinDate">Join Date *</label>
-                    </div>
-                    <div class="col-md-4 position-relative  common-reason">
-                        <input type="date" class="form-control floating-input" id="resignationDate">
-                        <label class="floating-label" for="resignationDate">Resignation Date</label>
-                    </div>
-                    <div class="col-md-4 position-relative  common-reason">
-                        <input type="date" class="form-control floating-input" id="resignationAcceptedDate">
-                        <label class="floating-label" for="resignationAcceptedDate">Resignation Accepted Date *</label>
-                    </div>
-
-                    <div class="col-md-4 position-relative">
-                        <select class="form-select floating-input" id="reason">
-                            <option selected>--Select Reason--</option>
-                        </select>
-                        <label class="floating-label" for="reason">Reason</label>
-                    </div>
-                    <div class="col-md-4 position-relative">
-                        <textarea class="form-control floating-input" id="otherReason" rows="1" placeholder=" "></textarea>
-                        <label class="floating-label" for="otherReason">Other Reason</label>
-                    </div>
-                    <div class="col-md-4 position-relative   terminated-only common-reason">
-                        <select class="form-select floating-input" id="uniformReturn">
-                            <option selected>--Select--</option>
-                        </select>
-                        <label class="floating-label" for="uniformReturn">Uniform Return</label>
-                    </div>
-
-                    <div class="col-md-4 position-relative terminated-only common-reason">
-                        <select class="form-select floating-input" id="exitInterview">
-                            <option selected>--Select--</option>
-                        </select>
-                        <label class="floating-label" for="exitInterview">Exit Interview</label>
-                    </div>
-                    <div class="col-md-4 position-relative  terminated-only common-reason">
-                        <select class="form-select floating-input" id="noticePeriod">
-                            <option selected>--Select--</option>
-                        </select>
-                        <label class="floating-label" for="noticePeriod">Notice Period</label>
-                    </div>
-                    <div class="col-md-4 position-relative">
-                        <select class="form-select floating-input" id="replaceManager">
-                            <option selected>--Select Manager--</option>
-                        </select>
-                        <label class="floating-label" for="replaceManager">Replace Reporting Manager</label>
-                    </div>
-
-               
-                    <div class="col-md-4 position-relative">
-                        <select class="form-select floating-input" id="leftReasonPf">
-                            <option selected>--Select--</option>
-                        </select>
-                        <label class="floating-label" for="leftReasonPf">Left Reason (PF)</label>
-                    </div>
-
+                </form>
             </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" style="background-color:#2395c6; color:white;">Save</button>
+            <div class="modal-footer btn-heading-title">
+                <button type="button" class="btn btn-primary" id="btnSaveLeftEmployee" style="background-color:#2395c6; color:white;">Save</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
-</div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-            $("#addLeftEmployee").click( () => {
-                 
-              $("#addEmployeeLeftModal").modal('show');
-            })
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails?.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+    let leftempid = 0;
 
-
-     $(document).ready(function () {
-        function hideAllConditionalFields() {
-            $('.common-reason').hide();
-        }
-
-        $('.reasonType').on('change', function () {
-            // Uncheck all others
-            $('.reasonType').not(this).prop('checked', false);
-
-            // Default label
-            let labelText = "Left Date *";
-
-            // Hide all conditional fields first
-            hideAllConditionalFields();
-
-            // Show/hide fields and update label
-            if ($(this).is(":checked")) {
-                const reason = $(this).val();
-
-                switch (reason) {
-                    case "Resignation":
-                        labelText = "Left Date *";
-                            $('.common-reason').show();
-                        break;
-                    case "Retirement":
-                        labelText = "Retirement Date *";
-                           $('.common-reason').hide();
-                        break;
-                    case "Terminated":
-                        labelText = "Terminate Date *";
-                        $('.terminated-only').show();
-                        break;
-                    case "Death":
-                        labelText = "Death Date *";
-                            $('.common-reason').hide();
-                        break;
-                }
+    $(document).ready(function(){
+        loadDataTable();
+        $('#branchemps').searchableSelect({
+            data: [],
+            valueKey: 'employeeId',
+            textKey: 'employeeName',
+            placeholder:'Employee',
+            searchPlaceholder: 'Search employee...',
+            onChange: function(item) {
+                GetJoinDateById();
             }
+        });
+        BindEmployeeByBranchId();
+        //BindBranchDropdown();
+        bindReporting();
+        const ReasonData=
+           [
+                {  "reason": "Resign" },
+                
+           ]
 
-            // Update the label
-            $('#leftDateLabel').text(labelText);
+         $('#reason').searchableSelect({
+            data: ReasonData||[],
+            valueKey: 'reason',
+            textKey: 'reason',
+            placeholder:'Reason',
+            searchPlaceholder: 'Search reason...',
+            onChange: function(item) {
+            }
+        });
+        const uniformReturnData=
+           [
+                {  "uniformReturn": "Yes" },
+                { "uniformReturn": "No" },
+                {  "uniformReturn": "N/A" }
+                
+           ]
+
+         $('#uniformReturn').searchableSelect({
+            data: uniformReturnData||[],
+            valueKey: 'uniformReturn',
+            textKey: 'uniformReturn',
+            placeholder:'Uniform Return',
+            searchPlaceholder: 'Search uniform return...',
+            onChange: function(item) {
+            }
         });
 
-      
+        const existInterviewData=
+           [
+                {  "existInterview": "Yes" },
+                { "existInterview": "No" },
+                {  "existInterview": "N/A" }
+                
+           ]
+
+         $('#exitInterview').searchableSelect({
+            data: existInterviewData||[],
+            valueKey: 'existInterview',
+            textKey: 'existInterview',
+            placeholder:'Exist Interview',
+            searchPlaceholder: 'Search notice period...',
+            onChange: function(item) {
+            }
+        });
+
+        const noticePeriodData=
+           [
+                {  "noticePeriod": "Yes" },
+                { "noticePeriod": "No" },
+                {  "noticePeriod": "N/A" }
+                
+           ]
+
+         $('#noticePeriod').searchableSelect({
+            data: noticePeriodData||[],
+            valueKey: 'noticePeriod',
+            textKey: 'noticePeriod',
+            placeholder:'Notice Period',
+            searchPlaceholder: 'Search notice period...',
+            onChange: function(item) {
+            }
+        });
+
+        const reasonLeftData=
+           [
+                {  "reasonLeft": "Retirement" },
+                { "reasonLeft": "Death in Service" },
+                {  "reasonLeft": "Superannuation" },
+                {  "reasonLeft": "Permanent Disablement" },
+                { "reasonLeft": "Cessation (Short Service)" },
+                {  "reasonLeft": "Death away from service" }
+           ]
+
+         $('#leftReasonPf').searchableSelect({
+            data: reasonLeftData||[],
+            valueKey: 'reasonLeft',
+            textKey: 'reasonLeft',
+            placeholder:'Left Reason',
+            searchPlaceholder: 'Search reason...',
+            onChange: function(item) {
+            }
+        });
+    })
+
+    $("#addLeftEmployee").click(() => {
+         resetLeftEmployee();
+        $("#addEmployeeLeftModal").modal('show');
     });
 
-</script>
+     $(document).on('change', '.reasonType', function() {
+        if ($(this).is(':checked')) {
+            $('.reasonType').not(this).prop('checked', false);
+        }
 
+        $('.resignation-fields, .retirement-fields, .terminated-fields, .death-fields').hide();
+         $("#leftDateLabel").text("Left Date *");
+        if ($('#resignation').is(':checked')) {
+            $('.resignation-fields').show();
+            $("#leftDateLabel").text("Left Date *")
+        }
+        else if ($('#retirement').is(':checked')) {
+            $('.retirement-fields').show();
+             $("#leftDateLabel").text("Retirement Date *")
+        }
+        else if ($('#terminated').is(':checked')) {
+            $('.terminated-fields').show();
+             $("#leftDateLabel").text("Terminated Date *")
+        }
+        else if ($('#death').is(':checked')) {
+            $('.death-fields').show();
+             $("#leftDateLabel").text("Death Date *")
+        }
+    });
+
+
+
+
+      async  function BindBranchDropdown() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: {
+                        'Authorization': 'Bearer ' + Token
+                },
+                success: function (data) {
+                    if (data.isSuccess) {
+                           $('#branch').searchableSelect({
+                                data: data.data||[],
+                                valueKey: 'branchId',
+                                textKey: 'branchName',
+                                placeholder:'Branch',
+                                searchPlaceholder: 'Search branch...',
+                                onChange: function(item) {
+                                      BindEmployeeByBranchId(item.branchId);
+                                }
+                            });
+
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch branches');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+     async function BindEmployeeByBranchId() {
+            // var branchId=$('#branch').data('searchableSelect').getValue();
+            // if(!branchId)
+            // {
+            //     return Promise();
+            // }
+           var payLoad={
+             BranchId:null,
+             CompanyId:CompanyId
+            }
+         return new Promise((resolve, reject) => {
+             $.ajax({
+                  url: '@baseUrl/EmployeeMasterAPI/GetEmployeeListByBranchIdForLeft',
+                 method: 'POST',
+                 contentType: 'application/json',
+                 headers: {
+                     'Authorization': 'Bearer ' + Token
+                 },
+                 data: JSON.stringify(payLoad),
+                success: function (data) {
+                    if (data.isSuccess) {
+
+                            const dropdownddlEmployee = $('#branchemps').data('searchableSelect');
+                                if(dropdownddlEmployee){
+                                        dropdownddlEmployee.setData(data.data);
+                                }
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch employees');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+     async function GetJoinDateById() {
+           var id=$('#branchemps').data('searchableSelect').getValue();
+            if(!id)
+            {
+                return Promise();
+            }
+            $("#joinDate").val("");
+          return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/EmployeeMasterAPI/GetEmplyeeDetailsById/' + id,
+                method: 'GET',
+                headers: {
+                        'Authorization': 'Bearer ' + Token
+                },
+                success: function (data) {
+                    if (data.isSuccess) {
+                        if(data.data.DateOfJoining){
+                          $("#joinDate").val(data.data.DateOfJoining.split('T')[0]);
+                        }
+
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch employees');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+     async function bindReporting() {
+            
+          return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/EmployeeMasterAPI/GetReportingList',
+                method: 'GET',
+                headers: {
+                        'Authorization': 'Bearer ' + Token
+                },
+                success: function (data) {
+                    if (data.isSuccess) {
+
+                        $('#replaceManager').searchableSelect({
+                            data: data.data||[],
+                            valueKey: 'employeeId',
+                            textKey: 'employeeName',
+                            placeholder:'Reporting Manager',
+                            searchPlaceholder: 'Search reporting...',
+                            onChange: function(item) {
+
+                            }
+                        });
+
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch employees');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    $('#btnSaveLeftEmployee').click(function () {
+  
+        $("#btnSaveLeftEmployee").prop("disabled", true);
+
+        var leftDateStr = $('#leftDate').val();
+        var joiningDateStr = $('#joinDate').val();
+        var resignationAcceptDateStr = $('#resignationAcceptedDate').val();
+
+        var leftDate = leftDateStr ? new Date(leftDateStr) : null;
+        var joiningDate = joiningDateStr ? new Date(joiningDateStr) : null;
+        var resignationAcceptDate = resignationAcceptDateStr ? new Date(resignationAcceptDateStr) : null;
+
+        var reasonTypes = [];
+        $('.reasonType:checked').each(function () {
+            reasonTypes.push($(this).val());
+        });
+
+        var employee = $('#branchemps').data('searchableSelect').getValue();
+        var resignationDate = $('#resignationDate').val();
+        var resignationAcceptedDate = $('#resignationAcceptedDate').val();
+        var reason = $('#reason').data('searchableSelect').getValue();
+        var otherReason = $('#otherReason').val();
+        var uniformReturn = $('#uniformReturn').data('searchableSelect').getValue();
+        var exitInterview = $('#exitInterview').data('searchableSelect').getValue();
+        var noticePeriod = $('#noticePeriod').data('searchableSelect').getValue();
+        var replaceManager = $('#replaceManager').data('searchableSelect').getValue();
+        var leftReasonPf = $('#leftReasonPf').data('searchableSelect').getValue();
+
+        var isValid = true;
+
+        // Hide all error messages first
+        $('#spnleftdate, #spnresignationAcceptedDate, #spnleftdategreter, #spnresignationAcceptedDategreter, #spnleftdateafterresignation, #spnemp').hide();
+
+        // Check if at least one Reason Type is selected
+        if (reasonTypes.length === 0) {
+            round_error_noti("Please select at least one Reason Type");
+            isValid = false;
+        }
+
+        // Check if Employee is selected
+        if (!employee || employee === "--Select Employee--" || employee === "") {
+            $('#spnemp').show();
+            alert("Please Select Employee");
+            isValid = false;
+        }
+
+        // Determine the date label based on reason type
+        var dateLabel = "Left Date";
+        if (reasonTypes.includes("Resignation")) {
+            dateLabel = "Left Date";
+        } else if (reasonTypes.includes("Retirement")) {
+            dateLabel = "Retirement Date";
+        } else if (reasonTypes.includes("Terminated")) {
+            dateLabel = "Terminated Date";
+        } else if (reasonTypes.includes("Death")) {
+            dateLabel = "Death Date";
+        }
+
+        // Check if Left Date is entered (mandatory for all types)
+        if (!leftDateStr) {
+            $('#spnleftdate').show();
+            alert("Please Enter the " + dateLabel);
+            isValid = false;
+        }
+
+        // Validate Left Date is greater than Joining Date (for all types)
+        if (leftDate && joiningDate && leftDate <= joiningDate) {
+            $('#spnleftdategreter').show();
+            alert(dateLabel + " must be greater than joining date");
+            $("#btnSaveLeftEmployee").prop("disabled", false);
+            return false;
+        }
+
+        // Resignation specific validations
+        if (reasonTypes.includes("Resignation")) {
+            // Check if Resignation Accepted Date is mandatory
+            if (!resignationAcceptedDate) {
+                $('#spnresignationAcceptedDate').show();
+                alert("Please Enter the Resignation Accepted Date");
+                isValid = false;
+            }
+
+            // Validate Resignation Accepted Date is greater than Joining Date
+            if (resignationAcceptDate && joiningDate && resignationAcceptDate <= joiningDate) {
+                $('#spnresignationAcceptedDategreter').show();
+                alert("Resignation acceptance date must be greater than joining date");
+                $("#btnSaveLeftEmployee").prop("disabled", false);
+                return false;
+            }
+
+            // Validate Left Date is greater than or equal to Resignation Accepted Date
+            if (leftDate && resignationAcceptDate && leftDate < resignationAcceptDate) {
+                $('#spnleftdateafterresignation').show();
+                alert("Left date must be on or after resignation accepted date");
+                $("#btnSaveLeftEmployee").prop("disabled", false);
+                return false;
+            }
+        }
+
+        if (!isValid) {
+            $("#btnSaveLeftEmployee").prop("disabled", false);
+            return;
+        }
+
+        var employeeLeftData = {
+            LeftID: leftempid,
+            CmpID: CompanyId,
+            EmpID: parseInt(employee),
+            BranchId: null,
+            LeftDate: leftDateStr ? new Date(leftDateStr).toISOString() : null,
+            LeftReason: reason,
+            RegAcceptDate: resignationAcceptedDate ? new Date(resignationAcceptedDate).toISOString() : null,
+            IsTerminate: reasonTypes.includes("Terminated"),
+            UniformReturn: (uniformReturn === "Yes"),
+            ExitInterview: (exitInterview === "Yes"),
+            NoticePeriod: noticePeriod,
+            IsDeath: reasonTypes.includes("Death"),
+            RegDate: resignationDate ? new Date(resignationDate).toISOString() : null,
+            IsFnFApplicable: reasonTypes.includes("Resignation"),
+            RptManagerID: replaceManager ? replaceManager : null,
+            IsRetire: reasonTypes.includes("Retirement"),
+            LeftReasonValue: leftReasonPf,
+            LeftReasonText: otherReason,
+            IsDeleted: false,
+            IsEnabled: true,
+            IsLeft: true,
+            Remark: reasonTypes.join(", "),
+            CreatedBy: EmployeeId.toString(),
+            UpdatedBy: EmployeeId.toString()
+        };
+
+        var apiUrl = (leftempid && leftempid > 0)
+            ? "@baseUrl/LeftEmployeeAPI/UpdateLeftEmployee"
+            : "@baseUrl/LeftEmployeeAPI/CreateLeftEmp";
+
+        var methodType = (leftempid && leftempid > 0) ? "PUT" : "POST";
+
+        $.ajax({
+            url: apiUrl,
+            type: methodType,
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            data: JSON.stringify(employeeLeftData),
+            success: function (response) {
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage);
+                    loadDataTable();
+                    resetLeftEmployee();
+                    $("#addEmployeeLeftModal").modal('hide');
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+                $("#btnSaveLeftEmployee").prop("disabled", false);
+            },
+            error: function (xhr) {
+                console.error('Error:', xhr);
+                round_error_noti('Unable to save details');
+                $("#btnSaveLeftEmployee").prop("disabled", false);
+            }
+        });
+    });
+    function loadDataTable() {
+        $('#grid-loader').addClass('d-flex').show();
+                  $.ajax({
+                 type: "GET",
+                 url: '@baseUrl/LeftEmployeeAPI/GetAllLeftEmp',
+                 headers: {
+                     'Authorization': 'Bearer ' + Token
+                 },
+                  data: { CompanyId: CompanyId }, 
+                 contentType: 'application/json',
+                 success: function(response) {
+                if(response.isSuccess) {
+                    $("#noRecord").hide();
+                    $("#gridTag").show();
+                    $("#gridContainer").dxDataGrid({
+                        dataSource: response.data,
+                        columns: [
+                            { dataField: 'employeeCode', caption: 'Employee Code' },
+                            { dataField: 'fullName', caption: 'Employee Name ' },
+                            //{ dataField: 'branchName', caption: 'Branch Name' },
+                             { dataField: 'dateOfJoining', caption: 'Joining Date' ,dataType: 'date',format: 'dd-MM-yyyy' },
+                             { dataField: 'leftDate', caption: 'Leaving Date' ,dataType: 'date',format: 'dd-MM-yyyy'},
+                            { dataField: 'reasonType', caption: 'Reason Type' },
+                            {
+                                dataField: '',
+                                caption: 'Edit',
+                                dataType: 'string',
+                                format: '',
+                                type: 'buttons',
+                                width: '50px',
+                                cellTemplate: function (container, options) {
+                                    var buttonElement = $('<div class="d-flex order-actions">' +
+                                        '<a href="javascript:;" class="edit-action" title="Update Employee">' +
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">' +
+                                        '<path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>' +
+                                        '</svg>' +
+                                        '</a>' +
+                                        '</div>')
+                                        .on('dxclick', function () {
+                                            updateLeftEmployee(options.data); // Fix: corrected function name
+                                        }).appendTo(container);
+
+                                    var svgElement = buttonElement.find('svg');
+                                    svgElement.attr('title', 'Update employee');
+                                }
+                            },
+                            {
+                                dataField: '',
+                                caption: 'Delete',
+                                dataType: 'string',
+                                format: '',
+                                type: 'buttons',
+                                width: '50px',
+                                cellTemplate: function (container, options) {
+                                    var buttonElement = $('<div class="d-flex order-actions">' +
+                                        '<a href="javascript:;" class="delete-action" title="Delete Employee">' +
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +
+                                        '<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>' +
+                                        '</svg>' +
+                                        '</a>' +
+                                        '</div>')
+                                        .on('dxclick', function () {
+                                            deleteLeftEmployee(options.data); // Fix: corrected function name
+                                        }).appendTo(container);
+
+                                    var svgElement = buttonElement.find('svg');
+                                    svgElement.attr('title', 'Delete Employee');
+                                }
+                            }
+                        ],
+                        columnsAutoWidth: true,
+                        wordWrapEnabled: false,
+                        rowAlternationEnabled: false,
+                        showBorders: true,
+                        grouping: { autoExpandAll: false },
+                        paging: { pageSize: 10 },
+                        pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+                        headerFilter: { visible: false },
+                        filterRow: { visible: false, applyFilter: "auto" },
+                        allowColumnResizing: false,
+                        groupPanel: { visible: true },
+                        searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+                        allowColumnReordering: false,
+                        columnFixing: { enabled: false },
+                        onContentReady(e) {
+                            jQuery('.rowCount').html('Total Records: ' + jQuery("#gridContainer").dxDataGrid('instance').totalCount());
+                            $('#grid-loader').removeClass('d-flex').hide();
+                        }
+                    }).dxDataGrid('instance');
+                } else {
+                    $("#noRecord").show();
+                    $("#gridTag").hide();
+                    $('#grid-loader').removeClass('d-flex').hide();
+                }
+            },
+            error: function () {
+                $("#noRecord").show();
+                $("#gridTag").hide();
+                $('#grid-loader').removeClass('d-flex').hide();
+                console.error("Unable to load left employee data");
+            }
+        });
+    }
+
+     function resetLeftEmployee() {
+        leftempid = 0;
+        $("#leftDate, #resignationDate, #resignationAcceptedDate, #joinDate").val("");
+        $("#otherReason").val("");
+       //$("#branch").data('searchableSelect').clear();
+        $("#branchemps").data('searchableSelect').clear();
+
+        $("#reason").data('searchableSelect').clear();
+        $("#uniformReturn").data('searchableSelect').clear();
+        $("#exitInterview").data('searchableSelect').clear();
+        $("#noticePeriod").data('searchableSelect').clear();
+        $("#replaceManager").data('searchableSelect').clear();
+        $("#leftReasonPf").data('searchableSelect').clear();
+        
+        $(".reasonType").prop("checked", false);
+         $(".reasonType").prop("disabled", false);
+         $('.resignation-fields').hide();
+          $('.terminated-fields').hide();
+          $('.death-fields').hide();
+          $('.retirement-fields').hide();
+        $(".common-reason").hide();
+              $('#spnemp').hide();
+              $('#spnresignationAcceptedDategreter').hide();
+              $('#spnleftdategreter').hide();
+               $('#spnleftdate').hide();
+              $('#spnresignationAcceptedDate').hide();
+              $('#spnleftdateafterresignation').hide();
+        $("#leftDateLabel").css('color', '');
+        $("#addEmployeeLeftLabel").text("Add Left Employee");
+        $("#btnSaveLeftEmployee").text("Save").prop("disabled", false);
+    }
+
+      function normalizeYesNo(val) {
+         if (val === true || val === "true" || val === 1 || String(val).toLowerCase() === "yes") return "Yes";
+         if (val === false || val === "false" || val === 0 || String(val).toLowerCase() === "no") return "No";
+         return "N/A";
+     }
+      async function updateLeftEmployee(data) {
+
+        try {
+            resetLeftEmployee();
+            leftempid = data.leftID;
+            // $("#branch").data('searchableSelect').setValue(data.branchId);
+            // await BindEmployeeByBranchId();
+            $("#branchemps").data('searchableSelect').setValue(data.empID);
+            await GetJoinDateById();
+            $("#leftDate").val(data.leftDate ? data.leftDate.split('T')[0] : "");
+            $("#resignationDate").val(data.regDate ? data.regDate.split('T')[0] : "");
+            $("#resignationAcceptedDate").val(data.regAcceptDate ? data.regAcceptDate.split('T')[0] : "");
+            $("#reason").data('searchableSelect').setValue(data.leftReason || "");
+            $("#otherReason").val(data.leftReasonText || "");
+            $("#uniformReturn").data('searchableSelect').setValue(normalizeYesNo(data.uniformReturn));
+            $("#exitInterview").data('searchableSelect').setValue(normalizeYesNo(data.exitInterview));
+            $("#noticePeriod").data('searchableSelect').setValue(normalizeYesNo(data.noticePeriod));
+            $("#replaceManager").data('searchableSelect').setValue(data.rptManagerID || "");
+            $("#leftReasonPf").data('searchableSelect').setValue(data.leftReasonValue || "");
+            // Uncheck all reasonType checkboxes first
+            $(".reasonType").prop("checked", false);
+            $(".reasonType").prop("disabled", true);
+
+                     // Determine which checkbox to check and show fields
+                 if (data.isTerminate === true || data.isTerminate === "True" || data.isTerminate === 1) {
+                     $("#terminated").prop("checked", true);
+                     $('.terminated-fields').show();
+                 } else if (data.isDeath === true || data.isDeath === "True" || data.isDeath === 1) {
+                     $("#death").prop("checked", true);
+                     $('.death-fields').show();
+                 } else if (data.isRetire === true || data.isRetire === "True" || data.isRetire === 1) {
+                     $("#retirement").prop("checked", true);
+                     $('.retirement-fields').show();
+                 } else if (data.isFnFApplicable === true || data.isFnFApplicable === "True" || data.isFnFApplicable === 1) {
+                     $("#resignation").prop("checked", true);
+                     $('.resignation-fields').show();
+                 }
+
+             $(".reasonType").change();
+            $("#btnSaveLeftEmployee").prop("disabled", false).text("Update");
+            $("#addEmployeeLeftLabel").text("Update Left Employee");
+               $("#addEmployeeLeftModal").modal("show");
+        } catch (err) {
+            console.error("Error in updateLeftEmployee:", err);
+            round_error_noti('Error loading employee data for update');
+        }
+    }
+
+    function deleteLeftEmployee(data) {
+        if (!confirm("Are you sure you want to delete this left employee record?")) {
+            return;
+        }
+
+        var deleteObj = {
+            id: data.leftID,
+             deletedBy: EmployeeId.toString()
+        };
+
+        $.ajax({
+            url: '@baseUrl/LeftEmployeeAPI/Delete',
+            type: "DELETE",
+            data: JSON.stringify(deleteObj),
+            contentType: 'application/json',
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess) {
+                    round_success_noti(response.responseMessage);
+                    loadDataTable();
+                } else {
+                    round_error_noti(response.responseMessage);
+                }
+            },
+            error: function (xhr, status, error) {
+                round_error_noti('An error occurred while deleting the record. Please try again');
+            }
+        });
+    }
+
+        function exportGridToExcel() {
+         var gridInstance = $("#gridContainer").dxDataGrid('instance');
+
+         if (!gridInstance) {
+             round_error_noti('Grid not initialized');
+             return;
+         }
+
+         // Get the data source
+         var dataSource = gridInstance.getDataSource();
+         var data = dataSource.items();
+
+         if (!data || data.length === 0) {
+             round_error_noti('No data available to export');
+             return;
+         }
+
+         // Prepare data for export (excluding action columns)
+         var exportData = data.map(function(item) {
+             return {
+                 'Employee Code': item.employeeCode || '',
+                 'Employee Name': item.fullName || '',
+                 // 'Branch Name': item.branchName || '',
+                 'Joining Date': item.dateOfJoining ? formatDate(item.dateOfJoining) : '',
+                 'Leaving Date': item.leftDate ? formatDate(item.leftDate) : '',
+                 'Reason Type': item.reasonType || ''
+             };
+         });
+
+         // Create workbook
+         var wb = XLSX.utils.book_new();
+         var ws = XLSX.utils.json_to_sheet(exportData);
+
+         // Set column widths
+         ws['!cols'] = [
+             { wch: 15 }, // Employee Code
+             { wch: 25 }, // Employee Name
+             //{ wch: 20 }, // Branch Name
+             { wch: 15 }, // Joining Date
+             { wch: 15 }, // Leaving Date
+             { wch: 20 }  // Reason Type
+         ];
+
+         // Add worksheet to workbook
+         XLSX.utils.book_append_sheet(wb, ws, 'Left Employees');
+
+         // Generate filename with current date
+         var today = new Date();
+         var filename = 'LeftEmployees_' + today.getFullYear() +
+                       ('0' + (today.getMonth() + 1)).slice(-2) +
+                       ('0' + today.getDate()).slice(-2) + '.xlsx';
+
+         // Save file
+         XLSX.writeFile(wb, filename);
+
+         round_success_noti('Excel file exported successfully');
+     }
+
+     // Helper function to format dates
+     function formatDate(dateString) {
+         if (!dateString) return '';
+         var date = new Date(dateString);
+         var day = ('0' + date.getDate()).slice(-2);
+         var month = ('0' + (date.getMonth() + 1)).slice(-2);
+         var year = date.getFullYear();
+         return day + '-' + month + '-' + year;
+     }
+
+     // Add click event for export button
+     $(document).ready(function() {
+         $('#exportToExcel').click(function() {
+             exportGridToExcel();
+         });
+     });
+
+      
+</script>
