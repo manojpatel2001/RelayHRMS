@@ -23,5 +23,10 @@ namespace HRMS_Core.VM.Employee
         public string? ReportingManagerName { get; set; }
         public string? TransferReportingPersonName { get; set; }
         public int TransferReportingPerson { get; set; }
+
+        public string? RefNumber { get; set; }
+        public string? CompanyLogoUrl { get; set; }
+        public string? CompanyName { get; set; }
+        public string? CompanyAddress { get; set; }
     }
 }
