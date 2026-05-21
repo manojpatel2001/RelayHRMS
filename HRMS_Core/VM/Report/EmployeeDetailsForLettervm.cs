@@ -17,5 +17,7 @@ namespace HRMS_Core.VM.Report
         public DateTime? LastDate { get; set; }
         public string? CompanyAddress { get; set; }
         public string? CompanyName { get; set; }
+        public string? RefNumber { get; set; }
+        public string? BranchName { get; set; }
     }
 }
