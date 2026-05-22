@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.EmployeeMaster;
 using HRMS_Infrastructure.Interface.Employee;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,7 @@ namespace HRMS_Infrastructure.Repository.Employee
     {
         private readonly HRMSDbContext _db;
 
-        public MyProfileRepository(HRMSDbContext db) 
+        public MyProfileRepository(HRMSDbContext db)
         {
             _db = db;
         }
@@ -30,11 +31,11 @@ namespace HRMS_Infrastructure.Repository.Employee
                 {
                     new SqlParameter("@EmployeeId", employeeId),
                     new SqlParameter("@CompanyId", companyId),
-              
+
                 };
 
                 var result = await _db.Set<vmMyProfile>()
-                    .FromSqlRaw("EXEC GetMyProfile @EmployeeId, @CompanyId", parameters)
+                    .FromSqlRaw($"EXEC GetMyProfile @EmployeeId, @CompanyId", parameters)
                     .ToListAsync();
 
                 return result;
@@ -43,6 +44,21 @@ namespace HRMS_Infrastructure.Repository.Employee
             {
                 return new List<vmMyProfile>();
             }
+        }
+
+        public async Task<List<vmMyProfile>> GetEmployeeProfiles(int companyId , int employeeId)
+        {
+            try
+            {
+                return await _db.Set<vmMyProfile>()
+                         .FromSqlInterpolated($"EXEC GetMyProfileWithEmp @companyId={companyId}, @employeeId={employeeId}")
+                         .ToListAsync();
+            }
+            catch (Exception)
+            {
+                return new List<vmMyProfile>();
+            }
+
         }
     }
 }

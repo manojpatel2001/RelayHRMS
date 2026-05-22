@@ -12,8 +12,6 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -81,12 +79,6 @@
             background-color: #2395c6;
         }
 
-    .main-header {
-        background-color: #4a5670;
-        color: white;
-        padding: 8px 20px;
-        font-weight: bold;
-    }
 
     .tab-button {
         background-color: #4a5670;
@@ -245,6 +237,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <script>
+
+
+
+           const savedCompany = localStorage.getItem('selectedCompany');
+       var companyDetails = JSON.parse(savedCompany);
+       const CompanyId=companyDetails.CompanyId;
+       const EmployeeId=localStorage.getItem('EmployeeId');
+       const Token=localStorage.getItem("authToken");
+
     $(document).ready(function () {
         BindBranchDropdown();
         populateYearDropdown();
@@ -270,6 +271,37 @@
             $('#startDate').val(formatDate(firstDay));
             $('#endDate').val(formatDate(lastDay));
         }
+
+
+             function  BindBranchDropdown(){
+         
+       $.ajax({
+            url: '@baseDomainUrl/api/BranchAPI/GetAllBranchesListByCompanyId/'+CompanyId,
+            method: 'GET',
+                headers: {
+                        'Authorization': 'Bearer ' + Token
+                    },
+            success: function(data) {
+                if(data.isSuccess){
+                        var dropdown = $('#branch');
+                    dropdown.empty();
+                    dropdown.append('<option disabled selected value="">Select</option>');
+                    $.each(data.data, function(index, company) {
+                        dropdown.append($('<option>', {
+                            value: company.branchId,
+                            text: company.branchName
+                        }));
+                    });
+
+
+                }
+            },
+            error: function(error) {
+                console.error('Error fetching branch data:', error);
+            }
+        });
+
+    }
 
 
       $('#btnExportExcel').click(function () {
@@ -420,21 +452,20 @@
     });
 
 
-    function callSearchAPI(type) { 
+    function callSearchAPI(type) {
         const isBetween = $('#chkBetween').is(':checked');
         const parseDate = (val) => {
-        if (!val) return null;
-        const parts = val.split('-'); // Input: "25-07-2025"
-        if (parts.length !== 3) return null;
+            if (!val) return null;
+            const parts = val.split('-');
+            if (parts.length !== 3) return null;
 
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1; // JS months are 0-based
-        const year = parseInt(parts[2], 10);
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1; // JS months are 0-based
+            const year = parseInt(parts[2], 10);
 
-        const date = new Date(Date.UTC(year, month, day));
-        return isNaN(date) ? null : date.toISOString();
-    };
-
+            const date = new Date(Date.UTC(year, month, day));
+            return isNaN(date) ? null : date.toISOString();
+        };
 
         const data = {
             month: isBetween ? null : parseInt($('#month').val()) || null,
@@ -445,6 +476,7 @@
             endDate: isBetween ? parseDate($('#endDate').val()) : null,
             isBetween: isBetween
         };
+
         const apiUrls = {
             r1: '@(baseDomainUrl + "/api/AllowanceAPI/GetAllowanceData")',
             r2: '@(baseDomainUrl + "/api/EmpAttendanceAPI/GetEmpAttendance")',
@@ -474,11 +506,14 @@
                 { dataField: "employeeCode", caption: "Employee Code" },
                 { dataField: "fullName", caption: "Employee Name" },
                 { dataField: "basic", caption: "Basic", format: "fixedPoint" },
+                   { dataField: "month", caption: "Month" },
+                { dataField: "year", caption: "Year" },
                 { dataField: "hra", caption: "HRA", format: "fixedPoint" },
                 { dataField: "conveyance", caption: "Conveyance", format: "fixedPoint" },
                 { dataField: "medical", caption: "Medical", format: "fixedPoint" },
-                { dataField: "month", caption: "Month" },
-                { dataField: "year", caption: "Year" }
+                { dataField: "childEducationAllowance", caption: "ChildEducationAllowance", format: "fixedPoint" },
+                { dataField: "arrears", caption: "Arrears", format: "fixedPoint" }
+             
             ],
             r4: [
                 { dataField: "deductionId", visible: false },
@@ -491,17 +526,12 @@
                 { dataField: "pt", caption: "PT", format: "fixedPoint" },
                 { dataField: "insurance", caption: "Insurance", format: "fixedPoint" },
                 { dataField: "lwf", caption: "LWF", format: "fixedPoint" },
-                { dataField: "tds", caption: "TDS", format: "fixedPoint" }
+                { dataField: "termInsurance", caption: "TermInsurance", format: "fixedPoint" },
+                { dataField: "groupMedical", caption: "GroupMedical", format: "fixedPoint" },
+                { dataField: "loan", caption: "Loan", format: "fixedPoint" },
+                { dataField: "otherDeduction", caption: "OtherDeduction", format: "fixedPoint" }
+            
             ]
-            ,
-                 onContentReady: function (e) {
-            const rowCount = data.length;
-            const rowHeight = 40; 
-            const headerHeight = 40;
-            const totalHeight = headerHeight + (rowCount * rowHeight);
-            e.component.option("height", totalHeight);
-        }
-
         };
 
         const url = apiUrls[type];
@@ -531,6 +561,9 @@
             return;
         }
 
+        // Export बटन पहले disable कर दो
+        $('#btnExportExcel').prop('disabled', true);
+
         $.ajax({
             url: url,
             type: 'POST',
@@ -550,20 +583,22 @@
                             dataSource: response.data,
                             columns: columns,
                             height: 400,
-                            showBorders: true,
-                            paging: { pageSize: 10 },
-                            pager: {
-                                showPageSizeSelector: true,
-                                allowedPageSizes: [10, 25, 50, 100],
-                                showInfo: true
-                            },
-                            headerFilter: { visible: true },
-                            filterRow: { visible: true, applyFilter: "auto" },
-                            allowColumnReordering: true,
-                            allowColumnResizing: true,
-                            columnsAutoWidth: true
+                            showBorders: true,                                       
+                            columnsAutoWidth: true,
+                              scrolling: {
+                                    mode: "standard",
+                                    useNative: true,
+                                    showScrollbar: "always"
+                                },
+                                  paging: {
+                                enabled: false
+                            }
                         });
                     }
+
+                    // Grid बनने के बाद ही Export enable
+                    $('#btnExportExcel').prop('disabled', false);
+
                     $('#gridSection').removeClass('d-none').show();
                 } else {
                     $("#recordCount").text('');
@@ -585,6 +620,7 @@
             }
         });
     }
+
 
     function deleteRecord(rowData) {
         Swal.fire({
@@ -647,25 +683,7 @@
         });
     }
 
-    function BindBranchDropdown() {
-        $.ajax({
-            type: "GET",
-            url: '@(baseDomainUrl + "/api/BranchAPI/GetAllBranch")',
-            success: function (response) {
-                if (response?.data?.length > 0) {
-                    let $branch = $('#branch');
-                    $branch.empty();
-                    $branch.append('<option value="">--Select--</option>');
-                    $.each(response.data, function (i, item) {
-                        $branch.append('<option value="' + item.branchId + '">' + item.branchName + '</option>');
-                    });
-                }
-            },
-            error: function () {
-                console.log("Failed to load branches.");
-            }
-        });
-    }
+
 
     function populateYearDropdown() {
         var startYear = 2024;

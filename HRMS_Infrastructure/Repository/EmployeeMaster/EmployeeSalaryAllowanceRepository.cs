@@ -21,15 +21,18 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
             _db = db;
         }
 
-        public async Task<vmGetLiveEmployeeSalaryAllowance?> GetLiveEmployeeSalaryAllowance(decimal GrossSalary)
+        public async Task<vmGetLiveEmployeeSalaryAllowance?> GetLiveEmployeeSalaryAllowance(salaryPara salaryPara)
         {
             try
             {
                 var result = await _db.Set<vmGetLiveEmployeeSalaryAllowance>().FromSqlInterpolated($@"
                 EXEC USP_CalculateSalaryStructure
-                    @Action = {"GET"},
-                   
-                    @GrossSalary = {GrossSalary}
+                    @Action = {"GET"},                   
+                    @GrossSalary = {salaryPara.GrossSalary},
+                    @BasicSalary = {salaryPara.BasicSalary},
+                    @EmployeeId = {salaryPara.EmployeeId},
+                    @CompanyId = {salaryPara.CompanyId},
+                    @IsPFApplicable = {salaryPara.IsPFApplicable}
                     
             ").AsNoTracking().ToListAsync();
 
@@ -49,7 +52,9 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     @Action = {"CREATE"},
                     @EmployeeId = {vmEmployeeSalary.EmployeeId},
                     @CompanyId = {vmEmployeeSalary.CompanyId},
-                    @GrossSalary = {vmEmployeeSalary.GrossSalary}
+                    @GrossSalary = {vmEmployeeSalary.GrossSalary},
+                    @BasicSalary = {vmEmployeeSalary.BasicSalary},
+                    @IsPFApplicable = {vmEmployeeSalary.IsPFApplicable}
                     
             ").ToListAsync();
 
@@ -102,7 +107,9 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     @Action = {"UPDATE"},
                     @EmployeeId = {vmEmployeeSalary.EmployeeId},
                     @CompanyId = {vmEmployeeSalary.CompanyId},
-                    @GrossSalary = {vmEmployeeSalary.GrossSalary}
+                    @GrossSalary = {vmEmployeeSalary.GrossSalary},
+                     @BasicSalary = {vmEmployeeSalary.BasicSalary},
+                    @IsPFApplicable = {vmEmployeeSalary.IsPFApplicable}
                     
             ").ToListAsync();
 
@@ -113,5 +120,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 return new VMCommonResult { Id = 0 };
             }
         }
+
+       
     }
 }

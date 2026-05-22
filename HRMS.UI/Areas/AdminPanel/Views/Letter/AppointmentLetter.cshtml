@@ -1,0 +1,924 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Appointment Letter";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<meta charset="UTF-8">
+<title>Appointment Letter</title>
+
+<!-- DevExtreme -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/devextreme@23.2.3/dist/css/dx.light.css">
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/devextreme@23.2.3/dist/js/dx.all.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- PDF Generation Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    .header {
+        background-color: #3f4d6b;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .main {
+        display: flex;
+        height: calc(100vh - 50px);
+    }
+
+    .left-section, .right-section {
+        width: 50%;
+        padding: 30px;
+        background-color: #fff;
+        box-sizing: border-box;
+    }
+
+    .separator {
+        width: 1px;
+        background-color: #ccc;
+    }
+
+    .date-row {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .form-group {
+        flex: 1;
+    }
+
+    label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 4px;
+        font-size: 13px;
+        color: #333;
+    }
+
+    select {
+        padding: 4px 6px;
+        font-size: 13px;
+        height: 32px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 130px;
+        box-sizing: border-box;
+    }
+
+    #branchDropdown {
+        width: 180px;
+    }
+
+    .btn-group {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+
+        .btn-group button {
+            padding: 6px 14px;
+            font-size: 13px;
+            min-width: 70px;
+        }
+
+    button {
+        border: none;
+        background-color: #3f4d6b;
+        color: white;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+        button:hover {
+            background-color: #2d3a52;
+        }
+
+    #recordCount {
+        color: red;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: none;
+    }
+
+    #employeeGrid {
+        height: calc(100vh - 250px);
+    }
+
+    #yearSelect {
+        padding: 4px 6px;
+        font-size: 13px;
+        height: 30px;
+        width: 110px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+    }
+
+    .filter-section {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+
+    .search-view-container {
+        display: none;
+        margin-bottom: 15px;
+        align-items: center;
+        gap: 15px;
+    }
+
+        .search-view-container.show {
+            display: flex;
+        }
+
+        .search-view-container input {
+            padding: 6px 10px;
+            font-size: 13px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 240px;
+        }
+
+        .search-view-container button {
+            padding: 6px 14px;
+            font-size: 13px;
+            min-width: 70px;
+        }
+
+    .action-buttons-container {
+        display: none;
+        margin-bottom: 15px;
+        gap: 10px;
+    }
+
+        .action-buttons-container.show {
+            display: flex;
+        }
+
+        .action-buttons-container button {
+            padding: 8px 16px;
+            font-size: 13px;
+            min-width: 90px;
+        }
+
+    .no-data-message {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+        font-style: italic;
+        font-size: 14px;
+    }
+
+    #recordCount.show {
+        display: block;
+    }
+
+    .custom-modal-width {
+        max-width: 95% !important;
+        width: 95% !important;
+    }
+
+    .modal-body {
+        padding: 30px 20px !important;
+    }
+
+    #appointmentLetterBody {
+        overflow-y: auto;
+        max-height: 75vh;
+    }
+
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.8;
+    }
+
+        .btn-loading::before {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+        }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .grid-loader {
+        position: absolute;
+        display: none;
+        inset: 0;
+        background: rgba(255,255,255,0.6);
+        z-index: 10;
+    }
+
+        .grid-loader.d-flex {
+            display: flex !important;
+        }
+
+    .grid-logo-spinner {
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+    }
+</style>
+
+<div class="header">APPOINTMENT LETTER GENERATION</div>
+
+<div class="main">
+    <!-- Left Section -->
+    <div class="left-section">
+        <div class="filter-section">
+            <div class="date-row">
+                <div class="form-group" style="width:200px; display:inline-block; margin-right:20px;">
+                    <label for="branchDropdown">Branch:</label>
+                    <div id="branchDropdown"></div>
+                </div>
+                <div class="form-group" style="width:120px; display:inline-block;">
+                    <label for="yearSelect">Year:</label>
+                    <select id="yearSelect" class="form-control"></select>
+                </div>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button onclick="onFind()" id="btnfind">Find</button>
+            <button onclick="onClear()">Clear</button>
+            <button onclick="goBack()">Back</button>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- Right Section -->
+    <div class="right-section">
+        <div id="recordCount">0 Records found.</div>
+        <div class="search-view-container" id="searchViewContainer">
+            <input type="text" id="employeeSearch" placeholder="Search employees..." />
+        </div>
+        <div class="action-buttons-container" id="actionButtonsContainer">
+            <button id="btnView">View</button>
+            <button id="btnDownloadMultiple">Download PDF</button>
+        </div>
+        <div class="grid-wrapper" style="position:relative;" id="gridTag">
+            <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column">
+                <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" />
+                <div class="grid-loading-text text-dark" style="font-size:16px;">Loading...</div>
+            </div>
+            <div class="no-data-message" id="noDataMessage">
+                No data to display. Please select a branch and click Find to load employee data.
+            </div>
+            <div id="employeeGrid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Appointment Letter Modal -->
+<div class="modal fade" id="appointmentLetterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl custom-modal-width">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Appointment Letter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="appointmentLetterBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btnDownloadPDF">Download PDF</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const Empid        = parseInt(localStorage.getItem("EmployeeId"));
+    const Role         = localStorage.getItem("RoleSlug");
+    const Token        = localStorage.getItem("authToken");
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany || '{}');
+    const Compname     = companyDetails.CompanyName;
+    const CompanyId    = companyDetails.CompanyId;
+
+    let originalEmployeeData = [];
+    let currentEmployeeData  = null;
+    let hrManagerData        = null;
+
+    // ── Gender & Name Helpers ─────────────────────────────────────────────────
+    function getTitlePrefix(gender) {
+        if (!gender) return '';
+        const g = gender.toString().trim().toLowerCase();
+        if (g === 'male'   || g === 'm' || g === '1') return 'Mr.';
+        if (g === 'female' || g === 'f' || g === '2') return 'Ms.';
+        return '';
+    }
+
+    function cleanEmployeeName(fullName) {
+        return (fullName || '').replace(/^(Mr\.|Mrs\.|Ms\.|Mr\/Ms\.)\s*/i, '').trim();
+    }
+
+    // displayName = "Mr. Ramesh Shah" or "Ms. Priya" or just name if no gender
+    function getDisplayName(fullName, gender) {
+        const prefix = getTitlePrefix(gender);
+        const name   = cleanEmployeeName(fullName);
+        return prefix ? `${prefix} ${name}` : name;
+    }
+
+    // ── On Ready ──────────────────────────────────────────────────────────────
+    $(document).ready(function () {
+        populateYearDropdown();
+        BindBranchDropdown();
+        fetchLetterInformation();
+        hideDataElements();
+    });
+
+    $('#yearSelect').on('change', function () {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+        if (selectedBranchIds && selectedBranchIds.length > 0) onFind();
+    });
+
+    function hideDataElements() {
+        $('#recordCount').removeClass('show').hide();
+        $('#searchViewContainer').removeClass('show').hide();
+        $('#actionButtonsContainer').removeClass('show').hide();
+        $('#noDataMessage').show();
+        $('#employeeGrid').hide();
+    }
+
+    function showDataElements() {
+        $('#recordCount').addClass('show').show();
+        $('#searchViewContainer').addClass('show').show();
+        $('#actionButtonsContainer').addClass('show').show();
+        $('#noDataMessage').hide();
+        $('#employeeGrid').show();
+    }
+
+    function goBack() { window.history.back(); }
+
+    function populateYearDropdown() {
+        const startYear   = 2025;
+        const currentYear = new Date().getFullYear();
+        const yearDropdown = $("#yearSelect");
+        yearDropdown.empty();
+        for (let year = currentYear; year >= startYear; year--) {
+            yearDropdown.append(`<option value="${year}">${year}</option>`);
+        }
+        yearDropdown.val(currentYear);
+    }
+
+    function BindBranchDropdown() {
+        $.ajax({
+            url: '@baseDomainUrl/api/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response?.data?.length > 0) {
+                    $("#branchDropdown").dxTagBox({
+                        items: response.data,
+                        displayExpr: "branchName",
+                        valueExpr: "branchId",
+                        placeholder: "--Select Branch--",
+                        showSelectionControls: true,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        maxDisplayedTags: 3,
+                        applyValueMode: "instantly",
+                        multiline: false,
+                        minSearchLength: 0,
+                        width: "100%",
+                        onOpened: function () { $(".dx-overlay-content").css("max-width", "150px"); }
+                    });
+                }
+            },
+            error: function () { Swal.fire('Error', 'Failed to load branches.', 'error'); }
+        });
+    }
+
+    function fetchLetterInformation() {
+        $.ajax({
+            url: '@baseDomainUrl/api/ReportAPI/GetLetterInformation',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response && response.isSuccess && response.data) {
+                    hrManagerData = Array.isArray(response.data) && response.data.length > 0
+                        ? response.data[0]
+                        : { fullName: 'HR Manager', isHrManager: true, employeeId: null };
+                } else {
+                    hrManagerData = { fullName: 'HR Manager', isHrManager: true, employeeId: null };
+                }
+            },
+            error: function () {
+                hrManagerData = { fullName: 'HR Manager', isHrManager: true, employeeId: null };
+            }
+        });
+    }
+
+    function updateRecordCount() {
+        const grid = $("#employeeGrid").dxDataGrid("instance");
+        if (grid) {
+            const filteredCount = grid.getVisibleRows().length;
+            $('#recordCount').text(`${filteredCount} Records found.`);
+            $('#recordCount').css('color', filteredCount > 0 ? '#28a745' : '#dc3545');
+        }
+    }
+
+    function onFind() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+
+        if (!selectedBranchIds || selectedBranchIds.length === 0) {
+            Swal.fire('Warning', 'Please select at least one branch.', 'warning');
+            return;
+        }
+
+        const selectedYear   = $('#yearSelect').val();
+        const branchIdsParam = selectedBranchIds.join(',');
+           const letterType      = 'APT';
+        $('#grid-loader').addClass('d-flex').show();
+        hideDataElements();
+
+        $.ajax({
+            url: `@baseDomainUrl/api/ReportAPI/GetAllEmployeeforletter/${CompanyId}?BranchId=${branchIdsParam}&Year=${selectedYear}&LetterType=${letterType}`,
+            type: "GET",
+            headers: { 'Authorization': 'Bearer ' + Token },
+            dataType: "json",
+            success: function (response) {
+                const employeeData = response.data || response;
+                originalEmployeeData = employeeData;
+
+                if (employeeData && employeeData.length > 0) {
+                    showDataElements();
+
+                    const grid = $("#employeeGrid").dxDataGrid({
+                        dataSource: employeeData,
+                        keyExpr: "id",
+                        selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        paging: { enabled: false },
+                        scrolling: { mode: "standard", useNative: true, showScrollbar: "always" },
+                        searchPanel: { visible: false },
+                        height: 500,
+                        columns: [
+                            { dataField: "employeeCode", caption: "Employee Code", width: 150 },
+                            { dataField: "id",           caption: "EmployeeId",    visible: false },
+                            { dataField: "fullName",     caption: "Employee Name" },
+                            { dataField: "branchName",   caption: "Branch",        width: 150 }
+                        ],
+                        onContentReady: function () { updateRecordCount(); }
+                    }).dxDataGrid("instance");
+
+                    $('#employeeSearch').off('input').on('input', function () {
+                        const searchValue = $(this).val();
+                        if (searchValue) {
+                            grid.filter([
+                                ['fullName',     'contains', searchValue], 'or',
+                                ['employeeCode', 'contains', searchValue], 'or',
+                                ['branchName',   'contains', searchValue]
+                            ]);
+                        } else {
+                            grid.clearFilter();
+                        }
+                        setTimeout(updateRecordCount, 100);
+                    });
+
+                    $('#recordCount').text(`${employeeData.length} Records found.`).css('color', '#28a745');
+                } else {
+                    hideDataElements();
+                    $('#noDataMessage').text('No employees found for the selected branch(es).').show();
+                }
+
+                $('#grid-loader').removeClass('d-flex').hide();
+            },
+            error: function () {
+                $('#grid-loader').removeClass('d-flex').hide();
+                hideDataElements();
+                $('#noDataMessage').text('Failed to load employees. Please try again.').show();
+                Swal.fire('Error', 'Failed to load employees.', 'error');
+            }
+        });
+    }
+
+    function onClear() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        if (branchTagBox) branchTagBox.option("value", []);
+        $('#yearSelect').val(new Date().getFullYear());
+
+        const grid = $("#employeeGrid").dxDataGrid("instance");
+        if (grid) grid.option("dataSource", []);
+
+        hideDataElements();
+        $('#noDataMessage').text('No data to display. Please select a branch and click Find to load employee data.');
+        $('#employeeSearch').val('');
+        originalEmployeeData = [];
+    }
+
+    // ── View button ───────────────────────────────────────────────────────────
+    $('#btnView').on('click', function () {
+        const grid    = $('#employeeGrid').dxDataGrid("instance");
+        const selected = grid.getSelectedRowsData();
+
+        if (!selected.length) {
+            Swal.fire('Warning', 'Please select at least one employee.', 'warning');
+            return;
+        }
+        if (selected.length > 1) {
+            Swal.fire('Warning', 'Please select only one employee to view.', 'warning');
+            return;
+        }
+
+        const employeeId = selected[0].id;
+           const letterType      = 'APT';
+        const $btn = $(this);
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...');
+
+        $.ajax({
+            url: `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${employeeId}&LetterType=${letterType}`,
+            type: "GET",
+            headers: { 'Authorization': 'Bearer ' + Token },
+            dataType: "json",
+            success: function (response) {
+                if (response && response.isSuccess) {
+                    let data = response.data || response.Data;
+                    if (Array.isArray(data)) {
+                        if (data.length === 0) { Swal.fire('Error', 'No employee data found.', 'error'); return; }
+                        data = data[0];
+                    }
+                    currentEmployeeData = data;
+                    $('#appointmentLetterBody').html(generateAppointmentLetterHTML(data));
+                    const modal = new bootstrap.Modal(document.getElementById('appointmentLetterModal'));
+                    modal.show();
+                } else {
+                    Swal.fire('Error', response.responseMessage || 'Failed to fetch employee details.', 'error');
+                }
+            },
+            error: function (xhr, status, error) {
+                Swal.fire('Error', `Failed to fetch employee details: ${error}`, 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html('View');
+            }
+        });
+    });
+
+    // ── Download Multiple button ───────────────────────────────────────────────
+    $('#btnDownloadMultiple').on('click', function () {
+        const grid    = $('#employeeGrid').dxDataGrid("instance");
+        const selected = grid.getSelectedRowsData();
+
+        if (!selected.length) {
+            Swal.fire('Warning', 'Please select at least one employee.', 'warning');
+            return;
+        }
+
+        const $btn = $(this);
+        $btn.prop('disabled', true).addClass('btn-loading');
+
+        let completedCount = 0;
+        const totalCount   = selected.length;
+             const letterType      = 'APT';
+        selected.forEach((employee) => {
+            $.ajax({
+                url: `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${employee.id}&LetterType=${letterType}`,
+                type: "GET",
+                headers: { 'Authorization': 'Bearer ' + Token },
+                dataType: "json",
+                success: function (response) {
+                    if (response && response.isSuccess) {
+                        let data = response.data || response.Data;
+                        if (Array.isArray(data)) {
+                            if (data.length === 0) { finalize(); return; }
+                            data = data[0];
+                        }
+                        generatePDFFromHTML(generateAppointmentLetterHTML(data), data.employeeCode || 'EMPLOYEE', finalize);
+                    } else { finalize(); }
+                },
+                error: function () { finalize(); }
+            });
+        });
+
+        function finalize() {
+            completedCount++;
+            if (completedCount === totalCount) {
+                $btn.prop('disabled', false).removeClass('btn-loading');
+                Swal.fire('Success', `${totalCount} PDF(s) generated successfully!`, 'success');
+            }
+        }
+    });
+
+    // ── Shared PDF generator ──────────────────────────────────────────────────
+    function generatePDFFromHTML(html, code, callback) {
+        const tempContainer = $('<div>').css({ position: 'absolute', left: '-9999px', top: '0' }).appendTo('body');
+        tempContainer.html(html);
+        const element = tempContainer.find('.appointment-letter-container')[0];
+
+        html2canvas(element, { scale: 2, logging: false, useCORS: true }).then(canvas => {
+            const imgData    = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf        = new jsPDF('p', 'mm', 'a4');
+            const imgWidth   = 210;
+            const pageHeight = 297;
+            const imgHeight  = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft   = imgHeight;
+            let position     = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            pdf.save(`Appointment_Letter_${code}_${new Date().getTime()}.pdf`);
+            tempContainer.remove();
+            if (callback) callback();
+        }).catch(error => {
+            console.error('PDF generation error:', error);
+            tempContainer.remove();
+            if (callback) callback();
+        });
+    }
+
+    // ── Appointment Letter HTML ───────────────────────────────────────────────
+    function generateAppointmentLetterHTML(data) {
+
+        const formatDate = (dateStr) => {
+            if (!dateStr) return 'N/A';
+            const d     = new Date(dateStr);
+            const day   = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year  = d.getFullYear();
+            return `${day}/${month}/${year}`;
+        };
+
+        const today      = formatDate(new Date().toISOString());
+        // const logoUrl    = '/assets/images/relaylogo.jpeg';
+
+        // ── FIX: correct gender handling — no double prefix ──
+        const titlePrefix  = getTitlePrefix(data.gender);
+        const cleanName    = cleanEmployeeName(data.fullName || '[Employee Name]');
+        const displayName  = titlePrefix ? `${titlePrefix} ${cleanName}` : cleanName;
+
+        const employeeCode   = data.employeeCode  || '';
+        const address        = data.address        || data.presentAddress || '';
+        const statePincode   = data.statePincode   || data.state          || '';
+        const designation    = data.designationName|| data.designation    || '[Designation]';
+        const department     = data.departmentName || data.department     || '[Department]';
+        const grade          = data.gradeName      || data.employeeGrade  || '';
+        const branchLocation = data.branchName     || data.branchLocation || '[Branch Name]';
+        const joiningDate    = formatDate(data.joiningDate || data.dateOfJoining);
+        const annualCtc      = data.annualCtc      || data.ctc            || '';
+        const ctcInWords     = data.ctcInWords     || data.salaryInWords  || '';
+        const companyAddress = data.companyAddress || '406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway, Makarba, Ahmedabad - 380051 Gujarat, India';
+        const directorName   = data.directorName   || 'Atri Patel';
+        const logoUrl      =  '/assets/images/relaylogo.jpeg';
+        const companyName  = data.companyName     || Compname      || '';
+        const refNo        = data.refNumber
+        const sectionHead = (title) => `
+            <p style="margin:18px 0 4px 0; font-size:14px; font-weight:bold; text-decoration:underline; color:#222;">${title}</p>`;
+
+        const para   = (text) => `<p style="margin:6px 0; text-align:justify;">${text}</p>`;
+        const bullet = (text) => `<p style="margin:4px 0 4px 20px;">&#8226; ${text}</p>`;
+
+        return `
+        <div class="appointment-letter-container" style="
+            width:100%; max-width:900px; margin:0 auto;
+            padding:50px 70px; background:white;
+            font-family:'Calibri','Arial',sans-serif;
+            font-size:13.5px; color:#222; box-sizing:border-box;
+            border:1px solid #ddd; line-height:1.8;">
+
+            <!-- HEADER -->
+            <table style="width:100%; margin-bottom:20px;">
+                <tr>
+                    <td style="vertical-align:top;">
+                        <p style="margin:0; font-size:13px;">
+                            <strong>Ref No :</strong> ${refNo}
+                        </p>
+                    </td>
+                    <td style="text-align:right; vertical-align:top;">
+                        <img src="${logoUrl}" alt="Company Logo"
+                             style="max-width:220px; height:auto;"
+                             onerror="this.style.display='none'" />
+                    </td>
+                </tr>
+            </table>
+
+            <!-- DATE -->
+            <p style="margin:0 0 18px 0; font-size:13px; text-align:right;">
+                <strong>${today}</strong>
+            </p>
+
+            <!-- TO BLOCK — sirf displayName, no double prefix -->
+            <p style="margin:0;">To,</p>
+            <p style="margin:4px 0;">
+                <strong><u style="color:#e74c3c;">${displayName}</u></strong>
+            </p>
+            ${employeeCode ? `<p style="margin:4px 0;"><strong>Employee Code:</strong> ${employeeCode}</p>` : ''}
+            ${address      ? `<p style="margin:4px 0;"><strong>Address :</strong> ${address}</p>`           : ''}
+            ${statePincode ? `<p style="margin:4px 0;">${statePincode}</p>`                                 : ''}
+
+            <!-- TITLE -->
+            <p style="text-align:center; font-size:16px; font-weight:bold;
+                      text-decoration:underline; margin:28px 0 20px 0; color:#3f4d6b;">
+                Appointment Letter
+            </p>
+
+            <!-- SALUTATION — sirf displayName -->
+            <p><strong>Dear ${displayName},</strong></p>
+
+            <!-- OPENING PARA -->
+            ${para(`With reference to your application, subsequent interviews and our discussions, we are pleased to appoint you to the position of <strong style="color:#e74c3c;">"${designation} - ${department}"</strong> at Grade <strong style="color:#e74c3c;">${grade}</strong> w.e.f. <strong style="color:#e74c3c;">"${joiningDate}"</strong> with <strong>Relay Express Pvt. Ltd.</strong> on the following terms and conditions:`)}
+
+            ${sectionHead('References:')}
+            ${para('Your appointment is subject to the verification of your educational certificates, qualifications and the submission of a copy of relevant documentation on your date of joining. Your employment is subject to references and background checks being obtained to the satisfaction of the organization if, any declaration given or information furnished by you to the organisation proves to be false or if you are found to have willfully suppressed any material information, you are liable to be terminated from the services of the Organization without any notice.')}
+            ${para('The appointment and its continuance are subject to your being found and remaining medically (physically &amp; mentally) fit. The organization reserves the right to ask you to undergo medical examination if and when considered necessary.')}
+
+            ${sectionHead('Compensation:')}
+            ${para(`Your Annual Fixed Remuneration will be <strong>INR. ${annualCtc} /-</strong> ${ctcInWords ? `<strong>(Rupees ${ctcInWords})</strong>` : ''} subject to the deduction of applicable statutory taxes. The details of the Annual CTC as applicable to your grade is enclosed in <strong>Annexure – I</strong>.`)}
+            ${para('The variable pay component, if any included in your compensation, is directly dependent on:')}
+            ${bullet('You establishing and effecting a desirable and satisfactory performance in all parameters in respect of your key result areas.')}
+            ${bullet('Your department/team establishing and effecting a desirable and satisfactory performance in all parameters in respect of their key result areas.')}
+            ${bullet('The performance of the organisation.')}
+            ${para('At its sole discretion of Management, the Salary structure or components of the organisation may be altered/modified at any time without prior notice, and your remuneration package may accordingly be altered, modified from time to time. Further, salary, allowances and all other payments/benefits will be governed by the organisation rules as well as statutory provisions in force from time to time and subject to deductions of appropriate taxes at source.')}
+            ${para('The subject of compensation is confidential in nature and strictly between you and the organization and should not be discussed with anyone.')}
+
+            ${sectionHead('Place/Transfer:')}
+            ${para(`Your initial posting will be in <strong style="color:#e74c3c;">"${branchLocation}"</strong>, India. Your services are transferable to any of the organisation's establishment, client, worksites, sister concerns in India, which are in existence presently or which may be formed in future. In such an event you shall be governed by the service conditions, rules and regulations, which are applicable at the place of transfer from time to time.`)}
+
+            ${sectionHead('Probation:')}
+            ${para('You will be on a probation for a period of <strong>6 Months</strong> from your date of joining and the period of probation can be extended further if, your performance is not found satisfactory.')}
+            ${para('On successful completion of the probation period, if your performance is found to be satisfactory in all aspects, you will be confirmed and the organization will provide you a confirmation letter. Unless confirmed in writing, you will be deemed to be on probation.')}
+            ${para('During the probation period your employment can be terminated with <strong>fifteen (15) days</strong> notice on either side without any reason whatsoever.')}
+            ${para('After confirmation, either party will be at liberty to terminate this appointment by giving <strong>30 days</strong> notice or pay in lieu of notice.')}
+            ${para('Absence for a continuous period of <strong>7 days</strong> without prior approval of your superior (including overstay on leave/training) would result in you losing your lien on the employment and the same shall automatically come to an end without any notice or intimation.')}
+
+            ${sectionHead('Separation:')}
+            ${para('After the confirmation of services, either party will be at liberty to terminate this appointment by giving <strong>Thirty Days (30 days)</strong> notice or the short fall of notice period can be adjusted by giving payment of Basic Salary in lieu of number of days of shortfall of notice period.')}
+            ${para('The employment can also be terminated without any notice or pay in lieu thereof provided:')}
+            ${bullet('If, any information provided by you in your application or during the subsequent interviews and discussions or thereafter, is found to be false or misleading.')}
+            ${bullet('Further in case of any fraudulent practices, misconduct, in case of involvement in any criminal offence, violation of terms of employment etc., your services are liable to be terminated immediately without notice or any compensation in lieu thereof.')}
+            ${bullet('If, at any point of time, in the opinion of the organisation, you become insolvent or are found guilty of dishonesty, disobedience, disorderly behavior, negligence, indiscipline or of any other conduct considered by the organisation as detrimental to its interest or violation of one or more terms of this appointment.')}
+            ${bullet('If, employee remains absent for seven consecutive days without written approval or information.')}
+            ${para('After Termination/Resignation from the services, Employee will surrender all the assets including laptop, mobile phone, sim card, data card etc. in the name of organisation; these should be returned in prescribed format on the day of leaving the organisation.')}
+            ${para('Employee will not be eligible for Leave during Notice Period and if, employee avails leave during Notice Period, leaves will be considered as <strong>Leave without Pay</strong>.')}
+            ${para('Full &amp; Final Settlement will be done as per the separation policy of the organization. No Full &amp; Final will be processed if there will be any breach of contract or the duly signed No Dues Claim Form is not received from the employee on the last date of leaving.')}
+
+            ${sectionHead('Performance Assessment:')}
+            ${para('Your performance shall be assessed from time to time. Revision of position or compensation will not be automated; however, it will be subject to your overall performance in the organization. Any revision of position or compensation will be at the sole discretion of the Management.')}
+            ${para('The performance review is done yearly in the organization and subject to change at management discretion.')}
+
+            ${sectionHead('Organization Property:')}
+            ${para('You will be responsible for the safe keeping and return in good condition and order, all property of the organization which may be in your use, custody, care, and charge. The organization shall have the right to deduct the sum necessary for repair of such property or the value of such property (in case the property is lost or is not repairable) from your dues and take such other action, as the organization deems proper in the event of your failure to account for such property to our satisfaction.')}
+
+            ${sectionHead('Confidentiality:')}
+            ${para('During your employment with the organisation you will, at all times, keep secrecy in respect of any technical, trade or business documents, customers\' names/business details or any other information that might come to your knowledge or possession, which according to the organisation are confidential and form valuable property of the organisation. You shall not discuss with outsiders any such data in any manner whatsoever.')}
+            ${para('In addition to this, in order to protect the organisation\'s confidential and proprietary information to which you will have access to, especially at your level of seniority, you agree and confirm that for a period of <strong>six months</strong> from date of termination or cessation of your employment agreement, you shall not, without written permission of the organisation, engage yourself in any organisation, firm or concern and/or be concerned in and/or set up or abet the setting up of, any business, profession or a vocation which is similar to and/or directly or indirectly competes with the business of the organisation and/or any of its companies and/or firms associated with the organisation. If you breach the above condition, organisation will have full right to take action against you.')}
+            ${para('You are to treat as strictly confidential the affairs of <strong>Relay Express Pvt. Ltd.</strong> and its customers and/or any information that may come to your knowledge during the course of your employment with Relay Express Pvt. Ltd., the disclosure of which to anyone outside the organisation might prove detrimental to the interests of Relay Express Pvt. Ltd. Breach of this condition on your part will entitle Relay Express Pvt. Ltd. to immediately terminate your employment.')}
+            ${para('You shall not remove from the organisation\'s premises any material (either in physical or electronic form) which might contain Confidential information except in the ordinary course of employment or with the prior consent of the organization.')}
+
+            ${sectionHead('Other Employment:')}
+            ${para('No employee shall directly or indirectly participate in the management of or hold employment or any other office of profit in other Companies, Firms and Institutions etc. But any employee affected by this rule may put his case to the management for consideration so that such participation may be permitted if it does not conflict with the interest of the Organisation or will not interfere in any manner with his work in the Organisation. The decision of the Management as to whether the employee is holding office of profit or not will be treated as final.')}
+
+            ${sectionHead('Smoking &amp; Drinking:')}
+            ${para('The Organisation owes and assures a smoke and alcohol free environment for its Employees. The entire warehouse/office premises including conference rooms, lobbies/washrooms are declared as <strong>"Non-Smoking Zones"</strong> &amp; <strong>"Alcohol Free Zones"</strong>.')}
+
+            ${sectionHead('Insurance Coverage:')}
+            ${para('After <strong>Thirty Days (1 Month)</strong> of your date of joining you will be entitled to all Insurance Policy as per the applicability.')}
+
+            ${sectionHead('Retirement:')}
+            ${para('You will be retiring from the services of the organisation on attaining the age of <strong>58 years</strong>.')}
+
+            ${sectionHead('General Rules &amp; Regulations:')}
+            ${para('In all matters including conduct, discipline, administrative orders and those not covered by this letter, you will be governed by such rules as may be applicable to the employee of your category in the organization from time to time.')}
+
+            ${sectionHead('Jurisdiction:')}
+            ${para('Your employment will be governed in accordance with the laws of India. The jurisdiction concerning any dispute arising out of your employment with the organisation shall be exclusively with <strong>Ahmedabad Courts</strong>.')}
+
+            <p style="margin-top:20px;">
+                Kindly return the duplicate copy duly signed by you as a token of your acceptance and
+                acknowledgement of the above terms &amp; conditions of your appointment.
+            </p>
+            <p>We look forward to your fruitful association and participation in our organisation.</p>
+            <p><strong>Welcome to Relay Family!!</strong></p>
+
+            <!-- SIGNATURE -->
+            <div style="margin-top:40px;">
+                <p style="margin:4px 0;"><strong>For,${companyName} Pvt Ltd </strong></p>
+                <br/><br/>
+                <p style="margin:4px 0; color:#e74c3c;"><strong><u>Mr. ${directorName}</u></strong></p>
+                <p style="margin:4px 0;"><strong>Director</strong></p>
+                <p style="margin:4px 0;">
+                    <a href="mailto:hrd@relayexpress.in" style="color:#3f4d6b;">hrd@relayexpress.in</a>
+                </p>
+            </div>
+
+            <!-- ACCEPTANCE BLOCK — sirf displayName, no double prefix -->
+            <div style="margin-top:40px; border-top:1px solid #ccc; padding-top:20px;">
+                <p style="margin:0 0 10px 0;">
+                    I, <strong>${displayName}</strong>, accept the appointment on the terms &amp;
+                    conditions mentioned herein and undertake to abide by the same.
+                </p>
+                <table style="width:100%; font-size:13px; margin-top:14px;">
+                    <tr>
+                        <td style="width:50%;">
+                            <strong>Date Of Acceptance:</strong>
+                            <span style="display:inline-block; width:160px; border-bottom:1px solid #000;">&nbsp;</span>
+                        </td>
+                        <td style="width:25%;">
+                            <strong>Date Of Joining:</strong>
+                            <span style="display:inline-block; width:100px; border-bottom:1px solid #000;">&nbsp;</span>
+                        </td>
+                        <td style="width:25%; text-align:right;">
+                            <strong>Signature:</strong>
+                            <span style="display:inline-block; width:100px; border-bottom:1px solid #000;">&nbsp;</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- FOOTER -->
+            <div style="margin-top:30px; font-size:11px; text-align:center; color:#555;">
+                <p style="margin:2px 0;"><strong>Note: This is a Computer generated statement hence no signature required.</strong></p>
+                <p style="margin:2px 0;"><strong>Personal &amp; Confidential</strong></p>
+            </div>
+            <div style="margin-top:10px; font-size:11px; text-align:center; color:#666;">
+                <p><strong>${companyAddress}</strong></p>
+            </div>
+        </div>`;
+    }
+
+    // ── Download from modal ────────────────────────────────────────────────────
+    $('#btnDownloadPDF').on('click', function () {
+        const $btn    = $(this);
+        $btn.prop('disabled', true).addClass('btn-loading');
+
+        const element = document.getElementById('appointmentLetterBody').querySelector('.appointment-letter-container');
+
+        html2canvas(element, { scale: 2, logging: false, useCORS: true }).then(canvas => {
+            const imgData    = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf        = new jsPDF('p', 'mm', 'a4');
+            const imgWidth   = 210;
+            const pageHeight = 297;
+            const imgHeight  = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft   = imgHeight;
+            let position     = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            const code = currentEmployeeData?.employeeCode || 'EMPLOYEE';
+            pdf.save(`Appointment_Letter_${code}_${new Date().getTime()}.pdf`);
+            $btn.prop('disabled', false).removeClass('btn-loading');
+        }).catch(error => {
+            console.error('PDF generation error:', error);
+            Swal.fire('Error', 'Failed to generate PDF.', 'error');
+            $btn.prop('disabled', false).removeClass('btn-loading');
+        });
+    });
+
+    $('#appointmentLetterModal').on('hidden.bs.modal', function () {
+        const grid = $('#employeeGrid').dxDataGrid("instance");
+        if (grid) grid.clearSelection();
+    });
+</script>

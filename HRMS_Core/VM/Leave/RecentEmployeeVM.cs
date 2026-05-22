@@ -12,5 +12,6 @@ namespace HRMS_Core.VM.Leave
         public string? EmployeeProfileUrl { get; set; }
         public DateTime? DateOfJoining { get; set; }
         public string? DesignationName { get; set; }
+        public string? DepartmentName { get; set; }
     }
 }

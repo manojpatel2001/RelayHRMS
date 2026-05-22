@@ -1,0 +1,852 @@
+﻿@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "Joining Report";
+	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+	string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
+	var uriAPI = new Uri(baseUrl);
+	string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
+}
+<style>
+	.error-message {
+		font-size: 0.875em;
+		display: block;
+		margin-top: 0.25rem;
+	}
+
+	.is-invalid {
+		border-color: #dc3545 !important;
+	}
+
+
+	.dx-selectbox-arrow {
+		display: block !important;
+		opacity: 1 !important;
+	}
+
+	.responsive-logo {
+		max-width: 100%;
+		transition: max-width 0.3s ease;
+	}
+
+	@@media (min-width: 768px) {
+		/* Desktop mode: 170% width */
+		.responsive-logo {
+			max-width: 170%;
+		}
+	}
+</style>
+<style>
+    /* General styles for the modal */
+    #employeeJoiningFormContainer {
+        font-family: Arial, sans-serif;
+        width: 100%;
+        border: none;
+        padding: 15px;
+        box-sizing: border-box;
+    }
+
+    /* Company header styles */
+    .company-header {
+        text-align: center;
+        padding: 10px;
+        border-bottom: 2px solid #000;
+        margin-bottom: 15px;
+        page-break-inside: avoid;
+    }
+
+    .company-logo {
+        float: left;
+        margin-right: 20px;
+        margin-bottom: 10px;
+    }
+
+        .company-logo img {
+            height: 80px;
+            max-width: 200px;
+            display: block;
+        }
+
+    .company-details {
+        text-align: right;
+        margin-bottom: 10px;
+    }
+
+        .company-details h3 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .company-details p {
+            margin: 5px 0;
+        }
+
+    /* Table styles */
+    .joining-form-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        page-break-inside: avoid;
+    }
+
+        .joining-form-table th,
+        .joining-form-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .joining-form-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+    .section-header {
+        background-color: #ccc;
+        font-weight: bold;
+        text-align: center;
+        padding: 8px;
+        page-break-inside: avoid;
+    }
+
+    /* Print-specific styles */
+    @@media print {
+        #employeeJoiningFormContainer
+
+    {
+        width: 100%;
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .company-header {
+        page-break-inside: avoid;
+    }
+
+    .joining-form-table {
+        page-break-inside: auto;
+    }
+
+        .joining-form-table tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+
+        .joining-form-table td {
+            page-break-inside: avoid;
+        }
+
+    .clearfix {
+        clear: both;
+    }
+
+    /* Fix for floating elements in PDF */
+    .company-logo {
+        float: none;
+        display: inline-block;
+        margin-right: 20px;
+    }
+
+    .company-details {
+        text-align: left;
+        display: inline-block;
+        vertical-align: top;
+        width: calc(100% - 240px);
+    }
+
+    }
+
+    /* Modal-specific styles */
+    .modal-body {
+        overflow-y: auto;
+        max-height: calc(100vh - 200px);
+    }
+</style>
+
+
+<div class="card mb-5">
+	<div class="card-header bg-transparent ml-0 py-0">
+		<div class="row">
+			<div class="col-6">
+				<h6 class="pt-2 mb-0">
+					Joining Report
+				</h6>
+			</div>
+
+            <div class="col-6 d-flex justify-content-end align-items-center">
+                <div class="font-22 pl-2" style="color:#32393f; cursor:pointer;">
+                    <span id="resfress"> <i class="bx bx-refresh"></i></span>
+                </div>
+            </div>
+		</div>
+	</div>
+
+
+	<div class="card-body">
+
+      
+
+		<div class="row">
+            <div class="col-md-3">
+                <div class="form-group mt-3 position-relative">
+                    <input type="date" class="form-control floating-input" id="startDate" placeholder=" ">
+                    <label class="floating-label" for="startDate">Start Date</label>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group mt-3 position-relative">
+                    <input type="date" class="form-control floating-input" id="endDate" placeholder=" ">
+                    <label class="floating-label" for="endDate">End Date</label>
+                </div>
+            </div>
+			<div class="col-md-4">
+				<div class="mt-3 form-floating-custom">
+					<div class="searchable-select-wrapper" id="branchWrapper">
+						<label for="ddlBranch">Branch <span class="text-danger">*</span></label>
+						<input type="text" class="searchable-select-input" id="ddlBranch" readonly>
+						<span class="searchable-select-arrow">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+								<path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+							</svg>
+						</span>
+						<div class="searchable-select-dropdown">
+							<div class="searchable-select-search">
+								<input type="text" placeholder="Search branch..." class="search-input">
+							</div>
+							<div class="searchable-select-options"></div>
+						</div>
+					</div>
+					<span id="spnBranch" style="color:red; display:none;">Please Select Branch</span>
+				</div>
+			</div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-primary mt-3" id="btnSearch" style="background-color:#2395c6; color:white;">Search</button>
+
+            </div>
+
+		</div>
+		<div class="row">
+			<div class="col-md-12">
+
+				<div class="grid-wrapper " style="position: relative; " id="gridTag">
+					<div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column "
+						 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
+						<img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
+						<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+
+					</div>
+					<div class="row">
+
+						<div id="rowCount1"></div>
+
+						<div id="GridContainer"></div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Modal for Employee Joining Form -->
+<div class="modal fade" id="employeeJoiningModal" tabindex="-1" role="dialog" aria-labelledby="employeeJoiningModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="employeeJoiningModalLabel">Employee Joining Form</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="employeeJoiningFormContainer">
+                    <!-- Table will be dynamically generated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+@*                 <button type="button" class="btn btn-primary" id="printPdfButton">Print/Download PDF</button>
+ *@            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/assets/js/jquery.min.js"></script>
+<!-- Include html2pdf library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+
+
+<script>
+    const EmployeeId = localStorage.getItem("EmployeeId");
+        var Token=localStorage.getItem("authToken");
+        var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId=companyDetails.CompanyId;
+    
+    $(document).ready(function(){
+        bindBranch();
+    });
+
+    $("#resfress").on("click", function() {
+        const gridInstance = $("#GridContainer").dxDataGrid("instance");
+         if (!gridInstance) return;
+        gridInstance.searchByText("");
+        manpowerDataTable();
+    });
+
+    async  function bindBranch() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: {
+                        'Authorization': 'Bearer ' + Token
+                },
+                success: function (data) {
+                    if (data.isSuccess) {
+                           $('#ddlBranch').searchableSelect({
+                                data: data.data||[],
+                                valueKey: 'branchId',
+                                textKey: 'branchName',
+                                placeholder:'Branch',
+                                searchPlaceholder: 'Search branch...',
+                                onChange: function(item) {
+                                }
+                            });
+
+                        resolve(data.data);
+                    } else {
+                        reject('Failed to fetch branches');
+                    }
+                },
+                error: function (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+     $("#btnSearch").on("click", function () {
+        manpowerDataTable();
+    });
+
+
+        function manpowerDataTable() {
+            debugger;
+                const companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+                const CompanyId = companyDetails.CompanyId;
+               const BranchId = $("#ddlBranch").data('searchableSelect').getValue();
+
+                if (!BranchId) {
+                    round_error_noti("Please select branch.");
+                    return;
+                }
+
+                const data = {
+                    CompanyId: CompanyId,
+                    BranchId: 1,
+                    StartDate: $("#startDate").val()===""?null:$("#startDate").val(),
+                    EndDate: $("#endDate").val()===""?null:$("#endDate").val()
+                };
+
+                
+             try {
+                $('#grid-loader').addClass('d-flex').show();
+                 $.ajax({
+                    type: 'POST',
+                     url: '@baseUrl/ManpowerRequisitionAPI/GetAllJoiningManpowerRequisitions',
+                      data: JSON.stringify(data),
+                       contentType: 'application/json',
+                    headers: {
+                            'Authorization': 'Bearer ' + Token
+                        },
+                     success: function (data) {
+
+                           debugger
+                         if(data.isSuccess){
+                             loadGridData(data.data);
+                         }
+
+                              $('#grid-loader').removeClass('d-flex').hide();
+
+                    },
+                    error: function (xhr, status, error) {
+                          $('#grid-loader').removeClass('d-flex').hide();
+
+                        // Handle any errors that occurred during the AJAX request
+                        console.error("AJAX Error: " + status + " - " + error);
+
+                    }
+                });
+
+              } catch (e)
+              {
+                   console.error("Error in TicketPriorityDataTable:", e);
+                   $('#grid-loader').removeClass('d-flex').hide();
+              }
+        }
+
+           
+
+
+        // Load data into the grid
+        function loadGridData(data) {
+            debugger;
+                        console.log(data);
+             $("#GridContainer").dxDataGrid({
+                    dataSource: data||[], // Will be populated via AJAX
+                    keyExpr: "manpowerRequisitionId",
+                    columns: [
+                           {
+                                dataField: 'serialNo',
+                                caption: 'Serial No',
+                                width: 150,
+                                cellTemplate: function (container, options) {
+                                    const link = $('<a>')
+                                        .attr('href', '#')
+                                        .text(options.value)
+                                        .on('click', function (e) {
+                                            e.preventDefault();
+                                            populateManpowerModal(options.data);
+                                        });
+                                    container.append(link);
+                                }
+                            },
+
+                         { dataField: "branchName", caption: "Branch", width: 150 },
+                        { dataField: "departmentName", caption: "Department", width: 150 },
+                        { dataField: "designationName", caption: "Designation", width: 150 },
+                        { dataField: "employeeName", caption: "Employee Name", width: 150 },
+                        { dataField: "personalEmail", caption: "Personal Email", width: 180 },
+                        { dataField: "contactNumber", caption: "Contact Number", width: 120 },
+                        { dataField: "dateOfJoining", caption: "Date of Joining", width: 120, dataType: "date", format: "dd-MM-yyyy" },
+                       // { dataField: "categoryOfEmployment", caption: "Employment Category", width: 150 },
+                        { dataField: "ctC_Monthly", caption: "CTC (Monthly)", width: 120, dataType: "number", format: { type: "fixedPoint", precision: 2 } },
+                        { dataField: "grossSalary", caption: "Gross Salary", width: 120, dataType: "number", format: { type: "fixedPoint", precision: 2 } },
+                        { dataField: "takeHomeSalary", caption: "Take Home Salary", width: 130, dataType: "number", format: { type: "fixedPoint", precision: 2 } }
+                        //{ dataField: "reportingName", caption: "Reporting To", width: 200 },
+                        //{ dataField: "requestedBy", caption: "Requested By", width: 150 },
+                        // {
+                        //     dataField: "hr_Approved",
+                        //     caption: "HR Approved",
+                        //     width: 120,
+                        //     cellTemplate: function (container, options) {
+                        //         const status = options.value === "Yes" ? "badge badge-success" : "badge badge-danger";
+                        //         $("<span>")
+                        //             .addClass(status)
+                        //             .text(options.value)
+                        //             .appendTo(container);
+                        //     }
+                        // },
+                        // {
+                        //     dataField: "nm_Approved",
+                        //     caption: "NM Approved",
+                        //     width: 120,
+                        //     cellTemplate: function (container, options) {
+                        //         const status = options.value === "Yes" ? "badge badge-success" : "badge badge-danger";
+                        //         $("<span>")
+                        //             .addClass(status)
+                        //             .text(options.value)
+                        //             .appendTo(container);
+                        //     }
+                        // },
+                        // {
+                        //     dataField: "rm_Approved",
+                        //     caption: "RM Approved",
+                        //     width: 120,
+                        //     cellTemplate: function (container, options) {
+                        //         const status = options.value === "Yes" ? "badge badge-success" : "badge badge-danger";
+                        //         $("<span>")
+                        //             .addClass(status)
+                        //             .text(options.value)
+                        //             .appendTo(container);
+                        //     }
+                        // }
+                    ],
+                    masterDetail: {
+                        enabled: true,
+                        template: function (container, options) {
+                            const requisition = options.data;
+                            const manpowerRequisitionId = requisition.manpowerRequisitionId;
+
+                            // Add loading indicator
+                            const loadingIndicator = $("<div>")
+                                .addClass("dx-loadindicator")
+                                .text("Loading...")
+                                .appendTo(container);
+
+                            // Fetch relations on-demand
+                            $.ajax({
+                                url: '@baseUrl/ManpowerRelationAPI/GetAll/'+manpowerRequisitionId,
+                                headers: { 'Authorization': 'Bearer ' + Token },
+                                success: function (relationsResponse) {
+                                    if (relationsResponse.isSuccess && relationsResponse.data.length > 0) {
+                                        $("<h6>Relations</h6>").appendTo(container);
+
+                                        const relationsGrid = $("<div>").dxDataGrid({
+                                            dataSource: relationsResponse.data,
+                                            columns: [
+                                                { dataField: "Name", caption: "Name", width: 200 },
+                                                { dataField: "MobileNo", caption: "Mobile No", width: 120 },
+                                                { dataField: "RelationName", caption: "Relation", width: 150 }
+                                            ],
+                                            showBorders: true,
+                                            paging: { enabled: false },
+                                            scrolling: { mode: "standard" }
+                                        }).appendTo(container);
+                                    } else {
+                                        $("<h6>Relations</h6><p>No relations found.</p>").appendTo(container);
+                                    }
+                                },
+                                error: function (xhr, status, error) {
+                                    $("<h6>Relations</h6><p>Error loading relations.</p>").appendTo(container);
+                                    console.error("Error loading relations:", error);
+                                },
+                                complete: function () {
+                                    loadingIndicator.remove();
+                                }
+                            });
+
+                            // Fetch attachments on-demand
+                            $.ajax({
+                                url: '@baseUrl/ManpowerAttachmentAPI/GetAll/'+manpowerRequisitionId,
+                                headers: { 'Authorization': 'Bearer ' + Token },
+                                success: function (attachmentsResponse) {
+                                    if (attachmentsResponse.isSuccess && attachmentsResponse.data.length > 0) {
+                                        $("<h6>Attachments</h6>").appendTo(container);
+
+                                        const attachmentsGrid = $("<div>").dxDataGrid({
+                                            dataSource: attachmentsResponse.data,
+                                            columns: [
+                                                { dataField: "DocumentName", caption: "Document Name", width: 200 },
+                                                {
+                                                    dataField: "DocumentUrl",
+                                                    caption: "View Document",
+                                                    width: 150,
+                                                    cellTemplate: function (container, options) {
+                                                        $("<a>")
+                                                            .attr("href", options.value)
+                                                            .attr("target", "_blank")
+                                                            .text("View")
+                                                            .appendTo(container);
+                                                    }
+                                                },
+                                                { dataField: "DateOfExpiry", caption: "Expiry Date", width: 120, dataType: "date", format: "dd-MM-yyyy" }
+                                            ],
+                                            showBorders: true,
+                                            paging: { enabled: false },
+                                            scrolling: { mode: "standard" }
+                                        }).appendTo(container);
+                                    } else {
+                                        $("<h6>Attachments</h6><p>No attachments found.</p>").appendTo(container);
+                                    }
+                                },
+                                error: function (xhr, status, error) {
+                                    $("<p><h6>Attachments</h6>Error loading attachments.</p>").appendTo(container);
+                                    console.error("Error loading attachments:", error);
+                                }
+                            });
+                        }
+                    },
+                    // Grid configurations
+                    showBorders: true,
+                    paging: { pageSize: 10 },
+                    pager: {
+                        showPageSizeSelector: true,
+                        allowedPageSizes: [10, 25, 50, 100],
+                        showInfo: true
+                    },
+                    filterRow: { visible: true },
+                    searchPanel: { visible: true,width:200, placeholder: "Search..." },
+                    scrolling: { mode: "standard" },
+                    headerFilter: { visible: true },
+                    groupPanel: { visible: true },
+                    allowColumnResizing: true,
+                    allowColumnReordering: true,
+                    columnAutoWidth: true,
+                    onContentReady: function (e) {
+                        $("#rowCount1").html("Total Records: " + e.component.totalCount());
+                    },
+                    onRowExpanded: function (e) {
+                        console.log("Row expanded:", e.key);
+                    },
+                    onRowCollapsed: function (e) {
+                        console.log("Row collapsed:", e.key);
+                    }
+                });
+        }
+
+      // Close button click handler
+    $("#employeeJoiningModal .btn-secondary, #employeeJoiningModal .close").on("click", function() {
+        $("#employeeJoiningModal").modal("hide");
+    });
+
+
+            // Function to populate the modal with employee data
+    function populateManpowerModal(employeeData) {
+        // Populate the modal table with employee data
+        const container = $("#employeeJoiningFormContainer");
+        container.empty(); // Clear previous content
+
+        // Company header
+        const companyHeader = `
+            <div class="company-header">
+                <div class="company-logo">
+                    <img src="@baseAPIDomainUrl/default-image/relaylogo.jpeg" alt="Company Logo" style="height: 80px;">
+                </div>
+                <div class="company-details">
+                    <h3>RELAY EXPRESS</h3>
+                    <p>Express Distribution</p>
+                    <p>AN ISO 9001:2015 CERTIFIED COMPANY</p>
+                    <p>406, Katariya Arcade, Makarba</p>
+                    <p>Off S G Road, Ahmedabad-380051</p>
+                </div>
+                <div class="clearfix"></div>
+                <h4 style="text-align: center; margin-top: 20px;">EMPLOYEE JOINING FORM</h4>
+                <p style="text-align: center; font-style: italic;">(PERSONAL DETAILS (As per Aadhaar Card Only) Use CAPITAL Letters Only)</p>
+            </div>
+        `;
+        container.append(companyHeader);
+
+        // Personal Details Table
+        const personalDetails = `
+            <table class="joining-form-table">
+                <tr>
+                    <td colspan="4" class="section-header">PERSONAL DETAILS</td>
+                </tr>
+                <tr>
+                    <td><strong>Name</strong></td>
+                    <td>${employeeData.employeeName || ''}</td>
+                    <td><strong>Date of Birth</strong></td>
+                    <td>${employeeData.dateOfBirth ? new Date(employeeData.dateOfBirth).toLocaleDateString() : ''}</td>
+                </tr>
+                <tr>
+                    <td><strong>Address (Present)</strong></td>
+                    <td colspan="3">${employeeData.presentAddress || ''}</td>
+                </tr>
+                <tr>
+                    <td><strong>Address (Permanent)</strong></td>
+                    <td colspan="3">${employeeData.permanentAddress || ''}</td>
+                </tr>
+                <tr>
+                    <td><strong>Mobile No.</strong></td>
+                    <td>${employeeData.contactNumber || ''}</td>
+                    <td><strong>Email</strong></td>
+                    <td>${employeeData.personalEmail || ''}</td>
+                </tr>
+                <tr>
+                    <td><strong>Last Education</strong></td>
+                    <td>${employeeData.educationalQualification || ''}</td>
+                    <td><strong>Total Experience</strong></td>
+                    <td>${employeeData.experienceRange || ''}</td>
+                </tr>
+                <tr>
+                    <td><strong>Marital Status</strong></td>
+                    <td>${employeeData.maritalStatus || ''}</td>
+                    <td><strong>Blood Group</strong></td>
+                    <td>${employeeData.bloodGroup || ''}</td>
+                </tr>
+            </table>
+        `;
+        container.append(personalDetails);
+
+        // Joining Details Table
+        const joiningDetails = `
+            <table class="joining-form-table">
+                <tr>
+                    <td colspan="4" class="section-header">JOINING DETAILS</td>
+                </tr>
+                <tr>
+                    <td><strong>Branch Name</strong></td>
+                    <td>${employeeData.branchName || ''}</td>
+                    <td><strong>Reporting To</strong></td>
+                    <td>${employeeData.reportingName || ''}</td>
+                </tr>
+                <tr>
+                    <td><strong>Department</strong></td>
+                    <td>${employeeData.departmentName || ''}</td>
+                    <td><strong>Interviewed By</strong></td>
+                    <td>${employeeData.interviewedBy || ''}</td>
+                </tr>
+                <tr>
+                    <td><strong>Designation</strong></td>
+                    <td>${employeeData.designationName || ''}</td>
+                    <td><strong>Interview Date</strong></td>
+                    <td>${employeeData.interviewDate ? new Date(employeeData.interviewDate).toLocaleDateString() : ''}</td>
+                </tr>
+                <tr>
+                    <td><strong>Date of Joining</strong></td>
+                    <td>${employeeData.dateOfJoining ? new Date(employeeData.dateOfJoining).toLocaleDateString() : ''}</td>
+                    <td><strong>Interview Place</strong></td>
+                    <td>${employeeData.interviewPlace || ''}</td>
+                </tr>
+                <tr>
+                    <td><strong>Client Name</strong></td>
+                    <td>${employeeData.clientName || ''}</td>
+                    <td><strong>ERP CODE</strong></td>
+                    <td>${employeeData.erpCode || 'NEW'}</td>
+                </tr>
+            </table>
+        `;
+        container.append(joiningDetails);
+
+        // Salary Details Table
+        const salaryDetails = `
+            <table class="joining-form-table">
+                <tr>
+                    <td colspan="4" class="section-header">SALARY DETAILS</td>
+                </tr>
+                <tr>
+                    <td><strong>Gross Salary</strong></td>
+                    <td>${employeeData.grossSalary || '0.00'}</td>
+                    <td><strong>ESIC No.</strong></td>
+                    <td>${employeeData.esicNo || 'NEW'}</td>
+                </tr>
+                <tr>
+                    <td><strong>Net Salary</strong></td>
+                    <td>${employeeData.takeHomeSalary || '0.00'}</td>
+                    <td><strong>PAN</strong></td>
+                    <td>${employeeData.pan || ''}</td>
+                </tr>
+            </table>
+        `;
+        container.append(salaryDetails);
+
+        // Required Details Table
+        const requiredDetails = `
+            <table class="joining-form-table">
+                <tr>
+                    <td colspan="4" class="section-header">REQUIRED DETAILS</td>
+                </tr>
+                <tr>
+                    <td><strong>Email ID Require</strong></td>
+                    <td>${employeeData.emailIdRequire || 'No'}</td>
+                    <td><strong>SIM Require</strong></td>
+                    <td>${employeeData.simRequire || 'No'}</td>
+                </tr>
+                <tr>
+                    <td><strong>System Require</strong></td>
+                    <td>${employeeData.systemRequire || 'No'}</td>
+                    <td><strong>Mobile Handset Require</strong></td>
+                    <td>${employeeData.mobileHandsetRequire || 'No'}</td>
+                </tr>
+            </table>
+        `;
+        container.append(requiredDetails);
+
+        // Emergency Contact Details Table (initially empty, will be loaded via API)
+        const emergencyContactHeader = `
+            <table class="joining-form-table">
+                <tr>
+                    <td colspan="4" class="section-header">EMERGENCY CONTACT DETAILS</td>
+                </tr>
+                <tr>
+                    <th>Mobile No.</th>
+                    <th>Contact Person Name</th>
+                    <th>Relation</th>
+                </tr>
+            </table>
+            <div id="emergencyContactTableContainer"></div>
+        `;
+        container.append(emergencyContactHeader);
+
+        // Open the modal
+        $("#employeeJoiningModal").modal("show");
+
+        // Load emergency contact details via API
+        loadEmergencyContacts(employeeData.manpowerRequisitionId);
+    }
+
+    // Function to load emergency contacts via API
+    function loadEmergencyContacts(manpowerRequisitionId) {
+        $.ajax({
+            url: '@baseUrl/ManpowerRelationAPI/GetAll/'+manpowerRequisitionId,
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem("authToken")
+            },
+            success: function (response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    const container = $("#emergencyContactTableContainer");
+                    container.empty();
+
+                    const table = $("<table>").addClass("joining-form-table");
+                    response.data.forEach(contact => {
+                        table.append(`
+                            <tr>
+                                <td>${contact.MobileNo || ''}</td>
+                                <td>${contact.Name || ''}</td>
+                                <td>${contact.RelationName || ''}</td>
+                            </tr>
+                        `);
+                    });
+                    container.append(table);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error loading emergency contacts:", error);
+            }
+        });
+    }
+       $("#printPdfButton").on("click", async function() {
+        try {
+            // Step 1: Get Base64 image from API
+            const imageResponse = await $.ajax({
+                type: 'GET',
+                url: '@baseUrl/DefaultImageAPI/GetBase64Image/' + 'relaylogo.jpeg'
+            });
+
+            // Step 2: Set image if found
+            if (imageResponse && imageResponse.base64String) {
+                const imgElement = document.querySelector("#employeeJoiningFormContainer .company-logo img");
+                if (imgElement) {
+                    imgElement.src = `data:image/jpeg;base64,${imageResponse.base64String}`;
+                }
+            } else {
+                console.error("Base64 image data not found in response");
+            }
+
+            // Add print-specific CSS to hide everything except the modal content
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @@media print {
+                    body * {
+                        visibility: hidden;
+                    }
+                    #employeeJoiningFormContainer, #employeeJoiningFormContainer * {
+                        visibility: visible;
+                    }
+                    #employeeJoiningFormContainer {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                    }
+                    .modal-header, .modal-footer {
+                        display: none !important;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Print the page
+            window.print();
+
+            // Remove the print-specific CSS after printing
+            setTimeout(function() {
+                document.head.removeChild(style);
+            }, 1000);
+        } catch (error) {
+            console.error("Error generating print:", error);
+            alert("Failed to generate print. Please check the console for details.");
+        }
+    });
+
+
+
+        
+</script>
+
+

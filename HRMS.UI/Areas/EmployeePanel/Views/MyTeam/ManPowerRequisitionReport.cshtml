@@ -1,0 +1,963 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #ffffff;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        font-weight: 600;
+        padding: 4px 12px;
+        border: none;
+        border-radius: 4px;
+    }
+
+        .btn-custom:hover {
+            background-color: #2c3a57;
+        }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+
+    .text-center-cell {
+        text-align: center !important;
+    }
+
+        .text-center-cell > div {
+            text-align: center !important;
+        }
+
+    /* Radio Button Styles */
+    .status-radio-wrapper {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+
+    .status-radio-group {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+    }
+
+        .status-radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .status-radio-group input[type="radio"] {
+            accent-color: #3e4b6d;
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+
+    #bulkDeleteBtn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 4px 14px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+        #bulkDeleteBtn:hover {
+            background-color: #b02a37;
+        }
+
+    /* Serial No link style */
+    .serialno-link {
+        color: #2395c6;
+        text-decoration: underline;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .responsive-logo {
+        max-width: 100%;
+        transition: max-width 0.3s ease;
+    }
+
+    @@media (min-width: 768px) {
+        .responsive-logo {
+            max-width: 170%;
+        }
+    }
+
+    /* Full width & auto height grid styles */
+    .search-panel-wrapper,
+    .form-section {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        border-left: none !important;
+        border-right: none !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    #manpowerGrid {
+        width: 100% !important;
+    }
+
+        #manpowerGrid .dx-datagrid {
+            width: 100% !important;
+        }
+
+        #manpowerGrid .dx-datagrid-rowsview {
+            height: auto !important;
+            overflow-y: visible !important;
+        }
+
+        #manpowerGrid .dx-scrollable-content {
+            height: auto !important;
+        }
+
+    .container-fluid,
+    .container {
+        max-width: 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* Excel Export Button */
+    #btnExportExcel {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 4px 14px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+        #btnExportExcel:hover {
+            background-color: #1e7e34;
+        }
+
+    /* Approval table */
+    .approval-table td {
+        vertical-align: top;
+        padding: 8px;
+    }
+
+    .approval-table .approval-label {
+        font-weight: bold;
+        font-size: 12px;
+        color: #555;
+        margin-bottom: 2px;
+    }
+
+    .approval-table .approval-value {
+        font-size: 13px;
+        min-height: 18px;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 3px;
+        margin-bottom: 8px;
+    }
+</style>
+
+<!-- Search Panel Header -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search Panel</div>
+            <div class="ms-auto d-flex gap-2 align-items-center">
+                <button id="btnExportExcel" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                         class="bi bi-file-earmark-excel me-1" viewBox="0 0 16 16">
+                        <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219z" />
+                        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z" />
+                    </svg>
+                    Export to Excel
+                </button>
+                <a href='@Url.Action("ManPowerRequisitionEss", "MyTeam", new { area = "EmployeePanel" })' class="btn btn-primary btn-sm">Add Manpower</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="form-section">
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-4 d-flex align-items-center">
+            <label for="ddlSearchBy" class="form-label mb-0 me-2" style="width: 120px;">Search By:</label>
+            <select class="form-control form-control-sm" id="ddlSearchBy">
+                <option value="0">-- Select --</option>
+                <option value="Department">Department</option>
+                <option value="Designation">Designation</option>
+                <option value="EmployeeName">Employee Name</option>
+                <option value="CategoryOfEmployment">Category</option>
+            </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-center">
+            <label for="txtSearchFor" class="form-label mb-0 me-2" style="width: 120px;">Search For:</label>
+            <input type="text" class="form-control form-control-sm" id="txtSearchFor" placeholder="Type to search..." disabled />
+        </div>
+    </div>
+
+    <!-- GO and Clear Buttons -->
+    <div class="row justify-content-center mb-3">
+        <div class="col d-flex align-items-center justify-content-center flex-wrap gap-3">
+            <button type="button" class="search-panel-container search-heading btn-sm" id="goButtonId">GO</button>
+            <button type="button" class="search-panel-container search-heading btn-sm" id="clearButtonId">Clear</button>
+        </div>
+    </div>
+
+    <!-- Grid Heading -->
+    <div class="search-panel-wrapper">
+        <div class="search-panel-container">
+            <div class="search-panel-row">
+                <div class="search-heading">Manpower Requisition List</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grid Section -->
+<div style="width:100%; padding: 0 10px; box-sizing: border-box;">
+
+    <!-- Radio Buttons + Delete Button -->
+    <div class="status-radio-wrapper">
+        <div class="status-radio-group">
+            <label>
+                <input type="radio" name="statusFilter" value="Pending" checked />
+                Pending
+            </label>
+            <label>
+                <input type="radio" name="statusFilter" value="Approved/Rejected" />
+                Approved/Rejected
+            </label>
+        </div>
+        <button type="button" id="bulkDeleteBtn" style="display:none;">Delete</button>
+    </div>
+
+    <div id="manpowerGrid">Loading...</div>
+    <div id="recordSummary" class="text-center mt-2 text-muted"></div>
+</div>
+
+
+<!-- ========== Manpower Detail View Modal — matches Admin panel exactly ========== -->
+<div class="modal fade" id="showManpowerDetailsModal" tabindex="-1" aria-labelledby="manpowerDetailLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title btn-heading-title" id="manpowerDetailLabel">
+                    <span>Manpower Requisition Form</span>
+                </h5>
+                <div class="d-flex align-items-center">
+                    <button type="button" class="btn btn-info me-2" id="downloadPDF">Download as PDF</button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body modal-body-font" id="pdfContent">
+
+                <!-- Header: Logo left | Title center | Sr.No + Date right -->
+                <div class="row mb-3 align-items-center">
+                    <div class="col-md-3">
+                        <img id="companyLogoImg" src="@baseAPIDomainUrl/default-image/relaylogo.jpeg"
+                             alt="Relay Express Logo" class="responsive-logo"
+                             crossorigin="anonymous"
+                             style="max-height: 70px; object-fit: contain;">
+                    </div>
+                    <div class="col-md-6 text-center">
+                        <h5 class="fw-bold mb-0">Manpower Requisition Form</h5>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <p class="mb-1"><strong>Sr. No.:</strong> <span id="popSerialNo"></span></p>
+                        <p class="mb-0"><strong>Date:</strong> <span id="popDate"></span></p>
+                    </div>
+                </div>
+
+                <!-- Main Details Table — same as Admin page -->
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <td><strong>Location (Branch):</strong></td>
+                            <td id="popLocation"></td>
+                            <td><strong>Department:</strong></td>
+                            <td id="popDepartmentName"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Requirement:</strong></td>
+                            <td id="popRequirementType"></td>
+                            <td><strong>Name of Employee:</strong></td>
+                            <td id="popEmployeeName"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Personal Email:</strong></td>
+                            <td id="popPersonalEmail"></td>
+                            <td><strong>Personal Contact No:</strong></td>
+                            <td id="popContactNumber"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Closure by:</strong></td>
+                            <td id="popClosureBy"></td>
+                            <td><strong>Designation:</strong></td>
+                            <td id="popDesignationName"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Job Category:</strong></td>
+                            <td id="popJobCategory"></td>
+                            <td><strong>Customer Name:</strong></td>
+                            <td id="popCustomerName"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Experience (Years):</strong></td>
+                            <td id="popExperienceRange"></td>
+                            <td><strong>Highest Qualification:</strong></td>
+                            <td id="popEducationalQualification"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Specific Computer Skills:</strong></td>
+                            <td id="popComputerSkills"></td>
+                            <td><strong>Job Responsibility:</strong></td>
+                            <td id="popJobResponsibility"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Date of Birth:</strong></td>
+                            <td id="popDateOfBirth"></td>
+                            <td><strong>Age:</strong></td>
+                            <td id="popAge"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gender:</strong></td>
+                            <td id="popGender"></td>
+                            <td><strong>Other Benefits Remark:</strong></td>
+                            <td id="popOtherBenefits"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Other Benefits Amount:</strong></td>
+                            <td id="popAmount"></td>
+                            <td><strong>Reporting To:</strong></td>
+                            <td id="popReportingName"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Date of Joining:</strong></td>
+                            <td id="popDateOfJoining"></td>
+                            <td><strong>Category of Employment:</strong></td>
+                            <td id="popCategoryOfEmployment"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Take Home Salary:</strong></td>
+                            <td id="popTakeHomeSalary"></td>
+                            <td><strong>System Require:</strong></td>
+                            <td id="popSystemRequire"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email ID Require:</strong></td>
+                            <td id="popEmailIdRequire"></td>
+                            <td><strong>SIM Require:</strong></td>
+                            <td id="popSimRequire"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>ERP ID:</strong></td>
+                            <td id="popErpId"></td>
+                            <td><strong>Number of Position:</strong></td>
+                            <td id="popNumberPosition"></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Approval Table — same structure as Admin page -->
+                <table class="table table-bordered approval-table">
+                    <thead>
+                        <tr>
+                            <th>Requested By</th>
+                            <th>Approved By</th>
+                            <th>Received By (HRD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <!-- Requested By -->
+                            <td>
+                                <div class="approval-label">Name:</div>
+                                <div class="approval-value"><span id="popRequestedByName"></span></div>
+                                <div class="approval-label">Designation:</div>
+                                <div class="approval-value"><span id="popRequestedByDesignation"></span></div>
+                                <div class="approval-label">Date:</div>
+                                <div class="approval-value"><span id="popRequestedByDate"></span></div>
+                            </td>
+                            <!-- Approved By -->
+                            <td>
+                                <div class="approval-label">Name:</div>
+                                <div class="approval-value"><span id="popApprovedBy"></span></div>
+                                <div class="approval-label">Designation:</div>
+                                <div class="approval-value"><span id="popApprovedByDesignation"></span></div>
+                                <div class="approval-label">Date:</div>
+                                <div class="approval-value"><span id="popApprovedByDate"></span></div>
+                            </td>
+                            <!-- Received By (HRD) -->
+                            <td>
+                                <div class="approval-label">Name:</div>
+                                <div class="approval-value"><span id="popReceivedBy"></span></div>
+                                <div class="approval-label">Designation:</div>
+                                <div class="approval-value">&nbsp;</div>
+                                <div class="approval-label">Date:</div>
+                                <div class="approval-value"><span id="popReceivedByDate"></span></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+            <div class="modal-footer btn-heading-title">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ========== End Modal ========== -->
+
+
+<script type="text/javascript">
+    var baseUrl = '@baseUrl';
+    var Token = localStorage.getItem('authToken');
+    var savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany || '{}');
+    var CompanyId = parseInt(companyDetails.CompanyId);
+    var EmployeeId = parseInt(localStorage.getItem("EmployeeId"));
+
+    var editPageUrl = '@Url.Action("ManPowerRequisitionEss", "MyTeam", new { area = "EmployeePanel" })';
+
+    // Pre-load logo as base64 so html2canvas renders it correctly in PDF
+    var logoBase64 = null;
+
+    function loadLogoAsBase64(url, callback) {
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function () {
+            var canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            try {
+                logoBase64 = canvas.toDataURL('image/jpeg');
+                var logoEl = document.getElementById('companyLogoImg');
+                if (logoEl) logoEl.src = logoBase64;
+            } catch (e) {
+                console.warn('Logo base64 conversion failed:', e);
+            }
+            if (callback) callback();
+        };
+        img.onerror = function () {
+            console.warn('Logo load failed.');
+            if (callback) callback();
+        };
+        img.src = url + '?t=' + new Date().getTime();
+    }
+
+    $(document).ready(function () {
+        loadLogoAsBase64('@baseAPIDomainUrl/default-image/relaylogo.jpeg');
+
+        fetchManpowerData();
+
+        $('#ddlSearchBy').on('change', function () {
+            $('#txtSearchFor').prop('disabled', $(this).val() === '0');
+        });
+
+        $('#goButtonId').on('click', function () {
+            fetchManpowerData();
+        });
+
+        $('#clearButtonId').on('click', function () {
+            $('#ddlSearchBy').val('0');
+            $('#txtSearchFor').val('').prop('disabled', true);
+            $('input[name="statusFilter"][value="Pending"]').prop('checked', true);
+            fetchManpowerData();
+        });
+
+        $('input[name="statusFilter"]').on('change', function () {
+            fetchManpowerData();
+        });
+
+        // Export to Excel
+        $('#btnExportExcel').on('click', function () {
+            var gridInstance = null;
+            try {
+                gridInstance = $("#manpowerGrid").dxDataGrid('instance');
+            } catch (ex) {
+                Swal.fire('Warning', 'The grid has not loaded yet. Please try again.', 'warning');
+                return;
+            }
+            if (!gridInstance) {
+                Swal.fire('Warning', 'The grid has not loaded yet. Please try again.', 'warning');
+                return;
+            }
+            var selectedRows = gridInstance.getSelectedRowsData();
+            if (selectedRows.length === 0) {
+                Swal.fire('Warning', 'Please select at least one row to export.', 'warning');
+                return;
+            }
+
+            var workbook = new ExcelJS.Workbook();
+            var worksheet = workbook.addWorksheet('Manpower');
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: gridInstance,
+                worksheet: worksheet,
+                selectedRowsOnly: true,
+                autoFilterEnabled: true,
+                customizeCell: function (options) {
+                    var excelCell = options.excelCell;
+                    if (excelCell.row === 1) {
+                        excelCell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                        excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
+                    }
+                    excelCell.border = {
+                        top: { style: 'thin' }, left: { style: 'thin' },
+                        bottom: { style: 'thin' }, right: { style: 'thin' }
+                    };
+                    excelCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                }
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'ManpowerData.xlsx');
+                });
+            });
+        });
+
+        // Download PDF
+        document.getElementById('downloadPDF').addEventListener('click', function () {
+            function generatePDF() {
+                const { jsPDF } = window.jspdf;
+                html2canvas(document.getElementById('pdfContent'), {
+                    scale: 2, logging: false, useCORS: true, allowTaint: false, imageTimeout: 15000
+                }).then(function (canvas) {
+                    var imgData = canvas.toDataURL('image/png');
+                    var pdf = new jsPDF('p', 'mm', 'a4');
+                    var imgWidth = 210, pageHeight = 295;
+                    var imgHeight = canvas.height * imgWidth / canvas.width;
+                    var heightLeft = imgHeight, position = 0;
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+                    pdf.save('Manpower_Requisition_Form.pdf');
+                });
+            }
+
+            if (!logoBase64) {
+                loadLogoAsBase64('@baseAPIDomainUrl/default-image/relaylogo.jpeg', function () {
+                    setTimeout(generatePDF, 300);
+                });
+            } else {
+                generatePDF();
+            }
+        });
+    });
+
+    // ====================================================
+    // FETCH GRID DATA
+    // ====================================================
+    function fetchManpowerData() {
+        if ($("#manpowerGrid").data("dxDataGrid")) {
+            try { $("#manpowerGrid").dxDataGrid("dispose"); } catch (e) {}
+            $("#manpowerGrid").empty();
+        }
+        $('#bulkDeleteBtn').hide();
+
+        var searchBy = $('#ddlSearchBy').val();
+        var searchFor = $('#txtSearchFor').val().trim();
+        var selectedStatus = $('input[name="statusFilter"]:checked').val();
+
+        var filter = {
+            CompId: CompanyId,
+            BranchId: EmployeeId,
+            Status: selectedStatus === 'Pending' ? 'Pending' : 'Approved/Rejected',
+            SearchType: searchBy === '0' ? null : searchBy,
+            SearchFor: searchFor || null
+        };
+
+        $.ajax({
+            url: baseUrl + '/ManpowerRequisitionAPI/GetAllManpowerRequisitionsEss',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(filter),
+            success: function (data) {
+                if (data.isSuccess && data.data && data.data.isSuccess) {
+                    var actualData = data.data.data;
+                    if (actualData && actualData.length > 0) {
+                        renderGrid(actualData);
+                        $('#recordSummary').text('Total Records: ' + actualData.length);
+                    } else {
+                        $('#manpowerGrid').html('<div class="text-center text-muted py-3">No records found.</div>');
+                        $('#recordSummary').text('');
+                    }
+                } else {
+                    $('#manpowerGrid').html('<div class="text-center text-muted py-3">No records found.</div>');
+                    $('#recordSummary').text('');
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX error:", xhr);
+                Swal.fire("Error", "Something went wrong while fetching data.", "error");
+            }
+        });
+    }
+
+    // ====================================================
+    // RENDER GRID
+    // ====================================================
+    function renderGrid(data) {
+        $("#manpowerGrid").dxDataGrid({
+            dataSource: data,
+            keyExpr: "ManpowerRequisitionId",
+            showBorders: true,
+            width: "100%",
+            columnAutoWidth: false,
+            wordWrapEnabled: false,
+            paging: { pageSize: 10 },
+            pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+            selection: { mode: "multiple", showCheckBoxesMode: "always" },
+            onSelectionChanged: function (e) {
+                $('#bulkDeleteBtn').toggle(e.selectedRowKeys.length > 0);
+            },
+            filterRow: { visible: true, applyFilter: "auto" },
+            searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+            allowColumnResizing: true,
+            scrolling: { mode: "standard", useNative: true, showScrollbar: "always" },
+            export: { enabled: false },
+            onContentReady: function (e) {
+                $('#recordSummary').text('Total Records: ' + e.component.totalCount());
+            },
+            columns: [
+                {
+                    dataField: "SerialNo",
+                    caption: "Sr. No.",
+                    width: 80,
+                    cssClass: "text-center-cell",
+                    cellTemplate: function (container, options) {
+                        $('<a href="javascript:;">')
+                            .text(options.value)
+                            .addClass('serialno-link')
+                            .on('click', function () {
+                                populateManpowerModal(options.data);
+                            })
+                            .appendTo(container);
+                    }
+                },
+                { dataField: "DepartmentName",         caption: "Department",        cssClass: "text-center-cell" },
+                { dataField: "DesignationName",        caption: "Designation",       cssClass: "text-center-cell" },
+                { dataField: "RequirementType",        caption: "Requirement Type",  cssClass: "text-center-cell" },
+                { dataField: "EmployeeName",           caption: "Employee Name",     cssClass: "text-center-cell" },
+                { dataField: "PersonalEmail",          caption: "Personal Email",    cssClass: "text-center-cell" },
+                { dataField: "ContactNumber",          caption: "Contact Number",    cssClass: "text-center-cell" },
+                { dataField: "ExperienceRange",        caption: "Experience (Years)",cssClass: "text-center-cell" },
+                { dataField: "EducationalQualification", caption: "Education",       cssClass: "text-center-cell" },
+                { dataField: "Gender",                 caption: "Gender", width: 70, cssClass: "text-center-cell" },
+                { dataField: "CategoryOfEmployment",   caption: "Category",          cssClass: "text-center-cell" },
+                {
+                    dataField: "TakeHomeSalary", caption: "Take Home Salary",
+                    cssClass: "text-center-cell", dataType: "number",
+                    format: { type: "fixedPoint", precision: 2 }
+                },
+                {
+                    dataField: "DateOfJoining", caption: "Date of Joining",
+                    dataType: "date", format: "dd/MM/yyyy", cssClass: "text-center-cell"
+                },
+                {
+                    dataField: "CreatedDate", caption: "Created Date",
+                    dataType: "datetime", format: "dd-MM-yyyy", cssClass: "text-center-cell"
+                },
+                { dataField: "RequestedBy",   caption: "Requested By",    cssClass: "text-center-cell" },
+                { dataField: "ApprovalStatus",caption: "Approval Status", cssClass: "text-center-cell" },
+                {
+                    caption: "Edit",
+                    width: 60,
+                    alignment: "center",
+                    cssClass: "text-center-cell",
+                    cellTemplate: function (container, options) {
+                        var status = (options.data.Status || '').trim();
+                        var canEdit = (status === 'Pending' || status === '' || status === 'N/A');
+                        if (!canEdit) {
+                            $('<span>').text('-').appendTo(container);
+                            return;
+                        }
+                        $('<a href="javascript:;" title="Edit">')
+                            .append('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#3e4b6d" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg>')
+                            .on('click', function () {
+                                window.location.href = editPageUrl + '?id=' + options.data.ManpowerRequisitionId;
+                            })
+                            .appendTo(container);
+                    }
+                },
+                {
+                    caption: "Delete",
+                    width: 60,
+                    alignment: "center",
+                    cssClass: "text-center-cell",
+                    cellTemplate: function (container, options) {
+                        $('<a href="javascript:;" title="Delete">')
+                            .append('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#dc3545" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/></svg>')
+                            .on('click', function () {
+                                deleteManpower(options.data.ManpowerRequisitionId, options.data.Status);
+                            })
+                            .appendTo(container);
+                    }
+                }
+            ]
+        });
+    }
+
+    // ====================================================
+    // POPULATE MODAL — same logic as Admin page
+    // ====================================================
+    function populateManpowerModal(data) {
+        // Clear approval fields first
+        $('#popApprovedBy, #popApprovedByDesignation, #popApprovedByDate').text('');
+        $('#popReceivedBy, #popReceivedByDate').text('');
+
+        // Basic details
+        $('#popSerialNo').text(data.SerialNo || '');
+        $('#popDate').text(data.CreatedDate ? new Date(data.CreatedDate).toLocaleDateString('en-GB') : '');
+        $('#popLocation').text(data.BranchName || '');
+        $('#popDepartmentName').text(data.DepartmentName || '');
+        $('#popRequirementType').text(data.RequirementType || '');
+        $('#popEmployeeName').text(data.EmployeeName || '');
+        $('#popPersonalEmail').text(data.PersonalEmail || '');
+        $('#popContactNumber').text(data.ContactNumber || '');
+        $('#popClosureBy').text(data.ClosureBy || '');
+        $('#popDesignationName').text(data.DesignationName || '');
+        $('#popJobCategory').text(data.CategoryName || '');
+        $('#popCustomerName').text(data.CustomerName || '');           // ✅ Customer Name added
+        $('#popExperienceRange').text(data.ExperienceRange || '');
+        $('#popEducationalQualification').text(data.EducationalQualification || '');
+        $('#popComputerSkills').text(data.ComputerSkills || '');
+        $('#popJobResponsibility').text(data.JobResponsibility || '');
+        $('#popDateOfBirth').text(data.DateOfBirth ? new Date(data.DateOfBirth).toLocaleDateString('en-GB') : '');
+        $('#popAge').text(data.Age || '');
+        $('#popGender').text(data.Gender || '');
+        $('#popOtherBenefits').text(data.OtherBenefits || '');
+        $('#popAmount').text(data.Amount || '');
+        $('#popReportingName').text(data.ReportingName || '');
+        $('#popDateOfJoining').text(data.DateOfJoining ? new Date(data.DateOfJoining).toLocaleDateString('en-GB') : '');
+        $('#popCategoryOfEmployment').text(data.CategoryOfEmployment || '');
+        $('#popTakeHomeSalary').text(data.TakeHomeSalary || '');
+        $('#popSystemRequire').text(data.SystemRequire || '');
+        $('#popEmailIdRequire').text(data.EmailIdRequire || '');
+        $('#popSimRequire').text(data.Simrequire || data.SIMRequire || '');
+        $('#popErpId').text(data.ERP_ID || data.ErpId || '');
+        $('#popNumberPosition').text(data.NumberPosition || data.NumberOfPosition || '');
+
+        // Requested By
+        $('#popRequestedByName').text(data.RequestedBy || '');
+        $('#popRequestedByDesignation').text(data.DesignationName || '');
+        $('#popRequestedByDate').text(data.CreatedDate ? new Date(data.CreatedDate).toLocaleDateString('en-GB') : '');
+
+        // Set logo
+        if (logoBase64) {
+            $('#companyLogoImg').attr('src', logoBase64);
+        }
+
+        // Show modal first, then load approval status (same as Admin)
+        $('#showManpowerDetailsModal').modal('show');
+
+        // Load approval levels from API
+        loadApprovalStatus(data.ManpowerRequisitionId);
+    }
+
+    // ====================================================
+    // LOAD APPROVAL STATUS — exact same logic as Admin page
+    // ====================================================
+    function loadApprovalStatus(manpowerRequisitionId) {
+        $.ajax({
+            url: baseUrl + '/ManpowerRequisitionAPI/GetApprovalStatus',
+            type: 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify({
+                ApprovalMasterId: 3,
+                ManpowerRequisitionId: manpowerRequisitionId
+            }),
+            success: function (res) {
+                if (!res || !res.isSuccess) return;
+
+                var levels = res.data && res.data.levels ? res.data.levels : [];
+
+                console.log('Approval Levels:', levels);
+
+                // ---- Approved By: LevelNo 1 or 2, StatusId = 11 ----
+                var approvedLevel = null;
+                for (var i = 0; i < levels.length; i++) {
+                    var l = levels[i];
+                    if (l.LevelNo == 1 || l.LevelNo == 2) {
+                        if (l.StatusId == 11) {
+                            approvedLevel = l;
+                            break;
+                        } else if (!approvedLevel && (l.LevelStatus === 'Auto Approved (Admin - ClosureBy HR)')) {
+                            approvedLevel = l;
+                            break;
+                        }
+                    }
+                }
+
+                // ---- Received By (HRD): HR type OR highest LevelNo ----
+                var hrLevel = null;
+                var maxLevelNo = 0;
+                for (var j = 0; j < levels.length; j++) {
+                    var lv = levels[j];
+                    var lvType = (lv.ApproverType || '').toUpperCase();
+                    if (lvType.indexOf('HR') > -1) {
+                        hrLevel = lv;
+                        break;
+                    }
+                    if (lv.LevelNo > maxLevelNo) {
+                        maxLevelNo = lv.LevelNo;
+                        hrLevel = lv;
+                    }
+                }
+
+                // Populate Approved By
+                if (approvedLevel) {
+                    var approvedName = approvedLevel.ActionByName || approvedLevel.ApproverName || '';
+                    var approvedDesig = approvedLevel.ApproverType || '';
+                    var approvedDate  = approvedLevel.ActionOn
+                        ? new Date(approvedLevel.ActionOn).toLocaleDateString('en-GB') : '';
+
+                    if (approvedLevel.LevelStatus === 'Auto Approved (Admin - ClosureBy HR)') {
+                        approvedName = approvedLevel.ApproverName || '';
+                        approvedDate = approvedLevel.AssignedOn
+                            ? new Date(approvedLevel.AssignedOn).toLocaleDateString('en-GB') : '';
+                    }
+
+                    $('#popApprovedBy').text(approvedName);
+                    $('#popApprovedByDesignation').text(approvedDesig);
+                    $('#popApprovedByDate').text(approvedDate);
+                }
+
+                // Populate Received By (HRD)
+                if (hrLevel) {
+                    var receivedName = hrLevel.ActionByName || hrLevel.ApproverName || '';
+                    var receivedDate = hrLevel.ActionOn
+                        ? new Date(hrLevel.ActionOn).toLocaleDateString('en-GB') : '';
+
+                    if (hrLevel.LevelStatus === 'Auto Approved (Admin - ClosureBy HR)') {
+                        receivedName = hrLevel.ApproverName || '';
+                        receivedDate = hrLevel.AssignedOn
+                            ? new Date(hrLevel.AssignedOn).toLocaleDateString('en-GB') : '';
+                    }
+
+                    $('#popReceivedBy').text(receivedName);
+                    $('#popReceivedByDate').text(receivedDate);
+                }
+            },
+            error: function (err) {
+                console.error('Approval status load failed:', err);
+            }
+        });
+    }
+
+    // ====================================================
+    // DELETE
+    // ====================================================
+    function deleteManpower(id, status) {
+        var st = (status || '').trim();
+        if (st === 'Approved' || st === 'Rejected') {
+            Swal.fire('Not Allowed', 'Approved or Rejected records cannot be deleted.', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'This record will be deleted permanently.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete!',
+            cancelButtonText: 'Cancel'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: baseUrl + '/ManpowerRequisitionAPI/DeleteManpowerRequisition',
+                    type: 'DELETE',
+                    contentType: 'application/json',
+                    headers: { 'Authorization': 'Bearer ' + Token },
+                    data: JSON.stringify({ id: id, deletedBy: EmployeeId.toString() }),
+                    success: function (res) {
+                        if (res.isSuccess) {
+                            Swal.fire({ title: 'Deleted!', text: res.responseMessage, icon: 'success', timer: 2000 })
+                                .then(function () { fetchManpowerData(); });
+                        } else {
+                            Swal.fire('Error', res.responseMessage, 'error');
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire('Error', 'Something went wrong during deletion.', 'error');
+                        console.error('Delete error:', xhr);
+                    }
+                });
+            }
+        });
+    }
+</script>

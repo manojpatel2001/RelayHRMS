@@ -21,71 +21,71 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 _db = db;
             }
 
-            public async Task<VMCommonResult> CreateAttachmentDetail(VmAttachmentDetails model)
+            public async Task<SP_Response> CreateAttachmentDetail(VmAttachmentDetails model)
             {
                 try
                 {
-                    var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                     EXEC ManageAttachmentDetails
                         @Action = {"CREATE"},
                         @EmployeeId = {model.EmployeeId},
-                        @DocumentName = {model.DocumentName},
+                        @DocumentTypeId = {model.DocumentTypeId},
                         @DocumentUrl = {model.DocumentUrl},
                         @Comment = {model.Comment},
                         @DateOfExpiry = {model.DateOfExpiry},
                         @CreatedBy = {model.CreatedBy}
                 ").ToListAsync();
 
-                    return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                    return result.FirstOrDefault()?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
                 }
                 catch
                 {
-                    return new VMCommonResult { Id = 0 };
+                    return new SP_Response { Success = 0 ,ResponseMessage="Something went wrong!"};
                 }
             }
 
-            public async Task<VMCommonResult> UpdateAttachmentDetail(VmAttachmentDetails model)
+            public async Task<SP_Response> UpdateAttachmentDetail(VmAttachmentDetails model)
             {
                 try
                 {
-                    var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                     EXEC ManageAttachmentDetails
                         @Action = {"UPDATE"},
                         @AttachmentDetailsId = {model.AttachmentDetailsId},
                         @EmployeeId = {model.EmployeeId},
-                        @DocumentName = {model.DocumentName},
+                        @DocumentTypeId = {model.DocumentTypeId},
                         @DocumentUrl = {model.DocumentUrl},
                         @Comment = {model.Comment},
                         @DateOfExpiry = {model.DateOfExpiry},
                         @UpdatedBy = {model.UpdatedBy}
                 ").ToListAsync();
 
-                    return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                   return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
                 }
                 catch
                 {
-                    return new VMCommonResult { Id = 0 };
+                    return new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
                 }
             }
 
-            public async Task<VMCommonResult> DeleteAttachmentDetail(DeleteRecordVM deleteRecord)
+            public async Task<SP_Response> DeleteAttachmentDetail(DeleteRecordVM deleteRecord)
             {
                 try
                 {
-                    var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                    var result = await _db.Set<SP_Response>().FromSqlInterpolated($@"
                     EXEC ManageAttachmentDetails
                         @Action = {"DELETE"},
                         @AttachmentDetailsId = {deleteRecord.Id},
                         @DeletedBy = {deleteRecord.DeletedBy}
-                ").ToListAsync();
+                 ").ToListAsync();
 
-                    return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+                  return result.FirstOrDefault() ?? new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
                 }
                 catch
                 {
-                    return new VMCommonResult { Id = 0 };
+                    return new SP_Response { Success = 0, ResponseMessage = "Something went wrong!" };
                 }
-            }
+        }
 
             public async Task<AttachmentDetails?> GetAttachmentDetailById(vmCommonGetById vmCommonGetById)
             {
@@ -93,9 +93,7 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 {
                     var result = await _db.Set<AttachmentDetails>().FromSqlInterpolated($@"
                     EXEC GetAttachmentDetailById
-                        @AttachmentDetailsId = {vmCommonGetById.Id},
-                        @IsDeleted = {vmCommonGetById.IsDeleted},
-                        @IsEnabled = {vmCommonGetById.IsEnabled}
+                        @AttachmentDetailsId = {vmCommonGetById.Id}
                 ").ToListAsync();
 
                     return result?.FirstOrDefault() ?? null;
@@ -112,9 +110,8 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 {
                     var result = await _db.Set<AttachmentDetails>().FromSqlInterpolated($@"
                     EXEC GetAllAttachmentDetails
-                        @EmployeeId = {vmCommonGetById.Id},
-                        @IsDeleted = {vmCommonGetById.IsDeleted},
-                        @IsEnabled = {vmCommonGetById.IsEnabled}
+                        @EmployeeId = {vmCommonGetById.Id}
+                        
                 ").ToListAsync();
 
                     return result;
@@ -122,6 +119,23 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                 catch
                 {
                     return new List<AttachmentDetails>();
+                }
+            }
+        
+            public async Task<List<DocumentType>> GetAllDocumentTypes()
+            {
+                try
+                {
+                    var result = await _db.Set<DocumentType>().FromSqlInterpolated($@"
+                    EXEC GetAllDocumentTypes
+                        
+                ").ToListAsync();
+
+                    return result;
+                }
+                catch
+                {
+                    return new List<DocumentType>();
                 }
             }
         

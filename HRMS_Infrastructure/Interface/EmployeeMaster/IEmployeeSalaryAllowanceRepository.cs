@@ -10,7 +10,7 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
 {
     public interface IEmployeeSalaryAllowanceRepository
     {
-        Task<vmGetLiveEmployeeSalaryAllowance?> GetLiveEmployeeSalaryAllowance(decimal GrossSalary);
+        Task<vmGetLiveEmployeeSalaryAllowance?> GetLiveEmployeeSalaryAllowance(salaryPara salaryPara);
         Task<VMCommonResult> CreateEmployeeSalaryAllowance(vmEmployeeSalary vmEmployeeSalary);
         Task<VMCommonResult> UpdateEmployeeSalaryAllowance(vmEmployeeSalary vmEmployeeSalary);
         Task<VMCommonResult> DeleteEmployeeSalaryAllowance(DeleteRecordVM delete);
