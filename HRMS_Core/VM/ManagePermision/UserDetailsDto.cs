@@ -10,17 +10,19 @@ namespace HRMS_Core.VM.ManagePermision
     {
         public int Id { get; set; }
         public string? FullName { get; set; }
+        public string? EmployeeCode { get; set; }
         public string? Designation { get; set; }
         public string? ProfileUrl { get; set; }
         public string? Email { get; set; }
+        public int? BranchId { get; set; }
 
         // ⚠️ Be careful exposing Password or PasswordHash in DTOs.
         public string? Password { get; set; }
-        public string? PasswordHash { get; set; }
         public string? RoleSlug { get; set; }
 
         public string? RoleName { get; set; }
         public bool? IsPasswordChange { get; set; }
+        public int LoginHistoryID { get; set; }
 
         // Permissions can be a list of strings or a complex object
         public List<string>? Permissions { get; set; }

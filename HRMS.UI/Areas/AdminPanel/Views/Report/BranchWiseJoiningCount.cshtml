@@ -1,0 +1,490 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Branch Wise Joining Report";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+<title>Branch Wise Joining Report</title>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- jsPDF + AutoTable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+    body, html {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .form-section {
+        padding: 15px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+        background-color: #3e4b6d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 4px;
+        transition: none;
+        box-shadow: none;
+    }
+
+        .btn-custom:hover, .btn-custom:focus, .btn-custom:active {
+            background-color: #3e4b6d;
+            color: white;
+            outline: none;
+            box-shadow: none;
+        }
+
+    .search-panel-wrapper {
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 6px 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .form-control-sm, .form-select-sm {
+        height: calc(1.5em + .5rem + 2px);
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+    }
+
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 500px;
+        padding: 10px;
+        box-sizing: border-box;
+        margin: 0;
+    }
+
+    .branch-joining-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin-top: 10px;
+    }
+
+        .branch-joining-table thead {
+            background-color: #3e4b6d;
+            color: white;
+        }
+
+            .branch-joining-table thead th {
+                padding: 10px 8px;
+                text-align: center;
+                font-weight: bold;
+                border: 1px solid #2d3a52;
+            }
+
+        .branch-joining-table tbody td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+            .branch-joining-table tbody td.text-left {
+                text-align: left;
+            }
+
+        .branch-joining-table tbody tr:nth-child(even) {
+            background-color: #f5f6fa;
+        }
+
+        .branch-joining-table tbody tr:hover {
+            background-color: #eef0f7;
+        }
+
+        .branch-joining-table tfoot tr {
+            background-color: #3e4b6d;
+            color: white;
+            font-weight: bold;
+        }
+
+        .branch-joining-table tfoot td {
+            padding: 8px;
+            border: 1px solid #2d3a52;
+            text-align: center;
+        }
+
+    .table-container {
+        overflow-x: auto;
+        width: 100%;
+        display: none;
+    }
+
+        .table-container.show {
+            display: block;
+        }
+</style>
+
+<!-- Search Panel -->
+<div class="search-panel-wrapper">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Search Panel</div>
+        </div>
+    </div>
+</div>
+
+<div class="form-section">
+    <div class="d-flex flex-column align-items-center gap-3">
+        <div class="d-flex justify-content-center gap-3">
+            <div class="d-flex align-items-center">
+                <label for="fromdate" class="form-label mb-0 me-2">From Date<span class="text-danger">*</span>:</label>
+                <input type="date" class="form-control form-control-sm" id="fromdate" style="width:160px;" />
+                <span id="spnfromdate" style="color:red;display:none;margin-left:4px;">Please Select From Date</span>
+            </div>
+            <div class="d-flex align-items-center">
+                <label for="todate" class="form-label mb-0 me-2">To Date<span class="text-danger">*</span>:</label>
+                <input type="date" class="form-control form-control-sm" id="todate" style="width:160px;" />
+                <span id="spntodate" style="color:red;display:none;margin-left:4px;">Please Select To Date</span>
+            </div>
+        </div>
+        <div class="d-flex justify-content-center gap-2">
+            <button class="btn btn-custom" id="btnGo">Go</button>
+            <button class="btn btn-custom" id="btnClear">Clear</button>
+            <button class="btn btn-custom" onclick="window.location.href='@Url.Action("Index", "MyReports")'">Back</button>
+        </div>
+    </div>
+</div>
+
+<!-- Result Panel Header -->
+<div class="search-panel-wrapper mt-3">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Branch Wise New Joining Report</div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-2">
+    <!-- Loader -->
+    <div id="grid-loader"
+         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh;
+                background:rgba(255,255,255,0.6); backdrop-filter:blur(3px); z-index:9999;
+                justify-content:center; align-items:center; flex-direction:column;">
+        <img src="@baseDomainUrl/loders/loder.png"
+             style="width:40px; height:40px; animation:spin 1s linear infinite;" />
+        <div class="text-dark" style="font-size:16px;">Loading...</div>
+    </div>
+
+    <div class="table-container" id="tableContainer">
+        <table class="branch-joining-table" id="branchJoiningTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Branch Name</th>
+                    <th>Last Month</th>
+                    <th>Last Quarter</th>
+                    <th>Last Six Months</th>
+                    <th>Last Year</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+            <tfoot id="tableFoot"></tfoot>
+        </table>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () { initializePage(); });
+
+    const savedCompany   = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany);
+    const Compid         = companyDetails.CompanyId;
+    const Token          = localStorage.getItem("authToken");
+
+    function showLoder() { $('#grid-loader').css('display', 'flex'); }
+    function hideLoder()  { $('#grid-loader').css('display', 'none'); }
+    // "2026-01-01"  →  "01/01/2026"
+    function fmtDate(dateStr) {
+        if (!dateStr) return '';
+        const d  = new Date(dateStr);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        return `${dd}/${mm}/${d.getFullYear()}`;
+    }
+
+    // ── Build HTML Table ─────────────────────────────────────────────────────
+    function buildTable(data) {
+        const tbody = $('#tableBody');
+        const tfoot = $('#tableFoot');
+        tbody.html(''); tfoot.html('');
+
+        if (!data || !data.length) {
+            tbody.html('<tr><td colspan="6" style="text-align:center;padding:20px;">No data available</td></tr>');
+            $('#tableContainer').addClass('show');
+            return;
+        }
+
+        let tLM = 0, tLQ = 0, tLS = 0, tLY = 0;
+        let html = '';
+
+        data.forEach((item, i) => {
+            tLM += item.lastMonth     || 0;
+            tLQ += item.lastQuarter   || 0;
+            tLS += item.lastSixMonths || 0;
+            tLY += item.lastYear      || 0;
+            html += `<tr>
+                <td>${i + 1}</td>
+                <td class="text-left">${item.branchName || '-'}</td>
+                <td>${item.lastMonth     ?? 0}</td>
+                <td>${item.lastQuarter   ?? 0}</td>
+                <td>${item.lastSixMonths ?? 0}</td>
+                <td>${item.lastYear      ?? 0}</td>
+            </tr>`;
+        });
+
+        tbody.html(html);
+        tfoot.html(`<tr>
+            <td colspan="2">Total</td>
+            <td>${tLM}</td><td>${tLQ}</td><td>${tLS}</td><td>${tLY}</td>
+        </tr>`);
+        $('#tableContainer').addClass('show');
+    }
+
+    // ── Generate PDF  ── matches demo PDF layout exactly ─────────────────────
+    function generatePDF(data, fromDate, toDate) {
+        const { jsPDF } = window.jspdf;
+        const doc     = new jsPDF('p', 'mm', 'a4');
+        const pageW   = doc.internal.pageSize.getWidth();
+        const pageH   = doc.internal.pageSize.getHeight();
+        const mL      = 10, mR = 10;
+        const printDate = fmtDate(new Date().toISOString().split('T')[0]);
+
+        const companyName    = data && data[0] ? (data[0].companyName    || '') : '';
+        const companyAddress = data && data[0] ? (data[0].companyAddress || '') : '';
+
+        // Normalise address to single line (demo shows one line)
+        const addrOneLine = companyAddress.replace(/\n/g, ', ').replace(/,\s*,/g, ',').trim();
+
+        // ── Header block drawn on every page ─────────────────────────────────
+        function drawHeader() {
+            // Top rule
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.4);
+            doc.line(mL, 8, pageW - mR, 8);
+
+            // Title
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0);
+            doc.text('EMPLOYEE SUMMARY REPORT', pageW / 2, 14, { align: 'center' });
+
+            // Company Name  (label + value left)
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.text('COMPANY NAME :', mL, 20);
+            doc.setFont('helvetica', 'normal');
+            doc.text(companyName.toUpperCase(), mL + 31, 20);
+
+            // Print Date (right)
+            doc.setFont('helvetica', 'bold');
+            doc.text('Print Date :', pageW - mR - 38, 20);
+            doc.setFont('helvetica', 'normal');
+            doc.text(printDate, pageW - mR - 14, 20);
+
+            // Address
+            doc.setFont('helvetica', 'bold');
+            doc.text('ADDRESS', mL, 25);
+            doc.text(':', mL + 16, 25);
+            doc.setFont('helvetica', 'normal');
+            const addrWrapped = doc.splitTextToSize(addrOneLine, pageW - mL - mR - 22);
+            addrWrapped.slice(0, 2).forEach((line, idx) => {
+                doc.text(line, mL + 19, 25 + idx * 4);
+            });
+
+            // Bottom rule of header area
+            doc.setLineWidth(0.4);
+            doc.line(mL, 32, pageW - mR, 32);
+        }
+
+        // ── Footer: Page X of Y ───────────────────────────────────────────────
+        function drawFooter(pageNum, totalPages) {
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(100);
+            doc.text(`Page ${pageNum} of ${totalPages}`, pageW - mR, pageH - 5, { align: 'right' });
+        }
+
+        // ── Build table body rows ─────────────────────────────────────────────
+        const rows = [];
+        let tLM = 0, tLQ = 0, tLS = 0, tLY = 0;
+
+        (data || []).forEach(item => {
+            tLM += item.lastMonth     || 0;
+            tLQ += item.lastQuarter   || 0;
+            tLS += item.lastSixMonths || 0;
+            tLY += item.lastYear      || 0;
+            rows.push([
+                item.branchName || '-',
+                item.lastMonth     ?? 0,
+                item.lastQuarter   ?? 0,
+                item.lastSixMonths ?? 0,
+                item.lastYear      ?? 0
+            ]);
+        });
+
+        // Total row appended as last body row
+        rows.push(['Total', tLM, tLQ, tLS, tLY]);
+
+        // ── Draw page 1 header manually ───────────────────────────────────────
+        drawHeader();
+
+        // "New Joinings" sub-heading bar  (matches demo page 2 section title)
+        const subY = 33;
+        doc.setFillColor(62, 75, 109);
+        doc.rect(mL, subY, pageW - mL - mR, 7, 'F');
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text('New Joinings', pageW / 2, subY + 5, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+
+        // ── autoTable ─────────────────────────────────────────────────────────
+        doc.autoTable({
+            startY: subY + 7,
+            head: [['Branch Name', 'Last Month', 'Last Quarter', 'Last Six Months', 'Last Year']],
+            body: rows,
+            theme: 'grid',
+            styles: {
+                fontSize: 8,
+                cellPadding: { top: 2, bottom: 2, left: 3, right: 3 },
+                halign: 'center',
+                valign: 'middle',
+                textColor: [0, 0, 0],
+                lineColor: [180, 180, 180],
+                lineWidth: 0.2
+            },
+            columnStyles: {
+                0: { halign: 'left', cellWidth: 72 },
+                1: { cellWidth: 26 },
+                2: { cellWidth: 26 },
+                3: { cellWidth: 30 },
+                4: { cellWidth: 26 }
+            },
+            headStyles: {
+                fillColor: [62, 75, 109],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 8,
+                halign: 'center'
+            },
+            // Total row  →  navy bg, white text, bold
+            didParseCell: function (d) {
+                if (d.section === 'body' && d.row.index === rows.length - 1) {
+                    d.cell.styles.fontStyle = 'bold';
+                    d.cell.styles.fillColor = [62, 75, 109];
+                    d.cell.styles.textColor = [255, 255, 255];
+                }
+            },
+            // Re-draw header on continuation pages
+            didDrawPage: function () {
+                drawHeader();
+            },
+            margin: { left: mL, right: mR, top: 35 }
+        });
+
+        // ── Fix page footers now that total pages is known ────────────────────
+        const totalPages = doc.internal.getNumberOfPages();
+        for (let p = 1; p <= totalPages; p++) {
+            doc.setPage(p);
+            drawFooter(p, totalPages);
+        }
+
+        doc.save(`BranchWiseJoining_${fromDate}_${toDate}.pdf`);
+    }
+
+    // ── Main Init ─────────────────────────────────────────────────────────────
+    function initializePage() {
+    
+
+        $('#btnGo').off('click').on('click', function () {
+            const txtFrom = $("#fromdate").val();
+            const txtTo   = $("#todate").val();
+            let isValid   = true;
+
+            if (!txtFrom) { $("#spnfromdate").show(); isValid = false; }
+            else            { $("#spnfromdate").hide(); }
+
+            if (!txtTo) {
+                $("#spntodate").text("Please Select To Date").show();
+                isValid = false;
+            } else { $("#spntodate").hide(); }
+
+            if (txtFrom && txtTo && new Date(txtFrom) > new Date(txtTo)) {
+                $("#spntodate").text("To Date must be >= From Date").show();
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            showLoder();
+
+            $.ajax({
+                url:  '@(baseDomainUrl + "/api/ReportAPI/GetBranchWiseJoiningCount")',
+                type: 'GET',
+                data: { Companyid: Compid, StratDate: txtFrom, EndDate: txtTo },
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    if (res.isSuccess) {
+                        buildTable(res.data);
+                        generatePDF(res.data, txtFrom, txtTo);
+                    } else {
+                        alert(res.responseMessage || 'No Data Found');
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Error:", xhr);
+                    alert(xhr.responseJSON?.responseMessage || 'An error occurred.');
+                },
+                complete: function () { hideLoder(); }
+            });
+        });
+
+        $('#btnClear').off('click').on('click', function () {
+            $('#fromdate').val('');
+            $('#todate').val('');
+            $('#tableBody').html('');
+            $('#tableFoot').html('');
+            $('#tableContainer').removeClass('show');
+            $("#spnfromdate").hide();
+            $("#spntodate").hide();
+        });
+    }
+</script>

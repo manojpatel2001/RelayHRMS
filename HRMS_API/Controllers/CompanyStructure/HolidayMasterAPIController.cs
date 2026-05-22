@@ -20,12 +20,12 @@ namespace HRMS_API.Controllers.CompanyStructure
             _unitOfWork = unitOfWork;
         }
 
-        [HttpGet("GetAllHolidayMaster")]
-        public async Task<APIResponse> GetAllHolidayMaster()
+        [HttpGet("GetAllHolidayMaster/{companyId}")]
+        public async Task<APIResponse> GetAllHolidayMaster(int companyId)
         {
             try
             {
-                var data = await _unitOfWork.HolidayMasterRepository.GetAllHolidayMaster(new vmCommonGetById { });
+                var data = await _unitOfWork.HolidayMasterRepository.GetAllHolidayMaster(new vmCommonGetById { Id = companyId });
                 if (data == null || !data.Any())
                 {
                     return new APIResponse
@@ -46,6 +46,33 @@ namespace HRMS_API.Controllers.CompanyStructure
                 };
             }
         }
+
+        //[HttpGet("GetAll/{companyId}")]
+        //public async Task<APIResponse> GetAll( int companyId)
+        //{
+        //    try
+        //    {
+        //        var data = await _unitOfWork.HolidayMasterRepository.GetAllAsync(x => x.CompanyId == companyId && x.IsEnabled == true && x.IsDeleted == false);
+        //        if (data == null || !data.Any())
+        //        {
+        //            return new APIResponse
+        //            {
+        //                isSuccess = false,
+        //                ResponseMessage = "No records found"
+        //            };
+        //        }
+        //        return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully" };
+        //    }
+        //    catch (Exception err)
+        //    {
+        //        return new APIResponse
+        //        {
+        //            isSuccess = false,
+        //            Data = err.Message,
+        //            ResponseMessage = "Unable to retrieve records, Please try again later!"
+        //        };
+        //    }
+        //}
 
         [HttpGet("GetByHolidayMasterId/{holidayMasterId}")]
         public async Task<APIResponse> GetByHolidayMasterId(int holidayMasterId)

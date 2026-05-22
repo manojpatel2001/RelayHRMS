@@ -11,9 +11,9 @@ namespace HRMS_Infrastructure.Interface.ManagePermissions
 {
     public  interface IUserCompanyPermissionsRepository
     {
-        Task<VMCommonResult> CreateUserCompanyPermissions(VMUserCompanyPermission model);
-        Task<VMCommonResult> UpdateUserCompanyPermissions(VMUserCompanyPermission model);
-        Task<VMCommonResult> DeleteUserCompanyPermissions(DeleteRecordVM model);
+        Task<SP_Response> CreateUserCompanyPermissions(VMUserCompanyPermission model);
+        Task<SP_Response> UpdateUserCompanyPermissions(VMUserCompanyPermission model);
+        Task<SP_Response> DeleteUserCompanyPermissions(DeleteRecordVM model);
         Task<List<vmGetAllCompanyDetailsList>> GetCompanyPermissionsListByEmployeeId(int EmployeeId);
     }
 }

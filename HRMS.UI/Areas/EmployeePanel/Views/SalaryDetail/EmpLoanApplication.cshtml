@@ -1,0 +1,627 @@
+﻿@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<!-- Dependencies -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f9f9f9;
+    }
+
+    /* Top header panels */
+    .search-panel-container {
+        background-color: #3e4b6d;
+        padding: 8px 20px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        width: 100%;
+    }
+
+    .search-panel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-heading {
+        font-size: 15px;
+        color: white;
+        margin: 0;
+    }
+
+    /* Center wrapper for form */
+    .center-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: calc(100vh - 120px);
+        padding: 30px 15px;
+    }
+
+    /* Form design */
+    .form-section {
+        background-color: #fff;
+        padding: 25px 30px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        width: 100%;
+        max-width: 1200px;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .form-control-sm, .form-select-sm {
+        font-size: 0.875rem;
+        padding: .25rem .5rem;
+        height: calc(1.5em + .5rem + 2px);
+    }
+
+    .error-msg {
+        font-size: 12px;
+        color: red;
+        display: none;
+    }
+</style>
+
+<!-- Full-width Top Header Section -->
+<div class="top-header">
+    <div class="search-panel-container">
+        <div class="search-panel-row">
+            <div class="search-heading">Add Loan Application</div>
+        </div>
+    </div>
+</div>
+
+<!-- Centered Form Section -->
+<div class="center-wrapper">
+    <form id="loanForm" class="form-section">
+        <!-- Row 1: Date and Email ID -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="dateid" class="col-sm-4 col-form-label form-label">Date<span class="text-danger">*</span>:</label>
+                    <div class="col-sm-8">
+                        <input type="date" class="form-control form-control-sm" id="dateid" readonly>
+                        <span class="error-msg" id="dateid-error">Date is required</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="emailid" class="col-sm-4 col-form-label form-label">Email ID:</label>
+                    <div class="col-sm-8">
+                        <input type="email" class="form-control form-control-sm" id="emailid" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: Employee and Contact No -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="employeeid" class="col-sm-4 col-form-label form-label">Employee<span class="text-danger">*</span>:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" id="employeeid" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="contactid" class="col-sm-4 col-form-label form-label">Contact No:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" id="contactid" maxlength="10" pattern="\d{10}" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3: Loan Name and Loan Max Limit -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="loannameid" class="col-sm-4 col-form-label form-label">Loan Name<span class="text-danger">*</span>:</label>
+                    <div class="col-sm-8">
+                        <select class="form-select form-select-sm" id="loannameid">
+                            <option value="">--Select Loan--</option>
+                        </select>
+                        <span class="error-msg" id="loannameid-error">Please select a loan</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="loanmaxlimitid" class="col-sm-4 col-form-label form-label">Loan Max Limit:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" id="loanmaxlimitid" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 4: Loan Require Date and Amount -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="loanrequiredateid" class="col-sm-4 col-form-label form-label">Loan Require Date<span class="text-danger">*</span>:</label>
+                    <div class="col-sm-8">
+                        <input type="date" class="form-control form-control-sm" id="loanrequiredateid">
+                        <span class="error-msg" id="loanrequiredateid-error">Loan require date is required</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="amountid" class="col-sm-4 col-form-label form-label">Amount<span class="text-danger">*</span>:</label>
+                    <div class="col-sm-8">
+                        <input type="number" class="form-control form-control-sm" id="amountid" step="0.01">
+                        <span class="error-msg" id="amountid-error">Amount is required</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 5: Interest Type and Interest (%) (Yearly) -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="interesttypeid" class="col-sm-4 col-form-label form-label">Interest Type:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" id="interesttypeid" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="interestid" class="col-sm-4 col-form-label form-label">Interest (%)(Yearly):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" id="interestid" value="0" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 6: Installment and Installment Amount -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="installmentid" class="col-sm-4 col-form-label form-label">Installment<span class="text-danger">*</span>:</label>
+                    <div class="col-sm-8">
+                        <input type="number" class="form-control form-control-sm" id="installmentid" max="10">
+                        <span class="error-msg" id="installmentid-error">Installment is required</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="installmentamountid" class="col-sm-4 col-form-label form-label">Installment Amount<span class="text-danger">*</span>:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" id="installmentamountid" readonly>
+                        <span class="error-msg" id="installmentamountid-error">Installment amount is required</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 7: Installment Start Date and Remark -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="installmentstartdateid" class="col-sm-4 col-form-label form-label">Installment Start Date<span class="text-danger">*</span>:</label>
+                    <div class="col-sm-8">
+                        <input type="date" class="form-control form-control-sm" id="installmentstartdateid">
+                        <span class="error-msg" id="installmentstartdateid-error">Installment start date is required</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="row">
+                    <label for="remarkid" class="col-sm-4 col-form-label form-label">Remark:</label>
+                    <div class="col-sm-8">
+                        <textarea class="form-control form-control-sm" id="remarkid" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Submit, Clear and Back Buttons -->
+        <div class="row mb-3">
+            <div class="col-12 d-flex justify-content-end gap-2">
+                <button type="submit" id="submitid" class="search-panel-container search-heading btn-sm">Submit</button>
+                <button type="reset" id="resetid" class="search-panel-container search-heading btn-sm">Clear</button>
+                <a href='@Url.Action("EmpLoanApproval", "SalaryDetail", new { area = "EmployeePanel" })' class="search-panel-container search-heading btn-sm text-decoration-none">Back</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    var baseUrl = '@baseUrl';
+    var Token = localStorage.getItem('token');
+    var savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    var Compid = parseInt(companyDetails.CompanyId);
+    var Empid = parseInt(localStorage.getItem("EmployeeId"));
+    var EmployeeName = localStorage.getItem("EmployeeName");
+    var loanMasterData = [];
+    var employeeGrossSalary = 0;
+
+    $(document).ready(function () {
+        // Initialize form fields
+        var today = new Date().toISOString().split('T')[0];
+        $('#dateid').val(today);
+        $('#employeeid').val(EmployeeName);
+
+        // Set interest yearly to 0 (readonly)
+        $('#interestid').val('0');
+
+        // Load employee details first, then load loan types
+        GetEmployeeDetailsByEmpId(Empid).then(function() {
+            BindLoanMasterDropdown();
+        });
+
+        // Handle loan selection change
+        $('#loannameid').on('change', function() {
+            var selectedLoanId = parseInt($(this).val());
+            if (selectedLoanId) {
+                var selectedLoan = null;
+                for (var i = 0; i < loanMasterData.length; i++) {
+                    if (loanMasterData[i].loanid === selectedLoanId) {
+                        selectedLoan = loanMasterData[i];
+                        break;
+                    }
+                }
+                if (selectedLoan) {
+                    // Set loan max limit to double of gross salary
+                    var maxLimit = employeeGrossSalary * 2;         
+                    $('#loanmaxlimitid').val(maxLimit.toFixed(2));
+                    $('#interesttypeid').val(selectedLoan.interestType || '');
+                    $('#interestid').val('0');
+                    calculateInstallmentAmount();
+                }
+            } else {
+                $('#loanmaxlimitid').val('');
+                $('#interesttypeid').val('');
+                $('#interestid').val('0');
+                $('#installmentamountid').val('');
+            }
+        });
+
+        // Calculate installment amount when amount or installment changes
+        $('#amountid, #installmentid').on('input', function() {
+            calculateInstallmentAmount();
+        });
+
+    //         function AutomateLoanEndApproval() {
+    //             var approvalMasterId = 4; 
+    //             $.ajax({
+    //             url: baseUrl + '/LoanApplicationAPI/AutomateLoanEndApprovalRequests?approvalMasterId=' + approvalMasterId,
+    //             method: 'GET',
+    //             headers: {
+    //                 'Authorization': 'Bearer ' + Token
+    //             },
+    //         success: function (response) {
+    //             if (response.isSuccess) {
+    //                 console.log('✅ Loan approval automated successfully');
+    //                 console.log('Response:', response.responseMessage);
+    //                 console.log('Data:', response.data);
+    //             } else {
+    //                 console.warn('⚠️ Loan approval automation failed:', response.responseMessage);
+    //             }
+    //         },
+    //         error: function (xhr, status, error) {
+    //             console.error('❌ Error calling AutomateLoanEndApproval API');
+    //             console.error('Status:', status);
+    //             console.error('Error:', error);
+    //             console.error('Response:', xhr.responseJSON);
+
+    //         }
+    //     });
+    // }
+
+
+
+
+        // Handle form submission with validation
+        $('#loanForm').on('submit', function (e) {
+            e.preventDefault();
+
+            var isValid = true;
+            $('.error-msg').hide();
+
+            // Loan name validation
+            if (!$('#loannameid').val()) {
+                $('#loannameid-error').show();
+                isValid = false;
+            }
+
+            // Loan require date validation
+            var loanRequireDate = $('#loanrequiredateid').val();
+            if (!loanRequireDate) {
+                $('#loanrequiredateid-error').show();
+                isValid = false;
+            } else {
+                var today = new Date().toISOString().split('T')[0];
+                if (loanRequireDate < today) {
+                    $('#loanrequiredateid-error').text('Date cannot be in the past').show();
+                    isValid = false;
+                }
+            }
+
+            // Amount validation
+            var amount = parseFloat($('#amountid').val());
+            var maxLimit = parseFloat($('#loanmaxlimitid').val()) || 0;
+            if (!$('#amountid').val()) {
+                $('#amountid-error').text('Amount is required').show();
+                isValid = false;
+            } else if (amount <= 0) {
+                $('#amountid-error').text('Amount must be greater than 0').show();
+                isValid = false;
+            } else if (maxLimit > 0 && amount > maxLimit) {
+                $('#amountid-error').text('Amount exceeds maximum limit of ' + maxLimit).show();
+                isValid = false;
+            }
+
+            // Installment validation (max 10)
+            var installments = parseInt($('#installmentid').val());
+            if (!$('#installmentid').val()) {
+                $('#installmentid-error').text('Installment is required').show();
+                isValid = false;
+            } else if (installments <= 0) {
+                $('#installmentid-error').text('Installment must be greater than 0').show();
+                isValid = false;
+            } else if (installments > 10) {
+                $('#installmentid-error').text('Maximum 10 installments allowed').show();
+                isValid = false;
+            }
+
+            // Installment start date validation
+            var installmentStartDate = $('#installmentstartdateid').val();
+            if (!installmentStartDate) {
+                $('#installmentstartdateid-error').show();
+                isValid = false;
+            } else {
+                var today = new Date().toISOString().split('T')[0];
+                if (installmentStartDate < today) {
+                    $('#installmentstartdateid-error').text('Date cannot be in the past').show();
+                    isValid = false;
+                }
+                // Check if installment start date is after loan require date
+                if (loanRequireDate && installmentStartDate < loanRequireDate) {
+                    $('#installmentstartdateid-error').text('Must be after loan require date').show();
+                    isValid = false;
+                }
+            }
+
+            // If validation fails, scroll to the first error
+            if (!isValid) {
+                $('html, body').animate({
+                    scrollTop: $(".error-msg:visible:first").offset().top - 100
+                }, 500);
+                return;
+            }
+
+            // Prepare payload for API
+            var payload = {
+                ApplicationDate: $('#dateid').val(),
+                EmployeeId: Empid,
+                ContactNo: $('#contactid').val(),
+                EmailId: $('#emailid').val(),
+                LoanId: parseInt($('#loannameid').val()),
+                LoanRequireDate: $('#loanrequiredateid').val(),
+                LoanMaxLimit: parseFloat($('#loanmaxlimitid').val()) || 0,
+                LoanAmount: parseFloat($('#amountid').val()),
+                InterestType: $('#interesttypeid').val(),
+                InterestPercentage: 0, // Always 0
+                NoOfInstallment: parseInt($('#installmentid').val()),
+                InstallmentAmount: parseFloat($('#installmentamountid').val()),
+                InstallmentStartDate: $('#installmentstartdateid').val(),
+                Remark: $('#remarkid').val() || '',
+                IsEnabled: true,
+                IsDeleted: false,
+                CreatedBy: Empid
+            };
+
+            // AJAX call to submit the form
+            $.ajax({
+                url: baseUrl + '/LoanApplicationAPI/CreateLoanApplication',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                data: JSON.stringify(payload),
+              success: function (res) {
+                    if (res.isSuccess) {
+                        round_success_noti(res.responseMessage);
+                        // AutomateLoanEndApproval();
+
+                        resetFormToDefaults();
+                    } else {
+                        round_error_noti(res.responseMessage);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    var errorMessage = '❌ Error submitting application.';
+                    if (xhr.responseJSON && xhr.responseJSON.responseMessage) {
+                        errorMessage = xhr.responseJSON.responseMessage;
+                    } else if (error) {
+                        errorMessage = error;
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: errorMessage,
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        });
+
+        // Clear error messages when the user types
+        $('#loanForm input, #loanForm textarea, #loanForm select').on('input change', function () {
+            $(this).siblings('.error-msg').hide();
+        });
+    });
+
+    // Reset button handler
+    $('#resetid').on('click', function (e) {
+        e.preventDefault();
+        resetFormToDefaults();
+    });
+
+    // Function to reset form to default values
+    function resetFormToDefaults() {
+        $('#loanForm')[0].reset();
+        $('.error-msg').hide();
+        var today = new Date().toISOString().split('T')[0];
+        $('#dateid').val(today);
+        $('#employeeid').val(EmployeeName);
+        $('#loannameid').val('');
+        $('#interestid').val('0');
+        // Reload employee details to refill email and contact
+        GetEmployeeDetailsByEmpId(Empid);
+    }
+
+ 
+    function GetEmployeeDetailsByEmpId(Empid) {
+        debugger;
+        return new Promise(function(resolve, reject) {
+            $.ajax({
+                url: baseUrl + '/LoanApplicationAPI/GetEmployeeDetailsByEmpId?EmployeeId=' + Empid,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    if (response.isSuccess && response.data) {
+                        var empData = response.data;
+
+                        var officialEmail = empData.officialEmail || empData.OfficialEmail || '';
+                        $('#emailid').val(officialEmail);
+
+                        var contact = empData.contactNo || empData.ContactNo || empData.mobileNo || empData.MobileNo || '';
+                        if (contact) {
+                            contact = contact.toString().replace(/\D/g, '').substring(0, 10);
+                        }
+                        $('#contactid').val(contact);
+
+                        employeeGrossSalary = parseFloat(empData.grossSalary || empData.GrossSalary || 0);
+
+                        console.log('Employee details loaded - Email:', officialEmail, 'Gross Salary:', employeeGrossSalary);
+                        resolve(empData);
+                    } else {
+                        console.error('Failed to fetch employee details');
+                        reject('Failed to fetch employee details');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('Employee API Error:', error);
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    // Load loan types from API
+    function loadLoanTypes() {
+        return new Promise(function(resolve, reject) {
+            $.ajax({
+                url: baseUrl + '/LoanApplicationAPI/GetLoanNamesForDropdown',
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (data) {
+                    console.log('Loan API Response:', data);
+                    if (data.isSuccess) {
+                        var dataArray = data.data || [];
+                        loanMasterData = [];
+
+                        for (var i = 0; i < dataArray.length; i++) {
+                            var loan = dataArray[i];
+                            loanMasterData.push({
+                                loanid: loan.loanid || loan.Loanid || loan.LoanId,
+                                loanName: loan.loanName || loan.LoanName,
+                                maxLimit: loan.maxLimit || loan.MaxLimit || 0,
+                                interestType: loan.interestType || loan.InterestType || '',
+                                interestRate: loan.interestRate || loan.InterestRate || 0
+                            });
+                        }
+
+                        console.log('Loaded loan master data:', loanMasterData);
+
+                        // Clear existing options except the first one
+                        $('#loannameid').find('option:not(:first)').remove();
+
+                        // Populate dropdown with loan data
+                        for (var i = 0; i < loanMasterData.length; i++) {
+                            var loan = loanMasterData[i];
+                            $('#loannameid').append(
+                                $('<option></option>')
+                                    .val(loan.loanid)
+                                    .text(loan.loanName)
+                            );
+                        }
+
+                        console.log('Dropdown populated with', loanMasterData.length, 'loans');
+                        resolve(loanMasterData);
+                    } else {
+                        console.error('API returned isSuccess: false');
+                        reject('Failed to fetch loans');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('API Error:', error);
+                    console.error('XHR:', xhr);
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    function BindLoanMasterDropdown() {
+        loadLoanTypes().then(function(data) {
+            // Success
+        }).catch(function(error) {
+            console.error('Error binding loan dropdown:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Failed to load loan types',
+                text: error.toString(),
+                confirmButtonText: 'OK'
+            });
+        });
+    }
+
+    function calculateInstallmentAmount() {
+        var amount = parseFloat($('#amountid').val()) || 0;
+        var installments = parseInt($('#installmentid').val()) || 0;
+        // Interest is always 0
+        var interest = 0;
+
+        if (amount > 0 && installments > 0) {
+            // Calculate total amount with interest (0% interest)
+            var totalInterest = (amount * interest) / 100;
+            var totalAmount = amount + totalInterest;
+            var installmentAmount = totalAmount / installments;
+            $('#installmentamountid').val(installmentAmount.toFixed(2));
+        } else {
+            $('#installmentamountid').val('');
+        }
+    }
+</script>

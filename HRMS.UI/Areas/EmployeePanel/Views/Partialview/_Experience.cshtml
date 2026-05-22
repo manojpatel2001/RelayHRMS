@@ -1,7 +1,11 @@
 ﻿@inject IConfiguration Configuration
 @{
-    Layout = null;
+    // Layout = null;
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+
 
 }
 <!--Experience & Language-->
@@ -93,7 +97,7 @@
 
             <!-- Submit Button -->
             <div class="text-center mb-3">
-                <button class="btn btn-primary btn-sm">Submit</button>
+                <button class="btn btn-primary btn-sm" id="btnAddExperience">Submit</button>
             </div>
 
             <div class="form-heading">Experience :</div>
@@ -106,18 +110,18 @@
             <!-- Language Selection -->
             <div class="form-group-custom mb-2">
                 <label class="form-label-fixed mb-0">Language :</label>
-                <select class="form-select form-select-sm">
-                    <option>--Select--</option>
-                    <option>English</option>
-                    <option>Hindi</option>
-                    <option>Gujarati</option>
+                <select id="txtLanguage" class="form-select form-select-sm">
+                    <option value="">--Select--</option>
+                    <option value="English">English</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Gujarati">Gujarati</option>
                 </select>
             </div>
 
             <!-- Fluency -->
             <div class="form-group-custom mb-2">
                 <label class="form-label-fixed mb-0">Fluency:</label>
-                <input type="text" class="form-control form-control-sm">
+                <input type="text" id="txtFluency" class="form-control form-control-sm">
             </div>
 
             <!-- Ability -->
@@ -145,10 +149,136 @@
 
             <!-- Submit -->
             <div class="text-center mb-3">
-                <button class="btn btn-primary btn-sm">Submit</button>
+                <button  id="btnAddLanguage" class="btn btn-primary " style="background-color:#394867 !important">Submit</button>
             </div>
 
             <div class="form-heading">Language Details :</div>
+            <div class="container mt-3">
+
+                <div id="grid-loader"
+                     class="grid-loader justify-content-center align-items-center flex-column"
+                     style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                     background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+
+                    <img src="@baseDomainUrl/loders/loder.png"
+                         class="grid-logo-spinner"
+                         style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+
+                    <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+                </div>
+
+                <!-- Grid Container with full width -->
+                <div class="grid-container">
+                    <div id="leaveBalanceGrid"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+<div class="container mt-3">
+
+    <div id="grid-loader"
+         class="grid-loader justify-content-center align-items-center flex-column"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+
+        <img src="@baseDomainUrl/loders/loder.png"
+             class="grid-logo-spinner"
+             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+
+
+        <div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
+    </div>
+
+    <!-- Grid Container with full width -->
+    <div class="grid-container">
+        <div id="leaveBalanceGrid"></div>
+    </div>
+</div>
+
+<script>
+    const empid = parseInt(localStorage.getItem("EmployeeId"));
+    let LanguageId = 0;
+
+    $('#btnAddLanguage').click(function () {
+        $(this).prop("disabled", true);
+
+        const getValueOrNull = id => {
+            const val = $(id).val()?.trim();
+            return val === '' ? null : val;
+        };
+
+        const languageModel = {
+            LanguageId: LanguageId || 0,
+            EmployeeId: empid,
+            LanguageName: getValueOrNull('#txtLanguage'),
+            Fluency: getValueOrNull('#txtFluency'),
+            CanWrite: $('#chkWrite').is(":checked"),
+            CanRead: $('#chkRead').is(":checked"),
+            CanSpeak: $('#chkSpeak').is(":checked"),
+            CanUnderstand: $('#chkUnderstand').is(":checked"),
+            CreatedBy: localStorage.getItem('loggedInUser') || "Admin"
+        };
+
+        const apiConfig = {
+            url: LanguageId === 0
+                ? '@baseUrl/EmployeeProfileLanguageAPI/AddEmployeeProfileLanguage'
+                : '@baseUrl/EmployeeProfileLanguageAPI/UpdateEmployeeProfileLanguage',
+            method: LanguageId === 0 ? 'POST' : 'PUT'
+        };
+
+        $.ajax({
+            url: apiConfig.url,
+            method: apiConfig.method,
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify(languageModel),
+             success: function (response) {
+        console.log("API Response:", response);
+
+        if (response.isSuccess) {
+           
+            round_success_noti(response.responseMessage);
+            loadGrid(response.data || response.Data || []);
+            LanguageId = 0;
+            $('#Language-form').trigger("reset");
+        } else {
+            round_error_noti(response.responseMessage);
+        }
+        $('#btnAddLanguage').prop("disabled", false);
+    },
+
+            error: function () {
+                round_error_noti("Something went wrong while saving.");
+                $('#btnAddLanguage').prop("disabled", false);
+            }
+        });
+    });
+
+    function loadGrid(data) {
+        
+        $("#leaveBalanceGrid").dxDataGrid({
+
+            dataSource: data,
+            showBorders: true,
+            height: "auto",
+            width: "100%",
+            columnAutoWidth: true,
+            paging: { enabled: true, pageSize: 10 },
+            pager: { showPageSizeSelector: true, allowedPageSizes: [5, 10, 20] },
+            allowColumnResizing: true,
+            columns: [
+                { dataField: "languageName", caption: "Language" },
+                { dataField: "fluency", caption: "Fluency" },
+                { dataField: "canRead", caption: "Read" },
+                { dataField: "canWrite", caption: "Write" },
+                { dataField: "canSpeak", caption: "Speak" },
+                { dataField: "canUnderstand", caption: "Understand" }
+            ]
+        });
+    }
+</script>
+
+

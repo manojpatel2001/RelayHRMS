@@ -1,7 +1,9 @@
 ﻿using HRMS_Core.VM;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Report;
 using HRMS_Core.VM.Salary;
 using HRMS_Infrastructure.Interface;
+using HRMS_Infrastructure.Repository;
 using HRMS_Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -44,7 +46,73 @@ namespace HRMS_API.Controllers.Salary
             try
             {
                 var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetSalaryDetails(vm);
-                if(data==null || !data.Any())
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No record found!"
+                    };
+                }
+
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+        [HttpPost("GetSalarySlip")]
+        public async Task<APIResponse> GetSalarySlip(salaryslipParamReport vm)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetSalarySlipReport(vm);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Record fetched successfully"
+                    };
+                }
+
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+
+
+        [HttpPost("GetSalarySlipReport")]
+        public async Task<APIResponse> GetSalarySlipReport(salaryslipParamReport vm)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetSalarySlipReport(vm);
+                if (data == null || !data.Any())
                 {
                     return new APIResponse()
                     {
@@ -76,13 +144,164 @@ namespace HRMS_API.Controllers.Salary
         {
             try
             {
-                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetMonthlySalaryData(vm);
+                var response = await _unitOfWork.MonthlySalaryDetailsRepository.GetMonthlySalaryData(vm);
+
+                var result = response.FirstOrDefault();
+
+                if (result == null)
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No response from server.",
+                        Data = null
+                    };
+
+                return result;
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+
+        [HttpPost("GetEmployeePayableDays")]
+        public async Task<APIResponse> GetEmployeePayableDays([FromBody] GetEmployeePayableDaysRequest request)
+        {
+            var result = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeePayableDays(request);
+
+            if (result == null)
+            {
+                return new APIResponse 
+                {
+                    isSuccess = false,
+                    ResponseMessage = "No record found"
+                };
+            }
+
+            return  new APIResponse
+            {
+                isSuccess = true,
+                ResponseMessage = "successfully!",
+                Data=result
+            }; ;
+        }
+
+        [HttpGet("GetYearlySalaryCard")]
+        public async Task<APIResponse> GetYearlySalaryCard(int year, int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetYearlySalaryCard(year, EmployeeId);
                 if (data == null || !data.Any())
                 {
                     return new APIResponse()
                     {
                         isSuccess = false,
-                        ResponseMessage = "Record fetched successfully"
+                        ResponseMessage = "No data found"
+                    };
+                }
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+
+
+        [HttpGet("GetEmployeeSalaryDays")]
+        public async Task<APIResponse> GetEmployeeSalaryDays(int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeeSalaryDays(EmployeeId);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No data found"
+                    };
+                }
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+        [HttpGet("GetYearlySalaryReport")]
+        public async Task<APIResponse> GetYearlySalaryReport(int year, int EmployeeId)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetYearlySalarySummaryReport(year, EmployeeId);
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No data found"
+                    };
+                }
+                return new APIResponse()
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Record fetched successfully"
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Error: {err.Message}"
+                };
+            }
+        }
+
+        [HttpGet("GetEmployeeSalaryRegister")]
+        public async Task<APIResponse> GetEmployeeSalaryRegister([FromQuery] SalaryRegisterVM model) // Use [FromQuery] to accept query parameters
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeeSalaryRegister(
+                  model
+                );
+
+                if (data == null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No data found"
                     };
                 }
 
@@ -103,7 +322,6 @@ namespace HRMS_API.Controllers.Salary
                 };
             }
         }
-
 
 
         [HttpPost("CreateMonthlySalary")]
@@ -111,21 +329,174 @@ namespace HRMS_API.Controllers.Salary
         {
             try
             {
-                var data = await _unitOfWork.MonthlySalaryDetailsRepository.CreateSalaryDetails(vm);
-                if (data.Id == null)
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.CreateSalaryDetails(vm);
+
+                // Check result
+                if (result.Success > 0)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        Data = result,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+                else
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (e.g., using ILogger)
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Unable to create salary record. Error: {ex.Message}"
+                };
+            }
+        }
+
+        [HttpDelete("DeleteSalaryDetails")]
+        public async Task<APIResponse> DeleteSalaryDetails(DeleteRecordVModel model)
+        {
+            try
+            {
+                if (model == null)
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
+                }
+
+
+                model.DeletedDate = DateTime.UtcNow;
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.DeleteSalaryDetails(model);
+
+                return new APIResponse { isSuccess = true, Data = result, ResponseMessage = "The record has been deleted successfully" };
+
+
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record, Please try again later!" };
+            }
+        }
+
+        [HttpGet("GetEmployeesForSalary")]
+        public async Task<APIResponse> GetEmployeesForSalary([FromQuery] string? BranchIds, int CompanyId, int? Month)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeesForSalary(BranchIds, CompanyId, Month);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
+
+        [HttpPost("GetEmployeeSalaryPublish")]
+        public async Task<APIResponse> GetEmployeeSalaryPublish([FromBody] AttendanceLockParamVm model)
+        {
+            try
+            {
+                if (model == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "Emp_Id,Month,Year are required."
+                    };
+                }
+
+
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetEmployeeSalaryPublish(model);
+
+
+                if (data == null)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No matching IN record found or update failed."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "An error occurred while updating out time."
+                };
+            }
+        }
+
+        [HttpPut("UpdateSalaryPublishStatus")]
+        public async Task<APIResponse> UpdateSalaryPublishStatus([FromBody] SalaryPublishFilterViewModel model)
+        {
+            try
+            {
+                if (model == null || string.IsNullOrWhiteSpace(model.EmployeeIds))
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Invalid request data." };
+
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.UpdateSalaryPublishStatus(model);
+
+                return new APIResponse
+                {
+                    isSuccess = result.Success > 0,
+                    ResponseMessage = result.ResponseMessage
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = ex.Message,
+                    ResponseMessage = "Unable to update records. Please try again later."
+                };
+            }
+        }
+        [HttpGet("IsPayslipPublished")]
+        public async Task<APIResponse> IsPayslipPublished([FromQuery] PayslipFilterViewModel model)
+        {
+            try
+            {
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.IsPayslipPublished(model);
+
+                if (result == null)
                 {
                     return new APIResponse()
                     {
                         isSuccess = false,
-                        ResponseMessage = "Record fetched successfully"
+                        ResponseMessage = "No data found"
                     };
                 }
 
                 return new APIResponse()
                 {
-                    isSuccess = true,
-                    Data = data,
-                    ResponseMessage = "Record fetched successfully"
+                    isSuccess = result.Success == 1, // Use Success field
+                    Data = new { Success = result.Success, ResponseMessage = result.ResponseMessage },
+                    ResponseMessage = result.ResponseMessage // Use ResponseMessage
                 };
             }
             catch (Exception err)
@@ -140,28 +511,113 @@ namespace HRMS_API.Controllers.Salary
         }
 
 
-        [HttpDelete("DeleteSalaryDetails")]
-        public async Task<APIResponse> DeleteSalaryDetails(DeleteRecordVModel model)
+        [HttpGet("GetLeftEmployeedropDown/{CompanyId}")]
+        public async Task<APIResponse> GetLeftEmployeedropDown(int CompanyId)
         {
             try
             {
-                if (model == null )
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetLeftEmployeedropDown(CompanyId);
+                if (data == null)
                 {
-                    return new APIResponse { isSuccess = false, ResponseMessage = "Delete details cannot be null" };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found" };
                 }
-
-
-                model.DeletedDate = DateTime.UtcNow;
-                var result = await _unitOfWork.MonthlySalaryDetailsRepository.DeleteSalaryDetails(model);
-           
-                    return new APIResponse { isSuccess = true, Data = result, ResponseMessage = "The record has been deleted successfully" };
-     
-
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully" };
             }
             catch (Exception ex)
             {
-                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to delete record, Please try again later!" };
+                // Log the exception (e.g., using ILogger)
+                return new APIResponse { isSuccess = false, ResponseMessage = "An error occurred. Please try again later." };
             }
         }
+
+        [HttpGet("GetLeftEmployeeDetails/{Employeeid}")]
+        public async Task<APIResponse> GetLeftEmployeeDetails(int Employeeid)
+        {
+            try
+            {
+                var data = await _unitOfWork.MonthlySalaryDetailsRepository.GetLeftEmployeeDetails(Employeeid);
+                if (data == null)
+                {
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Record not found" };
+                }
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve record, Please try again later!" };
+            }
+        }
+
+        [HttpPost("SaveFnFSettlement")]
+        public async Task<APIResponse> SaveFnFSettlement(FnFSettlementRequest request)
+        {
+            try
+            {
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.SaveFnFSettlementAsync(request);
+
+                if (result.isSuccess)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        Data = result.Data,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+                else
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Unable to save FnF settlement. Error: {ex.Message}"
+                };
+            }
+        }
+
+        [HttpPost("GetFullFinalStatement")]
+        public async Task<APIResponse> GetFullFinalStatement(  [FromBody] FullFinalStatementRequestDto request)
+        {
+            try
+            {
+                var result = await _unitOfWork.MonthlySalaryDetailsRepository.GetFullFinalStatementReport(request);
+                if (result.isSuccess)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = true,
+                        Data = result.Data,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+                else
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = result.ResponseMessage
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = null,
+                    ResponseMessage = $"Unable to fetch Full & Final Statement. Error: {ex.Message}"
+                };
+            }
+        }
+
     }
 }
