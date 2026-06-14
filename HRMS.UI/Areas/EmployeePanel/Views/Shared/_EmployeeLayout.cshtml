@@ -21,6 +21,8 @@
     <link rel="stylesheet" href="~/assets/css/wms-site.css" />
     <link rel="stylesheet" href="~/assets/css/app-shell.css" />
     <link rel="stylesheet" href="~/assets/css/wms-theme.css" />
+    <!-- HRMS UI enhancements (stat cards, notification, modals) -->
+    <link rel="stylesheet" href="~/assets/css/hrms-ui.css" />
 
     <!-- Bootstrap -->
     <link href="~/assets/css/bootstrap.min.css" rel="stylesheet" />
@@ -39,42 +41,10 @@
     <script src="~/assets/js/wms-theme.js"></script>
 
     <style>
-        /* ── Page loader ── */
-        .loader-container {
-            position: fixed; inset: 0;
-            display: none; align-items: center; justify-content: center;
-            flex-direction: column; z-index: 99999;
-            backdrop-filter: blur(4px);
-            background: rgba(255,255,255,.30);
-        }
-        .logo-spinner { width:80px; height:80px; animation: hrms-spin 1s linear infinite; }
-        .loading-text { margin-top:10px; font-size:16px; color:#333; }
-        @@keyframes hrms-spin { to { transform: rotate(360deg); } }
-
         /* ── Notification ── */
         #notificationCount { display:none; }
         .hrms-notif-wrap { position: relative; }
-        .notification-dropdown {
-            display: none;
-            position: fixed;
-            top: calc(var(--as-topbar-h) + var(--as-projbar-h) + 4px);
-            right: 10px;
-            background: #fff;
-            border: 1.5px solid #E2E8F0;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,.18);
-            width: min(340px, calc(100vw - 20px));
-            max-height: calc(100vh - 100px);
-            overflow-y: auto;
-            z-index: 9998;
-        }
-        .notification-dropdown.show { display: block; }
-        .notification-header {
-            padding: 12px 16px;
-            border-bottom: 1px solid #F1F5F9;
-            background: #F8FAFC;
-        }
-        .notification-header h6 { margin:0; font-size:13px; font-weight:700; color:#1A4558; }
+        /* notification-dropdown + notification-item styles → hrms-ui.css */
 
         /* ── Company ── */
         .hrms-company-name {
@@ -202,10 +172,12 @@
 </head>
 <body>
 
-    <!-- ══ Page Loader ══ -->
-    <div id="loader" class="loader-container">
-        <img src="@baseDomainUrl/loders/loder.png" class="logo-spinner" alt="Loading…" />
-        <div class="loading-text">Loading, please wait…</div>
+    <!-- ══ Page Loader — WMS dot spinner ══ -->
+    <div id="loader" class="wg-page-loader" style="display:none">
+        <div class="wg-dot-spinner">
+            <div></div><div></div><div></div><div></div><div></div><div></div>
+            <div></div><div></div><div></div><div></div><div></div><div></div>
+        </div>
     </div>
 
     <div id="app-shell-wrap">
@@ -232,7 +204,7 @@
                         </button>
                         <div id="as-user-dd" class="as-user-dd">
                             <div id="dropdown-user-info" style="padding:12px 16px;border-bottom:1px solid #F1F5F9;background:#F8FAFC">
-                                <div style="font-size:13px;font-weight:700;color:#1A4558" id="dropdown-name"></div>
+                                <div style="font-size:13px;font-weight:700;color:#1e3a5f" id="dropdown-name"></div>
                                 <div style="font-size:11px;color:#64748B" id="dropdown-role">Employee Self Service</div>
                             </div>
                             <a href="@UIBaseUrlLayout/EmployeePanel/Employee/MyProfile" class="as-user-dd-item">
@@ -280,8 +252,19 @@
                             <span class="as-notif-dot" id="notif-dot-topbar">0</span>
                         </button>
                         <div class="notification-dropdown" id="notificationDropdown">
-                            <div class="notification-header"><h6>Notifications</h6></div>
+                            <div class="notification-header">
+                                <h6><i class="bx bx-bell"></i> Notifications</h6>
+                                <button class="notif-mark-all-btn" type="button"
+                                        onclick="if(typeof readNotification==='function') readNotification('All'); loadAllUnreadNotification(); return false;">
+                                    Mark all read
+                                </button>
+                            </div>
                             <div class="notification-list" id="notificationList"></div>
+                            <div class="notification-footer">
+                                <a href="#" class="notif-view-all" onclick="return false;">
+                                    View all notifications <i class="bx bx-right-arrow-alt"></i>
+                                </a>
+                            </div>
                         </div>
                         <span id="notificationCount" style="display:none">0</span>
                     </div>
@@ -598,7 +581,7 @@
 
     <!-- Comp-Off / Leave Balance Modal -->
     <div class="leave-balance-modal-container">
-        <div class="modal fade" id="leaveBalanceModal" data-bs-backdrop="static" data-bs-keyboard="true" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="leaveBalanceModal" data-bs-backdrop="true" data-bs-keyboard="true" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-xl custom-modal-dialog">
                 <div class="modal-content custom-modal-content">
                     <div class="modal-header modal-header-gradient custom-modal-header">
@@ -611,7 +594,7 @@
                                 </div>
                             </div>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"><i class="bx bx-window-close"></i></button>
+                        <button type="button" class="hrms-modal-close" data-bs-dismiss="modal" aria-label="Close"><i class="bx bx-x"></i></button>
                     </div>
                     <div class="modal-body p-3 custom-modal-body">
                         <ul class="nav nav-tabs mb-3 custom-nav-tabs" id="reportTabs" role="tablist">
@@ -698,8 +681,8 @@
     <!-- Scroll-to-top button -->
     <button id="scroll-to-top" title="Go to top" aria-label="Scroll to top"
             style="display:none;position:fixed;bottom:28px;right:28px;z-index:9999;width:42px;height:42px;
-                   border-radius:50%;border:none;background:linear-gradient(135deg,#1A4558,#2563EB);
-                   color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,.40);
+                   border-radius:50%;border:none;background:linear-gradient(135deg,#1e3a5f,#2d7ab5);
+                   color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 14px rgba(45,122,181,.40);
                    transition:opacity .25s,transform .25s;opacity:0;pointer-events:none;
                    align-items:center;justify-content:center;">
         <i class="bx bx-chevron-up" style="line-height:1"></i>

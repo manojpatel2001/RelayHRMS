@@ -405,6 +405,45 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 
+<!-- ══ SUMMARY STAT CARDS ══════════════════════════════════════════════ -->
+<div class="hrms-summary-row">
+    <div class="hrms-summary-cards">
+        <!-- Total Employees -->
+        <div class="hrms-stat-card hrms-stat-blue">
+            <div class="hrms-stat-icon"><i class="bx bx-group"></i></div>
+            <div class="hrms-stat-info">
+                <div class="hrms-stat-num is-loading" id="statTotalEmployees">--</div>
+                <div class="hrms-stat-label">Total Employees</div>
+            </div>
+        </div>
+        <!-- Active Employees -->
+        <div class="hrms-stat-card hrms-stat-green">
+            <div class="hrms-stat-icon"><i class="bx bx-user-check"></i></div>
+            <div class="hrms-stat-info">
+                <div class="hrms-stat-num is-loading" id="statActiveEmployees">--</div>
+                <div class="hrms-stat-label">Active Employees</div>
+            </div>
+        </div>
+        <!-- Pending Leaves -->
+        <div class="hrms-stat-card hrms-stat-orange">
+            <div class="hrms-stat-icon"><i class="bx bx-calendar-x"></i></div>
+            <div class="hrms-stat-info">
+                <div class="hrms-stat-num is-loading" id="statPendingLeaves">--</div>
+                <div class="hrms-stat-label">Pending Leave Requests</div>
+            </div>
+        </div>
+        <!-- Left Last Month -->
+        <div class="hrms-stat-card hrms-stat-red">
+            <div class="hrms-stat-icon"><i class="bx bx-user-x"></i></div>
+            <div class="hrms-stat-info">
+                <div class="hrms-stat-num is-loading" id="statLeftLastMonth">--</div>
+                <div class="hrms-stat-label">Left Last Month</div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+
 <div style="min-height: 600px;">
 
     <div id="newsAnnouncementContainer" style="display: none; margin-bottom: 15px;">
@@ -643,75 +682,11 @@
     </div>
 </div>
 
-<!-- Add CSS for tab functionality -->
+<!-- Tab & panel styles → hrms-ui.css  (side-panel, tab-item, tab-contents) -->
 <style>
-    /* Replace your existing CSS with these updated styles */
-
-    .side-panel {
-        background: #d1d5db;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .tab-item {
-        display: block;
-        padding: 8px 15px;
-        color: white;
-        text-decoration: none;
-        border-bottom: 1px solid #ffffff;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        background-color: #2c3a57;
-        font-size: 14px; 
-    }
-
-        .tab-item:hover {
-            background-color: #3d4b6a;
-            color: white;
-            text-decoration: none;
-        }
-
-        .tab-item.active {
-            background-color: #9ca3af;
-            color: #1f2937;
-            font-weight: 500;
-        }
-
-    .tab-contents {
-        background: white;
-        border: 1px solid #dee2e6;
-        border-top: none;
-        padding: 8px;
-        margin-bottom: 0;
-        display: none;
-        min-height: 380px; 
-        max-height: 420px; 
-        overflow-y: auto; 
-        overflow-y: hidden; 
-        overflow-x: hidden; 
-    }
-
-    .tab-contents-header {
-        font-weight: 600;
-        color: #495057;
-        padding-bottom: 8px;
-        margin-bottom: 15px;
-    }
-
-    .tab-placeholder {
-        color: #6c757d;
-        font-style: italic;
-        text-align: center;
-        padding: 20px;
-    }
-
-    .tab-contents .dxDataGrid {
-        font-size: 12px;
-    }
-
-        .tab-contents .dxDataGrid .dx-datagrid-headers {
-            font-size: 11px;
-        }
+    /* Dashboard-page–specific styles kept here */
+    .tab-contents .dxDataGrid { font-size: 12px; }
+    .tab-contents .dxDataGrid .dx-datagrid-headers { font-size: 11px; }
  
     /* NEW: Hide the "Branch Name" header in Today's Attendance grid */
     #attendanceGrid .dx-datagrid-headers {
@@ -1134,6 +1109,7 @@
      $(document).ready(function() {
         BranchData();
         LoadDashboardCounts();
+        LoadSummaryCards();
         initializeTabs();
         LoadAttendanceRegularizationCount();
         LoadLeaveCancellationCount();
@@ -2111,6 +2087,67 @@
         });
     }
 
+
+        /* ── Summary stat cards ────────────────────────────────────────── */
+        function setStatCard(id, value) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('is-loading');
+            el.textContent = (value === null || value === undefined) ? '--' : value;
+        }
+
+        function LoadSummaryCards() {
+            /* 1. Total employees + left last month — from BranchWiseEmpCount */
+            $.ajax({
+                type: 'GET',
+                url: '@baseDomainUrl/api/BranchAPI/GetBranchWiseEmpCount/' + CompanyId,
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function(data) {
+                    if (data.isSuccess && data.data) {
+                        var total   = data.data.reduce(function(s, b) { return s + (b.totalUsers   || 0); }, 0);
+                        var left    = data.data.reduce(function(s, b) { return s + (b.leftLastMonth || 0); }, 0);
+                        setStatCard('statTotalEmployees', total);
+                        setStatCard('statLeftLastMonth',  left);
+                    } else {
+                        setStatCard('statTotalEmployees', 0);
+                        setStatCard('statLeftLastMonth',  0);
+                    }
+                },
+                error: function() {
+                    setStatCard('statTotalEmployees', '--');
+                    setStatCard('statLeftLastMonth',  '--');
+                }
+            });
+
+            /* 2. Active employees — from ActiveOrInactive API */
+            $.ajax({
+                type: 'GET',
+                url: '@(baseDomainUrl + "/api/ReportAPI/ActiveOrInactive")',
+                data: { Compid: CompanyId, Action: 'Active' },
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function(res) {
+                    if (res.isSuccess) {
+                        setStatCard('statActiveEmployees', Array.isArray(res.data) ? res.data.length : 0);
+                    } else { setStatCard('statActiveEmployees', 0); }
+                },
+                error: function() { setStatCard('statActiveEmployees', '--'); }
+            });
+
+            /* 3. Pending leave requests */
+            $.ajax({
+                url: '@baseDomainUrl/api/LeaveApplication/GetLeaveApplicationsforApproveAdmin',
+                type: 'POST',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                contentType: 'application/json',
+                data: JSON.stringify({ SearchType: '', SearchFor: '', BranchId: '0', CompId: CompanyId, Status: 'Pending' }),
+                success: function(data) {
+                    if (data.isSuccess && data.data) {
+                        setStatCard('statPendingLeaves', data.data.length);
+                    } else { setStatCard('statPendingLeaves', 0); }
+                },
+                error: function() { setStatCard('statPendingLeaves', '--'); }
+            });
+        }
 
         function LoadCompApplicationCount() {
             const payload = {

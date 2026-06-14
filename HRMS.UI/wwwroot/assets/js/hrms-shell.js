@@ -184,11 +184,41 @@
         };
         btn.addEventListener('mouseenter', function () {
             btn.style.transform = 'translateY(-3px) scale(1.08)';
-            btn.style.boxShadow = '0 6px 20px rgba(37,99,235,.55)';
+            btn.style.boxShadow = '0 6px 20px rgba(45,122,181,.55)';
         });
         btn.addEventListener('mouseleave', function () {
             btn.style.transform = 'translateY(0) scale(1)';
-            btn.style.boxShadow = '0 4px 14px rgba(37,99,235,.40)';
+            btn.style.boxShadow = '0 4px 14px rgba(45,122,181,.40)';
+        });
+    }
+
+    // ── Custom modal: ESC key close ──────────────────────────────────────
+    // Only targets custom modals (no .fade class) that are currently visible.
+    // Bootstrap modals (.modal.fade) manage their own keyboard handling.
+    function initModalKeyboard() {
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') return;
+            document.querySelectorAll('.modal:not(.fade)').forEach(function (m) {
+                if (m.style && m.style.display && m.style.display !== 'none') {
+                    m.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // ── Custom modal: click-outside (backdrop) close ─────────────────────
+    // A click directly on the .modal backdrop element (not on its content)
+    // dismisses it. Checking e.target === the modal avoids closing when
+    // clicking on child elements inside the modal content.
+    function initModalBackdropClose() {
+        document.addEventListener('click', function (e) {
+            var target = e.target;
+            if (!target || !target.classList) return;
+            if (!target.classList.contains('modal')) return;   // must be the backdrop
+            if (target.classList.contains('fade')) return;     // skip Bootstrap modals
+            if (target.style && target.style.display !== 'none') {
+                target.style.display = 'none';
+            }
         });
     }
 
@@ -238,6 +268,8 @@
         markActiveModuleTab();
         syncTopNavUserName();
         initScrollToTop();
+        initModalKeyboard();
+        initModalBackdropClose();
         syncNotifBadge();
         syncCompanyNameToHeader();
     }
@@ -255,3 +287,39 @@
     w.sbToggleGroup         = sbToggleGroup;
 
 })(window);
+
+/* ════════════════════════════════════════════════════════════════════════
+   Page-loader helpers  — keep id="loader" for backwards compat
+   (permissions.js, layouts all reference document.getElementById("loader"))
+   The element is now a .wg-page-loader instead of .loader-container.
+   ════════════════════════════════════════════════════════════════════════ */
+(function () {
+    function getLoader() { return document.getElementById('loader'); }
+
+    window.showPageLoader = function () {
+        var el = getLoader();
+        if (el) el.style.display = 'flex';
+    };
+
+    window.hidePageLoader = function () {
+        var el = getLoader();
+        if (el) el.style.display = 'none';
+    };
+
+    /* Safety net for Bootstrap welcome modal: ensure backdrop is always
+       removed on modal hide, even if Bootstrap's own cleanup stalls. */
+    document.addEventListener('DOMContentLoaded', function () {
+        var welcomeModal = document.getElementById('leaveBalanceModal');
+        if (!welcomeModal) return;
+
+        welcomeModal.addEventListener('hidden.bs.modal', function () {
+            /* Remove any lingering Bootstrap backdrop */
+            document.querySelectorAll('.modal-backdrop').forEach(function (bd) {
+                bd.remove();
+            });
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        });
+    });
+})();
