@@ -240,6 +240,39 @@
         transformOldLoaders();
     }
 
+    /* ════════════════════════════════════════════════════════════════
+       MODAL TELEPORT  (global fix — runs on every page)
+
+       Root cause: app-shell.css sets `.main-area { position: fixed }`
+       which creates an isolated CSS stacking context.  Any Bootstrap
+       modal defined inside @RenderBody() lives inside that stacking
+       context, so its z-index is LOCAL to .main-area.  Bootstrap's
+       backdrop is injected as a direct <body> child in the ROOT
+       stacking context — the backdrop always wins, blocking clicks.
+
+       Fix: move every .modal element to be a DIRECT child of <body>
+       so it shares the root stacking context with the backdrop.
+       z-index 1000100 (modal) then correctly beats 1000099 (backdrop).
+
+       Timing: this script tag is at the bottom of <body>, so the DOM
+       is already fully parsed when it runs — readyState is 'interactive'
+       or 'complete', never 'loading'.  teleportModals() is called
+       synchronously, completing before any $(document).ready() fires.
+    ════════════════════════════════════════════════════════════════ */
+    function teleportModals() {
+        document.querySelectorAll('.modal').forEach(function (modal) {
+            if (modal.parentNode !== document.body) {
+                document.body.appendChild(modal);
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', teleportModals, { once: true });
+    } else {
+        teleportModals();   /* DOM already parsed — run immediately */
+    }
+
     /* ── Expose globals ──────────────────────────────────────────── */
     w.showLoader      = show;
     w.hideLoader      = hide;
