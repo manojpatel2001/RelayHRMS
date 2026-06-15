@@ -289,31 +289,16 @@
 })(window);
 
 /* ════════════════════════════════════════════════════════════════════════
-   Page-loader helpers  — keep id="loader" for backwards compat
-   (permissions.js, layouts all reference document.getElementById("loader"))
-   The element is now a .wg-page-loader instead of .loader-container.
+   Bootstrap welcome-modal backdrop cleanup.
+   showPageLoader / hidePageLoader are now owned by hrms-loader.js which
+   loads after this file and overrides them with counter-aware versions.
    ════════════════════════════════════════════════════════════════════════ */
 (function () {
-    function getLoader() { return document.getElementById('loader'); }
-
-    window.showPageLoader = function () {
-        var el = getLoader();
-        if (el) el.style.display = 'flex';
-    };
-
-    window.hidePageLoader = function () {
-        var el = getLoader();
-        if (el) el.style.display = 'none';
-    };
-
-    /* Safety net for Bootstrap welcome modal: ensure backdrop is always
-       removed on modal hide, even if Bootstrap's own cleanup stalls. */
     document.addEventListener('DOMContentLoaded', function () {
         var welcomeModal = document.getElementById('leaveBalanceModal');
         if (!welcomeModal) return;
 
         welcomeModal.addEventListener('hidden.bs.modal', function () {
-            /* Remove any lingering Bootstrap backdrop */
             document.querySelectorAll('.modal-backdrop').forEach(function (bd) {
                 bd.remove();
             });
