@@ -48,9 +48,17 @@
             '.wg-btn-ghost { background:transparent; color:#64748B; border-color:#CBD5E1; }',
             '.wg-btn-ghost:hover { background:#F0F5F8; color:var(--wg-primary); }',
             /* ── FIX 3: touch scroll — tbl-wrap keeps overflow-x:auto for native touch,
-                  cursor:grab only on non-touch via media query                          */
-            '.wms-grid-tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; flex:1; scroll-behavior:smooth; scrollbar-width:none; touch-action:pan-x pan-y; }',
-            '.wms-grid-tbl-wrap::-webkit-scrollbar { display:none; }',
+                  cursor:grab only on non-touch via media query.
+               ── FIX PAGINATION: cap the table-body height so the pagination bar is
+                  always visible below the grid without requiring page-level scrolling.
+                  calc(100vh - 420px) accounts for topbar(106px) + card-header(50px) +
+                  grid-toolbar(46px) + pagination-bar(48px) + paddings + tab-nav(56px)
+                  ≈ 420px total shell overhead.  overflow-y:auto lets rows scroll
+                  inside the cap; sticky thead sticks inside the scroll container.  */
+            '.wms-grid-tbl-wrap { overflow-x:auto; overflow-y:auto; -webkit-overflow-scrolling:touch; flex:1; scroll-behavior:smooth; scrollbar-width:thin; scrollbar-color:#b0c4d0 #f1f5f9; touch-action:pan-x pan-y; max-height:calc(100vh - 420px); min-height:120px; }',
+            '.wms-grid-tbl-wrap::-webkit-scrollbar { width:6px; height:6px; }',
+            '.wms-grid-tbl-wrap::-webkit-scrollbar-track { background:#f1f5f9; }',
+            '.wms-grid-tbl-wrap::-webkit-scrollbar-thumb { background:#b0c4d0; border-radius:3px; }',
             '@media (hover:hover) { .wms-grid-tbl-wrap { cursor:grab; } .wms-grid-tbl-wrap.grabbing { cursor:grabbing !important; user-select:none; } }',
             '.wg-swipe-wrap { position:relative; }',
             '.wg-scroll-hint { position:absolute; top:50%; transform:translateY(-50%); z-index:10; width:28px; height:44px; display:flex; align-items:center; justify-content:center; background:rgba(47,111,142,0.13); border-radius:6px; cursor:pointer; transition:opacity .2s, background .15s; pointer-events:none; opacity:0; }',
@@ -61,7 +69,7 @@
             '.wg-scroll-hint:hover { background:rgba(47,111,142,0.25); }',
             '.wg-swipe-bar { height:3px; background:#E8ECF0; border-radius:2px; margin:0; overflow:hidden; }',
             '.wg-swipe-bar-inner { height:100%; background:linear-gradient(90deg,#2F6F8E,#88C8E0); border-radius:2px; transition:width .1s, margin-left .1s; width:100%; }',
-            '.wms-grid-tbl-wrap.fixed-height { overflow-y:auto; }',
+            '.wms-grid-tbl-wrap.fixed-height { max-height:none; }',
             /* ── Full grid borders: use border-collapse:separate so sticky cells keep their borders ── */
             '.wms-grid-tbl-wrap table { width:100%; min-width:max-content; border-collapse:separate; border-spacing:0; font-size:12.5px; }',
             /* Header cells — right border draws column dividers; bottom border is the heavy header underline */
