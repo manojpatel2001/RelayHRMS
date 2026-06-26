@@ -426,8 +426,13 @@ body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important; }
 
 /* Z-index stack
    - topbar in app-shell.css goes up to z-index:10000
-   - wms-site.css .wms-dd-panel goes up to z-index:999999
-   - We must beat both. Bootstrap 5 default is only 1055 — we override. */
+   - Bootstrap 5 default modal z-index is only 1055 — too low to beat the
+     topbar, so we override it here.
+   - wms-site.css's .wms-dd-panel/.wms-ms-panel (the searchable dropdown
+     opened from a <select> inside a modal) are deliberately set HIGHER
+     than this modal stack (z-index:1000300) — the dropdown panel must
+     render on top of the modal it lives in, not lose to it. Do not raise
+     .modal/.modal-backdrop above 1000300 without also raising those. */
 .modal                { z-index: 1000100 !important; }
 .modal-backdrop       { z-index: 1000099 !important; }
 .dx-overlay-wrapper,
@@ -447,13 +452,35 @@ body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important; }
     padding-top: calc(var(--topbar-h, 106px) + 16px) !important;
 }
 
-/* Card */
+/* Card
+   Bootstrap's .modal-content is already a flex column with .modal-header/
+   .modal-footer at flex-shrink:0 and .modal-body at overflow-y:auto — the
+   only thing missing for a fixed header/footer + scrollable-body-only
+   layout is a height *constraint*. Without one, .modal-content just grows
+   to fit all the fields and the body's overflow-y:auto never actually
+   triggers, so the whole dialog scrolls in the viewport and Save/Cancel
+   end up below the fold on long forms. Bounding max-height here (instead
+   of requiring every page to opt in via Bootstrap's .modal-dialog-scrollable
+   class) makes it the default everywhere. Sized against the fixed topbar
+   offset below, not a flat 90vh, since a flat value would overflow past
+   the viewport bottom once the topbar's ~106px push-down is added in. */
 .modal-content {
     border: none !important;
     border-radius: var(--hp-r-xl) !important;
     overflow: hidden !important;
+    max-height: calc(100vh - var(--topbar-h, 106px) - 16px - 2rem) !important;
     box-shadow: var(--hp-shadow-modal) !important;
     animation: modal-enter .28s cubic-bezier(.22,.61,.36,1) both !important;
+}
+
+.modal-header,
+.modal-footer {
+    flex-shrink: 0 !important;
+}
+
+.modal-body {
+    overflow-y: auto !important;
+    min-height: 0 !important; /* lets a flex child actually shrink/scroll instead of growing past its parent */
 }
 
 @keyframes modal-enter {
@@ -587,9 +614,10 @@ label:not(.btn):not(.lc-remember) {
     font-size: 12.5px !important;
     font-weight: 600 !important;
     color: var(--hp-text-muted) !important;
-    margin-bottom: 5px !important;
+    margin-bottom: 4px !important;
     display: block !important;
     letter-spacing: 0.15px !important;
+    line-height: 1.2 !important;
 }
 
 /* Labels that appear BELOW inputs (current HRMS pattern) — style as caption */
@@ -608,7 +636,7 @@ label .text-danger { color: var(--hp-danger) !important; font-size: 12px !import
 
 /* Form groups spacing */
 .form-group,
-.mb-3 { margin-bottom: 11px !important; }
+.mb-3 { margin-bottom: 14px !important; }
 
 /* ──────────────────────────────────────────────────────────────────────────
    6b. COMPACT FORM DENSITY — GLOBAL STANDARD
@@ -626,7 +654,7 @@ label .text-danger { color: var(--hp-danger) !important; font-size: 12px !import
 .form-group.mt-3,
 .mt-3.form-floating-custom,
 .form-floating-custom.mt-3 {
-    margin-top: 10px !important;
+    margin-top: 8px !important;
 }
 .form-check.mt-3 { margin-top: 10px !important; }
 .form-check.mt-4 { margin-top: 14px !important; }
@@ -1505,25 +1533,9 @@ div.rowCount {
 
 /* Required-star label marker */
 .required-star,
-label .text-danger,
-.floating-label .text-danger {
+label .text-danger {
     color: var(--hp-danger) !important;
     font-size: 12px !important;
-}
-
-/* ── Floating-label form fields ─────────────────────────────────────────
-   app.css already implements the animation; we just align colours with
-   our design tokens so they match the rest of the UI.                     */
-.floating-label {
-    color:       var(--hp-text-muted) !important;
-    font-size:   13.5px              !important;
-    font-weight: 400                 !important;
-}
-.floating-input:focus ~ .floating-label,
-.floating-input:not(:placeholder-shown) ~ .floating-label {
-    color:       var(--hp-blue-mid)  !important;
-    font-weight: 600                 !important;
-    font-size:   11px                !important;
 }
 
 /* ── Old grid action buttons  (.order-actions wrapper pattern) ─────────── */

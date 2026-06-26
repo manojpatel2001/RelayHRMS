@@ -5,6 +5,8 @@
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
 }
 
+<div class="wms-form-page">
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h6 class="mb-0">Employee Holiday Marking</h6>
@@ -26,54 +28,36 @@
                 <input type="hidden" id="holidayMarkingId" value="0" />
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="mt-3 form-floating-custom">
-                            <div class="searchable-select-wrapper" id="branchHolidayWrapper">
-                                <label for="branchHoliday">Branch <span class="text-danger">*</span></label>
-                                <input type="text" class="searchable-select-input" id="branchHoliday" readonly />
-                                <span class="searchable-select-arrow">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
-                                    </svg>
-                                </span>
-                                <div class="searchable-select-dropdown">
-                                    <div class="searchable-select-search"><input type="text" placeholder="Search branch..." class="search-input" /></div>
-                                    <div class="searchable-select-options"></div>
-                                </div>
-                            </div>
+                        <div class="fg fg-req">
+                            <label for="branchHoliday">Branch</label>
+                            <select id="branchHoliday">
+                                <option value="" selected disabled>Branch</option>
+                            </select>
                             <span id="spnbranchHoliday" style="color:red; display:none; font-size:0.85em;">Please Select Branch</span>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="mt-3 form-floating-custom">
-                            <div class="searchable-select-wrapper" id="employeeHolidayWrapper">
-                                <label for="employeeHoliday">Employee <span class="text-danger">*</span></label>
-                                <input type="text" class="searchable-select-input" id="employeeHoliday" readonly />
-                                <span class="searchable-select-arrow">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
-                                    </svg>
-                                </span>
-                                <div class="searchable-select-dropdown">
-                                    <div class="searchable-select-search"><input type="text" placeholder="Search employee..." class="search-input" /></div>
-                                    <div class="searchable-select-options"></div>
-                                </div>
-                            </div>
+                        <div class="fg fg-req">
+                            <label for="employeeHoliday">Employee</label>
+                            <select id="employeeHoliday">
+                                <option value="" selected disabled>Employee</option>
+                            </select>
                             <span id="spnemployeeHoliday" style="color:red; display:none; font-size:0.85em;">Please Select Employee</span>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-group mt-3 position-relative">
-                            <input type="date" class="form-control floating-input" id="holidayDate" />
-                            <label class="floating-label" for="holidayDate">Holiday Date <span class="required-star">*</span></label>
+                        <div class="fg fg-req">
+                            <label for="holidayDate">Holiday Date</label>
+                            <input type="date" id="holidayDate" />
+                            <span class="field-validation-error" id="spnholidayDate" style="display:none;">Please Select Holiday Date</span>
                         </div>
-                        <span id="spnholidayDate" style="color:red; display:none; font-size:0.85em;">Please Select Holiday Date</span>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-group mt-3 position-relative">
-                            <input type="text" class="form-control floating-input" id="holidayName" placeholder="Holiday Name" autocomplete="off" />
-                            <label class="floating-label" for="holidayName">Holiday Name <span class="required-star">*</span></label>
+                        <div class="fg fg-req">
+                            <label for="holidayName">Holiday Name</label>
+                            <input type="text" id="holidayName" placeholder="Holiday Name" autocomplete="off" />
+                            <span class="field-validation-error" id="spnholidayName" style="display:none;">Please Enter Holiday Name</span>
                         </div>
-                        <span id="spnholidayName" style="color:red; display:none; font-size:0.85em;">Please Enter Holiday Name</span>
                     </div>
                 </div>
             </div>
@@ -86,6 +70,8 @@
             </div>
         </div>
     </div>
+</div>
+
 </div>
 
 <script>
@@ -145,11 +131,12 @@
                 headers: { 'Authorization': 'Bearer ' + Token },
                 success: function (data) {
                     if (data.isSuccess) {
-                        $('#branchHoliday').searchableSelect({
-                            data: data.data || [],
-                            valueKey: 'branchId', textKey: 'branchName', placeholder: 'Branch', searchPlaceholder: 'Search branch...',
-                            onChange: function (item) { bindEmployeeByBranch(item.branchId); }
+                        var $sel = $('#branchHoliday');
+                        $sel.empty().append('<option value="" selected disabled>Branch</option>');
+                        (data.data || []).forEach(function (b) {
+                            $sel.append($('<option>', { value: b.branchId, text: b.branchName }));
                         });
+                        $sel.on('change', function () { bindEmployeeByBranch($(this).val()); });
                         resolve();
                     } else { reject(); }
                 },
@@ -167,8 +154,11 @@
             data: JSON.stringify({ BranchId: branchId, CompanyId: CompanyId }),
             success: function (data) {
                 if (data.isSuccess) {
-                    var dd = $('#employeeHoliday').data('searchableSelect');
-                    if (dd) dd.setData(data.data);
+                    var $sel = $('#employeeHoliday');
+                    $sel.empty().append('<option value="" selected disabled>Employee</option>');
+                    (data.data || []).forEach(function (e) {
+                        $sel.append($('<option>', { value: e.employeeId, text: e.employeeName }));
+                    });
                 }
             }
         });
@@ -179,8 +169,8 @@
 
     $('#btnSaveHolidayMarking').on('click', function () {
         var markingId   = parseInt($('#holidayMarkingId').val()) || 0;
-        var branch      = $('#branchHoliday').data('searchableSelect') ? $('#branchHoliday').data('searchableSelect').getValue() : null;
-        var employee    = $('#employeeHoliday').data('searchableSelect') ? $('#employeeHoliday').data('searchableSelect').getValue() : null;
+        var branch      = $('#branchHoliday').val();
+        var employee    = $('#employeeHoliday').val();
         var holidayDate = $('#holidayDate').val();
         var holidayName = $('#holidayName').val().trim();
 
@@ -229,10 +219,8 @@
 
     function resetForm() {
         $('#holidayMarkingId').val('0');
-        var branchSS   = $('#branchHoliday').data('searchableSelect');
-        var employeeSS = $('#employeeHoliday').data('searchableSelect');
-        if (branchSS)   branchSS.clear();
-        if (employeeSS) employeeSS.clear();
+        $('#branchHoliday').val('');
+        $('#employeeHoliday').val('');
         $('#holidayDate').val('');
         $('#holidayName').val('').removeClass('is-invalid');
         $('#spnbranchHoliday, #spnemployeeHoliday, #spnholidayDate, #spnholidayName').hide();
@@ -246,15 +234,11 @@
         resetForm();
         $('#holidayMarkingId').val(data.employeeHolidayId || 0);
 
-        var branchSS = $('#branchHoliday').data('searchableSelect');
-        if (branchSS) {
-            branchSS.setValue(data.branchId);
-            bindEmployeeByBranch(data.branchId);
-            setTimeout(function () {
-                var empSS = $('#employeeHoliday').data('searchableSelect');
-                if (empSS) empSS.setValue(data.employeeId);
-            }, 500);
-        }
+        $('#branchHoliday').val(data.branchId);
+        bindEmployeeByBranch(data.branchId);
+        setTimeout(function () {
+            $('#employeeHoliday').val(data.employeeId);
+        }, 500);
 
         var dateStr = data.holidayDate || '';
         if (dateStr.indexOf('T') !== -1) dateStr = dateStr.split('T')[0];
@@ -281,7 +265,6 @@
     };
 
     $(document).ready(function () {
-        $('#employeeHoliday').searchableSelect({ data: [], valueKey: 'employeeId', textKey: 'employeeName', placeholder: 'Employee', searchPlaceholder: 'Search employee...' });
         bindBranch();
         loadTable();
     });

@@ -891,6 +891,7 @@
                 perPgWrap.className = 'wg-per-page';
                 perPgWrap.appendChild(document.createTextNode('Rows: '));
                 var sel = document.createElement('select');
+                sel.className = 'wms-no-dd';
                 [10, 25, 50, 100].forEach(function (n) {
                     var op = document.createElement('option');
                     op.value = n; op.textContent = n;

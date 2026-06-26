@@ -5,6 +5,8 @@
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
 }
 
+<div class="wms-form-page">
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h6 class="mb-0">Manage Department</h6>
@@ -15,46 +17,41 @@
     </div>
 </div>
 
-<div class="modal fade" id="addDepartmentModel" tabindex="-1" aria-labelledby="deptModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-md">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deptModalLabel"><span id="formType">Add</span> Department</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="wms-modal-overlay" id="addDepartmentModel" onclick="if(event.target===this) closeDepartmentModal()">
+    <div class="wms-modal">
+        <div class="wms-modal-header">
+            <div class="wms-modal-header-icon"><i class="bx bx-sitemap"></i></div>
+            <div class="wms-modal-header-text">
+                <div class="wms-modal-title"><span id="formType">Add</span> Department</div>
             </div>
-            <div class="modal-body modal-body-font">
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="form-group mt-3 position-relative">
-                            <input type="text" data-trim-input class="form-control floating-input" placeholder="Department Name" id="txtDepartmentName" />
-                            <label class="floating-label" for="txtDepartmentName">Department Name <span class="required-star">*</span></label>
-                        </div>
-                        <span id="spnDepartmentName" style="color:red; display:none;">Please Enter Department Name</span>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="form-group mt-3 position-relative">
-                            <input type="text" data-trim-input class="form-control floating-input" placeholder="Department Code" id="txtDepartmentCode" />
-                            <label class="floating-label" for="txtDepartmentCode">Department Code <span class="required-star">*</span></label>
-                        </div>
-                        <span id="spnDepartmentCode" style="color:red; display:none;">Please Enter Department Code</span>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="form-group mt-3 d-flex align-items-center gap-2">
-                            <label for="txtActive" class="mb-0">IsActive</label>
-                            <input type="checkbox" checked id="txtActive" />
-                        </div>
-                    </div>
-                </div>
+            <button type="button" class="wms-modal-close" onclick="closeDepartmentModal()" aria-label="Close"><i class="bx bx-x"></i></button>
+        </div>
+        <div class="wms-modal-body">
+            <div class="fg fg-req">
+                <label for="txtDepartmentName">Department Name</label>
+                <input type="text" data-trim-input id="txtDepartmentName" placeholder="e.g. Human Resources" />
+                <span class="field-validation-error" id="spnDepartmentName" style="display:none;">Please Enter Department Name</span>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnCreateDepartment">
-                    <span class="btn-spinner-icon"></span>
-                    <span class="btn-label-text">Save</span>
-                </button>
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            <div class="fg fg-req">
+                <label for="txtDepartmentCode">Department Code</label>
+                <input type="text" data-trim-input id="txtDepartmentCode" placeholder="e.g. HR" />
+                <span class="field-validation-error" id="spnDepartmentCode" style="display:none;">Please Enter Department Code</span>
+            </div>
+            <div class="fg" style="flex-direction:row;align-items:center;gap:8px">
+                <input type="checkbox" checked id="txtActive" style="width:auto;min-height:0" />
+                <label for="txtActive" style="margin:0">Active</label>
             </div>
         </div>
+        <div class="wms-modal-footer">
+            <button type="button" class="btn btn-outline btn-sm" onclick="closeDepartmentModal()">Close</button>
+            <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnCreateDepartment">
+                <span class="btn-spinner-icon"></span>
+                <span class="btn-label-text">Save</span>
+            </button>
+        </div>
     </div>
+</div>
+
 </div>
 
 <script>
@@ -90,8 +87,10 @@
 
     $(() => { loadDataTable(); });
 
-    $('#addDepartment').click(function () { resetDepartment(); $('#addDepartmentModel').modal('show'); });
-    $('#addDepartmentModel').on('hidden.bs.modal', function () { resetDepartment(); });
+    function openDepartmentModal() { document.getElementById('addDepartmentModel').classList.add('open'); }
+    function closeDepartmentModal() { document.getElementById('addDepartmentModel').classList.remove('open'); resetDepartment(); }
+
+    $('#addDepartment').click(function () { resetDepartment(); openDepartmentModal(); });
 
     function loadDataTable() {
         grid.showLoader();
@@ -117,7 +116,7 @@
         if (!deptCode) { $('#spnDepartmentCode').show(); $('#txtDepartmentCode').addClass('is-invalid'); isValid = false; } else { $('#spnDepartmentCode').hide(); $('#txtDepartmentCode').removeClass('is-invalid'); }
         if (!isValid) return;
 
-        setBtnLoading('#btnCreateDepartment', 'Saving...');
+        setBtnLoading('#btnCreateDepartment', departmentId == 0 ? 'Saving...' : 'Updating...');
         var createdBy = departmentId == 0 ? userId : null;
         var updatedBy = departmentId == 0 ? null : userId;
         var department = {
@@ -134,7 +133,7 @@
             success: function (response) {
                 if (response.isSuccess) {
                     showToast(departmentId === 0 ? 'Record created successfully.' : 'Record updated successfully.', 'success');
-                    loadDataTable(); resetDepartment(); $('#addDepartmentModel').modal('hide');
+                    loadDataTable(); document.getElementById('addDepartmentModel').classList.remove('open'); resetDepartment();
                 } else {
                     showToast(response.responseMessage || 'Something went wrong.', 'error');
                     setBtnNormal('#btnCreateDepartment', departmentId === 0 ? 'Save' : 'Update');
@@ -157,7 +156,7 @@
         departmentId = data.departmentId;
         setBtnNormal('#btnCreateDepartment', 'Update');
         $('#formType').text('Update');
-        $('#addDepartmentModel').modal('show');
+        openDepartmentModal();
     }
 
     function openDeleteDepartment(id) {

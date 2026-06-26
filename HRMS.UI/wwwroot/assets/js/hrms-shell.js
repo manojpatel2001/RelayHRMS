@@ -7,7 +7,45 @@
 (function (w) {
     'use strict';
 
-    var LS_KEY = 'hrms_sb_collapsed';
+    var LS_KEY     = 'hrms_sb_collapsed';
+    var GROUP_KEY  = 'hrms_sb_open_group';
+
+    // ── Persisted name of the single expanded sidebar group (accordion) ──
+    // Survives full-page navigation (this is an MPA, not a SPA) so the
+    // group the user opened on one page stays open after navigating —
+    // but only one group is ever remembered/open at a time.
+    function getOpenGroup() {
+        try { return localStorage.getItem(GROUP_KEY) || ''; } catch (_) { return ''; }
+    }
+    function setOpenGroup(key) {
+        try { localStorage.setItem(GROUP_KEY, key || ''); } catch (_) {}
+    }
+    function groupKey(groupEl) {
+        var txt = groupEl.querySelector('.sb-group-hdr-txt');
+        return txt ? txt.textContent.trim() : '';
+    }
+    function allGroups() {
+        return document.querySelectorAll('#sidebar-link .sb-group');
+    }
+    function collapseOtherGroups(exceptEl) {
+        allGroups().forEach(function (g) {
+            if (g !== exceptEl) g.classList.add('collapsed');
+        });
+    }
+    function rememberGroupOpen(groupEl) {
+        var key = groupKey(groupEl);
+        if (!key) return;
+        collapseOtherGroups(groupEl);
+        setOpenGroup(key);
+    }
+    function restoreExpandedGroups() {
+        var open = getOpenGroup();
+        if (!open) return;
+        allGroups().forEach(function (g) {
+            if (groupKey(g) === open) g.classList.remove('collapsed');
+            else g.classList.add('collapsed');
+        });
+    }
 
     // ── Desktop sidebar collapse toggle ─────────────────────────────────
     function sbToggleCollapse() {
@@ -39,10 +77,16 @@
     }
 
     // ── Sidebar group accordion ──────────────────────────────────────────
-    // Called with the .sb-group element (not the header).
+    // Called with the .sb-group element (not the header). Only one parent
+    // menu may be expanded at a time — expanding a group collapses every
+    // other group; collapsing the open group leaves none expanded.
     function sbToggleGroup(groupEl) {
         if (!groupEl) return;
-        groupEl.classList.toggle('collapsed');
+        var collapsed = groupEl.classList.toggle('collapsed');
+        if (!collapsed) collapseOtherGroups(groupEl);
+        var key = groupKey(groupEl);
+        if (!key) return;
+        setOpenGroup(collapsed ? '' : key);
     }
 
     // ── Restore collapsed state from localStorage ────────────────────────
@@ -97,6 +141,7 @@
             while (node && node.id !== 'sidebar-link') {
                 if (node.classList && node.classList.contains('sb-group')) {
                     node.classList.remove('collapsed');
+                    rememberGroupOpen(node);
                 }
                 node = node.parentElement;
             }
@@ -264,6 +309,7 @@
     // ── Boot ─────────────────────────────────────────────────────────────
     function boot() {
         restoreSidebarState();
+        restoreExpandedGroups();
         markActiveSidebarLink();
         markActiveModuleTab();
         syncTopNavUserName();
