@@ -29,8 +29,17 @@
     }
 
     function getOpts(sel) {
+        // NOTE: do not fall back to o.text when o.value is falsy. A <select>'s
+        // native .value getter already returns the option's text content when
+        // no value attribute is present (per spec), so the fallback is only
+        // ever reached for options with an explicit value="" (a deliberate
+        // blank/placeholder sentinel) -- and clobbering that to the option's
+        // own label text breaks the placeholder-skip check in renderOpts(),
+        // making the placeholder render as a normal, clickable-looking row
+        // whose click silently fails to match any real <option> (no visible
+        // change, perceived as the dropdown "not letting you select").
         return Array.from(sel.options).map(function (o) {
-            return { value: o.value || o.text, text: o.text, selected: o.selected };
+            return { value: o.value, text: o.text, selected: o.selected };
         });
     }
 
@@ -349,8 +358,17 @@
     }
 
     function getOpts(sel) {
+        // NOTE: do not fall back to o.text when o.value is falsy. A <select>'s
+        // native .value getter already returns the option's text content when
+        // no value attribute is present (per spec), so the fallback is only
+        // ever reached for options with an explicit value="" (a deliberate
+        // blank/placeholder sentinel) -- and clobbering that to the option's
+        // own label text breaks the placeholder-skip check in renderOpts(),
+        // making the placeholder render as a normal, clickable-looking row
+        // whose click silently fails to match any real <option> (no visible
+        // change, perceived as the dropdown "not letting you select").
         return Array.from(sel.options).map(function (o) {
-            return { value: o.value || o.text, text: o.text, selected: o.selected };
+            return { value: o.value, text: o.text, selected: o.selected };
         });
     }
 
