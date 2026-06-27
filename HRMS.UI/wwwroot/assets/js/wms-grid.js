@@ -808,6 +808,8 @@
         }
 
         function renderPagination(total, filtered, fromRow, toRow) {
+            var countEl0 = document.getElementById(id + '_count');
+            if (countEl0) countEl0.textContent = total + ' entries';
             if (!features.pagination) { pgBar.innerHTML = ''; vis(pgBar, false); return; }
             vis(pgBar, true);
 

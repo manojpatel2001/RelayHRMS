@@ -1,4 +1,4 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Month Lock";
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
@@ -7,761 +7,347 @@
     string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
     string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
 }
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
-    .salary-box {
-        background-color: white !important;
-        border: 1px solid #ccc;
-        padding: 0;
-        border-radius: 5px;
-    }
+    /* Status pills reuse the shared WMSGrid palette (wg-pill-*) so grid badges
+       look identical to every other grid in the app. */
 
-    /* Tab Styles */
-    .tab-container {
-        display: flex;
-        background-color: #f8f9fa;
-        border-bottom: 2px solid #dee2e6;
-    }
-
-    .tab-button {
-        flex: 1;
-        padding: 15px 20px;
-        background-color: #2c3e50; /* ✅ Dark Blue Background */
-        border: none;
-        font-size: 16px;
-        font-weight: 600;
-        color: white; /* ✅ White Text */
-        cursor: pointer;
-        transition: all 0.3s;
-        border-bottom: 3px solid transparent;
-    }
-
-        .tab-button:hover {
-            background-color: #34495e; /* ✅ Slightly Lighter Dark Blue on Hover */
-            color: white;
-        }
-
-        .tab-button.active {
-            color: white; /* ✅ White Text for Active Tab */
-            background-color: #ff8c00; /* ✅ Orange Background for Active Tab */
-            border-bottom: 3px solid #ff6600; /* ✅ Darker Orange Border */
-        }
-    .tab-content {
-        display: none;
-        padding: 20px;
-    }
-
-        .tab-content.active {
-            display: block;
-        }
-
-    .salary-header {
-        background-color: #3e4b6d;
-        color: white;
-        font-weight: bold;
-        padding: 8px 15px;
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-    }
-
-    .form-group-row {
-        margin-bottom: 20px;
-        gap: 15px;
-    }
-
-    .form-label {
-        min-width: 100px;
-        font-weight: 500;
-        color: #495057;
-        font-size: 14px;
-        margin-bottom: 0;
-    }
-
-    .btn-go {
-        padding: 5px 30px;
-        font-size: 14px;
-        font-weight: 500;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: all 0.3s;
-        margin: 0 5px;
-    }
-
-    #btnFetchLockData, #btnFetchingLockData,
-    #btnFetchSalaryData, #btnFetchingSalaryData {
-        background-color: #2395c6;
-        color: #fff;
-    }
-
-        #btnFetchLockData:hover, #btnFetchingLockData:hover,
-        #btnFetchSalaryData:hover, #btnFetchingSalaryData:hover {
-            background-color: #1d7ba3;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(35, 149, 198, 0.3);
-        }
-
-    #btnClear, #btnClearSalary {
-        background-color: #dc3545;
-        color: #fff;
-    }
-
-        #btnClear:hover, #btnClearSalary:hover {
-            background-color: #c82333;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
-        }
-
-    .btn-go:last-child {
-        background-color: #6c757d;
-        color: #fff;
-    }
-
-        .btn-go:last-child:hover {
-            background-color: #5a6268;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
-        }
-
-    .text-danger {
-        color: #dc3545;
-    }
-
-    .error-message {
-        font-size: 12px;
-        margin-top: 5px;
-        display: none;
-    }
-
-    #lockGridContainer, #salaryGridContainer {
-        margin-bottom: 20px !important;
-        max-height: 450px !important;
-        overflow: auto !important;
-        margin-top: 20px;
-    }
-
-    /* Radio Button Styles */
-    .radio-group {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-    }
-
-    .radio-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-    }
-
-        .radio-option input[type="radio"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: #2395c6;
-        }
-
-        .radio-option label {
-            cursor: pointer;
-            margin-bottom: 0;
-            font-size: 14px;
-            color: #495057;
-        }
-
-    /* Searchable Multi-Select Dropdown Styles */
-    .searchable-select-wrapper {
-        position: relative;
-        width: 100%;
-    }
+    /* Searchable multi-select (Branch/Employee) -- recolored to the WMS palette
+       and given a fixed height + internal scroll so it never grows past one
+       row of wrapped tags. */
+    .searchable-select-wrapper { position: relative; width: 100%; }
 
     .searchable-select-input {
-        min-height: 38px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
+        height: clamp(30px, 2.0vw, 40px);
+        max-height: clamp(30px, 2.0vw, 40px);
+        overflow-y: auto;
+        border: 1px solid #B8C4CC;
+        border-radius: var(--r-sm);
         padding: 4px 35px 4px 8px;
         cursor: pointer;
-        background-color: white;
+        background-color: #fff;
         display: flex;
         align-items: center;
         flex-wrap: wrap;
+        align-content: flex-start;
         gap: 4px;
+        box-sizing: border-box;
+        transition: border-color .15s, box-shadow .15s;
+    }
+        .searchable-select-input::-webkit-scrollbar { width: 5px; }
+        .searchable-select-input::-webkit-scrollbar-thumb { background: #b0c4d0; border-radius: 3px; }
+        .searchable-select-input:hover { border-color: #4E8FAD; }
+
+    .searchable-select-wrapper.active .searchable-select-input {
+        border-color: #2F6F8E;
+        box-shadow: 0 0 0 3px rgba(47,111,142,.15);
     }
 
-        .searchable-select-input:hover {
-            border-color: #86b7fe;
-        }
-
-    .selected-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        width: 100%;
-    }
-
-    .selected-tags-placeholder {
-        color: #6c757d;
-        font-size: 14px;
-    }
+    .selected-tags { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; }
+    .selected-tags-placeholder { color: #94A3B8; font-size: var(--fs-md); }
 
     .selected-tag {
-        background-color: #3e4b6d;
-        border: 1px solid #3e4b6d;
+        background-color: #2F6F8E;
+        border: 1px solid #235A75;
         border-radius: 3px;
         padding: 2px 8px;
-        font-size: 13px;
+        font-size: 12px;
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        color: white;
+        color: #fff;
+        flex-shrink: 0;
     }
-
-        .selected-tag .remove-tag {
-            cursor: pointer;
-            font-weight: bold;
-            color: white;
-        }
-
-            .selected-tag .remove-tag:hover {
-                color: #f0f0f0;
-            }
+        .selected-tag .remove-tag { cursor: pointer; font-weight: bold; color: #fff; }
+        .selected-tag .remove-tag:hover { color: #DDE9F0; }
 
     .searchable-select-arrow {
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 12px;
-        height: 12px;
-        pointer-events: none;
-        transition: transform 0.3s;
+        position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+        width: 12px; height: 12px; pointer-events: none; transition: transform .2s;
     }
-
-    .searchable-select-wrapper.active .searchable-select-arrow {
-        transform: translateY(-50%) rotate(180deg);
-    }
-
-    .searchable-select-arrow svg {
-        width: 100%;
-        height: 100%;
-        fill: #495057;
-    }
+    .searchable-select-wrapper.active .searchable-select-arrow { transform: translateY(-50%) rotate(180deg); }
+    .searchable-select-arrow svg { width: 100%; height: 100%; fill: #778899; }
 
     .searchable-select-dropdown {
-        display: none;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: white;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        margin-top: 2px;
-        max-height: 300px;
-        overflow: hidden;
-        z-index: 1000;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: none; position: absolute; top: 100%; left: 0; right: 0;
+        background: #fff; border: 1.5px solid #B8C4CC; border-radius: var(--r-md);
+        margin-top: 2px; max-height: 300px; overflow: hidden; z-index: 1000;
+        box-shadow: 0 10px 36px rgba(0,0,0,.18);
     }
+    .searchable-select-wrapper.active .searchable-select-dropdown { display: flex; flex-direction: column; }
 
-    .searchable-select-wrapper.active .searchable-select-dropdown {
-        display: flex;
-        flex-direction: column;
+    .searchable-select-search { padding: 7px; border-bottom: 1px solid #EEF2F5; background: #fff; flex-shrink: 0; }
+    .searchable-select-search input {
+        width: 100%; padding: 6px 10px; border: 1.5px solid #D0D8DC; border-radius: var(--r-sm);
+        font-size: var(--fs-sm); font-family: inherit; outline: none; box-sizing: border-box;
     }
+    .searchable-select-search input:focus { border-color: #4E8FAD; box-shadow: 0 0 0 2px rgba(78,143,173,.12); }
 
-    .searchable-select-search {
-        padding: 8px;
-        border-bottom: 1px solid #e9ecef;
-        background: white;
-        flex-shrink: 0;
-    }
-
-        .searchable-select-search input {
-            width: 100%;
-            padding: 6px 10px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-            .searchable-select-search input:focus {
-                outline: none;
-                border-color: #86b7fe;
-            }
-
-    .multi-select-actions {
-        padding: 8px;
-        border-bottom: 1px solid #e9ecef;
-        display: flex;
-        gap: 8px;
-        background: white;
-        flex-shrink: 0;
-    }
-
+    .multi-select-actions { padding: 7px; border-bottom: 1px solid #EEF2F5; display: flex; gap: 8px; background: #fff; flex-shrink: 0; }
     .multi-select-btn {
-        flex: 1;
-        padding: 5px 10px;
-        font-size: 12px;
-        border: 1px solid #ced4da;
-        border-radius: 3px;
-        background: white;
-        cursor: pointer;
-        transition: all 0.2s;
+        flex: 1; padding: 5px 10px; font-size: 11.5px; font-weight: 600; border: 1px solid #B8C4CC;
+        border-radius: 6px; background: #F0F5F8; color: #2F6F8E; cursor: pointer; transition: background .15s;
     }
+    .multi-select-btn:hover { background: #DDE9F0; }
 
-        .multi-select-btn:hover {
-            background-color: #f8f9fa;
-            border-color: #2395c6;
-        }
+    .searchable-select-options { overflow-y: auto; flex: 1; padding: 3px 0; }
+    .searchable-select-option { padding: 7px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: #2C3E50; transition: background .1s; }
+    .searchable-select-option:hover { background-color: #EBF5FF; }
+    .searchable-select-option.selected { background-color: #E3F2FD; color: #1565C0; font-weight: 500; }
+    .searchable-select-option input[type="checkbox"] { cursor: pointer; }
 
-    .searchable-select-options {
-        overflow-y: auto;
-        flex: 1;
-    }
+    .no-results { padding: 12px; text-align: center; color: #94A3B8; font-size: var(--fs-sm); }
 
-    .searchable-select-option {
-        padding: 8px 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14px;
-    }
-
-        .searchable-select-option:hover {
-            background-color: #f8f9fa;
-        }
-
-        .searchable-select-option.selected {
-            background-color: #e7f3ff;
-        }
-
-        .searchable-select-option input[type="checkbox"] {
-            cursor: pointer;
-        }
-
-    .no-results {
-        padding: 12px;
-        text-align: center;
-        color: #6c757d;
-        font-size: 14px;
-    }
-
-    /* Status Badge Styles */
-    .status-badge {
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-        display: inline-block;
-    }
-
-    .status-locked, .status-published {
-        background-color: #dc3545;
-        color: white;
-    }
-
-    .status-unlocked, .status-unpublished {
-        background-color: #28a745;
-        color: white;
-    }
-
-    /* Lock/Unlock and Publish/Unpublish Action Buttons */
-    .grid-action-buttons {
-        display: none;
-        justify-content: center;
-        gap: 15px;
-        margin-top: 15px;
-        padding: 15px;
-        background-color: #f8f9fa;
-        border-radius: 5px;
-    }
-
-    .btn-lock-action {
-        padding: 8px 35px;
-        font-size: 14px;
-        font-weight: 500;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-lock, .btn-publish {
-        background-color: #dc3545;
-        color: white;
-    }
-
-        .btn-lock:hover, .btn-publish:hover {
-            background-color: #c82333;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
-        }
-
-        .btn-lock:disabled, .btn-publish:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-    .btn-unlock, .btn-unpublish {
-        background-color: #28a745;
-        color: white;
-    }
-
-        .btn-unlock:hover, .btn-unpublish:hover {
-            background-color: #218838;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-        }
-
-        .btn-unlock:disabled, .btn-unpublish:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
+    /* Bulk action toolbar above each grid */
+    .lock-grid-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
 </style>
 
-<div class="salary-box">
-    <!-- Tabs -->
-    <div class="tab-container">
-        <button class="tab-button active" data-tab="salaryView">Salary View</button>
-        <button class="tab-button" data-tab="attendanceLock">Attendance Lock</button>
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0">Month Lock</h6>
+        </div>
+
+        <ul class="nav nav-tabs mb-3 mt-3 ms-3" id="lockSalaryTabs" role="tablist">
+            <li class="nav-item me-2" role="presentation">
+                <button class="nav-link active py-2 lock-tab-btn" type="button" data-tab="salaryView">Salary View</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link py-2 lock-tab-btn" type="button" data-tab="attendanceLock">Attendance Lock</button>
+            </li>
+        </ul>
+
+        <div class="card-body">
+
+            <!-- Salary View Tab -->
+            <div class="tab-content-pane active" id="salaryView">
+
+                <div class="form-grid-2">
+                    <div class="fg fg-req">
+                        <label for="salaryMonthDropdown">Month</label>
+                        <select id="salaryMonthDropdown">
+                            <option value="">Select Month</option>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <span class="field-validation-error" id="errorSalaryMonth" style="display:none;">Please select month.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="salaryYearDropdown">Year</label>
+                        <select id="salaryYearDropdown">
+                            <option value="">Select Year</option>
+                        </select>
+                        <span class="field-validation-error" id="errorSalaryYear" style="display:none;">Please select year.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="salaryBranchWrapper">Branch</label>
+                        <div class="searchable-select-wrapper multi-select" id="salaryBranchWrapper">
+                            <div class="searchable-select-input">
+                                <div class="selected-tags"><span class="selected-tags-placeholder">Select Branch</span></div>
+                            </div>
+                            <span class="searchable-select-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" /></svg>
+                            </span>
+                            <div class="searchable-select-dropdown">
+                                <div class="searchable-select-search"><input type="text" placeholder="Search branch..." class="search-input"></div>
+                                <div class="multi-select-actions">
+                                    <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                    <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                </div>
+                                <div class="searchable-select-options"></div>
+                            </div>
+                        </div>
+                        <span class="field-validation-error" id="errorSalaryBranch" style="display:none;">Please select branch.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="salaryEmployeeWrapper">Employee</label>
+                        <div class="searchable-select-wrapper multi-select" id="salaryEmployeeWrapper">
+                            <div class="searchable-select-input">
+                                <div class="selected-tags"><span class="selected-tags-placeholder">Select Employee</span></div>
+                            </div>
+                            <span class="searchable-select-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" /></svg>
+                            </span>
+                            <div class="searchable-select-dropdown">
+                                <div class="searchable-select-search"><input type="text" placeholder="Search employee..." class="search-input"></div>
+                                <div class="multi-select-actions">
+                                    <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                    <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                </div>
+                                <div class="searchable-select-options"></div>
+                            </div>
+                        </div>
+                        <span class="field-validation-error" id="errorSalaryEmployee" style="display:none;">Please select employee.</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <span class="sec-lbl">Status</span>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check form-check-inline m-0"><input class="form-check-input" type="radio" id="radioPublished" name="salaryStatus" value="Published"><label class="form-check-label" for="radioPublished">Published</label></div>
+                        <div class="form-check form-check-inline m-0"><input class="form-check-input" type="radio" id="radioUnpublished" name="salaryStatus" value="Unpublished" checked><label class="form-check-label" for="radioUnpublished">Unpublished</label></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-2 pt-3" style="border-top:1px solid var(--hp-border,#e2e8f0)">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="goBack()">Back</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClearSalary">Clear</button>
+                    <button type="button" id="btnFetchSalaryData" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                </div>
+
+                <div id="salaryGridSection" class="mt-3 d-none">
+                    <div class="lock-grid-toolbar">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="salarySelectAllChk">
+                            <label class="form-check-label" for="salarySelectAllChk">Select All</label>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-danger btn-sm d-inline-flex align-items-center gap-1" id="btnPublishSalary">
+                                <span class="btn-spinner-icon"></span>
+                                <span class="btn-label-text"><i class="bx bx-lock-alt"></i> Publish</span>
+                            </button>
+                            <button type="button" class="btn btn-success btn-sm d-inline-flex align-items-center gap-1" id="btnUnpublishSalary">
+                                <span class="btn-spinner-icon"></span>
+                                <span class="btn-label-text"><i class="bx bx-lock-open-alt"></i> Unpublish</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="salaryGridContainer"></div>
+                </div>
+
+            </div>
+
+            <!-- Attendance Lock Tab -->
+            <div class="tab-content-pane d-none" id="attendanceLock">
+
+                <div class="form-grid-2">
+                    <div class="fg fg-req">
+                        <label for="monthDropdown">Month</label>
+                        <select id="monthDropdown">
+                            <option value="">Select Month</option>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <span class="field-validation-error" id="errorMonth" style="display:none;">Please select month.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="yearDropdown">Year</label>
+                        <select id="yearDropdown">
+                            <option value="">Select Year</option>
+                        </select>
+                        <span class="field-validation-error" id="errorYear" style="display:none;">Please select year.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="branchWrapper">Branch</label>
+                        <div class="searchable-select-wrapper multi-select" id="branchWrapper">
+                            <div class="searchable-select-input">
+                                <div class="selected-tags"><span class="selected-tags-placeholder">Select Branch</span></div>
+                            </div>
+                            <span class="searchable-select-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" /></svg>
+                            </span>
+                            <div class="searchable-select-dropdown">
+                                <div class="searchable-select-search"><input type="text" placeholder="Search branch..." class="search-input"></div>
+                                <div class="multi-select-actions">
+                                    <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                    <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                </div>
+                                <div class="searchable-select-options"></div>
+                            </div>
+                        </div>
+                        <span class="field-validation-error" id="errorBranch" style="display:none;">Please select branch.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="employeeWrapper">Employee</label>
+                        <div class="searchable-select-wrapper multi-select" id="employeeWrapper">
+                            <div class="searchable-select-input">
+                                <div class="selected-tags"><span class="selected-tags-placeholder">Select Employee</span></div>
+                            </div>
+                            <span class="searchable-select-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" /></svg>
+                            </span>
+                            <div class="searchable-select-dropdown">
+                                <div class="searchable-select-search"><input type="text" placeholder="Search employee..." class="search-input"></div>
+                                <div class="multi-select-actions">
+                                    <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                    <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                </div>
+                                <div class="searchable-select-options"></div>
+                            </div>
+                        </div>
+                        <span class="field-validation-error" id="errorEmployee" style="display:none;">Please select employee.</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <span class="sec-lbl">Status</span>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check form-check-inline m-0"><input class="form-check-input" type="radio" id="radioLocked" name="lockStatus" value="Locked"><label class="form-check-label" for="radioLocked">Locked</label></div>
+                        <div class="form-check form-check-inline m-0"><input class="form-check-input" type="radio" id="radioUnlocked" name="lockStatus" value="Unlocked" checked><label class="form-check-label" for="radioUnlocked">Unlocked</label></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-2 pt-3" style="border-top:1px solid var(--hp-border,#e2e8f0)">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="goBack()">Back</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" id="btnFetchLockData" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                </div>
+
+                <div id="lockGridSection" class="mt-3 d-none">
+                    <div class="lock-grid-toolbar">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="lockSelectAllChk">
+                            <label class="form-check-label" for="lockSelectAllChk">Select All</label>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-danger btn-sm d-inline-flex align-items-center gap-1" id="btnLockAttendance">
+                                <span class="btn-spinner-icon"></span>
+                                <span class="btn-label-text"><i class="bx bx-lock-alt"></i> Lock Attendance</span>
+                            </button>
+                            <button type="button" class="btn btn-success btn-sm d-inline-flex align-items-center gap-1" id="btnUnlockAttendance">
+                                <span class="btn-spinner-icon"></span>
+                                <span class="btn-label-text"><i class="bx bx-lock-open-alt"></i> Unlock Attendance</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="lockGridContainer"></div>
+                </div>
+
+            </div>
+
+        </div>
     </div>
 
-    <!-- Salary View Tab Content -->
-    <div class="tab-content active" id="salaryView">
-        <div class="row justify-content-center mt-3">
-            <div class="col-lg-10">
-                <!-- First Row: Month and Year -->
-                <div class="row justify-content-center mb-3">
-                    <div class="col-md-6">
-                        <div class="form-group-row d-flex align-items-center">
-                            <label class="form-label">Month<span class="text-danger">*</span>:</label>
-                            <div class="flex-grow-1">
-                                <select class="form-select" id="salaryMonthDropdown">
-                                    <option value="">Select Month</option>
-                                    <option value="1">January</option>
-                                    <option value="2">February</option>
-                                    <option value="3">March</option>
-                                    <option value="4">April</option>
-                                    <option value="5">May</option>
-                                    <option value="6">June</option>
-                                    <option value="7">July</option>
-                                    <option value="8">August</option>
-                                    <option value="9">September</option>
-                                    <option value="10">October</option>
-                                    <option value="11">November</option>
-                                    <option value="12">December</option>
-                                </select>
-                                <span class="text-danger error-message" id="errorSalaryMonth">Please select month</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group-row d-flex align-items-center">
-                            <label class="form-label">Year<span class="text-danger">*</span>:</label>
-                            <div class="flex-grow-1">
-                                <select class="form-select" id="salaryYearDropdown">
-                                    <option value="">Select Year</option>
-                                </select>
-                                <span class="text-danger error-message" id="errorSalaryYear">Please select year</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Second Row: Branch and Employee -->
-                <div class="row justify-content-center">
-                    <div class="col-md-6">
-                        <div class="form-group-row d-flex align-items-center">
-                            <label class="form-label">Branch<span class="text-danger">*</span>:</label>
-                            <div class="flex-grow-1">
-                                <div class="searchable-select-wrapper multi-select" id="salaryBranchWrapper">
-                                    <div class="searchable-select-input">
-                                        <div class="selected-tags">
-                                            <span class="selected-tags-placeholder">Select Branch</span>
-                                        </div>
-                                    </div>
-                                    <span class="searchable-select-arrow">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
-                                        </svg>
-                                    </span>
-                                    <div class="searchable-select-dropdown">
-                                        <div class="searchable-select-search">
-                                            <input type="text" placeholder="Search branch..." class="search-input">
-                                        </div>
-                                        <div class="multi-select-actions">
-                                            <button type="button" class="multi-select-btn select-all-btn">Select All</button>
-                                            <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
-                                        </div>
-                                        <div class="searchable-select-options"></div>
-                                    </div>
-                                </div>
-                                <span class="text-danger error-message" id="errorSalaryBranch">Please select branch</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group-row d-flex align-items-center">
-                            <label class="form-label">Employee<span class="text-danger">*</span>:</label>
-                            <div class="flex-grow-1">
-                                <div class="searchable-select-wrapper multi-select" id="salaryEmployeeWrapper">
-                                    <div class="searchable-select-input">
-                                        <div class="selected-tags">
-                                            <span class="selected-tags-placeholder">Select Employee</span>
-                                        </div>
-                                    </div>
-                                    <span class="searchable-select-arrow">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
-                                        </svg>
-                                    </span>
-                                    <div class="searchable-select-dropdown">
-                                        <div class="searchable-select-search">
-                                            <input type="text" placeholder="Search employee..." class="search-input">
-                                        </div>
-                                        <div class="multi-select-actions">
-                                            <button type="button" class="multi-select-btn select-all-btn">Select All</button>
-                                            <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
-                                        </div>
-                                        <div class="searchable-select-options"></div>
-                                    </div>
-                                </div>
-                                <span class="text-danger error-message" id="errorSalaryEmployee">Please select employee</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Radio Button and Buttons Row -->
-        <div class="row justify-content-center mt-3">
-            <div class="col-lg-10">
-                <div class="d-flex align-items-center justify-content-center gap-3">
-                    <div class="radio-group">
-                        <div class="radio-option">
-                            <input type="radio" id="radioPublished" name="salaryStatus" value="Published">
-                            <label for="radioPublished">Published</label>
-                        </div>
-                        <div class="radio-option">
-                            <input type="radio" id="radioUnpublished" name="salaryStatus" value="Unpublished" checked>
-                            <label for="radioUnpublished">Unpublished</label>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button class="btn-go" id="btnFetchSalaryData">Go</button>
-                        <button class="btn-go" id="btnFetchingSalaryData" disabled style="display: none;">
-                            <span class="spinner-border spinner-border-sm me-2" role="status"></span> Go
-                        </button>
-                        <button class="btn-go" id="btnClearSalary">Clear</button>
-                        <button class="btn-go" onclick="goBack()">Back</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Salary Grid -->
-        <div id="salaryGridContainer" style="display: none;"></div>
-
-        <!-- Publish/Unpublish Action Buttons -->
-        <div id="salaryActionButtons" class="grid-action-buttons">
-            <button class="btn-lock-action btn-publish" id="btnPublishSalary">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
-                    <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1zm3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4h-3.5z" />
-                </svg>
-                Publish
-            </button>
-            <button class="btn-lock-action btn-publish" id="btnPublishingSalary" disabled style="display: none;">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-                Publishing...
-            </button>
-
-            <button class="btn-lock-action btn-unpublish" id="btnUnpublishSalary">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5z" />
-                </svg>
-                Unpublish
-            </button>
-            <button class="btn-lock-action btn-unpublish" id="btnUnpublishingSalary" disabled style="display: none;">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-                Unpublishing...
-            </button>
-        </div>
-    </div>
-
-    <!-- Attendance Lock Tab Content -->
-    <div class="tab-content" id="attendanceLock">
-        <div class="row justify-content-center mt-3">
-            <div class="col-lg-10">
-                <!-- First Row: Month and Year -->
-                <div class="row justify-content-center mb-3">
-                    <div class="col-md-6">
-                        <div class="form-group-row d-flex align-items-center">
-                            <label class="form-label">Month<span class="text-danger">*</span>:</label>
-                            <div class="flex-grow-1">
-                                <select class="form-select" id="monthDropdown">
-                                    <option value="">Select Month</option>
-                                    <option value="1">January</option>
-                                    <option value="2">February</option>
-                                    <option value="3">March</option>
-                                    <option value="4">April</option>
-                                    <option value="5">May</option>
-                                    <option value="6">June</option>
-                                    <option value="7">July</option>
-                                    <option value="8">August</option>
-                                    <option value="9">September</option>
-                                    <option value="10">October</option>
-                                    <option value="11">November</option>
-                                    <option value="12">December</option>
-                                </select>
-                                <span class="text-danger error-message" id="errorMonth">Please select month</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group-row d-flex align-items-center">
-                            <label class="form-label">Year<span class="text-danger">*</span>:</label>
-                            <div class="flex-grow-1">
-                                <select class="form-select" id="yearDropdown">
-                                    <option value="">Select Year</option>
-                                </select>
-                                <span class="text-danger error-message" id="errorYear">Please select year</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Second Row: Branch and Employee -->
-                <div class="row justify-content-center">
-                    <div class="col-md-6">
-                        <div class="form-group-row d-flex align-items-center">
-                            <label class="form-label">Branch<span class="text-danger">*</span>:</label>
-                            <div class="flex-grow-1">
-                                <div class="searchable-select-wrapper multi-select" id="branchWrapper">
-                                    <div class="searchable-select-input">
-                                        <div class="selected-tags">
-                                            <span class="selected-tags-placeholder">Select Branch</span>
-                                        </div>
-                                    </div>
-                                    <span class="searchable-select-arrow">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
-                                        </svg>
-                                    </span>
-                                    <div class="searchable-select-dropdown">
-                                        <div class="searchable-select-search">
-                                            <input type="text" placeholder="Search branch..." class="search-input">
-                                        </div>
-                                        <div class="multi-select-actions">
-                                            <button type="button" class="multi-select-btn select-all-btn">Select All</button>
-                                            <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
-                                        </div>
-                                        <div class="searchable-select-options"></div>
-                                    </div>
-                                </div>
-                                <span class="text-danger error-message" id="errorBranch">Please select branch</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group-row d-flex align-items-center">
-                            <label class="form-label">Employee<span class="text-danger">*</span>:</label>
-                            <div class="flex-grow-1">
-                                <div class="searchable-select-wrapper multi-select" id="employeeWrapper">
-                                    <div class="searchable-select-input">
-                                        <div class="selected-tags">
-                                            <span class="selected-tags-placeholder">Select Employee</span>
-                                        </div>
-                                    </div>
-                                    <span class="searchable-select-arrow">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
-                                        </svg>
-                                    </span>
-                                    <div class="searchable-select-dropdown">
-                                        <div class="searchable-select-search">
-                                            <input type="text" placeholder="Search employee..." class="search-input">
-                                        </div>
-                                        <div class="multi-select-actions">
-                                            <button type="button" class="multi-select-btn select-all-btn">Select All</button>
-                                            <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
-                                        </div>
-                                        <div class="searchable-select-options"></div>
-                                    </div>
-                                </div>
-                                <span class="text-danger error-message" id="errorEmployee">Please select employee</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Radio Button and Buttons Row -->
-        <div class="row justify-content-center mt-3">
-            <div class="col-lg-10">
-                <div class="d-flex align-items-center justify-content-center gap-3">
-                    <div class="radio-group">
-                        <div class="radio-option">
-                            <input type="radio" id="radioLocked" name="lockStatus" value="Locked">
-                            <label for="radioLocked">Locked</label>
-                        </div>
-                        <div class="radio-option">
-                            <input type="radio" id="radioUnlocked" name="lockStatus" value="Unlocked" checked>
-                            <label for="radioUnlocked">Unlocked</label>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button class="btn-go" id="btnFetchLockData">Go</button>
-                        <button class="btn-go" id="btnFetchingLockData" disabled style="display: none;">
-                            <span class="spinner-border spinner-border-sm me-2" role="status"></span> Go
-                        </button>
-                        <button class="btn-go" id="btnClear">Clear</button>
-                        <button class="btn-go" onclick="goBack()">Back</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Lock Status Grid -->
-        <div id="lockGridContainer" style="display: none;"></div>
-
-        <!-- Lock/Unlock Action Buttons -->
-        <div id="gridActionButtons" class="grid-action-buttons">
-            <button class="btn-lock-action btn-lock" id="btnLockAttendance">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
-                </svg>
-                Lock Attendance
-            </button>
-            <button class="btn-lock-action btn-lock" id="btnLockingAttendance" disabled style="display: none;">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-                Locking...
-            </button>
-
-            <button class="btn-lock-action btn-unlock" id="btnUnlockAttendance">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M11 1a2 2 0 0 0-2 2v4a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h5V3a3 3 0 0 1 6 0v4a.5.5 0 0 1-1 0V3a2 2 0 0 0-2-2z" />
-                </svg>
-                Unlock Attendance
-            </button>
-            <button class="btn-lock-action btn-unlock" id="btnUnlockingAttendance" disabled style="display: none;">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-                Unlocking...
-            </button>
-        </div>
-    </div>
 </div>
-
 
 <script>
     const Empid = parseInt(localStorage.getItem("EmployeeId"));
@@ -770,20 +356,21 @@
     const CompanyId = companyDetails.CompanyId;
     const Token = localStorage.getItem("authToken");
 
-    // Store current grid data and filters
+    // Store current grid data, filters and bulk-selection state
     let currentGridData = [];
-    let currentFilters = {
-        month: null,
-        year: null
-    };
+    let currentFilters = { month: null, year: null };
+    let lockSelectedIds = [];
 
     let currentSalaryGridData = [];
-    let currentSalaryFilters = {
-        month: null,
-        year: null
-    };
+    let currentSalaryFilters = { month: null, year: null };
+    let salarySelectedIds = [];
 
-    // Searchable Multi-Select Component
+    let lockGrid = null;
+    let salaryGrid = null;
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Searchable Multi-Select Component (unchanged business logic)
+    // ─────────────────────────────────────────────────────────────────────
     class SearchableMultiSelect {
         constructor(wrapperId, options = {}) {
             this.wrapper = document.getElementById(wrapperId);
@@ -967,16 +554,16 @@
     // Initialize multi-select dropdowns
     let branchMultiSelect, employeeMultiSelect, salaryBranchMultiSelect, salaryEmployeeMultiSelect;
 
-    $(document).ready(function() {
+    $(document).ready(function () {
         // Tab Switching
-        $('.tab-button').click(function() {
+        $('.lock-tab-btn').click(function () {
             const targetTab = $(this).data('tab');
 
-            $('.tab-button').removeClass('active');
+            $('.lock-tab-btn').removeClass('active');
             $(this).addClass('active');
 
-            $('.tab-content').removeClass('active');
-            $('#' + targetTab).addClass('active');
+            $('.tab-content-pane').removeClass('active').addClass('d-none');
+            $('#' + targetTab).removeClass('d-none').addClass('active');
         });
 
         // Initialize Attendance Lock Multi-Selects
@@ -997,26 +584,23 @@
 
         salaryEmployeeMultiSelect = new SearchableMultiSelect('salaryEmployeeWrapper');
 
-     // Load Years (from 2025 to current year)
-    const startYear = 2025;
-    const currentYear = new Date().getFullYear();
+        // Load Years (from 2025 to current year)
+        const startYear = 2025;
+        const currentYear = new Date().getFullYear();
 
-    // For Attendance Lock Year Dropdown
-    for (let year = currentYear; year >= startYear; year--) {
-        $('#yearDropdown').append(`<option value="${year}">${year}</option>`);
-    }
-
-    // For Salary View Year Dropdown
-    for (let year = currentYear; year >= startYear; year--) {
-        $('#salaryYearDropdown').append(`<option value="${year}">${year}</option>`);
-    }
+        for (let year = currentYear; year >= startYear; year--) {
+            $('#yearDropdown').append(`<option value="${year}">${year}</option>`);
+        }
+        for (let year = currentYear; year >= startYear; year--) {
+            $('#salaryYearDropdown').append(`<option value="${year}">${year}</option>`);
+        }
 
         // Load Branches for both tabs
         $.ajax({
             url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + Token },
-            success: function(response) {
+            success: function (response) {
                 if (response?.data?.length > 0) {
                     const branchOptions = response.data.map(branch => ({
                         value: branch.branchId,
@@ -1026,6 +610,18 @@
                     salaryBranchMultiSelect.setOptions(branchOptions);
                 }
             }
+        });
+
+        $('#lockSelectAllChk').on('change', function () {
+            const checked = $(this).prop('checked');
+            lockSelectedIds = checked ? currentGridData.map(r => r.employeeId) : [];
+            if (lockGrid) lockGrid.refresh();
+        });
+
+        $('#salarySelectAllChk').on('change', function () {
+            const checked = $(this).prop('checked');
+            salarySelectedIds = checked ? currentSalaryGridData.map(r => r.employeeId) : [];
+            if (salaryGrid) salaryGrid.refresh();
         });
     });
 
@@ -1045,7 +641,7 @@
             url: `@baseDomainUrl/api/EmployeeMasterAPI/GetAllEmployeeByBranch/${CompanyId}?BranchId=${branchIdsParam}`,
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + Token },
-            success: function(response) {
+            success: function (response) {
                 if (response?.data?.length > 0) {
                     const employeeOptions = response.data.map(emp => ({
                         value: emp.id,
@@ -1056,7 +652,7 @@
                     empMultiSelect.setOptions([]);
                 }
             },
-            error: function(xhr, status, error) {
+            error: function (xhr, status, error) {
                 console.error('Error loading employees:', error);
                 empMultiSelect.setOptions([]);
                 Swal.fire('Error', 'Failed to load employees for selected branches.', 'error');
@@ -1075,10 +671,12 @@
         $('#radioUnlocked').prop('checked', true);
         branchMultiSelect.clearAll();
         employeeMultiSelect.clearAll();
-        $('.error-message').hide();
-        $('#lockGridContainer').hide().empty();
-        $('#gridActionButtons').hide();
+        $('.field-validation-error').hide();
+        $('#lockGridSection').addClass('d-none');
+        $('#lockGridContainer').empty();
         currentGridData = [];
+        lockSelectedIds = [];
+        lockGrid = null;
         currentFilters = { month: null, year: null };
     }
 
@@ -1089,44 +687,23 @@
         $('#radioUnpublished').prop('checked', true);
         salaryBranchMultiSelect.clearAll();
         salaryEmployeeMultiSelect.clearAll();
-        $('.error-message').hide();
-        $('#salaryGridContainer').hide().empty();
-        $('#salaryActionButtons').hide();
+        $('.field-validation-error').hide();
+        $('#salaryGridSection').addClass('d-none');
+        $('#salaryGridContainer').empty();
         currentSalaryGridData = [];
+        salarySelectedIds = [];
+        salaryGrid = null;
         currentSalaryFilters = { month: null, year: null };
     }
 
-    $('#btnClear').click(function() {
-        clearPage();
-    });
+    $('#btnClear').click(function () { clearPage(); });
+    $('#btnClearSalary').click(function () { clearSalaryPage(); });
 
-    $('#btnClearSalary').click(function() {
-        clearSalaryPage();
-    });
-
-    function showBtnLoader(type) {
-        if (type === 'salary') {
-            $('#btnFetchingSalaryData').show();
-            $('#btnFetchSalaryData').hide();
-        } else {
-            $('#btnFetchingLockData').show();
-            $('#btnFetchLockData').hide();
-        }
-    }
-
-    function hideBtnLoader(type) {
-        if (type === 'salary') {
-            $('#btnFetchingSalaryData').hide();
-            $('#btnFetchSalaryData').show();
-        } else {
-            $('#btnFetchingLockData').hide();
-            $('#btnFetchLockData').show();
-        }
-    }
-
+    // ─────────────────────────────────────────────────────────────────────
     // Attendance Lock - Fetch Data
-    $('#btnFetchLockData').click(function() {
-        showBtnLoader('attendance');
+    // ─────────────────────────────────────────────────────────────────────
+    $('#btnFetchLockData').click(function () {
+        setBtnLoading('#btnFetchLockData', 'Loading...');
 
         const month = $('#monthDropdown').val();
         const year = $('#yearDropdown').val();
@@ -1141,16 +718,11 @@
         if (employeeIds.length === 0) { $('#errorEmployee').show(); isValid = false; } else { $('#errorEmployee').hide(); }
 
         if (!isValid) {
-            hideBtnLoader('attendance');
+            setBtnNormal('#btnFetchLockData', 'Go');
             return;
         }
 
-        currentFilters = {
-            month: parseInt(month),
-            year: parseInt(year)
-        };
-
-        showLoader();
+        currentFilters = { month: parseInt(month), year: parseInt(year) };
 
         const requestData = {
             Month: parseInt(month),
@@ -1165,39 +737,35 @@
             contentType: 'application/json',
             headers: { 'Authorization': 'Bearer ' + Token },
             data: JSON.stringify(requestData),
-            success: function(response) {
-                hideLoader();
-                hideBtnLoader('attendance');
+            success: function (response) {
+                setBtnNormal('#btnFetchLockData', 'Go');
 
                 if (response?.isSuccess && response?.data?.length > 0) {
                     currentGridData = response.data;
+                    lockSelectedIds = [];
                     renderLockGrid(response.data);
-                    $('#gridActionButtons').css('display', 'flex');
+                    $('#lockGridSection').removeClass('d-none');
                 } else {
-                    $('#lockGridContainer').hide().empty();
-                    $('#gridActionButtons').hide();
-                      const message = 'No Attendance records found for the selected filters.';
-                    if (typeof round_error_noti === 'function') {
-                        round_error_noti(message);
-                    } else {
-                        alert(message);
-                    }
+                    $('#lockGridSection').addClass('d-none');
+                    $('#lockGridContainer').empty();
+                    showToast('No attendance records found for the selected filters.', 'info');
                 }
             },
-            error: function(xhr, status, error) {
-                hideLoader();
-                hideBtnLoader('attendance');
-                $('#lockGridContainer').hide().empty();
-                $('#gridActionButtons').hide();
+            error: function (xhr, status, error) {
+                setBtnNormal('#btnFetchLockData', 'Go');
+                $('#lockGridSection').addClass('d-none');
+                $('#lockGridContainer').empty();
                 console.error('Error fetching lock data:', error);
-                Swal.fire('Error', 'Failed to fetch attendance lock data.', 'error');
+                showToast('Failed to fetch attendance lock data.', 'error');
             }
         });
     });
 
+    // ─────────────────────────────────────────────────────────────────────
     // Salary View - Fetch Data
-    $('#btnFetchSalaryData').click(function() {
-        showBtnLoader('salary');
+    // ─────────────────────────────────────────────────────────────────────
+    $('#btnFetchSalaryData').click(function () {
+        setBtnLoading('#btnFetchSalaryData', 'Loading...');
 
         const month = $('#salaryMonthDropdown').val();
         const year = $('#salaryYearDropdown').val();
@@ -1212,16 +780,11 @@
         if (employeeIds.length === 0) { $('#errorSalaryEmployee').show(); isValid = false; } else { $('#errorSalaryEmployee').hide(); }
 
         if (!isValid) {
-            hideBtnLoader('salary');
+            setBtnNormal('#btnFetchSalaryData', 'Go');
             return;
         }
 
-        currentSalaryFilters = {
-            month: parseInt(month),
-            year: parseInt(year)
-        };
-
-        showLoader();
+        currentSalaryFilters = { month: parseInt(month), year: parseInt(year) };
 
         const requestData = {
             Month: parseInt(month),
@@ -1230,279 +793,151 @@
             Status: status
         };
 
-        // TODO: Replace with actual salary API endpoint
         $.ajax({
             url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeeSalaryPublish")',
             method: 'POST',
             contentType: 'application/json',
             headers: { 'Authorization': 'Bearer ' + Token },
             data: JSON.stringify(requestData),
-            success: function(response) {
-                hideLoader();
-                hideBtnLoader('salary');
+            success: function (response) {
+                setBtnNormal('#btnFetchSalaryData', 'Go');
 
                 if (response?.isSuccess && response?.data?.length > 0) {
                     currentSalaryGridData = response.data;
+                    salarySelectedIds = [];
                     renderSalaryGrid(response.data);
-                    $('#salaryActionButtons').css('display', 'flex');
+                    $('#salaryGridSection').removeClass('d-none');
                 } else {
-                    $('#salaryGridContainer').hide().empty();
-                    $('#salaryActionButtons').hide();
-                     const message = 'No salary records found for the selected filters.';
-                    if (typeof round_error_noti === 'function') {
-                        round_error_noti(message);
-                    } else {
-                        alert(message);
-                    }
+                    $('#salaryGridSection').addClass('d-none');
+                    $('#salaryGridContainer').empty();
+                    showToast('No salary records found for the selected filters.', 'info');
                 }
             },
-            error: function(xhr, status, error) {
-                hideLoader();
-                hideBtnLoader('salary');
-                $('#salaryGridContainer').hide().empty();
-                $('#salaryActionButtons').hide();
+            error: function (xhr, status, error) {
+                setBtnNormal('#btnFetchSalaryData', 'Go');
+                $('#salaryGridSection').addClass('d-none');
+                $('#salaryGridContainer').empty();
                 console.error('Error fetching salary data:', error);
-                Swal.fire('Error', 'Failed to fetch salary view data.', 'error');
+                showToast('Failed to fetch salary view data.', 'error');
             }
         });
     });
 
+    // ─────────────────────────────────────────────────────────────────────
+    // Grids — common HRMS WMSGrid: no pagination, internal scroll + sticky
+    // header, checkbox column wired to the lockSelectedIds/salarySelectedIds
+    // bulk-selection arrays (re-rendered on every grid refresh/sort/search).
+    // ─────────────────────────────────────────────────────────────────────
+    function syncSelectAllState(idsArr, totalCount, checkboxSel) {
+        const $chk = $(checkboxSel);
+        if (idsArr.length === 0) { $chk.prop('checked', false).prop('indeterminate', false); }
+        else if (idsArr.length === totalCount) { $chk.prop('checked', true).prop('indeterminate', false); }
+        else { $chk.prop('checked', false).prop('indeterminate', true); }
+    }
+
     function renderLockGrid(data) {
         const columns = [
-            { dataField: "employeeCode", caption: "Employee Code", width: 150 },
-            { dataField: "employeeId", caption: "EmployeeId", visible: false },
-            { dataField: "attendanceLockId", caption: "AttendanceLockId", visible: false },
-            { dataField: "fullName", caption: "Employee Name", width: 200 },
-            { dataField: "designationName", caption: "Designation Name", width: 180 },
-            { dataField: "month", caption: "Month", width: 100 },
-            { dataField: "year", caption: "Year", width: 100 },
             {
-                dataField: "status",
-                caption: "Status",
-                width: 120,
-                cellTemplate: function(container, options) {
-                    const status = options.value;
-                    const badgeClass = status === 'Locked' ? 'status-locked' : 'status-unlocked';
-                    container.html(`<span class="status-badge ${badgeClass}">${status}</span>`);
+                header: '', sortable: false, width: '40px',
+                render: function (v, row) {
+                    const checked = lockSelectedIds.includes(row.employeeId) ? 'checked' : '';
+                    return '<input type="checkbox" class="form-check-input" ' + checked + ' onclick="_toggleLockRow(' + row.employeeId + ', this.checked)">';
+                }
+            },
+            { field: 'employeeCode', header: 'Employee Code', width: '130px' },
+            { field: 'fullName', header: 'Employee Name', width: '180px' },
+            { field: 'designationName', header: 'Designation', width: '170px' },
+            { field: 'month', header: 'Month', width: '90px' },
+            { field: 'year', header: 'Year', width: '90px' },
+            {
+                field: 'status', header: 'Status', width: '110px',
+                render: function (v) {
+                    return '<span class="wg-pill ' + (v === 'Locked' ? 'wg-pill-red' : 'wg-pill-green') + '">' + v + '</span>';
                 }
             }
         ];
 
-        $("#lockGridContainer").dxDataGrid({
-            dataSource: data,
-            keyExpr: "employeeId",
-            showBorders: true,
-            columnAutoWidth: true,
-            rowAlternationEnabled: true,
-            width: '100%',
-            export: {
-                enabled: false
-            },
-            searchPanel: {
-                visible: true,
-                width: 240,
-                placeholder: "Search..."
-            },
-            paging: {
-                enabled: true,
-                pageSize: 20
-            },
-            pager: {
-                visible: true,
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            scrolling: {
-                mode: "standard"
-            },
-            loadPanel: {
-                enabled: true
-            },
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "always"
-            },
-            columns: columns,
-            onContentReady: function(e) {
-                var $checkBoxes = $(".dx-selection-checkbox");
-                $checkBoxes.closest("th").css("width", "50px");
-                $checkBoxes.closest("td").css("width", "50px");
-            }
-        }).show();
+        if (!lockGrid) {
+            lockGrid = WMSGrid.create({
+                container: 'lockGridContainer',
+                title: 'Attendance Lock Records',
+                icon: 'bx-lock-alt',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false, export: true }
+            });
+        } else {
+            const cols = lockGrid.getColumns();
+            cols.length = 0;
+            columns.forEach(c => cols.push(c));
+            lockGrid.reset();
+            lockGrid.setData(data);
+        }
+        syncSelectAllState(lockSelectedIds, currentGridData.length, '#lockSelectAllChk');
     }
 
     function renderSalaryGrid(data) {
         const columns = [
-            { dataField: "employeeCode", caption: "Employee Code", width: 150 },
-            { dataField: "employeeId", caption: "EmployeeId", visible: false },
-            { dataField: "id", caption: "SalaryId", visible: false },
-            { dataField: "fullName", caption: "Employee Name", width: 200 },
-            { dataField: "designationName", caption: "Designation Name", width: 180 },
-            { dataField: "month", caption: "Month", width: 100 },
-            { dataField: "year", caption: "Year", width: 100 },
             {
-                dataField: "status",
-                caption: "Status",
-                width: 120,
-                cellTemplate: function(container, options) {
-                    const status = options.value;
-                    const badgeClass = status === 'Published' ? 'status-published' : 'status-unpublished';
-                    container.html(`<span class="status-badge ${badgeClass}">${status}</span>`);
+                header: '', sortable: false, width: '40px',
+                render: function (v, row) {
+                    const checked = salarySelectedIds.includes(row.employeeId) ? 'checked' : '';
+                    return '<input type="checkbox" class="form-check-input" ' + checked + ' onclick="_toggleSalaryRow(' + row.employeeId + ', this.checked)">';
+                }
+            },
+            { field: 'employeeCode', header: 'Employee Code', width: '130px' },
+            { field: 'fullName', header: 'Employee Name', width: '180px' },
+            { field: 'designationName', header: 'Designation', width: '170px' },
+            { field: 'month', header: 'Month', width: '90px' },
+            { field: 'year', header: 'Year', width: '90px' },
+            {
+                field: 'status', header: 'Status', width: '110px',
+                render: function (v) {
+                    return '<span class="wg-pill ' + (v === 'Published' ? 'wg-pill-red' : 'wg-pill-green') + '">' + v + '</span>';
                 }
             }
         ];
 
-        $("#salaryGridContainer").dxDataGrid({
-            dataSource: data,
-            keyExpr: "employeeId",
-            showBorders: true,
-            columnAutoWidth: true,
-            rowAlternationEnabled: true,
-            width: '100%',
-            export: {
-                enabled: false
-            },
-            searchPanel: {
-                visible: true,
-                width: 240,
-                placeholder: "Search..."
-            },
-            paging: {
-                enabled: true,
-                pageSize: 20
-            },
-            pager: {
-                visible: true,
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            scrolling: {
-                mode: "standard"
-            },
-            loadPanel: {
-                enabled: true
-            },
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "always"
-            },
-            columns: columns,
-            onContentReady: function(e) {
-                var $checkBoxes = $(".dx-selection-checkbox");
-                $checkBoxes.closest("th").css("width", "50px");
-                $checkBoxes.closest("td").css("width", "50px");
-            }
-        }).show();
-    }
-
-    // Refresh grid data for Attendance Lock
-    function refreshGridData() {
-        if (!currentFilters.month || !currentFilters.year) {
-            return;
+        if (!salaryGrid) {
+            salaryGrid = WMSGrid.create({
+                container: 'salaryGridContainer',
+                title: 'Salary Publish Records',
+                icon: 'bx-money',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false, export: true }
+            });
+        } else {
+            const cols = salaryGrid.getColumns();
+            cols.length = 0;
+            columns.forEach(c => cols.push(c));
+            salaryGrid.reset();
+            salaryGrid.setData(data);
         }
-
-        showLoader();
-        const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
-        gridInstance.clearSelection();
-        const employeeIds = employeeMultiSelect.getSelectedValues();
-        const status = $('input[name="lockStatus"]:checked').val() || null;
-
-        const requestData = {
-            Month: currentFilters.month,
-            Year: currentFilters.year,
-            EmployeeId: employeeIds.join(','),
-            Status: status
-        };
-
-        $.ajax({
-            url: '@(baseDomainUrl + "/api/AttendanceLockAPI/GetAttendanceLockDetails")',
-            method: 'POST',
-            contentType: 'application/json',
-            headers: { 'Authorization': 'Bearer ' + Token },
-            data: JSON.stringify(requestData),
-            success: function(response) {
-                hideLoader();
-                if (response?.isSuccess && response?.data?.length > 0) {
-                    currentGridData = response.data;
-                    renderLockGrid(response.data);
-                    $('#gridActionButtons').css('display', 'flex');
-                } else {
-                    $('#lockGridContainer').hide().empty();
-                    $('#gridActionButtons').hide();
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'No Data Found',
-                        text: 'No locked attendance records found for the selected filters.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                }
-            },
-            error: function(xhr, status, error) {
-                hideLoader();
-                console.error('Error refreshing grid data:', error);
-            }
-        });
+        syncSelectAllState(salarySelectedIds, currentSalaryGridData.length, '#salarySelectAllChk');
     }
 
-    // Refresh grid data for Salary View
-     function refreshSalaryGridData() {
-        if (!currentSalaryFilters.month || !currentSalaryFilters.year) {
-            return;
-        }
-        showLoader();
-        const gridInstance = $("#salaryGridContainer").dxDataGrid("instance");
-        gridInstance.clearSelection();
-        const employeeIds = salaryEmployeeMultiSelect.getSelectedValues();
-        const status = $('input[name="salaryStatus"]:checked').val() || null;
-        const requestData = {
-            Month: currentSalaryFilters.month,
-            Year: currentSalaryFilters.year,
-            EmployeeId: employeeIds.join(','),
-            Status: status
-        };
-        $.ajax({
-            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeeSalaryPublish")',
-            method: 'POST',
-            contentType: 'application/json',
-            headers: { 'Authorization': 'Bearer ' + Token },
-            data: JSON.stringify(requestData),
-            success: function(response) {
-                hideLoader();
-                if (response && response.isSuccess && response.data && response.data.length > 0) {
-                    currentSalaryGridData = response.data;
-                    renderSalaryGrid(response.data);
-                    $('#salaryActionButtons').css('display', 'flex');
-                } else {
-                    $('#salaryGridContainer').hide().empty();
-                    $('#salaryActionButtons').hide();
-                    const message = response?.responseMessage || 'No salary records found for the selected filters.';
-                    if (typeof round_error_noti === 'function') {
-                        round_error_noti(message);
-                    } else {
-                        alert(message);
-                    }
-                }
-            },
-            error: function(xhr, status, error) {
-                hideLoader();
-                console.error('Error refreshing salary grid data:', error);
-                const message = xhr.responseJSON?.responseMessage || 'An error occurred while fetching salary data.';
-                if (typeof round_error_noti === 'function') {
-                    round_error_noti(message);
-                } else {
-                    alert(message);
-                }
-            }
-        });
-    }
-    // Lock Attendance Button Click
-     // Unified Lock Attendance Button Click
-    $('#btnLockAttendance').click(function() {
-        const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
-        const selectedRows = gridInstance.getSelectedRowsData();
+    window._toggleLockRow = function (employeeId, checked) {
+        const idx = lockSelectedIds.indexOf(employeeId);
+        if (checked && idx === -1) lockSelectedIds.push(employeeId);
+        if (!checked && idx > -1) lockSelectedIds.splice(idx, 1);
+        syncSelectAllState(lockSelectedIds, currentGridData.length, '#lockSelectAllChk');
+    };
+
+    window._toggleSalaryRow = function (employeeId, checked) {
+        const idx = salarySelectedIds.indexOf(employeeId);
+        if (checked && idx === -1) salarySelectedIds.push(employeeId);
+        if (!checked && idx > -1) salarySelectedIds.splice(idx, 1);
+        syncSelectAllState(salarySelectedIds, currentSalaryGridData.length, '#salarySelectAllChk');
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Lock / Unlock Attendance
+    // ─────────────────────────────────────────────────────────────────────
+    $('#btnLockAttendance').click(function () {
+        const selectedRows = currentGridData.filter(r => lockSelectedIds.includes(r.employeeId));
 
         if (selectedRows.length === 0) {
             Swal.fire('Warning', 'Please select at least one employee to lock attendance.', 'warning');
@@ -1531,15 +966,13 @@
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                manageAttendanceLock(selectedRows, true); // true = Lock
+                manageAttendanceLock(selectedRows, true);
             }
         });
     });
 
-    // Unified Unlock Attendance Button Click
-    $('#btnUnlockAttendance').click(function() {
-        const gridInstance = $("#lockGridContainer").dxDataGrid("instance");
-        const selectedRows = gridInstance.getSelectedRowsData();
+    $('#btnUnlockAttendance').click(function () {
+        const selectedRows = currentGridData.filter(r => lockSelectedIds.includes(r.employeeId));
 
         if (selectedRows.length === 0) {
             Swal.fire('Warning', 'Please select at least one employee to unlock attendance.', 'warning');
@@ -1568,31 +1001,22 @@
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                manageAttendanceLock(selectedRows, false); // false = Unlock
+                manageAttendanceLock(selectedRows, false);
             }
         });
     });
 
-    // ✅ UNIFIED FUNCTION - Automatically decides CREATE or UPDATE
     function manageAttendanceLock(selectedRows, isLocking) {
-        
-        const actionText = isLocking ? 'Locking' : 'Unlocking';
-        const actionBtnId = isLocking ? 'Lock' : 'Unlock';
+        const btnId = isLocking ? '#btnLockAttendance' : '#btnUnlockAttendance';
+        setBtnLoading(btnId, isLocking ? 'Locking...' : 'Unlocking...');
 
-        $(`#btn${actionText}Attendance`).show();
-        $(`#btn${actionBtnId}Attendance`).hide();
-        showLoader();
-
-        // Separate records based on attendanceLockId
         const recordsToCreate = [];
         const recordsToUpdate = [];
 
         selectedRows.forEach(row => {
             const attendanceLockId = row.attendanceLockId;
 
-            // ✅ Check if attendanceLockId is NULL, 0, undefined, or empty
-            if (!attendanceLockId || attendanceLockId === 0 || attendanceLockId === null) {
-                // CREATE - No attendanceLockId exists
+            if (!attendanceLockId || attendanceLockId === 0) {
                 recordsToCreate.push({
                     EmpId: row.employeeId,
                     Month: currentFilters.month,
@@ -1603,7 +1027,6 @@
                     CreatedBy: Empid
                 });
             } else {
-                // UPDATE - attendanceLockId exists
                 recordsToUpdate.push({
                     EmpId: row.employeeId,
                     AttendanceLockId: attendanceLockId,
@@ -1617,11 +1040,9 @@
             }
         });
 
-        // ✅ Execute API calls based on what's needed
         let createPromise = Promise.resolve({ isSuccess: true });
         let updatePromise = Promise.resolve({ isSuccess: true });
 
-        // Call CREATE API if there are records to create
         if (recordsToCreate.length > 0) {
             createPromise = $.ajax({
                 url: '@(baseDomainUrl + "/api/AttendanceLockAPI/CreateAttendanceLockEmp")',
@@ -1632,7 +1053,6 @@
             });
         }
 
-        // Call UPDATE API if there are records to update
         if (recordsToUpdate.length > 0) {
             updatePromise = $.ajax({
                 url: '@(baseDomainUrl + "/api/AttendanceLockAPI/UpdateAttendanceLock")',
@@ -1643,14 +1063,10 @@
             });
         }
 
-        // ✅ Wait for both operations to complete
         Promise.all([createPromise, updatePromise])
             .then(([createResponse, updateResponse]) => {
-                hideLoader();
-                $(`#btn${actionText}Attendance`).hide();
-                $(`#btn${actionBtnId}Attendance`).show();
+                setBtnNormal(btnId, isLocking ? 'Lock Attendance' : 'Unlock Attendance');
 
-                // Check if both operations succeeded
                 const createSuccess = !recordsToCreate.length || createResponse?.isSuccess;
                 const updateSuccess = !recordsToUpdate.length || updateResponse?.isSuccess;
 
@@ -1661,25 +1077,24 @@
                         text: `Attendance ${isLocking ? 'locked' : 'unlocked'} successfully for ${selectedRows.length} employee(s).`,
                         timer: 2000,
                         showConfirmButton: false
-                    }).then(() => {
-                        location.reload();
-                    });
+                    }).then(() => { location.reload(); });
                 } else {
                     const errorMsg = !createSuccess ? createResponse?.responseMessage : updateResponse?.responseMessage;
-                    Swal.fire('Error', errorMsg || `Failed to ${actionText.toLowerCase()} attendance.`, 'error');
+                    Swal.fire('Error', errorMsg || `Failed to ${isLocking ? 'lock' : 'unlock'} attendance.`, 'error');
                 }
             })
             .catch((error) => {
-                hideLoader();
-                $(`#btn${actionText}Attendance`).hide();
-                $(`#btn${actionBtnId}Attendance`).show();
-                console.error(`Error ${actionText.toLowerCase()} attendance:`, error);
-                Swal.fire('Error', `Failed to ${actionText.toLowerCase()} attendance. Please try again.`, 'error');
+                setBtnNormal(btnId, isLocking ? 'Lock Attendance' : 'Unlock Attendance');
+                console.error('Error locking/unlocking attendance:', error);
+                Swal.fire('Error', `Failed to ${isLocking ? 'lock' : 'unlock'} attendance. Please try again.`, 'error');
             });
     }
-    $('#btnPublishSalary').click(function() {
-        const gridInstance = $("#salaryGridContainer").dxDataGrid("instance");
-        const selectedRows = gridInstance.getSelectedRowsData();
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Publish / Unpublish Salary
+    // ─────────────────────────────────────────────────────────────────────
+    $('#btnPublishSalary').click(function () {
+        const selectedRows = currentSalaryGridData.filter(r => salarySelectedIds.includes(r.employeeId));
 
         if (selectedRows.length === 0) {
             Swal.fire('Warning', 'Please select at least one employee to publish salary.', 'warning');
@@ -1708,13 +1123,13 @@
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                updateSalaryPublishStatus(selectedRows, 'Published');  // ← NEW CALL
+                updateSalaryPublishStatus(selectedRows, 'Published');
             }
         });
     });
-    $('#btnUnpublishSalary').click(function() {
-        const gridInstance = $("#salaryGridContainer").dxDataGrid("instance");
-        const selectedRows = gridInstance.getSelectedRowsData();
+
+    $('#btnUnpublishSalary').click(function () {
+        const selectedRows = currentSalaryGridData.filter(r => salarySelectedIds.includes(r.employeeId));
 
         if (selectedRows.length === 0) {
             Swal.fire('Warning', 'Please select at least one employee to unpublish salary.', 'warning');
@@ -1743,17 +1158,14 @@
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                updateSalaryPublishStatus(selectedRows, 'Unpublished');  // ← NEW CALL
+                updateSalaryPublishStatus(selectedRows, 'Unpublished');
             }
         });
     });
-    function updateSalaryPublishStatus(selectedRows, status) {
-        const btnPrefix = status === 'Published' ? 'Publishing' : 'Unpublishing';
-        const btnId = status === 'Published' ? 'Publish' : 'Unpublish';
 
-        $(`#btn${btnPrefix}Salary`).show();
-        $(`#btn${btnId}Salary`).hide();
-        showLoader();
+    function updateSalaryPublishStatus(selectedRows, status) {
+        const btnId = status === 'Published' ? '#btnPublishSalary' : '#btnUnpublishSalary';
+        setBtnLoading(btnId, status === 'Published' ? 'Publishing...' : 'Unpublishing...');
 
         const employeeIds = selectedRows.map(row => row.employeeId).join(',');
         const salaryid = selectedRows.map(row => row.id).join(',');
@@ -1766,18 +1178,14 @@
             Status: status
         };
 
-        const apiUrl = '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/UpdateSalaryPublishStatus")';
-
         $.ajax({
-            url: apiUrl,
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/UpdateSalaryPublishStatus")',
             method: 'PUT',
             contentType: 'application/json',
             headers: { 'Authorization': 'Bearer ' + Token },
             data: JSON.stringify(requestData),
-            success: function(response) {
-                hideLoader();
-                $(`#btn${btnPrefix}Salary`).hide();
-                $(`#btn${btnId}Salary`).show();
+            success: function (response) {
+                setBtnNormal(btnId, status === 'Published' ? 'Publish' : 'Unpublish');
 
                 if (response?.isSuccess) {
                     Swal.fire({
@@ -1786,17 +1194,13 @@
                         text: response.responseMessage,
                         timer: 2000,
                         showConfirmButton: false
-                    }).then(() => {
-                       location.reload();
-                    });
+                    }).then(() => { location.reload(); });
                 } else {
                     Swal.fire('Error', response?.responseMessage || `Failed to ${status.toLowerCase()} salary.`, 'error');
                 }
             },
-            error: function(xhr, status, error) {
-                hideLoader();
-                $(`#btn${btnPrefix}Salary`).hide();
-                $(`#btn${btnId}Salary`).show();
+            error: function (xhr, status2, error) {
+                setBtnNormal(btnId, status === 'Published' ? 'Publish' : 'Unpublish');
                 console.error(`Error ${status.toLowerCase()} salary:`, error);
                 Swal.fire('Error', `Failed to ${status.toLowerCase()} salary. Please try again.`, 'error');
             }
