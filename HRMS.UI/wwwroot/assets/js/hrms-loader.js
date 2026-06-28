@@ -273,6 +273,34 @@
         teleportModals();   /* DOM already parsed — run immediately */
     }
 
+    /* ── Keep teleporting: AJAX-loaded partials (tabs, wizard steps, etc.)
+       inject their own .modal markup long after the page first loads, so
+       the one-time pass above never sees them — they stay trapped inside
+       .main-area's stacking context and render BEHIND the backdrop (which
+       is always a direct <body> child). Watch the whole document for any
+       newly-added .modal and teleport it the instant it appears. */
+    function teleportIfModal(node) {
+        if (node.nodeType !== 1) return;
+        if (node.classList && node.classList.contains('modal') && node.parentNode !== document.body) {
+            document.body.appendChild(node);
+        }
+        if (node.querySelectorAll) {
+            node.querySelectorAll('.modal').forEach(function (modal) {
+                if (modal.parentNode !== document.body) {
+                    document.body.appendChild(modal);
+                }
+            });
+        }
+    }
+
+    new MutationObserver(function (muts) {
+        muts.forEach(function (m) {
+            m.addedNodes.forEach(teleportIfModal);
+        });
+    }).observe(document.documentElement, { childList: true, subtree: true });
+
+    w.teleportModals = teleportModals;
+
     /* ── Expose globals ──────────────────────────────────────────── */
     w.showLoader      = show;
     w.hideLoader      = hide;
