@@ -1,10 +1,8 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Employee Transfer";
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
-    var uri = new Uri(baseUrl);
-    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 
 <!-- jsPDF + html2canvas (same as increment/promotion letter) -->
@@ -14,40 +12,32 @@
 <div class="wms-form-page">
 
 <div class="card">
-    <div class="card-header bg-transparent ml-0 py-0">
-        <div class="row">
-            <div class="col-6">
-                <h6 class="pt-2 mb-0">Manage Employee Transfer</h6>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Manage Employee Transfer</h6>
+        <button id="addTransfer" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bx bx-plus"></i> Add
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="sec-lbl">Search Panel</div>
+        <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+            <div class="fg" style="min-width:200px;max-width:240px;flex:1 1 auto;">
+                <label for="filterBranch">Branch</label>
+                <select id="filterBranch">
+                    <option value="">All</option>
+                </select>
             </div>
-            <div class="col-6 d-flex justify-content-end align-items-center">
-                <button id="addTransfer" type="button" class="btn mr-1 rounded-1"
-                        style="background-color:#2395c6; color:white;">
-                    Add
+            <div class="d-flex gap-2">
+                <button type="button" id="btnFilterSearch" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="bx bx-search"></i> Search
+                </button>
+                <button type="button" id="btnFilterClear" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="bx bx-x"></i> Clear
                 </button>
             </div>
         </div>
-    </div>
-    <div class="card-body">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="form-group">
-                        <div class="grid-wrapper" style="position:relative;">
-                            <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column"
-                                 style="display:none; inset:0; background:rgba(255,255,255,0.6); z-index:10;">
-                                <img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner"
-                                     style="width:30px; height:30px; animation:spin 1s linear infinite;" />
-                                <div class="grid-loading-text text-dark" style="font-size:16px;">Loading...</div>
-                            </div>
-                            <div id="gridTag">
-                                <div class="rowCount" id="rowCount1"></div>
-                                <div id="gridContainer"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+
+        <div id="transferGrid"></div>
     </div>
 </div>
 
@@ -58,32 +48,23 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title btn-heading-title" id="modalTitle">Add Employee Transfer</h6>
+                <h6 class="modal-title" id="modalTitle">Add Employee Transfer</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body modal-body-font" style="font-size:12px;">
+            <div class="modal-body">
                 <form id="transferForm">
                     <input type="hidden" id="transferId" value="0">
                     <div class="row">
-
-                        <!-- Application Date -->
-                        <div class="col-md-6">
-                            <div class="fg fg-req">
-                                <label for="applicationDate">Application Date</label>
-                                <input type="date" id="applicationDate">
-                            </div>
-                            <span class="field-validation-error" id="spnapplicationDate" style="display:none;font-size:0.85em;">Please Select Application Date</span>
-                        </div>
 
                         <!-- Current Branch -->
                         <div class="col-md-6">
                             <div class="fg fg-req">
                                 <label for="currentBranch">Current Branch</label>
                                 <select id="currentBranch">
-                                    <option value="" selected disabled>Current Branch</option>
+                                    <option value="" selected disabled>Select Current Branch</option>
                                 </select>
-                                <span id="spncurrentBranch" style="color:red;display:none;font-size:0.85em;">Please Select Current Branch</span>
                             </div>
+                            <span class="field-validation-error" id="spncurrentBranch" style="display:none;">Please Select Current Branch</span>
                         </div>
 
                         <!-- Employee -->
@@ -91,19 +72,34 @@
                             <div class="fg fg-req">
                                 <label for="employeeTransfer">Employee</label>
                                 <select id="employeeTransfer">
-                                    <option value="" selected disabled>Employee</option>
+                                    <option value="" selected disabled>Select Employee</option>
                                 </select>
-                                <span id="spnemployeeTransfer" style="color:red;display:none;font-size:0.85em;">Please Select Employee</span>
                             </div>
+                            <span class="field-validation-error" id="spnemployeeTransfer" style="display:none;">Please Select Employee</span>
                         </div>
 
                         <!-- Current Reporting Person (Read-only) -->
                         <div class="col-md-6">
                             <div class="fg">
                                 <label for="currentReportingPerson">Current Reporting Person</label>
-                                <input type="text" id="currentReportingPerson"
-                                       readonly style="background-color:#f5f5f5;">
+                                <input type="text" id="currentReportingPerson" readonly placeholder="Auto-filled on Employee selection">
                                 <input type="hidden" id="currentReportingPersonId">
+                            </div>
+                        </div>
+
+                        <!-- Department (Read-only, display only) -->
+                        <div class="col-md-6">
+                            <div class="fg">
+                                <label for="employeeDepartment">Department</label>
+                                <input type="text" id="employeeDepartment" readonly placeholder="Auto-filled on Employee selection">
+                            </div>
+                        </div>
+
+                        <!-- Designation (Read-only, display only) -->
+                        <div class="col-md-6">
+                            <div class="fg">
+                                <label for="employeeDesignation">Designation</label>
+                                <input type="text" id="employeeDesignation" readonly placeholder="Auto-filled on Employee selection">
                             </div>
                         </div>
 
@@ -112,10 +108,10 @@
                             <div class="fg fg-req">
                                 <label for="transferBranch">Transfer Branch</label>
                                 <select id="transferBranch">
-                                    <option value="" selected disabled>Transfer Branch</option>
+                                    <option value="" selected disabled>Select Transfer Branch</option>
                                 </select>
-                                <span id="spntransferBranch" style="color:red;display:none;font-size:0.85em;">Please Select Transfer Branch</span>
                             </div>
+                            <span class="field-validation-error" id="spntransferBranch" style="display:none;">Please Select Transfer Branch</span>
                         </div>
 
                         <!-- Transfer Reporting Person -->
@@ -123,10 +119,10 @@
                             <div class="fg fg-req">
                                 <label for="transferReportingPerson">Transfer Reporting Person</label>
                                 <select id="transferReportingPerson">
-                                    <option value="" selected disabled>Transfer Reporting Person</option>
+                                    <option value="" selected disabled>Select Transfer Reporting Person</option>
                                 </select>
-                                <span id="spntransferReportingPerson" style="color:red;display:none;font-size:0.85em;">Please Select Transfer Reporting Person</span>
                             </div>
+                            <span class="field-validation-error" id="spntransferReportingPerson" style="display:none;">Please Select Transfer Reporting Person</span>
                         </div>
 
                         <!-- Effective Date -->
@@ -135,31 +131,27 @@
                                 <label for="effectiveDate">Effective Date</label>
                                 <input type="date" id="effectiveDate">
                             </div>
-                            <span class="field-validation-error" id="spneffectiveDate" style="display:none;font-size:0.85em;">Please Select Effective Date</span>
+                            <span class="field-validation-error" id="spneffectiveDate" style="display:none;">Please Select Effective Date</span>
                         </div>
 
                         <!-- Reason -->
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="fg fg-req">
                                 <label for="reason">Reason</label>
-                                <input type="text" id="reason">
+                                <input type="text" id="reason" placeholder="Reason for transfer">
                             </div>
-                            <span class="field-validation-error" id="spnreason" style="display:none;font-size:0.85em;">Please Enter Reason</span>
+                            <span class="field-validation-error" id="spnreason" style="display:none;">Please Enter Reason</span>
                         </div>
 
                     </div>
                 </form>
             </div>
-            <div class="modal-footer btn-heading-title">
-                <button type="button" class="btn btn-primary" id="btnSaveTransfer"
-                        style="background-color:#2395c6;color:white;">
-                    Save
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnSaveTransfer">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save</span>
                 </button>
-                <button type="button" class="btn btn-primary" id="btnSavingTransfer"
-                        style="background-color:#2395c6;color:white;display:none;" disabled>
-                    <span class="spinner-border spinner-border-sm me-2" role="status"></span> Saving..
-                </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -179,10 +171,9 @@
                 <!-- Letter HTML injected here -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="btnDownloadFromPreview"
-                        style="background-color:#2395c6;color:white;">
-                    Download PDF
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnDownloadFromPreview">
+                    <i class="bx bx-download"></i> Download PDF
                 </button>
             </div>
         </div>
@@ -191,7 +182,6 @@
 
 </div>
 
-<script src="~/assets/js/jquery.min.js"></script>
 <script>
     /* ── Auth / Company ─────────────────────────────────────────────────── */
     var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
@@ -200,6 +190,9 @@
     const Token      = localStorage.getItem('authToken');
 
     let _currentPreviewData = null;   // used by "Download PDF" inside preview modal
+    let transferGrid  = null;
+    let allTransfers  = [];           // full, unfiltered list as loaded from the API
+    let allBranches   = [];
 
     /* ══════════════════════════════════════════════════════════════════════
        SHARED HELPERS
@@ -211,6 +204,24 @@
         const monthNames = ['Jan','Feb','Mar','Apr','May','Jun',
                             'Jul','Aug','Sep','Oct','Nov','Dec'];
         return `${day}-${monthNames[date.getMonth()]}-${date.getFullYear()}`;
+    }
+
+    function fmtDate(v) {
+        if (!v) return '-';
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        return String(d.getDate()).padStart(2, '0') + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + d.getFullYear();
+    }
+
+    function escapeHtml(v) {
+        return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+        });
+    }
+
+    function truncRender(v) {
+        var text = (v === null || v === undefined || v === '') ? '-' : v;
+        return '<span style="display:block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(text) + '">' + escapeHtml(text) + '</span>';
     }
 
     function getTitle(gender) {
@@ -337,6 +348,7 @@
        PREVIEW
     ══════════════════════════════════════════════════════════════════════ */
     function PreviewTransferLetter(data) {
+        if (!data) return;
         _currentPreviewData = data;
         $('#previewContent').html(buildTransferLetterHTML(data));
         $('#previewTransferModal').modal('show');
@@ -351,6 +363,7 @@
        EXPORT TO PDF  —  html2canvas + jsPDF (same as increment/promotion)
     ══════════════════════════════════════════════════════════════════════ */
     function ExportTransferLetterToPDF(data) {
+        if (!data) return;
         const fullName = data.fullName || data.FullName || 'Employee';
 
         /* Render in viewport (visible) so html2canvas captures correctly */
@@ -401,11 +414,11 @@
 
                 pdf.save(`Transfer_Letter_${fullName}_${new Date().getTime()}.pdf`);
                 document.body.removeChild(tempDiv);
-                toastr.success('Transfer letter exported successfully!');
+                showToast('Transfer letter exported successfully!', 'success');
             }).catch(function (err) {
                 document.body.removeChild(tempDiv);
                 console.error('PDF error:', err);
-                toastr.error('Failed to generate PDF.');
+                showToast('Failed to generate PDF.', 'error');
             });
         }, 400);
     }
@@ -414,16 +427,25 @@
        ON READY
     ══════════════════════════════════════════════════════════════════════ */
     $(document).ready(function () {
-        $('#applicationDate').val(new Date().toISOString().split('T')[0]);
         loadEmployeeTransfers(CompanyId);
+        BindBranchDropdownForTransfer();
+        loadTransferReportingPersonDropdown();
 
         $('#employeeTransfer').on('change', function () {
             var val = $(this).val();
-            if (val) loadCurrentReportingPerson(val);
+            if (val) {
+                loadCurrentReportingPerson(val);
+                loadEmployeeDeptDesignation(val);
+            } else {
+                $('#currentReportingPerson, #currentReportingPersonId, #employeeDepartment, #employeeDesignation').val('');
+            }
         });
 
-        BindBranchDropdownForTransfer();
-        loadTransferReportingPersonDropdown();
+        $('#btnFilterSearch').on('click', applyTransferFilter);
+        $('#btnFilterClear').on('click', function () {
+            $('#filterBranch').val('');
+            renderTransferGrid(allTransfers);
+        });
     });
 
     /* ── Add button ─────────────────────────────────────────────────────── */
@@ -432,19 +454,6 @@
         $('#modalTitle').text('Add Employee Transfer');
         $('#addTransferModal').modal('show');
     });
-
-    /* ── Loader helpers ─────────────────────────────────────────────────── */
-    function showbtnLoder(isUpdate) {
-        $('#btnSaveTransfer').hide();
-        $('#btnSavingTransfer')
-            .html(`<span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                   ${isUpdate ? 'Updating..' : 'Saving..'}`)
-            .show();
-    }
-    function hidebtnLoder() {
-        $('#btnSaveTransfer').show();
-        $('#btnSavingTransfer').hide();
-    }
 
     /* ── Current Reporting Person ───────────────────────────────────────── */
     function loadCurrentReportingPerson(employeeId) {
@@ -469,6 +478,26 @@
         });
     }
 
+    /* ── Department / Designation (read-only display, auto-filled) ───────── */
+    function loadEmployeeDeptDesignation(employeeId) {
+        $.ajax({
+            url: `@baseUrl/EmployeeMasterAPI/GetEmployeeById/${employeeId}`,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response.isSuccess && response.data) {
+                    $('#employeeDepartment').val(response.data.departmentName || '');
+                    $('#employeeDesignation').val(response.data.designationName || '');
+                } else {
+                    $('#employeeDepartment, #employeeDesignation').val('');
+                }
+            },
+            error: function () {
+                $('#employeeDepartment, #employeeDesignation').val('');
+            }
+        });
+    }
+
     /* ── Transfer Reporting Person Dropdown ─────────────────────────────── */
     function loadTransferReportingPersonDropdown() {
         $.ajax({
@@ -478,7 +507,7 @@
             success: function (res) {
                 if (res.data) {
                     var $sel = $('#transferReportingPerson');
-                    $sel.empty().append('<option value="" selected disabled>Transfer Reporting Person</option>');
+                    $sel.empty().append('<option value="" selected disabled>Select Transfer Reporting Person</option>');
                     res.data.forEach(function (p) {
                         $sel.append($('<option>', { value: p.employeeId, text: p.employeeName }));
                     });
@@ -487,7 +516,7 @@
         });
     }
 
-    /* ── Branch Dropdown ────────────────────────────────────────────────── */
+    /* ── Branch Dropdown (Current/Transfer/Filter) ──────────────────────── */
     async function BindBranchDropdownForTransfer() {
         return new Promise((resolve, reject) => {
             $.ajax({
@@ -496,17 +525,20 @@
                 headers: { 'Authorization': 'Bearer ' + Token },
                 success: function (data) {
                     if (data.isSuccess) {
-                        var branches = data.data || [];
-                        var $current = $('#currentBranch');
+                        allBranches = data.data || [];
+                        var $current  = $('#currentBranch');
                         var $transfer = $('#transferBranch');
-                        $current.empty().append('<option value="" selected disabled>Current Branch</option>');
-                        $transfer.empty().append('<option value="" selected disabled>Transfer Branch</option>');
-                        branches.forEach(function (b) {
+                        var $filter   = $('#filterBranch');
+                        $current.empty().append('<option value="" selected disabled>Select Current Branch</option>');
+                        $transfer.empty().append('<option value="" selected disabled>Select Transfer Branch</option>');
+                        $filter.empty().append('<option value="">All</option>');
+                        allBranches.forEach(function (b) {
                             $current.append($('<option>', { value: b.branchId, text: b.branchName }));
                             $transfer.append($('<option>', { value: b.branchId, text: b.branchName }));
+                            $filter.append($('<option>', { value: b.branchId, text: b.branchName }));
                         });
-                        $current.on('change', function () { BindEmployeeByBranchIdForTransfer(); });
-                        resolve(data.data);
+                        $current.off('change').on('change', function () { BindEmployeeByBranchIdForTransfer(); });
+                        resolve(allBranches);
                     } else { reject('Failed to fetch branches'); }
                 },
                 error: function (e) { reject(e); }
@@ -528,7 +560,7 @@
                 success: function (data) {
                     if (data.isSuccess) {
                         var $sel = $('#employeeTransfer');
-                        $sel.empty().append('<option value="" selected disabled>Employee</option>');
+                        $sel.empty().append('<option value="" selected disabled>Select Employee</option>');
                         (data.data || []).forEach(function (e) {
                             $sel.append($('<option>', { value: e.employeeId, text: e.employeeName }));
                         });
@@ -541,10 +573,57 @@
     }
 
     /* ══════════════════════════════════════════════════════════════════════
-       LOAD GRID
+       FILTER PANEL
+    ══════════════════════════════════════════════════════════════════════ */
+    function applyTransferFilter() {
+        const branchId = $('#filterBranch').val();
+        let filtered = allTransfers;
+        if (branchId) {
+            filtered = allTransfers.filter(function (r) { return String(r.currentBranchId) === String(branchId); });
+        }
+        renderTransferGrid(filtered);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       GRID
+    ══════════════════════════════════════════════════════════════════════ */
+    function renderTransferGrid(rows) {
+        if (!transferGrid) {
+            transferGrid = WMSGrid.create({
+                container: 'transferGrid',
+                title: 'Employee Transfers',
+                icon: 'bx-transfer-alt',
+                perPage: 10,
+                data: rows,
+                columns: [
+                    { field: 'effectiveDate', header: 'Effective Date', width: '130px', align: 'center', render: function (v) { return fmtDate(v); } },
+                    { field: 'currentBranchName', header: 'Current Branch', width: '160px' },
+                    { field: 'fullName', header: 'Employee Name', width: '200px' },
+                    { field: 'transferBranchName', header: 'Transfer Branch', width: '160px' },
+                    { field: 'reason', header: 'Reason', width: '220px', render: truncRender },
+                    {
+                        header: 'Actions', sortable: false, stickyRight: true, width: '170px', align: 'center',
+                        render: function (v, row) {
+                            return '<button type="button" class="wg-btn wg-btn-outline" title="Edit" onclick="UpdateTransferData(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-edit"></i></button> ' +
+                                   '<button type="button" class="wg-btn wg-btn-outline" title="Preview Letter" onclick="PreviewTransferLetter(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-show"></i></button> ' +
+                                   '<button type="button" class="wg-btn wg-btn-outline" title="Export PDF" onclick="ExportTransferLetterToPDF(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-download"></i></button> ' +
+                                   '<button type="button" class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="DeleteTransfer(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-trash"></i></button>';
+                        }
+                    }
+                ],
+                features: { export: true }
+            });
+        } else {
+            transferGrid.setData(rows);
+            transferGrid.hideLoader();
+        }
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       LOAD GRID DATA
     ══════════════════════════════════════════════════════════════════════ */
     async function loadEmployeeTransfers(CompanyId) {
-        $('#grid-loader').addClass('d-flex').show();
+        if (transferGrid) transferGrid.showLoader();
         return new Promise((resolve, reject) => {
             $.ajax({
                 url: `@baseUrl/EmployeeTransferAPI/GetEmployeeTransfer/${CompanyId}`,
@@ -552,106 +631,19 @@
                 headers: { 'Authorization': 'Bearer ' + Token },
                 success: function (response) {
                     if (!response.isSuccess) {
-                        $('#grid-loader').removeClass('d-flex').hide();
-                        toastr.error(response.responseMessage || 'Failed to load data');
+                        if (transferGrid) transferGrid.hideLoader();
+                        showToast(response.responseMessage || 'Failed to load data', 'error');
                         reject(response.responseMessage);
                         return;
                     }
 
-                    $('#gridContainer').dxDataGrid({
-                        dataSource: response.data || [],
-                        columns: [
-                            {
-                                dataField: 'effectiveDate',
-                                caption: 'Effective Date',
-                                dataType: 'date',
-                                format: 'dd-MM-yyyy'
-                            },
-                            { dataField: 'currentBranchName',  caption: 'Current Branch'  },
-                            { dataField: 'fullName',           caption: 'Employee Name'   },
-                            { dataField: 'transferBranchName', caption: 'Transfer Branch' },
-                            { dataField: 'reason',             caption: 'Reason'          },
-                            { dataField: 'transferId',         caption: 'TransferId', visible: false },
-                            {
-                                caption: 'Edit', width: '70px', alignment: 'center',
-                                cellTemplate: function (container, options) {
-                                    $('<a href="javascript:;" title="Edit">' +
-                                        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">' +
-                                        '<path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>' +
-                                        '<path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>' +
-                                        '</svg></a>')
-                                        .on('click', function () { UpdateTransferData(options.data); })
-                                        .appendTo(container);
-                                }
-                            },
-                            {
-                                caption: 'Delete', width: '80px', alignment: 'center',
-                                cellTemplate: function (container, options) {
-                                    $('<a href="javascript:;" title="Delete">' +
-                                        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">' +
-                                        '<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>' +
-                                        '<path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>' +
-                                        '</svg></a>')
-                                        .on('click', function () { DeleteTransfer(options.data); })
-                                        .appendTo(container);
-                                }
-                            },
-                            {
-                                caption: 'Preview', width: '80px', alignment: 'center',
-                                cellTemplate: function (container, options) {
-                                    $('<a href="javascript:;" title="Preview Letter">' +
-                                        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">' +
-                                        '<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>' +
-                                        '<path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>' +
-                                        '</svg></a>')
-                                        .on('click', function () { PreviewTransferLetter(options.data); })
-                                        .appendTo(container);
-                                }
-                            },
-                            {
-                                caption: 'Export', width: '80px', alignment: 'center',
-                                cellTemplate: function (container, options) {
-                                    $('<a href="javascript:;" title="Export PDF">' +
-                                        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">' +
-                                        '<path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>' +
-                                        '<path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>' +
-                                        '</svg></a>')
-                                        .on('click', function () { ExportTransferLetterToPDF(options.data); })
-                                        .appendTo(container);
-                                }
-                            }
-                        ],
-                        columnAutoWidth: true,
-                        allowColumnResizing: true,
-                        columnResizingMode: 'widget',
-                        wordWrapEnabled: false,
-                        showBorders: true,
-                        scrolling: {
-                            mode: 'standard', useNative: true,
-                            scrollByContent: true, scrollByThumb: true, showScrollbar: 'always'
-                        },
-                        rowAlternationEnabled: false,
-                        grouping: { autoExpandAll: false },
-                        paging: { pageSize: 10 },
-                        pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
-                        headerFilter: { visible: false },
-                        filterRow: { visible: false },
-                        groupPanel: { visible: false },
-                        searchPanel: { visible: true, width: 240, placeholder: 'Search...' },
-                        allowColumnReordering: false,
-                        onContentReady: function (e) {
-                            $('.rowCount').html('Total Records: ' + e.component.totalCount());
-                            e.component.updateDimensions();
-                            $('#grid-loader').removeClass('d-flex').hide();
-                        }
-                    }).dxDataGrid('instance');
-
-                    toastr.success(response.responseMessage || 'Data loaded successfully');
-                    resolve(response.data);
+                    allTransfers = response.data || [];
+                    renderTransferGrid(allTransfers);
+                    resolve(allTransfers);
                 },
                 error: function (xhr) {
-                    $('#grid-loader').removeClass('d-flex').hide();
-                    toastr.error((xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Failed to load employee transfers');
+                    if (transferGrid) transferGrid.hideLoader();
+                    showToast((xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Failed to load employee transfers', 'error');
                     reject(xhr);
                 }
             });
@@ -664,7 +656,6 @@
     $('#btnSaveTransfer').click(function () {
         const transferId = $('#transferId').val();
         const isUpdate   = transferId > 0;
-        showbtnLoder(isUpdate);
 
         const currentBranch            = $('#currentBranch').val();
         const employee                 = $('#employeeTransfer').val();
@@ -682,7 +673,27 @@
         if (!effectiveDate)           { $('#spneffectiveDate').show();           isValid = false; } else { $('#spneffectiveDate').hide(); }
         if (!reason || !reason.trim()){ $('#spnreason').show();                  isValid = false; } else { $('#spnreason').hide(); }
 
-        if (!isValid) { hidebtnLoder(); return; }
+        if (!isValid) return;
+
+        /* ── Invalid transfer: current branch and transfer branch must differ ── */
+        if (String(currentBranch) === String(transferBranch)) {
+            showToast('Transfer Branch must be different from the Current Branch.', 'warn');
+            return;
+        }
+
+        /* ── Duplicate-transfer guard: same employee + same transfer branch + same effective date ── */
+        const duplicate = allTransfers.find(function (r) {
+            return String(r.employeeId) === String(employee)
+                && String(r.transferBranchId) === String(transferBranch)
+                && fmtDate(r.effectiveDate) === fmtDate(effectiveDate)
+                && String(r.transferId) !== String(transferId);
+        });
+        if (duplicate) {
+            showToast('This employee already has a transfer to this branch on this effective date.', 'warn');
+            return;
+        }
+
+        setBtnLoading('#btnSaveTransfer', isUpdate ? 'Updating...' : 'Saving...');
 
         const transferData = {
             TransferId:              parseInt(transferId),
@@ -710,18 +721,18 @@
             headers: { 'Authorization': 'Bearer ' + Token },
             data: JSON.stringify(transferData),
             success: function (response) {
+                setBtnNormal('#btnSaveTransfer', 'Save');
                 if (response.isSuccess) {
-                    round_success_noti(response.responseMessage);
+                    showToast(response.responseMessage, 'success');
                     $('#addTransferModal').modal('hide');
                     loadEmployeeTransfers(CompanyId);
                 } else {
-                    round_error_noti(response.responseMessage);
+                    showToast(response.responseMessage, 'error');
                 }
-                hidebtnLoder();
             },
             error: function (xhr) {
-                hidebtnLoder();
-                round_error_noti((xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Unable to save employee transfer');
+                setBtnNormal('#btnSaveTransfer', 'Save');
+                showToast((xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Unable to save employee transfer', 'error');
             }
         });
     });
@@ -729,9 +740,8 @@
     /* ══════════════════════════════════════════════════════════════════════
        RESET FORM
     ══════════════════════════════════════════════════════════════════════ */
-    async function resetTransferForm() {
+    function resetTransferForm() {
         $('#transferId').val('0');
-        $('#applicationDate').val(new Date().toISOString().split('T')[0]);
         $('#effectiveDate').val('');
         $('#currentBranch').val('');
         $('#employeeTransfer').val('');
@@ -739,19 +749,21 @@
         $('#transferReportingPerson').val('');
         $('#currentReportingPerson').val('');
         $('#currentReportingPersonId').val('');
+        $('#employeeDepartment').val('');
+        $('#employeeDesignation').val('');
         $('#reason').val('');
-        hidebtnLoder();
-        $('#btnSaveTransfer').text('Save');
-        $('#spnapplicationDate, #spncurrentBranch, #spnemployeeTransfer, #spntransferBranch, #spntransferReportingPerson, #spneffectiveDate, #spnreason').hide();
+        setBtnNormal('#btnSaveTransfer', 'Save');
+        $('#spncurrentBranch, #spnemployeeTransfer, #spntransferBranch, #spntransferReportingPerson, #spneffectiveDate, #spnreason').hide();
     }
 
     /* ══════════════════════════════════════════════════════════════════════
        UPDATE (EDIT)
     ══════════════════════════════════════════════════════════════════════ */
     async function UpdateTransferData(data) {
-        await resetTransferForm();
+        if (!data) return;
+        resetTransferForm();
         $('#modalTitle').text('Update Employee Transfer');
-        $('#btnSaveTransfer').text('Update');
+        $('#btnSaveTransfer .btn-label-text').text('Update');
 
         $('#transferId').val(data.transferId || data.TransferId || 0);
 
@@ -761,7 +773,10 @@
 
         const employeeId = data.employeeId || data.EmployeeId;
         $('#employeeTransfer').val(employeeId);
-        if (employeeId) await loadCurrentReportingPerson(employeeId);
+        if (employeeId) {
+            await loadCurrentReportingPerson(employeeId);
+            await loadEmployeeDeptDesignation(employeeId);
+        }
 
         $('#transferBranch').val(data.transferBranchId || data.TransferBranchId);
 
@@ -784,25 +799,27 @@
        DELETE
     ══════════════════════════════════════════════════════════════════════ */
     function DeleteTransfer(data) {
+        if (!data) return;
         const transferId = data.transferId || data.TransferId;
-        if (!confirm('Are you sure you want to delete this transfer?')) return;
-        $.ajax({
-            url: '@baseUrl/EmployeeTransferAPI/Delete',
-            type: 'DELETE',
-            contentType: 'application/json',
-            headers: { 'Authorization': 'Bearer ' + Token },
-            data: JSON.stringify({ Id: parseInt(transferId), DeletedBy: EmployeeId.toString() }),
-            success: function (response) {
-                if (response.isSuccess) {
-                    round_success_noti(response.responseMessage);
-                    loadEmployeeTransfers(CompanyId);
-                } else {
-                    round_error_noti(response.responseMessage);
+        wmsConfirm('Are you sure you want to delete this transfer record?', function () {
+            $.ajax({
+                url: '@baseUrl/EmployeeTransferAPI/Delete',
+                type: 'DELETE',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify({ Id: parseInt(transferId), DeletedBy: EmployeeId.toString() }),
+                success: function (response) {
+                    if (response.isSuccess) {
+                        showToast(response.responseMessage, 'success');
+                        loadEmployeeTransfers(CompanyId);
+                    } else {
+                        showToast(response.responseMessage, 'error');
+                    }
+                },
+                error: function (xhr) {
+                    showToast((xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Unable to delete transfer', 'error');
                 }
-            },
-            error: function (xhr) {
-                round_error_noti((xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Unable to delete transfer');
-            }
-        });
+            });
+        }, { title: 'Delete Transfer', confirmText: 'Delete' });
     }
 </script>
