@@ -8,6 +8,7 @@ namespace HRMS_Core.VM.Salary
 {
     public class SalaryPayableDaysOverridevm
     {
+        public int Id { get; set; }
         public string EmployeeName { get; set; }
         public string EmployeeCode { get; set; }
         public int MonthNumber { get; set; }

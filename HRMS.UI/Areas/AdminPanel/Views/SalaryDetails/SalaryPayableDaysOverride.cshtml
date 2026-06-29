@@ -1,290 +1,225 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Salary Payable Days Override";
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
     var uri = new Uri(baseUrl);
-    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
     string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 
 <style>
-    .filter-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: #6c757d;
-        letter-spacing: 0.4px;
-        margin-bottom: 4px;
-        display: block;
-    }
-
-    .filter-section {
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 6px;
-        padding: 14px 16px 10px;
+    .ovr-info-card {
+        display: none;
+        background: var(--pu-100);
+        border: 1px solid var(--pu-300);
+        border-radius: 8px;
+        padding: 12px 16px;
         margin-bottom: 14px;
     }
 
-    #btnExportExcel {
-        background-color: #28a745;
-        color: #fff;
-        border: none;
-        font-size: 13px;
-        font-weight: 500;
-        padding: 6px 14px;
+        .ovr-info-card .ovr-info-lbl {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--pu-700);
+            letter-spacing: .4px;
+            margin-bottom: 6px;
+        }
+
+        .ovr-info-card .ovr-info-val {
+            font-size: var(--fs-sm);
+            font-weight: 700;
+            color: var(--pu-900);
+        }
+
+    .ovr-calc-box {
+        display: none;
+        border-left: 4px solid var(--pu-600);
+        background: var(--pu-50);
         border-radius: 4px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
+        padding: 12px 16px;
+        margin-bottom: 14px;
     }
 
-        #btnExportExcel:hover {
-            background-color: #218838;
+        .ovr-calc-box .ovr-calc-title {
+            font-size: 11px;
+            color: var(--pu-700);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .ovr-calc-box .ovr-calc-result {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--pu-900);
         }
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
+<div class="wms-form-page">
+
 <div class="card">
-    <div class="card-header bg-transparent ml-0 py-0">
-        <div class="row">
-            <div class="col-6">
-                <h6 class="pt-2 mb-0">Manage Salary Payable Days Override</h6>
-            </div>
-            <div class="col-6 d-flex justify-content-end align-items-center gap-2">
-                <button id="btnExportExcel" type="button">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
-                         fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1
-                                 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0
-                                 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
-                        <path d="M7.5 6.5a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0
-                                 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1
-                                 .708-.708L7 10.793V7a.5.5 0 0 1 .5-.5z" />
-                    </svg>
-                    Export to Excel
-                </button>
-                <button id="btnAddOverride" type="button" class="btn rounded-1"
-                        style="background-color:#2395c6; color:white; font-size:13px; padding:6px 14px;">
-                    Add
-                </button>
-            </div>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Manage Salary Payable Days Override</h6>
+        <div class="d-flex gap-2">
+            <button id="btnExportExcel" type="button" class="btn btn-success btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bx bx-download"></i> Export to Excel
+            </button>
+            <button id="btnAddOverride" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bx bx-plus"></i> Add
+            </button>
         </div>
     </div>
-
     <div class="card-body">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-12">
+        <div class="d-flex flex-wrap align-items-end gap-3">
+            <div class="fg" style="flex:1 1 180px;min-width:160px;">
+                <label for="filterMonth">Month</label>
+                <select id="filterMonth">
+                    <option value="0">All Months</option>
+                </select>
+            </div>
 
-                    <div class="filter-section">
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-3 col-sm-6">
-                                <label class="filter-label">MONTH</label>
-                                <select class="form-select form-select-sm" id="filterMonth" style="font-size:12px;">
-                                    <option value="0">All Months</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <label class="filter-label">YEAR</label>
-                                <select class="form-select form-select-sm" id="filterYear" style="font-size:12px;">
-                                    <option value="0">All Years</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-6 d-flex gap-2">
-                                <button id="btnApplyFilter" class="btn btn-sm w-100"
-                                        style="background:#2395c6; color:white; font-size:12px;">
-                                    Apply
-                                </button>
-                                <button id="btnClearFilter" class="btn btn-sm btn-secondary w-100"
-                                        style="font-size:12px;">
-                                    Clear
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+            <div class="fg" style="flex:1 1 140px;min-width:130px;">
+                <label for="filterYear">Year</label>
+                <select id="filterYear">
+                    <option value="0">All Years</option>
+                </select>
+            </div>
 
-                    <div class="form-group">
-                        <div class="grid-wrapper" style="position:relative;">
-                            <div id="grid-loader"
-                                 class="grid-loader justify-content-center align-items-center flex-column"
-                                 style="display:none; inset:0; background:rgba(255,255,255,0.6); z-index:10;">
-                                <img src="@baseAPIDomainUrl/loders/loder.png" class="grid-logo-spinner"
-                                     style="width:30px; height:30px; animation:spin 1s linear infinite;" />
-                                <div class="grid-loading-text text-dark" style="font-size:16px;">Loading...</div>
-                            </div>
-                            <div id="gridTag">
-                                <div class="rowCount" id="rowCount1"></div>
-                                <div id="gridContainer"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
+            <div class="d-flex gap-2" style="flex-shrink:0;">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnApplyFilter">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Apply</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnClearFilter">Clear</button>
             </div>
         </div>
+
+        <div id="gridContainer" style="margin-top:14px;"></div>
     </div>
 </div>
 
+</div>
 
 <!-- Add / Edit Modal -->
-<div class="modal fade" id="overrideModal" tabindex="-1"
+<div class="modal fade" id="overrideModal" tabindex="-1" aria-labelledby="modalTitle"
      aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header" style="background:#2c3e50; color:white;">
-                <h6 class="modal-title" id="modalTitle" style="color:white; margin:0;">
-                    Add Salary Payable Days Override
-                </h6>
-                <button type="button" class="btn-close btn-close-white"
-                        data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header">
+                <h6 class="modal-title" id="modalTitle">Add Salary Payable Days Override</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body" style="font-size:12px; padding:20px;">
+            <div class="modal-body">
                 <form id="overrideForm" autocomplete="off">
-                    <input type="hidden" id="overrideId" value="0" />
-                    <input type="hidden" id="selectedEmployeeId" value="" />
-                    <input type="hidden" id="employeeCode" value="" />
+                    <input type="hidden" id="overrideId" value="0">
 
-                    <div class="mb-3">
-                        <label style="font-size:11px; font-weight:600; color:#6c757d; letter-spacing:0.5px;">
-                            SEARCH EMPLOYEE <span class="text-danger">*</span>
-                        </label>
-                        <div class="position-relative">
-                            <input type="text" id="employeeSearchInput" class="form-control"
-                                   placeholder="Type employee name or code..."
-                                   autocomplete="off" style="font-size:13px;" />
-                            <div id="employeeDropdownList"
-                                 style="display:none; position:absolute; top:100%; left:0; right:0; z-index:9999;
-                                        background:#fff; border:1px solid #dee2e6; border-top:none;
-                                        max-height:220px; overflow-y:auto; border-radius:0 0 4px 4px;
-                                        box-shadow:0 4px 8px rgba(0,0,0,0.1);">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="employeeSelect">Search Employee</label>
+                                <select id="employeeSelect">
+                                    <option value="" selected disabled>Select Employee</option>
+                                </select>
+                            </div>
+                            <span class="field-validation-error" id="spnEmployeeOverride" style="display:none;">Please select an employee</span>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="fg fg-req">
+                                <label for="monthOverride">Month</label>
+                                <select id="monthOverride">
+                                    <option value="" selected disabled>Select Month</option>
+                                </select>
+                            </div>
+                            <span class="field-validation-error" id="spnMonthOverride" style="display:none;">Please select month</span>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="fg fg-req">
+                                <label for="overrideYear">Year</label>
+                                <select id="overrideYear">
+                                    <option value="" selected disabled>Select Year</option>
+                                </select>
+                            </div>
+                            <span class="field-validation-error" id="spnOverrideYear" style="display:none;">Please select year</span>
+                        </div>
+                    </div>
+
+                    <div class="ovr-info-card" id="employeeInfoCard">
+                        <div class="row" style="margin-bottom:2px;">
+                            <div class="col-4 ovr-info-lbl">EMPLOYEE</div>
+                            <div class="col-2 text-center ovr-info-lbl">CODE</div>
+                            <div class="col-3 text-center ovr-info-lbl">CURRENT DAYS</div>
+                            <div class="col-3 text-center ovr-info-lbl">MONTH DAYS</div>
+                        </div>
+                        <div class="row align-items-center">
+                            <div class="col-4 ovr-info-val" id="cardEmployeeName">—</div>
+                            <div class="col-2 text-center ovr-info-val" id="cardEmployeeCode">—</div>
+                            <div class="col-3 text-center ovr-info-val" id="cardCurrentDays">—</div>
+                            <div class="col-3 text-center ovr-info-val" id="cardMonthDays">—</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="adjustmentDelta">Adjustment Delta (&Delta;)</label>
+                                <input type="number" id="adjustmentDelta" placeholder="e.g. 2 or -1" step="0.01">
+                            </div>
+                            <span class="field-validation-error" id="spnadjustmentDelta" style="display:none;">Please enter a non-zero adjustment delta</span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="overridePayableDays">Final Payable Days (Auto)</label>
+                                <input type="number" id="overridePayableDays" placeholder="Auto calculated" step="0.01" readonly>
+                            </div>
+                            <span class="field-validation-error" id="spnOverridePayableDays" style="display:none;">Please enter override payable days</span>
+                        </div>
+                    </div>
+
+                    <div class="ovr-calc-box" id="liveCalcBox">
+                        <div class="ovr-calc-title">Live Calculation</div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span style="font-size:13px;color:#444;">
+                                Current <strong id="calcCurrentDays" style="color:var(--pu-900);">0.0</strong>
+                                + Delta <strong id="calcDelta" style="color:var(--pu-600);">+0.0</strong> =
+                            </span>
+                            <span class="ovr-calc-result" id="calcResult">0.0 days</span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="fg">
+                                <label for="overrideReason">Reason / Notes</label>
+                                <textarea id="overrideReason" rows="3" maxlength="500" placeholder="e.g. HR Manual Correction - Extra days approved"></textarea>
                             </div>
                         </div>
-                        <span id="spnEmployeeOverride" style="color:red; display:none; font-size:0.85em;">
-                            Please Select Employee
-                        </span>
-                    </div>
-
-                 
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label style="font-size:11px; font-weight:600; color:#6c757d; letter-spacing:0.5px;">
-                                MONTH <span class="text-danger">*</span>
-                            </label>
-                            <select class="form-select" id="monthOverride" style="font-size:13px;">
-                                <option value="">Select Month</option>
-                            </select>
-                            <span id="spnMonthOverride" style="color:red; display:none; font-size:0.85em;">
-                                Please Select Month
-                            </span>
-                        </div>
-                        <div class="col-md-6">
-                            <label style="font-size:11px; font-weight:600; color:#6c757d; letter-spacing:0.5px;">
-                                YEAR <span class="text-danger">*</span>
-                            </label>
-                            <select class="form-select" id="overrideYear" style="font-size:13px;"></select>
-                            <span id="spnOverrideYear" style="color:red; display:none; font-size:0.85em;">
-                                Please Select Year
-                            </span>
-                        </div>
-                    </div>
-
-                    <div id="employeeInfoCard"
-                         style="display:none; background:#eef4fb; border:1px solid #d0e3f5;
-                                border-radius:6px; padding:12px 16px; margin-bottom:16px;">
-                        <div class="row" style="font-size:11px; font-weight:600; color:#6c757d;
-                                                letter-spacing:0.5px; margin-bottom:6px;">
-                            <div class="col-4">EMPLOYEE</div>
-                            <div class="col-2 text-center">CODE</div>
-                            <div class="col-3 text-center">CURRENT DAYS</div>
-                            <div class="col-3 text-center">MONTH DAYS</div>
-                        </div>
-                        <div class="row align-items-center" style="font-size:13px; font-weight:600; color:#2c3e50;">
-                            <div class="col-4" id="cardEmployeeName">—</div>
-                            <div class="col-2 text-center" id="cardEmployeeCode">—</div>
-                            <div class="col-3 text-center" id="cardCurrentDays">—</div>
-                            <div class="col-3 text-center" id="cardMonthDays">—</div>
-                        </div>
-                    </div>
-
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label style="font-size:11px; font-weight:600; color:#6c757d; letter-spacing:0.5px;">
-                                ADJUSTMENT DELTA (Δ)
-                            </label>
-                            <input type="number" class="form-control" id="adjustmentDelta"
-                                   placeholder="e.g. 2 or -1" step="0.01" style="font-size:13px;" />
-                            <span id="spnadjustmentDelta" style="color:red; display:none; font-size:0.85em;">
-                            Delta Value Can  Be 0 or Empty
-                            </span>
-                        </div>
-                        <div class="col-md-6">
-                            <label style="font-size:11px; font-weight:600; color:#6c757d; letter-spacing:0.5px;">
-                                FINAL PAYABLE DAYS (AUTO)
-                            </label>
-                            <input type="number" class="form-control" id="overridePayableDays"
-                                   placeholder="Auto calculated" step="0.01" readonly
-                                   style="font-size:13px; background:#f8f9fa; color:#6c757d;" />
-                            <span id="spnOverridePayableDays" style="color:red; display:none; font-size:0.85em;">
-                                Please Enter Override Payable Days
-                            </span>
-                        </div>
-                    </div>
-
-                    <div id="liveCalcBox"
-                         style="display:none; border-left:4px solid #2395c6; background:#f0f7ff;
-                                border-radius:4px; padding:12px 16px; margin-bottom:16px;">
-                        <div style="font-size:11px; color:#6c757d; margin-bottom:4px;">Live Calculation</div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <span style="font-size:13px; color:#444;">
-                                Current <strong id="calcCurrentDays" style="color:#2c3e50;">0.0</strong>
-                                + Delta  <strong id="calcDelta" style="color:#2395c6;">+0.0</strong> =
-                            </span>
-                            <span id="calcResult" style="font-size:22px; font-weight:700; color:#2c3e50;">
-                                0.0 days
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="mb-2">
-                        <label style="font-size:11px; font-weight:600; color:#6c757d; letter-spacing:0.5px;">
-                            REASON / NOTES
-                        </label>
-                        <textarea class="form-control" id="overrideReason" rows="3"
-                                  placeholder="e.g. HR Manual Correction - Extra days approved"
-                                  style="font-size:13px; resize:none;"></textarea>
                     </div>
                 </form>
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn" id="btnSaveOverride"
-                        style="background-color:#2c3e50; color:white; border:none; padding:8px 24px;">
-                    Save Override
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnSaveOverride">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save Override</span>
                 </button>
-                <button type="button" class="btn" id="btnSavingOverride"
-                        style="background-color:#2c3e50; color:white; display:none; border:none;" disabled>
-                    <span class="spinner-border spinner-border-sm me-2" role="status"></span> Saving..
-                </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
             </div>
         </div>
     </div>
 </div>
 
-
-<script src="~/assets/js/jquery.min.js"></script>
 <script>
     const savedCompany = localStorage.getItem('selectedCompany');
-    var companyDetails = JSON.parse(savedCompany);
-    const CompanyId  = companyDetails.CompanyId;
-    const EmployeeId = localStorage.getItem('EmployeeId');
-    const Token      = localStorage.getItem("authToken");
+    var companyDetails  = JSON.parse(savedCompany);
+    const CompanyId     = companyDetails.CompanyId;
+    const EmployeeId    = localStorage.getItem('EmployeeId');
+    const Token         = localStorage.getItem("authToken");
 
     const BASE_YEAR = 2025;
 
@@ -295,11 +230,14 @@
         { id: 10, name: 'October'   }, { id: 11, name: 'November'  }, { id: 12, name: 'December'  }
     ];
 
-    let allEmployees       = [];
-    let allGridData        = [];
-    let selectedEmployee   = null;
-    let currentPayableDays = 0;
-    let gridInstance       = null;
+    var allEmployees       = [];
+    var overrideDataCache  = {};
+    var selectedOverrideIds = {};
+    var selectedEmployee   = null;
+    var currentPayableDays = 0;
+    var overrideGrid       = null;
+    var isApplyingFilter   = false;
+    var isSavingOverride   = false;
 
     function buildYearOptions(includeAllOption) {
         var cur  = new Date().getFullYear();
@@ -311,28 +249,21 @@
         return opts;
     }
 
+    function monthName(num) {
+        var m = months.find(function (x) { return x.id === num; });
+        return m ? m.name : num;
+    }
+
     $(document).ready(function () {
         BindFilterDropdowns();
-        loadGrid();
         BindMonthDropdown();
         BindYearDropdown();
         BindAllEmployees();
+        loadGrid();
     });
 
-    function showBtnLoader(isUpdate) {
-        $('#btnSaveOverride').hide();
-        $('#btnSavingOverride')
-            .html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>' +
-                  (isUpdate ? 'Updating..' : 'Saving..'))
-            .show();
-    }
-    function hideBtnLoader() {
-        $('#btnSaveOverride').show();
-        $('#btnSavingOverride').hide();
-    }
-
     function BindMonthDropdown() {
-        var $sel = $('#monthOverride').empty().append('<option value="">Select Month</option>');
+        var $sel = $('#monthOverride').empty().append('<option value="" selected disabled>Select Month</option>');
         months.forEach(function (m) {
             $sel.append('<option value="' + m.id + '">' + m.name + '</option>');
         });
@@ -352,15 +283,22 @@
         $('#filterYear').html(buildYearOptions(true));
     }
 
-    $('#btnApplyFilter').on('click', function () { loadGrid(); });
+    $('#btnApplyFilter').on('click', function () {
+        if (isApplyingFilter) return;
+        loadGrid();
+    });
     $('#btnClearFilter').on('click', function () {
+        if (isApplyingFilter) return;
         $('#filterMonth').val('0');
         $('#filterYear').val('0');
         loadGrid();
     });
 
     function loadGrid() {
-        $('#grid-loader').addClass('d-flex').show();
+        isApplyingFilter = true;
+        setBtnLoading('#btnApplyFilter', 'Loading...');
+        if (overrideGrid) overrideGrid.showLoader();
+
         var monthNum = $('#filterMonth').val() || 0;
         var year     = $('#filterYear').val()  || 0;
 
@@ -370,76 +308,89 @@
             headers: { 'Authorization': 'Bearer ' + Token },
             data:    { MonthNumber: parseInt(monthNum), Year: parseInt(year) },
             success: function (response) {
-                allGridData = response.data || [];
-                renderGrid(allGridData);
-                $('#grid-loader').removeClass('d-flex').hide();
+                isApplyingFilter = false;
+                setBtnNormal('#btnApplyFilter', 'Apply');
+
+                var data = response.data || [];
+                selectedOverrideIds = {};
+                overrideDataCache = {};
+                data.forEach(function (row) { overrideDataCache[row.id] = row; });
+                renderGrid(data);
             },
             error: function () {
-                $('#grid-loader').removeClass('d-flex').hide();
+                isApplyingFilter = false;
+                setBtnNormal('#btnApplyFilter', 'Apply');
+                if (overrideGrid) overrideGrid.hideLoader();
+                showToast('Unable to load Salary Payable Days Override records.', 'error');
             }
         });
     }
 
-    function renderGrid(data) {
-        try { if (gridInstance) gridInstance.dispose(); } catch (e) {}
-        $('#gridContainer').empty();
+    function ovrToggleRow(id, checked) {
+        if (checked) selectedOverrideIds[id] = true;
+        else delete selectedOverrideIds[id];
+    }
 
-        gridInstance = $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            selection: {
-                mode: 'multiple',
-                showCheckBoxesMode: 'always'
-            },
-            columns: [
-                { dataField: 'employeeCode',        caption: 'Employee Code' },
-                { dataField: 'employeeName',        caption: 'Employee Name' },
-                { dataField: 'branchName',          caption: 'Branch' },
-                {
-                    dataField: 'monthNumber', caption: 'Month',
-                    calculateCellValue: function (row) {
-                        var m = months.find(function (x) { return x.id === row.monthNumber; });
-                        return m ? m.name : row.monthNumber;
+    function renderGrid(data) {
+        if (!overrideGrid) {
+            overrideGrid = WMSGrid.create({
+                container: 'gridContainer',
+                title: 'Override Records',
+                icon: 'bx-calendar-edit',
+                perPage: 10,
+                data: data,
+                extraButtons: [{
+                    id: 'ovrSelectAll',
+                    label: 'Select All',
+                    icon: 'bx-check-square',
+                    onClick: function (e, gridData) {
+                        var allSelected = gridData.length > 0 && gridData.every(function (r) { return !!selectedOverrideIds[r.id]; });
+                        if (allSelected) {
+                            gridData.forEach(function (r) { delete selectedOverrideIds[r.id]; });
+                        } else {
+                            gridData.forEach(function (r) { selectedOverrideIds[r.id] = true; });
+                        }
+                        overrideGrid.refresh();
                     }
-                },
-                { dataField: 'year',                caption: 'Year' },
-                { dataField: 'overridePayableDays', caption: 'Override Payable Days' },
-                {
-                    dataField: 'adjustmentDelta', caption: 'Adjustment Delta',
-                    cellTemplate: function (container, options) {
-                        var val    = parseFloat(options.value || 0);
-                        var color  = val > 0 ? '#28a745' : val < 0 ? '#dc3545' : '#6c757d';
-                        var prefix = val > 0 ? '+' : '';
-                        $('<span>').text(prefix + val)
-                            .css({ color: color, fontWeight: '600' })
-                            .appendTo(container);
+                }],
+                columns: [
+                    {
+                        header: '', sortable: false, width: '40px', align: 'center',
+                        render: function (v, row) {
+                            var checked = !!selectedOverrideIds[row.id];
+                            return '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="ovrToggleRow(' + row.id + ', this.checked)">';
+                        }
+                    },
+                    { field: 'employeeCode', header: 'Employee Code', width: '110px' },
+                    { field: 'employeeName', header: 'Employee Name', width: '170px' },
+                    { field: 'branchName', header: 'Branch', width: '130px' },
+                    { field: 'monthNumber', header: 'Month', width: '100px', render: function (v) { return monthName(v); } },
+                    { field: 'year', header: 'Year', width: '70px', align: 'center' },
+                    { field: 'overridePayableDays', header: 'Override Payable Days', width: '150px', align: 'center' },
+                    {
+                        field: 'adjustmentDelta', header: 'Adjustment Delta', width: '130px', align: 'center',
+                        render: function (v) {
+                            var val   = parseFloat(v || 0);
+                            var color = val > 0 ? '#28a745' : (val < 0 ? '#dc3545' : '#6c757d');
+                            var pre   = val > 0 ? '+' : '';
+                            return '<span style="color:' + color + ';font-weight:600;">' + pre + val + '</span>';
+                        }
+                    },
+                    { field: 'reason', header: 'Reason', width: '220px' },
+                    { field: 'createdByName', header: 'Created By', width: '140px' },
+                    {
+                        header: 'Actions', sortable: false, stickyRight: true, width: '90px', align: 'center',
+                        render: function (v, row) {
+                            return '<button type="button" class="wg-btn wg-btn-outline" title="Edit" onclick="OverrideEditClick(' + row.id + ')"><i class="bx bx-edit"></i></button> ' +
+                                   '<button type="button" class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="OverrideDeleteClick(' + row.id + ')"><i class="bx bx-trash"></i></button>';
+                        }
                     }
-                },
-                { dataField: 'reason',        caption: 'Reason' },
-                { dataField: 'createdByName', caption: 'Created By' }
-                // ← createdOn column removed
-            ],
-            columnAutoWidth:       true,
-            allowColumnResizing:   true,
-            columnResizingMode:    'widget',
-            wordWrapEnabled:       false,
-            showBorders:           true,
-            scrolling: {
-                mode: 'standard', useNative: true,
-                scrollByContent: true, scrollByThumb: true, showScrollbar: 'always'
-            },
-            rowAlternationEnabled: false,
-            paging:  { pageSize: 10 },
-            pager:   { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
-            headerFilter:          { visible: false },
-            filterRow:             { visible: false },
-            groupPanel:            { visible: false },
-            searchPanel:           { visible: true, width: 240, placeholder: 'Search...' },
-            allowColumnReordering: false,
-            onContentReady: function (e) {
-                $('#rowCount1').html('Total Records: ' + e.component.totalCount());
-                e.component.updateDimensions();
-            }
-        }).dxDataGrid('instance');
+                ]
+            });
+        } else {
+            overrideGrid.setData(data);
+            overrideGrid.hideLoader();
+        }
     }
 
     function BindAllEmployees() {
@@ -448,52 +399,27 @@
             method:  'GET',
             headers: { 'Authorization': 'Bearer ' + Token },
             success: function (data) {
-                if (data.isSuccess) { allEmployees = data.data || []; }
+                if (data.isSuccess) {
+                    allEmployees = data.data || [];
+                    var $sel = $('#employeeSelect');
+                    $sel.empty().append('<option value="" selected disabled>Select Employee</option>');
+                    allEmployees.forEach(function (emp) {
+                        $sel.append($('<option>', { value: emp.id, text: emp.employeeCode + ' - ' + emp.fullName }));
+                    });
+                }
             }
         });
     }
 
-    $('#employeeSearchInput').on('input', function () {
-        var query = $(this).val().trim().toLowerCase();
-        var $list = $('#employeeDropdownList').empty();
-        if (query.length < 1) { $list.hide(); return; }
-
-        var filtered = allEmployees.filter(function (e) {
-            return (e.fullName     || '').toLowerCase().includes(query) ||
-                   (e.employeeCode || '').toLowerCase().includes(query);
-        });
-
-        if (filtered.length === 0) {
-            $list.html('<div style="padding:8px 12px; color:#999; font-size:12px;">No results found</div>').show();
-            return;
-        }
-
-        filtered.slice(0, 50).forEach(function (emp) {
-            $('<div>')
-                .css({ padding: '8px 12px', cursor: 'pointer', fontSize: '13px',
-                       borderBottom: '1px solid #f0f0f0', background: '#fff' })
-                .html('<strong>' + emp.fullName + '</strong>' +
-                      ' <span style="color:#888; font-size:11px; margin-left:6px;">' + emp.employeeCode + '</span>')
-                .on('mouseenter', function () { $(this).css('background', '#f0f7ff'); })
-                .on('mouseleave', function () { $(this).css('background', '#fff'); })
-                .on('click',      function () { selectEmployee(emp); })
-                .appendTo($list);
-        });
-        $list.show();
-    });
-
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#employeeSearchInput, #employeeDropdownList').length) {
-            $('#employeeDropdownList').hide();
-        }
+    $('#employeeSelect').on('change', function () {
+        var empId = $(this).val();
+        var emp = allEmployees.find(function (e) { return String(e.id) === String(empId); });
+        if (emp) selectEmployee(emp);
     });
 
     function selectEmployee(emp) {
         selectedEmployee = emp;
-        $('#employeeSearchInput').val(emp.fullName || '');
-        $('#selectedEmployeeId').val(emp.id || '');
-        $('#employeeCode').val(emp.employeeCode || '');
-        $('#employeeDropdownList').hide().empty();
+        $('#employeeSelect').val(emp.id);
         $('#spnEmployeeOverride').hide();
         $('#cardEmployeeName').text(emp.fullName     || '—');
         $('#cardEmployeeCode').text(emp.employeeCode || '—');
@@ -510,47 +436,49 @@
         var lastDay  = new Date(year, monthNum, 0).getDate();
         var pad      = function (n) { return String(n).padStart(2, '0'); };
 
-          $.ajax({
-        type: 'POST',
-        url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeePayableDays")',
-        data: JSON.stringify({
-            StartDate: year + '-' + pad(monthNum) + '-01',
-            EndDate: year + '-' + pad(monthNum) + '-' + pad(lastDay),
-            EmployeeIds: String(empId)
-        }),
-        contentType: 'application/json',
-        success: function (response) {
-            if (response.isSuccess) {
-                var currentDays = response.data.totalPayableDays || 0;
-                var monthDays = response.data.totalMonthDays || 0;
-                currentPayableDays = parseFloat(currentDays) || 0;
-                $('#cardCurrentDays').text(currentPayableDays);
-                $('#cardMonthDays').text(monthDays || '—');
-            } else {
-                currentPayableDays = 0;
-                $('#cardCurrentDays').text('N/A');
-                $('#cardMonthDays').text('N/A');
-            }
-            updateLiveCalc();
-        },
-        error: function (xhr) {
-            if (xhr.status === 404) {
-                currentPayableDays = 0;
-                $('#cardCurrentDays').text('N/A');
-                $('#cardMonthDays').text('N/A');
-            } else {
+        $.ajax({
+            type: 'POST',
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeePayableDays")',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify({
+                StartDate:   year + '-' + pad(monthNum) + '-01',
+                EndDate:     year + '-' + pad(monthNum) + '-' + pad(lastDay),
+                EmployeeIds: String(empId)
+            }),
+            contentType: 'application/json',
+            success: function (response) {
+                if (response.isSuccess) {
+                    currentPayableDays = parseFloat(response.data.totalPayableDays) || 0;
+                    $('#cardCurrentDays').text(currentPayableDays);
+                    $('#cardMonthDays').text(response.data.totalMonthDays || '—');
+                } else {
+                    currentPayableDays = 0;
+                    $('#cardCurrentDays').text('N/A');
+                    $('#cardMonthDays').text('N/A');
+                }
+                updateLiveCalc();
+            },
+            error: function () {
                 currentPayableDays = 0;
                 $('#cardCurrentDays').text('Error');
                 $('#cardMonthDays').text('Error');
+                updateLiveCalc();
             }
-            updateLiveCalc();
-        }
-    });
+        });
     }
 
     $('#monthOverride, #overrideYear').on('change', function () {
         if (selectedEmployee) fetchEmployeeSalaryDays(selectedEmployee.id || '');
     });
+
+    function getDeltaBounds() {
+        var monthDaysText = $('#cardMonthDays').text();
+        var monthDays = (monthDaysText === '—' || monthDaysText === 'N/A' || monthDaysText === 'Error') ? null : parseFloat(monthDaysText);
+        return {
+            max: monthDays !== null ? (monthDays - currentPayableDays) : null,
+            min: -currentPayableDays
+        };
+    }
 
     function updateLiveCalc() {
         var delta     = parseFloat($('#adjustmentDelta').val()) || 0;
@@ -559,10 +487,23 @@
         $('#calcDelta').text((delta >= 0 ? '+' : '') + delta.toFixed(1));
         $('#calcResult').text(finalDays.toFixed(1) + ' days');
         $('#overridePayableDays').val(finalDays.toFixed(2));
+        $('#spnOverridePayableDays').hide();
         if (selectedEmployee) $('#liveCalcBox').show();
     }
 
-    $('#adjustmentDelta').on('input', function () { updateLiveCalc(); });
+    $('#adjustmentDelta').on('input', function () {
+        var delta   = parseFloat($(this).val());
+        var bounds  = getDeltaBounds();
+
+        if (!isNaN(delta) && delta !== 0 && bounds.max !== null && (delta > bounds.max || delta < bounds.min)) {
+            $('#spnadjustmentDelta')
+                .text('Delta must keep final payable days between 0 and ' + $('#cardMonthDays').text() + '.')
+                .show();
+        } else {
+            $('#spnadjustmentDelta').hide();
+        }
+        updateLiveCalc();
+    });
 
     $('#btnAddOverride').on('click', function () {
         resetForm();
@@ -570,58 +511,51 @@
         $('#overrideModal').modal('show');
     });
 
-        // Add validation for Adjustment Delta input
-    $('#adjustmentDelta').on('input', function () {
-        var delta = parseFloat($(this).val()) || 0;
-        var maxAllowedDelta = $('#cardMonthDays').text() === '—' ? 0 : parseFloat($('#cardMonthDays').text()) - currentPayableDays;
-        var minAllowedDelta = -currentPayableDays; // Prevents final days from going below 0
-
-        // Check if delta is valid
-        if (delta > maxAllowedDelta || delta < minAllowedDelta) {
-            $(this).val('');
-            round_error_noti('Adjustment Delta cannot make final payable days exceed month days or go below zero.');
-            updateLiveCalc(); // Reset calculation
-        } else {
-            updateLiveCalc(); // Update calculation if valid
-        }
-    });
-
-
-
-
-
-
-
-    $('#btnSaveOverride').on('click', function () {
-        var delta = parseFloat($('#adjustmentDelta').val()) || 0;
-    var maxAllowedDelta = $('#cardMonthDays').text() === '—' ? 0 : parseFloat($('#cardMonthDays').text()) - currentPayableDays;
-    var minAllowedDelta = -currentPayableDays;
-
-    if (delta > maxAllowedDelta || delta < minAllowedDelta) {
-        round_error_noti('Adjustment Delta cannot make final payable days exceed month days or go below zero.');
-        return false;
+    function OverrideEditClick(id) {
+        var data = overrideDataCache[id];
+        if (data) EditOverride(data);
     }
 
-    // Rest of your existing validation logic...
-    var id = parseInt($('#overrideId').val());
-    var isUpdate = id > 0;
-    showBtnLoader(isUpdate);
+    function OverrideDeleteClick(id) {
+        var data = overrideDataCache[id];
+        if (data) DeleteOverride(data);
+    }
 
-    var empId = $('#selectedEmployeeId').val();
-    var empCode = $('#employeeCode').val();
-    var month = $('#monthOverride').val();
-    var year = $('#overrideYear').val();
-    var payableDays = $('#overridePayableDays').val();
-    var reason = $('#overrideReason').val();
-    var isValid = true;
+    $('#btnSaveOverride').on('click', function () {
+        if (isSavingOverride) return;
 
-    if (!empId) { $('#spnEmployeeOverride').show(); isValid = false; } else { $('#spnEmployeeOverride').hide(); }
-    if (!month) { $('#spnMonthOverride').show(); isValid = false; } else { $('#spnMonthOverride').hide(); }
-    if (!year) { $('#spnOverrideYear').show(); isValid = false; } else { $('#spnOverrideYear').hide(); }
-    if (!delta || delta == "0") { $('#spnadjustmentDelta').show(); isValid = false; } else { $('#spnadjustmentDelta').hide(); }
-    if (!payableDays) { $('#spnOverridePayableDays').show(); isValid = false; } else { $('#spnOverridePayableDays').hide(); }
+        var id        = parseInt($('#overrideId').val());
+        var isUpdate  = id > 0;
+        var empId     = $('#employeeSelect').val();
+        var month     = $('#monthOverride').val();
+        var year      = $('#overrideYear').val();
+        var delta     = parseFloat($('#adjustmentDelta').val());
+        var payableDays = $('#overridePayableDays').val();
+        var reason    = $('#overrideReason').val();
+        var isValid   = true;
 
-    if (!isValid) { hideBtnLoader(); return; }
+        if (!empId) { $('#spnEmployeeOverride').show(); isValid = false; } else { $('#spnEmployeeOverride').hide(); }
+        if (!month) { $('#spnMonthOverride').show(); isValid = false; } else { $('#spnMonthOverride').hide(); }
+        if (!year)  { $('#spnOverrideYear').show();  isValid = false; } else { $('#spnOverrideYear').hide(); }
+
+        if (isNaN(delta) || delta === 0) {
+            $('#spnadjustmentDelta').text('Please enter a non-zero adjustment delta').show();
+            isValid = false;
+        } else {
+            var bounds = getDeltaBounds();
+            if (bounds.max !== null && (delta > bounds.max || delta < bounds.min)) {
+                $('#spnadjustmentDelta').text('Delta must keep final payable days between 0 and ' + $('#cardMonthDays').text() + '.').show();
+                isValid = false;
+            } else {
+                $('#spnadjustmentDelta').hide();
+            }
+        }
+
+        if (!payableDays) { $('#spnOverridePayableDays').show(); isValid = false; } else { $('#spnOverridePayableDays').hide(); }
+
+        if (!isValid) return;
+
+        var empCode = (allEmployees.find(function (e) { return String(e.id) === String(empId); }) || {}).employeeCode || '';
 
         var payload = {
             Id:                  id,
@@ -630,11 +564,14 @@
             MonthNumber:         parseInt(month),
             Year:                parseInt(year),
             OverridePayableDays: parseFloat(payableDays),
-            AdjustmentDelta:     delta !== '' ? parseFloat(delta) : null,
-            Reason:              reason.trim() || null,
+            AdjustmentDelta:     delta,
+            Reason:              (reason || '').trim() || null,
             CreatedBy:           parseInt(EmployeeId),
             UpdatedBy:           parseInt(EmployeeId)
         };
+
+        isSavingOverride = true;
+        setBtnLoading('#btnSaveOverride', isUpdate ? 'Updating...' : 'Saving...');
 
         $.ajax({
             url:         isUpdate ? '@baseUrl/SalaryPayableDaysOverrideAPI/Update'
@@ -644,18 +581,20 @@
             headers:     { 'Authorization': 'Bearer ' + Token },
             data:        JSON.stringify(payload),
             success: function (response) {
-                hideBtnLoader();
+                isSavingOverride = false;
+                setBtnNormal('#btnSaveOverride', isUpdate ? 'Update' : 'Save Override');
                 if (response.isSuccess) {
-                    round_success_noti(response.responseMessage);
+                    showToast(response.responseMessage || 'Saved successfully.', 'success');
                     $('#overrideModal').modal('hide');
                     loadGrid();
                 } else {
-                    round_error_noti(response.responseMessage);
+                    showToast(response.responseMessage || 'Unable to save record.', 'error');
                 }
             },
             error: function () {
-                hideBtnLoader();
-                round_error_noti('Unable to save record.');
+                isSavingOverride = false;
+                setBtnNormal('#btnSaveOverride', isUpdate ? 'Update' : 'Save Override');
+                showToast('Unable to save record.', 'error');
             }
         });
     });
@@ -663,66 +602,53 @@
     function EditOverride(data) {
         resetForm();
         $('#modalTitle').text('Update Salary Payable Days Override');
-        $('#btnSaveOverride').text('Update');
-        $('#overrideId').val(data.id || data.Id || 0);
+        setBtnNormal('#btnSaveOverride', 'Update');
+        $('#overrideId').val(data.id || 0);
 
-        var empId = data.employeeId || data.EmployeeId;
-        var emp   = allEmployees.find(function (e) { return e.id == empId; });
-
+        var emp = allEmployees.find(function (e) { return String(e.id) === String(data.employeeId); });
         if (emp) {
             selectEmployee(emp);
         } else {
-            var code = data.employeeCode || data.EmployeeCode || '';
-            $('#employeeSearchInput').val(data.employeeName || data.EmployeeName || code);
-            $('#selectedEmployeeId').val(empId);
-            $('#employeeCode').val(code);
-            $('#cardEmployeeName').text(data.employeeName || data.EmployeeName || '—');
-            $('#cardEmployeeCode').text(code || '—');
-            $('#cardCurrentDays').text('—');
-            $('#cardMonthDays').text('—');
+            $('#cardEmployeeName').text(data.employeeName || '—');
+            $('#cardEmployeeCode').text(data.employeeCode || '—');
             $('#employeeInfoCard').show();
         }
 
-        setTimeout(function () {
-            $('#monthOverride').val(data.monthNumber || data.MonthNumber || '');
-            $('#overrideYear').val(data.year || data.Year || new Date().getFullYear());
-            $('#adjustmentDelta').val(data.adjustmentDelta ?? data.AdjustmentDelta ?? '');
-            $('#overridePayableDays').val(data.overridePayableDays ?? data.OverridePayableDays ?? '');
-            $('#overrideReason').val(data.reason || data.Reason || '');
-            updateLiveCalc();
-        }, 50);
+        $('#monthOverride').val(data.monthNumber || '');
+        $('#overrideYear').val(data.year || new Date().getFullYear());
+        $('#adjustmentDelta').val(data.adjustmentDelta ?? '');
+        $('#overridePayableDays').val(data.overridePayableDays ?? '');
+        $('#overrideReason').val(data.reason || '');
+        updateLiveCalc();
 
         $('#overrideModal').modal('show');
     }
 
     function DeleteOverride(data) {
-        var id = data.id || data.Id;
-        if (confirm('Are you sure you want to delete this record?')) {
+        var id = data.id;
+        wmsConfirm('Are you sure you want to delete this override record?', function () {
             $.ajax({
                 url:         '@baseUrl/SalaryPayableDaysOverrideAPI/Delete',
                 type:        'DELETE',
                 contentType: 'application/json',
                 headers:     { 'Authorization': 'Bearer ' + Token },
-                data:        JSON.stringify({ Id: id, UpdatedBy: parseInt(EmployeeId) }),
+                data:        JSON.stringify({ Id: id, DeletedBy: parseInt(EmployeeId) }),
                 success: function (response) {
                     if (response.isSuccess) {
-                        round_success_noti(response.responseMessage);
+                        showToast(response.responseMessage || 'Deleted successfully.', 'success');
                         loadGrid();
                     } else {
-                        round_error_noti(response.responseMessage);
+                        showToast(response.responseMessage || 'Unable to delete record.', 'error');
                     }
                 },
-                error: function () { round_error_noti('Unable to delete record.'); }
+                error: function () { showToast('Unable to delete record.', 'error'); }
             });
-        }
+        }, { title: 'Delete Override Record', confirmText: 'Delete' });
     }
 
     function resetForm() {
         $('#overrideId').val('0');
-        $('#selectedEmployeeId').val('');
-        $('#employeeCode').val('');
-        $('#employeeSearchInput').val('');
-        $('#employeeDropdownList').hide().empty();
+        $('#employeeSelect').val('');
         $('#employeeInfoCard').hide();
         $('#liveCalcBox').hide();
         selectedEmployee   = null;
@@ -732,26 +658,23 @@
         $('#adjustmentDelta').val('');
         $('#overridePayableDays').val('');
         $('#overrideReason').val('');
-        $('#spnEmployeeOverride, #spnMonthOverride, #spnOverrideYear, #spnOverridePayableDays,#spnadjustmentDelta').hide();
-        $('#btnSaveOverride').text('Save Override');
-        hideBtnLoader();
+        $('#spnEmployeeOverride, #spnMonthOverride, #spnOverrideYear, #spnOverridePayableDays, #spnadjustmentDelta').hide();
+        setBtnNormal('#btnSaveOverride', 'Save Override');
+        isSavingOverride = false;
     }
 
     // ── Export to Excel (ExcelJS — styled, no CreatedOn) ──
     $('#btnExportExcel').on('click', async function () {
-
-        if (!gridInstance) { round_error_noti('Grid is not ready yet.'); return; }
-
-        var selectedRows = gridInstance.getSelectedRowsData();
-        if (!selectedRows || selectedRows.length === 0) {
-            round_error_noti('Please select at least one row to export.');
+        var selectedIds = Object.keys(selectedOverrideIds).map(Number);
+        if (selectedIds.length === 0) {
+            showToast('Please select at least one row to export.', 'warn');
             return;
         }
+        var selectedRows = selectedIds.map(function (id) { return overrideDataCache[id]; }).filter(Boolean);
 
         var monthMap = {};
         months.forEach(function (m) { monthMap[m.id] = m.name; });
 
-        // ── 9 columns — CreatedOn removed ──
         var cols = [
             { header: 'Employee Code',         key: 'employeeCode',        width: 16 },
             { header: 'Employee Name',         key: 'employeeName',        width: 30 },
@@ -771,7 +694,6 @@
             return { header: c.header, key: c.key, width: c.width };
         });
 
-        // Header row style — dark navy, white bold, centered
         worksheet.getRow(1).eachCell(function (cell) {
             cell.font      = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
             cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D4159' } };
@@ -785,7 +707,6 @@
         });
         worksheet.getRow(1).height = 20;
 
-        // Data rows
         selectedRows.forEach(function (row, idx) {
             var delta   = parseFloat(row.adjustmentDelta || 0);
             var rowData = {
@@ -798,7 +719,6 @@
                 adjustmentDelta:     (delta > 0 ? '+' : '') + delta,
                 reason:              row.reason              || '',
                 createdByName:       row.createdByName       || ''
-                // createdOn intentionally omitted
             };
 
             var excelRow = worksheet.addRow(rowData);
