@@ -322,12 +322,54 @@
         }
     }
 
+    // ── WMS modal stacking fix ───────────────────────────────────────────
+    // .main-area is `position:fixed` (see app-shell.css) with no explicit
+    // z-index, so it establishes its own stacking context at the implicit
+    // "auto" level. Any .wms-modal-overlay left nested inside it — however
+    // high its own z-index (9400) — gets compared against siblings like
+    // .as-tab-nav/.as-project-header/.as-top-nav (z-index 230-250) at the
+    // .main-area level, not its own, and loses: the modal's header renders
+    // BEHIND those fixed bars instead of above them. Moving each overlay to
+    // be a direct child of <body> (a "portal", same trick used by most
+    // component libraries) puts it in the top-level stacking context where
+    // its z-index is finally compared directly against the shell's — and
+    // wins. Pure DOM reparenting; no visual/layout change otherwise, and
+    // existing `document.getElementById('xxxModal')` / event listeners
+    // everywhere keep working exactly as before.
+    function asRelocateWmsModal(el) {
+        if (el && el.parentElement !== document.body) {
+            document.body.appendChild(el);
+        }
+    }
+    function asRelocateWmsModals(root) {
+        (root || document).querySelectorAll('.wms-modal-overlay').forEach(asRelocateWmsModal);
+    }
+    function asInitWmsModalRelocation() {
+        asRelocateWmsModals();
+        if (typeof MutationObserver !== 'function') return;
+        // Tab partials / AJAX content can add more .wms-modal-overlay nodes
+        // after initial load — catch those too.
+        new MutationObserver(function (mutations) {
+            mutations.forEach(function (m) {
+                m.addedNodes.forEach(function (node) {
+                    if (node.nodeType !== 1) return;
+                    if (node.classList && node.classList.contains('wms-modal-overlay')) {
+                        asRelocateWmsModal(node);
+                    } else if (node.querySelectorAll) {
+                        asRelocateWmsModals(node);
+                    }
+                });
+            });
+        }).observe(document.body, { childList: true, subtree: true });
+    }
+
     // ── Boot ────────────────────────────────────────────────────────────
     function boot() {
         asWireUserMenu();
         asInitQuickSearch();
         asInitJumpToPage();
         asInitModuleTabsAutoRefresh();
+        asInitWmsModalRelocation();
     }
 
     if (document.readyState === 'loading') {

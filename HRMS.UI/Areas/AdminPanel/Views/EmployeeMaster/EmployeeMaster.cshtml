@@ -6,6 +6,136 @@
 	string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
 }
 
+<style>
+	/* Quick "Add Employee" modal — compact, dense-enterprise-UI fields.
+	   Scoped to .emp-quick-add-modal rather than editing .fg/.form-grid-3
+	   directly, since those are the shared form design system used by
+	   ~150 other pages. The responsive 3 / 2 / 1 column behavior for
+	   .form-grid-3 (desktop / tablet / mobile) already exists globally in
+	   wms-site.css, so it's inherited here as-is — nothing to add for that.
+	   The modal shell (.wms-modal) already gives every modal a fixed
+	   header + independently-scrolling body + fixed footer and a
+	   height:90vh (.wms-modal-xl) — also nothing to add there. */
+	.emp-quick-add-modal .fg {
+		margin-bottom: 9px;
+		gap: 3px;
+	}
+	.emp-quick-add-modal .fg label:not(.btn):not(.lc-remember) {
+		font-size: 12px;
+	}
+	.emp-quick-add-modal .fg input,
+	.emp-quick-add-modal .fg select,
+	.emp-quick-add-modal .fg textarea,
+	.emp-quick-add-modal .wms-dd-trigger {
+		min-height: 32px;
+		padding: 5px 10px;
+		font-size: 13px;
+		background: #FAFBFC;
+	}
+	.emp-quick-add-modal .fg input:focus,
+	.emp-quick-add-modal .fg select:focus,
+	.emp-quick-add-modal .fg textarea:focus,
+	.emp-quick-add-modal .wms-dd-trigger.open {
+		background: #fff;
+	}
+	.emp-quick-add-modal .form-grid-3 {
+		gap: 9px 16px;
+	}
+	/* 4 fields per row on desktop instead of 3 — fewer rows overall means
+	   less modal height / less scrolling. Scoped to a min-width query that
+	   sits just above the existing tablet breakpoint (max-width:1024px,
+	   2-col) and mobile breakpoint (max-width:767px, 1-col) in wms-site.css,
+	   so those keep working unchanged — this only takes over on desktop
+	   widths where the shared class would otherwise still be 3-col. */
+	@@media (min-width: 1025px) {
+		.emp-quick-add-modal .form-grid-3 {
+			grid-template-columns: repeat(4, 1fr);
+		}
+	}
+	.emp-quick-add-modal .sec-lbl {
+		margin-top: 12px;
+		margin-bottom: 8px;
+	}
+	.emp-quick-add-modal .divider {
+		margin: 8px 0;
+	}
+	.emp-quick-add-modal .fg input:hover,
+	.emp-quick-add-modal .fg textarea:hover {
+		border-color: #4E8FAD;
+	}
+
+	/* Compact header/body/footer padding — this one modal only, so the rest
+	   of the app's modals keep their existing (already reasonable) chrome. */
+	.emp-quick-add-modal.wms-modal-xl { height: 92vh; max-height: 92vh; }
+	.emp-quick-add-modal .wms-modal-header { height: 46px; padding: 0 16px; }
+	.emp-quick-add-modal .wms-modal-header-icon { width: 28px; height: 28px; font-size: 15px; }
+	.emp-quick-add-modal .wms-modal-title { font-size: 14px; }
+	.emp-quick-add-modal .wms-modal-close { width: 28px; height: 28px; font-size: 15px; }
+	.emp-quick-add-modal .wms-modal-body { padding: 16px 20px; }
+	.emp-quick-add-modal .wms-modal-footer { padding: 10px 18px; }
+
+	/* Eligibility flags — tighter, narrower checkbox group. Each checkbox +
+	   caption is its own inline-flex unit with nowrap so the label can
+	   never wrap onto its own line separate from its checkbox, and the
+	   group only takes as much width as its content needs (not stretched
+	   by the flex row). */
+	.emp-quick-add-modal .emp-eligibility-flags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px 16px;
+	}
+	.emp-quick-add-modal .form-check {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		white-space: nowrap;
+		font-size: 12.5px;
+		margin-bottom: 0;
+		padding-left: 0;
+		min-height: 0;
+	}
+	.emp-quick-add-modal .form-check-input {
+		float: none;
+		margin: 0;
+	}
+	.emp-quick-add-modal .form-check-label {
+		white-space: nowrap;
+	}
+
+	/* Employee filter toggle (Current/All/Left) — was using Bootstrap's raw
+	   .btn-outline-primary (bright blue) with each segment fully rounded
+	   and gapped, since the app-wide .btn { border-radius / border: none }
+	   rule (hrms-premium.css) overrides Bootstrap's own grouped-corner
+	   squashing. Restyled as a single bordered segmented control in the
+	   app's actual steel-blue palette instead. */
+	.emp-filter-group {
+		display: inline-flex;
+		border: 1px solid #B8C4CC;
+		border-radius: 8px !important;
+		overflow: hidden;
+	}
+	.emp-filter-group .btn {
+		background: #fff !important;
+		color: #2F6F8E !important;
+		border: none !important;
+		border-radius: 0 !important;
+		box-shadow: none !important;
+		font-weight: 600 !important;
+		font-size: 12.5px !important;
+		padding: 7px 16px !important;
+	}
+	.emp-filter-group .btn:not(:last-child) {
+		border-right: 1px solid #D8E2E8 !important;
+	}
+	.emp-filter-group .btn:hover {
+		background: #F0F5F8 !important;
+	}
+	.emp-filter-group .btn-check:checked + .btn {
+		background: #2F6F8E !important;
+		color: #fff !important;
+	}
+</style>
+
 <div class="wms-form-page">
 
 <div class="card">
@@ -15,13 +145,13 @@
 	</div>
 	<div class="card-body">
 		<div class="mb-3">
-			<div class="btn-group btn-group-sm" role="group">
+			<div class="btn-group btn-group-sm emp-filter-group" role="group">
 				<input type="radio" class="btn-check" name="employeeFilter" id="rdCurrentEmployee" value="CurrentEmployee" autocomplete="off" checked>
-				<label class="btn btn-outline-primary" for="rdCurrentEmployee">Current Employee</label>
+				<label class="btn" for="rdCurrentEmployee">Current Employee</label>
 				<input type="radio" class="btn-check" name="employeeFilter" id="rdAllEmployee" value="AllEmployee" autocomplete="off">
-				<label class="btn btn-outline-primary" for="rdAllEmployee">All Employee</label>
+				<label class="btn" for="rdAllEmployee">All Employee</label>
 				<input type="radio" class="btn-check" name="employeeFilter" id="rdLeftEmployee" value="LeftEmployee" autocomplete="off">
-				<label class="btn btn-outline-primary" for="rdLeftEmployee">Left Employee</label>
+				<label class="btn" for="rdLeftEmployee">Left Employee</label>
 			</div>
 		</div>
 		<div id="employeeGrid"></div>
@@ -29,7 +159,7 @@
 </div>
 
 <div class="wms-modal-overlay" id="addEmployeeModal" onclick="if(event.target===this) return">
-	<div class="wms-modal wms-modal-xl">
+	<div class="wms-modal wms-modal-xl emp-quick-add-modal">
 		<div class="wms-modal-header">
 			<div class="wms-modal-header-icon"><i class="bx bx-user-plus"></i></div>
 			<div class="wms-modal-header-text">
@@ -192,7 +322,7 @@
 
 				<div class="divider"></div>
 				<div class="sec-lbl">Eligibility Flags</div>
-				<div style="display:flex;gap:22px;flex-wrap:wrap">
+				<div class="emp-eligibility-flags">
 					<div class="form-check">
 						<input class="form-check-input" type="checkbox" id="pt" checked>
 						<label class="form-check-label" for="pt">PT</label>

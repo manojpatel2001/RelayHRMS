@@ -317,6 +317,12 @@
 
     function tryBuildSingle(sel) {
         if (sel._wmsBuilt || !sel.options) return;
+        // DevExtreme widgets (dxTagBox in particular) render their own hidden
+        // native <select> internally for accessibility/native-picker
+        // fallback, despite the top-of-file assumption that they never use a
+        // real <select>. Auto-upgrading that one produces a second, bogus
+        // "Select…" dropdown next to the real DevExtreme widget.
+        if (sel.closest('.dx-widget')) return;
         if (sel.onchange) sel._wmsOnchange = sel.onchange;
         if (sel.oninput)  sel._wmsOninput  = sel.oninput;
         buildSingle(sel);
@@ -582,6 +588,9 @@
 
     function tryBuildMulti(sel) {
         if (sel._wmsBuilt || !sel.options) return;
+        // See the matching guard in tryBuildSingle() above — DevExtreme
+        // widgets can render their own internal native <select>.
+        if (sel.closest('.dx-widget')) return;
         if (sel.onchange) sel.dataset.onchange = sel.onchange.toString().replace(/function\s*\([^)]*\)\s*\{|\}/g, '');
         buildMulti(sel);
     }

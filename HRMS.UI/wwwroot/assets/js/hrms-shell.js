@@ -136,16 +136,58 @@
             // Walk up and remove 'collapsed' from EVERY ancestor .sb-group,
             // not just the nearest one — this fixes nested sub-groups where
             // closest() would stop at the inner group and leave the outer
-            // parent group still collapsed.
+            // parent group still collapsed. Also keep the LAST (outermost)
+            // .sb-group hit for the breadcrumb's middle segment.
             var node = best.parentElement;
+            var foundGroup = false;
+            var outermostGroup = null;
             while (node && node.id !== 'sidebar-link') {
                 if (node.classList && node.classList.contains('sb-group')) {
                     node.classList.remove('collapsed');
                     rememberGroupOpen(node);
+                    foundGroup = true;
+                    outermostGroup = node;
                 }
                 node = node.parentElement;
             }
+
+            // The active link is a top-level direct link (e.g. Dashboard),
+            // not nested inside any group — so there's no group to remember
+            // as "open" here. Without this, whichever group was open from a
+            // previous page (e.g. "Employee") stayed remembered in
+            // localStorage forever, since only a group-nested active link
+            // ever overwrote it — leaving that group expanded even after
+            // navigating away to a page with no group of its own.
+            if (!foundGroup) {
+                collapseOtherGroups(null);
+                setOpenGroup('');
+            }
+
+            var pageLabelEl = best.querySelector('.sb-label');
+            var pageLabel = pageLabelEl ? pageLabelEl.textContent.trim() : best.textContent.trim();
+            updateBreadcrumb(outermostGroup ? groupKey(outermostGroup) : '', pageLabel);
+        } else {
+            var titleEl = document.getElementById('topbar-page-title');
+            updateBreadcrumb('', titleEl ? titleEl.textContent.trim() : '');
         }
+    }
+
+    // ── Breadcrumb bar: "Home / <sidebar group> / <page>" ───────────────
+    // Driven by the same active-link detection markActiveSidebarLink()
+    // already uses for group expand/collapse — no separate/fragile
+    // "active tab" system to fall out of sync with.
+    function updateBreadcrumb(groupLabel, pageLabel) {
+        var groupEl = document.getElementById('as-breadcrumb-group');
+        var curEl   = document.getElementById('as-breadcrumb-current');
+        var sep1    = document.getElementById('as-breadcrumb-sep');
+        var sep2    = document.getElementById('as-breadcrumb-sep2');
+        if (!groupEl || !curEl) return;
+
+        groupEl.textContent = groupLabel || '';
+        curEl.textContent = pageLabel || '';
+
+        if (sep1) sep1.style.display = groupLabel ? '' : 'none';
+        if (sep2) sep2.style.display = pageLabel ? '' : 'none';
     }
 
     // ── Active module tab detection ──────────────────────────────────────
