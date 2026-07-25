@@ -1,0 +1,1209 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Month Lock";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    /* Status pills reuse the shared WMSGrid palette (wg-pill-*) so grid badges
+       look identical to every other grid in the app. */
+
+    /* Searchable multi-select (Branch/Employee) -- recolored to the WMS palette
+       and given a fixed height + internal scroll so it never grows past one
+       row of wrapped tags. */
+    .searchable-select-wrapper { position: relative; width: 100%; }
+
+    .searchable-select-input {
+        height: clamp(30px, 2.0vw, 40px);
+        max-height: clamp(30px, 2.0vw, 40px);
+        overflow-y: auto;
+        border: 1px solid #B8C4CC;
+        border-radius: var(--r-sm);
+        padding: 4px 35px 4px 8px;
+        cursor: pointer;
+        background-color: #fff;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        gap: 4px;
+        box-sizing: border-box;
+        transition: border-color .15s, box-shadow .15s;
+    }
+        .searchable-select-input::-webkit-scrollbar { width: 5px; }
+        .searchable-select-input::-webkit-scrollbar-thumb { background: #b0c4d0; border-radius: 3px; }
+        .searchable-select-input:hover { border-color: #4E8FAD; }
+
+    .searchable-select-wrapper.active .searchable-select-input {
+        border-color: #2F6F8E;
+        box-shadow: 0 0 0 3px rgba(47,111,142,.15);
+    }
+
+    .selected-tags { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; }
+    .selected-tags-placeholder { color: #94A3B8; font-size: var(--fs-md); }
+
+    .selected-tag {
+        background-color: #2F6F8E;
+        border: 1px solid #235A75;
+        border-radius: 3px;
+        padding: 2px 8px;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: #fff;
+        flex-shrink: 0;
+    }
+        .selected-tag .remove-tag { cursor: pointer; font-weight: bold; color: #fff; }
+        .selected-tag .remove-tag:hover { color: #DDE9F0; }
+
+    .searchable-select-arrow {
+        position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+        width: 12px; height: 12px; pointer-events: none; transition: transform .2s;
+    }
+    .searchable-select-wrapper.active .searchable-select-arrow { transform: translateY(-50%) rotate(180deg); }
+    .searchable-select-arrow svg { width: 100%; height: 100%; fill: #778899; }
+
+    .searchable-select-dropdown {
+        display: none; position: absolute; top: 100%; left: 0; right: 0;
+        background: #fff; border: 1.5px solid #B8C4CC; border-radius: var(--r-md);
+        margin-top: 2px; max-height: 300px; overflow: hidden; z-index: 1000;
+        box-shadow: 0 10px 36px rgba(0,0,0,.18);
+    }
+    .searchable-select-wrapper.active .searchable-select-dropdown { display: flex; flex-direction: column; }
+
+    .searchable-select-search { padding: 7px; border-bottom: 1px solid #EEF2F5; background: #fff; flex-shrink: 0; }
+    .searchable-select-search input {
+        width: 100%; padding: 6px 10px; border: 1.5px solid #D0D8DC; border-radius: var(--r-sm);
+        font-size: var(--fs-sm); font-family: inherit; outline: none; box-sizing: border-box;
+    }
+    .searchable-select-search input:focus { border-color: #4E8FAD; box-shadow: 0 0 0 2px rgba(78,143,173,.12); }
+
+    .multi-select-actions { padding: 7px; border-bottom: 1px solid #EEF2F5; display: flex; gap: 8px; background: #fff; flex-shrink: 0; }
+    .multi-select-btn {
+        flex: 1; padding: 5px 10px; font-size: 11.5px; font-weight: 600; border: 1px solid #B8C4CC;
+        border-radius: 6px; background: #F0F5F8; color: #2F6F8E; cursor: pointer; transition: background .15s;
+    }
+    .multi-select-btn:hover { background: #DDE9F0; }
+
+    .searchable-select-options { overflow-y: auto; flex: 1; padding: 3px 0; }
+    .searchable-select-option { padding: 7px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: #2C3E50; transition: background .1s; }
+    .searchable-select-option:hover { background-color: #EBF5FF; }
+    .searchable-select-option.selected { background-color: #E3F2FD; color: #1565C0; font-weight: 500; }
+    .searchable-select-option input[type="checkbox"] { cursor: pointer; }
+
+    .no-results { padding: 12px; text-align: center; color: #94A3B8; font-size: var(--fs-sm); }
+
+    /* Bulk action toolbar above each grid */
+    .lock-grid-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+</style>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0">Month Lock</h6>
+        </div>
+
+        <ul class="nav nav-tabs mb-3 mt-3 ms-3" id="lockSalaryTabs" role="tablist">
+            <li class="nav-item me-2" role="presentation">
+                <button class="nav-link active py-2 lock-tab-btn" type="button" data-tab="salaryView">Salary View</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link py-2 lock-tab-btn" type="button" data-tab="attendanceLock">Attendance Lock</button>
+            </li>
+        </ul>
+
+        <div class="card-body">
+
+            <!-- Salary View Tab -->
+            <div class="tab-content-pane active" id="salaryView">
+
+                <div class="form-grid-2">
+                    <div class="fg fg-req">
+                        <label for="salaryMonthDropdown">Month</label>
+                        <select id="salaryMonthDropdown">
+                            <option value="">Select Month</option>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <span class="field-validation-error" id="errorSalaryMonth" style="display:none;">Please select month.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="salaryYearDropdown">Year</label>
+                        <select id="salaryYearDropdown">
+                            <option value="">Select Year</option>
+                        </select>
+                        <span class="field-validation-error" id="errorSalaryYear" style="display:none;">Please select year.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="salaryBranchWrapper">Branch</label>
+                        <div class="searchable-select-wrapper multi-select" id="salaryBranchWrapper">
+                            <div class="searchable-select-input">
+                                <div class="selected-tags"><span class="selected-tags-placeholder">Select Branch</span></div>
+                            </div>
+                            <span class="searchable-select-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" /></svg>
+                            </span>
+                            <div class="searchable-select-dropdown">
+                                <div class="searchable-select-search"><input type="text" placeholder="Search branch..." class="search-input"></div>
+                                <div class="multi-select-actions">
+                                    <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                    <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                </div>
+                                <div class="searchable-select-options"></div>
+                            </div>
+                        </div>
+                        <span class="field-validation-error" id="errorSalaryBranch" style="display:none;">Please select branch.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="salaryEmployeeWrapper">Employee</label>
+                        <div class="searchable-select-wrapper multi-select" id="salaryEmployeeWrapper">
+                            <div class="searchable-select-input">
+                                <div class="selected-tags"><span class="selected-tags-placeholder">Select Employee</span></div>
+                            </div>
+                            <span class="searchable-select-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" /></svg>
+                            </span>
+                            <div class="searchable-select-dropdown">
+                                <div class="searchable-select-search"><input type="text" placeholder="Search employee..." class="search-input"></div>
+                                <div class="multi-select-actions">
+                                    <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                    <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                </div>
+                                <div class="searchable-select-options"></div>
+                            </div>
+                        </div>
+                        <span class="field-validation-error" id="errorSalaryEmployee" style="display:none;">Please select employee.</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <span class="sec-lbl">Status</span>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check form-check-inline m-0"><input class="form-check-input" type="radio" id="radioPublished" name="salaryStatus" value="Published"><label class="form-check-label" for="radioPublished">Published</label></div>
+                        <div class="form-check form-check-inline m-0"><input class="form-check-input" type="radio" id="radioUnpublished" name="salaryStatus" value="Unpublished" checked><label class="form-check-label" for="radioUnpublished">Unpublished</label></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-2 pt-3" style="border-top:1px solid var(--hp-border,#e2e8f0)">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="goBack()">Back</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClearSalary">Clear</button>
+                    <button type="button" id="btnFetchSalaryData" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                </div>
+
+                <div id="salaryGridSection" class="mt-3 d-none">
+                    <div class="lock-grid-toolbar">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="salarySelectAllChk">
+                            <label class="form-check-label" for="salarySelectAllChk">Select All</label>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-danger btn-sm d-inline-flex align-items-center gap-1" id="btnPublishSalary">
+                                <span class="btn-spinner-icon"></span>
+                                <span class="btn-label-text"><i class="bx bx-lock-alt"></i> Publish</span>
+                            </button>
+                            <button type="button" class="btn btn-success btn-sm d-inline-flex align-items-center gap-1" id="btnUnpublishSalary">
+                                <span class="btn-spinner-icon"></span>
+                                <span class="btn-label-text"><i class="bx bx-lock-open-alt"></i> Unpublish</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="salaryGridContainer"></div>
+                </div>
+
+            </div>
+
+            <!-- Attendance Lock Tab -->
+            <div class="tab-content-pane d-none" id="attendanceLock">
+
+                <div class="form-grid-2">
+                    <div class="fg fg-req">
+                        <label for="monthDropdown">Month</label>
+                        <select id="monthDropdown">
+                            <option value="">Select Month</option>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <span class="field-validation-error" id="errorMonth" style="display:none;">Please select month.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="yearDropdown">Year</label>
+                        <select id="yearDropdown">
+                            <option value="">Select Year</option>
+                        </select>
+                        <span class="field-validation-error" id="errorYear" style="display:none;">Please select year.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="branchWrapper">Branch</label>
+                        <div class="searchable-select-wrapper multi-select" id="branchWrapper">
+                            <div class="searchable-select-input">
+                                <div class="selected-tags"><span class="selected-tags-placeholder">Select Branch</span></div>
+                            </div>
+                            <span class="searchable-select-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" /></svg>
+                            </span>
+                            <div class="searchable-select-dropdown">
+                                <div class="searchable-select-search"><input type="text" placeholder="Search branch..." class="search-input"></div>
+                                <div class="multi-select-actions">
+                                    <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                    <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                </div>
+                                <div class="searchable-select-options"></div>
+                            </div>
+                        </div>
+                        <span class="field-validation-error" id="errorBranch" style="display:none;">Please select branch.</span>
+                    </div>
+                    <div class="fg fg-req">
+                        <label for="employeeWrapper">Employee</label>
+                        <div class="searchable-select-wrapper multi-select" id="employeeWrapper">
+                            <div class="searchable-select-input">
+                                <div class="selected-tags"><span class="selected-tags-placeholder">Select Employee</span></div>
+                            </div>
+                            <span class="searchable-select-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" /></svg>
+                            </span>
+                            <div class="searchable-select-dropdown">
+                                <div class="searchable-select-search"><input type="text" placeholder="Search employee..." class="search-input"></div>
+                                <div class="multi-select-actions">
+                                    <button type="button" class="multi-select-btn select-all-btn">Select All</button>
+                                    <button type="button" class="multi-select-btn clear-all-btn">Clear All</button>
+                                </div>
+                                <div class="searchable-select-options"></div>
+                            </div>
+                        </div>
+                        <span class="field-validation-error" id="errorEmployee" style="display:none;">Please select employee.</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <span class="sec-lbl">Status</span>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check form-check-inline m-0"><input class="form-check-input" type="radio" id="radioLocked" name="lockStatus" value="Locked"><label class="form-check-label" for="radioLocked">Locked</label></div>
+                        <div class="form-check form-check-inline m-0"><input class="form-check-input" type="radio" id="radioUnlocked" name="lockStatus" value="Unlocked" checked><label class="form-check-label" for="radioUnlocked">Unlocked</label></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-2 pt-3" style="border-top:1px solid var(--hp-border,#e2e8f0)">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="goBack()">Back</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" id="btnFetchLockData" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                </div>
+
+                <div id="lockGridSection" class="mt-3 d-none">
+                    <div class="lock-grid-toolbar">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="lockSelectAllChk">
+                            <label class="form-check-label" for="lockSelectAllChk">Select All</label>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-danger btn-sm d-inline-flex align-items-center gap-1" id="btnLockAttendance">
+                                <span class="btn-spinner-icon"></span>
+                                <span class="btn-label-text"><i class="bx bx-lock-alt"></i> Lock Attendance</span>
+                            </button>
+                            <button type="button" class="btn btn-success btn-sm d-inline-flex align-items-center gap-1" id="btnUnlockAttendance">
+                                <span class="btn-spinner-icon"></span>
+                                <span class="btn-label-text"><i class="bx bx-lock-open-alt"></i> Unlock Attendance</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="lockGridContainer"></div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const Empid = parseInt(localStorage.getItem("EmployeeId"));
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const Token = localStorage.getItem("authToken");
+
+    // Store current grid data, filters and bulk-selection state
+    let currentGridData = [];
+    let currentFilters = { month: null, year: null };
+    let lockSelectedIds = [];
+
+    let currentSalaryGridData = [];
+    let currentSalaryFilters = { month: null, year: null };
+    let salarySelectedIds = [];
+
+    let lockGrid = null;
+    let salaryGrid = null;
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Searchable Multi-Select Component (unchanged business logic)
+    // ─────────────────────────────────────────────────────────────────────
+    class SearchableMultiSelect {
+        constructor(wrapperId, options = {}) {
+            this.wrapper = document.getElementById(wrapperId);
+            this.input = this.wrapper.querySelector('.searchable-select-input');
+            this.dropdown = this.wrapper.querySelector('.searchable-select-dropdown');
+            this.searchInput = this.wrapper.querySelector('.search-input');
+            this.optionsContainer = this.wrapper.querySelector('.searchable-select-options');
+            this.selectedTags = this.wrapper.querySelector('.selected-tags');
+            this.selectAllBtn = this.wrapper.querySelector('.select-all-btn');
+            this.clearAllBtn = this.wrapper.querySelector('.clear-all-btn');
+
+            this.options = [];
+            this.selectedValues = [];
+            this.onChangeCallback = options.onChange || null;
+
+            this.init();
+        }
+
+        init() {
+            this.input.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleDropdown();
+            });
+
+            this.searchInput.addEventListener('input', (e) => {
+                this.filterOptions(e.target.value);
+            });
+
+            this.selectAllBtn.addEventListener('click', () => this.selectAll());
+            this.clearAllBtn.addEventListener('click', () => this.clearAll());
+
+            document.addEventListener('click', (e) => {
+                if (!this.wrapper.contains(e.target)) {
+                    this.closeDropdown();
+                }
+            });
+        }
+
+        toggleDropdown() {
+            this.wrapper.classList.toggle('active');
+            if (this.wrapper.classList.contains('active')) {
+                this.searchInput.focus();
+            }
+        }
+
+        closeDropdown() {
+            this.wrapper.classList.remove('active');
+            this.searchInput.value = '';
+            this.filterOptions('');
+        }
+
+        setOptions(options) {
+            this.options = options;
+            this.renderOptions();
+        }
+
+        renderOptions() {
+            this.optionsContainer.innerHTML = '';
+
+            if (this.options.length === 0) {
+                this.optionsContainer.innerHTML = '<div class="no-results">No options available</div>';
+                return;
+            }
+
+            this.options.forEach(option => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'searchable-select-option';
+                if (this.selectedValues.includes(option.value)) {
+                    optionDiv.classList.add('selected');
+                }
+
+                optionDiv.innerHTML = `
+                    <input type="checkbox" ${this.selectedValues.includes(option.value) ? 'checked' : ''}>
+                    <span>${option.text}</span>
+                `;
+
+                optionDiv.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleOption(option.value);
+                });
+
+                this.optionsContainer.appendChild(optionDiv);
+            });
+        }
+
+        filterOptions(searchTerm) {
+            const options = this.optionsContainer.querySelectorAll('.searchable-select-option');
+            let visibleCount = 0;
+
+            options.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                if (text.includes(searchTerm.toLowerCase())) {
+                    option.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+
+            if (visibleCount === 0 && searchTerm) {
+                if (!this.optionsContainer.querySelector('.no-results')) {
+                    this.optionsContainer.innerHTML = '<div class="no-results">No results found</div>';
+                }
+            }
+        }
+
+        toggleOption(value) {
+            const index = this.selectedValues.indexOf(value);
+            if (index > -1) {
+                this.selectedValues.splice(index, 1);
+            } else {
+                this.selectedValues.push(value);
+            }
+            this.updateSelectedTags();
+            this.renderOptions();
+            if (this.onChangeCallback) {
+                this.onChangeCallback(this.selectedValues);
+            }
+        }
+
+        selectAll() {
+            this.selectedValues = this.options.map(opt => opt.value);
+            this.updateSelectedTags();
+            this.renderOptions();
+            if (this.onChangeCallback) {
+                this.onChangeCallback(this.selectedValues);
+            }
+        }
+
+        clearAll() {
+            this.selectedValues = [];
+            this.updateSelectedTags();
+            this.renderOptions();
+            if (this.onChangeCallback) {
+                this.onChangeCallback(this.selectedValues);
+            }
+        }
+
+        updateSelectedTags() {
+            this.selectedTags.innerHTML = '';
+
+            if (this.selectedValues.length === 0) {
+                const placeholder = document.createElement('span');
+                placeholder.className = 'selected-tags-placeholder';
+                placeholder.textContent = this.wrapper.id.includes('branch') || this.wrapper.id.includes('Branch') ? 'Select Branch' : 'Select Employee';
+                this.selectedTags.appendChild(placeholder);
+                return;
+            }
+
+            this.selectedValues.forEach(value => {
+                const option = this.options.find(opt => opt.value === value);
+                if (option) {
+                    const tag = document.createElement('span');
+                    tag.className = 'selected-tag';
+                    tag.innerHTML = `
+                        ${option.text}
+                        <span class="remove-tag" data-value="${value}">×</span>
+                    `;
+
+                    tag.querySelector('.remove-tag').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.toggleOption(value);
+                    });
+
+                    this.selectedTags.appendChild(tag);
+                }
+            });
+        }
+
+        getSelectedValues() {
+            return this.selectedValues;
+        }
+
+        reset() {
+            this.selectedValues = [];
+            this.updateSelectedTags();
+            this.renderOptions();
+        }
+    }
+
+    // Initialize multi-select dropdowns
+    let branchMultiSelect, employeeMultiSelect, salaryBranchMultiSelect, salaryEmployeeMultiSelect;
+
+    $(document).ready(function () {
+        // Tab Switching
+        $('.lock-tab-btn').click(function () {
+            const targetTab = $(this).data('tab');
+
+            $('.lock-tab-btn').removeClass('active');
+            $(this).addClass('active');
+
+            $('.tab-content-pane').removeClass('active').addClass('d-none');
+            $('#' + targetTab).removeClass('d-none').addClass('active');
+        });
+
+        // Initialize Attendance Lock Multi-Selects
+        branchMultiSelect = new SearchableMultiSelect('branchWrapper', {
+            onChange: (selectedValues) => {
+                loadEmployeesForBranches(selectedValues, 'attendance');
+            }
+        });
+
+        employeeMultiSelect = new SearchableMultiSelect('employeeWrapper');
+
+        // Initialize Salary View Multi-Selects
+        salaryBranchMultiSelect = new SearchableMultiSelect('salaryBranchWrapper', {
+            onChange: (selectedValues) => {
+                loadEmployeesForBranches(selectedValues, 'salary');
+            }
+        });
+
+        salaryEmployeeMultiSelect = new SearchableMultiSelect('salaryEmployeeWrapper');
+
+        // Load Years (from 2025 to current year)
+        const startYear = 2025;
+        const currentYear = new Date().getFullYear();
+
+        for (let year = currentYear; year >= startYear; year--) {
+            $('#yearDropdown').append(`<option value="${year}">${year}</option>`);
+        }
+        for (let year = currentYear; year >= startYear; year--) {
+            $('#salaryYearDropdown').append(`<option value="${year}">${year}</option>`);
+        }
+
+        // Load Branches for both tabs
+        $.ajax({
+            url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response?.data?.length > 0) {
+                    const branchOptions = response.data.map(branch => ({
+                        value: branch.branchId,
+                        text: branch.branchName
+                    }));
+                    branchMultiSelect.setOptions(branchOptions);
+                    salaryBranchMultiSelect.setOptions(branchOptions);
+                }
+            }
+        });
+
+        $('#lockSelectAllChk').on('change', function () {
+            const checked = $(this).prop('checked');
+            lockSelectedIds = checked ? currentGridData.map(r => r.employeeId) : [];
+            if (lockGrid) lockGrid.refresh();
+        });
+
+        $('#salarySelectAllChk').on('change', function () {
+            const checked = $(this).prop('checked');
+            salarySelectedIds = checked ? currentSalaryGridData.map(r => r.employeeId) : [];
+            if (salaryGrid) salaryGrid.refresh();
+        });
+    });
+
+    function loadEmployeesForBranches(branchIds, type) {
+        const empMultiSelect = type === 'salary' ? salaryEmployeeMultiSelect : employeeMultiSelect;
+
+        empMultiSelect.setOptions([]);
+        empMultiSelect.reset();
+
+        if (!branchIds || branchIds.length === 0) {
+            return;
+        }
+
+        const branchIdsParam = branchIds.join(',');
+
+        $.ajax({
+            url: `@baseDomainUrl/api/EmployeeMasterAPI/GetAllEmployeeByBranch/${CompanyId}?BranchId=${branchIdsParam}`,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response?.data?.length > 0) {
+                    const employeeOptions = response.data.map(emp => ({
+                        value: emp.id,
+                        text: `${emp.fullName} (${emp.employeeCode})`
+                    }));
+                    empMultiSelect.setOptions(employeeOptions);
+                } else {
+                    empMultiSelect.setOptions([]);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error loading employees:', error);
+                empMultiSelect.setOptions([]);
+                Swal.fire('Error', 'Failed to load employees for selected branches.', 'error');
+            }
+        });
+    }
+
+    function goBack() {
+        window.location.href = '@Url.Action("Index", "Home", new { area = "AdminPanel" })';
+    }
+
+    function clearPage() {
+        $('#monthDropdown').val('');
+        $('#yearDropdown').val('');
+        $('input[name="lockStatus"]').prop('checked', false);
+        $('#radioUnlocked').prop('checked', true);
+        branchMultiSelect.clearAll();
+        employeeMultiSelect.clearAll();
+        $('.field-validation-error').hide();
+        $('#lockGridSection').addClass('d-none');
+        $('#lockGridContainer').empty();
+        currentGridData = [];
+        lockSelectedIds = [];
+        lockGrid = null;
+        currentFilters = { month: null, year: null };
+    }
+
+    function clearSalaryPage() {
+        $('#salaryMonthDropdown').val('');
+        $('#salaryYearDropdown').val('');
+        $('input[name="salaryStatus"]').prop('checked', false);
+        $('#radioUnpublished').prop('checked', true);
+        salaryBranchMultiSelect.clearAll();
+        salaryEmployeeMultiSelect.clearAll();
+        $('.field-validation-error').hide();
+        $('#salaryGridSection').addClass('d-none');
+        $('#salaryGridContainer').empty();
+        currentSalaryGridData = [];
+        salarySelectedIds = [];
+        salaryGrid = null;
+        currentSalaryFilters = { month: null, year: null };
+    }
+
+    $('#btnClear').click(function () { clearPage(); });
+    $('#btnClearSalary').click(function () { clearSalaryPage(); });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Attendance Lock - Fetch Data
+    // ─────────────────────────────────────────────────────────────────────
+    $('#btnFetchLockData').click(function () {
+        setBtnLoading('#btnFetchLockData', 'Loading...');
+
+        const month = $('#monthDropdown').val();
+        const year = $('#yearDropdown').val();
+        const status = $('input[name="lockStatus"]:checked').val() || null;
+        const branchIds = branchMultiSelect.getSelectedValues();
+        const employeeIds = employeeMultiSelect.getSelectedValues();
+
+        let isValid = true;
+        if (!month) { $('#errorMonth').show(); isValid = false; } else { $('#errorMonth').hide(); }
+        if (!year) { $('#errorYear').show(); isValid = false; } else { $('#errorYear').hide(); }
+        if (branchIds.length === 0) { $('#errorBranch').show(); isValid = false; } else { $('#errorBranch').hide(); }
+        if (employeeIds.length === 0) { $('#errorEmployee').show(); isValid = false; } else { $('#errorEmployee').hide(); }
+
+        if (!isValid) {
+            setBtnNormal('#btnFetchLockData', 'Go');
+            return;
+        }
+
+        currentFilters = { month: parseInt(month), year: parseInt(year) };
+
+        const requestData = {
+            Month: parseInt(month),
+            Year: parseInt(year),
+            EmployeeId: employeeIds.join(','),
+            Status: status
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/AttendanceLockAPI/GetAttendanceLockDetails")',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(requestData),
+            success: function (response) {
+                setBtnNormal('#btnFetchLockData', 'Go');
+
+                if (response?.isSuccess && response?.data?.length > 0) {
+                    currentGridData = response.data;
+                    lockSelectedIds = [];
+                    renderLockGrid(response.data);
+                    $('#lockGridSection').removeClass('d-none');
+                } else {
+                    $('#lockGridSection').addClass('d-none');
+                    $('#lockGridContainer').empty();
+                    showToast('No attendance records found for the selected filters.', 'info');
+                }
+            },
+            error: function (xhr, status, error) {
+                setBtnNormal('#btnFetchLockData', 'Go');
+                $('#lockGridSection').addClass('d-none');
+                $('#lockGridContainer').empty();
+                console.error('Error fetching lock data:', error);
+                showToast('Failed to fetch attendance lock data.', 'error');
+            }
+        });
+    });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Salary View - Fetch Data
+    // ─────────────────────────────────────────────────────────────────────
+    $('#btnFetchSalaryData').click(function () {
+        setBtnLoading('#btnFetchSalaryData', 'Loading...');
+
+        const month = $('#salaryMonthDropdown').val();
+        const year = $('#salaryYearDropdown').val();
+        const status = $('input[name="salaryStatus"]:checked').val() || null;
+        const branchIds = salaryBranchMultiSelect.getSelectedValues();
+        const employeeIds = salaryEmployeeMultiSelect.getSelectedValues();
+
+        let isValid = true;
+        if (!month) { $('#errorSalaryMonth').show(); isValid = false; } else { $('#errorSalaryMonth').hide(); }
+        if (!year) { $('#errorSalaryYear').show(); isValid = false; } else { $('#errorSalaryYear').hide(); }
+        if (branchIds.length === 0) { $('#errorSalaryBranch').show(); isValid = false; } else { $('#errorSalaryBranch').hide(); }
+        if (employeeIds.length === 0) { $('#errorSalaryEmployee').show(); isValid = false; } else { $('#errorSalaryEmployee').hide(); }
+
+        if (!isValid) {
+            setBtnNormal('#btnFetchSalaryData', 'Go');
+            return;
+        }
+
+        currentSalaryFilters = { month: parseInt(month), year: parseInt(year) };
+
+        const requestData = {
+            Month: parseInt(month),
+            Year: parseInt(year),
+            EmployeeId: employeeIds.join(','),
+            Status: status
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeeSalaryPublish")',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(requestData),
+            success: function (response) {
+                setBtnNormal('#btnFetchSalaryData', 'Go');
+
+                if (response?.isSuccess && response?.data?.length > 0) {
+                    currentSalaryGridData = response.data;
+                    salarySelectedIds = [];
+                    renderSalaryGrid(response.data);
+                    $('#salaryGridSection').removeClass('d-none');
+                } else {
+                    $('#salaryGridSection').addClass('d-none');
+                    $('#salaryGridContainer').empty();
+                    showToast('No salary records found for the selected filters.', 'info');
+                }
+            },
+            error: function (xhr, status, error) {
+                setBtnNormal('#btnFetchSalaryData', 'Go');
+                $('#salaryGridSection').addClass('d-none');
+                $('#salaryGridContainer').empty();
+                console.error('Error fetching salary data:', error);
+                showToast('Failed to fetch salary view data.', 'error');
+            }
+        });
+    });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Grids — common HRMS WMSGrid: no pagination, internal scroll + sticky
+    // header, checkbox column wired to the lockSelectedIds/salarySelectedIds
+    // bulk-selection arrays (re-rendered on every grid refresh/sort/search).
+    // ─────────────────────────────────────────────────────────────────────
+    function syncSelectAllState(idsArr, totalCount, checkboxSel) {
+        const $chk = $(checkboxSel);
+        if (idsArr.length === 0) { $chk.prop('checked', false).prop('indeterminate', false); }
+        else if (idsArr.length === totalCount) { $chk.prop('checked', true).prop('indeterminate', false); }
+        else { $chk.prop('checked', false).prop('indeterminate', true); }
+    }
+
+    function renderLockGrid(data) {
+        const columns = [
+            {
+                header: '', sortable: false, width: '40px',
+                render: function (v, row) {
+                    const checked = lockSelectedIds.includes(row.employeeId) ? 'checked' : '';
+                    return '<input type="checkbox" class="form-check-input" ' + checked + ' onclick="_toggleLockRow(' + row.employeeId + ', this.checked)">';
+                }
+            },
+            { field: 'employeeCode', header: 'Employee Code', width: '130px' },
+            { field: 'fullName', header: 'Employee Name', width: '180px' },
+            { field: 'designationName', header: 'Designation', width: '170px' },
+            { field: 'month', header: 'Month', width: '90px' },
+            { field: 'year', header: 'Year', width: '90px' },
+            {
+                field: 'status', header: 'Status', width: '110px',
+                render: function (v) {
+                    return '<span class="wg-pill ' + (v === 'Locked' ? 'wg-pill-red' : 'wg-pill-green') + '">' + v + '</span>';
+                }
+            }
+        ];
+
+        if (!lockGrid) {
+            lockGrid = WMSGrid.create({
+                container: 'lockGridContainer',
+                title: 'Attendance Lock Records',
+                icon: 'bx-lock-alt',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false, export: true }
+            });
+        } else {
+            const cols = lockGrid.getColumns();
+            cols.length = 0;
+            columns.forEach(c => cols.push(c));
+            lockGrid.reset();
+            lockGrid.setData(data);
+        }
+        syncSelectAllState(lockSelectedIds, currentGridData.length, '#lockSelectAllChk');
+    }
+
+    function renderSalaryGrid(data) {
+        const columns = [
+            {
+                header: '', sortable: false, width: '40px',
+                render: function (v, row) {
+                    const checked = salarySelectedIds.includes(row.employeeId) ? 'checked' : '';
+                    return '<input type="checkbox" class="form-check-input" ' + checked + ' onclick="_toggleSalaryRow(' + row.employeeId + ', this.checked)">';
+                }
+            },
+            { field: 'employeeCode', header: 'Employee Code', width: '130px' },
+            { field: 'fullName', header: 'Employee Name', width: '180px' },
+            { field: 'designationName', header: 'Designation', width: '170px' },
+            { field: 'month', header: 'Month', width: '90px' },
+            { field: 'year', header: 'Year', width: '90px' },
+            {
+                field: 'status', header: 'Status', width: '110px',
+                render: function (v) {
+                    return '<span class="wg-pill ' + (v === 'Published' ? 'wg-pill-red' : 'wg-pill-green') + '">' + v + '</span>';
+                }
+            }
+        ];
+
+        if (!salaryGrid) {
+            salaryGrid = WMSGrid.create({
+                container: 'salaryGridContainer',
+                title: 'Salary Publish Records',
+                icon: 'bx-money',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false, export: true }
+            });
+        } else {
+            const cols = salaryGrid.getColumns();
+            cols.length = 0;
+            columns.forEach(c => cols.push(c));
+            salaryGrid.reset();
+            salaryGrid.setData(data);
+        }
+        syncSelectAllState(salarySelectedIds, currentSalaryGridData.length, '#salarySelectAllChk');
+    }
+
+    window._toggleLockRow = function (employeeId, checked) {
+        const idx = lockSelectedIds.indexOf(employeeId);
+        if (checked && idx === -1) lockSelectedIds.push(employeeId);
+        if (!checked && idx > -1) lockSelectedIds.splice(idx, 1);
+        syncSelectAllState(lockSelectedIds, currentGridData.length, '#lockSelectAllChk');
+    };
+
+    window._toggleSalaryRow = function (employeeId, checked) {
+        const idx = salarySelectedIds.indexOf(employeeId);
+        if (checked && idx === -1) salarySelectedIds.push(employeeId);
+        if (!checked && idx > -1) salarySelectedIds.splice(idx, 1);
+        syncSelectAllState(salarySelectedIds, currentSalaryGridData.length, '#salarySelectAllChk');
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Lock / Unlock Attendance
+    // ─────────────────────────────────────────────────────────────────────
+    $('#btnLockAttendance').click(function () {
+        const selectedRows = currentGridData.filter(r => lockSelectedIds.includes(r.employeeId));
+
+        if (selectedRows.length === 0) {
+            Swal.fire('Warning', 'Please select at least one employee to lock attendance.', 'warning');
+            return;
+        }
+
+        const alreadyLocked = selectedRows.filter(row => row.status === 'Locked');
+        if (alreadyLocked.length > 0) {
+            const employeeNames = alreadyLocked.map(row => row.fullName).join(', ');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Already Locked',
+                html: `The following employee(s) are already locked:<br><b>${employeeNames}</b><br><br>Please deselect them and try again.`,
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Confirm Lock',
+            text: `Are you sure you want to lock attendance for ${selectedRows.length} employee(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Lock It!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                manageAttendanceLock(selectedRows, true);
+            }
+        });
+    });
+
+    $('#btnUnlockAttendance').click(function () {
+        const selectedRows = currentGridData.filter(r => lockSelectedIds.includes(r.employeeId));
+
+        if (selectedRows.length === 0) {
+            Swal.fire('Warning', 'Please select at least one employee to unlock attendance.', 'warning');
+            return;
+        }
+
+        const alreadyUnlocked = selectedRows.filter(row => row.status === 'UnLocked');
+        if (alreadyUnlocked.length > 0) {
+            const employeeNames = alreadyUnlocked.map(row => row.fullName).join(', ');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Already Unlocked',
+                html: `The following employee(s) are already unlocked:<br><b>${employeeNames}</b><br><br>Please deselect them and try again.`,
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Confirm Unlock',
+            text: `Are you sure you want to unlock attendance for ${selectedRows.length} employee(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Unlock It!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                manageAttendanceLock(selectedRows, false);
+            }
+        });
+    });
+
+    function manageAttendanceLock(selectedRows, isLocking) {
+        const btnId = isLocking ? '#btnLockAttendance' : '#btnUnlockAttendance';
+        setBtnLoading(btnId, isLocking ? 'Locking...' : 'Unlocking...');
+
+        const recordsToCreate = [];
+        const recordsToUpdate = [];
+
+        selectedRows.forEach(row => {
+            const attendanceLockId = row.attendanceLockId;
+
+            if (!attendanceLockId || attendanceLockId === 0) {
+                recordsToCreate.push({
+                    EmpId: row.employeeId,
+                    Month: currentFilters.month,
+                    Year: currentFilters.year,
+                    IsLocked: isLocking,
+                    IsEnabled: true,
+                    IsDeleted: false,
+                    CreatedBy: Empid
+                });
+            } else {
+                recordsToUpdate.push({
+                    EmpId: row.employeeId,
+                    AttendanceLockId: attendanceLockId,
+                    Month: currentFilters.month,
+                    Year: currentFilters.year,
+                    IsLocked: isLocking,
+                    IsEnabled: true,
+                    IsDeleted: false,
+                    UpdatedBy: Empid
+                });
+            }
+        });
+
+        let createPromise = Promise.resolve({ isSuccess: true });
+        let updatePromise = Promise.resolve({ isSuccess: true });
+
+        if (recordsToCreate.length > 0) {
+            createPromise = $.ajax({
+                url: '@(baseDomainUrl + "/api/AttendanceLockAPI/CreateAttendanceLockEmp")',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify(recordsToCreate)
+            });
+        }
+
+        if (recordsToUpdate.length > 0) {
+            updatePromise = $.ajax({
+                url: '@(baseDomainUrl + "/api/AttendanceLockAPI/UpdateAttendanceLock")',
+                method: 'PUT',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify(recordsToUpdate)
+            });
+        }
+
+        Promise.all([createPromise, updatePromise])
+            .then(([createResponse, updateResponse]) => {
+                setBtnNormal(btnId, isLocking ? 'Lock Attendance' : 'Unlock Attendance');
+
+                const createSuccess = !recordsToCreate.length || createResponse?.isSuccess;
+                const updateSuccess = !recordsToUpdate.length || updateResponse?.isSuccess;
+
+                if (createSuccess && updateSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: `Attendance ${isLocking ? 'locked' : 'unlocked'} successfully for ${selectedRows.length} employee(s).`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => { location.reload(); });
+                } else {
+                    const errorMsg = !createSuccess ? createResponse?.responseMessage : updateResponse?.responseMessage;
+                    Swal.fire('Error', errorMsg || `Failed to ${isLocking ? 'lock' : 'unlock'} attendance.`, 'error');
+                }
+            })
+            .catch((error) => {
+                setBtnNormal(btnId, isLocking ? 'Lock Attendance' : 'Unlock Attendance');
+                console.error('Error locking/unlocking attendance:', error);
+                Swal.fire('Error', `Failed to ${isLocking ? 'lock' : 'unlock'} attendance. Please try again.`, 'error');
+            });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Publish / Unpublish Salary
+    // ─────────────────────────────────────────────────────────────────────
+    $('#btnPublishSalary').click(function () {
+        const selectedRows = currentSalaryGridData.filter(r => salarySelectedIds.includes(r.employeeId));
+
+        if (selectedRows.length === 0) {
+            Swal.fire('Warning', 'Please select at least one employee to publish salary.', 'warning');
+            return;
+        }
+
+        const alreadyPublished = selectedRows.filter(row => row.status === 'Published');
+        if (alreadyPublished.length > 0) {
+            const employeeNames = alreadyPublished.map(row => row.fullName).join(', ');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Already Published',
+                html: `The following employee(s) are already published:<br><b>${employeeNames}</b><br><br>Please deselect them and try again.`,
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Confirm Publish',
+            text: `Are you sure you want to publish salary for ${selectedRows.length} employee(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Publish It!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                updateSalaryPublishStatus(selectedRows, 'Published');
+            }
+        });
+    });
+
+    $('#btnUnpublishSalary').click(function () {
+        const selectedRows = currentSalaryGridData.filter(r => salarySelectedIds.includes(r.employeeId));
+
+        if (selectedRows.length === 0) {
+            Swal.fire('Warning', 'Please select at least one employee to unpublish salary.', 'warning');
+            return;
+        }
+
+        const alreadyUnpublished = selectedRows.filter(row => row.status === 'Unpublished');
+        if (alreadyUnpublished.length > 0) {
+            const employeeNames = alreadyUnpublished.map(row => row.fullName).join(', ');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Already Unpublished',
+                html: `The following employee(s) are already unpublished:<br><b>${employeeNames}</b><br><br>Please deselect them and try again.`,
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Confirm Unpublish',
+            text: `Are you sure you want to unpublish salary for ${selectedRows.length} employee(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Unpublish It!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                updateSalaryPublishStatus(selectedRows, 'Unpublished');
+            }
+        });
+    });
+
+    function updateSalaryPublishStatus(selectedRows, status) {
+        const btnId = status === 'Published' ? '#btnPublishSalary' : '#btnUnpublishSalary';
+        setBtnLoading(btnId, status === 'Published' ? 'Publishing...' : 'Unpublishing...');
+
+        const employeeIds = selectedRows.map(row => row.employeeId).join(',');
+        const salaryid = selectedRows.map(row => row.id).join(',');
+
+        const requestData = {
+            Month: currentSalaryFilters.month,
+            Year: currentSalaryFilters.year,
+            EmployeeIds: employeeIds,
+            SalaryIds: salaryid,
+            Status: status
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/UpdateSalaryPublishStatus")',
+            method: 'PUT',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(requestData),
+            success: function (response) {
+                setBtnNormal(btnId, status === 'Published' ? 'Publish' : 'Unpublish');
+
+                if (response?.isSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: response.responseMessage,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => { location.reload(); });
+                } else {
+                    Swal.fire('Error', response?.responseMessage || `Failed to ${status.toLowerCase()} salary.`, 'error');
+                }
+            },
+            error: function (xhr, status2, error) {
+                setBtnNormal(btnId, status === 'Published' ? 'Publish' : 'Unpublish');
+                console.error(`Error ${status.toLowerCase()} salary:`, error);
+                Swal.fire('Error', `Failed to ${status.toLowerCase()} salary. Please try again.`, 'error');
+            }
+        });
+    }
+</script>

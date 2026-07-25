@@ -1,0 +1,374 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Yearly Leave Report";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<!-- ExcelJS + FileSaver for the business-specific multi-month Excel export -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Yearly Leave Report</h6>
+            <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="btnExportExcel" style="display:none;">
+                <i class="bx bx-download"></i> Export to Excel
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 200px;min-width:180px;">
+                    <label for="branchSelect">Branch</label>
+                    <select id="branchSelect">
+                        <option value="">All Branches</option>
+                    </select>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="fromdate">From Date</label>
+                    <input type="date" id="fromdate" />
+                    <span class="field-validation-error" id="spnfromdate" style="display:none;">Please Select From Date</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="todate">To Date</label>
+                    <input type="date" id="todate" />
+                    <span class="field-validation-error" id="spntodate" style="display:none;">Please Select To Date</span>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("Index", "MyReports")'">Back</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="gridContainerYearlyLeave"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        // ── Auth ──────────────────────────────────────────────────────────────
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var Compid = companyDetails.CompanyId;
+        var Token = localStorage.getItem("authToken");
+
+        var grid = null;
+        var currentRows = [];
+        var isLoadingYl = false;
+
+        // ── Default Dates ─────────────────────────────────────────────────────
+        function setDefaultDates() {
+            var y = new Date().getFullYear();
+            $('#fromdate').val(y + '-01-01');
+            $('#todate').val(y + '-12-31');
+        }
+
+        // ── NULL / empty → "-" ────────────────────────────────────────────────
+        function safeVal(val) {
+            if (val === null || val === undefined) return '-';
+            var s = String(val).trim();
+            if (s === '' || s.toLowerCase() === 'null') return '-';
+            return s;
+        }
+
+        // ── DOJ format: 01-Jun-2024 ───────────────────────────────────────────
+        function formatDateOnly(val) {
+            if (!val) return '-';
+            var d = new Date(val);
+            if (isNaN(d)) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var mons = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return day + '-' + mons[d.getMonth()] + '-' + d.getFullYear();
+        }
+
+        // ── Field accessor (camelCase + PascalCase) ───────────────────────────
+        function fld(row, name) {
+            if (row[name] !== undefined) return row[name];
+            var pascal = name.charAt(0).toUpperCase() + name.slice(1);
+            if (row[pascal] !== undefined) return row[pascal];
+            var found = Object.keys(row).find(function (k) { return k.toLowerCase() === name.toLowerCase(); });
+            return found ? row[found] : null;
+        }
+
+        /* ── Render WMSGrid ───────────────────────────── */
+        function renderGrid(data) {
+            var columns = [
+                { header: 'Location', sortable: false, width: '140px', render: function (v, row) { return safeVal(fld(row, 'location')); } },
+                { header: 'Emp Code', sortable: false, width: '100px', render: function (v, row) { return safeVal(fld(row, 'employeeCode')); } },
+                { header: 'Name', sortable: false, width: '180px', render: function (v, row) { return safeVal(fld(row, 'name')); } },
+                { header: 'DOJ', sortable: false, width: '100px', render: function (v, row) { return formatDateOnly(fld(row, 'doj')); } },
+                { header: 'Leave Type', sortable: false, width: '110px', render: function (v, row) { return safeVal(fld(row, 'leaveType')); } },
+                { header: 'Opening', sortable: false, width: '80px', render: function (v, row) { return safeVal(fld(row, 'opening')); } },
+                { header: 'Row Type', sortable: false, width: '90px', render: function (v, row) { return safeVal(fld(row, 'rowType')); } },
+                { header: 'Jan', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'jan')); } },
+                { header: 'Feb', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'feb')); } },
+                { header: 'Mar', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'mar')); } },
+                { header: 'Apr', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'apr')); } },
+                { header: 'May', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'may')); } },
+                { header: 'Jun', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'jun')); } },
+                { header: 'Jul', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'jul')); } },
+                { header: 'Aug', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'aug')); } },
+                { header: 'Sep', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'sep')); } },
+                { header: 'Oct', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'oct')); } },
+                { header: 'Nov', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'nov')); } },
+                { header: 'Dec', sortable: false, width: '50px', render: function (v, row) { return safeVal(fld(row, 'dec')); } },
+                { header: 'Closing', sortable: false, width: '80px', render: function (v, row) { return safeVal(fld(row, 'closing')); } }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerYearlyLeave',
+                    title: 'Yearly Leave Report',
+                    icon: 'bx-calendar-check',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        // ── Excel Export (ExcelJS) — business-specific multi-month layout,
+        //    kept as a manual export action since it does formatting WMSGrid's
+        //    generic export can't (frozen header, per-column alignment, etc.) ──
+        async function exportToExcel(apiData) {
+            var workbook = new ExcelJS.Workbook();
+            var worksheet = workbook.addWorksheet('Yearly Leave Report');
+
+            var headers = [
+                'Location', 'Emp Code', 'Name', 'DOJ',
+                'Leave Type', 'Opening', 'Row Type',
+                'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Closing'
+            ];
+
+            var colWidths = [18, 12, 28, 14, 13, 10, 10,
+                7, 7, 7, 7, 7, 7,
+                7, 7, 7, 7, 7, 7, 11];
+
+            worksheet.columns = headers.map(function (h, i) {
+                return { header: h, key: h, width: colWidths[i] };
+            });
+
+            // ── Header row styling ────────────────────────────────────────────
+            var headerRow = worksheet.getRow(1);
+            headerRow.height = 22;
+
+            headerRow.eachCell(function (cell) {
+                cell.font = {
+                    bold: true,
+                    color: { argb: 'FFFFFFFF' },
+                    name: 'Arial',
+                    size: 11
+                };
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF3E4B6D' }
+                };
+                cell.alignment = {
+                    horizontal: 'center',
+                    vertical: 'middle',
+                    wrapText: false
+                };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                    bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                    left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                    right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
+                };
+            });
+
+            // left-align cols (0-based): Location, EmpCode, Name, DOJ, LeaveType, RowType
+            var leftAlignCols = [0, 1, 2, 3, 4, 6];
+
+            // ── Data rows ─────────────────────────────────────────────────────
+            apiData.forEach(function (row) {
+                var values = [
+                    safeVal(fld(row, 'location')),
+                    safeVal(fld(row, 'employeeCode')),
+                    safeVal(fld(row, 'name')),
+                    formatDateOnly(fld(row, 'doj')),
+                    safeVal(fld(row, 'leaveType')),
+                    safeVal(fld(row, 'opening')),
+                    safeVal(fld(row, 'rowType')),
+                    safeVal(fld(row, 'jan')),
+                    safeVal(fld(row, 'feb')),
+                    safeVal(fld(row, 'mar')),
+                    safeVal(fld(row, 'apr')),
+                    safeVal(fld(row, 'may')),
+                    safeVal(fld(row, 'jun')),
+                    safeVal(fld(row, 'jul')),
+                    safeVal(fld(row, 'aug')),
+                    safeVal(fld(row, 'sep')),
+                    safeVal(fld(row, 'oct')),
+                    safeVal(fld(row, 'nov')),
+                    safeVal(fld(row, 'dec')),
+                    safeVal(fld(row, 'closing'))
+                ];
+
+                var dataRow = worksheet.addRow(values);
+                dataRow.height = 18;
+
+                dataRow.eachCell({ includeEmpty: true }, function (cell, colNumber) {
+                    var ci = colNumber - 1;
+                    cell.font = { name: 'Arial', size: 10 };
+                    cell.alignment = {
+                        horizontal: leftAlignCols.indexOf(ci) !== -1 ? 'left' : 'center',
+                        vertical: 'middle'
+                    };
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+                        bottom: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+                        left: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+                        right: { style: 'thin', color: { argb: 'FFDDDDDD' } }
+                    };
+                });
+            });
+
+            // ── Freeze header row ─────────────────────────────────────────────
+            worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+            // ── Download ──────────────────────────────────────────────────────
+            var buffer = await workbook.xlsx.writeBuffer();
+            var blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            var fromDate = $('#fromdate').val() || 'report';
+            var toDate = $('#todate').val() || '';
+            saveAs(blob, 'YearlyLeaveReport_' + fromDate + '_' + toDate + '.xlsx');
+        }
+
+        // ── Branch Dropdown ───────────────────────────────────────────────────
+        function loadBranchList() {
+            if (!Compid) return;
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + Compid,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    var data = (response && response.data) || [];
+                    var $sel = $('#branchSelect');
+                    $sel.empty().append('<option value="">All Branches</option>');
+                    data.forEach(function (item) {
+                        var id = item.branchId || item.BranchId || '';
+                        var name = item.branchName || item.BranchName || '';
+                        $sel.append($('<option>', { value: id, text: name }));
+                    });
+                },
+                error: function () { console.error('Branch load failed'); }
+            });
+        }
+
+        /* ── Document Ready ─────────────────────────────────────────────────── */
+        $(document).ready(function () {
+            setDefaultDates();
+            loadBranchList();
+        });
+
+        /* ── GO Button ──────────────────────────────── */
+        $('#btnGo').on('click', function () {
+            if (isLoadingYl) return;
+
+            var fromDate = $('#fromdate').val();
+            var toDate = $('#todate').val();
+            var branchId = $('#branchSelect').val();
+            var isValid = true;
+
+            if (!fromDate) { $('#spnfromdate').show(); isValid = false; } else { $('#spnfromdate').hide(); }
+
+            if (!toDate) {
+                $('#spntodate').text('Please Select To Date').show();
+                isValid = false;
+            } else { $('#spntodate').hide(); }
+
+            if (fromDate && toDate && new Date(fromDate) > new Date(toDate)) {
+                $('#spntodate').text('To Date must be >= From Date').show();
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            isLoadingYl = true;
+            setBtnLoading('#btnGo', 'Go');
+
+            var model = {
+                EmpIds: null,
+                CompanyId: Compid,
+                BranchId: branchId ? parseInt(branchId) : null,
+                StartDate: fromDate,
+                EndDate: toDate
+            };
+
+            $.ajax({
+                url: '@baseUrl/LeaveApplication/GetYearlyLeaveReportAsync',
+                type: 'POST',
+                data: JSON.stringify(model),
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        currentRows = res.data;
+                        renderGrid(currentRows);
+                        $('#btnExportExcel').show();
+                    } else {
+                        currentRows = [];
+                        grid = null;
+                        $('#gridContainerYearlyLeave').empty();
+                        $('#btnExportExcel').hide();
+                        showToast(res.responseMessage || 'No records found for the selected period.', 'info');
+                    }
+                },
+                error: function (xhr) {
+                    console.error('API Error:', xhr);
+                    currentRows = [];
+                    grid = null;
+                    $('#gridContainerYearlyLeave').empty();
+                    $('#btnExportExcel').hide();
+                    showToast('An error occurred. Please try again.', 'error');
+                },
+                complete: function () {
+                    isLoadingYl = false;
+                    setBtnNormal('#btnGo', 'Go');
+                }
+            });
+        });
+
+        /* ── Export to Excel Button ──────────────────── */
+        $('#btnExportExcel').on('click', function () {
+            if (!currentRows.length) return;
+            exportToExcel(currentRows);
+        });
+
+        /* ── Clear Button ──────────────────────────────────────────────────── */
+        $('#btnClear').on('click', function () {
+            $('#fromdate, #todate').val('');
+            $('#spnfromdate, #spntodate').hide();
+            $('#branchSelect').val('');
+            setDefaultDates();
+            currentRows = [];
+            grid = null;
+            $('#gridContainerYearlyLeave').empty();
+            $('#btnExportExcel').hide();
+        });
+    })();
+</script>

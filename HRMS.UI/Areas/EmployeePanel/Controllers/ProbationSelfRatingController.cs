@@ -19,5 +19,11 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
             return View();
         }
+        public IActionResult ProbationEvaluation()
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+
+            return View();
+        }
     }
 }

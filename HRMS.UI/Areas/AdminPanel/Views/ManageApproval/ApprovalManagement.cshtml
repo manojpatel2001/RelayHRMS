@@ -1,0 +1,191 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Approval Management";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Approval Management</h6>
+            <button type="button" id="addApproval" class="btn btn-primary btn-sm">
+                <i class="bx bx-plus"></i> Add Approval
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="approvalGrid"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Department Approvers — WMSGrid has no inline row-expansion like the old dxDataGrid
+     masterDetail did, so the per-level department breakdown opens here instead, reusing
+     the same grid component rather than a one-off nested dxDataGrid expand panel. -->
+<div class="modal fade" id="deptApproversModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Department Approvers</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="deptApproversGrid"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/assets/js/jquery.min.js"></script>
+<script>
+    const companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    var approvalLevels = [];
+    var grid = null;
+
+    $(document).ready(function () {
+        fetchAndLoadApprovalGrid();
+    });
+
+    $("#addApproval").click(function () {
+        localStorage.removeItem("ApprovalMasterId");
+        window.location.href = '/AdminPanel/ManageApproval/AddApprovalLevel';
+    });
+
+    function approverName(row) {
+        if (row.isReportingPerson) return "Reporting Manager";
+        if (row.isHOD) return "HOD";
+        if (row.isNationalManager) return "National Manager";
+        if (row.isHR) return "HR";
+        return "N/A";
+    }
+
+    function buildGrid() {
+        if (grid) { grid.setData(approvalLevels); return; }
+        grid = WMSGrid.create({
+            container: 'approvalGrid',
+            title: 'Approval Levels',
+            icon: 'bx-list-check',
+            perPage: 10,
+            data: approvalLevels,
+            columns: [
+                { field: 'approvalName', header: 'Approval Name', width: '180px' },
+                {
+                    header: 'Approver Name', sortable: false, width: '160px',
+                    render: function (v, row) { return approverName(row); }
+                },
+                { field: 'levelNo', header: 'Level', width: '80px' },
+                {
+                    header: 'Department Based', sortable: false, width: '160px',
+                    render: function (v, row) {
+                        var depts = row.approvalLevelDepartmentVMs || [];
+                        if (!row.isDepartmentBased || !depts.length) {
+                            return '<span class="wg-pill wg-pill-pu">No</span>';
+                        }
+                        return '<button type="button" class="wg-btn wg-btn-outline" onclick="openDeptApprovers(' + row.approvalLevelId + ')">' +
+                               '<i class="bx bx-sitemap"></i> View (' + depts.length + ')</button>';
+                    }
+                },
+                { field: 'escalationDays', header: 'Escalation Days', width: '140px' },
+                {
+                    header: 'Actions', sortable: false, stickyRight: true, width: '120px',
+                    render: function (v, row) {
+                        return '<button class="wg-btn wg-btn-primary" onclick="openEditModal(' + row.approvalMasterId + ')"><i class="bx bx-edit"></i> Edit</button> ' +
+                               '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" onclick="deleteApprovalLevel(' + row.approvalMasterId + ')"><i class="bx bx-trash"></i></button>';
+                    }
+                }
+            ],
+            features: { export: true }
+        });
+    }
+
+    function openDeptApprovers(approvalLevelId) {
+        var level = approvalLevels.find(function (l) { return l.approvalLevelId === approvalLevelId; });
+        var depts = (level && level.approvalLevelDepartmentVMs) || [];
+        WMSGrid.create({
+            container: 'deptApproversGrid',
+            title: 'Department Approvers',
+            icon: 'bx-sitemap',
+            perPage: 10,
+            data: depts,
+            columns: [
+                { field: 'departmentName', header: 'Department', width: '160px' },
+                { field: 'deptApproverName', header: 'Approver Name', width: '180px' },
+                {
+                    header: 'Not Mandatory', sortable: false, width: '130px',
+                    render: function (v, row) {
+                        return row.isNotMandatory
+                            ? '<span class="wg-pill wg-pill-amber">Yes</span>'
+                            : '<span class="wg-pill wg-pill-green">No</span>';
+                    }
+                }
+            ],
+            features: { export: false, pagination: depts.length > 10 }
+        });
+        new bootstrap.Modal(document.getElementById('deptApproversModal')).show();
+    }
+
+    async function fetchAndLoadApprovalGrid() {
+        if (grid) grid.showLoader();
+        try {
+            const response = await $.ajax({
+                url: `@baseUrl/ApprovalManagementAPI/GetAllApprovalLevelsByCompanyId/${CompanyId}`,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token }
+            });
+            if (response.isSuccess) {
+                approvalLevels = response.data || [];
+                buildGrid();
+            } else {
+                showToast(response.responseMessage || 'Unable to load approval levels.', 'error');
+            }
+        } catch (error) {
+            console.error('Error fetching approval scheme levels:', error);
+            showToast('Error fetching approval scheme levels.', 'error');
+        } finally {
+            if (grid) grid.hideLoader();
+        }
+    }
+
+    function openEditModal(approvalMasterId) {
+        localStorage.removeItem("ApprovalMasterId");
+        localStorage.setItem("ApprovalMasterId", approvalMasterId);
+        window.location.href = '/AdminPanel/ManageApproval/AddApprovalLevel';
+    }
+
+    function deleteApprovalLevel(approvalMasterId) {
+        wmsConfirm('Are you sure you want to delete this approval level?<br><small style="color:#E53E3E;display:block;margin-top:4px">This action cannot be undone.</small>', async function () {
+            try {
+                const response = await $.ajax({
+                    url: `@baseUrl/ApprovalManagementAPI/DeleteApprovalLevel`,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    headers: { 'Authorization': 'Bearer ' + Token },
+                    data: JSON.stringify({
+                        approvalMasterId: approvalMasterId,
+                        approvalLevelId: 0,
+                        deletedBy: EmployeeId
+                    })
+                });
+
+                if (response.isSuccess) {
+                    showToast(response.responseMessage || 'Approval level deleted successfully.', 'success');
+                    fetchAndLoadApprovalGrid();
+                } else {
+                    showToast(response.responseMessage || 'Something went wrong.', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting approval scheme level:', error);
+                showToast('Error deleting approval scheme level.', 'error');
+            }
+        });
+    }
+</script>

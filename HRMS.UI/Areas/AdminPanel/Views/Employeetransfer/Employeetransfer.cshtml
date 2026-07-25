@@ -1,0 +1,825 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Transfer";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<!-- jsPDF + html2canvas (same as increment/promotion letter) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Manage Employee Transfer</h6>
+        <button id="addTransfer" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bx bx-plus"></i> Add
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="sec-lbl">Search Panel</div>
+        <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+            <div class="fg" style="min-width:200px;max-width:240px;flex:1 1 auto;">
+                <label for="filterBranch">Branch</label>
+                <select id="filterBranch">
+                    <option value="">All</option>
+                </select>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" id="btnFilterSearch" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="bx bx-search"></i> Search
+                </button>
+                <button type="button" id="btnFilterClear" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="bx bx-x"></i> Clear
+                </button>
+            </div>
+        </div>
+
+        <div id="transferGrid"></div>
+    </div>
+</div>
+
+
+<!-- ══ ADD / EDIT MODAL ══ -->
+<div class="modal fade" id="addTransferModal" tabindex="-1" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="modalTitle">Add Employee Transfer</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="transferForm">
+                    <input type="hidden" id="transferId" value="0">
+                    <div class="row">
+
+                        <!-- Current Branch -->
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="currentBranch">Current Branch</label>
+                                <select id="currentBranch">
+                                    <option value="" selected disabled>Select Current Branch</option>
+                                </select>
+                            </div>
+                            <span class="field-validation-error" id="spncurrentBranch" style="display:none;">Please Select Current Branch</span>
+                        </div>
+
+                        <!-- Employee -->
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="employeeTransfer">Employee</label>
+                                <select id="employeeTransfer">
+                                    <option value="" selected disabled>Select Employee</option>
+                                </select>
+                            </div>
+                            <span class="field-validation-error" id="spnemployeeTransfer" style="display:none;">Please Select Employee</span>
+                        </div>
+
+                        <!-- Current Reporting Person (Read-only) -->
+                        <div class="col-md-6">
+                            <div class="fg">
+                                <label for="currentReportingPerson">Current Reporting Person</label>
+                                <input type="text" id="currentReportingPerson" readonly placeholder="Auto-filled on Employee selection">
+                                <input type="hidden" id="currentReportingPersonId">
+                            </div>
+                        </div>
+
+                        <!-- Department (Read-only, display only) -->
+                        <div class="col-md-6">
+                            <div class="fg">
+                                <label for="employeeDepartment">Department</label>
+                                <input type="text" id="employeeDepartment" readonly placeholder="Auto-filled on Employee selection">
+                            </div>
+                        </div>
+
+                        <!-- Designation (Read-only, display only) -->
+                        <div class="col-md-6">
+                            <div class="fg">
+                                <label for="employeeDesignation">Designation</label>
+                                <input type="text" id="employeeDesignation" readonly placeholder="Auto-filled on Employee selection">
+                            </div>
+                        </div>
+
+                        <!-- Transfer Branch -->
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="transferBranch">Transfer Branch</label>
+                                <select id="transferBranch">
+                                    <option value="" selected disabled>Select Transfer Branch</option>
+                                </select>
+                            </div>
+                            <span class="field-validation-error" id="spntransferBranch" style="display:none;">Please Select Transfer Branch</span>
+                        </div>
+
+                        <!-- Transfer Reporting Person -->
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="transferReportingPerson">Transfer Reporting Person</label>
+                                <select id="transferReportingPerson">
+                                    <option value="" selected disabled>Select Transfer Reporting Person</option>
+                                </select>
+                            </div>
+                            <span class="field-validation-error" id="spntransferReportingPerson" style="display:none;">Please Select Transfer Reporting Person</span>
+                        </div>
+
+                        <!-- Effective Date -->
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="effectiveDate">Effective Date</label>
+                                <input type="date" id="effectiveDate">
+                            </div>
+                            <span class="field-validation-error" id="spneffectiveDate" style="display:none;">Please Select Effective Date</span>
+                        </div>
+
+                        <!-- Reason -->
+                        <div class="col-md-12">
+                            <div class="fg fg-req">
+                                <label for="reason">Reason</label>
+                                <input type="text" id="reason" placeholder="Reason for transfer">
+                            </div>
+                            <span class="field-validation-error" id="spnreason" style="display:none;">Please Enter Reason</span>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnSaveTransfer">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══ PREVIEW MODAL ══ -->
+<div class="modal fade" id="previewTransferModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl" style="max-width:950px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Transfer Letter Preview</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="previewContent"
+                 style="padding:20px; overflow-y:auto; max-height:80vh;">
+                <!-- Letter HTML injected here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnDownloadFromPreview">
+                    <i class="bx bx-download"></i> Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    /* ── Auth / Company ─────────────────────────────────────────────────── */
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId  = companyDetails?.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token      = localStorage.getItem('authToken');
+
+    let _currentPreviewData = null;   // used by "Download PDF" inside preview modal
+    let transferGrid  = null;
+    let allTransfers  = [];           // full, unfiltered list as loaded from the API
+    let allBranches   = [];
+
+    /* ══════════════════════════════════════════════════════════════════════
+       SHARED HELPERS
+    ══════════════════════════════════════════════════════════════════════ */
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        const date       = new Date(dateString);
+        const day        = String(date.getDate()).padStart(2, '0');
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun',
+                            'Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${day}-${monthNames[date.getMonth()]}-${date.getFullYear()}`;
+    }
+
+    function fmtDate(v) {
+        if (!v) return '-';
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        return String(d.getDate()).padStart(2, '0') + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + d.getFullYear();
+    }
+
+    function escapeHtml(v) {
+        return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+        });
+    }
+
+    function truncRender(v) {
+        var text = (v === null || v === undefined || v === '') ? '-' : v;
+        return '<span style="display:block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(text) + '">' + escapeHtml(text) + '</span>';
+    }
+
+    function getTitle(gender) {
+        const g = (gender || '').toString().trim().toLowerCase();
+        if (g === 'male'   || g === 'm' || g === '1') return 'Mr.';
+        if (g === 'female' || g === 'f' || g === '2') return 'Ms.';
+        return 'Mr./Ms.';
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       LETTER HTML BUILDER  (single source of truth for Preview + Export)
+    ══════════════════════════════════════════════════════════════════════ */
+    function buildTransferLetterHTML(data) {
+        const effectiveDate  = formatDate(data.effectiveDate  || data.EffectiveDate);
+        const currentDate    = formatDate(new Date());
+        const logoUrl        = '/assets/images/relaylogo.jpeg';
+
+        const refNo          = data.refNumber                     || data.RefNumber                     || '';
+        const fullName       = data.fullName                      || data.FullName                      || '';
+        const empCode        = data.employeeCode                  || data.EmployeeCode                  || '';
+        const currentBranch  = data.currentBranchName             || data.CurrentBranchName             || '';
+        const transferBranch = data.transferBranchName            || data.TransferBranchName            || '';
+        const reportingName  = data.transferReportingPersonName   || data.TransferReportingPersonName   || 'Reporting Manager';
+        const companyName    = data.companyName                   || companyDetails?.CompanyName         || 'Relay Express Pvt Ltd';
+        const directorName   = data.directorName                  || 'Atri Patel';
+        const companyAddress = data.companyAddress                ||
+            'Head Office: 406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway, Makarba, Ahmedabad - 380051, Gujarat, India';
+
+        const title    = getTitle(data.gender || data.Gender);
+        const lastName = fullName.trim().split(' ').pop();
+
+        return `
+        <div class="letter-container" style="
+            width:100%; max-width:860px; margin:0 auto;
+            padding:50px 70px; background:#fff;
+            font-family:'Calibri','Arial',sans-serif;
+            font-size:13.5px; color:#222;
+            box-sizing:border-box; line-height:1.8;
+            border:1px solid #ddd;
+        ">
+            <!-- Ref No | Logo -->
+            <table style="width:100%; margin-bottom:6px; border-collapse:collapse;">
+                <tr>
+                    <td style="vertical-align:top; font-size:12px; color:#555; width:50%;">
+                        <strong>Ref No:</strong> ${refNo}
+                    </td>
+                    <td style="text-align:right; vertical-align:top;">
+                        <img src="${logoUrl}" alt="Company Logo"
+                             style="max-width:200px; height:auto;"
+                             onerror="this.style.display='none'" />
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Date -->
+            <p style="margin:0 0 20px 0; text-align:right; font-size:13px;">
+                <strong>${currentDate}</strong>
+            </p>
+
+            <!-- To Block -->
+            <p style="margin:0 0 2px 0;">To,</p>
+            <p style="margin:4px 0;"><strong>Employee Name:</strong> ${fullName}</p>
+            <p style="margin:4px 0;"><strong>Employee Code:</strong> ${empCode}</p>
+
+            <!-- Subject -->
+            <p style="margin:22px 0 0 0; text-align:center;">
+                <strong><u>Subject: Transfer Letter</u></strong>
+            </p>
+
+            <!-- Salutation -->
+            <p style="margin-top:20px;"><strong>Dear ${title} ${lastName},</strong></p>
+
+            <!-- Body -->
+            <p style="margin:10px 0; text-align:justify;">
+                This is to inform you that as per our business requirement your services are being
+                transferred from <strong style="color:#e74c3c;">${currentBranch}</strong> Branch
+                to <strong style="color:#e74c3c;">${transferBranch}</strong> Branch effective from
+                <strong style="color:#e74c3c;">${effectiveDate}</strong>.
+            </p>
+
+            <p style="margin:10px 0; text-align:justify;">
+                As such, you will be reporting for duty &amp; further assignment of work, accordingly,
+                to <strong>${reportingName}</strong>. All the rules &amp; regulations and terms &amp;
+                conditions as applicable to your category / post at the place you are transferred
+                shall be applicable to you, accordingly.
+            </p>
+
+            <p style="margin:10px 0; text-align:justify;">
+                All other terms and conditions of your employment remain unchanged.
+            </p>
+
+            <p style="margin:10px 0; text-align:justify;">
+                Kindly acknowledge the receipt of the same &amp; share the signed copy with the HRD.
+            </p>
+
+            <p style="margin:14px 0;"><strong>Good Luck!!</strong></p>
+
+            <!-- Signature -->
+            <div style="margin-top:40px;">
+                <p style="margin:4px 0;"><strong>Sincerely,</strong></p>
+                <p style="margin:4px 0;"><strong>${companyName}</strong></p>
+                <br/><br/>
+                <p style="margin:4px 0; color:#e74c3c;"><strong><u>Mr. ${directorName}</u></strong></p>
+                <p style="margin:4px 0;"><strong>Director</strong></p>
+            </div>
+
+            <!-- Footer Note -->
+            <div style="margin-top:30px; font-size:11px; text-align:center; color:#555;
+                        border-top:1px solid #eee; padding-top:10px;">
+                <p style="margin:2px 0;">
+                    <strong>Note: This is a computer-generated statement hence no signature required.</strong>
+                </p>
+                <p style="margin:2px 0;"><strong>Personal &amp; Confidential</strong></p>
+            </div>
+
+            <!-- Company Address -->
+            <div style="margin-top:8px; font-size:11px; text-align:center; color:#666;">
+                <p style="margin:2px 0;"><strong>${companyAddress}</strong></p>
+            </div>
+        </div>`;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       PREVIEW
+    ══════════════════════════════════════════════════════════════════════ */
+    function PreviewTransferLetter(data) {
+        if (!data) return;
+        _currentPreviewData = data;
+        $('#previewContent').html(buildTransferLetterHTML(data));
+        $('#previewTransferModal').modal('show');
+    }
+
+    /* Download PDF from inside Preview modal */
+    $('#btnDownloadFromPreview').on('click', function () {
+        if (_currentPreviewData) ExportTransferLetterToPDF(_currentPreviewData);
+    });
+
+    /* ══════════════════════════════════════════════════════════════════════
+       EXPORT TO PDF  —  html2canvas + jsPDF (same as increment/promotion)
+    ══════════════════════════════════════════════════════════════════════ */
+    function ExportTransferLetterToPDF(data) {
+        if (!data) return;
+        const fullName = data.fullName || data.FullName || 'Employee';
+
+        /* Render in viewport (visible) so html2canvas captures correctly */
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = [
+            'position:fixed',
+            'top:0',
+            'left:0',
+            'width:900px',
+            'background:#fff',
+            'z-index:99999',
+            'pointer-events:none'
+        ].join(';');
+        tempDiv.innerHTML = buildTransferLetterHTML(data);
+        document.body.appendChild(tempDiv);
+
+        const element = tempDiv.querySelector('.letter-container');
+
+        /* Give DOM time to paint before capturing */
+        setTimeout(function () {
+            html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                logging: false,
+                backgroundColor: '#ffffff',
+                width:  element.scrollWidth,
+                height: element.scrollHeight
+            }).then(function (canvas) {
+                const imgData    = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf        = new jsPDF('p', 'mm', 'a4');
+                const imgWidth   = 210;
+                const pageHeight = 297;
+                const imgHeight  = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft   = imgHeight;
+                let position     = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`Transfer_Letter_${fullName}_${new Date().getTime()}.pdf`);
+                document.body.removeChild(tempDiv);
+                showToast('Transfer letter exported successfully!', 'success');
+            }).catch(function (err) {
+                document.body.removeChild(tempDiv);
+                console.error('PDF error:', err);
+                showToast('Failed to generate PDF.', 'error');
+            });
+        }, 400);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       ON READY
+    ══════════════════════════════════════════════════════════════════════ */
+    $(document).ready(function () {
+        loadEmployeeTransfers(CompanyId);
+        BindBranchDropdownForTransfer();
+        loadTransferReportingPersonDropdown();
+
+        $('#employeeTransfer').on('change', function () {
+            var val = $(this).val();
+            if (val) {
+                loadCurrentReportingPerson(val);
+                loadEmployeeDeptDesignation(val);
+            } else {
+                $('#currentReportingPerson, #currentReportingPersonId, #employeeDepartment, #employeeDesignation').val('');
+            }
+        });
+
+        $('#btnFilterSearch').on('click', applyTransferFilter);
+        $('#btnFilterClear').on('click', function () {
+            $('#filterBranch').val('');
+            renderTransferGrid(allTransfers);
+        });
+    });
+
+    /* ── Add button ─────────────────────────────────────────────────────── */
+    $('#addTransfer').click(function () {
+        resetTransferForm();
+        $('#modalTitle').text('Add Employee Transfer');
+        $('#addTransferModal').modal('show');
+    });
+
+    /* ── Current Reporting Person ───────────────────────────────────────── */
+    function loadCurrentReportingPerson(employeeId) {
+        $.ajax({
+            url: `@baseUrl/LeaveApplication/GetReportingperson?Empid=${employeeId}`,
+            method: 'POST',
+            dataType: 'json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response.isSuccess && response.data) {
+                    $('#currentReportingPerson').val(response.data.fullName);
+                    $('#currentReportingPersonId').val(response.data.id);
+                } else {
+                    $('#currentReportingPerson').val('');
+                    $('#currentReportingPersonId').val('');
+                }
+            },
+            error: function () {
+                $('#currentReportingPerson').val('');
+                $('#currentReportingPersonId').val('');
+            }
+        });
+    }
+
+    /* ── Department / Designation (read-only display, auto-filled) ───────── */
+    function loadEmployeeDeptDesignation(employeeId) {
+        $.ajax({
+            url: `@baseUrl/EmployeeMasterAPI/GetEmployeeById/${employeeId}`,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response.isSuccess && response.data) {
+                    $('#employeeDepartment').val(response.data.departmentName || '');
+                    $('#employeeDesignation').val(response.data.designationName || '');
+                } else {
+                    $('#employeeDepartment, #employeeDesignation').val('');
+                }
+            },
+            error: function () {
+                $('#employeeDepartment, #employeeDesignation').val('');
+            }
+        });
+    }
+
+    /* ── Transfer Reporting Person Dropdown ─────────────────────────────── */
+    function loadTransferReportingPersonDropdown() {
+        $.ajax({
+            url: `@baseUrl/EmployeeMasterAPI/GetReportingList`,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.data) {
+                    var $sel = $('#transferReportingPerson');
+                    $sel.empty().append('<option value="" selected disabled>Select Transfer Reporting Person</option>');
+                    res.data.forEach(function (p) {
+                        $sel.append($('<option>', { value: p.employeeId, text: p.employeeName }));
+                    });
+                }
+            }
+        });
+    }
+
+    /* ── Branch Dropdown (Current/Transfer/Filter) ──────────────────────── */
+    async function BindBranchDropdownForTransfer() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (data) {
+                    if (data.isSuccess) {
+                        allBranches = data.data || [];
+                        var $current  = $('#currentBranch');
+                        var $transfer = $('#transferBranch');
+                        var $filter   = $('#filterBranch');
+                        $current.empty().append('<option value="" selected disabled>Select Current Branch</option>');
+                        $transfer.empty().append('<option value="" selected disabled>Select Transfer Branch</option>');
+                        $filter.empty().append('<option value="">All</option>');
+                        allBranches.forEach(function (b) {
+                            $current.append($('<option>', { value: b.branchId, text: b.branchName }));
+                            $transfer.append($('<option>', { value: b.branchId, text: b.branchName }));
+                            $filter.append($('<option>', { value: b.branchId, text: b.branchName }));
+                        });
+                        $current.off('change').on('change', function () { BindEmployeeByBranchIdForTransfer(); });
+                        resolve(allBranches);
+                    } else { reject('Failed to fetch branches'); }
+                },
+                error: function (e) { reject(e); }
+            });
+        });
+    }
+
+    /* ── Employee Dropdown by Branch ────────────────────────────────────── */
+    async function BindEmployeeByBranchIdForTransfer() {
+        const branchId = $('#currentBranch').val();
+        if (!branchId) return;
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '@baseUrl/EmployeeMasterAPI/GetEmployeeListByBranchId',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify({ BranchId: branchId, CompanyId: CompanyId }),
+                success: function (data) {
+                    if (data.isSuccess) {
+                        var $sel = $('#employeeTransfer');
+                        $sel.empty().append('<option value="" selected disabled>Select Employee</option>');
+                        (data.data || []).forEach(function (e) {
+                            $sel.append($('<option>', { value: e.employeeId, text: e.employeeName }));
+                        });
+                        resolve(data.data);
+                    } else { reject('Failed to fetch employees'); }
+                },
+                error: function (e) { reject(e); }
+            });
+        });
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       FILTER PANEL
+    ══════════════════════════════════════════════════════════════════════ */
+    function applyTransferFilter() {
+        const branchId = $('#filterBranch').val();
+        let filtered = allTransfers;
+        if (branchId) {
+            filtered = allTransfers.filter(function (r) { return String(r.currentBranchId) === String(branchId); });
+        }
+        renderTransferGrid(filtered);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       GRID
+    ══════════════════════════════════════════════════════════════════════ */
+    function renderTransferGrid(rows) {
+        if (!transferGrid) {
+            transferGrid = WMSGrid.create({
+                container: 'transferGrid',
+                title: 'Employee Transfers',
+                icon: 'bx-transfer-alt',
+                perPage: 10,
+                data: rows,
+                columns: [
+                    { field: 'effectiveDate', header: 'Effective Date', width: '130px', align: 'center', render: function (v) { return fmtDate(v); } },
+                    { field: 'currentBranchName', header: 'Current Branch', width: '160px' },
+                    { field: 'fullName', header: 'Employee Name', width: '200px' },
+                    { field: 'transferBranchName', header: 'Transfer Branch', width: '160px' },
+                    { field: 'reason', header: 'Reason', width: '220px', render: truncRender },
+                    {
+                        header: 'Actions', sortable: false, stickyRight: true, width: '170px', align: 'center',
+                        render: function (v, row) {
+                            return '<button type="button" class="wg-btn wg-btn-outline" title="Edit" onclick="UpdateTransferData(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-edit"></i></button> ' +
+                                   '<button type="button" class="wg-btn wg-btn-outline" title="Preview Letter" onclick="PreviewTransferLetter(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-show"></i></button> ' +
+                                   '<button type="button" class="wg-btn wg-btn-outline" title="Export PDF" onclick="ExportTransferLetterToPDF(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-download"></i></button> ' +
+                                   '<button type="button" class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="DeleteTransfer(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-trash"></i></button>';
+                        }
+                    }
+                ],
+                features: { export: true }
+            });
+        } else {
+            transferGrid.setData(rows);
+            transferGrid.hideLoader();
+        }
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       LOAD GRID DATA
+    ══════════════════════════════════════════════════════════════════════ */
+    async function loadEmployeeTransfers(CompanyId) {
+        if (transferGrid) transferGrid.showLoader();
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: `@baseUrl/EmployeeTransferAPI/GetEmployeeTransfer/${CompanyId}`,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (!response.isSuccess) {
+                        if (transferGrid) transferGrid.hideLoader();
+                        showToast(response.responseMessage || 'Failed to load data', 'error');
+                        reject(response.responseMessage);
+                        return;
+                    }
+
+                    allTransfers = response.data || [];
+                    renderTransferGrid(allTransfers);
+                    resolve(allTransfers);
+                },
+                error: function (xhr) {
+                    if (transferGrid) transferGrid.hideLoader();
+                    showToast((xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Failed to load employee transfers', 'error');
+                    reject(xhr);
+                }
+            });
+        });
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       SAVE / UPDATE
+    ══════════════════════════════════════════════════════════════════════ */
+    $('#btnSaveTransfer').click(function () {
+        const transferId = $('#transferId').val();
+        const isUpdate   = transferId > 0;
+
+        const currentBranch            = $('#currentBranch').val();
+        const employee                 = $('#employeeTransfer').val();
+        const transferBranch           = $('#transferBranch').val();
+        const currentReportingPersonId = $('#currentReportingPersonId').val();
+        const transferReportingPerson  = $('#transferReportingPerson').val();
+        const effectiveDate            = $('#effectiveDate').val();
+        const reason                   = $('#reason').val();
+        let isValid = true;
+
+        if (!currentBranch)           { $('#spncurrentBranch').show();          isValid = false; } else { $('#spncurrentBranch').hide(); }
+        if (!employee)                { $('#spnemployeeTransfer').show();        isValid = false; } else { $('#spnemployeeTransfer').hide(); }
+        if (!transferBranch)          { $('#spntransferBranch').show();          isValid = false; } else { $('#spntransferBranch').hide(); }
+        if (!transferReportingPerson) { $('#spntransferReportingPerson').show(); isValid = false; } else { $('#spntransferReportingPerson').hide(); }
+        if (!effectiveDate)           { $('#spneffectiveDate').show();           isValid = false; } else { $('#spneffectiveDate').hide(); }
+        if (!reason || !reason.trim()){ $('#spnreason').show();                  isValid = false; } else { $('#spnreason').hide(); }
+
+        if (!isValid) return;
+
+        /* ── Invalid transfer: current branch and transfer branch must differ ── */
+        if (String(currentBranch) === String(transferBranch)) {
+            showToast('Transfer Branch must be different from the Current Branch.', 'warn');
+            return;
+        }
+
+        /* ── Duplicate-transfer guard: same employee + same transfer branch + same effective date ── */
+        const duplicate = allTransfers.find(function (r) {
+            return String(r.employeeId) === String(employee)
+                && String(r.transferBranchId) === String(transferBranch)
+                && fmtDate(r.effectiveDate) === fmtDate(effectiveDate)
+                && String(r.transferId) !== String(transferId);
+        });
+        if (duplicate) {
+            showToast('This employee already has a transfer to this branch on this effective date.', 'warn');
+            return;
+        }
+
+        setBtnLoading('#btnSaveTransfer', isUpdate ? 'Updating...' : 'Saving...');
+
+        const transferData = {
+            TransferId:              parseInt(transferId),
+            EmployeeId:              parseInt(employee),
+            CurrentBranchId:         parseInt(currentBranch),
+            TransferBranchId:        parseInt(transferBranch),
+            CurrentReportingPerson:  parseInt(currentReportingPersonId) || 0,
+            TransferReportingPerson: parseInt(transferReportingPerson),
+            EffectiveDate:           effectiveDate,
+            Reason:                  reason.trim(),
+            IsEnabled:               true,
+            IsDeleted:               false,
+            CreatedBy:               parseInt(EmployeeId),
+            UpdatedBy:               parseInt(EmployeeId)
+        };
+
+        const apiUrl = isUpdate
+            ? '@baseUrl/EmployeeTransferAPI/UpdateEmployeeTransfer'
+            : '@baseUrl/EmployeeTransferAPI/CreateEmployeeTransfer';
+
+        $.ajax({
+            url: apiUrl,
+            type: isUpdate ? 'PUT' : 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(transferData),
+            success: function (response) {
+                setBtnNormal('#btnSaveTransfer', 'Save');
+                if (response.isSuccess) {
+                    showToast(response.responseMessage, 'success');
+                    $('#addTransferModal').modal('hide');
+                    loadEmployeeTransfers(CompanyId);
+                } else {
+                    showToast(response.responseMessage, 'error');
+                }
+            },
+            error: function (xhr) {
+                setBtnNormal('#btnSaveTransfer', 'Save');
+                showToast((xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Unable to save employee transfer', 'error');
+            }
+        });
+    });
+
+    /* ══════════════════════════════════════════════════════════════════════
+       RESET FORM
+    ══════════════════════════════════════════════════════════════════════ */
+    function resetTransferForm() {
+        $('#transferId').val('0');
+        $('#effectiveDate').val('');
+        $('#currentBranch').val('');
+        $('#employeeTransfer').val('');
+        $('#transferBranch').val('');
+        $('#transferReportingPerson').val('');
+        $('#currentReportingPerson').val('');
+        $('#currentReportingPersonId').val('');
+        $('#employeeDepartment').val('');
+        $('#employeeDesignation').val('');
+        $('#reason').val('');
+        setBtnNormal('#btnSaveTransfer', 'Save');
+        $('#spncurrentBranch, #spnemployeeTransfer, #spntransferBranch, #spntransferReportingPerson, #spneffectiveDate, #spnreason').hide();
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       UPDATE (EDIT)
+    ══════════════════════════════════════════════════════════════════════ */
+    async function UpdateTransferData(data) {
+        if (!data) return;
+        resetTransferForm();
+        $('#modalTitle').text('Update Employee Transfer');
+        $('#btnSaveTransfer .btn-label-text').text('Update');
+
+        $('#transferId').val(data.transferId || data.TransferId || 0);
+
+        const currentBranchId = data.currentBranchId || data.CurrentBranchId;
+        $('#currentBranch').val(currentBranchId);
+        await BindEmployeeByBranchIdForTransfer();
+
+        const employeeId = data.employeeId || data.EmployeeId;
+        $('#employeeTransfer').val(employeeId);
+        if (employeeId) {
+            await loadCurrentReportingPerson(employeeId);
+            await loadEmployeeDeptDesignation(employeeId);
+        }
+
+        $('#transferBranch').val(data.transferBranchId || data.TransferBranchId);
+
+        const trpId = data.transferReportingPerson || data.TransferReportingPerson;
+        if (trpId) $('#transferReportingPerson').val(trpId);
+
+        let effDateStr = data.effectiveDate || data.EffectiveDate || '';
+        if (effDateStr) {
+            effDateStr = effDateStr.includes('T') ? effDateStr.split('T')[0]
+                       : effDateStr.includes(' ') ? effDateStr.split(' ')[0]
+                       : effDateStr;
+            $('#effectiveDate').val(effDateStr);
+        }
+
+        $('#reason').val(data.reason || data.Reason || '');
+        $('#addTransferModal').modal('show');
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       DELETE
+    ══════════════════════════════════════════════════════════════════════ */
+    function DeleteTransfer(data) {
+        if (!data) return;
+        const transferId = data.transferId || data.TransferId;
+        wmsConfirm('Are you sure you want to delete this transfer record?', function () {
+            $.ajax({
+                url: '@baseUrl/EmployeeTransferAPI/Delete',
+                type: 'DELETE',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify({ Id: parseInt(transferId), DeletedBy: EmployeeId.toString() }),
+                success: function (response) {
+                    if (response.isSuccess) {
+                        showToast(response.responseMessage, 'success');
+                        loadEmployeeTransfers(CompanyId);
+                    } else {
+                        showToast(response.responseMessage, 'error');
+                    }
+                },
+                error: function (xhr) {
+                    showToast((xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Unable to delete transfer', 'error');
+                }
+            });
+        }, { title: 'Delete Transfer', confirmText: 'Delete' });
+    }
+</script>

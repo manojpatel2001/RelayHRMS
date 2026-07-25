@@ -1,0 +1,477 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Leave/OD Status";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Employee Leave/OD Status</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
+                    <label for="employeeDropdown">Employee</label>
+                    <select id="employeeDropdown">
+                        <option value="" selected disabled>Select Employee</option>
+                    </select>
+                    <span class="field-validation-error" id="spnEmployee" style="display:none;">Please select an employee</span>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Leave Status Section -->
+    <div class="card mt-3" id="monthlySection" style="display:none;">
+        <div class="card-header">
+            <h6 class="mb-0">Employee Leave Application Status</h6>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 160px;min-width:150px;">
+                    <label for="monthDropdown">Month</label>
+                    <select id="monthDropdown">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+
+                <div class="fg" style="flex:1 1 130px;min-width:120px;">
+                    <label for="yearDropdownMonthly">Year</label>
+                    <select id="yearDropdownMonthly"></select>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnFetchMonthly">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="monthlyLeaveApplicationGrid" style="display:none; margin-bottom: 15px;"></div>
+
+            <div id="monthlyLeaveGrid" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Yearly Leave Status Section -->
+    <div class="card mt-3" id="yearlySection" style="display:none;">
+        <div class="card-header">
+            <h6 class="mb-0">Employee Yearly Leave Status</h6>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 130px;min-width:120px;">
+                    <label for="yearDropdownYearly">Year</label>
+                    <select id="yearDropdownYearly"></select>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnFetchYearly">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="yearlyLeaveGrid" style="display:none;"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        const savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        const CompanyId = companyDetails.CompanyId;
+        const EmployeeId = localStorage.getItem('EmployeeId');
+        const Token = localStorage.getItem("authToken");
+
+        var isLoadingEmployee = false;
+        var isLoadingMonthly = false;
+        var isLoadingYearly = false;
+
+        var monthlyApplicationGrid = null;
+        var monthlyLeaveGrid = null;
+        var yearlyLeaveGrid = null;
+
+        function goBack() { window.history.back(); }
+        window.goBack = goBack;
+
+        $(document).ready(function () {
+            BindEmployeeDropdown();
+            PopulateYearDropdowns();
+            SetCurrentMonthYear();
+
+            $('#employeeDropdown').on('change', function () { $('#spnEmployee').hide(); });
+        });
+
+        /* ── Year / Month defaults ──────────────────────────── */
+        function PopulateYearDropdowns() {
+            const currentYear = new Date().getFullYear();
+            const startYear = 2025;
+
+            $('#yearDropdownMonthly').empty();
+            $('#yearDropdownYearly').empty();
+
+            for (let year = startYear; year <= currentYear; year++) {
+                $('#yearDropdownMonthly').append(`<option value="${year}">${year}</option>`);
+                $('#yearDropdownYearly').append(`<option value="${year}">${year}</option>`);
+            }
+
+            $('#yearDropdownMonthly').val(currentYear);
+            $('#yearDropdownYearly').val(currentYear);
+        }
+
+        function SetCurrentMonthYear() {
+            const currentMonth = new Date().getMonth() + 1;
+            $('#monthDropdown').val(currentMonth);
+        }
+
+        /* ── Employee Dropdown ──────────────────────────────── */
+        function BindEmployeeDropdown() {
+            var payLoad = {
+                BranchId: null,
+                CompanyId: CompanyId
+            };
+
+            isLoadingEmployee = true;
+
+            $.ajax({
+                url: '@baseUrl/EmployeeMasterAPI/GetEmployeeListByBranchIdForLeft',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                data: JSON.stringify(payLoad),
+                success: function (data) {
+                    isLoadingEmployee = false;
+                    if (data.isSuccess && data.data && data.data.length > 0) {
+                        var $empSel = $('#employeeDropdown');
+                        $empSel.empty().append('<option value="" selected disabled>Select Employee</option>');
+                        data.data.forEach(function (emp) {
+                            $empSel.append($('<option>', {
+                                value: emp.employeeCode,
+                                text: emp.fullName + ' - ' + emp.employeeCode
+                            }));
+                        });
+                    } else {
+                        showToast('Unable to load employee list.', 'error');
+                    }
+                },
+                error: function (error) {
+                    isLoadingEmployee = false;
+                    showToast('Unable to load employee list.', 'error');
+                }
+            });
+        }
+
+        /* ── GO Button (top search panel) ───────────────────── */
+        $('#btnGo').on('click', function () {
+            var employeeCode = $('#employeeDropdown').val();
+
+            if (!employeeCode) {
+                $('#spnEmployee').show();
+                return;
+            }
+            $('#spnEmployee').hide();
+
+            $('#monthlySection').show();
+            $('#yearlySection').show();
+            FetchMonthlyLeaveStatus();
+            FetchYearlyLeaveStatus();
+        });
+
+        /* ── Clear Button ────────────────────────────────────── */
+        $('#btnClear').on('click', function () {
+            clearAllData();
+        });
+
+        /* ── Monthly / Yearly section Go buttons ─────────────── */
+        $('#btnFetchMonthly').on('click', function () {
+            FetchMonthlyLeaveStatus();
+        });
+
+        $('#btnFetchYearly').on('click', function () {
+            FetchYearlyLeaveStatus();
+        });
+
+        /* ── Monthly Leave Status ────────────────────────────── */
+        function FetchMonthlyLeaveStatus() {
+            var employeeCode = $('#employeeDropdown').val();
+
+            if (!employeeCode) {
+                $('#spnEmployee').show();
+                return;
+            }
+
+            if (isLoadingMonthly) return;
+
+            const selectedMonth = $('#monthDropdown').val();
+            const selectedYear = $('#yearDropdownMonthly').val();
+
+            isLoadingMonthly = true;
+            setBtnLoading('#btnFetchMonthly', 'Go');
+
+            $.ajax({
+                url: '@baseDomainUrl/api/ReportAPI/GetEmployeeMonthlyLeaveStatus',
+                type: 'GET',
+                data: {
+                    EmpId: employeeCode,
+                    SelectedMonth: selectedMonth,
+                    SelectedYear: selectedYear,
+                    CompId: CompanyId
+                },
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    isLoadingMonthly = false;
+                    setBtnNormal('#btnFetchMonthly', 'Go');
+
+                    if (response.isSuccess) {
+                        if (response.data.leaveApplications && response.data.leaveApplications.length > 0) {
+                            RenderMonthlyLeaveApplicationGrid(response.data.leaveApplications);
+                            $('#monthlyLeaveApplicationGrid').show();
+                        } else {
+                            $('#monthlyLeaveApplicationGrid').hide();
+                        }
+
+                        if (response.data.leaveStatuses && response.data.leaveStatuses.length > 0) {
+                            RenderMonthlyLeaveStatusGrid(response.data.leaveStatuses);
+                            $('#monthlyLeaveGrid').show();
+                        } else {
+                            $('#monthlyLeaveGrid').hide();
+                        }
+
+                        if ((!response.data.leaveApplications || response.data.leaveApplications.length === 0) &&
+                            (!response.data.leaveStatuses || response.data.leaveStatuses.length === 0)) {
+                            showToast('No records found for the selected criteria.', 'info');
+                        }
+                    } else {
+                        showToast(response.responseMessage || 'Error fetching data', 'error');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingMonthly = false;
+                    setBtnNormal('#btnFetchMonthly', 'Go');
+                    showToast('Error occurred while fetching data', 'error');
+                    console.error(error);
+                }
+            });
+        }
+
+        function RenderMonthlyLeaveApplicationGrid(data) {
+            var columns = [
+                { field: 'leaveType', header: 'Leave Name', width: '140px' },
+                {
+                    field: 'leavePeriod', header: 'Leave Period', width: '110px',
+                    render: function (v) { return (v !== null && v !== undefined) ? parseFloat(v).toFixed(2) : '-'; }
+                },
+                { header: 'From Date', sortable: false, width: '110px', render: function (v, row) { return fmtDate(row.fromDate); } },
+                { header: 'To Date', sortable: false, width: '110px', render: function (v, row) { return fmtDate(row.toDate); } },
+                { header: 'Leave Status', sortable: false, width: '120px', render: function (v, row) { return statusPill(row.leaveStatus); } }
+            ];
+
+            if (!monthlyApplicationGrid) {
+                monthlyApplicationGrid = WMSGrid.create({
+                    container: 'monthlyLeaveApplicationGrid',
+                    title: 'Leave Applications',
+                    icon: 'bx-calendar-event',
+                    exportName: 'LeaveApplications',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                monthlyApplicationGrid.setData(data);
+            }
+        }
+
+        function RenderMonthlyLeaveStatusGrid(data) {
+            var columns = [
+                { field: 'leaveType', header: 'Leave Type', width: '150px' },
+                { field: 'opening', header: 'Opening', width: '100px', render: function (v) { return numFmt(v); } },
+                { field: 'credit', header: 'Credit', width: '100px', render: function (v) { return numFmt(v); } },
+                { field: 'used', header: 'Used', width: '100px', render: function (v) { return numFmt(v); } },
+                { field: 'balance', header: 'Balance', width: '100px', render: function (v) { return numFmt(v); } }
+            ];
+
+            if (!monthlyLeaveGrid) {
+                monthlyLeaveGrid = WMSGrid.create({
+                    container: 'monthlyLeaveGrid',
+                    title: 'Monthly Leave Status',
+                    icon: 'bx-calendar-check',
+                    exportName: 'MonthlyLeaveStatus',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                monthlyLeaveGrid.setData(data);
+            }
+
+            $('#monthlyLeaveGrid').show();
+        }
+
+        /* ── Yearly Leave Status ──────────────────────────────── */
+        function FetchYearlyLeaveStatus() {
+            var employeeCode = $('#employeeDropdown').val();
+
+            if (!employeeCode) {
+                $('#spnEmployee').show();
+                return;
+            }
+
+            if (isLoadingYearly) return;
+
+            const selectedYear = $('#yearDropdownYearly').val();
+
+            isLoadingYearly = true;
+            setBtnLoading('#btnFetchYearly', 'Go');
+
+            $.ajax({
+                url: '@baseDomainUrl/api/ReportAPI/GetEmployeeYearlyLeaveStatus',
+                type: 'GET',
+                data: {
+                    EmpId: employeeCode,
+                    CompId: CompanyId,
+                    Year: selectedYear
+                },
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    isLoadingYearly = false;
+                    setBtnNormal('#btnFetchYearly', 'Go');
+
+                    if (response.isSuccess) {
+                        if (response.data && response.data.length > 0) {
+                            RenderYearlyLeaveGrid(response.data);
+                        } else {
+                            showToast('No records found for the selected criteria.', 'info');
+                            $('#yearlyLeaveGrid').hide();
+                        }
+                    } else {
+                        showToast(response.responseMessage || 'Error fetching data', 'error');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingYearly = false;
+                    setBtnNormal('#btnFetchYearly', 'Go');
+                    showToast('Error occurred while fetching data', 'error');
+                    console.error(error);
+                }
+            });
+        }
+
+        function RenderYearlyLeaveGrid(data) {
+            var columns = [
+                { field: 'leaveName', header: 'Leave Name', width: '150px' },
+                { field: 'jan', header: 'Jan', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'feb', header: 'Feb', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'mar', header: 'Mar', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'apr', header: 'Apr', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'may', header: 'May', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'jun', header: 'Jun', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'jul', header: 'Jul', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'aug', header: 'Aug', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'sep', header: 'Sep', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'oct', header: 'Oct', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'nov', header: 'Nov', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'dec', header: 'Dec', width: '60px', render: function (v) { return numFmt(v); } },
+                {
+                    field: 'total', header: 'Total', width: '80px',
+                    render: function (v) { return '<strong>' + numFmt(v) + '</strong>'; }
+                }
+            ];
+
+            if (!yearlyLeaveGrid) {
+                yearlyLeaveGrid = WMSGrid.create({
+                    container: 'yearlyLeaveGrid',
+                    title: 'Yearly Leave Status',
+                    icon: 'bx-calendar-week',
+                    exportName: 'YearlyLeaveStatus',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                yearlyLeaveGrid.setData(data);
+            }
+
+            $('#yearlyLeaveGrid').show();
+        }
+
+        /* ── Helpers ──────────────────────────────────────────── */
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function numFmt(v) {
+            return (v !== null && v !== undefined && v !== '') ? parseFloat(v).toFixed(2) : '0.00';
+        }
+
+        function statusPill(status) {
+            if (status === 'Approved') return '<span class="wg-pill wg-pill-green">Approved</span>';
+            if (status === 'Rejected') return '<span class="wg-pill wg-pill-red">Rejected</span>';
+            if (status === 'Pending') return '<span class="wg-pill wg-pill-amber">Pending</span>';
+            return status || '-';
+        }
+
+        /* ── Clear All ────────────────────────────────────────── */
+        function clearAllData() {
+            $('#employeeDropdown').val('');
+            $('#spnEmployee').hide();
+
+            SetCurrentMonthYear();
+            PopulateYearDropdowns();
+
+            $('#monthlySection').hide();
+            $('#yearlySection').hide();
+            $('#monthlyLeaveGrid').hide();
+            $('#yearlyLeaveGrid').hide();
+            $('#monthlyLeaveApplicationGrid').hide();
+        }
+    })();
+</script>

@@ -1,71 +1,118 @@
-﻿@{
-    ViewData["Title"] = "Shift Changes Details";
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
 }
 
+<div class="wms-form-page">
 
-<link href="~/commoncss.css" rel="stylesheet" />
-
-<style>
-    .fixed-label {
-        min-width: 180px;
-        white-space: nowrap;
-        margin-bottom: 0;
-        text-align: right;
-    }
-
-</style>
-<div class="card">
-    <div class="card-header bg-transparent py-2">
-        <div class="row">
-            <div class="col-6">
-                <h4 class="mb-0">My Team Detail</h4>
-            </div>
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0">Employee Records</h6>
         </div>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-header bg-transparent">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h6 class="mb-0">Employee Records</h6>
-                </div>
-            </div>
-        </div>
-
         <div class="card-body">
-            <form>
-                <div class="col-md-8 mx-auto">
-                    <!-- Radio Buttons -->
-                    <div class="row mb-3">
-                        <div class="col-md-4 d-flex justify-content-center gap-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="Status" id="indirecctid" value="Indirect">
-                                <label class="form-check-label" for="indirecctid">Indirect</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="Status" id="directlyid" value="Direct" checked>
-                                <label class="form-check-label" for="directlyid">Direct</label>
-                            </div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 260px;min-width:220px;">
+                    <label>Status</label>
+                    <div class="d-flex gap-3 mt-1">
+                        <div class="form-check d-inline-block me-3">
+                            <input class="form-check-input" type="radio" name="Status" id="directid" value="Direct" checked>
+                            <label class="form-check-label" for="directid">Direct</label>
+                        </div>
+                        <div class="form-check d-inline-block">
+                            <input class="form-check-input" type="radio" name="Status" id="indirectid" value="Indirect">
+                            <label class="form-check-label" for="indirectid">Indirect</label>
                         </div>
                     </div>
                 </div>
-            </form>
-
-            <!-- Employee Grid -->
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover text-center">
-                    <thead>
-                        <tr>
-                            <th style="  font-size: 1.00rem;">Employee Code</th>
-                            <th style=" font-size: 1.00rem;">Employee Name</th>
-                        </tr>
-                    </thead>
-                    
-                </table>
             </div>
 
+            <div class="divider"></div>
+
+            <div id="gridContainerEmployee"></div>
         </div>
     </div>
+
 </div>
+
+<script>
+    const apiBase = '@baseUrl';
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany);
+    const CompanyId = companyDetails.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    var employeeGrid = null;
+
+    function renderEmployeeColumns() {
+        return [
+            { field: 'employeeCode', header: 'Employee Code', width: '150px', render: function (v) { return v || '-'; } },
+            {
+                header: 'Employee Name', width: '220px',
+                render: function (v, row) {
+                    var encryptedId = btoa((row.id || '').toString());
+                    var encryptedCompanyId = btoa((row.companyId || '').toString());
+                    var url = '@UIBaseUrl/EmployeePanel/Employee/MyProfile?EmpId=' + encryptedId + '&CompId=' + encryptedCompanyId;
+                    return '<a href="' + url + '" style="cursor:pointer;">' + (row.fullName || '-') + '</a>';
+                }
+            }
+        ];
+    }
+
+    function renderEmployeeGrid(data) {
+        if (!employeeGrid) {
+            employeeGrid = WMSGrid.create({
+                container: 'gridContainerEmployee',
+                title: 'Employee Records',
+                icon: 'bx-group',
+                exportName: 'EmployeeRecords',
+                data: data,
+                columns: renderEmployeeColumns(),
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false }
+            });
+        } else {
+            employeeGrid.setData(data);
+        }
+    }
+
+    $(document).ready(function () {
+        let selectedAction = 'Direct';
+
+        loadEmployeeGrid(selectedAction);
+
+        $('input[name="Status"]').change(function () {
+            selectedAction = $(this).val();
+            loadEmployeeGrid(selectedAction);
+        });
+    });
+
+    function loadEmployeeGrid(actionType) {
+        $.ajax({
+            type: "GET",
+            url: apiBase + '/EmployeeDashBoardAPI/GetDirectIndirectEmployee',
+            data: {
+                Compid: CompanyId,
+                EmployeeId: EmployeeId,
+                Action: actionType
+            },
+            headers: {
+                'Authorization': 'Bearer ' + Token
+            },
+            success: function (response) {
+                if (response.isSuccess) {
+                    renderEmployeeGrid(response.data || []);
+                } else {
+                    renderEmployeeGrid([]);
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr);
+                renderEmployeeGrid([]);
+            }
+        });
+    }
+</script>

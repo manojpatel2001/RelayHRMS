@@ -1,0 +1,218 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Leave Cancellation Records";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+<title>Leave Cancellation Records</title>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Leave Cancellation Records</h6>
+            <a href="/EmployeePanel/Leave/AddLeavecancellationRequest" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bx bx-plus"></i> Add
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                    <label for="fromdate">From Date</label>
+                    <input type="date" id="fromdate" />
+                </div>
+
+                <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                    <label for="todate">To Date</label>
+                    <input type="date" id="todate" />
+                    <span class="field-validation-error" id="spnDateRange" style="display:none;">To Date must be after From Date</span>
+                </div>
+
+                <div style="flex:0 0 auto;">
+                    <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Status</span>
+                    <div class="d-flex gap-3">
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="type" id="r2" checked>
+                            <label class="form-check-label" for="r2">Pending</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="type" id="r3">
+                            <label class="form-check-label" for="r3">Approved</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="type" id="r4">
+                            <label class="form-check-label" for="r4">Rejected</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="gridContainerLeaveCancellation"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var EmployeeId = localStorage.getItem('EmployeeId');
+
+        var currentRows = [];
+        var grid = null;
+        var isLoadingLc = false;
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function rowStatus(row) {
+            if (row.isApproved === true) return 'Approved';
+            if (row.isRejected === true) return 'Rejected';
+            if (row.isPending === true) return 'Pending';
+            return '-';
+        }
+
+        function statusPill(status) {
+            if (status === 'Approved') return '<span class="wg-pill wg-pill-green">Approved</span>';
+            if (status === 'Rejected') return '<span class="wg-pill wg-pill-red">Rejected</span>';
+            if (status === 'Pending') return '<span class="wg-pill wg-pill-amber">Pending</span>';
+            return status || '-';
+        }
+
+        function getStatus() {
+            if ($('#r2').is(':checked')) return 'Pending';
+            if ($('#r3').is(':checked')) return 'Approved';
+            if ($('#r4').is(':checked')) return 'Rejected';
+            return null;
+        }
+
+        /* ── Document Ready ─────────────────────────── */
+        $(document).ready(function () {
+            $('#btnGo').click();
+
+            $('#fromdate, #todate').on('change', function () { $('#spnDateRange').hide(); });
+
+            $('input[name="type"]').on('change', function () {
+                currentRows = [];
+                grid = null;
+                $('#gridContainerLeaveCancellation').empty();
+            });
+        });
+
+        /* ── GO Button ──────────────────────────────── */
+        $('#btnGo').on('click', function () {
+            if (isLoadingLc) return;
+
+            var fromDate = $('#fromdate').val();
+            var toDate = $('#todate').val();
+
+            if (fromDate && toDate && new Date(toDate) < new Date(fromDate)) {
+                $('#spnDateRange').show();
+                return;
+            }
+            $('#spnDateRange').hide();
+
+            var model = {
+                FromDate: fromDate || null,
+                ToDate: toDate || null,
+                LeaveStatus: getStatus(),
+                EmployeeId: parseInt(EmployeeId)
+            };
+
+            isLoadingLc = true;
+            setBtnLoading('#btnGo', 'Go');
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/GetEmpLeaveCancellationRequestReport")',
+                type: 'POST',
+                data: JSON.stringify(model),
+                contentType: 'application/json',
+                success: function (res) {
+                    isLoadingLc = false;
+                    setBtnNormal('#btnGo', 'Go');
+
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        currentRows = res.data;
+                        renderGrid(currentRows);
+                    } else {
+                        currentRows = [];
+                        renderGrid([]);
+                        if (!res.isSuccess) {
+                            showToast(res.responseMessage || 'No Data Found', 'info');
+                        }
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingLc = false;
+                    setBtnNormal('#btnGo', 'Go');
+                    console.error('AJAX Error:', { status: status, error: error, responseText: xhr.responseText });
+                    currentRows = [];
+                    renderGrid([]);
+                    showToast('Error loading data', 'error');
+                }
+            });
+        });
+
+        /* ── Clear Button ───────────────────────────── */
+        $('#btnClear').click(function () {
+            $('#fromdate').val('');
+            $('#todate').val('');
+            $('#spnDateRange').hide();
+            $('input[name="type"]').prop('checked', false);
+            $('#r2').prop('checked', true);
+            currentRows = [];
+            grid = null;
+            $('#gridContainerLeaveCancellation').empty();
+        });
+
+        /* ── Render WMSGrid ───────────────────────────── */
+        function renderGrid(data) {
+            var columns = [
+                { field: 'employeeCode', header: 'Code', width: '100px' },
+                { field: 'fullName', header: 'Name', width: '170px' },
+                { field: 'leave_Name', header: 'Leave Type', width: '130px' },
+                { header: 'From Date', sortable: false, width: '110px', render: function (v, row) { return fmtDate(row.fromDate); } },
+                { header: 'To Date', sortable: false, width: '110px', render: function (v, row) { return fmtDate(row.toDate); } },
+                { field: 'noOfDate', header: 'No. of Days', width: '90px' },
+                { field: 'reason', header: 'Reason', width: '200px' },
+                { header: 'Status', sortable: false, width: '110px', render: function (v, row) { return statusPill(rowStatus(row)); } },
+                { header: 'Approved By', sortable: false, width: '150px', render: function (v, row) { return row.approvedBy ? row.approvedBy : '-'; } },
+                { header: 'Approved Date', sortable: false, width: '120px', render: function (v, row) { return row.updatedDate ? fmtDate(row.updatedDate) : '-'; } }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerLeaveCancellation',
+                    title: 'Leave Cancellation Records',
+                    icon: 'bx-calendar-x',
+                    exportName: 'LeaveCancellationRecords',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+    })();
+</script>

@@ -1,5 +1,684 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@inject IConfiguration Configuration
 @{
+    ViewData["Title"] = "Salary Dashboard";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
 }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<style>
+    /* Dashboard Grid - Two columns equal width */
+    .salary-dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    /* Widget cards inside the dashboard grid */
+    .salary-widget-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        min-height: 350px;
+    }
+
+    .salary-widget-header {
+        padding: 10px 20px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+        .salary-widget-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+    .salary-widget-content {
+        padding: 12px 20px;
+        flex: 1;
+    }
+
+    /* Calculated Days */
+    .days-legend {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        flex-wrap: wrap;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .legend-color {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .present-days-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-weight: 600;
+    }
+
+    .present-indicator {
+        width: 12px;
+        height: 12px;
+        background: #3b82f6;
+        border-radius: 50%;
+    }
+
+    .days-bar {
+        margin-bottom: 10px;
+    }
+
+    .days-bar-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        font-size: 14px;
+    }
+
+    .bar-container {
+        height: 20px;
+        background: #f1f5f9;
+        border-radius: 4px;
+        display: flex;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .bar-segment {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 600;
+        color: white;
+    }
+
+    .bar-present {
+        background: #3b82f6;
+    }
+
+    .bar-holiday {
+        background: #ff9500;
+    }
+
+    .bar-weekoff {
+        background: #06b6d4;
+    }
+
+    /* Tooltip styles */
+    .tooltip {
+        position: absolute;
+        background: #1f2937;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.2s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+        .tooltip.show {
+            opacity: 1;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border: 5px solid transparent;
+            border-top-color: #1f2937;
+        }
+
+    /* Chart */
+    .chart-container {
+        position: relative;
+        height: 200px;
+        margin-top: 8px;
+        width: 100%;
+        flex: 1;
+    }
+
+    .chart-legend {
+        display: flex;
+        gap: 20px;
+        margin-top: 8px;
+        font-size: 14px;
+        flex-wrap: wrap;
+    }
+
+    .year-selector {
+        padding: 4px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        font-size: 14px;
+    }
+
+    /* Loading */
+    .salary-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+        width: 100%;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #e2e8f0;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .responsive-legends {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    /* Mobile responsive adjustments */
+    @@media (max-width: 768px) {
+        .salary-dashboard-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .salary-widget-card {
+            min-height: 300px;
+        }
+
+        .chart-container {
+            height: 180px;
+        }
+    }
+</style>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Salary Dashboard</h6>
+        </div>
+        <div class="card-body">
+
+            <!-- Loading State -->
+            <div id="loading" class="salary-loading">
+                <div class="spinner"></div>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div id="dashboard" class="hidden">
+                <!-- Main Grid - Two columns -->
+                <div class="salary-dashboard-grid" id="dashboardGrid">
+                    <!-- Calculated Days -->
+                    <div class="salary-widget-card">
+                        <div class="salary-widget-header">
+                            <h2>Calculated Salary Days</h2>
+                        </div>
+                        <div class="salary-widget-content">
+                            <div class="present-days-info">
+                                <div class="present-indicator"></div>
+                                <span>Present Days: <span id="currentPresentDays">0</span></span>
+                            </div>
+
+                            <div class="days-legend responsive-legends">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #3b82f6;"></div>
+                                    <span>Present Days</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #06b6d4;"></div>
+                                    <span>Weekoff Days</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #ff9500;"></div>
+                                    <span>Holiday Days</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #ef4444;"></div>
+                                    <span>Total Leave Days</span>
+                                </div>
+                            </div>
+
+                            <div id="daysContainer">
+                                <!-- Days bars will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Salary Chart -->
+                    <div class="salary-widget-card">
+                        <div class="salary-widget-header">
+                            <h2>Salary Summary of Last 6 Months</h2>
+                        </div>
+                        <div class="salary-widget-content">
+                            <div class="chart-legend responsive-legends">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #3b82f6;"></div>
+                                    <span>Net Salary</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #10b981;"></div>
+                                    <span>Gross Salary</span>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="salaryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Yearly Salary Table -->
+                <div class="salary-widget-card" style="min-height:auto;">
+                    <div class="salary-widget-header">
+                        <h2>Yearly Salary</h2>
+                        <select id="yearSelector" class="year-selector">
+                            <!-- Years will be populated dynamically here -->
+                        </select>
+                    </div>
+                    <div class="salary-widget-content">
+                        <div id="gridContainerYearlySalary"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails = savedCompany ? JSON.parse(savedCompany) : null;
+    const Compid = companyDetails ? companyDetails.CompanyId : null;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+
+    // Global variables
+    let salaryChart;
+    let dashboardData = {};
+    let yearlySalaryGrid = null;
+
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDashboardData();
+        fetchYearlySalaryReport(EmployeeId);
+        populateYearDropdown();
+        fetchSalaryData(EmployeeId);
+    });
+
+    $('#yearSelector').change(function() {
+        const selectedYear = $(this).val();
+        if (selectedYear) {
+            fetchYearlySalaryReport(EmployeeId);
+        }
+    });
+
+    function renderTable(data) {
+        var columns = [
+            {
+                field: 'salaryHead', header: 'Salary Head', width: '160px',
+                render: function (v) { return '<strong style="background-color:#f8f9fa">' + (v || '-') + '</strong>'; }
+            },
+            { field: 'jan', header: 'Jan', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'feb', header: 'Feb', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'mar', header: 'Mar', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'apr', header: 'Apr', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'may', header: 'May', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'jun', header: 'Jun', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'jul', header: 'Jul', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'aug', header: 'Aug', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'sep', header: 'Sep', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'oct', header: 'Oct', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'nov', header: 'Nov', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } },
+            { field: 'dec', header: 'Dec', width: '90px', render: function (v) { return (v || v === 0) ? Number(v).toFixed(2) : '-'; } }
+        ];
+
+        if (!yearlySalaryGrid) {
+            yearlySalaryGrid = WMSGrid.create({
+                container: 'gridContainerYearlySalary',
+                title: 'Yearly Salary',
+                icon: 'bx-money',
+                exportName: 'YearlySalary',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false }
+            });
+        } else {
+            yearlySalaryGrid.setData(data);
+        }
+    }
+
+    function populateYearDropdown() {
+        const startYear = 2024;
+        const currentYear = new Date().getFullYear();
+        const yearDropdown = $("#yearSelector");
+        yearDropdown.empty();
+        yearDropdown.append('<option value="">--Select--</option>');
+        for (let year = currentYear; year >= startYear; year--) {
+            yearDropdown.append(`<option value="${year}">${year}</option>`);
+        }
+
+        // Set default year to 2025
+        yearDropdown.val('2025');
+    }
+
+    // Load data function
+    async function loadDashboardData() {
+        try {
+            // Show loading
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+
+            // Wait for API data to be fetched
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Hide loading and show dashboard
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+            showToast('Error loading dashboard data. Please try again.', 'error');
+        }
+    }
+
+    // Process API response and render calculated days
+    function processAndRenderCalculatedDays(apiData) {
+        if (!apiData || !Array.isArray(apiData) || apiData.length === 0) {
+            document.getElementById('currentPresentDays').textContent = '0';
+            document.getElementById('daysContainer').innerHTML = '<p class="text-center">No data available</p>';
+            return;
+        }
+
+        // Sort data by year and month number to ensure proper order
+        const sortedData = apiData.sort((a, b) => {
+            if (a.year !== b.year) {
+                return a.year - b.year;
+            }
+            return a.monthNumber - b.monthNumber;
+        });
+
+        // Get the latest month data for current present days
+        const latestMonth = sortedData[sortedData.length - 1];
+        document.getElementById('currentPresentDays').textContent = latestMonth.presentDays || 0;
+
+        // Render days bars
+        const container = document.getElementById('daysContainer');
+        container.innerHTML = sortedData.map(item => {
+            const total = item.totalDays || 30;
+            const presentWidth = (item.presentDays / total) * 100;
+            const weekoffWidth = (item.weekOffDays / total) * 100;
+            const holidayWidth = (item.holidayDays / total) * 100;
+            const leaveWidth = (item.leaveDays / total) * 100;
+
+            return `
+                <div class="days-bar">
+                    <div class="days-bar-header">
+                        <span>${item.month}</span>
+                        <span>${item.presentDays || 0}</span>
+                    </div>
+                    <div class="bar-container">
+                        ${item.presentDays > 0 ? `<div class="bar-segment bar-present"
+                             style="width: ${presentWidth}%"
+                             onmouseover="showTooltip(event, 'Present Days: ${item.presentDays}')"
+                             onmouseout="hideTooltip()">
+                            ${item.presentDays}
+                        </div>` : ''}
+                        ${item.weekOffDays > 0 ? `<div class="bar-segment bar-weekoff"
+                             style="width: ${weekoffWidth}%"
+                             onmouseover="showTooltip(event, 'Weekoff Days: ${item.weekOffDays}')"
+                             onmouseout="hideTooltip()">
+                            ${item.weekOffDays}
+                        </div>` : ''}
+                        ${item.holidayDays > 0 ? `<div class="bar-segment bar-holiday"
+                             style="width: ${holidayWidth}%"
+                             onmouseover="showTooltip(event, 'Holiday Days: ${item.holidayDays}')"
+                             onmouseout="hideTooltip()">
+                            ${item.holidayDays}
+                        </div>` : ''}
+                        ${item.leaveDays > 0 ? `<div class="bar-segment bar-leave"
+                             style="width: ${leaveWidth}%"
+                             onmouseover="showTooltip(event, 'Leave Days: ${item.leaveDays}')"
+                             onmouseout="hideTooltip()">
+                            ${item.leaveDays}
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Tooltip functions
+    function showTooltip(event, text) {
+        let tooltip = document.getElementById('customTooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'customTooltip';
+            tooltip.className = 'tooltip';
+            document.body.appendChild(tooltip);
+        }
+
+        tooltip.textContent = text;
+        tooltip.style.left = event.pageX + 10 + 'px';
+        tooltip.style.top = event.pageY - 40 + 'px';
+        tooltip.classList.add('show');
+    }
+
+    function hideTooltip() {
+        const tooltip = document.getElementById('customTooltip');
+        if (tooltip) {
+            tooltip.classList.remove('show');
+        }
+    }
+
+    // Process API response and render salary chart
+    function processAndRenderSalaryChart(apiData) {
+        if (!apiData || !Array.isArray(apiData) || apiData.length === 0) {
+            return;
+        }
+
+        // Sort data by year and month number to ensure proper order
+        const sortedData = apiData.sort((a, b) => {
+            if (a.year !== b.year) {
+                return a.year - b.year;
+            }
+            return a.monthNumber - b.monthNumber;
+        });
+
+        // Take last 6 months for the chart
+        const last6Months = sortedData.slice(-6);
+
+        const ctx = document.getElementById('salaryChart');
+        if (!ctx) return;
+
+        // Destroy existing chart if it exists
+        if (salaryChart) {
+            salaryChart.destroy();
+        }
+
+        const months = last6Months.map(item => item.month);
+        const netSalaries = last6Months.map(item => item.netSalary || 0);
+        const grossSalaries = last6Months.map(item => item.grossSalary || 0);
+
+        salaryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Net Salary',
+                        data: netSalaries,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Gross Salary',
+                        data: grossSalaries,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: false // We're using custom legend
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString('en-IN');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        display: true,
+                        grid: {
+                            color: '#f1f5f9'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value.toLocaleString('en-IN');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Updated fetchSalaryData function
+    function fetchSalaryData(EmployeeId) {
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeeSalaryDays")',
+            type: 'GET',
+            data: {
+                EmployeeId: EmployeeId
+            },
+            contentType: 'application/json',
+            success: function (res) {
+                if (res.isSuccess && res.data) {
+                    // Process and render the calculated days card
+                    processAndRenderCalculatedDays(res.data);
+
+                    // Process and render the salary chart
+                    processAndRenderSalaryChart(res.data);
+
+                    // Store data globally if needed
+                    dashboardData.apiData = res.data;
+
+                } else {
+                    showToast(res.responseMessage || 'No Data Found', 'info');
+                    // Render empty states
+                    processAndRenderCalculatedDays([]);
+                    processAndRenderSalaryChart([]);
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr);
+                showToast(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.', 'error');
+                // Render empty states
+                processAndRenderCalculatedDays([]);
+                processAndRenderSalaryChart([]);
+            }
+        });
+    }
+
+    function fetchYearlySalaryReport(EmployeeId) {
+        var selectedYear = document.getElementById('yearSelector').value || '2025';
+
+        var isValid = true;
+        // Validate the selected year
+        if (selectedYear === "" || selectedYear === null) {
+            $("#spnyear").show();
+            isValid = false;
+        } else {
+            $("#spnyear").hide();
+        }
+        if (!isValid) {
+            return;
+        }
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetYearlySalaryCard")',
+            type: 'GET',
+            data: {
+                year: parseInt(selectedYear),
+                EmployeeId: EmployeeId
+            },
+            contentType: 'application/json',
+            success: function (res) {
+                if (res.isSuccess) {
+                    renderTable(res.data);
+                } else {
+                    showToast(res.responseMessage || 'No Data Found', 'info');
+                    renderTable([]);
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr);
+                showToast(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.', 'error');
+                renderTable([]);
+            }
+        });
+    }
+</script>

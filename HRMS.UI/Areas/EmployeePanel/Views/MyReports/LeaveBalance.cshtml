@@ -1,77 +1,192 @@
-﻿@{
-    ViewData["Title"] = "Shift Changes Details";
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Leave Balance";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
 }
-<link href="~/commoncss.css" rel="stylesheet" />
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<title>Leave Balance</title>
 
-<!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<div class="wms-form-page">
 
-<!-- Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<style>
-    .fixed-label {
-        min-width: 100px;
-        white-space: nowrap;
-        margin-bottom: 0;
-        text-align: right;
-    }
-</style>
-
-<div class="card">
-
-    <!-- Header Center -->
-    <div class="card-header bg-transparent py-2 d-flex justify-content-center align-items-center" style="height: 60px;">
-        <h6 class="mb-0 text-center">EMPLOYEE LEAVE BALANCE</h6>
-    </div>
-
-    <!-- Body -->
-    <div class="card-body">
-        <form>
-            <div class="col-md-8 mx-auto">
-
-                <!-- From / To Inputs -->
-                <div class="row mb-3 justify-content-center">
-                    <div class="col-auto d-flex align-items-center pe-2">
-                        <label for="fromid" class="fixed-label me-2">From<span class="text-danger">*</span>:</label>
-                        <input type="date" class="form-control form-control-sm" id="fromid" />
-                    </div>
-                    <div class="col-auto d-flex align-items-center ps-2">
-                        <label for="toid" class="fixed-label me-2">To<span class="text-danger">*</span>:</label>
-                        <input type="date" class="form-control form-control-sm" id="toid" />
-                    </div>
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Leave Balance</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="asofdate">As Of Date</label>
+                    <input type="date" id="asofdate" />
+                    <span class="field-validation-error" id="spnasofdate" style="display:none;">Please Select As Of Date</span>
                 </div>
 
-                <!-- Format Dropdown -->
-                <div class="row mb-3 justify-content-center">
-                    <div class="col-md-6 d-flex align-items-center justify-content-center">
-                        <label for="leavenameid" class="fixed-label me-2">Leave Name	:</label>
-                        <select class="form-control form-control-sm w-50" id="leavenameid">
-                            <option value="1">Select All</option>
-                            <option value="2">Half Day</option>
-                            <option value="3">LWP</option>
-                            <option value="3">Maternity Leave</option>
-                            <option value="3">Privilege Leave</option>
-                            <option value="3">Short </option>
-                        </select>
-                    </div>
+                <div class="fg fg-req" style="flex:1 1 170px;min-width:160px;">
+                    <label for="statusid">Leave Type</label>
+                    <select id="statusid">
+                        <option value="">--Select--</option>
+                    </select>
+                    <span class="field-validation-error" id="spnstatusid" style="display:none;">Please Select Leave Type</span>
                 </div>
 
-
-
-                <!-- Buttons -->
-                <div class="row justify-content-center">
-                    <div class="col-md-6 d-flex justify-content-center gap-2">
-                        <button type="button" class="btn btn-primary btn-sm">View</button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("Index", "MyReports")'">Back</button>
-                    </div>
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("Index", "MyReports")'">Back</button>
                 </div>
-
             </div>
-        </form>
+
+            <div class="divider"></div>
+
+            <div id="leaveBalanceGrid"></div>
+        </div>
     </div>
+
 </div>
+
+<script>
+    (function () {
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var Compid = companyDetails.CompanyId;
+        var EmployeeId = localStorage.getItem('EmployeeId');
+        var Token = localStorage.getItem("authToken");
+
+        var leaveTypesData = [];
+        var leaveTypeMapping = {};
+        var grid = null;
+        var currentRows = [];
+        var isLoadingLb = false;
+
+        $(document).ready(function () {
+            GetAllLeave(Compid);
+        });
+
+        function GetAllLeave(Compid) {
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/LeaveMasterAPI/GetAllLeave")',
+                type: 'GET',
+                data: { CompId: Compid },
+                success: function (response) {
+                    var data = response.data || [];
+                    if (data.length > 0) {
+                        leaveTypesData = data;
+                        leaveTypeMapping = {};
+                        data.forEach(function (item) {
+                            leaveTypeMapping[item.leave_TypeId] = item.leave_Name;
+                            $('#statusid').append('<option value="' + item.leave_TypeId + '">' + item.leave_Name + '</option>');
+                        });
+                    }
+                },
+                error: function () {
+                    console.log("Error loading leave types");
+                }
+            });
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                { field: 'companyName', header: 'Company Name', width: '170px' },
+                { field: 'employeeCode', header: 'Code', width: '100px' },
+                { field: 'fullName', header: 'Employee Name', width: '180px' },
+                { field: 'leaveType', header: 'Leave Name', width: '130px' },
+                { field: 'leaveBalance', header: 'Opening', width: '100px' }
+            ];
+
+            currentRows = data;
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'leaveBalanceGrid',
+                    title: 'Leave Balance',
+                    icon: 'bx-calendar-star',
+                    exportName: 'LeaveBalance_Report',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        $('#btnGo').on('click', function () {
+            if (isLoadingLb) return;
+
+            var txtasofdate = $("#asofdate").val();
+            var txtStatus = $("#statusid").val();
+            var isValid = true;
+
+            if (txtasofdate === "") {
+                $("#spnasofdate").show();
+                isValid = false;
+            } else {
+                $("#spnasofdate").hide();
+            }
+
+            if (txtStatus === "" || txtStatus === "SELECT") {
+                $("#spnstatusid").show();
+                isValid = false;
+            } else {
+                $("#spnstatusid").hide();
+            }
+
+            if (!isValid) return;
+
+            isLoadingLb = true;
+            setBtnLoading('#btnGo', 'Go');
+
+            var model = {
+                AsOfDate: txtasofdate,
+                Status: txtStatus,
+                Empid: EmployeeId,
+                CompId: Compid
+            };
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/LeaveApplication/GetLeaveBalance")',
+                type: 'POST',
+                data: JSON.stringify(model),
+                contentType: 'application/json',
+                success: function (res) {
+                    isLoadingLb = false;
+                    setBtnNormal('#btnGo', 'Go');
+
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        renderGrid(res.data);
+                    } else {
+                        currentRows = [];
+                        grid = null;
+                        $('#leaveBalanceGrid').empty();
+                        showToast(res.responseMessage || 'No Data', 'info');
+                    }
+                },
+                error: function (xhr) {
+                    isLoadingLb = false;
+                    setBtnNormal('#btnGo', 'Go');
+                    showToast(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.', 'error');
+                }
+            });
+        });
+
+        $("#btnClear").click(function () {
+            $('#asofdate').val('');
+            $('#statusid').val('');
+
+            currentRows = [];
+            grid = null;
+            $('#leaveBalanceGrid').empty();
+
+            $("#spnasofdate").hide();
+            $("#spnstatusid").hide();
+        });
+    })();
+</script>

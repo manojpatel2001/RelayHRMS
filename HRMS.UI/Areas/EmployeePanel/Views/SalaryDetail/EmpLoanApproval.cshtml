@@ -1,0 +1,224 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Loan Application";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrls = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrls);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<title>Loan Application</title>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Loan Application</h6>
+            <div class="d-flex gap-2">
+                <button id="btnDelete" type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" style="display:none;">
+                    <i class="bx bx-trash"></i>
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Delete</span>
+                </button>
+                <button id="btnAdd" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="bx bx-plus"></i> Add
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="actionButtonsWrap" style="display:none;">
+                <div class="d-flex justify-content-end gap-2 mb-3">
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnSelectAllLoan">
+                        <i class="bx bx-check-square"></i> Select All
+                    </button>
+                </div>
+            </div>
+
+            <div id="gridContainerLoanApplication"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        const EmployeeId = localStorage.getItem('EmployeeId');
+
+        var grid = null;
+        var currentRows = [];
+        var selectedIds = {};
+        var isProcessingLoan = false;
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function statusPill(row) {
+            if (row.isApproved === true) return '<span class="wg-pill wg-pill-green">Approved</span>';
+            if (row.isRejected === true) return '<span class="wg-pill wg-pill-red">Rejected</span>';
+            if (row.isPending === true) return '<span class="wg-pill wg-pill-amber">Pending</span>';
+            return '-';
+        }
+
+        $(document).ready(function () {
+            loadLoanApplicationData();
+
+            $("#btnAdd").click(function () {
+                window.location.href = '@UIBaseUrl/EmployeePanel/SalaryDetail/EmpLoanApplication';
+            });
+
+            $("#btnDelete").click(function () { deleteSelected(); });
+
+            $('#btnSelectAllLoan').on('click', function () {
+                var allSelected = currentRows.length > 0 && currentRows.every(function (r) { return !!selectedIds[r.loanApplicationId]; });
+                selectedIds = {};
+                if (!allSelected) { currentRows.forEach(function (r) { selectedIds[r.loanApplicationId] = true; }); }
+                if (grid) grid.refresh();
+            });
+        });
+
+        window._toggleLoanRow = function (id, checked) {
+            if (checked) selectedIds[id] = true;
+            else delete selectedIds[id];
+        };
+
+        function getSelectedRows() {
+            return currentRows.filter(function (r) { return !!selectedIds[r.loanApplicationId]; });
+        }
+
+        function loadLoanApplicationData() {
+            if (grid) grid.showLoader();
+
+            $.ajax({
+                url: "@baseUrls/LoanApplicationAPI/GetLoanApprovalEss",
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ EmployeeId: EmployeeId }),
+                success: function (res) {
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        let gridData = Array.isArray(res.data) ? res.data : [res.data];
+                        currentRows = gridData;
+                        selectedIds = {};
+                        renderGrid(gridData);
+                        $('#actionButtonsWrap').show();
+                    } else {
+                        currentRows = [];
+                        selectedIds = {};
+                        grid = null;
+                        $('#gridContainerLoanApplication').empty();
+                        $('#btnDelete').hide();
+                        $('#actionButtonsWrap').hide();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    currentRows = [];
+                    selectedIds = {};
+                    grid = null;
+                    $('#gridContainerLoanApplication').empty();
+                    $('#btnDelete').hide();
+                    $('#actionButtonsWrap').hide();
+                }
+            });
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                {
+                    header: '', sortable: false, width: '40px',
+                    render: function (v, row) {
+                        var checked = selectedIds[row.loanApplicationId] ? ' checked' : '';
+                        return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleLoanRow(' + row.loanApplicationId + ', this.checked)">';
+                    }
+                },
+                { field: 'employeeCode', header: 'Employee Code', width: '120px' },
+                { field: 'employeeName', header: 'Employee', width: '180px' },
+                { field: 'loanTypeName', header: 'Loan Type', width: '150px' },
+                {
+                    field: 'loanAmount', header: 'Loan Amount', width: '130px',
+                    render: function (v) { return (v !== null && v !== undefined) ? parseFloat(v).toFixed(2) : '-'; }
+                },
+                { field: 'numberOfInstallments', header: 'No. Of Installments', width: '150px' },
+                { header: 'Installment Start Date', sortable: false, width: '150px', render: function (v, row) { return fmtDate(row.installmentStartDate); } },
+                { header: 'Application Date', sortable: false, width: '140px', render: function (v, row) { return fmtDate(row.applicationDate); } },
+                {
+                    header: 'Status', sortable: false, width: '110px', stickyRight: true,
+                    render: function (v, row) { return statusPill(row); }
+                }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerLoanApplication',
+                    title: 'Loan Applications',
+                    icon: 'bx-money',
+                    exportName: 'LoanApplications',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+                grid.hideLoader();
+            }
+
+            $('#btnDelete').show();
+        }
+
+        function deleteSelected() {
+            if (isProcessingLoan) return;
+
+            var selectedRows = getSelectedRows();
+            if (selectedRows.length === 0) {
+                showToast('Please select at least one record.', 'warn');
+                return;
+            }
+
+            var approvedRecords = selectedRows.filter(function (row) { return row.status === 'Approved'; });
+            if (approvedRecords.length > 0) {
+                showToast('Approved records cannot be deleted.', 'error');
+                return;
+            }
+
+            isProcessingLoan = true;
+            setBtnLoading('#btnDelete', 'Deleting...');
+
+            const selectedIdsArr = selectedRows.map(function (row) { return row.loanApplicationId; });
+
+            const deletePayload = {
+                Id: selectedIdsArr,
+                DeletedBy: EmployeeId
+            };
+
+            $.ajax({
+                url: "@baseUrls/LoanApplicationAPI/Delete",
+                type: 'DELETE',
+                contentType: 'application/json',
+                data: JSON.stringify(deletePayload),
+                success: function (res) {
+                    if (res.isSuccess) {
+                        showToast(res.responseMessage || 'Deleted successfully.', 'success');
+                        selectedIds = {};
+                        loadLoanApplicationData();
+                    } else {
+                        showToast(res.responseMessage || 'Deletion failed.', 'error');
+                    }
+                },
+                error: function () {
+                    showToast('Something went wrong during deletion.', 'error');
+                },
+                complete: function () {
+                    isProcessingLoan = false;
+                    setBtnNormal('#btnDelete', 'Delete');
+                }
+            });
+        }
+    })();
+</script>

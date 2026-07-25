@@ -1,0 +1,155 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Skill Master";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Skill Master</h6>
+        <button id="addSkillBtn" type="button" class="btn btn-primary btn-sm">Add Skill</button>
+    </div>
+    <div class="card-body">
+        <div id="skillGrid"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="addSkillModal" tabindex="-1" aria-labelledby="skillModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="skillModalLabel"><span class="formType">Add</span> Skill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="fg fg-req">
+                    <label for="txtSkillName">Skill Name</label>
+                    <input type="text" placeholder="Skill Name" data-trim-input id="txtSkillName" />
+                    <span class="field-validation-error" id="spntxtSkillName" style="display:none;">Please Enter Skill Name</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnSaveSkill">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    const EmployeeId = localStorage.getItem("EmployeeId");
+    const Token = localStorage.getItem("authToken");
+    var skillMasterId = 0;
+    var _skillCache = {};
+
+    var grid = WMSGrid.create({
+        container: 'skillGrid',
+        title: 'All Skills',
+        icon: 'bx-bulb',
+        perPage: 10,
+        columns: [
+            { field: 'skillName', header: 'Skill Name', width: '300px' },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '130px',
+                render: function (v, row) {
+                    return '<button class="wg-btn wg-btn-primary" onclick="updateSkill(' + row.skillMasterId + ')"><i class="bx bx-edit"></i> Edit</button> ' +
+                           '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" onclick="deleteSkill(' + row.skillMasterId + ')"><i class="bx bx-trash"></i></button>';
+                }
+            }
+        ],
+        features: { export: true }
+    });
+
+    $(() => { skillDataTable(); });
+
+    $('#addSkillBtn').click(function () { clearSkillForm(); $('#addSkillModal').modal('show'); });
+
+    function skillDataTable() {
+        grid.showLoader();
+        $.ajax({
+            type: 'GET', url: '@baseUrl/SkillMasterAPI/GetAllSkillMasters', _silentLoader: true,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (data) {
+                var rows = data.data || [];
+                _skillCache = {};
+                rows.forEach(function (r) { _skillCache[r.skillMasterId] = r; });
+                grid.setData(rows); grid.hideLoader();
+            },
+            error: function () { grid.hideLoader(); showToast('Failed to load skills.', 'error'); }
+        });
+    }
+
+    $('#btnSaveSkill').click(function () {
+        var skillName = $('#txtSkillName').val();
+        if (!skillName) { $('#spntxtSkillName').show(); $('#txtSkillName').addClass('is-invalid'); return; }
+        $('#spntxtSkillName').hide(); $('#txtSkillName').removeClass('is-invalid');
+
+        setBtnLoading('#btnSaveSkill', skillMasterId == 0 ? 'Saving...' : 'Updating...');
+        var data = { SkillMasterId: skillMasterId == 0 ? 0 : skillMasterId, SkillName: skillName };
+
+        $.ajax({
+            url: skillMasterId == 0 ? '@baseUrl/SkillMasterAPI/CreateSkillMaster' : '@baseUrl/SkillMasterAPI/UpdateSkillMaster',
+            type: skillMasterId == 0 ? 'POST' : 'PUT',
+            contentType: 'application/json', _silentLoader: true,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(data),
+            success: function (response) {
+                if (response.isSuccess) {
+                    showToast(response.responseMessage || (skillMasterId == 0 ? 'Skill created.' : 'Skill updated.'), 'success');
+                    $('#addSkillModal').modal('hide');
+                    skillDataTable();
+                } else {
+                    showToast(response.responseMessage || 'Something went wrong.', 'error');
+                    setBtnNormal('#btnSaveSkill', skillMasterId == 0 ? 'Save' : 'Update');
+                }
+            },
+            error: function () {
+                showToast('Error while saving skill.', 'error');
+                setBtnNormal('#btnSaveSkill', skillMasterId == 0 ? 'Save' : 'Update');
+            }
+        });
+    });
+
+    function updateSkill(id) {
+        var data = _skillCache[id];
+        if (!data) return;
+        clearSkillForm();
+        skillMasterId = data.skillMasterId;
+        $('#txtSkillName').val(data.skillName || '');
+        $('.formType').text('Update');
+        setBtnNormal('#btnSaveSkill', 'Update');
+        $('#addSkillModal').modal('show');
+    }
+
+    function deleteSkill(id) {
+        wmsConfirm('Are you sure you want to delete this skill?<br><small style="color:#E53E3E;display:block;margin-top:4px">This action cannot be undone.</small>', function () {
+            $.ajax({
+                url: '@baseUrl/SkillMasterAPI/DeleteSkillMaster', type: 'DELETE',
+                contentType: 'application/json', _silentLoader: true,
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify({ id: id, deletedBy: EmployeeId }),
+                success: function (response) {
+                    showToast(response.isSuccess ? (response.responseMessage || 'Skill deleted.') : (response.responseMessage || 'Something went wrong.'), response.isSuccess ? 'success' : 'error');
+                    skillDataTable();
+                },
+                error: function () { showToast('Error deleting skill.', 'error'); }
+            });
+        });
+    }
+
+    function clearSkillForm() {
+        skillMasterId = 0;
+        $('#txtSkillName').val('').removeClass('is-invalid');
+        $('#spntxtSkillName').hide();
+        $('.formType').text('Add');
+        setBtnNormal('#btnSaveSkill', 'Save');
+    }
+</script>

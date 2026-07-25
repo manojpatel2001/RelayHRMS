@@ -1,63 +1,179 @@
-﻿@{
-    ViewData["Title"] = "Shift Changes Details";
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "CompOff Leave Adjustment Report";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
 }
-<link href="~/commoncss.css" rel="stylesheet" />
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<title>CompOff Leave Adjustment Report</title>
 
-<!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<div class="wms-form-page">
 
-<!-- Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<style>
-    .fixed-label {
-        min-width: 100px;
-        white-space: nowrap;
-        margin-bottom: 0;
-        text-align: right;
-    }
-</style>
-
-<div class="card">
-
-    <!-- Header Center -->
-    <div class="card-header bg-transparent py-2 d-flex justify-content-center align-items-center" style="height: 60px;">
-        <h6 class="mb-0 text-center">Comp-Off Leave Adjustment Detailsl</h6>
-    </div>
-
-    <!-- Body -->
-    <div class="card-body">
-        <form>
-            <div class="col-md-8 mx-auto">
-
-                <!-- From / To Inputs -->
-                <div class="row mb-3 justify-content-center">
-                    <div class="col-auto d-flex align-items-center pe-2">
-                        <label for="fromid" class="fixed-label me-2">From<span class="text-danger">*</span>:</label>
-                        <input type="date" class="form-control form-control-sm" id="fromid" />
-                    </div>
-                    <div class="col-auto d-flex align-items-center ps-2">
-                        <label for="toid" class="fixed-label me-2">To<span class="text-danger">*</span>:</label>
-                        <input type="date" class="form-control form-control-sm" id="toid" />
-                    </div>
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">CompOff Leave Adjustment Report</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 150px;min-width:140px;">
+                    <label for="fromdate">From Date</label>
+                    <input type="date" id="fromdate" />
+                    <span class="field-validation-error" id="spnfromdate" style="display:none;">Please Select From Date</span>
                 </div>
 
-
-
-
-                <!-- Buttons -->
-                <div class="row justify-content-center">
-                    <div class="col-md-6 d-flex justify-content-center gap-2">
-                        <button type="button" class="btn btn-primary btn-sm">View</button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("Index", "MyReports")'">Back</button>
-                    </div>
+                <div class="fg fg-req" style="flex:1 1 150px;min-width:140px;">
+                    <label for="todate">To Date</label>
+                    <input type="date" id="todate" />
+                    <span class="field-validation-error" id="spntodate" style="display:none;">Please Select To Date</span>
                 </div>
 
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("Index", "MyReports")'">Back</button>
+                </div>
             </div>
-        </form>
+
+            <div class="divider"></div>
+
+            <div id="leaveBalanceGrid"></div>
+        </div>
     </div>
+
 </div>
+
+<script>
+    (function () {
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var Compid = companyDetails.CompanyId;
+        var EmployeeId = localStorage.getItem('EmployeeId');
+        var Token = localStorage.getItem("authToken");
+
+        var grid = null;
+        var currentRows = [];
+        var isLoadingCa = false;
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                { field: 'employeeCode', header: 'Employee Code', width: '120px' },
+                { field: 'fullName', header: 'Employee Name', width: '160px' },
+                { header: 'Comp off Application Date', sortable: false, width: '160px', render: function (v, row) { return fmtDate(row.compoffApplicationDate); } },
+                { header: 'Approval Extra Worked Date', sortable: false, width: '160px', render: function (v, row) { return fmtDate(row.approvalExtraWorkedDate); } },
+                { field: 'workedHour', header: 'Worked Hour', width: '110px' },
+                { header: 'Leave Adjusted Date', sortable: false, width: '140px', render: function (v, row) { return fmtDate(row.leaveAdjustedDate); } },
+                { field: 'leaveAdjustedPeriod', header: 'Leave Adjusted Period', width: '150px' }
+            ];
+
+            currentRows = data;
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'leaveBalanceGrid',
+                    title: 'CompOff Leave Adjustment',
+                    icon: 'bx-calendar-edit',
+                    exportName: 'CompOffLeaveAdjustment_Report',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        $('#btnGo').on('click', function () {
+            if (isLoadingCa) return;
+
+            var txtformdate = $("#fromdate").val();
+            var txttodate = $("#todate").val();
+            var isValid = true;
+
+            if (txtformdate === "") {
+                $("#spnfromdate").show();
+                isValid = false;
+            } else {
+                $("#spnfromdate").hide();
+            }
+
+            if (txttodate === "") {
+                $("#spntodate").text("Please Select To Date").show();
+                isValid = false;
+            } else {
+                $("#spntodate").hide();
+            }
+
+            if (txtformdate && txttodate && new Date(txtformdate) > new Date(txttodate)) {
+                $("#spntodate").text("To Date must be greater than or equal to From Date").show();
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            isLoadingCa = true;
+            setBtnLoading('#btnGo', 'Go');
+
+            var model = {
+                StartDate: txtformdate,
+                EndDate: txttodate,
+                Empid: EmployeeId,
+                CompId: Compid,
+                AsOnDate: new Date().toISOString().split('T')[0] // Pass current date as AsOnDate
+            };
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/CompOffAPI/GetCompOffReportDetailed")',
+                type: 'POST',
+                data: JSON.stringify(model),
+                contentType: 'application/json',
+                success: function (res) {
+                    isLoadingCa = false;
+                    setBtnNormal('#btnGo', 'Go');
+
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        renderGrid(res.data);
+                    } else {
+                        currentRows = [];
+                        grid = null;
+                        $('#leaveBalanceGrid').empty();
+                        showToast(res.responseMessage || 'No Data', 'info');
+                    }
+                },
+                error: function (xhr) {
+                    isLoadingCa = false;
+                    setBtnNormal('#btnGo', 'Go');
+                    showToast(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.', 'error');
+                }
+            });
+        });
+
+        $("#btnClear").click(function () {
+            $('#fromdate').val('');
+            $('#todate').val('');
+
+            currentRows = [];
+            grid = null;
+            $('#leaveBalanceGrid').empty();
+
+            $("#spnfromdate").hide();
+            $("#spntodate").hide();
+        });
+    })();
+</script>

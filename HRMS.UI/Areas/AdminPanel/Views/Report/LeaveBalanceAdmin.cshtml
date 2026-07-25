@@ -1,0 +1,367 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Manage Leave Balance";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<!-- ExcelJS + FileSaver for Export -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Manage Leave Balance</h6>
+            <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnExport" style="display:none;">
+                <i class="bx bx-download"></i> Export
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="asofdate">As Of Date</label>
+                    <input type="date" id="asofdate" />
+                    <span class="field-validation-error" id="spnasofdate" style="display:none;">Please Select As Of Date</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 170px;min-width:160px;">
+                    <label for="statusid">Leave Type</label>
+                    <select id="statusid">
+                        <option value="">--Select--</option>
+                    </select>
+                    <span class="field-validation-error" id="spnstatusid" style="display:none;">Please Select Leave Type</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 200px;min-width:180px;">
+                    <label for="branchDropdown">Branch</label>
+                    <div id="branchDropdown"></div>
+                    <span class="field-validation-error" id="spnbranch" style="display:none;">Please Select Branch</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
+                    <label for="employeeDropdown">Employee</label>
+                    <div id="employeeDropdown"></div>
+                    <span class="field-validation-error" id="spnemployee" style="display:none;">Please Select Employee</span>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href ='@Url.Action("Index", "Home", new { area = "AdminPanel" })'">Back</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="leaveBalanceGrid"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var CompanyId = companyDetails.CompanyId;
+        var EmployeeId = localStorage.getItem('EmployeeId');
+        var Token = localStorage.getItem("authToken");
+
+        var leaveTypesData = [];
+        var leaveTypeMapping = {};
+        var grid = null;
+        var currentRows = [];
+        var isLoadingLb = false;
+
+        $(document).ready(function () {
+            GetAllLeave(CompanyId);
+            BindBranchDropdown();
+            $('#btnExport').hide();
+        });
+
+        function GetAllLeave(Compid) {
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/LeaveMasterAPI/GetAllLeave")',
+                type: 'GET',
+                data: { CompId: Compid },
+                success: function (response) {
+                    var data = response.data || [];
+                    if (data.length > 0) {
+                        leaveTypesData = data;
+                        leaveTypeMapping = {};
+                        data.forEach(function (item) {
+                            leaveTypeMapping[item.leave_TypeId] = item.leave_Name;
+                            $('#statusid').append('<option value="' + item.leave_TypeId + '">' + item.leave_Name + '</option>');
+                        });
+                    }
+                },
+                error: function () {
+                    console.log("Error loading leave types");
+                }
+            });
+        }
+
+        function BindBranchDropdown() {
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/BranchAPI/GetAllBranchesListByCompanyId/")' + CompanyId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (response?.data?.length > 0) {
+                        $("#branchDropdown").dxTagBox({
+                            items: response.data,
+                            displayExpr: "branchName",
+                            valueExpr: "branchId",
+                            placeholder: "--Select Branch--",
+                            showSelectionControls: true,
+                            searchEnabled: true,
+                            showClearButton: true,
+                            maxDisplayedTags: 3,
+                            applyValueMode: "instantly",
+                            multiline: false,
+                            minSearchLength: 0,
+                            width: "100%",
+                            onValueChanged: function (e) {
+                                $('#spnbranch').hide();
+                                var selectedBranchIds = e.value.length > 0 ? e.value : [0];
+                                BindEmployeeDropdownByBranch(selectedBranchIds);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        function BindEmployeeDropdownByBranch(selectedBranchIds) {
+            var branchParam = (selectedBranchIds?.length > 0) ? selectedBranchIds.join(",") : "0";
+            $.ajax({
+                type: "GET",
+                url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")?BranchIds=' + branchParam + '&CompanyId=' + CompanyId,
+                success: function (response) {
+                    var $empDropdown = $("#employeeDropdown");
+
+                    if (response?.data?.length > 0) {
+                        var employeeData = response.data.map(function (emp) {
+                            return {
+                                employeeCode: emp.employeeCode,
+                                displayName: emp.fullName + ' - ' + emp.employeeCode
+                            };
+                        });
+                        $empDropdown.dxTagBox({
+                            items: employeeData,
+                            displayExpr: "displayName",
+                            valueExpr: "employeeCode",
+                            placeholder: "--Select Employee--",
+                            showSelectionControls: true,
+                            searchEnabled: true,
+                            showClearButton: true,
+                            maxDisplayedTags: 3,
+                            applyValueMode: "instantly",
+                            multiline: false,
+                            minSearchLength: 0,
+                            width: "100%",
+                            onValueChanged: function () { $('#spnemployee').hide(); }
+                        });
+                    } else {
+                        $empDropdown.dxTagBox({
+                            items: [],
+                            placeholder: "No Employees Found",
+                            searchEnabled: false,
+                            showClearButton: true,
+                            width: "100%"
+                        });
+                    }
+                }
+            });
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                { field: 'companyName', header: 'Company Name', width: '170px' },
+                { field: 'branchName', header: 'Branch', width: '130px' },
+                { field: 'employeeCode', header: 'Code', width: '100px' },
+                { field: 'fullName', header: 'Employee Name', width: '180px' },
+                { field: 'leaveType', header: 'Leave Name', width: '130px' },
+                { field: 'leaveBalance', header: 'Opening', width: '100px' }
+            ];
+
+            currentRows = data;
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'leaveBalanceGrid',
+                    title: 'Leave Balance',
+                    icon: 'bx-calendar-star',
+                    exportName: 'LeaveBalance_Report',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        $('#btnGo').on('click', function () {
+            if (isLoadingLb) return;
+
+            var txtasofdate = $("#asofdate").val();
+            var txtStatus = $("#statusid").val();
+            var selectedEmployees = $("#employeeDropdown").dxTagBox("instance").option("value");
+            var isValid = true;
+
+            if (txtasofdate === "") {
+                $("#spnasofdate").show();
+                isValid = false;
+            } else {
+                $("#spnasofdate").hide();
+            }
+
+            if (txtStatus === "" || txtStatus === "--Select--") {
+                $("#spnstatusid").show();
+                isValid = false;
+            } else {
+                $("#spnstatusid").hide();
+            }
+
+            if (!selectedEmployees || selectedEmployees.length === 0) {
+                $("#spnemployee").show();
+                isValid = false;
+            } else {
+                $("#spnemployee").hide();
+            }
+
+            if (!isValid) return;
+
+            isLoadingLb = true;
+            setBtnLoading('#btnGo', 'Go');
+
+            var model = {
+                AsOfDate: txtasofdate,
+                Status: txtStatus,
+                EmployeeCodes: selectedEmployees,
+                CompId: CompanyId
+            };
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/ReportAPI/GetLeaveBalanceAdmin")',
+                type: 'POST',
+                data: JSON.stringify(model),
+                contentType: 'application/json',
+                success: function (res) {
+                    isLoadingLb = false;
+                    setBtnNormal('#btnGo', 'Go');
+
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        $('#btnExport').show();
+                        renderGrid(res.data);
+                    } else {
+                        $('#btnExport').hide();
+                        currentRows = [];
+                        grid = null;
+                        $('#leaveBalanceGrid').empty();
+                        showToast(res.responseMessage || 'No Data', 'info');
+                    }
+                },
+                error: function (xhr) {
+                    isLoadingLb = false;
+                    setBtnNormal('#btnGo', 'Go');
+                    $('#btnExport').hide();
+                    showToast(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.', 'error');
+                }
+            });
+        });
+
+        // Excel Export Function with Styled Headers
+        function exportGridToExcel() {
+            if (!currentRows || currentRows.length === 0) {
+                showToast("No data available to export!", 'warn');
+                return;
+            }
+
+            var workbook = new ExcelJS.Workbook();
+            var worksheet = workbook.addWorksheet("Leave Balance");
+
+            worksheet.columns = [
+                { header: 'Company Name', key: 'companyName', width: 20 },
+                { header: 'Branch', key: 'branchName', width: 20 },
+                { header: 'Code', key: 'employeeCode', width: 20 },
+                { header: 'Employee Name', key: 'fullName', width: 20 },
+                { header: 'Leave Name', key: 'leaveType', width: 20 },
+                { header: 'Opening', key: 'leaveBalance', width: 20 }
+            ];
+
+            var headerRow = worksheet.getRow(1);
+
+            headerRow.eachCell(function (cell) {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3E4B6D' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FF000000' } },
+                    left: { style: 'thin', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                    right: { style: 'thin', color: { argb: 'FF000000' } }
+                };
+            });
+
+            headerRow.height = 25;
+
+            currentRows.forEach(function (rowData) {
+                var row = worksheet.addRow(rowData);
+
+                row.eachCell(function (cell) {
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                    };
+                    cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                });
+            });
+
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                var blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                saveAs(blob, "Leave_Balance_Report.xlsx");
+                showToast(currentRows.length + ' record(s) exported successfully.', 'success');
+            }).catch(function (error) {
+                console.error("Excel export error:", error);
+                showToast("Error exporting to Excel!", 'error');
+            });
+        }
+
+        $("#btnExport").on("click", function () {
+            exportGridToExcel();
+        });
+
+        $("#btnClear").click(function () {
+            $('#asofdate').val('');
+            $('#statusid').val('');
+            try { $("#branchDropdown").dxTagBox("instance").option("value", []); } catch (e) { }
+            try { $("#employeeDropdown").dxTagBox("instance").option("value", []); } catch (e) { }
+
+            currentRows = [];
+            grid = null;
+            $('#leaveBalanceGrid').empty();
+
+            $("#spnasofdate").hide();
+            $("#spnstatusid").hide();
+            $("#spnbranch").hide();
+            $("#spnemployee").hide();
+
+            $('#btnExport').hide();
+        });
+    })();
+</script>

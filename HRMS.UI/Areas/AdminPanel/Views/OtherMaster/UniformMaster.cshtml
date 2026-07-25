@@ -1,0 +1,223 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Uniform Master";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Manage Uniform Master</h6>
+        <button id="addUniformMaster" type="button" class="btn btn-primary btn-sm">Add</button>
+    </div>
+    <div class="card-body">
+        <div id="uniformGrid"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="addUniformMasterModal" tabindex="-1" aria-labelledby="uniformModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="modalTitle">Add Uniform Master</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <form id="uniformMasterForm">
+                    <input type="hidden" id="uniformMasterId" value="0">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="uniformName">Uniform Name</label>
+                                <input type="text" id="uniformName" placeholder="Uniform Name" />
+                                <span class="field-validation-error" id="spnUniformName" style="display:none;">Please Enter Uniform Name</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="effectiveDate">Effective Date</label>
+                                <input type="date" id="effectiveDate" placeholder="Effective Date" />
+                                <span class="field-validation-error" id="spnEffectiveDate" style="display:none;">Please Select Effective Date</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="uniformRate">Uniform Rate</label>
+                                <input type="number" id="uniformRate" placeholder="Uniform Rate" min="0" step="0.01" />
+                                <span class="field-validation-error" id="spnUniformRate" style="display:none;">Please Enter Uniform Rate</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="fg">
+                                <label for="uniformDeductInstallment">Uniform Deduct Installment</label>
+                                <input type="number" id="uniformDeductInstallment" placeholder="Uniform Deduct Installment" min="0" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="fg">
+                                <label for="uniformRefundInstallment">Uniform Refund Installment</label>
+                                <input type="number" id="uniformRefundInstallment" placeholder="Uniform Refund Installment" min="0" />
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnSaveUniformMaster">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails?.CompanyId;
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem("authToken");
+    var _uniformCache = {};
+
+    var grid = WMSGrid.create({
+        container: 'uniformGrid', title: 'All Uniform Masters', icon: 'bx-tshirt', perPage: 10,
+        columns: [
+            { field: 'uniformName', header: 'Uniform Name', width: '180px' },
+            { field: 'effectiveDate', header: 'Effective Date', width: '130px',
+              render: function(v) { return v ? v.split('T')[0] : ''; }
+            },
+            { field: 'uniformRate', header: 'Uniform Rate', width: '120px' },
+            { field: 'uniformDeductInstallment', header: 'Deduct Installment', width: '140px' },
+            { field: 'uniformRefundInstallment', header: 'Refund Installment', width: '140px' },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '130px',
+                render: function (v, row) {
+                    return '<button class="wg-btn wg-btn-primary" onclick="UpdateUniformMasterData(' + row.uniformID + ')"><i class="bx bx-edit"></i> Edit</button> ' +
+                           '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" onclick="DeleteUniformMaster(' + row.uniformID + ')"><i class="bx bx-trash"></i></button>';
+                }
+            }
+        ], features: { export: true }
+    });
+
+    $(document).ready(function () { loadUniformMasters(); });
+
+    $('#addUniformMaster').click(function () {
+        resetUniformMasterForm();
+        $('#modalTitle').text('Add Uniform Master');
+        $('#addUniformMasterModal').modal('show');
+    });
+
+    function loadUniformMasters() {
+        grid.showLoader();
+        $.ajax({
+            url: '@baseUrl/UniformMasterAPI/GetAllUniformMaster', method: 'GET', _silentLoader: true,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                var rows = response.data || [];
+                _uniformCache = {};
+                rows.forEach(function (r) { _uniformCache[r.uniformID] = r; });
+                grid.setData(rows); grid.hideLoader();
+            },
+            error: function () { grid.hideLoader(); showToast('Failed to load uniform masters.', 'error'); }
+        });
+    }
+
+    $('#btnSaveUniformMaster').click(function () {
+        var uniformMasterId = $('#uniformMasterId').val();
+        var isUpdate = parseInt(uniformMasterId) > 0;
+        var uniformName = $('#uniformName').val();
+        var effectiveDateRaw = $('#effectiveDate').val();
+        var uniformRate = $('#uniformRate').val();
+
+        var isValid = true;
+        if (!uniformName || !uniformName.trim()) { $('#spnUniformName').show(); $('#uniformName').addClass('is-invalid'); isValid = false; } else { $('#spnUniformName').hide(); $('#uniformName').removeClass('is-invalid'); }
+        if (!effectiveDateRaw) { $('#spnEffectiveDate').show(); $('#effectiveDate').addClass('is-invalid'); isValid = false; } else { $('#spnEffectiveDate').hide(); $('#effectiveDate').removeClass('is-invalid'); }
+        if (!uniformRate) { $('#spnUniformRate').show(); $('#uniformRate').addClass('is-invalid'); isValid = false; } else { $('#spnUniformRate').hide(); $('#uniformRate').removeClass('is-invalid'); }
+        if (!isValid) return;
+
+        setBtnLoading('#btnSaveUniformMaster', isUpdate ? 'Updating...' : 'Saving...');
+
+        var deductInst = $('#uniformDeductInstallment').val();
+        var refundInst = $('#uniformRefundInstallment').val();
+        var uniformMasterData = {
+            UniformName: uniformName.trim(),
+            EffectiveDate: new Date(effectiveDateRaw).toISOString(),
+            UniformRate: parseFloat(uniformRate),
+            UniformDeductInstallment: deductInst !== '' ? parseFloat(deductInst) : null,
+            UniformRefundInstallment: refundInst !== '' ? parseFloat(refundInst) : null,
+            IsDeleted: false, IsEnabled: true,
+            CreatedBy: EmployeeId ? EmployeeId.toString() : null,
+            UpdatedBy: EmployeeId ? EmployeeId.toString() : null
+        };
+        if (isUpdate) uniformMasterData.UniformID = parseInt(uniformMasterId);
+
+        $.ajax({
+            url: isUpdate ? "@baseUrl/UniformMasterAPI/UpdateUniformMaster" : "@baseUrl/UniformMasterAPI/CreateUniformMaster",
+            type: isUpdate ? 'PUT' : 'POST',
+            contentType: 'application/json', _silentLoader: true,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(uniformMasterData),
+            success: function (response) {
+                if (response.isSuccess) {
+                    showToast(response.responseMessage || (isUpdate ? 'Uniform master updated.' : 'Uniform master created.'), 'success');
+                    $('#addUniformMasterModal').modal('hide');
+                    loadUniformMasters();
+                } else {
+                    showToast(response.responseMessage || 'Something went wrong.', 'error');
+                    setBtnNormal('#btnSaveUniformMaster', isUpdate ? 'Update' : 'Save');
+                }
+            },
+            error: function () {
+                showToast('Unable to save uniform master.', 'error');
+                setBtnNormal('#btnSaveUniformMaster', isUpdate ? 'Update' : 'Save');
+            }
+        });
+    });
+
+    function UpdateUniformMasterData(id) {
+        var data = _uniformCache[id];
+        if (!data) return;
+        resetUniformMasterForm();
+        $('#modalTitle').text('Update Uniform Master');
+        $('#uniformMasterId').val(data.uniformID || 0);
+        $('#uniformName').val(data.uniformName || '');
+        var dateStr = data.effectiveDate || '';
+        if (dateStr.includes('T')) dateStr = dateStr.split('T')[0];
+        else if (dateStr.includes(' ')) dateStr = dateStr.split(' ')[0];
+        $('#effectiveDate').val(dateStr);
+        $('#uniformRate').val(data.uniformRate || '');
+        $('#uniformDeductInstallment').val(data.uniformDeductInstallment || '');
+        $('#uniformRefundInstallment').val(data.uniformRefundInstallment || '');
+        setBtnNormal('#btnSaveUniformMaster', 'Update');
+        $('#addUniformMasterModal').modal('show');
+    }
+
+    function DeleteUniformMaster(id) {
+        wmsConfirm('Are you sure you want to delete this uniform master?<br><small style="color:#E53E3E;display:block;margin-top:4px">This action cannot be undone.</small>', function () {
+            $.ajax({
+                url: '@baseUrl/UniformMasterAPI/Delete', type: 'DELETE',
+                contentType: 'application/json', _silentLoader: true,
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify({ Id: id, DeletedBy: EmployeeId ? EmployeeId.toString() : null }),
+                success: function (response) {
+                    showToast(response.isSuccess ? (response.responseMessage || 'Deleted.') : (response.responseMessage || 'Error.'), response.isSuccess ? 'success' : 'error');
+                    if (response.isSuccess) loadUniformMasters();
+                },
+                error: function () { showToast('Unable to delete uniform master.', 'error'); }
+            });
+        });
+    }
+
+    function resetUniformMasterForm() {
+        $('#uniformMasterId').val('0');
+        $('#uniformName, #effectiveDate, #uniformRate, #uniformDeductInstallment, #uniformRefundInstallment').val('');
+        $('#uniformName, #effectiveDate, #uniformRate').removeClass('is-invalid');
+        $('#spnUniformName, #spnEffectiveDate, #spnUniformRate').hide();
+        setBtnNormal('#btnSaveUniformMaster', 'Save');
+    }
+</script>

@@ -1,4 +1,4 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
 	ViewData["Title"] = "Additional Information";
 	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
@@ -8,34 +8,8 @@
 	string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 <style>
-	#profileImage {
-		width: 150px;
-		height: 150px;
-		border-radius: 50%;
-		object-fit: cover;
-		cursor: pointer;
-	}
-
-	/* #fileInfo {
-		margin-top: 5px;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-		#fileInfo small {
-			color: green;
-		}
-
-		#fileInfo i {
-			cursor: pointer;
-			color: red;
-		} */
-
-
-
 	#cropModal .modal-dialog {
-		max-width: 600px; /* Optional: limit modal width */
+		max-width: 600px;
 	}
 
 	#cropModal .modal-body {
@@ -50,18 +24,180 @@
 		margin: 0 auto;
 	}
 
-	
-
-	.navbar-nav {
-		justify-content: space-around;
-		width: 100%;
+	.profile-photo-box {
+		border: 1px solid #D8E2E8;
+		border-radius: var(--r-md);
+		background: #F9FBFC;
+		padding: 14px;
+		text-align: center;
 	}
 
-	
-	.light-grey-bg {
-		background-color: #f8f9fa; 
+		.profile-photo-box img {
+			width: 100px;
+			height: 100px;
+			object-fit: cover;
+			border: 1px solid #D8E2E8;
+			border-radius: var(--r-sm);
+			cursor: pointer;
+			background: #fff;
+			margin-top: 6px;
+		}
+
+	/* ════════════════════════════════════════════════════════════════════
+	   Employee Master redesign — compact fields, sticky header/actions/tabs,
+	   sticky photo panel. Scoped to .emp-master-page (this view only): .fg /
+	   .form-grid-3 / .wms-form-page are the shared form design system used
+	   across ~150 other pages, so their base rules in wms-site.css and
+	   hrms-wms-form-bridge.css are left untouched — everything here only
+	   overrides them within this page.
+	   ════════════════════════════════════════════════════════════════════ */
+
+	/* Compact field sizing */
+	.emp-master-page .fg {
+		margin-bottom: 12px;
 	}
-	
+	.emp-master-page .fg label:not(.btn):not(.lc-remember) {
+		font-size: 11.5px;
+	}
+	.emp-master-page .fg input,
+	.emp-master-page .fg select,
+	.emp-master-page .fg textarea,
+	.emp-master-page .wms-dd-trigger {
+		min-height: 32px;
+		padding: 5px 10px;
+		font-size: 13px;
+	}
+	.emp-master-page .fg textarea {
+		min-height: 56px;
+	}
+	.emp-master-page .form-grid-3 {
+		gap: 8px 16px;
+	}
+	/* 4 fields per row on desktop instead of 3 — applies to Basic Info AND
+	   every AJAX-loaded tab partial (Personal Info, Contact, Emergency
+	   Contact, Attachments, Salary, etc.), since they all render inside
+	   .emp-master-page and share the same .form-grid-3 class. Scoped to a
+	   min-width query sitting just above the existing tablet (max-width:
+	   1024px, 2-col) and mobile (max-width:767px, 1-col) breakpoints in
+	   wms-site.css, so those keep working unchanged on smaller screens. */
+	@@media (min-width: 1025px) {
+		.emp-master-page .form-grid-3 {
+			grid-template-columns: repeat(4, 1fr);
+		}
+	}
+	.emp-master-page .sec-lbl {
+		margin-top: 18px;
+		margin-bottom: 10px;
+	}
+	.emp-master-page .divider {
+		margin: 12px 0;
+	}
+
+	/* Sticky title bar — acts as the page breadcrumb/header, stays visible
+	   while scrolling through the long field list below it. */
+	.emp-master-page .card-header {
+		position: sticky;
+		top: 0;
+		z-index: 15;
+		background: var(--surface, #fff);
+	}
+	.emp-crumb-root {
+		color: var(--text-3, #667);
+		font-weight: 500;
+	}
+
+	/* Sticky action bar — Update/Cancel always reachable without scrolling
+	   to the very bottom of the form. */
+	.emp-master-page .emp-actions-bar {
+		position: sticky;
+		bottom: 0;
+		z-index: 10;
+		background: var(--surface, #fff);
+		padding: 10px 0 4px;
+		margin-top: 8px !important;
+		border-top: 1px solid var(--border, #e2e8f0);
+	}
+
+	/* Sticky section tabs — stay visible while scrolling a long tab's
+	   content instead of requiring a scroll back to the top to switch tabs.
+	   The bar = two scroll-arrow buttons + the (horizontally scrollable)
+	   tab list, all sticking together as one row. */
+	.emp-master-page .emp-tabs-bar {
+		position: sticky;
+		top: 0;
+		z-index: 12;
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		background: var(--surface, #fff);
+		padding: 8px 12px 0;
+	}
+	.emp-master-page .emp-tabs-nav-btn {
+		flex-shrink: 0;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border: none;
+		border-radius: 5px;
+		background: transparent;
+		color: var(--text-3, #667);
+		cursor: pointer;
+		font-size: 15px;
+	}
+	.emp-master-page .emp-tabs-nav-btn:hover {
+		background: #eef4fa;
+		color: var(--hp-blue-mid, #2F6F8E);
+	}
+	.emp-master-page #employeeDetailTabs {
+		flex: 1 1 auto;
+		min-width: 0;
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		scroll-behavior: smooth;
+		gap: 4px;
+		/* Hide the native horizontal scrollbar — the ‹ › buttons are the
+		   intended way to scroll the tab strip; dragging still works too. */
+		scrollbar-width: none;
+	}
+	.emp-master-page #employeeDetailTabs::-webkit-scrollbar { display: none; }
+	.emp-master-page #employeeDetailTabs .nav-item {
+		flex-shrink: 0;
+	}
+	.emp-master-page #employeeDetailTabs .nav-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		white-space: nowrap;
+		font-size: 12.5px;
+	}
+	.emp-master-page #employeeDetailTabs .nav-link i {
+		font-size: 14px;
+	}
+	/* Selected tab — light blue-tinted background behind the navy text +
+	   blue underline (the shared app-wide .nav-tabs.active rule only sets
+	   the text/underline color with a transparent background; this adds
+	   the highlighted "selected" look on top, scoped to this page only). */
+	.emp-master-page #employeeDetailTabs .nav-link.active {
+		background: #EAF1F8 !important;
+		border-radius: 6px 6px 0 0;
+	}
+
+	/* Sticky, slightly smaller photo panel on the right — stays in view
+	   while the (much longer) left-hand form column scrolls. */
+	.emp-master-page .emp-photo-col {
+		position: sticky;
+		top: 54px;
+		align-self: flex-start;
+	}
+
+	/* Subtle hover feedback on plain text/date/number inputs, matching the
+	   hover state the WMS dropdown trigger already has. */
+	.emp-master-page .fg input:hover,
+	.emp-master-page .fg textarea:hover {
+		border-color: #4E8FAD;
+	}
 </style>
 
 
@@ -77,415 +213,15 @@
 	<div class="grid-loading-text text-dark " style="font-size: 16px;">Loading...</div>
 </div>
 
+<div class="wms-form-page emp-master-page">
+
 <div class="card" id="employeeDetailsCard">
 
-	<div class="card-header bg-primary text-white">
-		<div class="d-flex justify-content-between align-items-center">
-			<!-- Left: Title -->
-			<div>
-				<h5 class="mb-0">Employee Details</h5>
-			</div>
-
-			<div class="mx-3 flex-grow-1 d-flex justify-content-center">
-				<label for="searchBox" class=" mt-1 text-dark">Search:&nbsp;&nbsp;</label>
-				<input type="text" class="form-control" placeholder="Employee Code or Name" id="searchBox" style="width: 30%; height: 30px;" />
-			</div>
-
-			<!-- Right: Back Arrow -->
-			<div>
-				<i class="fas fa-arrow-circle-left cursor-pointer text-dark" id="backArrow"></i>
-
-			</div>
-		</div>
-	</div>
-
-
-	<div class="card-body" style="font-size:12px;">
-		<div class="row">
-			<div class="col-md-12 bg-light py-2">
-				<div class="d-flex justify-content-between">
-					<span class="text-danger cursor-pointer">
-						<i class="fas fa-angle-double-left"></i> Previous
-					</span>
-
-					<span class="text-danger cursor-pointer">
-						Next <i class="fas fa-angle-double-right"></i>
-					</span>
-				</div>
-			</div>
-		</div>
-
-		<div class="row mt-2">
-			<!-- Left Side: Form Data -->
-			<div class="col-md-8">
-				
-				
-				<div class="card-body" id="editSectionEmoplyee" >
-					<form >
-						<div class="row">
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-select floating-input" id="ddlInitial">
-										<option value="">Select</option>
-										<option>Mr.</option>
-										<option>Mrs.</option>
-										<option>Ms.</option>
-									</select>
-									<label class="floating-label" for="ddlInitial">Initial<span class="required-star">*</span></label>
-
-								</div>
-								<span id="spnInitial" style="color:red; display:none;">Please Select Initial</span>
-
-							</div>
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<input type="text" class="form-control floating-input" id="txtFirstName" placeholder="First Name">
-									<label class="floating-label" for="txtFirstName">First Name<span class="required-star">*</span></label>
-
-								</div>
-								<span id="spnFirstName" style="color:red; display:none;">Please Enter First Name</span>
-
-							</div>
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<input type="text" class="form-control floating-input" id="txtMiddleName" placeholder="Middle Name">
-									<label class="floating-label" for="txtMiddleName">Middle Name</label>
-								</div>
-							</div>
-						</div>
-
-						<div class="row">
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<input type="text" class="form-control floating-input" id="txtLastName" placeholder="Last Name">
-									<label class="floating-label" for="txtLastName">Last Name</label>
-								</div>
-							</div>
-							<div class="col-md-4">
-								<div class="row">
-
-									<div class="col-md-5">
-										<div class="form-group mt-3 position-relative">
-											Employee Code<span class="required-star">*</span>:
-										</div>
-									</div>
-									<div class="col-md-4 p-0">
-										<div class="form-group mt-3 position-relative">
-											<input type="text" readonly class="form-control floating-input" id="txtEmpCode" placeholder="HRMS" value="">
-										</div>
-									</div>
-									<div class="col-md-3">
-										<div class="form-group mt-3 position-relative">
-											<input type="text" readonly class="form-control floating-input" id="txtNumberEmpCode" placeholder="0001" value="">
-										</div>
-
-									</div>
-									<span id="spnStringCode" style="color:red; display:none;">Please Enter String Code</span>
-									<span id="spnNumberCode" style="color:red; display:none;">Please Select Number Code</span>
-
-								</div>
-
-							</div>
-
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<input type="date" class="form-control floating-input" id="doj" placeholder=" ">
-									<label class="floating-label" for="doj">Date of Joining<span class="required-star">*</span></label>
-								</div>
-								<span id="spnDoj" style="color:red; display:none;">Please Select Date Of Joining</span>
-
-							</div>
-						</div>
-
-						<div class="row">
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-select floating-input" id="ddlBranch">
-										<option value="">Select</option>
-									</select>
-									<label class="floating-label" for="ddlBranch">Branch<span class="required-star">*</span></label>
-								</div>
-								<span id="spnBranch" style="color:red; display:none;">Please Select Branch</span>
-
-							</div>
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-select floating-input" id="ddlGrade">
-										<option value="">Select</option>
-										@* 									<option value="">MANAGEMENT</option>
- *@								</select>
-									<label class="floating-label" for="ddlGrade">Grade<span class="required-star">*</span></label>
-								</div>
-								<span id="spnGrade" style="color:red; display:none;">Please Select Grade</span>
-
-							</div>
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-select floating-input" id="ddlShift">
-										<option value="">Select</option>
-									</select>
-									<label class="floating-label" for="ddlShift">Shift<span class="required-star">*</span></label>
-								</div>
-								<span id="spnShift" style="color:red; display:none;">Please Select Shift</span>
-
-							</div>
-
-
-
-							@* <div class="col-md-4">
-							<div class="form-group mt-3 position-relative">
-								<input type="text" class="form-control floating-input" id="txtCTC" placeholder=" ">
-								<label class="floating-label" for="txtCTC">CTC</label>
-							</div>
-						</div> *@
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-select floating-input" id="ddlDesignation">
-										<option value="">Select </option>
-										<!-- Add your options here -->
-									</select>
-									<label class="floating-label" for="ddlDesignation">Designation<span class="required-star">*</span></label>
-								</div>
-								<span id="spnDesignation" style="color:red; display:none;">Please Select Designation</span>
-
-							</div>
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<input type="text" class="form-control floating-input" id="txtGrossSalary" placeholder="Gross Salary " step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-									<label class="floating-label" for="txtGrossSalary">Gross Salary </label>
-								</div>
-							</div>
-
-
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-select floating-input" id="ddlCategory">
-										<option value="">Select</option>
-										<!-- Add your options here -->
-									</select>
-									<label class="floating-label" for="ddlCategory">Category<span class="required-star">*</span></label>
-								</div>
-								<span id="spnCategory" style="color:red; display:none;">Please Select Category</span>
-
-							</div>
-							
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-select floating-input" id="ddlDepartment">
-										<option value="">Select</option>
-										<!-- Add your options here -->
-									</select>
-									<label class="floating-label" for="ddlDepartment">Department<span class="required-star">*</span></label>
-								</div>
-								<span id="spnDepartment" style="color:red; display:none;">Please Select Department</span>
-
-							</div>
-
-
-
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-select floating-input" id="ddlEmpType">
-										<option value="">Select</option>
-										<!-- Add your options here -->
-									</select>
-									<label class="floating-label" for="ddlEmpType">Employee Type<span class="required-star">*</span></label>
-								</div>
-								<span id="spnEmployeeType" style="color:red; display:none;">Please Select Employee Type</span>
-
-							</div>
-
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<input type="date" class="form-control floating-input" id="dob" placeholder=" ">
-									<label class="floating-label" for="dob">Date of Birth<span class="required-star">*</span></label>
-								</div>
-								<span id="spnBirth" style="color:red; display:none;">Please Select Date Of Birth</span>
-
-							</div>
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-select floating-input" id="ddlRole">
-										<option value="">Select</option>
-										<!-- Add your options here -->
-									</select>
-									<label class="floating-label" for="ddlRole">Role<span class="required-star">*</span></label>
-								</div>
-								<span id="spnRole" style="color:red; display:none;">Please select Role</span>
-
-							</div>
-
-							<div class="col-md-4">
-								<div class="form-group mt-3">
-									@* <label for="txtLoginAlias">Login Alias<span class="required-star">*</span></label>
-*@
-									<div class="input-group">
-										<!-- Prefix text inside the input group -->
-										<!-- Input field -->
-										<input type="text" class="form-control floating-input w-50" id="txtLoginAlias" placeholder="Login Alias">
-										<span class="input-group-text p-0 w-50" id="txtDomainName"
-											  style="white-space: nowrap;
-											 overflow: hidden;
-											 text-overflow: ellipsis;
-											 display: inline-block;
-											 padding: 6px 10px;">
-										</span>
-
-									</div>
-
-									<!-- Error message -->
-									<span id="spnLoginAlias" style="color:red; display:none;">Please Enter Login Alias</span>
-								</div>
-							</div>
-
-
-
-
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<input type="password" class="form-control floating-input" id="txtPassword" value="Relay@@123" placeholder="Password" style="padding-right: 40px;">
-									<label class="floating-label" for="txtPassword">Password <span class="required-star">*</span></label>
-
-									<!-- Boxicons eye icon -->
-									<i id="togglePassword" class='bx bx-show'
-									   style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); cursor: pointer; font-size: 1.2rem; color: #666;">
-									</i>
-								</div>
-
-								<span id="spnPassword" style="color:red; display:none;">Please Enter Password</span>
-								<span id="spnPasswordError" style="color:red; display:none;">Please Enter Valid Password</span>
-							</div>
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-select floating-input" id="ddlWeekOfAssign">
-										<option value="">Select</option>
-										<!-- Add your options here -->
-									</select>
-									<label class="floating-label" for="ddlWeekOfAssign">WeekOff Assign</label>
-								</div>
-								<span id="spnWeekOff" style="color:red; display:none;">Please Enter Week Off</span>
-
-							</div>
-
-							<div class="col-md-4">
-								<div class="form-group mt-3 position-relative">
-									<select class="form-control floating-input" id="drpReporting">
-										<option disabled selected value="">Select</option>
-										<!-- Add your options here -->
-									</select>
-									<label class="floating-label" for="drpReporting">Reporting Manager<span class="required-star">*</span> </label>
-								</div>
-								<span id="spnReporting" style="color:red; display:none;">Please Select Reporting Manager</span>
-
-							</div>
-							<div class="col-md-2">
-								<div class="form-check mt-4">
-									<input class="form-check-input" type="checkbox" id="pt" >
-									<label class="form-check-label" for="pt">PT</label>
-								</div>
-							</div>
-
-							<div class="col-md-2">
-								<div class="form-check mt-4">
-									<input class="form-check-input" type="checkbox" id="checkInOut">
-									<label class="form-check-label" for="checkInOut">Punch In Out</label>
-								</div>
-							</div>
-
-						</div>
-
-						
-					<div class="row mt-3" >
-						<div class="col-md-2"></div>
-						<div class="col-md-8 text-center">
-							<button type="button" class="btn btn-dark px-5 m-2 " id="btnBackEmployee">Back</button>
-@* 							<button type="reset" class="btn btn-secondary px-5" id="btnEmployeeClear">Clear</button>
- *@							<button type="button" class="btn btn-primary px-5" id="btnUpdateEmployee" style="background-color:#2395c6; color:white;">Update</button>
-
-						</div>
-						<div class="col-md-2"></div>
-					</div>
-					</form>
-			     </div>
-				
-
-			</div>
-
-			<!-- Right Side: Upload Image/Signature -->
-			<!-- Right Side: Upload Image/Signature -->
-			<div class="col-md-4">
-
-				<!-- PHOTO Upload -->
-				<div class="mb-4 text-center">
-					<label>Profile Picture</label><br>
-
-					<img id="profileImage"
-						 src="@baseDomainUrl/uploads/defaultuserprofile/user-profile-png-image.png"
-						 alt="Profile Image"
-						 style="width: 150px; height: 150px; cursor: pointer;" />
-
-					<input type="file" id="profileInput" accept="image/jpeg" class="d-none" />
-
-					<!-- Show filename BELOW image -->
-					<div id="fileInfo" class="mt-2" style="display: none; margin-left:20px;">
-						<p>
-							<span id="fileNameText" class="text-success"></span>
-							<span id="deleteBtn">
-								<i class="fas fa-trash text-danger ms-2 cursor-pointer" aria-hidden="true"></i>
-							</span>
-						</p>
-					</div>
-				</div>
-
-				<!-- SIGNATURE Upload -->
-				<div class="mb-4 text-center">
-					<label>Upload Signature</label><br>
-
-					<img id="empSignPreview"
-						 src="@baseDomainUrl/uploads/defaultuserprofile/default-signature.jpg"
-						 style="width: 150px; height: 80px; cursor: pointer;"
-						 class="img-thumbnail" />
-
-					<input type="file" id="empSignatureInput" class="d-none" accept=".jpg,.jpeg" />
-
-					<!-- Show signature filename BELOW image -->
-					<div id="signFileInfo" class="mt-2" style="display: none;">
-						<p>
-							<span id="signFileNameText" class="text-success"></span>
-							<span id="deleteSignBtn">
-								<i class="fas fa-trash text-danger ms-2 cursor-pointer" aria-hidden="true"></i>
-							</span>
-						</p>
-					</div>
-				</div>
-
-				<!-- Upload button -->
-				<div class="text-center mt-4">
-					<div id="uploadBtnTag" class="mt-2" style="display: none;">
-						<button type="button" class="btn btn-primary" id="btnUpload" style="background-color:#2395c6; color:white;">
-							Upload
-						</button>
-					</div>
-				</div>
-
-			</div>
-
-
-		</div>
-
-		<div class="row">
-			<div class="col-md-12  py-2">
-				<div class="d-flex justify-content-between">
-					<span><strong>Profile Last Updated By:</strong><span id="createdBy"></span>
-						<span id="lastUpdatedBy"></span>
-				     </span>
-					@* <span class="text-danger cursor-pointer " id="viewEmployeeHistroy">
-						<i class="fas fa-history"></i> View Employee History
-					</span> *@
-				</div>
-			</div>
-		</div>
-
+	<div class="card-header d-flex justify-content-between align-items-center">
+		<h6 class="mb-0 emp-crumb"><span class="emp-crumb-root">Employee Master</span> <i class="bx bx-chevron-right"></i> Edit Employee</h6>
+		<button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="backArrow">
+			<i class="bx bx-arrow-back"></i> Back
+		</button>
 	</div>
 </div>
 
@@ -510,719 +246,658 @@
 </div>
 
 <!--Addition menu-->
-	<div class="card shadow mt-3 ">
-		<div class="card-body p-0">
-		<nav class="navbar navbar-expand-lg navbar-light bg-light rounded-top addition-menu">
-				<div class="container-fluid">
-					<div class="collapse navbar-collapse show" id="navbarTabsOnly">
-						<ul class="navbar-nav d-flex flex-wrap text-center">
-							<li class="nav-item">
-								<a class="nav-link active" href="#">
-									<i class="fas fa-id-card"></i>
-									Employee Personal Info
-								</a>
-							</li>
-							<li class="nav-item">
-								<a class="nav-link " href="#">
-									<i class="fas fa-phone-alt"></i>
-									Contact
-								</a>
-							</li>
-							<li class="nav-item">
-								<a class="nav-link" href="#">
-									<i class="fas fa-user-shield"></i>
-									Emergency Contact(s)
-								</a>
-							</li>
-							
-							<li class="nav-item">
-								<a class="nav-link" href="#">
-									<i class="fas fa-briefcase"></i>
-									Reporting & Contract
-								</a>
-							</li>
-							<li class="nav-item">
-								<a class="nav-link" href="#">
-									<i class="fas fa-paperclip"></i>
-									Attachments
-								</a>
-							</li>
-							<li class="nav-item">
-								<a class="nav-link" href="#">
-									<i class="fas fa-money-bill-wave"></i>
-									Allowance
-								</a>
-							</li>
-							<li class="nav-item">
-								<a class="nav-link" href="#">
-									<i class="fas fa-coins"></i>
-									Salary
-								</a>
-							</li>
-						</ul>
+	<div class="card mt-3">
+		<div class="emp-tabs-bar">
+			<button type="button" class="emp-tabs-nav-btn" id="empTabsPrev" aria-label="Scroll tabs left"><i class="bx bx-chevron-left"></i></button>
+			<button type="button" class="emp-tabs-nav-btn" id="empTabsNext" aria-label="Scroll tabs right"><i class="bx bx-chevron-right"></i></button>
+			<ul class="nav nav-tabs mb-0" id="employeeDetailTabs" role="tablist">
+			<li class="nav-item" role="presentation">
+				<button class="nav-link active py-2" type="button" role="tab" data-tabname="BasicInfo"><i class="bx bx-user-circle"></i> Basic Info</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link py-2" type="button" role="tab" data-tabname="EmployeePersonalInfo"><i class="bx bx-id-card"></i> Personal Info</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link py-2" type="button" role="tab" data-tabname="Contact"><i class="bx bx-phone"></i> Contact</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link py-2" type="button" role="tab" data-tabname="EmergencyContacts"><i class="bx bx-shield"></i> Emergency Contact(s)</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link py-2" type="button" role="tab" data-tabname="ReportingContract"><i class="bx bx-briefcase-alt"></i> Reporting &amp; Contract</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link py-2" type="button" role="tab" data-tabname="Attachments"><i class="bx bx-paperclip"></i> Attachments</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link py-2" type="button" role="tab" data-tabname="Allowance"><i class="bx bx-wallet"></i> Allowance</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link py-2" type="button" role="tab" data-tabname="Salary"><i class="bx bx-coin-stack"></i> Salary</button>
+			</li>
+			</ul>
+		</div>
+
+		<div class="card-body">
+			<div id="partialViewContainer">
+				<div id="BasicInfo" class="partial-section">
+					<div class="row mt-2">
+						<!-- Left Side: Form Data -->
+						<div class="col-md-9">
+							<form id="employeeForm">
+								<div class="form-grid-3">
+
+									<div class="fg fg-req">
+										<label for="ddlInitial">Initial</label>
+										<select id="ddlInitial"></select>
+										<span class="field-validation-error" id="spnInitial" style="display:none;">Please Select Initial</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="txtFirstName">First Name</label>
+										<input type="text" id="txtFirstName" placeholder="First Name">
+										<span class="field-validation-error" id="spnFirstName" style="display:none;">Please Enter First Name</span>
+									</div>
+									<div class="fg">
+										<label for="txtMiddleName">Middle Name</label>
+										<input type="text" id="txtMiddleName" placeholder="Middle Name">
+									</div>
+
+									<div class="fg">
+										<label for="txtLastName">Last Name</label>
+										<input type="text" id="txtLastName" placeholder="Last Name">
+									</div>
+									<div class="fg fg-req">
+										<label>Employee Code</label>
+										<div style="display:flex;gap:6px">
+											<input type="text" readonly id="txtEmpCode" placeholder="HRMS" value="" style="display:none;width:35%" />
+											<input type="text" id="txtNumberEmpCode" placeholder="0001" value="" style="flex:1" />
+										</div>
+										<span class="field-validation-error" id="spnStringCode" style="display:none;">Please Enter String Code</span>
+										<span class="field-validation-error" id="spnNumberCode" style="display:none;">Please Enter Employee Code</span>
+									</div>
+									<div class="fg fg-req">
+										<label for="doj">Date of Joining</label>
+										<input type="date" id="doj" placeholder=" ">
+										<span class="field-validation-error" id="spnDoj" style="display:none;">Please Select Date Of Joining</span>
+									</div>
+
+									<div class="fg">
+										<label for="txtRemark">Remark</label>
+										<input type="text" id="txtRemark" placeholder="Remark">
+									</div>
+								</div>
+								<div class="form-grid-3">
+									<div class="fg fg-req">
+										<label for="ddlBranch">Branch</label>
+										<select id="ddlBranch"></select>
+										<span class="field-validation-error" id="spnBranch" style="display:none;">Please Select Branch</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="ddlGrade">Grade</label>
+										<select id="ddlGrade" disabled></select>
+										<span class="field-validation-error" id="spnGrade" style="display:none;">Please Select Grade</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="ddlShift">Shift</label>
+										<select id="ddlShift"></select>
+										<span class="field-validation-error" id="spnShift" style="display:none;">Please Select Shift</span>
+									</div>
+								</div>
+
+								<div class="form-grid-3">
+									<div class="fg fg-req">
+										<label for="ddlDesignation">Designation</label>
+										<select id="ddlDesignation"></select>
+										<span class="field-validation-error" id="spnDesignation" style="display:none;">Please Select Designation</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="txtGrossSalary">Gross Salary</label>
+										<input type="text" id="txtGrossSalary" placeholder="Gross Salary" data-decimal oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+										<span class="field-validation-error" id="spnGrossSalary" style="display:none;">Please Enter GrossSalary</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="txtBasicSalary">Basic Salary</label>
+										<input type="text" data-decimal id="txtBasicSalary" placeholder="Basic Salary">
+										<span class="field-validation-error" id="spnBasicSalary" style="display:none;">Please Enter Basic Salary</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="ddlCategory">Category</label>
+										<select id="ddlCategory"></select>
+										<span class="field-validation-error" id="spnCategory" style="display:none;">Please Select Category</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="ddlDepartment">Department</label>
+										<select id="ddlDepartment"></select>
+										<span class="field-validation-error" id="spnDepartment" style="display:none;">Please Select Department</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="ddlEmpType">Employee Type</label>
+										<select id="ddlEmpType"></select>
+										<span class="field-validation-error" id="spnEmployeeType" style="display:none;">Please Select Employee Type</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="dob">Date of Birth</label>
+										<input type="date" id="dob" placeholder=" ">
+										<span class="field-validation-error" id="spnBirth" style="display:none;">Please Select Date Of Birth</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="ddlRole">Role</label>
+										<select id="ddlRole"></select>
+										<span class="field-validation-error" id="spnRole" style="display:none;">Please select Role</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="txtLoginAlias">Login Alias</label>
+										<div style="display:flex;align-items:center;gap:0">
+											<input type="text" id="txtLoginAlias" placeholder="Login Alias" style="flex:1;border-radius:var(--r-sm) 0 0 var(--r-sm)">
+											<span id="txtDomainName" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;padding:0 10px;border:1px solid #B8C4CC;border-left:none;border-radius:0 var(--r-sm) var(--r-sm) 0;background:#F0F5F8;min-height:clamp(30px, 2.0vw, 40px);line-height:clamp(30px, 2.0vw, 40px);font-size:13px;"></span>
+										</div>
+										<span class="field-validation-error" id="spnLoginAlias" style="display:none;">Please Enter Login Alias</span>
+									</div>
+
+									<div class="fg fg-req" style="position:relative">
+										<label for="txtPassword">Password</label>
+										<input type="password" id="txtPassword" readonly placeholder="Password" style="padding-right:40px;">
+										<i id="togglePassword" class="bx bx-show"
+										   style="position:absolute;top:30px;right:10px;cursor:pointer;font-size:1.2rem;color:#666;"></i>
+										<span class="field-validation-error" id="spnPassword" style="display:none;">Please Enter Password</span>
+										<span class="field-validation-error" id="spnPasswordError" style="display:none;">Please Enter Valid Password</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="ddlWeekOfAssign">WeekOff Assign</label>
+										<select id="ddlWeekOfAssign"></select>
+										<span class="field-validation-error" id="spnWeekOff" style="display:none;">Please Enter Week Off</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="drpReporting">Reporting Manager</label>
+										<select id="drpReporting"></select>
+										<span class="field-validation-error" id="spnReporting" style="display:none;">Please Select Reporting Manager</span>
+									</div>
+
+									<div class="fg fg-req">
+										<label for="txtAttendanceLimit">Attendance Limit</label>
+										<input type="number" id="txtAttendanceLimit" placeholder="Attendance Limit" min="0" max="31" step="1">
+										<span class="field-validation-error" id="spnAttendanceLimit" style="display:none;">Please Enter Attendance Limit</span>
+										<span class="field-validation-error" id="spnAttendanceLimitRange" style="display:none;">Attendance Limit must be between 0 and 31</span>
+									</div>
+								</div>
+
+								<div class="divider"></div>
+								<div class="sec-lbl">Eligibility Flags</div>
+								<div style="display:flex;gap:22px;flex-wrap:wrap">
+									<div class="form-check">
+										<input class="form-check-input" type="checkbox" id="pt" checked>
+										<label class="form-check-label" for="pt">PT</label>
+									</div>
+									<div class="form-check">
+										<input class="form-check-input" type="checkbox" id="checkInOut">
+										<label class="form-check-label" for="checkInOut">Punch In Out</label>
+									</div>
+									<div class="form-check">
+										<input class="form-check-input" checked type="checkbox" id="isPFApplicable">
+										<label class="form-check-label" for="isPFApplicable">Is PF Applicable</label>
+									</div>
+									<div class="form-check">
+										<input class="form-check-input" type="checkbox" id="probation">
+										<label class="form-check-label" for="probation">Probation</label>
+									</div>
+									<div class="form-check">
+										<input class="form-check-input" type="checkbox" id="gtl" checked>
+										<label class="form-check-label" for="gtl">GTL</label>
+									</div>
+									<div class="form-check">
+										<input class="form-check-input" type="checkbox" id="gmp">
+										<label class="form-check-label" for="gmp">GMP</label>
+									</div>
+								</div>
+
+								<div class="emp-actions-bar d-flex justify-content-end gap-2 mt-3">
+									<button type="button" class="btn btn-outline btn-sm" id="btnBackEmployee">Cancel</button>
+									<button type="button" id="btnUpdateEmployee" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+										<span class="btn-spinner-icon"></span>
+										<span class="btn-label-text">Update</span>
+									</button>
+								</div>
+							</form>
+						</div>
+
+						<div class="col-md-3 emp-photo-col">
+							<div class="profile-photo-box">
+								<label class="sec-lbl" style="display:block;">Profile Picture</label>
+								<img id="profileImage"
+									 src="@baseDomainUrl/uploads/defaultuserprofile/user-profile-png-image.png"
+									 alt="Profile Image" />
+								<input type="file" id="profileInput" accept="image/jpeg" class="d-none" />
+								<div id="uploadBtnTag" class="mt-2" style="display: none;">
+									<button type="button" class="btn btn-primary btn-sm" id="btnUpload">Upload</button>
+								</div>
+							</div>
+						</div>
+
 					</div>
 				</div>
-			</nav>
-
+				<div id="EmployeePersonalInfo" class="partial-section d-none"></div>
+				<div id="Contact" class="partial-section d-none"></div>
+				<div id="EmergencyContacts" class="partial-section d-none"></div>
+				<div id="ReportingContract" class="partial-section d-none"></div>
+				<div id="Attachments" class="partial-section d-none"></div>
+				<div id="Allowance" class="partial-section d-none"></div>
+				<div id="Salary" class="partial-section d-none"></div>
+			</div>
 		</div>
-	<div id="partialViewContainer">
-		<div id="EmployeePersonalInfo" class="partial-section"></div>
-		<div id="Contact" class="partial-section d-none"></div>
-		<div id="EmergencyContacts" class="partial-section d-none"></div>
-		<div id="ReportingContract" class="partial-section d-none"></div>
-		<div id="Attachments" class="partial-section d-none"></div>
-		<div id="Allowance" class="partial-section d-none"></div>
-		<div id="Salary" class="partial-section d-none"></div>
 	</div>
-
-
-	</div>
-
-	
+</div>
 
 <!-- CropperJS CSS & JS -->
-<script src="~/assets/js/jquery.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
-@section Scripts {
 <script>
-	
-	 //    $("#AdminDashboardlink").click(()=>{
-		// 	debugger
-		//  $("#AdminDashboardlink")[0].click();
-		// })
-		let employeeList = [];
-		let currentIndex =0;
-		let CurrentEmployeeId=localStorage.getItem('CurrentEmployeeId');
-		const savedCompany = localStorage.getItem('selectedCompany');
-		var companyDetails = JSON.parse(savedCompany);
-		const CurrentCompanyId=companyDetails.CompanyId;
-		const Token=localStorage.getItem("authToken");
+			let employeeList = [];
+			let UserId=localStorage.getItem('EmployeeId');
+			let CurrentEmployeeId=localStorage.getItem('CurrentEmployeeId');
+			const savedCompany = localStorage.getItem('selectedCompany');
+			var companyDetails = JSON.parse(savedCompany);
 
-		// console.log("CurrentEmployeeId:",CurrentEmployeeId);
-		// console.log("CurrentCompanyId:",CurrentCompanyId);
-		var EmployeeProfileUrl="";
-		var EmployeeSignatureUrl="";
+			const CurrentCompanyId=companyDetails.CompanyId;
+			const Token=localStorage.getItem("authToken");
+
+			var EmployeeProfileUrl="";
+			var EmployeeSignatureUrl="";
+
+			$(document).ready(function(){
+				if (!CurrentCompanyId) {
+					showToast("Please select company", 'error');
+					return;
+				}
+				bindInitial();
+				bindWeekOff();
+			  loadEmployeeRecords();
+			});
+
+
+			$('#txtGrossSalary , #txtBasicSalary').blur(async function () {
+				await GetGradeBySalaryRange();
+
+			});
+
+			async function GetGradeBySalaryRange() {
+                var grossSalary = $('#txtGrossSalary').val();
+				if(!grossSalary){
+					return;
+				}
+				var basicSalary = $('#txtBasicSalary').val();
+				var isPFApplicable = $('#isPFApplicable').is(':checked');
+				if (basicSalary == null || basicSalary === '') {
+					basicSalary = 0;
+				}
+				var parameter={
+					CompanyId:CurrentCompanyId,
+					IsPFApplicable: isPFApplicable,
+					GrossSalary: grossSalary,
+					BasicSalary: basicSalary
+				}
+				
+				try {
+					const response = await new Promise((resolve, reject) => {
+						$.ajax({
+							url: '@baseUrl/EmployeeMasterAPI/GetGradeBySalaryRange' ,
+							method: 'POST',
+							contentType: 'application/json',
+							  data: JSON.stringify(parameter),
+							success: function(response) {
+								resolve(response);
+							},
+							error: function(error) {
+								reject(error);
+							}
+						});
+					});
+
+					if (response.isSuccess) {
+						var gradeEl = document.getElementById('ddlGrade');
+						if (gradeEl._wmsSetValue) { gradeEl._wmsSetValue(response.data.GradeId); } else { gradeEl.value = response.data.GradeId; }
+					}
+				} catch (error) {
+					console.error('Error fetching data:', error);
+				}
+			}
+
+
 	
-	function formatDate(date) {
-		if (!date) return '';
-		var d = new Date(date);
-		return d.toISOString().split('T')[0];
+			async function loadEmployeeRecords() {
+				showLoder();
+				var parameter={
+					CompanyId:CurrentCompanyId,
+					EmployeeId:CurrentEmployeeId
+				}
+				try {
+					const response = await new Promise((resolve, reject) => {
+						$.ajax({
+							url: '@baseUrl/EmployeeMasterAPI/GetRecordsForUpdate' ,
+							method: 'POST',
+							contentType: 'application/json',
+							  data: JSON.stringify(parameter),
+							success: function(response) {
+								resolve(response);
+							},
+							error: function(error) {
+								reject(error);
+							}
+						});
+					});
+
+					if (response.isSuccess) {
+						
+						bindBranch(response.data.branches);
+						bindCategory(response.data.categories);
+						bindDesignation(response.data.designations);
+						bindReporting(response.data.reportingEmployees);
+						bindDepartment(response.data.departments);
+						bindGrade(response.data.grades);
+						bindRole(response.data.roles);
+						bindEmployeeType(response.data.employeeTypes);
+						bindShift(response.data.shifts);						
+						fillEmployeeForm(response.data.employees);
+				
+					} else {
+						showToast(response.responseMessage, 'error');
+						setTimeout(function() {
+							window.location.href = "@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster";
+						}, 1000);
+
+					}
+					hideLoder();
+				} catch (error) {
+					hideLoder();
+					console.error('Error fetching data:', error);
+				} finally {
+					hideLoder();
+				}
+			}
+
+
+
+			function wmsSetValue(id, val) {
+				var el = document.getElementById(id);
+				if (!el) return;
+				if (el._wmsSetValue) { el._wmsSetValue(val); } else { el.value = val; }
+			}
+
+			// Fills a native <select> with <option> tags; the WMS dropdown engine (hrms-wms-dropdown.js)
+			// watches the select for childList changes and rebuilds its custom UI automatically.
+			function fillSelect(id, data, valueKey, textKey, placeholder) {
+				var el = document.getElementById(id);
+				if (!el) return;
+				el.innerHTML = '';
+				var ph = document.createElement('option');
+				ph.value = '';
+				ph.textContent = placeholder || 'Select';
+				el.appendChild(ph);
+				(data || []).forEach(function (d) {
+					var o = document.createElement('option');
+					o.value = d[valueKey];
+					o.textContent = d[textKey] || '';
+					el.appendChild(o);
+				});
+			}
+
+			function bindInitial() {
+				var data = [{ initial: 'Mr.' }, { initial: 'Mrs.' }, { initial: 'Ms.' }];
+				fillSelect('ddlInitial', data, 'initial', 'initial', 'Initial');
+			}
+
+			function bindBranch(data) {
+				fillSelect('ddlBranch', data, 'branchId', 'branchName', 'Branch');
+			}
+
+			function bindDesignation(data) {
+				fillSelect('ddlDesignation', data, 'designationId', 'designationName', 'Designation');
+			}
+
+			function bindCategory(data) {
+				fillSelect('ddlCategory', data, 'categoryId', 'categoryName', 'Category');
+			}
+
+			function bindReporting(data) {
+				fillSelect('drpReporting', data, 'employeeId', 'employeeName', 'Reporting Manager');
+			}
+
+			function bindDepartment(data) {
+				fillSelect('ddlDepartment', data, 'departmentId', 'departmentName', 'Department');
+			}
+
+			function bindGrade(data) {
+				fillSelect('ddlGrade', data, 'gradeId', 'gradeName', 'Grade');
+			}
+
+			function bindRole(data) {
+				fillSelect('ddlRole', data, 'roleId', 'roleName', 'Role');
+			}
+
+			function bindEmployeeType(data) {
+				fillSelect('ddlEmpType', data, 'employeeTypeId', 'employeeTypeName', 'EmployeeType');
+			}
+
+			function bindShift(data) {
+				fillSelect('ddlShift', data, 'shiftId', 'shiftName', 'Shift');
+			}
+
+			function bindWeekOff() {
+				fillSelect('ddlWeekOfAssign', [], 'weekOffDetailsId', 'weekOffName', 'WeekOff Name');
+			}
+
+			$('#ddlBranch').on('change', function () { LoadWeekOffMaster(); });
+
+			$('#ddlEmpType').on('change', function () {
+				var selectedText = $(this).find('option:selected').text().trim();
+				$('#probation').prop('checked', selectedText === 'Probation');
+			});
+
+			async function LoadWeekOffMaster() {
+				return new Promise((resolve, reject) => {
+					let branchId = $('#ddlBranch').val();
+
+					// Validation
+					if (!branchId) {
+						showToast("Please select branch first!", 'warning');
+						reject("Branch not selected");
+						return;
+					}
+
+					var data = {
+						branchId: branchId,
+						CompanyId: CurrentCompanyId
+					};
+
+					$.ajax({
+						url: '@baseUrl/WeekOffMasterAPI/GetAllWeekOffDetails',
+						type: "POST",
+						contentType: 'application/json',
+						data: JSON.stringify(data),
+						success: function (res) {
+							fillSelect('ddlWeekOfAssign', res.data, 'weekOffDetailsId', 'weekOffName', 'WeekOff Name');
+							resolve(res);
+						},
+						error: function (xhr, status, error) {
+							showToast("Failed to fetch week off data.", 'error');
+							reject(error);
+						}
+					});
+				});
+			}
+
+
+
+		$("#backArrow,#btnBackEmployee").click(function(){
+			window.location.href = '@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster';
+		});
+
+	function showBtnLoder()
+	{
+		setBtnLoading('#btnUpdateEmployee', 'Updating...');
+	}
+	function hideBtnLoder()
+	{
+		setBtnNormal('#btnUpdateEmployee', 'Update');
+	}
+
+	function formatDate(isoDateStr) {
+			if (!isoDateStr) return '';
+	  return isoDateStr.split('T')[0];
 	}
 
 	async function showLoder(){
 	  $('#grid-loader').addClass('d-flex').show();
-	}	
+	}
 	async function hideLoder(){
 			$('#grid-loader').removeClass('d-flex').hide();
-	}	
-	$(document).ready( async function () {
-		//await LoadCompanyDetails();
-				  await Promise.all([showLoder(),bindBranch(),loadBindRoleOption(),bindReporting(), bindDesignation(), bindDepartment(), bindGrade(),bindCategory(),bindEmployeeType(),bindShift(),loadBindbusinessSegmentOption()]);
-		await new Promise(resolve => setTimeout(resolve, 1000));
+	}
 
-		// $('#companyDropdown').change(async function() {
-		// 	var selectedCompany = $(this).val();
-		// 	if (selectedCompany) {
-		// 		CurrentEmployeeId=0;
-		// 		getEmployeeDetailsByCompanyId(selectedCompany);
-		//     }
-		// });
-	    //$('#companyDropdown').val(CurrentCompanyId);
-		// var Company = $('#companyDropdown').val();
-		if (!CurrentCompanyId) {
-			round_error_noti("Please select company");
-			return;
-		}
-	  getEmployeeDetailsByCompanyId(CurrentCompanyId);
-
-
-	  $("#ddlBranch").change(()=>{
-			LoadWeekOffMaster();
-		})
-		$('#txtLoginAlias').on('input', function () {
+	$('#txtLoginAlias').on('input', function () {
 			var inputVal = $(this).val();
 			var domain = $('#txtDomainName').text().trim();
 
 			if (inputVal.includes('@@')) {
-				round_error_noti(`The domain "${domain}" is already added.`);
+				showToast(`The domain "${domain}" is already added.`, 'warning');
 
 				// Optionally remove the '@@' from the input
 				$(this).val(inputVal.replace('@@', ''));
 			}
-		});
-
-		$('#togglePassword').click(function() {
-			let passwordInput = $('#txtPassword');
-			let type = passwordInput.attr('type') === 'password' ? 'text' : 'password';
-			passwordInput.attr('type', type);
-
-			// Toggle icon class
-			$(this).toggleClass('bx-show bx-hide');
-		});
 	});
-	function getEmployeeDetailsByCompanyId(company)
-	{
-		showLoder();
-	 $.ajax({
-			type: "GET",
-			url: "@baseUrl/EmployeeMasterAPI/GetAllEmployeeForUpdate"+ "?companyId=" + company,
-			success: function(data) {
-				if (data.isSuccess)
-				{
-					employeeList=data.data;
-					if(CurrentEmployeeId==0)
-					{
-					 currentIndex=0;
-					}
-					else{
-					currentIndex=findIndexById(CurrentEmployeeId);
-					}
-					fillEmployeeForm(employeeList[currentIndex]);
-				}
-				else{
-					round_error_noti(data.responseMessage);
-						round_error_noti(data.responseMessage);
-						setTimeout(function() {
-							window.location.href = "@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster";
-						}, 1000);
-				}
-			},
-			error: function(xhr, status, error) {
-				console.error("AJAX Error: " + status + " - " + error);
-			}
-		})
-	}
-	function findIndexById(idToFind) {
-		
-		const index = employeeList.findIndex(function(obj) {
-			return obj.id == idToFind; // Using == to allow type coercion
-		});
 
-		return index;
-	}
+	$('#togglePassword').click(function() {
+		let passwordInput = $('#txtPassword');
+		let type = passwordInput.attr('type') === 'password' ? 'text' : 'password';
+		passwordInput.attr('type', type);
 
-  async function getAgeFromDOB(dob) {
-			const birthDate = new Date(dob);
-			const today = new Date();
+		// Toggle icon class
+		$(this).toggleClass('bx-show bx-hide');
+	});
 
-			let years = today.getFullYear() - birthDate.getFullYear();
-			let months = today.getMonth() - birthDate.getMonth();
-			const days = today.getDate() - birthDate.getDate();
+	  function findIndexById(idToFind) {
 
-			if (days < 0) {
-				months--;
-			}
+		  const index = employeeList.findIndex(function(obj) {
+			  return obj.id == idToFind; // Using == to allow type coercion
+		  });
 
-			if (months < 0) {
-				years--;
-				months += 12;
-			}
+		  return index;
+	  }
 
-			return { years, months };
-		}
+	async function getAgeFromDOB(dob) {
+			  const birthDate = new Date(dob);
+			  const today = new Date();
 
+			  let years = today.getFullYear() - birthDate.getFullYear();
+			  let months = today.getMonth() - birthDate.getMonth();
+			  const days = today.getDate() - birthDate.getDate();
 
-	// Sample fill function
-		async function fillEmployeeForm(employee) {
-		// Set values into form fields, handling null or undefined values directly
-		$('#EmployeeId').val(employee.id || '');
-		CurrentEmployeeId = employee.id || '';
-		// Personal Information
-			 $('#createdBy').text(employee.createdByName || '');
-		$('#ddlInitial').val(employee.initial || '');
-		$('#txtFirstName').val(employee.firstName || '');
-		$('#txtMiddleName').val(employee.middleName || '');
-		$('#txtLastName').val(employee.lastName || '');
-		$('#txtEmpCode').val(employee.alfaCode || '');
-		$('#txtNumberEmpCode').val(employee.employeeCode || '');
-		$('#doj').val(formatDate(employee.dateOfJoining) || '');
-		// bindBranch();
-		$('#ddlBranch').val(employee.branchId || '');
-		LoadWeekOffMaster();
-		$('#ddlGrade').val(employee.gradeId || '');
-		$('#ddlShift').val(employee.shiftMasterId || '');
-		$('#txtCTC').val(employee.ctc || '');
-		$('#ddlDesignation').val(employee.designationId || '');
-		$('#txtGrossSalary').val(employee.grossSalary || '');
-			if(employee.grossSalary){
-				loadLiveSalaryAllowance();
-			}
-			else{
-				$("#SalaryContainer").hide();
-				$("#salaryNoFound").show();
-			}
-		$('#ddlCategory').val(employee.categoryId || '');
-		$('#ddlDepartment').val(employee.departmentId || '');
-		$('#ddlEmpType').val(employee.employeeTypeId || '');
-		$('#dob').val(formatDate(employee.dateOfBirth) || '');
-		
-		$('#ddlRole').val(employee.roleId || '');
-		$('#drpReporting').val(employee.reportingManagerId || '');
+			  if (days < 0) {
+				  months--;
+			  }
 
-		// Checkboxes
-		$('#pt').prop('checked', employee.pt || false);
-		$('#checkInOut').prop('checked', employee.isPermissionPunchInOut || false);
-		$('#chkSameAs').prop('checked', employee.sameAsPresentAddress || false);
+			  if (months < 0) {
+				  years--;
+				  months += 12;
+			  }
 
-		// Other fields
-		$('#ddlWeekOfAssign').val(employee.weekOffDetailsId || '');
-
-		// Login Alias
-		if (employee.loginAlias) {
-			const parts = employee.loginAlias.split('@@');
-			$('#txtLoginAlias').val(parts[0] || '');
-			$('#txtDomainName').text(parts[1] ? '@@' + parts[1] : '');
-		}
-		// Personal Info
-		if (employee.dateOfBirth) {
-			const age = await getAgeFromDOB(employee.dateOfBirth);
-			let ageText = '';
-
-			if (age.years > 0) {
-				ageText += `${age.years} Year${age.years > 1 ? 's' : ''} `;
-			}
-
-			if (age.months > 0) {
-				ageText += `${age.months} Month${age.months > 1 ? 's' : ''}`;
-			}
-
-			// If both years and months are zero, show nothing or something else:
-			if (ageText === '') {
-				ageText = 'Age not available'; // or ''
-			}
-
-			$('#empAge').text(ageText.trim());
-		}
-
-		$('#ddlGender').val(employee.gender || 'Male');
-		$('#inpPersonalEmailId').val(employee.personalEmailId || '');
-		$('#inpFatherName').val(employee.fatherName || '');
-		$('#inpMotherName').val(employee.motherName || '');
-		$('#ddlBloodGroup').val(employee.bloodGroup || '');
-		$('#inpHeight').val(employee.height || '');
-		$('#ddlMaritalStatus').val(employee.maritalStatus || '');
-		$('#inpMarriageDate').val(employee.marriageDate || '');
-		$('#inpMarkIdentification').val(employee.markIdentification || '');
-		$('#inpReligion').val(employee.religion || '');
-		$('#inpCaste').val(employee.caste || '');
-		$('#ddlCasteCategory').val(employee.castCategory || '');
-		$('#inpAadharCardNo').val(employee.aadharCardNo || '');
-		$('#inpPanNo').val(employee.panNo || '');
-		$('#inpDispensary').val(employee.dispensary || '');
-		$('#inpDoctorName').val(employee.doctorName || '');
-		$('#inpDispensaryAddress').val(employee.dispensaryAddress || '');
-		$('#inpUanNumber').val(employee.uanNumber || '');
-		$('#inpDrivingLicense').val(employee.drivingLicense || '');
-		$('#inpDrivingLicenseExpiry').val(formatDate(employee.drivingLicenseExpiry) || '');
-		$('#ddlRationCardType').val(employee.rationCardType || '');
-		$('#inpRationCardNo').val(employee.rationCardNo || '');
-		$('#inpProbationCompletionPeriod').val(employee.probationCompletionPeriod || '');
-		$('input[name="probationPeriod"]').val(employee.probationPeriodType || '');
-		$('#ddlManagerProbation').val(employee.managerProbationId || '');
-		$('#inpConfirmDate').val(formatDate(employee.confirmDate) || '');
-			$('#inpRetirementDate').val(formatDate(employee.retirementDate )|| '');
-		$('#inpOfferDate').val(formatDate(employee.offerDate) || '');
-		$('#inpTraineeCompletionPeriod').val(employee.traineeCompletionPeriod || '');
-		$('input[name="trainingPeriod"]').val(employee.traineePeriodType || '');
-
-		// Contact Details
-		$('#txtPresentAddress').val(employee.presentAddress || '');
-		$('#txtPresentTehsil').val(employee.presentTehsil || '');
-		$('#txtPresentDistrict').val(employee.presentDistrict || '');
-		$('#txtPresentCity').val(employee.presentCity || '');
-		$('#ddlPresentState').val(employee.presentStateId || '');
-		$('#txtPresentPincode').val(employee.presentPincode || '');
-		$('#ddlPresentThana').val(employee.presentThanaId || '');
-		$('#txtPermanentAddress').val(employee.permanentAddress || '');
-		$('#txtPermanentTehsil').val(employee.permanentTehsil || '');
-		$('#txtPermanentDistrict').val(employee.permanentDistrict || '');
-		$('#txtPermanentCity').val(employee.permanentCity || '');
-		$('#ddlPermanentState').val(employee.permanentStateId || '');
-		$('#txtPermanentPincode').val(employee.permanentPincode || '');
-		$('#ddlPermanentThana').val(employee.permanentThanaId || '');
-		$('#ddlCountry').val(employee.countryId || '');
-		$('#txtWorkPhone').val(employee.workPhone || '');
-		$('#txtPersonalPhone').val(employee.personalPhone || '');
-		$('#txtOfficialEmail').val(employee.officialEmail || '');
-		$('#txtNationality').val(employee.nationality || '');
-		$('#txtExtensionNo').val(employee.extensionNo || '');
-		$('#txtMobileNo').val(employee.mobileNo || '');
-
-		// Salary Report Info
-		$('#primaryPaymentMode').val(employee.primaryPaymentMode || '');
-		$('#primaryBank').val(employee.primaryBankId || '');
-		$('#primaryIFSC').val(employee.primaryIFSCCode || '');
-		$('#primaryAccountNo').val(employee.primaryAccountNumber || '');
-		$('#primaryBranchName').val(employee.primaryBankBranchName || '');
-		$('#ddlWagesType').val(employee.wagesType || '');
-		$('#groupJoiningDate').val(formatDate(employee.groupJoiningDate)|| '');
-		$('#businessSegment').val(employee.businessSegmentId || '');
-		$('#employeeNameSalaryReport').val(employee.employeeSalaryReport || '');
-		$('#employeeNamePFReport').val(employee.employeePFReport || '');
-		$('#employeeNamePTReport').val(employee.employeePTReport || '');
-		$('#employeeNameTaxReport').val(employee.employeeTaxReport || '');
-		$('#employeeNameESICReport').val(employee.employeeESIReport || '');
-		$('#employeeNamePrimaryBank').val(employee.employeeNamePrimaryBank || '');
-
-		// Profile and Signature Images
-		if (employee.employeeProfileUrl) {
-			$('#profileImage').attr('src', employee.employeeProfileUrl);
-			EmployeeProfileUrl = employee.employeeProfileUrl;
-			$('#fileInfo').show();
-			$("#uploadBtnTag").show();
-		} else {
-			$('#profileImage').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/user-profile-png-image.png');
-			$('#fileInfo').hide();
-		}
-
-		if (employee.employeeSignatureUrl) {
-			EmployeeSignatureUrl = employee.employeeSignatureUrl;
-			$('#empSignPreview').attr('src', employee.employeeSignatureUrl);
-			$('#signFileInfo').show();
-			$("#uploadBtnTag").show();
-		} else {
-			$('#empSignPreview').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/default-signature.jpg');
-			$('#signFileInfo').hide();
-		}
-
-		//$(".loaderTag").show();
-					hideLoder();
-	}
-
-
-	async function bindDesignation(){
-
-	   $.ajax({
-				url: '@baseUrl/DesignationAPI/GetAllDesignation',
-				method: 'GET',
-				success: function(data) {
-					if(data.isSuccess){
-						var dropdown = $('#ddlDesignation');
-						dropdown.empty();
-						dropdown.append('<option disabled selected value="">Select Designation</option>');
-						$.each(data.data, function(index, company) {
-							dropdown.append($('<option>', {
-								value: company.designationId,
-								text: company.designationName
-							}));
-						});
-
-
-					}
-				},
-				error: function(error) {
-					console.error('Error fetching designation data:', error);
-				}
-			});
-
-	 }
-	function LoadWeekOffMaster()
-	{
-		 let branchId = $('#ddlBranch').val();
-
-			// Validation
-			if (!branchId) {
-				round_error_noti("Please select branch first!");
-				return;
-			}
-			var data={
-				branchId:branchId,
-				CompanyId:CurrentCompanyId
-			}
-			// API call
-			$.ajax({
-				url: '@baseUrl/WeekOffMasterAPI/GetAllWeekOffDetails',
-				type: "Post",
-				contentType: 'application/json',
-				data: JSON.stringify(data),
-				success: function (res) {
-
-					if(res.isSuccess){
-							var dropdown = $('#ddlWeekOfAssign');
-							dropdown.empty();
-							dropdown.append('<option disabled selected value="">Select</option>');
-							let sundayValue = null;
-							$.each(res.data, function(index, company) {
-								dropdown.append($('<option>', {
-									value: company.weekOffDetailsId,
-									text: company.weekOffName
-								}));
-								   // Check if the name is "Sunday"
-								if (company.weekOffName.toLowerCase() === 'sunday') {
-									sundayValue = company.weekOffDetailsId;
-								}
-							});
-							if (sundayValue !== null) {
-								dropdown.val(sundayValue);
-							}
-					}
-				},
-				error: function () {
-					round_error_noti("Failed to fetch week off data.");
-				}
-			});
-
-	}
-
-	 async function bindReporting(){
-
-		$.ajax({
-		type: "GET",
-		url: "@baseUrl/EmployeeMasterAPI/GetAllEmployee"+ "?companyId=" + CurrentCompanyId,
-		success: function(data) {
-				if(data.isSuccess){
-						var dropdown = $('#drpReporting,#ddlManagerProbation');
-					dropdown.empty();
-					dropdown.append('<option disabled selected value="">Select</option>');
-					$.each(data.data, function(index, company) {
-						dropdown.append($('<option>', {
-							value: company.id,
-							text: company.fullName+" - "+company.employeeCode
-						}));
-					});
-
-
-	            }
-		},
-		error: function(xhr, status, error) {
-			console.error("AJAX Error: " + status + " - " + error);
-		}
-	})
-
-	 }
-	async  function bindDepartment(){
-
-		  $.ajax({
-				   url: '@baseUrl/DepartmentAPI/GetAllDepartments',
-				   method: 'GET',
-					   headers: {
-						   'Authorization': 'Bearer ' + Token
-					   },
-				   success: function(data) {
-					   if(data.isSuccess){
-						   var dropdown = $('#ddlDepartment');
-						   dropdown.empty();
-						   dropdown.append('<option disabled selected value="">Select </option>');
-						   $.each(data.data, function(index, company) {
-							   dropdown.append($('<option>', {
-								   value: company.departmentId,
-								   text: company.departmentName
-							   }));
-						   });
-
-
-					   }
-				   },
-				   error: function(error) {
-					   console.error('Error fetching designation data:', error);
-				   }
-			   });
-
-		}
-	
-	 
-	 async function bindGrade(){
-	   $.ajax({
-				url: '@baseUrl/GradeAPI/GetAllGrade',
-				method: 'GET',
-				success: function(data) {
-					if(data.isSuccess){
-						var dropdown = $('#ddlGrade');
-						dropdown.empty();
-						dropdown.append('<option disabled selected value="">Select Grade</option>');
-						$.each(data.data, function(index, company) {
-							dropdown.append($('<option>', {
-								value: company.gradeId,
-								text: company.gradeName
-							}));
-						});
-
-
-					}
-				},
-				error: function(error) {
-					console.error('Error fetching grade data:', error);
-				}
-			});
-
-	 }
-
-	async function loadBindRoleOption() {
-
-		try {
-			const response = await fetch('@baseUrl/RoleAPI/GetAllRoles', {
-				method: 'GET',
-					  headers: {
-							  'Authorization': 'Bearer ' + Token
-					  },
-			});
-
-			const data = await response.json();
-
-			if (data.isSuccess) {
-
-				var arrayDta=data.data;
-				 var dropdowns = $('#ddlRole');
-							dropdowns.empty();
-							dropdowns.append(
-								$('<option>', {
-								value: '0',
-								text: 'Select',
-								selected: true,
-								disabled: true
-								})
-							);
-
-							$.each(data.data, function(index, role) {
-									dropdowns.append($('<option >', {
-									value: role.id,
-									text: role.name
-								}));
-							});
-			}
-		} catch (error) {
-			console.error('Fetch error:', error);
-		}
-	}
-
-		async	function bindBranch()
-		{
-
-			 $.ajax({
-						url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/'+CurrentCompanyId,
-				  method: 'GET',
-					  headers: {
-							  'Authorization': 'Bearer ' + Token
-						  },
-				  success: function(data) {
-					  if(data.isSuccess){
-						  var dropdown = $('#ddlBranch');
-						  dropdown.empty();
-						  dropdown.append('<option disabled selected value="">Select</option>');
-						  $.each(data.data, function(index, company) {
-							  dropdown.append($('<option>', {
-								  value: company.branchId,
-								  text: company.branchName
-							  }));
-						  });
-
-
-					  }
-				  },
-				  error: function(error) {
-					  console.error('Error fetching branch data:', error);
-				  }
-			  });
-
+			  return { years, months };
 		  }
-	
-	async function bindEmployeeType(){
-
-	   $.ajax({
-			url: '@baseUrl/EmployeeTypeAPI/GetAllEmployeeTypes',
-			method: 'GET',
-			success: function(data) {
-				if(data.isSuccess){
-					var dropdown = $('#ddlEmpType');
-					dropdown.empty();
-					dropdown.append('<option disabled selected value="">Select</option>');
-					$.each(data.data, function(index, company) {
-						dropdown.append($('<option>', {
-							value: company.employeeTypeId,
-							text: company.employeeTypeName
-						}));
-					});
 
 
-				}
-			},
-			error: function(error) {
-				console.error('Error fetching category data:', error);
-			}
-		});
+	  // Sample fill function
+	  async function fillEmployeeForm(employee) {
+		  console.log('employee' ,employee);
+		  // Set values into form fields, handling null or undefined values directly
+		  $('#EmployeeId').val(employee.id || '');
+		  CurrentEmployeeId = employee.id || '';
+		  // Personal Information
+			   $('#createdBy').text(employee.createdByName || '');
+		  //$('#ddlInitial').val(employee.initial || '');
+		  wmsSetValue('ddlInitial', employee.initial);
+		  $('#txtFirstName').val(employee.firstName || '');
+		  $('#txtMiddleName').val(employee.middleName || '');
+		  $('#txtLastName').val(employee.lastName || '');
+		   if(employee.alfaCode){
+		   $('#txtEmpCode').show().val(employee.alfaCode || '');
+		  }
+		  $('#txtNumberEmpCode').val(employee.employeeCode || '');
+		  $('#txtRemark').val(employee.remark || '');
+		  $('#doj').val(formatDate(employee.dateOfJoining) || '');
+		  wmsSetValue('ddlBranch', employee.branchId);
+		  wmsSetValue('ddlGrade', employee.gradeId);
+		  wmsSetValue('ddlShift', employee.shiftMasterId);
+		  wmsSetValue('ddlShift', employee.shiftMasterId);
+		  wmsSetValue('ddlDesignation', employee.designationId);
 
-	}
-	async function bindCategory(){
-
-	   $.ajax({
-			url: '@baseUrl/CategoryAPI/GetAllCategories',
-			method: 'GET',
-			success: function(data) {
-				if(data.isSuccess){
-					var dropdown = $('#ddlCategory');
-					dropdown.empty();
-					dropdown.append('<option disabled selected value="">Select</option>');
-					$.each(data.data, function(index, company) {
-						dropdown.append($('<option>', {
-							value: company.categoryId,
-							text: company.categoryName
-						}));
-					});
-
-
-				}
-			},
-			error: function(error) {
-				console.error('Error fetching category data:', error);
-			}
-		});
-
-	}
-	async function bindShift(){
-
-	   $.ajax({
-			url: '@baseUrl/ShiftMasterAPI/GetAllShifts',
-			method: 'GET',
-			success: function(data) {
-				if(data.isSuccess){
-					var dropdown = $('#ddlShift');
-					dropdown.empty();
-					dropdown.append('<option disabled selected value="">Select</option>');
-					$.each(data.data, function(index, company) {
-						dropdown.append($('<option>', {
-							value: company.shiftID,
-							text: company.shiftName
-						}));
-					});
-
-
-				}
-			},
-			error: function(error) {
-				console.error('Error fetching category data:', error);
-			}
-		});
-
-	}
-
-	// Bind navigation buttons
-	$(document).ready( async function () {
-		 
-		 $('span:contains("Next")').click(function () {
-			if (currentIndex < employeeList.length - 1) {
-				currentIndex++;
-				fillEmployeeForm(employeeList[currentIndex]);
-			}
-		});
-
-		$('span:contains("Previous")').click(function () {
-			if (currentIndex > 0) {
-				currentIndex--;
-				fillEmployeeForm(employeeList[currentIndex]);
-			}
-		});
-
+		  await LoadWeekOffMaster();
 		
-	});
+		  $('#txtCTC').val(employee.ctc || '');
+		  $('#txtGrossSalary').val(employee.grossSalary || '');
+	      $('#txtBasicSalary').val(employee.basicSalary || '');			 
+		  wmsSetValue('ddlCategory', employee.categoryId);
+		  wmsSetValue('ddlDepartment', employee.departmentId);
+		  wmsSetValue('ddlEmpType', employee.employeeTypeId);		 
+		  $('#dob').val(formatDate(employee.dateOfBirth) || '');
+		  wmsSetValue('ddlRole', employee.roleId);		
+		  wmsSetValue('drpReporting', employee.reportingManagerId);
+		 
+		  // Checkboxes
+		  $('#pt').prop('checked', employee.pt || false);
+		  $('#checkInOut').prop('checked', employee.isPermissionPunchInOut || false);
+		  $('#chkSameAs').prop('checked', employee.sameAsPresentAddress || false);
+		   $('#isPFApplicable').prop('checked', employee.isPFApplicable || false);
+		   $('#probation').prop('checked', employee.probation || false);	
+	       $('#gtl').prop('checked', employee.isGTL === false ? false : true);
+           $('#gmp').prop('checked', employee.isGMP === true ? true : false);
+		   wmsSetValue('ddlWeekOfAssign', employee.weekOffDetailsId);
+		  $('#txtAttendanceLimit').val(employee.attendanceLimit !== null && employee.attendanceLimit !== undefined ? employee.attendanceLimit : '');
+		  $('#txtPassword').val(employee.password || '');
+		  // Other fields
+		 
+		  // Login Alias
+		  if (employee.loginAlias) {
+			  const parts = employee.loginAlias.split('@@');
+			  $('#txtLoginAlias').val(parts[0] || '');
+			  $('#txtDomainName').text(parts[1] ? '@@' + parts[1] : '');
+		  }
 
 
-	$('#btnUpdateEmployee').click(async function() {
-			$("#btnUpdateEmployee").prop("disabled", true);
+		 
+
+		  // Profile and Signature Images
+		  if (employee.employeeProfileUrl) {
+			  $('#profileImage').attr('src', employee.employeeProfileUrl);
+			  $('.profileImage').attr('src', employee.employeeProfileUrl);
+			  EmployeeProfileUrl = employee.employeeProfileUrl;
+
+		  } else {
+			  $('#profileImage').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/user-profile-png-image.png');
+		  }
+
+					  hideLoder();
+
+	  }
+
+	   function convertToDecimal(value) {
+			let decimalValue = parseFloat(value);
+			return isNaN(decimalValue) ? 0 : decimalValue;
+		}
+	  $('#btnUpdateEmployee').click(async function() {
+		  showBtnLoder();
 			// Capture form values in variables
-			var initial = $('#ddlInitial').val();
+			var initial = $('#ddlInitial').val();;
 			var firstName = $('#txtFirstName').val().trim();
 			var middleName = $('#txtMiddleName').val().trim();
 			var lastName = $('#txtLastName').val().trim();
@@ -1236,24 +911,28 @@
 			var designation = $('#ddlDesignation').val();
 			var grossSalary = $('#txtGrossSalary').val().trim();
 			var category = $('#ddlCategory').val();
-			var basicSalary = null;
+			 var basicSalary = $('#txtBasicSalary').val();
 			var department = $('#ddlDepartment').val();
 			var employeeType = $('#ddlEmpType').val();
 			var dateOfBirth = $('#dob').val();
 			var RoleId = $('#ddlRole').val();
 			var loginAlias = $('#txtLoginAlias').val().trim();
-			var password = $('#txtPassword').val().trim();
+			// var password = $('#txtPassword').val().trim();
 			var domainName = $('#txtDomainName').text().trim();
 			var weekOfAssignId = $('#ddlWeekOfAssign').val();
 			var pt = $('#pt').is(':checked');
 			var checkInOut = $('#checkInOut').is(':checked');
 			 var patternPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@@$!%*?&])[A-Za-z\d@@$!%*?&]{8,}$/;
 			var reportingManager=$('#drpReporting').val();
-
-			var Company = CurrentCompanyId;
-
-
-			
+		    var isPFApplicable = $('#isPFApplicable').is(':checked');
+		    var probation = $('#probation').is(':checked');
+			var gtl = $('#gtl').is(':checked');
+            var gmp = $('#gmp').is(':checked');
+			 var attendanceLimit = $('#txtAttendanceLimit').val().trim();
+			 var remark = $('#txtRemark').val().trim();
+			var Company = CurrentCompanyId;;
+				
+						  
 				// Validate required fields
 			   var isValid = true;
 
@@ -1272,21 +951,14 @@
 				else{
 					$('#spnFirstName').hide();
 				}
-				if (!employeeStringCode) {
-					$('#spnNumberCode').hide();
-					$('#spnStringCode').show();
-					isValid = false;
-				}
-				else{
-					$('#spnStringCode').hide();
-					if (!spnNumberCode) {
-						$('#spnNumberCode').show();
-						isValid = false;
+
+					 if (!employeeNumberCode) {
+							  $('#spnNumberCode').show();
+							  isValid = false;
 					}
 					else{
 						$('#spnNumberCode').hide();
 					}
-				}
 				if (!dateOfJoining) {
 					$('#spnDoj').show();
 					isValid = false;
@@ -1321,6 +993,21 @@
 				}
 				else{
 					$('#spnDesignation').hide();
+				}
+
+				if (!grossSalary) {
+					$('#spnGrossSalary').show();
+					isValid = false;
+				}
+				else{
+					$('#spnGrossSalary').hide();
+				}
+				if (!basicSalary) {
+					$('#spnBasicSalary').show();
+					isValid = false;
+				}
+				else{
+					$('#spnBasicSalary').hide();
 				}
 				if (!category) {
 					$('#spnCategory').show();
@@ -1366,20 +1053,7 @@
 					$('#spnLoginAlias').hide();
 				}
 
-				if (!password) {
-					$('#spnPasswordError').hide();
-					$('#spnPassword').show();
-					isValid = false;
-				}
-				else{
-					$('#spnPassword').hide();
-					if (patternPassword.test(password)) {
-						$('#spnPasswordError').hide();
-
-					} else {
-						$('#spnPasswordError').show();
-					}
-				}
+				
 				if (!weekOfAssignId) {
 					$('#spnWeekOff').show();
 					isValid = false;
@@ -1392,14 +1066,56 @@
 				}else{
 						$('#spnReporting').hide();
 				}
+					if (!attendanceLimit) {
+							$('#spnAttendanceLimit').show();
+							isValid = false;
+						} else {
+							$('#spnAttendanceLimit').hide();
+
+							let attendanceLimitValue = parseInt(attendanceLimit);
+							if (attendanceLimitValue < 0 || attendanceLimitValue > 31) {
+								$('#spnAttendanceLimitRange').show();
+								showToast('Attendance Limit must be between 0 and 31', 'error');
+								isValid = false;
+							} else {
+								$('#spnAttendanceLimitRange').hide();
+							}
+						}
+				//  if (probation)
+				//  {
+				// 	if(!probationCompletionPeriod)
+				// 	{
+				// 			$('#spnProbationCompletionPeriod').show();
+				// 		isValid = false;
+				// 	}
+				// 	else
+				// 	{
+				// 				$('#spnProbationCompletionPeriod').hide();
+				// 	}
+
+				// 	if(!$('#ddlManagerProbation').val())
+				// 	{
+				// 			 $('#spnddlManagerProbation').show();
+				// 		  isValid = false;
+				// 	}
+				// 	else
+				// 	{
+				// 			$('#spnddlManagerProbation').hide();
+				// 	}
+
+				// }else{
+				// 		$('#spnddlManagerProbation').hide();
+				// 			$('#spnProbationCompletionPeriod').hide();
+				// }
 
 				if (!isValid) {
-					$("#btnUpdateEmployee").prop("disabled", false);
+				  hideBtnLoder();
 					return;
 				}
 				const setNullIfEmpty = (value) => {
 					return value === "" ? null : value;
 				};
+
 
 			// Create employeeData object
 					var employeeData = {
@@ -1411,7 +1127,7 @@
 						LastName: lastName === "" ? null : lastName,
 						FullName: `${initial} ${firstName} ${middleName} ${lastName}`.trim(),
 						EmployeeCode: `${employeeNumberCode}`.trim(),
-						AlfaCode: `${employeeStringCode}`.trim(),
+						 AlfaCode: `${employeeStringCode}`===""?null:`${employeeStringCode}`,
 						AlfaEmployeeCode: `${employeeStringCode}${employeeNumberCode}`.trim(),
 						DateOfJoining: dateOfJoining === "" ? null : dateOfJoining,
 						BranchId: branch === "" ? null : branch,
@@ -1420,151 +1136,64 @@
 						DesignationId: designation === "" ? null : designation,
 						GrossSalary: grossSalary === "" ? null : grossSalary,
 						CategoryId: category === "" ? null : category,
-						BasicSalary: null,
+						BasicSalary: basicSalary==""?null:basicSalary,
 						DepartmentId: department === "" ? null : department,
 						EmployeeTypeId: employeeType === "" ? null : employeeType,
 						DateOfBirth: dateOfBirth === "" ? null : dateOfBirth,
 						RoleId: RoleId === "" ? 0 : RoleId,
 						LoginAlias: loginAlias === "" ? null : `${loginAlias}${domainName}`,
-						Password: password,
-					     ReportingManagerId:reportingManager==""? null:reportingManager,
-						Pt: pt === "" ? false : pt,
+							AttendanceLimit: attendanceLimit === "" ? null : parseInt(attendanceLimit),
 
+						//Password: password,
+						 ReportingManagerId:reportingManager==""? null:reportingManager,
+						Pt: pt === "" ? false : pt,
+						IsPFApplicable:isPFApplicable,
 						// Default values for properties not present in the JavaScript object
 
 
 						CreatedBy: null,
-						UpdatedBy: `${CurrentEmployeeId}`,
+						UpdatedBy: `${UserId}`,
 
 						EmployeeProfileUrl: null,
 						EmployeeSignatureUrl: null,
 						WeekOffDetailsId:weekOfAssignId==""?null:weekOfAssignId,
 						IsPermissionPunchInOut:checkInOut,
-
-						//PersionalInfo
-						  Gender: setNullIfEmpty($('#ddlGender').val()),
-							PersonalEmailId: setNullIfEmpty($('#inpPersonalEmailId').val()),
-							FatherName: setNullIfEmpty($('#inpFatherName').val()),
-							MotherName: setNullIfEmpty($('#inpMotherName').val()),
-							BloodGroup: setNullIfEmpty($('#ddlBloodGroup').val()),
-							Height: setNullIfEmpty($('#inpHeight').val()),
-							MaritalStatus: setNullIfEmpty($('#ddlMaritalStatus').val()),
-							MarriageDate: setNullIfEmpty($('#inpMarriageDate').val()),
-							MarkIdentification: setNullIfEmpty($('#inpMarkIdentification').val()),
-							Religion: setNullIfEmpty($('#inpReligion').val()),
-							Caste: setNullIfEmpty($('#inpCaste').val()),
-							CastCategory: setNullIfEmpty($('#ddlCasteCategory').val()),
-							AadharCardNo: setNullIfEmpty($('#inpAadharCardNo').val()),
-							PANNo: setNullIfEmpty($('#inpPanNo').val()),
-							Dispensary: setNullIfEmpty($('#inpDispensary').val()),
-							DoctorName: setNullIfEmpty($('#inpDoctorName').val()),
-							DispensaryAddress: setNullIfEmpty($('#inpDispensaryAddress').val()),
-							UANNumber: setNullIfEmpty($('#inpUanNumber').val()),
-							DrivingLicense: setNullIfEmpty($('#inpDrivingLicense').val()),
-							DrivingLicenseExpiry: setNullIfEmpty($('#inpDrivingLicenseExpiry').val()),
-							RationCardType: setNullIfEmpty($('#ddlRationCardType').val()),
-							RationCardNo: setNullIfEmpty($('#inpRationCardNo').val()),
-
-							ProbationCompletionPeriod: setNullIfEmpty($('#inpProbationCompletionPeriod').val()),
-							ProbationPeriodType: setNullIfEmpty($('input[name="probationPeriod"]:checked').val()),
-							ManagerProbationId: setNullIfEmpty($('#ddlManagerProbation').val()),
-							ConfirmDate: setNullIfEmpty($('#inpConfirmDate').val()),
-							RetirementDate: setNullIfEmpty($('#inpRetirementDate').val()),
-							OfferDate: setNullIfEmpty($('#inpOfferDate').val()),
-							TraineeCompletionPeriod: setNullIfEmpty($('#inpTraineeCompletionPeriod').val()),
-							TraineePeriodType: setNullIfEmpty($('input[name="trainingPeriod"]:checked').val()),
-
-							// Contact Details
-							PresentAddress: setNullIfEmpty($('#txtPresentAddress').val().trim()),
-							PresentTehsil: setNullIfEmpty($('#txtPresentTehsil').val().trim()),
-							PresentDistrict: setNullIfEmpty($('#txtPresentDistrict').val().trim()),
-							PresentCity: setNullIfEmpty($('#txtPresentCity').val().trim()),
-							PresentStateId: setNullIfEmpty($('#ddlPresentState').val()),
-							PresentPincode: setNullIfEmpty($('#txtPresentPincode').val().trim()),
-							PresentThanaId: setNullIfEmpty($('#ddlPresentThana').val()),
-
-							PermanentAddress: setNullIfEmpty($('#txtPermanentAddress').val().trim()),
-							PermanentTehsil: setNullIfEmpty($('#txtPermanentTehsil').val().trim()),
-							PermanentDistrict: setNullIfEmpty($('#txtPermanentDistrict').val().trim()),
-							PermanentCity: setNullIfEmpty($('#txtPermanentCity').val().trim()),
-							PermanentStateId: setNullIfEmpty($('#ddlPermanentState').val()),
-							PermanentPincode: setNullIfEmpty($('#txtPermanentPincode').val().trim()),
-							PermanentThanaId: setNullIfEmpty($('#ddlPermanentThana').val()),
-
-							CountryId: setNullIfEmpty($('#ddlCountry').val()),
-							WorkPhone: setNullIfEmpty($('#txtWorkPhone').val().trim()),
-							PersonalPhone: setNullIfEmpty($('#txtPersonalPhone').val().trim()),
-							OfficialEmail: setNullIfEmpty($('#txtOfficialEmail').val().trim()),
-							Nationality: setNullIfEmpty($('#txtNationality').val().trim()),
-							ExtensionNo: setNullIfEmpty($('#txtExtensionNo').val().trim()),
-							MobileNo: setNullIfEmpty($('#txtMobileNo').val().trim()),
-							SameAsPresentAddress: $('#chkSameAs').is(':checked'),
-
-							// Salary Report Info
-							 PrimaryPaymentMode: setNullIfEmpty($('#primaryPaymentMode').val()),
-							  PrimaryBankName: setNullIfEmpty($('#primaryBank').val()),
-							  PrimaryIFSCCode: setNullIfEmpty($('#primaryIFSC').val()),
-							  PrimaryAccountNumber: setNullIfEmpty($('#primaryAccountNo').val()),
-							  PrimaryBankBranchName: setNullIfEmpty($('#primaryBranchName').val()),
-							  WagesType: setNullIfEmpty($('#ddlWagesType').val()),
-							  GroupJoiningDate: setNullIfEmpty($('#groupJoiningDate').val()),
-							  BusinessSegmentId: setNullIfEmpty($('#businessSegment').val()),
-							  EmployeeSalaryReport: setNullIfEmpty($('#employeeNameSalaryReport').val()),
-							  EmployeePFReport: setNullIfEmpty($('#employeeNamePFReport').val()),
-							  EmployeePTReport: setNullIfEmpty($('#employeeNamePTReport').val()),
-							  EmployeeTaxReport: setNullIfEmpty($('#employeeNameTaxReport').val()),
-							  EmployeeESIReport: setNullIfEmpty($('#employeeNameESICReport').val()),
-							  EmployeeNamePrmaryBank: setNullIfEmpty($('#employeeNamePrimaryBank').val())
-
+						Probation:probation,
+						IsGTL: gtl,
+                        IsGMP: gmp,
+						Remark: remark === "" ? null : remark
+						
 					};
-					//Add employee person info
-					//var employeePersional=await getEmployeePersonalInfo();
-					// var employeeContact= await getEmployeeContactFromForm();
-
-					// var updateEmployee={
-					// 	vmEmployeeData:employeeData,
-					// 	EmployeePersonalInfo:employeePersional,
-					// 	EmployeeContact:employeeContact
-					// };
-					// console.log("updateEmployee",updateEmployee)
-
+					
 			// Send data to server using AJAX
 				$.ajax({
-					url: '@baseUrl/EmployeeMasterAPI/UpdateEmployee',
+					url: '@baseUrl/EmployeeMasterAPI/UpdateBasicInfo',
 					type: 'POST',
 					contentType: 'application/json',
 					data: JSON.stringify(employeeData),
 					success: function(response) {
 						if (response.isSuccess) {
-						round_success_noti(response.responseMessage);
-							 getEmployeeDetailsByCompanyId(CurrentCompanyId);
+						showToast(response.responseMessage, 'success');
+								 // loadEmployeeRecords();
+								   
 
 						} else {
-							round_error_noti(response.responseMessage);
+							showToast(response.responseMessage, 'error');
+
 						}
-						$("#btnUpdateEmployee").prop("disabled", false);
+						  hideBtnLoder();
 					},
 					error: function(xhr, status, error) {
-						$("#btnUpdateEmployee").prop("disabled", false);
+							  hideBtnLoder();
 
 						console.error('Error:', error);
-						
+
 					}
 				});
 
 		});
 
-		function resetAllEmployeeData(data)
-		{
-			$('#fileNameText').text("");
-			$('#signFileNameText').text("");
-			employeeList.splice(currentIndex, 1);
-			employeeList.splice(currentIndex, 0, data);
-			fillEmployeeForm(employeeList[currentIndex]);
-			localStorage.removeItem('AllEmployeeData');
-			localStorage.setItem('AllEmployeeData', JSON.stringify(employeeList));
-		}
-
+		
 
 		async function loadBindbusinessSegmentOption() {
 
@@ -1604,257 +1233,157 @@
 		}
 	}
 
-	
+		// Attendance Limit Validation
+	$('#txtAttendanceLimit').on('input', function() {
+		let value = parseInt($(this).val());
+		this.value = this.value.replace(/[^0-9]/g, '');
+
+		if (value > 31) {
+			$(this).val(31);
+			showToast('Maximum value is 31', 'error');
+		} else if (value < 0) {
+			$(this).val(0);
+		}
+	});
+
+	$('#txtAttendanceLimit').on('keypress', function(e) {
+		if (this.value.length >= 2 && e.which !== 8) {
+			e.preventDefault();
+		}
+	});
+
 </script>
 
 <script>
-	let cropper;
+		let cropper;
 	let selectedFile;
-	let currentCropTarget = '';
-	let profileFile=null;
-	let signatureFile=null;
-
-	 $("#backArrow,#btnBackEmployee").click(() => {
-			window.location.href = '@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster';
-	 });
-	 
+	let profileFile = null;
+	let currentCropTarget = 'profile'; // default target
 
 	// Trigger file input
-	$('#profileImage').click(() => $('#profileInput').click());
+	$('#profileImage').click(() => {
+		currentCropTarget = 'profile';
+		$('#profileInput').click();
+	});
 
 	// File selected
 	$('#profileInput').change(function () {
 		const file = this.files[0];
-		// if (!file || !file.name.toLowerCase().endsWith(".jpg")) {
-		// 	alert("Only JPG files are allowed.");
-		// 	resetAll();
-		// 	return;
-		// }
+		if (!file) {
+			alert("Only JPG files are allowed.");
+			return;
+		}
+		if (!file.name.toLowerCase().endsWith(".jpg") && !file.name.toLowerCase().endsWith(".jpeg")) {
+			alert("Only JPG and JPEG files are allowed.");
+			return;
+	   }
+
 
 		selectedFile = file;
 		const reader = new FileReader();
 		reader.onload = function (e) {
 			$('#cropImagePreview').attr('src', e.target.result);
 			$('#cropImagePreview').on('load', function () {
-				// Initialize Cropper only after the image is fully loaded
 				initCropper();
 			});
 
-			// Show the modal directly when the file is loaded
 			const modal = new bootstrap.Modal(document.getElementById('cropModal'));
 			modal.show();
 		};
 		reader.readAsDataURL(file);
 	});
 
-	// Function to initialize the cropper
+	// Initialize Cropper
 	function initCropper() {
-		const image = document.getElementById('cropImagePreview');
-
-		// Destroy any previous cropper instance before creating a new one
-		if (cropper) {
-			cropper.destroy();
-		}
-
-		// Initialize cropper
-		cropper = new Cropper(image, {
-			aspectRatio: 1,
-			viewMode: 1,
-			autoCropArea: 1,
-			ready() {
-				// Optionally, you can set focus or trigger other UI updates after cropper is ready
-			}
-		});
-	}
-
-	// On Modal hidden - destroy cropper
-	$('#cropModal').on('hidden.bs.modal', function () {
-		if (cropper) {
-			cropper.destroy();
-			cropper = null;
-		}
-	});
-
-	// // Confirm crop
-	// $('#cropConfirmBtn').click(function () {
-	// 	if (!cropper) {
-	// 		alert("Cropper not initialized.");
-	// 		return;
-	// 	}
-
-	// 	const canvas = cropper.getCroppedCanvas({ width: 150, height: 150 });
-	// 	const dataURL = canvas.toDataURL("image/jpeg");
-
-	// 	$('#profileImage').attr('src', dataURL); // Update the profile image
-	// 	$('#fileNameText').text(selectedFile.name);
-	// 	$('#fileInfo').show(); // Show the file info
-
-	// 	// Hide modal
-	// 	bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
-	// });
-
-	// // Delete all
-	$('#deleteBtn').click(() => resetProfile());
-
-	function resetProfile() {
-		$('#profileInput').val('');
-		$('#profileImage').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/user-profile-png-image.png');
-		$('#fileInfo').hide();
-		selectedFile = null;
-		profileFile=null;
-		if (cropper) {
-			cropper.destroy();
-			cropper = null;
-		}
-	}
-
-
-	$('#cropConfirmBtn').click(function () {
-		if (!cropper) {
-			alert("Cropper not initialized.");
-			return;
-		}
-		const canvas = currentCropTarget === 'signature'
-			? cropper.getCroppedCanvas({ width: 150, height: 80 })
-			: cropper.getCroppedCanvas({ width: 150, height: 150 });
-
-		const dataURL = canvas.toDataURL("image/jpeg");
-
-		if (currentCropTarget === 'signature') {
-			$('#empSignPreview').attr('src', dataURL);
-			$('#signFileNameText').text(selectedFile.name);
-			signatureFile=selectedFile;
-			$('#signFileInfo').show();
-		} else {
-			$('#profileImage').attr('src', dataURL);
-			$('#fileNameText').text(selectedFile.name);
-			profileFile=selectedFile;
-			$('#fileInfo').show();
-		}
-		$("#uploadBtnTag").show();
-	$('#cropConfirmBtn').blur(); // <-- remove focus from button
-	bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
-});
-
-
-
-	//signature
-
-	$('#empSignPreview').click(() => $('#empSignatureInput').click());
-
-	// Signature file selected
-	$('#empSignatureInput').change(function () {
-		const file = this.files[0];
-
-		if (!file || !file.name.toLowerCase().endsWith(".jpg")) {
-			alert("Only JPG files are allowed for signature.");
-			resetSignature();
-			return;
-		}
-
-		selectedFile = file;
-		currentCropTarget = 'signature';
-
-		const reader = new FileReader();
-		reader.onload = function (e) {
-			$('#cropImagePreview').attr('src', e.target.result);
-			$('#cropImagePreview').on('load', function () {
-				initCropperSignature(); // for signature aspect
-			});
-
-			const modal = new bootstrap.Modal(document.getElementById('cropModal'));
-			modal.show();
-		};
-		reader.readAsDataURL(file);
-	});
-
-	// Delete Signature
-	$('#deleteSignBtn').click(() => resetSignature());
-
-	function initCropperSignature() {
 		const image = document.getElementById('cropImagePreview');
 		if (cropper) cropper.destroy();
 
 		cropper = new Cropper(image, {
-			aspectRatio: 150 / 80,
+			aspectRatio: 1,
 			viewMode: 1,
 			autoCropArea: 1
 		});
 	}
 
-	function resetSignature() {
-		$('#empSignatureInput').val('');
-		$('#empSignPreview').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/default-signature.jpg');
-		$('#signFileInfo').hide();
-		selectedFile = null;
-		signatureFile=null;
+	// Destroy cropper on modal close
+	$('#cropModal').on('hidden.bs.modal', function () {
 		if (cropper) {
 			cropper.destroy();
 			cropper = null;
 		}
-	}
 
-	
+	});
 
-  $("#btnUpload").click(() => {
+	// Confirm Crop
+	$('#cropConfirmBtn').click(function () {
+		if (!cropper) {
+			alert("Cropper not initialized.");
+			return;
+		}
+
+		const canvas = cropper.getCroppedCanvas({ width: 150, height: 150 });
+
+		canvas.toBlob(function (blob) {
+			const croppedFile = new File([blob], selectedFile.name, {
+				type: "image/jpeg",
+				lastModified: Date.now()
+			});
+
+			const previewURL = URL.createObjectURL(croppedFile);
+			$('#profileImage').attr('src', previewURL);
+			profileFile = croppedFile;
+			$("#uploadBtnTag").show();
+			bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
+		}, "image/jpeg");
+	});
+
+	// Upload Cropped Image
+	$("#btnUpload").click(() => {
 		$("#btnUpload").prop("disabled", true);
-			var profileFile = $('#profileInput')[0].files[0];
-			var signatureFile = $('#empSignatureInput')[0].files[0];
-			
-			var profileFormdata = new FormData();
-			profileFormdata.append("EmployeeId", CurrentEmployeeId);
+
+		if (!profileFile) {
+			showToast("Please select and crop an image first!", 'error');
+			$("#btnUpload").prop("disabled", false);
+			return;
+		}
+
+		const profileFormdata = new FormData();
+		profileFormdata.append("EmployeeId", CurrentEmployeeId); // Make sure employeeId is defined
 		profileFormdata.append("EmployeeProfileFile", profileFile);
-		profileFormdata.append("EmployeeSignatureFile", signatureFile);
-		profileFormdata.append("EmployeeSignatureUrl", EmployeeSignatureUrl);
-		profileFormdata.append("EmployeeProfileUrl", EmployeeProfileUrl);
-		// Example of sending the FormData to the server using AJAX
+
 		$.ajax({
-			url: '@baseUrl/EmployeeMasterAPI/UpdateEmployeeProfileAndSignature', // Replace with your actual endpoint
+			url: '@baseUrl/ProfileManageAPI/UpdateProfilePic', // Replace with your actual endpoint
 			type: 'POST',
 			data: profileFormdata,
 			processData: false,
 			contentType: false,
-			success: function(response) {
-			  if (response.isSuccess) 
-			  {
-				  var employee=response.data;
-						 // resetAllEmployeeData(employee);
-					// if(employee.employeeProfileUrl!=null )
-					// {
-					// 	$('#profileImage').attr('src',employee.employeeProfileUrl );
-					// 	EmployeeProfileUrl=employee.employeeProfileUrl;
-					// }
-					// else{
-					// 	$('#profileImage').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/user-profile-png-image.png');
-					// }
-					// if(employee.employeeSignatureUrl!=null){
-					// 	EmployeeSignatureUrl=employee.employeeSignatureUrl;
-					// 	$('#empSignPreview').attr('src', employee.employeeSignatureUrl);
-					// }
-					// else{
-					// 	$('#empSignPreview').attr('src', '@baseDomainUrl/uploads/defaultuserprofile/default-signature.jpg');
-					// }
-				round_success_noti(response.responseMessage);
-			  } 
-				else {
-					round_error_noti(response.responseMessage);
+			success: function (response) {
+				if (response.isSuccess) {
+					const employee = response.data;
+					const imageUrl = employee.employeeProfileUrl ;
+					if(imageUrl){
+						$('#profileImage').attr('src', imageUrl);
+						$("#uploadBtnTag").hide();
+
+					   showToast(response.responseMessage, 'success');
+					  $('.profileImage').attr('src', imageUrl);
+					}
+				} else {
+					showToast(response.responseMessage, 'error');
 				}
-					$("#btnUpload").prop("disabled", false);
-			},
-			error: function(xhr, status, error) {
 				$("#btnUpload").prop("disabled", false);
-				console.error('Upload failed', error);
+			},
+			error: function (xhr, status, error) {
+				$("#btnUpload").prop("disabled", false);
 			}
 		});
 	});
 
+
 </script>
 
-
-
-
-<script>
-	const tabMap = {
+  <script>
+			const tabMap = {
 		"EmployeePersonalInfo": "@Url.Action("EmployeeInfo", "PartialView")",
 		"Contact": "@Url.Action("Contact", "PartialView")",
 		"EmergencyContacts": "@Url.Action("EmergencyContact", "PartialView")",
@@ -1865,194 +1394,57 @@
 	};
 
 	$(document).ready(function () {
-		// Load all partial views on page load
-		for (let key in tabMap) {
-			$('#' + key).html('<div class="text-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
-			$.get(tabMap[key], function (response) {
-				$('#' + key).html(response);
-			});
-		}
+		// "Basic Info" is the default tab. Unlike the others it's not an
+		// AJAX-loaded partial — it's the always-inline form (see
+		// loadEmployeeRecords()/fillEmployeeForm() above) — so it needs no
+		// loadPartialView() call and is already visible (no d-none) in the
+		// markup; the remaining tabs stay lazy-loaded on first click.
 
 		// Handle tab click
-		$('.nav-link').on('click', function (e) {
+		$('#employeeDetailTabs .nav-link').on('click', function (e) {
 			e.preventDefault();
-
-			$('.nav-link').removeClass('active');
+			$('#employeeDetailTabs .nav-link').removeClass('active');
 			$(this).addClass('active');
 
-			let text = $(this).text().trim();
-			let idMap = {
-				"Employee Personal Info": "EmployeePersonalInfo",
-				"Contact": "Contact",
-				"Emergency Contact(s)": "EmergencyContacts",
-				"Reporting & Contract": "ReportingContract",
-				"Attachments": "Attachments",
-				"Allowance": "Allowance",
-				"Salary": "Salary"
-			};
-
-			let targetId = idMap[text];
-
+			let targetId = $(this).data('tabname');
 			if (!targetId) return;
 
 			$('.partial-section').addClass('d-none');
 			$('#' + targetId).removeClass('d-none');
+
+			// Load the partial view if not already loaded
+			if ($('#' + targetId).html().trim() === '') {
+				loadPartialView(targetId);
+			}
 		});
 
-		// Trigger default tab
-		$('.nav-link.active').trigger('click');
+		// ‹ › buttons scroll the tab strip so tabs that don't fit the
+		// visible width are still reachable without a native scrollbar.
+		$('#empTabsPrev').on('click', function () {
+			document.getElementById('employeeDetailTabs').scrollBy({ left: -160, behavior: 'smooth' });
+		});
+		$('#empTabsNext').on('click', function () {
+			document.getElementById('employeeDetailTabs').scrollBy({ left: 160, behavior: 'smooth' });
+		});
 	});
+
+	function loadPartialView(key) {
+		$('#' + key).html('<div class="text-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+
+		$.get(tabMap[key], function (response) {
+			$('#' + key).html(response);
+
+			
+		});
+	}
 
 	$(document).ready(function () {
 	  $('#viewEmployeeHistroy').on('click', function () {
-		const baseUIOrginUrl = window.location.origin; 
+		const baseUIOrginUrl = window.location.origin;
 		window.location.href = baseUIOrginUrl + '/EmployeeMaster/EmployeeHistory';
 
 	  });
 	});
 
-</script>
-
-<script>
-
-
-
-	$('#txtGrossSalary').blur(async function () {
-		await loadLiveSalaryAllowance();
-
-	});
-	async function loadLiveSalaryAllowance() {
-	var grossSalary = $('#txtGrossSalary').val();
-	if(!grossSalary)
-	{
-		$("#SalaryContainer").hide();
-			$("#salaryNoFound").show();
-		return;
-	}
-	   try {
-			const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetLiveEmployeeSalaryAllowance/'+grossSalary, {
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
-
-			const data = await response.json();
-			if (data.isSuccess) {
-				var arrayDta = data.data;
-					  $("#SalaryContainer").show();
-					  $("#salaryNoFound").hide();
-				  bindSalaryAllowance(arrayDta);
-				
-
-			}
-			else{
-						$("#SalaryContainer").hide();
-					$("#salaryNoFound").show();
-				}
-		} catch (error) {
-			console.error('Fetch error:', error);
-		}
-	}
-
-	// $(document).ready(async function () {
-	// 	//await loadSalaryAllowance();
-	// });
-
-	// async function loadSalaryAllowance() {
-	// 	try {
-	// 		const response = await fetch('@baseUrl/EmployeeSalaryAllowanceAPI/GetEmployeeSalaryAllowanceByEmployeeId/'+CurrentEmployeeId, {
-	// 			method: 'GET',
-	// 			headers: {
-	// 				'Accept': 'application/json'
-	// 			}
-	// 		});
-
-	// 		const data = await response.json();
-
-	// 		if (data.isSuccess) {
-
-	// 			console.log("Salary loaded:", data.data);
-	// 			var arrayDta=data.data;
-				
-	// 				  bindSalaryAllowance(arrayDta);
-				
-	// 		}
-	// 		else{
-	// 				$("#SalaryContainer").hide();
-	// 			$("#salaryNoFound").show();
-	// 		}
-	// 	} catch (error) {
-	// 		console.error('Fetch error:', error);
-	// 	}
-	// }
-
-		function formatCurrency(value) {
-			return "₹" + (value ?? 0).toFixed(2);
-		}
-
-	function bindSalaryAllowance(salaryData) {
-		// Earnings
-		$('#monthlyGross').text(formatCurrency(salaryData.totalGrossSalary));
-		$('#AnualGross').text(formatCurrency(salaryData.totalGrossSalary * 12));
-
-		$('#basicSalaryMonth').text(formatCurrency(salaryData.basicSalary));
-		$('#basicSalaryYear').text(formatCurrency(salaryData.basicSalary * 12));
-		$('#hraMonth').text(formatCurrency(salaryData.hra));
-		$('#hraYear').text(formatCurrency(salaryData.hra * 12));
-		$('#deputationAllowanceMonth').text(formatCurrency(salaryData.deputationAllowance));
-		$('#deputationAllowanceYear').text(formatCurrency(salaryData.deputationAllowance * 12));
-		$('#conveyanceAllowanceMonth').text(formatCurrency(salaryData.conveyanceAllowance));
-		$('#conveyanceAllowanceYear').text(formatCurrency(salaryData.conveyanceAllowance * 12));
-		$('#medicalAllowanceMonth').text(formatCurrency(salaryData.medicalAllowance));
-		$('#medicalAllowanceYear').text(formatCurrency(salaryData.medicalAllowance * 12));
-		$('#childEducationAllowanceMonth').text(formatCurrency(salaryData.childEducationAllowance));
-		$('#childEducationAllowanceYear').text(formatCurrency(salaryData.childEducationAllowance * 12));
-		$('#totalGrossMonth').text(formatCurrency(salaryData.totalGrossSalary));
-		$('#totalGrossYear').text(formatCurrency(salaryData.totalGrossSalary * 12));
-
-		// Deductions
-		$('#pfMonth').text(formatCurrency(salaryData.employeePF));
-		$('#pfYear').text(formatCurrency(salaryData.employeePF * 12));
-		$('#esiMonth').text(formatCurrency(salaryData.employeeESI));
-		$('#esiYear').text(formatCurrency(salaryData.employeeESI * 12));
-		$('#ptMonth').text(formatCurrency(salaryData.professionalTax));
-		$('#ptYear').text(formatCurrency(salaryData.professionalTax * 12));
-		$('#groupMedicalMonth').text(formatCurrency(salaryData.groupMedical));
-		$('#groupMedicalYear').text(formatCurrency(salaryData.groupMedical * 12));
-		$('#termInsuranceMonth').text(formatCurrency(salaryData.termInsurance));
-		$('#termInsuranceYear').text(formatCurrency(salaryData.termInsurance * 12));
-		$('#totalDeductionMonth').text(formatCurrency(salaryData.totalDeductions));
-		$('#totalDeductionYear').text(formatCurrency(salaryData.totalDeductions * 12));
-
-		// Net Salary
-		$('#netSalaryMonth').text(formatCurrency(salaryData.netSalary));
-		$('#netSalaryYear').text(formatCurrency(salaryData.netSalary * 12));
-
-		// CTC calculation
-		$('#CalculationGrossMonth').text(formatCurrency(salaryData.ctc));
-		$('#CalculationGrossYear').text(formatCurrency(salaryData.ctc * 12));
-		$('#CalculationPFMonth').text(formatCurrency(salaryData.employeePF));
-		$('#CalculationPFYear').text(formatCurrency(salaryData.employeePF * 12));
-		$('#CalculationESIMonth').text(formatCurrency(salaryData.employeeESI));
-		$('#CalculationESIMonth').text(formatCurrency(salaryData.employeeESI * 12));
-		// CTC
-		$('#ctcMonth').text(formatCurrency(salaryData.ctc));
-		$('#ctcYear').text(formatCurrency(salaryData.ctc * 12));
-
-		// Summary
-		$('#summaryCtc').text(formatCurrency(salaryData.ctc));
-		$('#summaryNet').text(formatCurrency(salaryData.netSalary));
-		$('#summaryAnnual').text(formatCurrency(salaryData.ctc * 12));
-	}
-
-
-</script>
-
-<script>
-
-
-
-</script>
-
-}
+</script> 
+ 

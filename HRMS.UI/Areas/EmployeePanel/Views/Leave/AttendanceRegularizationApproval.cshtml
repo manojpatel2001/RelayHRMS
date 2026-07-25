@@ -1,0 +1,706 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Attendance Regularization Approval";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = ViewBag.BaseUrl;
+    string apiBase = ViewBag.BaseUrlAPI;
+    string baseUrls = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrls);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<title>Attendance Regularization Approval</title>
+
+<style>
+    /* ── Tab Toggle Buttons ── */
+    .tab-toggle-wrapper {
+        display: flex;
+        gap: 0;
+        margin-bottom: 18px;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 2px solid var(--brand, #3e4b6d);
+        width: fit-content;
+    }
+
+    .tab-toggle-btn {
+        padding: 9px 28px;
+        font-size: 13.5px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        transition: background 0.18s, color 0.18s;
+        letter-spacing: 0.02em;
+        background-color: #fff;
+        color: var(--brand, #3e4b6d);
+    }
+
+        .tab-toggle-btn.active {
+            background-color: var(--brand, #3e4b6d);
+            color: #fff;
+        }
+
+        .tab-toggle-btn:not(.active):hover {
+            background-color: #eef0f5;
+        }
+
+    /* ── Tab Content ── */
+    .tab-content-panel {
+        display: none;
+    }
+
+        .tab-content-panel.active {
+            display: block;
+        }
+
+    .btn-hrd-proceed {
+        background-color: #28a745;
+        color: white;
+        border: none;
+    }
+
+        .btn-hrd-proceed:hover {
+            background-color: #218838;
+            color: white;
+        }
+</style>
+
+<div class="wms-form-page">
+
+    <!-- ══ TAB TOGGLE ══ -->
+    <div class="tab-toggle-wrapper">
+        <button class="tab-toggle-btn active" id="tabBtnEmp" onclick="switchTab('emp')" type="button">
+            Employee Regularization
+        </button>
+        <button class="tab-toggle-btn" id="tabBtnHrd" onclick="switchTab('hrd')" type="button">
+            Employee Regularization for HRD Approval
+        </button>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         TAB 1 — EMPLOYEE REGULARIZATION
+         ════════════════════════════════════════════ -->
+    <div class="tab-content-panel active" id="panelEmp">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Employee Regularization</h6>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
+            </div>
+            <div class="card-body">
+                <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+                <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                    <div class="fg" style="flex:1 1 160px;min-width:150px;">
+                        <label for="emp_searchby">Search By</label>
+                        <select id="emp_searchby">
+                            <option value="1">Emp Name</option>
+                            <option value="2">Emp Code</option>
+                            <option value="3">Reason</option>
+                            <option value="4">Manager Name</option>
+                        </select>
+                    </div>
+
+                    <div class="fg" style="flex:1 1 190px;min-width:170px;">
+                        <label for="emp_searchfor">Search For</label>
+                        <input type="text" id="emp_searchfor" placeholder="Enter search text" />
+                    </div>
+
+                    <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                        <label for="emp_fromdate">From Date</label>
+                        <input type="date" id="emp_fromdate" />
+                    </div>
+
+                    <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                        <label for="emp_todate">To Date</label>
+                        <input type="date" id="emp_todate" />
+                    </div>
+
+                    <div style="flex:0 0 auto;">
+                        <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Status</span>
+                        <div class="d-flex gap-3">
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input" type="radio" name="emp_type" id="emp_r2">
+                                <label class="form-check-label" for="emp_r2">Pending</label>
+                            </div>
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input" type="radio" name="emp_type" id="emp_r3">
+                                <label class="form-check-label" for="emp_r3">Approved</label>
+                            </div>
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input" type="radio" name="emp_type" id="emp_r4">
+                                <label class="form-check-label" for="emp_r4">Rejected</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2" style="flex-shrink:0;">
+                        <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="emp_btnGo">
+                            <i class="bx bx-search"></i>
+                            <span class="btn-spinner-icon"></span>
+                            <span class="btn-label-text">Go</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="emp_btnClear">Clear</button>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div id="emp_actionButtons" class="d-flex justify-content-end gap-2 mb-3" style="display:none;">
+                    <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="emp_btnDelete">
+                        <i class="bx bx-trash"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Delete</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="emp_btnApprove">
+                        <i class="bx bx-check"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Approve</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="emp_btnReject" style="color:#C62828;border-color:#EF9A9A">
+                        <i class="bx bx-x"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Reject</span>
+                    </button>
+                </div>
+
+                <div id="gridContainerEmpRegularization"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ════════════════════════════════════════════
+         TAB 2 — HRD APPROVAL
+         ════════════════════════════════════════════ -->
+    <div class="tab-content-panel" id="panelHrd">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Employee Regularization for HRD Approval</h6>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
+            </div>
+            <div class="card-body">
+                <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+                <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                    <div class="fg" style="flex:1 1 160px;min-width:150px;">
+                        <label for="hrd_searchby">Search By</label>
+                        <select id="hrd_searchby">
+                            <option value="1">Emp Name</option>
+                            <option value="2">Emp Code</option>
+                            <option value="3">Reason</option>
+                            <option value="4">Manager Name</option>
+                        </select>
+                    </div>
+
+                    <div class="fg" style="flex:1 1 190px;min-width:170px;">
+                        <label for="hrd_searchfor">Search For</label>
+                        <input type="text" id="hrd_searchfor" placeholder="Enter search text" />
+                    </div>
+
+                    <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                        <label for="hrd_fromdate">From Date</label>
+                        <input type="date" id="hrd_fromdate" />
+                    </div>
+
+                    <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                        <label for="hrd_todate">To Date</label>
+                        <input type="date" id="hrd_todate" />
+                    </div>
+
+                    <div style="flex:0 0 auto;">
+                        <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Status</span>
+                        <div class="d-flex gap-3">
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input" type="radio" name="hrd_type" id="hrd_r2">
+                                <label class="form-check-label" for="hrd_r2">Pending</label>
+                            </div>
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input" type="radio" name="hrd_type" id="hrd_r4">
+                                <label class="form-check-label" for="hrd_r4">Rejected</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2" style="flex-shrink:0;">
+                        <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="hrd_btnGo">
+                            <i class="bx bx-search"></i>
+                            <span class="btn-spinner-icon"></span>
+                            <span class="btn-label-text">Go</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="hrd_btnClear">Clear</button>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div id="hrd_actionButtons" class="d-flex justify-content-end gap-2 mb-3" style="display:none;">
+                    <button type="button" class="btn btn-sm d-inline-flex align-items-center gap-1 btn-hrd-proceed" id="hrd_btnProceed">
+                        <i class="bx bx-check"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Proceed to HRD</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="hrd_btnReject" style="color:#C62828;border-color:#EF9A9A">
+                        <i class="bx bx-x"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Rejected</span>
+                    </button>
+                </div>
+
+                <div id="gridContainerHrdApproval"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const apiBase = '@apiBase';
+
+    /* ══ TAB SWITCHING ══ */
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-content-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-toggle-btn').forEach(b => b.classList.remove('active'));
+
+        if (tab === 'emp') {
+            document.getElementById('panelEmp').classList.add('active');
+            document.getElementById('tabBtnEmp').classList.add('active');
+        } else {
+            document.getElementById('panelHrd').classList.add('active');
+            document.getElementById('tabBtnHrd').classList.add('active');
+        }
+    }
+
+    /* ══ UTILITY ══ */
+    function goBack() {
+        window.location.href = '@UIBaseUrl/EmployeePanel/Home/index';
+    }
+
+    function getSearchByText(value) {
+        const map = { '1': 'EmpName', '2': 'EmpCode', '3': 'Reason', '4': 'ManagerName' };
+        return map[value] || null;
+    }
+
+    function fmtDate(v) {
+        if (!v) return '-';
+        const d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        return day + '/' + month + '/' + d.getFullYear();
+    }
+
+    function fmtDateTime(v) {
+        if (!v) return '-';
+        const d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        return day + '/' + month + '/' + d.getFullYear() + ' ' + hours + ':' + mins;
+    }
+
+    function statusOf(row) {
+        if (row.isApproved) return 'Approved';
+        if (row.isRejected) return 'Rejected';
+        if (row.isPending) return 'Pending';
+        return '';
+    }
+
+    function statusPill(row) {
+        const s = statusOf(row);
+        if (s === 'Approved') return '<span class="wg-pill wg-pill-green">Approved</span>';
+        if (s === 'Rejected') return '<span class="wg-pill wg-pill-red">Rejected</span>';
+        if (s === 'Pending') return '<span class="wg-pill wg-pill-amber">Pending</span>';
+        return '-';
+    }
+
+    /* ══════════════════════════════════════
+       TAB 1 — EMPLOYEE REGULARIZATION
+       ══════════════════════════════════════ */
+
+    let emp_selectedIds = {};
+    let emp_currentRows = [];
+    let emp_grid = null;
+    let emp_isLoading = false;
+    let emp_isProcessing = false;
+
+    function emp_getStatus() {
+        if ($('#emp_r2').is(':checked')) return 'Pending';
+        if ($('#emp_r3').is(':checked')) return 'Approved';
+        if ($('#emp_r4').is(':checked')) return 'Rejected';
+        return null;
+    }
+
+    window._toggleEmpRow = function (id, checked) {
+        if (checked) emp_selectedIds[id] = true;
+        else delete emp_selectedIds[id];
+    };
+
+    function emp_getSelectedRows() {
+        return emp_currentRows.filter(function (r) { return !!emp_selectedIds[r.attendanceRegularizationId]; });
+    }
+
+    function emp_renderGrid(data) {
+        const columns = [
+            {
+                header: '', sortable: false, width: '40px',
+                render: function (v, row) {
+                    const checked = emp_selectedIds[row.attendanceRegularizationId] ? ' checked' : '';
+                    return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleEmpRow(' + row.attendanceRegularizationId + ', this.checked)">';
+                }
+            },
+            { field: 'employeeCode', header: 'Code', width: '80px' },
+            { field: 'fullName', header: 'Name', width: '180px' },
+            { header: 'Date', sortable: false, width: '100px', render: function (v, row) { return fmtDate(row.forDate); } },
+            { header: 'App Date', sortable: false, width: '100px', render: function (v, row) { return fmtDate(row.createdDate); } },
+            { header: 'In Time', sortable: false, width: '140px', render: function (v, row) { return fmtDateTime(row.inTime); } },
+            { header: 'Out Time', sortable: false, width: '140px', render: function (v, row) { return fmtDateTime(row.outTime); } },
+            { field: 'duration', header: 'Duration', width: '80px' },
+            { field: 'day', header: 'Day', width: '100px' },
+            { field: 'reason', header: 'Reason', width: '150px' },
+            { field: 'remark', header: 'Remark', width: '150px' },
+            { header: 'Status', sortable: false, width: '90px', render: function (v, row) { return statusPill(row); } },
+            { header: 'Approved By', sortable: false, width: '150px', render: function (v, row) { return row.updatedBy || '-'; } },
+            {
+                header: 'Approved Date', sortable: false, width: '120px',
+                render: function (v, row) { return row.updatedDate ? fmtDate(row.updatedDate) : '-'; }
+            }
+        ];
+
+        if (!emp_grid) {
+            emp_grid = WMSGrid.create({
+                container: 'gridContainerEmpRegularization',
+                title: 'Employee Regularization',
+                icon: 'bx-time-five',
+                exportName: 'EmployeeRegularization',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false }
+            });
+        } else {
+            emp_grid.setData(data);
+        }
+    }
+
+    $('#emp_btnGo').on('click', function () {
+        if (emp_isLoading) return;
+
+        const model = {
+            SearchBy: getSearchByText($('#emp_searchby').val()),
+            SearchValue: $('#emp_searchfor').val(),
+            FromDate: $('#emp_fromdate').val() || null,
+            ToDate: $('#emp_todate').val() || null,
+            Status: emp_getStatus(),
+            LoggedInUserId: EmployeeId
+        };
+
+        emp_isLoading = true;
+        setBtnLoading('#emp_btnGo', 'Go');
+        emp_selectedIds = {};
+
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/GetAttendanceRegularizationApproval',
+            type: 'POST',
+            data: JSON.stringify(model),
+            contentType: 'application/json',
+            success: function (res) {
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    emp_currentRows = res.data;
+                    emp_renderGrid(emp_currentRows);
+                    $('#emp_actionButtons').show();
+                } else {
+                    emp_currentRows = [];
+                    emp_grid = null;
+                    $('#gridContainerEmpRegularization').empty();
+                    $('#emp_actionButtons').hide();
+                    showToast(res.responseMessage || 'No Data Found', 'info');
+                }
+            },
+            error: function (xhr, status, error) {
+                emp_currentRows = [];
+                emp_grid = null;
+                $('#gridContainerEmpRegularization').empty();
+                $('#emp_actionButtons').hide();
+                showToast('Error loading data: ' + error, 'error');
+            },
+            complete: function () {
+                emp_isLoading = false;
+                setBtnNormal('#emp_btnGo', 'Go');
+            }
+        });
+    });
+
+    $('#emp_btnClear').click(function () {
+        $('#emp_searchby').val('1');
+        $('#emp_searchfor').val('');
+        $('#emp_fromdate').val('');
+        $('#emp_todate').val('');
+        $("input[name='emp_type']").prop('checked', false);
+        $('#emp_r2').prop('checked', true);
+        emp_selectedIds = {};
+        emp_currentRows = [];
+        emp_grid = null;
+        $('#gridContainerEmpRegularization').empty();
+        $('#emp_actionButtons').hide();
+    });
+
+    $('#emp_btnDelete').on('click', function () {
+        if (emp_isProcessing) return;
+
+        const selectedRows = emp_getSelectedRows();
+        if (selectedRows.length === 0) { showToast('Please select at least one record.', 'warn'); return; }
+        if (selectedRows.some(r => r.isApproved)) { showToast('Approved records cannot be deleted.', 'error'); return; }
+
+        emp_isProcessing = true;
+        setBtnLoading('#emp_btnDelete', 'Delete');
+
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/Delete',
+            type: 'DELETE',
+            contentType: 'application/json',
+            data: JSON.stringify({ Id: selectedRows.map(r => r.attendanceRegularizationId), DeletedBy: EmployeeId }),
+            success: function (res) {
+                if (res.isSuccess) {
+                    showToast(res.responseMessage || 'Deleted successfully.', 'success');
+                    emp_selectedIds = {};
+                    $('#emp_btnGo').click();
+                } else {
+                    showToast(res.responseMessage || 'Deletion failed.', 'error');
+                }
+            },
+            error: function () { showToast('Something went wrong during deletion.', 'error'); },
+            complete: function () {
+                emp_isProcessing = false;
+                setBtnNormal('#emp_btnDelete', 'Delete');
+            }
+        });
+    });
+
+    $('#emp_btnApprove').click(function () { emp_updateStatus('Approved'); });
+    $('#emp_btnReject').click(function () { emp_updateStatus('Rejected'); });
+
+    function emp_updateStatus(status) {
+        if (emp_isProcessing) return;
+
+        const selectedRows = emp_getSelectedRows();
+        if (selectedRows.length === 0) { showToast('Please select at least one record.', 'warn'); return; }
+        if (status === 'Approved' && selectedRows.some(r => r.isApproved)) { showToast('Already Approved.', 'error'); return; }
+
+        selectedRows.forEach(r => { r.status = status; r.createdBy = EmployeeId; });
+
+        emp_isProcessing = true;
+        const btnSel = status === 'Approved' ? '#emp_btnApprove' : '#emp_btnReject';
+        setBtnLoading(btnSel, status === 'Approved' ? 'Approving...' : 'Rejecting...');
+
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/UpdateAttendanceRegularization',
+            type: 'PUT',
+            data: JSON.stringify(selectedRows),
+            contentType: 'application/json',
+            success: function (res) {
+                if (res.isSuccess) {
+                    showToast(res.responseMessage || 'Status updated.', 'success');
+                    emp_selectedIds = {};
+                    $('#emp_btnGo').click();
+                } else {
+                    showToast(res.responseMessage || 'Update failed.', 'error');
+                }
+            },
+            error: function () { showToast('Something went wrong during update.', 'error'); },
+            complete: function () {
+                emp_isProcessing = false;
+                setBtnNormal(btnSel, status === 'Approved' ? 'Approve' : 'Reject');
+            }
+        });
+    }
+
+
+    /* ══════════════════════════════════════
+       TAB 2 — HRD APPROVAL
+       ══════════════════════════════════════ */
+
+    let hrd_selectedIds = {};
+    let hrd_currentRows = [];
+    let hrd_grid = null;
+    let hrd_isLoading = false;
+    let hrd_isProcessing = false;
+
+    function hrd_getStatus() {
+        if ($('#hrd_r2').is(':checked')) return 'Pending';
+        if ($('#hrd_r4').is(':checked')) return 'Rejected';
+        return null;
+    }
+
+    window._toggleHrdRow = function (id, checked) {
+        if (checked) hrd_selectedIds[id] = true;
+        else delete hrd_selectedIds[id];
+    };
+
+    function hrd_getSelectedRows() {
+        return hrd_currentRows.filter(function (r) { return !!hrd_selectedIds[r.attendanceRegularizationId]; });
+    }
+
+    function hrd_renderGrid(data) {
+        const columns = [
+            {
+                header: '', sortable: false, width: '40px',
+                render: function (v, row) {
+                    const checked = hrd_selectedIds[row.attendanceRegularizationId] ? ' checked' : '';
+                    return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleHrdRow(' + row.attendanceRegularizationId + ', this.checked)">';
+                }
+            },
+            { field: 'employeeCode', header: 'Code', width: '80px' },
+            { field: 'fullName', header: 'Name', width: '180px' },
+            { header: 'Date', sortable: false, width: '100px', render: function (v, row) { return fmtDate(row.forDate); } },
+            { header: 'App Date', sortable: false, width: '100px', render: function (v, row) { return fmtDate(row.createdDate); } },
+            { header: 'In Time', sortable: false, width: '140px', render: function (v, row) { return fmtDateTime(row.inTime); } },
+            { header: 'Out Time', sortable: false, width: '140px', render: function (v, row) { return fmtDateTime(row.outTime); } },
+            { field: 'duration', header: 'Duration', width: '80px' },
+            { field: 'day', header: 'Day', width: '100px' },
+            { field: 'reason', header: 'Reason', width: '150px' },
+            { field: 'remark', header: 'Remark', width: '150px' },
+            { header: 'Status', sortable: false, width: '90px', render: function (v, row) { return statusPill(row); } }
+        ];
+
+        if (!hrd_grid) {
+            hrd_grid = WMSGrid.create({
+                container: 'gridContainerHrdApproval',
+                title: 'HRD Attendance Approval',
+                icon: 'bx-task',
+                exportName: 'HRDAttendanceApproval',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false }
+            });
+        } else {
+            hrd_grid.setData(data);
+        }
+    }
+
+    $('#hrd_btnGo').on('click', function () {
+        if (hrd_isLoading) return;
+
+        const model = {
+            SearchBy: getSearchByText($('#hrd_searchby').val()),
+            SearchValue: $('#hrd_searchfor').val(),
+            FromDate: $('#hrd_fromdate').val() || null,
+            ToDate: $('#hrd_todate').val() || null,
+            Status: hrd_getStatus(),
+            LoggedInUserId: EmployeeId
+        };
+
+        hrd_isLoading = true;
+        setBtnLoading('#hrd_btnGo', 'Go');
+        hrd_selectedIds = {};
+
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/GetAttendanceRegularizationApprovalForHRD',
+            type: 'POST',
+            data: JSON.stringify(model),
+            contentType: 'application/json',
+            success: function (res) {
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    hrd_currentRows = res.data;
+                    hrd_renderGrid(hrd_currentRows);
+                    $('#hrd_actionButtons').show();
+                } else {
+                    hrd_currentRows = [];
+                    hrd_grid = null;
+                    $('#gridContainerHrdApproval').empty();
+                    $('#hrd_actionButtons').hide();
+                    showToast(res.responseMessage || 'No Data Found', 'info');
+                }
+            },
+            error: function (xhr, status, error) {
+                hrd_currentRows = [];
+                hrd_grid = null;
+                $('#gridContainerHrdApproval').empty();
+                $('#hrd_actionButtons').hide();
+                showToast('Error loading data: ' + error, 'error');
+            },
+            complete: function () {
+                hrd_isLoading = false;
+                setBtnNormal('#hrd_btnGo', 'Go');
+            }
+        });
+    });
+
+    $('#hrd_btnClear').click(function () {
+        $('#hrd_searchby').val('1');
+        $('#hrd_searchfor').val('');
+        $('#hrd_fromdate').val('');
+        $('#hrd_todate').val('');
+        $("input[name='hrd_type']").prop('checked', false);
+        $('#hrd_r2').prop('checked', true);
+        hrd_selectedIds = {};
+        hrd_currentRows = [];
+        hrd_grid = null;
+        $('#gridContainerHrdApproval').empty();
+        $('#hrd_actionButtons').hide();
+    });
+
+    $('#hrd_btnProceed').on('click', function () {
+        hrd_updateStatus('ProceedToHRD');
+    });
+
+    $('#hrd_btnReject').on('click', function () {
+        hrd_updateStatus('Rejected');
+    });
+
+    function hrd_updateStatus(status) {
+        if (hrd_isProcessing) return;
+
+        const selectedRows = hrd_getSelectedRows();
+        if (selectedRows.length === 0) { showToast('Please select at least one record.', 'warn'); return; }
+
+        if (status === 'ProceedToHRD' && selectedRows.some(r => r.isApproved)) {
+            showToast('Already Approved records cannot be proceeded.', 'error');
+            return;
+        }
+        if (status === 'Rejected' && selectedRows.some(r => r.isRejected)) {
+            showToast('Already Rejected.', 'error');
+            return;
+        }
+        if (status === 'Rejected' && selectedRows.some(r => r.isApproved)) {
+            showToast('Approved records cannot be rejected.', 'error');
+            return;
+        }
+
+        selectedRows.forEach(r => { r.status = status; r.createdBy = EmployeeId; });
+
+        hrd_isProcessing = true;
+        const btnSel = status === 'ProceedToHRD' ? '#hrd_btnProceed' : '#hrd_btnReject';
+        setBtnLoading(btnSel, status === 'ProceedToHRD' ? 'Proceeding...' : 'Rejecting...');
+
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/UpdateHRDAttendanceRegularization',
+            type: 'PUT',
+            data: JSON.stringify(selectedRows),
+            contentType: 'application/json',
+            success: function (res) {
+                if (res.isSuccess) {
+                    showToast(res.responseMessage || 'Status updated.', 'success');
+                    hrd_selectedIds = {};
+                    $('#hrd_btnGo').click();
+                } else {
+                    showToast(res.responseMessage || 'Update failed.', 'error');
+                }
+            },
+            error: function () { showToast('Something went wrong during update.', 'error'); },
+            complete: function () {
+                hrd_isProcessing = false;
+                setBtnNormal(btnSel, status === 'ProceedToHRD' ? 'Proceed to HRD' : 'Rejected');
+            }
+        });
+    }
+
+
+    $(document).ready(function () {
+        $('#emp_r2').prop('checked', true);
+        $('#hrd_r2').prop('checked', true);
+        $('#emp_btnGo').click();
+    });
+</script>

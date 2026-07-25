@@ -1,0 +1,398 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Exit Application Approval";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrls = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrls);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<title>Exit Application Approval</title>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Exit Application Approval</h6>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnBack">Back</button>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 170px;min-width:160px;">
+                    <label for="searchby">Search By</label>
+                    <select id="searchby">
+                        <option value="1">Emp Name</option>
+                        <option value="2">Emp Code</option>
+                        <option value="3">Reason</option>
+                        <option value="4">Manager Name</option>
+                    </select>
+                </div>
+
+                <div class="fg" style="flex:1 1 200px;min-width:180px;">
+                    <label for="searchfor">Search For</label>
+                    <input type="text" id="searchfor" placeholder="Enter search text" />
+                </div>
+
+                <div style="flex:0 0 auto;">
+                    <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Status</span>
+                    <div class="d-flex gap-3">
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" id="r2" name="type" value="Pending" checked>
+                            <label class="form-check-label" for="r2">Pending</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" id="r3" name="type" value="Approved">
+                            <label class="form-check-label" for="r3">Approved</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" id="r4" name="type" value="Rejected">
+                            <label class="form-check-label" for="r4">Rejected</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">GO</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="actionButtonsWrap" style="display:none;">
+                <div class="d-flex justify-content-end gap-2 mb-3">
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnSelectAllExit">
+                        <i class="bx bx-check-square"></i> Select All
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="btnDelete">
+                        <i class="bx bx-trash"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Delete</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnApprove">
+                        <i class="bx bx-check"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Approve</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="btnReject">
+                        <i class="bx bx-x"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Reject</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="gridContainerExitApproval"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        const Emp_Id = localStorage.getItem('EmployeeId');
+
+        var grid = null;
+        var currentRows = [];
+        var selectedIds = {};
+        var isLoadingExit = false;
+        var isProcessingExit = false;
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function statusPill(row) {
+            if (row.isApproved === true) return '<span class="wg-pill wg-pill-green">Approved</span>';
+            if (row.isRejected === true) return '<span class="wg-pill wg-pill-red">Rejected</span>';
+            if (row.isPending === true) return '<span class="wg-pill wg-pill-amber">Pending</span>';
+            return '-';
+        }
+
+        function getStatus() {
+            return $('input[name="type"]:checked').val() || null;
+        }
+
+        function getSearchByText(value) {
+            switch (value) {
+                case '1': return 'EmpName';
+                case '2': return 'EmpCode';
+                default: return null;
+            }
+        }
+
+        $(document).ready(function () {
+            loadExitApprovalData();
+
+            $('#btnBack').on('click', function () {
+                window.location.href = '@UIBaseUrl/EmployeePanel/Home/index';
+            });
+
+            $('#btnGo').on('click', function () { loadExitApprovalData(); });
+
+            $('#btnClear').on('click', function () {
+                $('#searchby').val('1');
+                $('#searchfor').val('');
+                $('input[name="type"][value="Pending"]').prop('checked', true);
+                loadExitApprovalData();
+            });
+
+            $('#btnApprove').on('click', function () { updateExitStatus('Approved'); });
+            $('#btnReject').on('click', function () { updateExitStatus('Rejected'); });
+            $('#btnDelete').on('click', function () { deleteSelected(); });
+
+            $('#btnSelectAllExit').on('click', function () {
+                var allSelected = currentRows.length > 0 && currentRows.every(function (r) { return !!selectedIds[r.exitApplicationID]; });
+                selectedIds = {};
+                if (!allSelected) { currentRows.forEach(function (r) { selectedIds[r.exitApplicationID] = true; }); }
+                if (grid) grid.refresh();
+            });
+        });
+
+        window._toggleExitApprovalRow = function (id, checked) {
+            if (checked) selectedIds[id] = true;
+            else delete selectedIds[id];
+        };
+
+        function getSelectedRows() {
+            return currentRows.filter(function (r) { return !!selectedIds[r.exitApplicationID]; });
+        }
+
+        function loadExitApprovalData() {
+            if (isLoadingExit) return;
+            isLoadingExit = true;
+            setBtnLoading('#btnGo', 'GO');
+
+            var model = {
+                SearchBy: getSearchByText($('#searchby').val()),
+                SearchValue: $('#searchfor').val(),
+                Status: getStatus(),
+                EmployeeId: Emp_Id
+            };
+
+            selectedIds = {};
+            $('#actionButtonsWrap').hide();
+
+            $.ajax({
+                url: "@baseUrls/ExitApplicationAPI/GetExitApproval",
+                type: 'POST',
+                data: JSON.stringify(model),
+                contentType: 'application/json',
+                success: function (res) {
+                    isLoadingExit = false;
+                    setBtnNormal('#btnGo', 'GO');
+
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        currentRows = res.data;
+                        renderGrid(currentRows);
+                        $('#actionButtonsWrap').show();
+                    } else {
+                        currentRows = [];
+                        grid = null;
+                        $('#gridContainerExitApproval').empty();
+                        showToast(res.responseMessage || 'No records found.', 'info');
+                        $('#actionButtonsWrap').hide();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingExit = false;
+                    setBtnNormal('#btnGo', 'GO');
+                    console.error('AJAX Error:', error);
+                    currentRows = [];
+                    grid = null;
+                    $('#gridContainerExitApproval').empty();
+                    showToast('Error loading data: ' + error, 'error');
+                    $('#actionButtonsWrap').hide();
+                }
+            });
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                {
+                    header: '', sortable: false, width: '40px',
+                    render: function (v, row) {
+                        var checked = selectedIds[row.exitApplicationID] ? ' checked' : '';
+                        return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleExitApprovalRow(' + row.exitApplicationID + ', this.checked)">';
+                    }
+                },
+                { field: 'employeeCode', header: 'Code', width: '90px' },
+                { field: 'fullName', header: 'Name', width: '200px' },
+                { header: 'Resignation Date', sortable: false, width: '130px', render: function (v, row) { return fmtDate(row.resignationDate); } },
+                { header: 'Last Working Date', sortable: false, width: '130px', render: function (v, row) { return fmtDate(row.lastWorkingDate); } },
+                { header: 'Status', sortable: false, width: '110px', render: function (v, row) { return statusPill(row); } },
+                {
+                    field: 'updatedByName', header: 'Approved By', width: '150px',
+                    render: function (v) { return v || '-'; }
+                },
+                { header: 'Approved Date', sortable: false, width: '130px', render: function (v, row) { return fmtDate(row.updatedDate); } }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerExitApproval',
+                    title: 'Exit Applications',
+                    icon: 'bx-log-out-circle',
+                    exportName: 'ExitApplicationApproval',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        function deleteSelected() {
+            if (isProcessingExit) return;
+
+            var selectedRows = getSelectedRows();
+            if (selectedRows.length === 0) {
+                showToast('Please select at least one record.', 'warn');
+                return;
+            }
+
+            var approvedRecords = selectedRows.filter(function (row) { return row.isApproved; });
+            if (approvedRecords.length > 0) {
+                showToast('Approved records cannot be deleted.', 'error');
+                return;
+            }
+
+            var rejectedRecords = selectedRows.filter(function (row) { return row.isRejected; });
+            if (rejectedRecords.length > 0) {
+                showToast('Rejected records cannot be deleted.', 'error');
+                return;
+            }
+
+            isProcessingExit = true;
+            setBtnLoading('#btnDelete', 'Deleting...');
+
+            var selectedIdsArr = selectedRows.map(function (row) { return row.exitApplicationID; });
+
+            var deletePayload = {
+                Id: selectedIdsArr,
+                DeletedBy: Emp_Id
+            };
+
+            $.ajax({
+                url: "@baseUrls/ExitApplicationAPI/Delete",
+                type: 'DELETE',
+                contentType: 'application/json',
+                data: JSON.stringify(deletePayload),
+                success: function (res) {
+                    if (res.isSuccess) {
+                        showToast(res.responseMessage || 'Deleted successfully.', 'success');
+                        selectedIds = {};
+                        loadExitApprovalData();
+                    } else {
+                        showToast(res.responseMessage || 'Deletion failed.', 'error');
+                    }
+                },
+                error: function () {
+                    showToast('Something went wrong during deletion.', 'error');
+                },
+                complete: function () {
+                    isProcessingExit = false;
+                    setBtnNormal('#btnDelete', 'Delete');
+                }
+            });
+        }
+
+        function updateExitStatus(status) {
+            if (isProcessingExit) return;
+
+            var selectedRows = getSelectedRows();
+            if (selectedRows.length === 0) {
+                showToast('Please select at least one record.', 'warn');
+                return;
+            }
+
+            if (status === 'Rejected') {
+                var approvedRecords = selectedRows.filter(function (row) { return row.isApproved; });
+                if (approvedRecords.length > 0) {
+                    showToast('Approved records cannot be rejected.', 'error');
+                    return;
+                }
+                var rejectedRecords = selectedRows.filter(function (row) { return row.isRejected; });
+                if (rejectedRecords.length > 0) {
+                    showToast('Already Rejected.', 'error');
+                    return;
+                }
+            }
+
+            if (status === 'Approved') {
+                var approvedRecords2 = selectedRows.filter(function (row) { return row.isApproved; });
+                if (approvedRecords2.length > 0) {
+                    showToast('Already Approved.', 'error');
+                    return;
+                }
+                var rejectedRecords2 = selectedRows.filter(function (row) { return row.isRejected; });
+                if (rejectedRecords2.length > 0) {
+                    showToast('Rejected records cannot be approved.', 'error');
+                    return;
+                }
+            }
+
+            var rowsToUpdate = selectedRows.map(function (row) {
+                return {
+                    ExitApplicationID: row.exitApplicationID,
+                    IsApproved: (status === 'Approved'),
+                    IsRejected: (status === 'Rejected'),
+                    UpdatedBy: Emp_Id,
+                    EmployeeId: row.employeeid
+                };
+            });
+
+            isProcessingExit = true;
+            var btnSel = status === 'Approved' ? '#btnApprove' : '#btnReject';
+            setBtnLoading(btnSel, status === 'Approved' ? 'Approving...' : 'Rejecting...');
+
+            var updatePromises = rowsToUpdate.map(function (row) {
+                return $.ajax({
+                    url: "@baseUrls/ExitApplicationAPI/UpdateExitApproval",
+                    type: 'PUT',
+                    data: JSON.stringify([row]),
+                    contentType: 'application/json'
+                });
+            });
+
+            Promise.all(updatePromises)
+                .then(function (responses) {
+                    var allSuccess = responses.every(function (response) { return response.isSuccess; });
+
+                    if (allSuccess) {
+                        showToast('Status updated successfully.', 'success');
+                        selectedIds = {};
+                        loadExitApprovalData();
+                    } else {
+                        var failedResponses = responses.filter(function (response) { return !response.isSuccess; });
+                        if (failedResponses.length > 0) {
+                            showToast(failedResponses[0].responseMessage || 'Some updates failed.', 'error');
+                        } else {
+                            showToast('Update failed.', 'error');
+                        }
+                    }
+                })
+                .catch(function (error) {
+                    console.error('Error details:', error);
+                    showToast('Something went wrong during update.', 'error');
+                })
+                .finally(function () {
+                    isProcessingExit = false;
+                    setBtnNormal(btnSel, status === 'Approved' ? 'Approve' : 'Reject');
+                });
+        }
+    })();
+</script>

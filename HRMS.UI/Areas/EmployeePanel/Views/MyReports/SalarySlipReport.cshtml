@@ -1,0 +1,296 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+<title>Salary Slip Report</title>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Salary Slip Report</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="month">Month</label>
+                    <select id="month">
+                        <option value="">Select Month</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <span id="spnmonth" class="field-validation-error" style="display:none;">Please Select Month</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="year">Year</label>
+                    <select id="year">
+                        <option value="">Select Year</option>
+                    </select>
+                    <span id="spnyear" class="field-validation-error" style="display:none;">Please Select Year</span>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("Index", "MyReports")'">Back</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="gridContainerSalarySlip"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        const savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        const Compid = companyDetails.CompanyId;
+        const EmployeeId = localStorage.getItem('EmployeeId');
+        const Token = localStorage.getItem("authToken");
+
+        var grid = null;
+        var isLoadingSalarySlip = false;
+
+        $(document).ready(function () {
+            loadYears();
+            setCurrentMonthYear();
+        });
+
+        function loadYears() {
+            const currentYear = new Date().getFullYear();
+            const yearSelect = $('#year');
+            for (let year = currentYear; year >= currentYear - 1; year--) {
+                yearSelect.append(`<option value="${year}">${year}</option>`);
+            }
+            const nextYear = currentYear + 1;
+            if (new Date().getMonth() === 11 && new Date().getDate() >= 25) {
+                yearSelect.append(`<option value="${nextYear}">${nextYear}</option>`);
+            }
+        }
+
+        function setCurrentMonthYear() {
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
+            const currentYear = currentDate.getFullYear();
+            $('#month').val(currentMonth);
+            $('#year').val(currentYear);
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                { field: 'employeeCode', header: 'Employee Code', width: '120px' },
+                { field: 'fullName', header: 'Employee Name', width: '170px' },
+                { field: 'monthName', header: 'Month', width: '100px' },
+                { field: 'year', header: 'Year', width: '80px' },
+                { header: 'Basic Salary', width: '110px', render: function (v, row) { return moneyCell(row.basicSalary); } },
+                { header: 'HRA', width: '100px', render: function (v, row) { return moneyCell(row.hra); } },
+                { header: 'Conveyance', width: '110px', render: function (v, row) { return moneyCell(row.conveyanceAllowance); } },
+                { header: 'Child Education', width: '120px', render: function (v, row) { return moneyCell(row.childEducationAllowance); } },
+                { header: 'Medical', width: '100px', render: function (v, row) { return moneyCell(row.medicalAllowance); } },
+                { header: 'Deputation', width: '110px', render: function (v, row) { return moneyCell(row.deputationAllowance); } },
+                { header: 'Gross Salary', width: '110px', render: function (v, row) { return moneyCell(row.grossSalary); } },
+                { header: 'Total Gross', width: '110px', render: function (v, row) { return moneyCell(row.totalGrossSalary); } },
+                { header: 'PF', width: '90px', render: function (v, row) { return moneyCell(row.pf); } },
+                { header: 'ESIC', width: '90px', render: function (v, row) { return moneyCell(row.esic); } },
+                { header: 'Prof Tax', width: '90px', render: function (v, row) { return moneyCell(row.professionalTax); } },
+                { header: 'Group Medical', width: '120px', render: function (v, row) { return moneyCell(row.groupMedical); } },
+                { header: 'Term Insurance', width: '120px', render: function (v, row) { return moneyCell(row.termInsurance); } },
+                { header: 'LWF', width: '90px', render: function (v, row) { return moneyCell(row.lwf); } },
+                { header: 'TDS', width: '90px', render: function (v, row) { return moneyCell(row.tds); } },
+                { header: 'Loan', width: '90px', render: function (v, row) { return moneyCell(row.loan); } },
+                { header: 'Arrears', width: '90px', render: function (v, row) { return moneyCell(row.arrears); } },
+                { header: 'Other Deduction', width: '130px', render: function (v, row) { return moneyCell(row.otherDeduction); } },
+                { header: 'Total Deductions', width: '130px', render: function (v, row) { return moneyCell(row.totalDeductions); } },
+                { header: 'Net Salary', width: '110px', render: function (v, row) { return moneyCell(row.netSalary); } },
+                { field: 'payableDays', header: 'Payable Days', width: '110px' },
+                { field: 'monthDays', header: 'Month Days', width: '110px' },
+                { field: 'holiday', header: 'Holidays', width: '100px' },
+                { field: 'absentDays', header: 'Absent Days', width: '110px' },
+                { field: 'presentDays', header: 'Present Days', width: '110px' },
+                { field: 'weekOff', header: 'Week Off', width: '100px' },
+                { field: 'leave', header: 'Leave', width: '90px' },
+                { field: 'salaryDays', header: 'Salary Days', width: '110px' },
+                { header: 'DOB', width: '110px', render: function (v, row) { return fmtDate(row.dateOfBirth); } },
+                { header: 'DOJ', width: '110px', render: function (v, row) { return fmtDate(row.dateOfJoining); } },
+                { field: 'primaryAccountNumber', header: 'Account No', width: '140px' },
+                { field: 'primaryBankName', header: 'Bank Name', width: '150px' },
+                { field: 'panNo', header: 'PAN No', width: '110px' },
+                { field: 'uanNumber', header: 'UAN No', width: '130px' },
+                { field: 'branchName', header: 'Branch', width: '130px' },
+                { field: 'designationName', header: 'Designation', width: '140px' },
+                { field: 'departmentName', header: 'Department', width: '140px' },
+                { field: 'gradeName', header: 'Grade', width: '100px' },
+                { header: 'Created Date', width: '110px', render: function (v, row) { return fmtDate(row.createdDate); } }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerSalarySlip',
+                    title: 'Salary Slip Report',
+                    icon: 'bx-receipt',
+                    exportName: 'SalarySlipReport',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        function moneyCell(v) {
+            var n = (v === null || v === undefined || v === '') ? 0 : parseFloat(v);
+            if (isNaN(n)) return '<span class="d-block text-end">-</span>';
+            return '<span class="d-block text-end">' + n.toFixed(2) + '</span>';
+        }
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        $('#btnGo').off('click').on('click', function () {
+            if (isLoadingSalarySlip) return;
+
+            var selectedMonth = $("#month").val();
+            var selectedYear = $("#year").val();
+            var isValid = true;
+
+            if (selectedMonth === "") {
+                $("#spnmonth").show();
+                isValid = false;
+            } else {
+                $("#spnmonth").hide();
+            }
+
+            if (selectedYear === "") {
+                $("#spnyear").show();
+                isValid = false;
+            } else {
+                $("#spnyear").hide();
+            }
+
+            if (!isValid) {
+                return;
+            }
+
+            isLoadingSalarySlip = true;
+            setBtnLoading('#btnGo', 'Go');
+
+            let checkModel = {
+                EmployeeId: parseInt(EmployeeId),
+                Month: selectedMonth,
+                Year: parseInt(selectedYear)
+            };
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/IsPayslipPublished")',
+                type: 'GET',
+                data: checkModel,
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (checkRes) {
+
+                    if (checkRes.isSuccess && checkRes.data && checkRes.data.success === 1) {
+
+                        let model = {
+                            Month: parseInt(selectedMonth),
+                            Year: parseInt(selectedYear),
+                            EmployeeId: [parseInt(EmployeeId)]
+                        };
+
+                        $.ajax({
+                            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetSalarySlipReport")',
+                            type: 'POST',
+                            data: JSON.stringify(model),
+                            contentType: 'application/json',
+                            headers: {
+                                'Authorization': 'Bearer ' + Token
+                            },
+                            success: function (res) {
+
+                                if (res.isSuccess && res.data && res.data.length > 0) {
+                                    renderGrid(res.data);
+                                } else {
+                                    grid = null;
+                                    $("#gridContainerSalarySlip").empty();
+                                    showToast(res.responseMessage || 'No Data Found', 'info');
+                                }
+                            },
+                            error: function (xhr) {
+                                console.error("Error:", xhr);
+
+                                grid = null;
+                                $("#gridContainerSalarySlip").empty();
+                                showToast(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.', 'error');
+                            },
+                            complete: function () {
+                                isLoadingSalarySlip = false;
+                                setBtnNormal('#btnGo', 'Go');
+                            }
+                        });
+                    } else {
+
+                        grid = null;
+                        $("#gridContainerSalarySlip").empty();
+                        showToast(checkRes.data?.responseMessage || checkRes.responseMessage || 'Payslip is not published for the selected month and year.', 'info');
+                        isLoadingSalarySlip = false;
+                        setBtnNormal('#btnGo', 'Go');
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Error:", xhr);
+
+                    grid = null;
+                    $("#gridContainerSalarySlip").empty();
+                    showToast(xhr.responseJSON?.responseMessage || 'An error occurred. Please try again.', 'error');
+                    isLoadingSalarySlip = false;
+                    setBtnNormal('#btnGo', 'Go');
+                }
+            });
+        });
+
+        $("#btnClear").off('click').on('click', function () {
+            $('#month').val('');
+            $('#year').val('');
+
+            grid = null;
+            $("#gridContainerSalarySlip").empty();
+
+            $("#spnmonth").hide();
+            $("#spnyear").hide();
+        });
+    })();
+</script>

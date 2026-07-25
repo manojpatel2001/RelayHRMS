@@ -1,0 +1,246 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Mobile Users Panel";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Mobile Users Records</h6>
+            <button id="toggleStatusButton" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" style="display:none;"></button>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div style="flex:0 0 auto;">
+                    <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Status</span>
+                    <div class="d-flex gap-3">
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="Status" id="activeid" value="Active" checked>
+                            <label class="form-check-label" for="activeid">Active</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="Status" id="inactiveid" value="Inactive">
+                            <label class="form-check-label" for="inactiveid">Inactive</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="grid-loader"
+                 class="grid-loader justify-content-center align-items-center flex-column"
+                 style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
+                <img src="@baseDomainUrl/loders/loder.png"
+                     class="grid-logo-spinner"
+                     style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
+                <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
+            </div>
+
+            <div id="mobileUsersGrid"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var apiBase = '@baseUrl';
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var CompanyId = companyDetails.CompanyId;
+        var EmployeeId = localStorage.getItem('EmployeeId');
+        var Token = localStorage.getItem("authToken");
+
+        var grid = null;
+        var currentRows = [];
+        var selectedIds = {};
+        var currentStatus = 'Active';
+
+        $(document).ready(function () {
+            loadMobileUsersGrid(currentStatus);
+
+            $('input[name="Status"]').change(function () {
+                currentStatus = $(this).val();
+                selectedIds = {};
+                loadMobileUsersGrid(currentStatus);
+            });
+        });
+
+        function showLoder() {
+            $('#grid-loader').addClass('d-flex').show();
+        }
+
+        function hideLoder() {
+            $('#grid-loader').removeClass('d-flex').hide();
+        }
+
+        window._toggleMobileUserRow = function (id, checked) {
+            if (checked) selectedIds[id] = true;
+            else delete selectedIds[id];
+        };
+
+        function getSelectedRows() {
+            return currentRows.filter(function (r) { return !!selectedIds[r.employeeCode]; });
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                {
+                    header: '', sortable: false, width: '40px',
+                    render: function (v, row) {
+                        var checked = selectedIds[row.employeeCode] ? ' checked' : '';
+                        return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleMobileUserRow(\'' + row.employeeCode + '\', this.checked)">';
+                    }
+                },
+                { field: 'employeeCode', header: 'Mobile User Code', width: '150px' },
+                { field: 'fullName', header: 'User Name', width: '200px' },
+                { field: 'designationName', header: 'Designation Name', width: '170px' },
+                { field: 'departmentName', header: 'Department Name', width: '170px' },
+                { field: 'loginAlias', header: 'Login Alias', width: '170px' }
+            ];
+
+            currentRows = data;
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'mobileUsersGrid',
+                    title: 'Mobile Users Records',
+                    icon: 'bx-mobile-alt',
+                    exportName: 'MobileUsersRecords',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        function loadMobileUsersGrid(status) {
+            currentStatus = status;
+            showLoder();
+            $.ajax({
+                type: "GET",
+                url: apiBase + '/ReportAPI/ActiveOrInactiveMobileUsers',
+                data: {
+                    Compid: CompanyId,
+                    Action: status
+                },
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    hideLoder();
+                    if (response.isSuccess) {
+                        var data = response.data;
+                        renderGrid(data || []);
+                        updateToggleButton(status);
+                    } else {
+                        renderGrid([]);
+                        updateToggleButton(status);
+                    }
+                },
+                error: function (xhr) {
+                    hideLoder();
+                    console.error("AJAX Error:", xhr);
+                    renderGrid([]);
+                    showToast('Failed to load mobile users data!', 'error');
+                }
+            });
+        }
+
+        function updateToggleButton(status) {
+            var toggleButton = $("#toggleStatusButton");
+
+            if (status === "Active") {
+                toggleButton.html('<i class="bx bx-x-circle"></i> Inactive-Users');
+                toggleButton.off("click").on("click", function () {
+                    updateSelectedUsers("Inactive");
+                });
+            } else {
+                toggleButton.html('<i class="bx bx-check-circle"></i> Active-Users');
+                toggleButton.off("click").on("click", function () {
+                    updateSelectedUsers("Active");
+                });
+            }
+
+            toggleButton.show();
+        }
+
+        function updateSelectedUsers(newStatus) {
+            var selectedRowsData = getSelectedRows();
+            if (selectedRowsData.length === 0) {
+                showToast('Please select at least one user to update!', 'warn');
+                return;
+            }
+
+            processUserUpdates(selectedRowsData, newStatus);
+        }
+
+        function processUserUpdates(selectedUsers, newStatus) {
+            var successCount = 0;
+            var failCount = 0;
+
+            $("#toggleStatusButton").prop('disabled', true);
+
+            var promises = selectedUsers.map(function (user) {
+                var requestData = {
+                    Action: newStatus,
+                    EmpId: user.employeeCode,
+                    UpdatedBy: EmployeeId
+                };
+                showLoder();
+                return $.ajax({
+                    type: "PUT",
+                    url: apiBase + '/ReportAPI/UpdateMobileUser',
+                    contentType: "application/json",
+                    data: JSON.stringify(requestData),
+                    headers: {
+                        'Authorization': 'Bearer ' + Token
+                    }
+                });
+            });
+
+            Promise.allSettled(promises).then(function (results) {
+                hideLoder();
+
+                results.forEach(function (result) {
+                    if (result.status === 'fulfilled' && result.value.isSuccess) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                });
+
+                $("#toggleStatusButton").prop('disabled', false);
+                selectedIds = {};
+
+                if (successCount > 0 && failCount === 0) {
+                    var statusText = newStatus === "Active" ? "activated" : "inactivated";
+                    var userText = successCount === 1 ? "user" : "users";
+                    showToast(successCount + ' ' + userText + ' ' + statusText + ' successfully!', 'success');
+                    loadMobileUsersGrid(currentStatus);
+                } else if (successCount > 0 && failCount > 0) {
+                    showToast(successCount + ' users updated successfully, ' + failCount + ' failed!', 'warn');
+                    loadMobileUsersGrid(currentStatus);
+                } else {
+                    showToast('Failed to update users. Please try again!', 'error');
+                }
+            }).catch(function (error) {
+                hideLoder();
+                $("#toggleStatusButton").prop('disabled', false);
+                console.error("Error during batch update:", error);
+                showToast('An error occurred while updating users!', 'error');
+            });
+        }
+    })();
+</script>

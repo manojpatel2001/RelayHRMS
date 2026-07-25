@@ -1,0 +1,482 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Comp Off Application";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<!-- ExcelJS + FileSaver for Export — not loaded globally elsewhere -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0">Comp Off Application</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 170px;min-width:160px;">
+                    <label for="searchtypeid">Search By</label>
+                    <select id="searchtypeid">
+                        <option value="">-- Select --</option>
+                        <option value="Employee Code">Employee Code</option>
+                        <option value="Employee Name">Employee Name</option>
+                    </select>
+                </div>
+
+                <div class="fg" style="flex:1 1 200px;min-width:180px;">
+                    <label for="searchforid">Search For</label>
+                    <input type="text" id="searchforid" placeholder="Enter search text" disabled />
+                    <span class="field-validation-error" id="spnSearchFor" style="display:none;">Please enter a value to search for</span>
+                </div>
+
+                <div class="fg" style="flex:1 1 170px;min-width:160px;">
+                    <label for="branchid">By Branch</label>
+                    <select id="branchid">
+                        <option value="">All Branches</option>
+                    </select>
+                </div>
+
+                <div style="flex:0 0 auto;">
+                    <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Status</span>
+                    <div class="d-flex gap-3">
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" id="statusPending" name="statusFilter" value="Pending" checked>
+                            <label class="form-check-label" for="statusPending">Pending</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" id="statusApproved" name="statusFilter" value="Approved">
+                            <label class="form-check-label" for="statusApproved">Approved</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" id="statusRejected" name="statusFilter" value="Rejected">
+                            <label class="form-check-label" for="statusRejected">Rejected</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="goButtonId">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">GO</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="clearButtonId">Clear</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="actionButtonsWrap" style="display:none;">
+                <div class="d-flex justify-content-end gap-2 mb-3">
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnSelectAllCo">
+                        <i class="bx bx-check-square"></i> Select All
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnExportCo">
+                        <i class="bx bx-download"></i> Export to Excel
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnApprove">
+                        <i class="bx bx-check"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Approve</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="btnReject">
+                        <i class="bx bx-x"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Reject</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="gridContainerCompOff"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var Empid = parseInt(localStorage.getItem("EmployeeId"));
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var Compid = parseInt(companyDetails.CompanyId);
+        var Token = localStorage.getItem("authToken");
+
+        var selectedIds = {};
+        var currentRows = [];
+        var grid = null;
+        var isLoadingCo = false;
+        var isProcessingCo = false;
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function statusPill(status) {
+            if (status === 'Approved') return '<span class="wg-pill wg-pill-green">Approved</span>';
+            if (status === 'Rejected') return '<span class="wg-pill wg-pill-red">Rejected</span>';
+            if (status === 'Pending') return '<span class="wg-pill wg-pill-amber">Pending</span>';
+            return status || '-';
+        }
+
+        /* ── Document Ready ─────────────────────────── */
+        $(document).ready(function () {
+            GetBranch();
+
+            /* Enable/disable search input */
+            $('#searchtypeid').on('change', function () {
+                if ($(this).val()) {
+                    $('#searchforid').prop('disabled', false);
+                } else {
+                    $('#searchforid').prop('disabled', true).val('');
+                    $('#spnSearchFor').hide();
+                }
+            });
+
+            $('#searchforid').on('input', function () {
+                if ($(this).val()) $('#spnSearchFor').hide();
+            });
+
+            /* Status radio change — clear grid */
+            $('input[name="statusFilter"]').on('change', function () {
+                $('#actionButtonsWrap').hide();
+                selectedIds = {};
+                currentRows = [];
+                grid = null;
+                $('#gridContainerCompOff').empty();
+            });
+
+            /* GO button */
+            $('#goButtonId').on('click', function () {
+                loadAllApplications();
+            });
+
+            /* Clear button */
+            $('#clearButtonId').on('click', function () {
+                $('#searchtypeid').val('');
+                $('#searchforid').val('').prop('disabled', true);
+                $('#branchid').val('');
+                $('input[name="statusFilter"][value="Pending"]').prop('checked', true);
+                $('#spnSearchFor').hide();
+                $('#actionButtonsWrap').hide();
+                selectedIds = {};
+                currentRows = [];
+                grid = null;
+                $('#gridContainerCompOff').empty();
+            });
+
+            /* Approve / Reject (bulk, from checkbox selection) */
+            $('#btnApprove').on('click', function () { handleApprovalOrRejection("Approved"); });
+            $('#btnReject').on('click', function () { handleApprovalOrRejection("Rejected"); });
+
+            /* Select All */
+            $('#btnSelectAllCo').on('click', function () {
+                var allSelected = currentRows.length > 0 && currentRows.every(function (r) { return !!selectedIds[r.comp_Off_Detailsid]; });
+                selectedIds = {};
+                if (!allSelected) { currentRows.forEach(function (r) { selectedIds[r.comp_Off_Detailsid] = true; }); }
+                if (grid) grid.refresh();
+            });
+
+            /* Export */
+            $('#btnExportCo').on('click', function () { exportCompOffToExcel(); });
+        });
+
+        /* ── Load Branches ───────────────────────────── */
+        function GetBranch() {
+            $.ajax({
+                url: '@(baseDomainUrl)/api/BranchAPI/GetAllBranchesListByCompanyId/' + Compid,
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                contentType: 'application/json',
+                success: function (data) {
+                    if (data.isSuccess && data.data && data.data.length > 0) {
+                        var $dd = $('#branchid');
+                        $dd.empty().append('<option value="">All Branches</option>');
+                        data.data.forEach(function (branch) {
+                            $dd.append('<option value="' + branch.branchId + '">' + branch.branchName + '</option>');
+                        });
+                    }
+                },
+                error: function () { console.error("Error loading branch data."); }
+            });
+        }
+
+        /* ── Load All Applications ───────────────────── */
+        function loadAllApplications() {
+            if (isLoadingCo) return;
+
+            var searchType = $('#searchtypeid').val();
+            var searchFor = $('#searchforid').val();
+            var branchId = $('#branchid').val();
+            var applicationStatus = $('input[name="statusFilter"]:checked').val();
+
+            if (searchType && !searchFor) {
+                $('#spnSearchFor').show();
+                return;
+            }
+            $('#spnSearchFor').hide();
+
+            isLoadingCo = true;
+            setBtnLoading('#goButtonId', 'GO');
+
+            var payload = {
+                SearchType: searchType || null,
+                SearchFor: searchFor || null,
+                CompId: Compid,
+                BranchId: branchId ? parseInt(branchId) : null,
+                ApplicationStatus: applicationStatus || null
+            };
+
+            selectedIds = {};
+            $('#actionButtonsWrap').hide();
+
+            $.ajax({
+                url: '@(baseDomainUrl)/api/CompOffAPI/GetCompOffDetailsReportForAdmin',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify(payload),
+                success: function (data) {
+                    isLoadingCo = false;
+                    setBtnNormal('#goButtonId', 'GO');
+
+                    if (data.isSuccess && data.data && data.data.length > 0) {
+                        currentRows = data.data;
+                        renderGrid(currentRows);
+                        $('#actionButtonsWrap').show();
+                    } else {
+                        currentRows = [];
+                        grid = null;
+                        $('#gridContainerCompOff').empty();
+                        showToast('No records found.', 'info');
+                        $('#actionButtonsWrap').hide();
+                    }
+                },
+                error: function (xhr) {
+                    isLoadingCo = false;
+                    setBtnNormal('#goButtonId', 'GO');
+                    console.error("Error loading data:", xhr);
+                    currentRows = [];
+                    grid = null;
+                    $('#gridContainerCompOff').empty();
+                    showToast('Unable to load data.', 'error');
+                    $('#actionButtonsWrap').hide();
+                }
+            });
+        }
+
+        window._toggleCoRow = function (id, checked) {
+            if (checked) selectedIds[id] = true;
+            else delete selectedIds[id];
+        };
+
+        window._rowApprove = function (id) { handleApprovalOrRejection('Approved', [id]); };
+        window._rowReject = function (id) { handleApprovalOrRejection('Rejected', [id]); };
+
+        function getSelectedRows() {
+            return currentRows.filter(function (r) { return !!selectedIds[r.comp_Off_Detailsid]; });
+        }
+
+        /* ── Render WMSGrid ───────────────────────────── */
+        function renderGrid(data) {
+            var columns = [
+                {
+                    header: '', sortable: false, width: '40px',
+                    render: function (v, row) {
+                        var checked = selectedIds[row.comp_Off_Detailsid] ? ' checked' : '';
+                        return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleCoRow(' + row.comp_Off_Detailsid + ', this.checked)">';
+                    }
+                },
+                { field: 'employeeCode', header: 'Employee Code', width: '130px' },
+                { field: 'fullName', header: 'Employee Name', width: '180px' },
+                { field: 'branchName', header: 'Branch Name', width: '150px' },
+                { field: 'designationName', header: 'Designation', width: '150px' },
+                { header: 'Extra Work Day', sortable: false, width: '130px', render: function (v, row) { return fmtDate(row.extraWorkDay); } },
+                {
+                    field: 'extraWorkHours', header: 'Extra Hours', width: '100px',
+                    render: function (v) { return (v !== null && v !== undefined) ? parseFloat(v).toFixed(2) : '-'; }
+                },
+                { field: 'comoffReason', header: 'Reason', width: '200px' },
+                {
+                    header: 'Status', sortable: false, width: '110px',
+                    render: function (v, row) { return statusPill(row.applicationStatus); }
+                },
+                {
+                    header: 'Action', sortable: false, width: '90px', stickyRight: true,
+                    render: function (v, row) {
+                        if (row.applicationStatus !== 'Pending') return '<span class="text-muted">-</span>';
+                        return '<div class="d-flex gap-1">' +
+                            '<button class="wg-btn wg-btn-outline" title="Approve" onclick="_rowApprove(' + row.comp_Off_Detailsid + ')"><i class="bx bx-check"></i></button>' +
+                            '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Reject" onclick="_rowReject(' + row.comp_Off_Detailsid + ')"><i class="bx bx-x"></i></button>' +
+                            '</div>';
+                    }
+                }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerCompOff',
+                    title: 'Comp Off Applications',
+                    icon: 'bx-calendar-plus',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        /* ── Export to Excel ─────────────────────────── */
+        function exportCompOffToExcel() {
+            var rows = getSelectedRows();
+
+            if (rows.length === 0) {
+                rows = currentRows;
+            }
+
+            if (!rows || rows.length === 0) {
+                showToast('No data available to export.', 'warn');
+                return;
+            }
+
+            if (typeof ExcelJS === 'undefined') {
+                showToast('ExcelJS library not loaded. Please refresh the page.', 'error');
+                return;
+            }
+
+            var workbook = new ExcelJS.Workbook();
+            var worksheet = workbook.addWorksheet('Comp Off Applications');
+
+            worksheet.columns = [
+                { header: 'Employee Code', key: 'employeeCode', width: 15 },
+                { header: 'Employee Name', key: 'fullName', width: 25 },
+                { header: 'Branch Name', key: 'branchName', width: 20 },
+                { header: 'Designation', key: 'designationName', width: 20 },
+                { header: 'Extra Work Day', key: 'extraWorkDay', width: 15 },
+                { header: 'Extra Hours', key: 'extraWorkHours', width: 12 },
+                { header: 'Reason', key: 'comoffReason', width: 30 },
+                { header: 'Application Status', key: 'applicationStatus', width: 18 }
+            ];
+
+            var headerRow = worksheet.getRow(1);
+            headerRow.eachCell(function (cell) {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F6F8E' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = {
+                    top: { style: 'thin' }, left: { style: 'thin' },
+                    bottom: { style: 'thin' }, right: { style: 'thin' }
+                };
+            });
+            headerRow.height = 25;
+
+            function safe(val) { return (val === null || val === undefined) ? '' : String(val); }
+
+            rows.forEach(function (row) {
+                if (!row) return;
+                var dataRow = worksheet.addRow({
+                    employeeCode: safe(row.employeeCode),
+                    fullName: safe(row.fullName),
+                    branchName: safe(row.branchName),
+                    designationName: safe(row.designationName),
+                    extraWorkDay: fmtDate(row.extraWorkDay),
+                    extraWorkHours: row.extraWorkHours !== null && row.extraWorkHours !== undefined ? parseFloat(row.extraWorkHours).toFixed(2) : '-',
+                    comoffReason: safe(row.comoffReason),
+                    applicationStatus: safe(row.applicationStatus)
+                });
+
+                dataRow.eachCell(function (cell) {
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                    };
+                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                });
+            });
+
+            var status = $('input[name="statusFilter"]:checked').val() || 'Export';
+            var today = new Date();
+            var dateStr = String(today.getDate()).padStart(2, '0') + '-' +
+                          String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                          today.getFullYear();
+            var fileName = 'CompOffApplications_' + status + '_' + dateStr + '.xlsx';
+
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+                showToast(rows.length + ' record(s) exported successfully.', 'success');
+            }).catch(function (err) {
+                console.error('Export error:', err);
+                showToast('Export failed: ' + err.message, 'error');
+            });
+        }
+
+        /* ── Approve / Reject ────────────────────────── */
+        function handleApprovalOrRejection(status, ids) {
+            if (isProcessingCo) return;
+
+            var targetIds = ids || Object.keys(selectedIds).map(function (k) { return parseInt(k); });
+
+            if (!targetIds || targetIds.length === 0) {
+                showToast('Please select at least one application.', 'warn');
+                return;
+            }
+
+            var selectedRecords = currentRows.filter(function (record) { return targetIds.includes(record.comp_Off_Detailsid); });
+            var nonPendingRecords = selectedRecords.filter(function (record) { return record.applicationStatus !== "Pending"; });
+
+            if (nonPendingRecords.length > 0) {
+                showToast(nonPendingRecords.length + ' selected application(s) are not Pending and cannot be ' + status.toLowerCase() + '. Please deselect them and try again.', 'warn');
+                return;
+            }
+
+            isProcessingCo = true;
+            var btnSel = status === 'Approved' ? '#btnApprove' : '#btnReject';
+            setBtnLoading(btnSel, status === 'Approved' ? 'Approving...' : 'Rejecting...');
+
+            var payload = {
+                CompoffIds: targetIds,
+                status: status,
+                EmployeeId: Empid
+            };
+
+            $.ajax({
+                url: '@(baseDomainUrl)/api/CompOffAPI/CompOffDetailsApproveorReject',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    if (res.isSuccess) {
+                        showToast(res.responseMessage || 'Updated successfully.', 'success');
+                        selectedIds = {};
+                        loadAllApplications();
+                    } else {
+                        showToast(res.responseMessage || 'Failed to update.', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Error in approval/rejection:", xhr);
+                    showToast('Unable to process request.', 'error');
+                },
+                complete: function () {
+                    isProcessingCo = false;
+                    setBtnNormal(btnSel, status === 'Approved' ? 'Approve' : 'Reject');
+                }
+            });
+        }
+    })();
+</script>

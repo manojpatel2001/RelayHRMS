@@ -12,5 +12,7 @@ namespace HRMS_Core.VM.EmployeeMaster
         public int? EmployeeId { get; set; }
         public int? CompanyId { get; set; }
         public decimal? GrossSalary { get; set; }
+        public decimal? BasicSalary { get; set; }
+        public bool? IsPFApplicable { get; set; }
     }
 }

@@ -1,99 +1,154 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Employee Increment";
+    ViewData["Title"] = "Grade Wise Allowance";
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
 }
 
-<link href="~/commoncss.css" rel="stylesheet" />
+<div class="wms-form-page">
 
-<style>
-    
-    .fixed-label {
-        min-width: 120px;
-        white-space: nowrap;
-        margin-bottom: 0;
-        margin-right: 10px;
-        text-align: right;
-    }
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0">Grade Wise Allowance</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="form-grid-3">
+                <div class="fg fg-req">
+                    <label for="ddlBranch">Branch</label>
+                    <select id="ddlBranch">
+                        <option value="">Select Branch</option>
+                    </select>
+                    <span id="spnBranch" class="field-validation-error" style="display:none;">Please Select Branch</span>
+                </div>
 
-</style>
+                <div class="fg">
+                    <label for="ddlGrade">Grade</label>
+                    <select id="ddlGrade">
+                        <option value="">All Grades</option>
+                    </select>
+                </div>
 
+                <div class="fg">
+                    <label for="ddlAllowance">Allowances</label>
+                    <select id="ddlAllowance">
+                        <option value="">All Allowances</option>
+                    </select>
+                </div>
 
-<div class="card">
-    <div class="card-header bg-transparent ml-0 py-0">
-
-        <div class="card">
-            <div class="card-header bg-transparent">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h5 class="pt-2 mb-0">
-                            GRADE WISE ALLOWANCE
-                        </h5>
-                    </div>
+                <div class="fg">
+                    <label for="ddlEmployeeStatus">Employee Status</label>
+                    <select id="ddlEmployeeStatus">
+                        <option value="">All</option>
+                        <option value="Active">Active</option>
+                        <option value="Left">Left</option>
+                    </select>
                 </div>
             </div>
 
-            <div class="card-body">
-                <form>
-                    <div class="col-md-6 mx-auto">
-
-                        <!-- Branch -->
-                        <div class="mb-2 d-flex align-items-center">
-                            <label for="branchid" class="form-label fixed-label">Branch:</label>
-                            <select class="form-control form-control-sm compact-control" id="branchid">
-                                <option value="0">--Select--</option>
-                                <option value="1">GKP</option>
-                                <option value="2">Head Office</option>
-                                <option value="3">UP</option>
-                            </select>
-                        </div>
-
-                        <!-- Grade -->
-                        <div class="mb-2 d-flex align-items-center">
-                            <label for="gradeid" class="form-label fixed-label">Grade:</label>
-                            <select class="form-control form-control-sm compact-control" id="gradeid">
-                                <option value="0">--All Grade--</option>
-                                <option value="1">--MANAGEMENT--</option>
-                            </select>
-                        </div>
-
-                        <!-- Allowances -->
-                        <div class="mb-2 d-flex align-items-center">
-                            <label for="allowancesid" class="form-label fixed-label">Allowances:</label>
-                            <select class="form-control form-control-sm compact-control" id="allowancesid">
-                                <option value="0">--Select Allowances--</option>
-                            </select>
-                        </div>
-
-                        <!-- Exists in Employee Checkbox (on new line) -->
-                        <div class="mb-2 d-flex align-items-center">
-                            <label class="form-label fixed-label"></label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="checkboxid">
-                                <label class="form-check-label" for="checkboxid">Exists In Employee</label>
-                            </div>
-                        </div>
-
-                        <!-- Employee Status -->
-                        <div class="mb-3 d-flex align-items-center">
-                            <label for="activeid" class="form-label fixed-label">Employee Status:</label>
-                            <select class="form-control form-control-sm compact-control" id="activeid">
-                                <option value="0">--Active--</option>
-                                <option value="1">--Left--</option>
-                            </select>
-                        </div>
-
-                        <!-- Button -->
-                        <div class="text-center">
-                            <button type="button" class="btn btn-primary">GO</button>
-                        </div>
-
-                    </div>
-                </form>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="chkExistsInEmployee">
+                <label class="form-check-label" for="chkExistsInEmployee">Exists In Employee</label>
             </div>
 
-           
+            <div class="d-flex justify-content-end mb-3">
+                <button type="button" class="btn btn-primary btn-sm" id="btnGo"><i class="bx bx-search"></i> GO</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="gridContainerGradeAllowance"></div>
         </div>
     </div>
+
 </div>
+
+<script>
+    (function () {
+        var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+        const CompanyId = companyDetails ? companyDetails.CompanyId : null;
+        const Token = localStorage.getItem('authToken');
+
+        function fillSelect(id, data, valueKey, textKey, placeholder) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = '';
+            var ph = document.createElement('option');
+            ph.value = '';
+            ph.textContent = placeholder || 'Select';
+            el.appendChild(ph);
+            (data || []).forEach(function (d) {
+                var o = document.createElement('option');
+                o.value = d[valueKey];
+                o.textContent = d[textKey] || '';
+                el.appendChild(o);
+            });
+        }
+
+        var grid = WMSGrid.create({
+            container: 'gridContainerGradeAllowance',
+            title: 'Grade Wise Allowance Records',
+            icon: 'bx-coin-stack',
+            perPage: 10,
+            columns: [
+                { field: 'employeeCode', header: 'Employee Code', width: '130px' },
+                { field: 'employeeName', header: 'Employee Name', width: '180px' },
+                { field: 'branchName', header: 'Branch', width: '150px' },
+                { field: 'gradeName', header: 'Grade', width: '150px' },
+                { field: 'allowanceName', header: 'Allowance', width: '160px' },
+                { field: 'amount', header: 'Amount', width: '120px' },
+                { field: 'employeeStatus', header: 'Status', width: '110px' }
+            ],
+            features: { export: true }
+        });
+
+        function loadBranches() {
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (response.isSuccess) {
+                        fillSelect('ddlBranch', response.data, 'branchId', 'branchName', 'Select Branch');
+                    }
+                },
+                error: function () { console.error('Failed to fetch branches.'); }
+            });
+        }
+
+        function loadGrades() {
+            $.ajax({
+                url: '@baseUrl/GradeAPI/GetAllGrade',
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (response.isSuccess) {
+                        fillSelect('ddlGrade', response.data, 'gradeId', 'gradeName', 'All Grades');
+                    }
+                },
+                error: function () { console.error('Failed to fetch grades.'); }
+            });
+        }
+
+        $(document).ready(function () {
+            loadBranches();
+            loadGrades();
+        });
+
+        function clearErrors() {
+            $('#spnBranch').hide();
+        }
+
+        $('#btnGo').click(function () {
+            clearErrors();
+
+            if (!$('#ddlBranch').val()) {
+                $('#spnBranch').show();
+                return;
+            }
+
+            grid.setData([]);
+            showToast('No grade-wise allowance data source is available yet for this report. Please contact your administrator.', 'warn');
+        });
+    })();
+</script>

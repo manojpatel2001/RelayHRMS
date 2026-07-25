@@ -1,0 +1,351 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee In/Out Report";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Employee In/Out Report</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate" />
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate" />
+                    <span class="field-validation-error" id="spnDateRange" style="display:none;">End Date must be after Start Date</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 200px;min-width:180px;">
+                    <label for="branchDropdown">Branch</label>
+                    <div id="branchDropdown"></div>
+                    <span class="field-validation-error" id="spnBranch" style="display:none;">Please select Branch</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
+                    <label for="employeeDropdown">Employee</label>
+                    <div id="employeeDropdown"></div>
+                    <span class="field-validation-error" id="spnEmployee" style="display:none;">Please select at least one Employee</span>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnFetchInOut">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClearInOut">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="inoutGridContainer"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var CompanyId = companyDetails.CompanyId;
+        var EmployeeId = localStorage.getItem('EmployeeId');
+        var Token = localStorage.getItem("authToken");
+
+        var grid = null;
+        var currentRows = [];
+        var isLoadingInOut = false;
+
+        function goBack() { window.history.back(); }
+        window.goBack = goBack;
+
+        function setDefaultDates() {
+            var today = new Date();
+            var todayStr = today.toISOString().split('T')[0];
+            $('#startDate').val(todayStr);
+            $('#endDate').val(todayStr);
+        }
+
+        $(document).ready(function () {
+            var selectedBranchIds = [0];
+            BindBranchDropdown();
+            setDefaultDates();
+            BindEmployeeDropdownByBranch(selectedBranchIds);
+
+            $('#startDate, #endDate').on('change', function () { $('#spnDateRange').hide(); });
+        });
+
+        function BindBranchDropdown() {
+            $.ajax({
+                url: '@(baseDomainUrl)/api/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (response?.data?.length > 0) {
+                        $("#branchDropdown").dxTagBox({
+                            items: response.data,
+                            displayExpr: "branchName",
+                            valueExpr: "branchId",
+                            placeholder: "--Select Branch--",
+                            showSelectionControls: true,
+                            searchEnabled: true,
+                            showClearButton: true,
+                            maxDisplayedTags: 3,
+                            applyValueMode: "instantly",
+                            multiline: false,
+                            minSearchLength: 0,
+                            width: "100%",
+                            onValueChanged: function (e) {
+                                $('#spnBranch').hide();
+                                var selectedBranchIds = e.value.length > 0 ? e.value : [0];
+                                BindEmployeeDropdownByBranch(selectedBranchIds);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        function BindEmployeeDropdownByBranch(selectedBranchIds) {
+            var branchParam = (selectedBranchIds?.length > 0) ? selectedBranchIds.join(",") : "0";
+
+            $.ajax({
+                type: "GET",
+                url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")?BranchIds=' + branchParam + '&CompanyId=' + CompanyId,
+                success: function (response) {
+                    var $empDropdown = $("#employeeDropdown");
+
+                    if (response?.data?.length > 0) {
+                        var employeeData = response.data.map(function (emp) {
+                            return {
+                                employeeCode: emp.employeeCode,
+                                displayName: emp.fullName + ' - ' + emp.employeeCode
+                            };
+                        });
+
+                        $empDropdown.dxTagBox({
+                            items: employeeData,
+                            displayExpr: "displayName",
+                            valueExpr: "employeeCode",
+                            placeholder: "--Select Employee--",
+                            showSelectionControls: true,
+                            searchEnabled: true,
+                            showClearButton: true,
+                            maxDisplayedTags: 3,
+                            applyValueMode: "instantly",
+                            multiline: false,
+                            minSearchLength: 0,
+                            width: "100%",
+                            onValueChanged: function () { $('#spnEmployee').hide(); }
+                        });
+                    } else {
+                        $empDropdown.dxTagBox({
+                            items: [],
+                            placeholder: "No Employees Found",
+                            searchEnabled: false,
+                            showClearButton: true,
+                            width: "100%"
+                        });
+                    }
+                }
+            });
+        }
+
+        function fmtVal(v) {
+            if (v === null || v === undefined || v === '') return '-';
+            var s = String(v).trim();
+            return s === '' ? '-' : s;
+        }
+
+        function statusClass(status) {
+            if (status === 'P') return 'wg-pill wg-pill-green';
+            if (status === 'A') return 'wg-pill wg-pill-red';
+            return 'wg-pill wg-pill-amber';
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                { field: 'employeeCode', header: 'Code', width: '120px' },
+                { field: 'fullName', header: 'Name', width: '160px' },
+                { field: 'branchName', header: 'Branch', width: '150px' },
+                { field: 'designationName', header: 'Designation', width: '140px' },
+                {
+                    header: 'Date', sortable: false, width: '130px',
+                    render: function (v, row) {
+                        if (!row.shiftDate) return '-';
+                        var d = new Date(row.shiftDate);
+                        if (isNaN(d.getTime())) return '-';
+                        var day = String(d.getDate()).padStart(2, '0');
+                        var month = String(d.getMonth() + 1).padStart(2, '0');
+                        return day + '/' + month + '/' + d.getFullYear();
+                    }
+                },
+                { header: 'In Time', sortable: false, width: '120px', render: function (v, row) { return fmtVal(row.inTime); } },
+                { header: 'Out Time', sortable: false, width: '120px', render: function (v, row) { return fmtVal(row.outTime); } },
+                { header: 'Total Hours', sortable: false, width: '120px', render: function (v, row) { return fmtVal(row.workingHours); } },
+                {
+                    header: 'Status', sortable: false, width: '110px',
+                    render: function (v, row) {
+                        var status = row.attendanceStatus ? String(row.attendanceStatus).trim() : '';
+                        if (!status) return '-';
+                        return '<span class="' + statusClass(status) + '">' + status + '</span>';
+                    }
+                }
+            ];
+
+            currentRows = data;
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'inoutGridContainer',
+                    title: 'Employee In/Out',
+                    icon: 'bx-log-in-circle',
+                    exportName: 'Employee_InOut_Report',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        $('#btnFetchInOut').on('click', function () {
+            if (isLoadingInOut) return;
+
+            var startDate = $('#startDate').val();
+            var endDate = $('#endDate').val();
+            var isValid = true;
+
+            if (!startDate) { isValid = false; }
+            if (!endDate) { isValid = false; }
+
+            if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+                $('#spnDateRange').show();
+                return;
+            }
+            $('#spnDateRange').hide();
+
+            var branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
+            var employeeIds = $("#employeeDropdown").dxTagBox("instance").option("value");
+
+            if (!branchIds || branchIds.length <= 0) {
+                $('#spnBranch').show();
+                isValid = false;
+            } else {
+                $('#spnBranch').hide();
+            }
+
+            if (!employeeIds || employeeIds.length <= 0) {
+                $('#spnEmployee').show();
+                isValid = false;
+            } else {
+                $('#spnEmployee').hide();
+            }
+
+            if (!isValid) return;
+
+            var empCodes = employeeIds.join(",");
+
+            var requestData = {
+                StartDate: startDate,
+                EndDate: endDate,
+                BranchId: branchIds.join(","),
+                EmployeeCodes: empCodes,
+                CompanyId: CompanyId
+            };
+
+            isLoadingInOut = true;
+            setBtnLoading('#btnFetchInOut', 'Go');
+
+            $.ajax({
+                url: '@baseDomainUrl/api/EmployeeInOut/GetEmpInOutReportForAdmin',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(requestData),
+                success: function (response) {
+                    isLoadingInOut = false;
+                    setBtnNormal('#btnFetchInOut', 'Go');
+
+                    if (response.isSuccess) {
+                        if (response.data && response.data.length > 0) {
+                            renderGrid(response.data);
+                            $('#startDate').prop('disabled', true);
+                            $('#endDate').prop('disabled', true);
+                            $("#branchDropdown").dxTagBox("instance").option("disabled", true);
+                            $("#employeeDropdown").dxTagBox("instance").option("disabled", true);
+                        } else {
+                            currentRows = [];
+                            grid = null;
+                            $('#inoutGridContainer').empty();
+                            showToast('No records found for the selected criteria.', 'info');
+                        }
+                    } else {
+                        showToast(response.ResponseMessage || 'Error fetching data', 'error');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingInOut = false;
+                    setBtnNormal('#btnFetchInOut', 'Go');
+                    console.error(error);
+                    showToast('Error occurred while fetching data', 'error');
+                }
+            });
+        });
+
+        function clearAllData() {
+            $('#startDate').prop('disabled', false);
+            $('#endDate').prop('disabled', false);
+
+            setDefaultDates();
+
+            try {
+                var branchDropdown = $("#branchDropdown").dxTagBox("instance");
+                if (branchDropdown) {
+                    branchDropdown.option("value", []);
+                    branchDropdown.option("disabled", false);
+                }
+            } catch (error) {
+                console.error("Branch dropdown clear error:", error);
+            }
+
+            try {
+                var employeeDropdown = $("#employeeDropdown").dxTagBox("instance");
+                if (employeeDropdown) {
+                    employeeDropdown.option("value", []);
+                    employeeDropdown.option("disabled", false);
+                }
+            } catch (error) {
+                console.error("Employee dropdown clear error:", error);
+            }
+
+            $('#spnDateRange, #spnBranch, #spnEmployee').hide();
+
+            currentRows = [];
+            grid = null;
+            $('#inoutGridContainer').empty();
+
+            var selectedBranchIds = [0];
+            BindEmployeeDropdownByBranch(selectedBranchIds);
+        }
+
+        $('#btnClearInOut').on('click', function () {
+            clearAllData();
+        });
+    })();
+</script>

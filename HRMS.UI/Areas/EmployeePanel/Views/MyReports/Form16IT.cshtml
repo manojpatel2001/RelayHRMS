@@ -1,0 +1,253 @@
+@{
+    ViewData["Title"] = "IT Form 16";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string apiBase = ViewBag.BaseUrlAPI;
+}
+
+<title>IT Form 16</title>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">IT Form 16</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="fromDate">From Date</label>
+                    <input type="date" id="fromDate" />
+                    <span id="spnFromDate" class="field-validation-error" style="display:none;">Please Select From Date</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="toDate">To Date</label>
+                    <input type="date" id="toDate" />
+                    <span id="spnToDate" class="field-validation-error" style="display:none;">To Date must be after From Date</span>
+                </div>
+
+                <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                    <label for="formatType">Format</label>
+                    <select id="formatType">
+                        <option value="PART-A">PART-A</option>
+                        <option value="PART-B">PART-B</option>
+                    </select>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="viewButton">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">View</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="backButton">Back</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="gridContainerForm16"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        const apiBase = '@apiBase';
+        const Empid = parseInt(localStorage.getItem("EmployeeId"));
+        var token = localStorage.getItem("authToken");
+        const savedCompany = localStorage.getItem('selectedCompany');
+        const companyDetails = JSON.parse(savedCompany || '{}');
+        const Compid = parseInt(companyDetails.CompanyId);
+
+        var grid = null;
+        var currentRows = [];
+        var isLoadingForm16 = false;
+
+        $(document).ready(function () {
+            // Set default dates (current financial year)
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth();
+
+            // Financial year starts from April
+            let fromYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+            let toYear = fromYear + 1;
+
+            $('#fromDate').val(`${fromYear}-04-01`);
+            $('#toDate').val(`${toYear}-03-31`);
+
+            $('#fromDate, #toDate').on('change', function () {
+                $('#spnFromDate, #spnToDate').hide();
+            });
+
+            $('#viewButton').click(function () {
+                loadForm16Data();
+            });
+
+            $('#backButton').click(function () {
+                window.history.back();
+            });
+        });
+
+        function loadForm16Data() {
+            if (isLoadingForm16) return;
+
+            const fromDate = $('#fromDate').val();
+            const toDate = $('#toDate').val();
+            const format = $('#formatType').val();
+            var isValid = true;
+
+            if (!fromDate) {
+                $('#spnFromDate').show();
+                isValid = false;
+            } else {
+                $('#spnFromDate').hide();
+            }
+
+            if (!toDate) {
+                $('#spnToDate').text('Please Select To Date').show();
+                isValid = false;
+            } else if (fromDate && new Date(fromDate) > new Date(toDate)) {
+                $('#spnToDate').text('To Date must be after From Date').show();
+                isValid = false;
+            } else {
+                $('#spnToDate').hide();
+            }
+
+            if (!isValid) return;
+
+            isLoadingForm16 = true;
+            setBtnLoading('#viewButton', 'View');
+
+            const payload = {
+                FromDate: fromDate,
+                ToDate: toDate,
+                Format: format,
+                EmployeeId: Empid,
+                CompanyId: Compid
+            };
+
+            $.ajax({
+                url: apiBase + '/ITForm16/GetForm16Data',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                },
+                data: JSON.stringify(payload),
+                success: function (data) {
+                    if (data.isSuccess && data.data && data.data.length > 0) {
+                        currentRows = data.data;
+                        renderGrid(currentRows);
+                    } else {
+                        currentRows = [];
+                        grid = null;
+                        $('#gridContainerForm16').empty();
+                        showToast('No records found for the selected period.', 'info');
+                    }
+                },
+                error: function () {
+                    currentRows = [];
+                    grid = null;
+                    $('#gridContainerForm16').empty();
+                    showToast('Error fetching data. Please try again.', 'error');
+                },
+                complete: function () {
+                    isLoadingForm16 = false;
+                    setBtnNormal('#viewButton', 'View');
+                }
+            });
+        }
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function moneyCell(v) {
+            var n = (v === null || v === undefined || v === '') ? 0 : parseFloat(v);
+            if (isNaN(n)) return '<span class="d-block text-end">-</span>';
+            return '<span class="d-block text-end">' + n.toFixed(2) + '</span>';
+        }
+
+        window._downloadForm16 = function (form16Id) {
+            downloadForm16(form16Id);
+        };
+
+        function renderGrid(data) {
+            var columns = [
+                { field: 'financialYear', header: 'Financial Year', width: '120px' },
+                { field: 'employeeName', header: 'Employee Name', width: '170px' },
+                { field: 'employeeCode', header: 'Employee Code', width: '130px' },
+                { field: 'panNumber', header: 'PAN Number', width: '120px' },
+                { header: 'Gross Salary', width: '120px', render: function (v, row) { return moneyCell(row.grossSalary); } },
+                { header: 'Tax Deducted', width: '120px', render: function (v, row) { return moneyCell(row.taxDeducted); } },
+                { header: 'Generated Date', width: '130px', render: function (v, row) { return fmtDate(row.generatedDate); } },
+                {
+                    header: 'Action', sortable: false, width: '90px', stickyRight: true,
+                    render: function (v, row) {
+                        return '<button class="wg-btn wg-btn-outline" title="Download" onclick="_downloadForm16(' + row.form16Id + ')"><i class="bx bx-download"></i></button>';
+                    }
+                }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerForm16',
+                    title: 'Form 16 Details',
+                    icon: 'bx-file',
+                    exportName: 'Form16Details',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        function downloadForm16(form16Id) {
+            const format = $('#formatType').val();
+
+            showToast('Downloading Form 16, please wait...', 'info');
+
+            $.ajax({
+                url: apiBase + '/ITForm16/DownloadForm16',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                },
+                data: JSON.stringify({
+                    Form16Id: form16Id,
+                    Format: format
+                }),
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function (blob) {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Form16_${format}_${form16Id}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                    showToast('Form 16 downloaded successfully!', 'success');
+                },
+                error: function () {
+                    showToast('Failed to download Form 16. Please try again.', 'error');
+                }
+            });
+        }
+    })();
+</script>

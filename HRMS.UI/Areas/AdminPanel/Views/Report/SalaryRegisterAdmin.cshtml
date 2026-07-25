@@ -1,0 +1,445 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Salary Register";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<!-- ExcelJS + FileSaver for Export -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Salary Register</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="monthDropdown">Month</label>
+                    <select id="monthDropdown">
+                        <option value="">Select Month</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <span class="field-validation-error" id="errorMonth" style="display:none;">Please select month</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="yearDropdown">Year</label>
+                    <select id="yearDropdown">
+                        <option value="">Select Year</option>
+                    </select>
+                    <span class="field-validation-error" id="errorYear" style="display:none;">Please select year</span>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnFetchSalary">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="exportButtonContainer" style="display:none;">
+                <div class="d-flex justify-content-end gap-2 mb-3">
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnSelectAllSalary">
+                        <i class="bx bx-check-square"></i> Select All
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnExportToExcel">
+                        <i class="bx bx-download"></i> Export to Excel
+                    </button>
+                </div>
+            </div>
+
+            <div id="salaryGridContainer"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var CompanyId = companyDetails.CompanyId;
+        var Token = localStorage.getItem("authToken");
+
+        var salaryGrid = null;
+        var salaryData = [];
+        var selectedIds = {};
+        var isLoadingSalary = false;
+
+        function goBack() {
+            window.location.href = '@Url.Action("Index", "Home", new { area = "AdminPanel" })';
+        }
+        window.goBack = goBack;
+
+        $(document).ready(function () {
+            var startYear = 2025;
+            var currentYear = new Date().getFullYear();
+
+            for (var year = currentYear; year >= startYear; year--) {
+                $('#yearDropdown').append('<option value="' + year + '">' + year + '</option>');
+            }
+
+            $('#exportButtonContainer').hide();
+
+            $('#monthDropdown, #yearDropdown').on('change', function () {
+                if ($(this).attr('id') === 'monthDropdown') $('#errorMonth').hide();
+                if ($(this).attr('id') === 'yearDropdown') $('#errorYear').hide();
+            });
+
+            $('#btnSelectAllSalary').on('click', function () {
+                var allSelected = salaryData.length > 0 && salaryData.every(function (r) { return !!selectedIds[r.id]; });
+                selectedIds = {};
+                if (!allSelected) { salaryData.forEach(function (r) { selectedIds[r.id] = true; }); }
+                if (salaryGrid) salaryGrid.refresh();
+            });
+
+            $('#btnExportToExcel').on('click', function () {
+                exportSalaryToExcel();
+            });
+        });
+
+        function clearPage() {
+            $('#monthDropdown').val('');
+            $('#yearDropdown').val('');
+            $('#errorMonth, #errorYear').hide();
+            $('#salaryGridContainer').empty();
+            $('#exportButtonContainer').hide();
+            salaryGrid = null;
+            salaryData = [];
+            selectedIds = {};
+        }
+
+        $('#btnClear').click(function () {
+            clearPage();
+        });
+
+        window._toggleSalaryRow = function (id, checked) {
+            if (checked) selectedIds[id] = true;
+            else delete selectedIds[id];
+        };
+
+        function getSelectedRows() {
+            return salaryData.filter(function (r) { return !!selectedIds[r.id]; });
+        }
+
+        $('#btnFetchSalary').click(function () {
+            if (isLoadingSalary) return;
+
+            var month = $('#monthDropdown').val();
+            var year = $('#yearDropdown').val();
+
+            var isValid = true;
+
+            if (!month) {
+                $('#errorMonth').show();
+                isValid = false;
+            } else {
+                $('#errorMonth').hide();
+            }
+
+            if (!year) {
+                $('#errorYear').show();
+                isValid = false;
+            } else {
+                $('#errorYear').hide();
+            }
+
+            if (!isValid) return;
+
+            isLoadingSalary = true;
+            setBtnLoading('#btnFetchSalary', 'Go');
+            selectedIds = {};
+
+            $.ajax({
+                url: '@(baseUrl)/MonthlySalaryDetailsAPI/GetEmployeeSalaryRegister',
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                data: {
+                    Month: month,
+                    Year: year,
+                    CompanyId: CompanyId
+                },
+                success: function (response) {
+                    isLoadingSalary = false;
+                    setBtnNormal('#btnFetchSalary', 'Go');
+
+                    if (response.isSuccess) {
+                        if (response.data && response.data.length > 0) {
+                            salaryData = response.data;
+                            renderSalaryGrid(salaryData);
+                            $('#exportButtonContainer').show();
+                        } else {
+                            salaryData = [];
+                            salaryGrid = null;
+                            $('#salaryGridContainer').empty();
+                            showToast('No salary records found for the selected criteria.', 'info');
+                            $('#exportButtonContainer').hide();
+                        }
+                    } else {
+                        salaryData = [];
+                        salaryGrid = null;
+                        $('#salaryGridContainer').empty();
+                        showToast(response.ResponseMessage || 'No salary records found.', 'info');
+                        $('#exportButtonContainer').hide();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingSalary = false;
+                    setBtnNormal('#btnFetchSalary', 'Go');
+                    console.error('Error fetching salary data:', error);
+
+                    var errorMessage = 'Failed to fetch salary data.';
+                    if (xhr.responseJSON && xhr.responseJSON.ResponseMessage) {
+                        errorMessage = xhr.responseJSON.ResponseMessage;
+                    }
+
+                    salaryData = [];
+                    salaryGrid = null;
+                    $('#salaryGridContainer').empty();
+                    showToast(errorMessage, 'error');
+                    $('#exportButtonContainer').hide();
+                }
+            });
+        });
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function fmtMoney(v) {
+            var n = parseFloat(v);
+            if (isNaN(n)) return '0.00';
+            return n.toFixed(2);
+        }
+
+        function renderSalaryGrid(data) {
+            var columns = [
+                {
+                    header: '', sortable: false, width: '40px',
+                    render: function (v, row) {
+                        var checked = selectedIds[row.id] ? ' checked' : '';
+                        return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleSalaryRow(' + row.id + ', this.checked)">';
+                    }
+                },
+                { field: 'employeeCode', header: 'Employee Code', width: '120px' },
+                { field: 'employeeName', header: 'Employee Name', width: '200px' },
+                { field: 'branchName', header: 'Branch', width: '150px' },
+                { field: 'designationName', header: 'Designation', width: '150px' },
+                { field: 'departmentName', header: 'Department', width: '150px' },
+                { header: 'Date of Joining', sortable: false, width: '120px', render: function (v, row) { return fmtDate(row.dateOfJoining); } },
+                { field: 'monthName', header: 'Month', width: '100px' },
+                { field: 'year', header: 'Year', width: '80px' },
+                { field: 'monthDays', header: 'Month Days', width: '100px' },
+                { field: 'payableDays', header: 'Payable Days', width: '100px' },
+                { header: 'Basic Salary', sortable: false, width: '120px', render: function (v, row) { return fmtMoney(row.basicSalary); } },
+                { header: 'HRA', sortable: false, width: '100px', render: function (v, row) { return fmtMoney(row.hra); } },
+                { header: 'Conveyance', sortable: false, width: '120px', render: function (v, row) { return fmtMoney(row.conveyanceAllowance); } },
+                { header: 'Child Education', sortable: false, width: '130px', render: function (v, row) { return fmtMoney(row.childEducationAllowance); } },
+                { header: 'Medical', sortable: false, width: '100px', render: function (v, row) { return fmtMoney(row.medicalAllowance); } },
+                { header: 'Deputation', sortable: false, width: '120px', render: function (v, row) { return fmtMoney(row.deputationAllowance); } },
+                { header: 'Gross Salary', sortable: false, width: '120px', render: function (v, row) { return fmtMoney(row.grossSalary); } },
+                { header: 'Total Gross', sortable: false, width: '120px', render: function (v, row) { return fmtMoney(row.totalGrossSalary); } },
+                { header: 'Arrears', sortable: false, width: '100px', render: function (v, row) { return fmtMoney(row.arrears); } },
+                { header: 'PF', sortable: false, width: '100px', render: function (v, row) { return fmtMoney(row.pf); } },
+                { header: 'ESIC', sortable: false, width: '100px', render: function (v, row) { return fmtMoney(row.esic); } },
+                { header: 'Professional Tax', sortable: false, width: '130px', render: function (v, row) { return fmtMoney(row.professionalTax); } },
+                { header: 'Group Medical', sortable: false, width: '130px', render: function (v, row) { return fmtMoney(row.groupMedical); } },
+                { header: 'Term Insurance', sortable: false, width: '130px', render: function (v, row) { return fmtMoney(row.termInsurance); } },
+                { header: 'LWF', sortable: false, width: '100px', render: function (v, row) { return fmtMoney(row.lwf); } },
+                { header: 'TDS', sortable: false, width: '100px', render: function (v, row) { return fmtMoney(row.tds); } },
+                { header: 'Loan', sortable: false, width: '100px', render: function (v, row) { return fmtMoney(row.loan); } },
+                { header: 'Other Deduction', sortable: false, width: '130px', render: function (v, row) { return fmtMoney(row.otherDeduction); } },
+                { header: 'Total Deductions', sortable: false, width: '150px', render: function (v, row) { return fmtMoney(row.totalDeductions); } },
+                { header: 'Net Salary', sortable: false, width: '120px', render: function (v, row) { return fmtMoney(row.netSalary); } },
+                { field: 'employeeNamePrmaryBank', header: 'Bank Name', width: '150px' },
+                { field: 'primaryAccountNumber', header: 'Account Number', width: '150px' },
+                { field: 'primaryIFSCCode', header: 'IFSC Code', width: '120px' }
+            ];
+
+            if (!salaryGrid) {
+                salaryGrid = WMSGrid.create({
+                    container: 'salaryGridContainer',
+                    title: 'Salary Register',
+                    icon: 'bx-money',
+                    exportName: 'SalaryRegister',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                salaryGrid.setData(data);
+            }
+        }
+
+        /* ── Custom Excel Export Function with Styled Headers ─────────────── */
+        function exportCustomExcel(selectedData, workbook, worksheet) {
+            worksheet.columns = [
+                { header: 'Employee Code', key: 'employeeCode', width: 15 },
+                { header: 'Employee Name', key: 'employeeName', width: 25 },
+                { header: 'Branch', key: 'branchName', width: 20 },
+                { header: 'Designation', key: 'designationName', width: 20 },
+                { header: 'Department', key: 'departmentName', width: 20 },
+                { header: 'Date of Joining', key: 'dateOfJoining', width: 15 },
+                { header: 'Month', key: 'monthName', width: 12 },
+                { header: 'Year', key: 'year', width: 10 },
+                { header: 'Month Days', key: 'monthDays', width: 12 },
+                { header: 'Payable Days', key: 'payableDays', width: 12 },
+                { header: 'Basic Salary', key: 'basicSalary', width: 15 },
+                { header: 'HRA', key: 'hra', width: 12 },
+                { header: 'Conveyance', key: 'conveyanceAllowance', width: 15 },
+                { header: 'Child Education', key: 'childEducationAllowance', width: 15 },
+                { header: 'Medical', key: 'medicalAllowance', width: 12 },
+                { header: 'Deputation', key: 'deputationAllowance', width: 15 },
+                { header: 'Gross Salary', key: 'grossSalary', width: 15 },
+                { header: 'Total Gross', key: 'totalGrossSalary', width: 15 },
+                { header: 'Arrears', key: 'arrears', width: 12 },
+                { header: 'PF', key: 'pf', width: 12 },
+                { header: 'ESIC', key: 'esic', width: 12 },
+                { header: 'Professional Tax', key: 'professionalTax', width: 15 },
+                { header: 'Group Medical', key: 'groupMedical', width: 15 },
+                { header: 'Term Insurance', key: 'termInsurance', width: 15 },
+                { header: 'LWF', key: 'lwf', width: 12 },
+                { header: 'TDS', key: 'tds', width: 12 },
+                { header: 'Loan', key: 'loan', width: 12 },
+                { header: 'Other Deduction', key: 'otherDeduction', width: 15 },
+                { header: 'Total Deductions', key: 'totalDeductions', width: 15 },
+                { header: 'Net Salary', key: 'netSalary', width: 15 },
+                { header: 'Bank Name', key: 'employeeNamePrmaryBank', width: 20 },
+                { header: 'Account Number', key: 'primaryAccountNumber', width: 20 },
+                { header: 'IFSC Code', key: 'primaryIFSCCode', width: 15 }
+            ];
+
+            var headerRow = worksheet.getRow(1);
+            headerRow.eachCell(function (cell) {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3E4B6D' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FF000000' } },
+                    left: { style: 'thin', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                    right: { style: 'thin', color: { argb: 'FF000000' } }
+                };
+            });
+            headerRow.height = 25;
+
+            selectedData.forEach(function (rowData) {
+                var row = worksheet.addRow({
+                    employeeCode: rowData.employeeCode || '',
+                    employeeName: rowData.employeeName || '',
+                    branchName: rowData.branchName || '',
+                    designationName: rowData.designationName || '',
+                    departmentName: rowData.departmentName || '',
+                    dateOfJoining: rowData.dateOfJoining ? new Date(rowData.dateOfJoining).toLocaleDateString('en-GB') : '',
+                    monthName: rowData.monthName || '',
+                    year: rowData.year || '',
+                    monthDays: rowData.monthDays || 0,
+                    payableDays: rowData.payableDays || 0,
+                    basicSalary: rowData.basicSalary || 0,
+                    hra: rowData.hra || 0,
+                    conveyanceAllowance: rowData.conveyanceAllowance || 0,
+                    childEducationAllowance: rowData.childEducationAllowance || 0,
+                    medicalAllowance: rowData.medicalAllowance || 0,
+                    deputationAllowance: rowData.deputationAllowance || 0,
+                    grossSalary: rowData.grossSalary || 0,
+                    totalGrossSalary: rowData.totalGrossSalary || 0,
+                    arrears: rowData.arrears || 0,
+                    pf: rowData.pf || 0,
+                    esic: rowData.esic || 0,
+                    professionalTax: rowData.professionalTax || 0,
+                    groupMedical: rowData.groupMedical || 0,
+                    termInsurance: rowData.termInsurance || 0,
+                    lwf: rowData.lwf || 0,
+                    tds: rowData.tds || 0,
+                    loan: rowData.loan || 0,
+                    otherDeduction: rowData.otherDeduction || 0,
+                    totalDeductions: rowData.totalDeductions || 0,
+                    netSalary: rowData.netSalary || 0,
+                    employeeNamePrmaryBank: rowData.employeeNamePrmaryBank || '',
+                    primaryAccountNumber: rowData.primaryAccountNumber || '',
+                    primaryIFSCCode: rowData.primaryIFSCCode || ''
+                });
+
+                row.eachCell(function (cell, colNumber) {
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                    };
+
+                    if (colNumber >= 17 && colNumber <= 36) {
+                        cell.numFmt = '#,##0.00';
+                        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                    } else if (colNumber === 1 || (colNumber >= 7 && colNumber <= 16)) {
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    } else {
+                        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                    }
+                });
+            });
+
+            var month = $('#monthDropdown option:selected').text();
+            var year = $('#yearDropdown').val();
+            var fileName = 'Salary_Register_' + month + '_' + year + '.xlsx';
+
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+                showToast('Excel file downloaded successfully!', 'success');
+            }).catch(function (error) {
+                console.error('Excel export error:', error);
+                showToast('Error exporting to Excel!', 'error');
+            });
+        }
+
+        function exportSalaryToExcel() {
+            if (typeof ExcelJS === 'undefined') {
+                showToast('ExcelJS library not loaded. Please refresh the page.', 'error');
+                return;
+            }
+
+            var selectedRows = getSelectedRows();
+            if (selectedRows.length === 0) {
+                showToast('Please select at least one row to export.', 'warn');
+                return;
+            }
+
+            var workbook = new ExcelJS.Workbook();
+            var worksheet = workbook.addWorksheet('Salary Register');
+            exportCustomExcel(selectedRows, workbook, worksheet);
+        }
+    })();
+</script>

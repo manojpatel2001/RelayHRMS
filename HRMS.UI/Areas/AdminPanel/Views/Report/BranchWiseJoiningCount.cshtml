@@ -1,0 +1,335 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Branch Wise Joining Report";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+<title>Branch Wise Joining Report</title>
+
+<!-- jsPDF + AutoTable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Branch Wise New Joining Report</h6>
+            <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="btnExportPdf" style="display:none;">
+                <i class="bx bx-file-pdf"></i> Export PDF
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="fromdate">From Date</label>
+                    <input type="date" id="fromdate" />
+                    <span class="field-validation-error" id="spnfromdate" style="display:none;">Please Select From Date</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="todate">To Date</label>
+                    <input type="date" id="todate" />
+                    <span class="field-validation-error" id="spntodate" style="display:none;">Please Select To Date</span>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("Index", "MyReports")'">Back</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="gridContainerBranchJoining"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var Compid = companyDetails.CompanyId;
+        var Token = localStorage.getItem("authToken");
+
+        var grid = null;
+        var currentRows = [];
+        var isLoadingBj = false;
+
+        // "2026-01-01"  →  "01/01/2026"
+        function fmtDate(dateStr) {
+            if (!dateStr) return '';
+            var d = new Date(dateStr);
+            var dd = String(d.getDate()).padStart(2, '0');
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            return dd + '/' + mm + '/' + d.getFullYear();
+        }
+
+        /* ── Render WMSGrid ───────────────────────────── */
+        function renderGrid(data) {
+            var columns = [
+                { header: '#', sortable: false, width: '40px', render: function (v, row) { return currentRows.indexOf(row) + 1; } },
+                { field: 'branchName', header: 'Branch Name', width: '220px' },
+                { field: 'lastMonth', header: 'Last Month', width: '110px', render: function (v) { return v ?? 0; } },
+                { field: 'lastQuarter', header: 'Last Quarter', width: '110px', render: function (v) { return v ?? 0; } },
+                { field: 'lastSixMonths', header: 'Last Six Months', width: '130px', render: function (v) { return v ?? 0; } },
+                { field: 'lastYear', header: 'Last Year', width: '110px', render: function (v) { return v ?? 0; } }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerBranchJoining',
+                    title: 'Branch Wise New Joining Report',
+                    icon: 'bx-buildings',
+                    exportName: 'BranchWiseJoiningReport',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        /* ── Generate PDF — matches demo PDF layout exactly (business-specific
+               letterhead, header/footer, page numbers) — kept unchanged ───── */
+        function generatePDF(data, fromDate, toDate) {
+            var jsPDF = window.jspdf.jsPDF;
+            var doc = new jsPDF('p', 'mm', 'a4');
+            var pageW = doc.internal.pageSize.getWidth();
+            var pageH = doc.internal.pageSize.getHeight();
+            var mL = 10, mR = 10;
+            var printDate = fmtDate(new Date().toISOString().split('T')[0]);
+
+            var companyName = data && data[0] ? (data[0].companyName || '') : '';
+            var companyAddress = data && data[0] ? (data[0].companyAddress || '') : '';
+
+            // Normalise address to single line (demo shows one line)
+            var addrOneLine = companyAddress.replace(/\n/g, ', ').replace(/,\s*,/g, ',').trim();
+
+            // ── Header block drawn on every page ─────────────────────────────────
+            function drawHeader() {
+                // Top rule
+                doc.setDrawColor(0);
+                doc.setLineWidth(0.4);
+                doc.line(mL, 8, pageW - mR, 8);
+
+                // Title
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(0);
+                doc.text('EMPLOYEE SUMMARY REPORT', pageW / 2, 14, { align: 'center' });
+
+                // Company Name  (label + value left)
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'bold');
+                doc.text('COMPANY NAME :', mL, 20);
+                doc.setFont('helvetica', 'normal');
+                doc.text(companyName.toUpperCase(), mL + 31, 20);
+
+                // Print Date (right)
+                doc.setFont('helvetica', 'bold');
+                doc.text('Print Date :', pageW - mR - 38, 20);
+                doc.setFont('helvetica', 'normal');
+                doc.text(printDate, pageW - mR - 14, 20);
+
+                // Address
+                doc.setFont('helvetica', 'bold');
+                doc.text('ADDRESS', mL, 25);
+                doc.text(':', mL + 16, 25);
+                doc.setFont('helvetica', 'normal');
+                var addrWrapped = doc.splitTextToSize(addrOneLine, pageW - mL - mR - 22);
+                addrWrapped.slice(0, 2).forEach(function (line, idx) {
+                    doc.text(line, mL + 19, 25 + idx * 4);
+                });
+
+                // Bottom rule of header area
+                doc.setLineWidth(0.4);
+                doc.line(mL, 32, pageW - mR, 32);
+            }
+
+            // ── Footer: Page X of Y ───────────────────────────────────────────────
+            function drawFooter(pageNum, totalPages) {
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(100);
+                doc.text('Page ' + pageNum + ' of ' + totalPages, pageW - mR, pageH - 5, { align: 'right' });
+            }
+
+            // ── Build table body rows ─────────────────────────────────────────────
+            var rows = [];
+            var tLM = 0, tLQ = 0, tLS = 0, tLY = 0;
+
+            (data || []).forEach(function (item) {
+                tLM += item.lastMonth || 0;
+                tLQ += item.lastQuarter || 0;
+                tLS += item.lastSixMonths || 0;
+                tLY += item.lastYear || 0;
+                rows.push([
+                    item.branchName || '-',
+                    item.lastMonth ?? 0,
+                    item.lastQuarter ?? 0,
+                    item.lastSixMonths ?? 0,
+                    item.lastYear ?? 0
+                ]);
+            });
+
+            // Total row appended as last body row
+            rows.push(['Total', tLM, tLQ, tLS, tLY]);
+
+            // ── Draw page 1 header manually ───────────────────────────────────────
+            drawHeader();
+
+            // "New Joinings" sub-heading bar  (matches demo page 2 section title)
+            var subY = 33;
+            doc.setFillColor(62, 75, 109);
+            doc.rect(mL, subY, pageW - mL - mR, 7, 'F');
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(255, 255, 255);
+            doc.text('New Joinings', pageW / 2, subY + 5, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+
+            // ── autoTable ─────────────────────────────────────────────────────────
+            doc.autoTable({
+                startY: subY + 7,
+                head: [['Branch Name', 'Last Month', 'Last Quarter', 'Last Six Months', 'Last Year']],
+                body: rows,
+                theme: 'grid',
+                styles: {
+                    fontSize: 8,
+                    cellPadding: { top: 2, bottom: 2, left: 3, right: 3 },
+                    halign: 'center',
+                    valign: 'middle',
+                    textColor: [0, 0, 0],
+                    lineColor: [180, 180, 180],
+                    lineWidth: 0.2
+                },
+                columnStyles: {
+                    0: { halign: 'left', cellWidth: 72 },
+                    1: { cellWidth: 26 },
+                    2: { cellWidth: 26 },
+                    3: { cellWidth: 30 },
+                    4: { cellWidth: 26 }
+                },
+                headStyles: {
+                    fillColor: [62, 75, 109],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 8,
+                    halign: 'center'
+                },
+                // Total row  →  navy bg, white text, bold
+                didParseCell: function (d) {
+                    if (d.section === 'body' && d.row.index === rows.length - 1) {
+                        d.cell.styles.fontStyle = 'bold';
+                        d.cell.styles.fillColor = [62, 75, 109];
+                        d.cell.styles.textColor = [255, 255, 255];
+                    }
+                },
+                // Re-draw header on continuation pages
+                didDrawPage: function () {
+                    drawHeader();
+                },
+                margin: { left: mL, right: mR, top: 35 }
+            });
+
+            // ── Fix page footers now that total pages is known ────────────────────
+            var totalPages = doc.internal.getNumberOfPages();
+            for (var p = 1; p <= totalPages; p++) {
+                doc.setPage(p);
+                drawFooter(p, totalPages);
+            }
+
+            doc.save('BranchWiseJoining_' + fromDate + '_' + toDate + '.pdf');
+        }
+
+        /* ── GO Button ──────────────────────────────── */
+        $('#btnGo').on('click', function () {
+            if (isLoadingBj) return;
+
+            var txtFrom = $('#fromdate').val();
+            var txtTo = $('#todate').val();
+            var isValid = true;
+
+            if (!txtFrom) { $('#spnfromdate').show(); isValid = false; } else { $('#spnfromdate').hide(); }
+
+            if (!txtTo) {
+                $('#spntodate').text('Please Select To Date').show();
+                isValid = false;
+            } else { $('#spntodate').hide(); }
+
+            if (txtFrom && txtTo && new Date(txtFrom) > new Date(txtTo)) {
+                $('#spntodate').text('To Date must be >= From Date').show();
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            isLoadingBj = true;
+            setBtnLoading('#btnGo', 'Go');
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/ReportAPI/GetBranchWiseJoiningCount")',
+                type: 'GET',
+                data: { Companyid: Compid, StratDate: txtFrom, EndDate: txtTo },
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    if (res.isSuccess) {
+                        currentRows = res.data || [];
+                        renderGrid(currentRows);
+                        $('#btnExportPdf').toggle(currentRows.length > 0);
+                        generatePDF(currentRows, txtFrom, txtTo);
+                    } else {
+                        currentRows = [];
+                        grid = null;
+                        $('#gridContainerBranchJoining').empty();
+                        $('#btnExportPdf').hide();
+                        showToast(res.responseMessage || 'No Data Found', 'info');
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error:', xhr);
+                    currentRows = [];
+                    grid = null;
+                    $('#gridContainerBranchJoining').empty();
+                    $('#btnExportPdf').hide();
+                    showToast((xhr.responseJSON && xhr.responseJSON.responseMessage) || 'An error occurred.', 'error');
+                },
+                complete: function () {
+                    isLoadingBj = false;
+                    setBtnNormal('#btnGo', 'Go');
+                }
+            });
+        });
+
+        /* ── Export PDF Button (re-export without re-querying) ───────── */
+        $('#btnExportPdf').on('click', function () {
+            if (!currentRows.length) return;
+            generatePDF(currentRows, $('#fromdate').val(), $('#todate').val());
+        });
+
+        /* ── Clear Button ───────────────────────────── */
+        $('#btnClear').on('click', function () {
+            $('#fromdate').val('');
+            $('#todate').val('');
+            $('#spnfromdate').hide();
+            $('#spntodate').hide();
+            currentRows = [];
+            grid = null;
+            $('#gridContainerBranchJoining').empty();
+            $('#btnExportPdf').hide();
+        });
+    })();
+</script>

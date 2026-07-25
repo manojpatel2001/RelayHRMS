@@ -1,0 +1,752 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Salary Payable Days Override";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<style>
+    .ovr-info-card {
+        display: none;
+        background: var(--pu-100);
+        border: 1px solid var(--pu-300);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+    }
+
+        .ovr-info-card .ovr-info-lbl {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--pu-700);
+            letter-spacing: .4px;
+            margin-bottom: 6px;
+        }
+
+        .ovr-info-card .ovr-info-val {
+            font-size: var(--fs-sm);
+            font-weight: 700;
+            color: var(--pu-900);
+        }
+
+    .ovr-calc-box {
+        display: none;
+        border-left: 4px solid var(--pu-600);
+        background: var(--pu-50);
+        border-radius: 4px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+    }
+
+        .ovr-calc-box .ovr-calc-title {
+            font-size: 11px;
+            color: var(--pu-700);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .ovr-calc-box .ovr-calc-result {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--pu-900);
+        }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Manage Salary Payable Days Override</h6>
+        <div class="d-flex gap-2">
+            <button id="btnExportExcel" type="button" class="btn btn-success btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bx bx-download"></i> Export to Excel
+            </button>
+            <button id="btnAddOverride" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bx bx-plus"></i> Add
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap align-items-end gap-3">
+            <div class="fg" style="flex:1 1 180px;min-width:160px;">
+                <label for="filterMonth">Month</label>
+                <select id="filterMonth">
+                    <option value="0">All Months</option>
+                </select>
+            </div>
+
+            <div class="fg" style="flex:1 1 140px;min-width:130px;">
+                <label for="filterYear">Year</label>
+                <select id="filterYear">
+                    <option value="0">All Years</option>
+                </select>
+            </div>
+
+            <div class="d-flex gap-2" style="flex-shrink:0;">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnApplyFilter">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Apply</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnClearFilter">Clear</button>
+            </div>
+        </div>
+
+        <div id="gridContainer" style="margin-top:14px;"></div>
+    </div>
+</div>
+
+</div>
+
+<!-- Add / Edit Modal -->
+<div class="modal fade" id="overrideModal" tabindex="-1" aria-labelledby="modalTitle"
+     aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="modalTitle">Add Salary Payable Days Override</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="overrideForm" autocomplete="off">
+                    <input type="hidden" id="overrideId" value="0">
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="employeeSelect">Search Employee</label>
+                                <select id="employeeSelect">
+                                    <option value="" selected disabled>Select Employee</option>
+                                </select>
+                            </div>
+                            <span class="field-validation-error" id="spnEmployeeOverride" style="display:none;">Please select an employee</span>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="fg fg-req">
+                                <label for="monthOverride">Month</label>
+                                <select id="monthOverride">
+                                    <option value="" selected disabled>Select Month</option>
+                                </select>
+                            </div>
+                            <span class="field-validation-error" id="spnMonthOverride" style="display:none;">Please select month</span>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="fg fg-req">
+                                <label for="overrideYear">Year</label>
+                                <select id="overrideYear">
+                                    <option value="" selected disabled>Select Year</option>
+                                </select>
+                            </div>
+                            <span class="field-validation-error" id="spnOverrideYear" style="display:none;">Please select year</span>
+                        </div>
+                    </div>
+
+                    <div class="ovr-info-card" id="employeeInfoCard">
+                        <div class="row" style="margin-bottom:2px;">
+                            <div class="col-4 ovr-info-lbl">EMPLOYEE</div>
+                            <div class="col-2 text-center ovr-info-lbl">CODE</div>
+                            <div class="col-3 text-center ovr-info-lbl">CURRENT DAYS</div>
+                            <div class="col-3 text-center ovr-info-lbl">MONTH DAYS</div>
+                        </div>
+                        <div class="row align-items-center">
+                            <div class="col-4 ovr-info-val" id="cardEmployeeName">—</div>
+                            <div class="col-2 text-center ovr-info-val" id="cardEmployeeCode">—</div>
+                            <div class="col-3 text-center ovr-info-val" id="cardCurrentDays">—</div>
+                            <div class="col-3 text-center ovr-info-val" id="cardMonthDays">—</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="adjustmentDelta">Adjustment Delta (&Delta;)</label>
+                                <input type="number" id="adjustmentDelta" placeholder="e.g. 2 or -1" step="0.01">
+                            </div>
+                            <span class="field-validation-error" id="spnadjustmentDelta" style="display:none;">Please enter a non-zero adjustment delta</span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="fg fg-req">
+                                <label for="overridePayableDays">Final Payable Days (Auto)</label>
+                                <input type="number" id="overridePayableDays" placeholder="Auto calculated" step="0.01" readonly>
+                            </div>
+                            <span class="field-validation-error" id="spnOverridePayableDays" style="display:none;">Please enter override payable days</span>
+                        </div>
+                    </div>
+
+                    <div class="ovr-calc-box" id="liveCalcBox">
+                        <div class="ovr-calc-title">Live Calculation</div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span style="font-size:13px;color:#444;">
+                                Current <strong id="calcCurrentDays" style="color:var(--pu-900);">0.0</strong>
+                                + Delta <strong id="calcDelta" style="color:var(--pu-600);">+0.0</strong> =
+                            </span>
+                            <span class="ovr-calc-result" id="calcResult">0.0 days</span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="fg">
+                                <label for="overrideReason">Reason / Notes</label>
+                                <textarea id="overrideReason" rows="3" maxlength="500" placeholder="e.g. HR Manual Correction - Extra days approved"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnSaveOverride">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save Override</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails  = JSON.parse(savedCompany);
+    const CompanyId     = companyDetails.CompanyId;
+    const EmployeeId    = localStorage.getItem('EmployeeId');
+    const Token         = localStorage.getItem("authToken");
+
+    const BASE_YEAR = 2025;
+
+    const months = [
+        { id: 1,  name: 'January'   }, { id: 2,  name: 'February'  }, { id: 3,  name: 'March'     },
+        { id: 4,  name: 'April'     }, { id: 5,  name: 'May'       }, { id: 6,  name: 'June'      },
+        { id: 7,  name: 'July'      }, { id: 8,  name: 'August'    }, { id: 9,  name: 'September' },
+        { id: 10, name: 'October'   }, { id: 11, name: 'November'  }, { id: 12, name: 'December'  }
+    ];
+
+    var allEmployees       = [];
+    var overrideDataCache  = {};
+    var selectedOverrideIds = {};
+    var selectedEmployee   = null;
+    var currentPayableDays = 0;
+    var overrideGrid       = null;
+    var isApplyingFilter   = false;
+    var isSavingOverride   = false;
+
+    function buildYearOptions(includeAllOption) {
+        var cur  = new Date().getFullYear();
+        var opts = '';
+        if (includeAllOption) opts += '<option value="0">All Years</option>';
+        for (var y = BASE_YEAR; y <= cur; y++) {
+            opts += '<option value="' + y + '">' + y + '</option>';
+        }
+        return opts;
+    }
+
+    function monthName(num) {
+        var m = months.find(function (x) { return x.id === num; });
+        return m ? m.name : num;
+    }
+
+    $(document).ready(function () {
+        BindFilterDropdowns();
+        BindMonthDropdown();
+        BindYearDropdown();
+        BindAllEmployees();
+        loadGrid();
+    });
+
+    function BindMonthDropdown() {
+        var $sel = $('#monthOverride').empty().append('<option value="" selected disabled>Select Month</option>');
+        months.forEach(function (m) {
+            $sel.append('<option value="' + m.id + '">' + m.name + '</option>');
+        });
+        $sel.val(new Date().getMonth() + 1);
+    }
+
+    function BindYearDropdown() {
+        var $sel = $('#overrideYear').empty().html(buildYearOptions(false));
+        $sel.val(new Date().getFullYear());
+    }
+
+    function BindFilterDropdowns() {
+        var $fm = $('#filterMonth');
+        months.forEach(function (m) {
+            $fm.append('<option value="' + m.id + '">' + m.name + '</option>');
+        });
+        $('#filterYear').html(buildYearOptions(true));
+    }
+
+    $('#btnApplyFilter').on('click', function () {
+        if (isApplyingFilter) return;
+        loadGrid();
+    });
+    $('#btnClearFilter').on('click', function () {
+        if (isApplyingFilter) return;
+        $('#filterMonth').val('0');
+        $('#filterYear').val('0');
+        loadGrid();
+    });
+
+    function loadGrid() {
+        isApplyingFilter = true;
+        setBtnLoading('#btnApplyFilter', 'Loading...');
+        if (overrideGrid) overrideGrid.showLoader();
+
+        var monthNum = $('#filterMonth').val() || 0;
+        var year     = $('#filterYear').val()  || 0;
+
+        $.ajax({
+            url:     '@baseUrl/SalaryPayableDaysOverrideAPI/GetSalaryPayableDaysOverride',
+            method:  'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data:    { MonthNumber: parseInt(monthNum), Year: parseInt(year) },
+            success: function (response) {
+                isApplyingFilter = false;
+                setBtnNormal('#btnApplyFilter', 'Apply');
+
+                var data = response.data || [];
+                selectedOverrideIds = {};
+                overrideDataCache = {};
+                data.forEach(function (row) { overrideDataCache[row.id] = row; });
+                renderGrid(data);
+            },
+            error: function () {
+                isApplyingFilter = false;
+                setBtnNormal('#btnApplyFilter', 'Apply');
+                if (overrideGrid) overrideGrid.hideLoader();
+                showToast('Unable to load Salary Payable Days Override records.', 'error');
+            }
+        });
+    }
+
+    function ovrToggleRow(id, checked) {
+        if (checked) selectedOverrideIds[id] = true;
+        else delete selectedOverrideIds[id];
+    }
+
+    function renderGrid(data) {
+        if (!overrideGrid) {
+            overrideGrid = WMSGrid.create({
+                container: 'gridContainer',
+                title: 'Override Records',
+                icon: 'bx-calendar-edit',
+                perPage: 10,
+                data: data,
+                extraButtons: [{
+                    id: 'ovrSelectAll',
+                    label: 'Select All',
+                    icon: 'bx-check-square',
+                    onClick: function (e, gridData) {
+                        var allSelected = gridData.length > 0 && gridData.every(function (r) { return !!selectedOverrideIds[r.id]; });
+                        if (allSelected) {
+                            gridData.forEach(function (r) { delete selectedOverrideIds[r.id]; });
+                        } else {
+                            gridData.forEach(function (r) { selectedOverrideIds[r.id] = true; });
+                        }
+                        overrideGrid.refresh();
+                    }
+                }],
+                columns: [
+                    {
+                        header: '', sortable: false, width: '40px', align: 'center',
+                        render: function (v, row) {
+                            var checked = !!selectedOverrideIds[row.id];
+                            return '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="ovrToggleRow(' + row.id + ', this.checked)">';
+                        }
+                    },
+                    { field: 'employeeCode', header: 'Employee Code', width: '110px' },
+                    { field: 'employeeName', header: 'Employee Name', width: '170px' },
+                    { field: 'branchName', header: 'Branch', width: '130px' },
+                    { field: 'monthNumber', header: 'Month', width: '100px', render: function (v) { return monthName(v); } },
+                    { field: 'year', header: 'Year', width: '70px', align: 'center' },
+                    { field: 'overridePayableDays', header: 'Override Payable Days', width: '150px', align: 'center' },
+                    {
+                        field: 'adjustmentDelta', header: 'Adjustment Delta', width: '130px', align: 'center',
+                        render: function (v) {
+                            var val   = parseFloat(v || 0);
+                            var color = val > 0 ? '#28a745' : (val < 0 ? '#dc3545' : '#6c757d');
+                            var pre   = val > 0 ? '+' : '';
+                            return '<span style="color:' + color + ';font-weight:600;">' + pre + val + '</span>';
+                        }
+                    },
+                    { field: 'reason', header: 'Reason', width: '220px' },
+                    { field: 'createdByName', header: 'Created By', width: '140px' },
+                    {
+                        header: 'Actions', sortable: false, stickyRight: true, width: '90px', align: 'center',
+                        render: function (v, row) {
+                            return '<button type="button" class="wg-btn wg-btn-outline" title="Edit" onclick="OverrideEditClick(' + row.id + ')"><i class="bx bx-edit"></i></button> ' +
+                                   '<button type="button" class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="OverrideDeleteClick(' + row.id + ')"><i class="bx bx-trash"></i></button>';
+                        }
+                    }
+                ]
+            });
+        } else {
+            overrideGrid.setData(data);
+            overrideGrid.hideLoader();
+        }
+    }
+
+    function BindAllEmployees() {
+        $.ajax({
+            url:     '@baseUrl/EmployeeMasterAPI/GetAllEmployee?companyId=' + CompanyId,
+            method:  'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (data) {
+                if (data.isSuccess) {
+                    allEmployees = data.data || [];
+                    var $sel = $('#employeeSelect');
+                    $sel.empty().append('<option value="" selected disabled>Select Employee</option>');
+                    allEmployees.forEach(function (emp) {
+                        $sel.append($('<option>', { value: emp.id, text: emp.employeeCode + ' - ' + emp.fullName }));
+                    });
+                }
+            }
+        });
+    }
+
+    $('#employeeSelect').on('change', function () {
+        var empId = $(this).val();
+        var emp = allEmployees.find(function (e) { return String(e.id) === String(empId); });
+        if (emp) selectEmployee(emp);
+    });
+
+    function selectEmployee(emp) {
+        selectedEmployee = emp;
+        $('#employeeSelect').val(emp.id);
+        $('#spnEmployeeOverride').hide();
+        $('#cardEmployeeName').text(emp.fullName     || '—');
+        $('#cardEmployeeCode').text(emp.employeeCode || '—');
+        $('#cardCurrentDays').html('<span style="color:#aaa;">Loading...</span>');
+        $('#cardMonthDays').html('<span style="color:#aaa;">Loading...</span>');
+        $('#employeeInfoCard').show();
+        fetchEmployeeSalaryDays(emp.id || '');
+    }
+
+    function fetchEmployeeSalaryDays(empId) {
+        var now      = new Date();
+        var year     = parseInt($('#overrideYear').val())  || now.getFullYear();
+        var monthNum = parseInt($('#monthOverride').val()) || (now.getMonth() + 1);
+        var lastDay  = new Date(year, monthNum, 0).getDate();
+        var pad      = function (n) { return String(n).padStart(2, '0'); };
+
+        $.ajax({
+            type: 'POST',
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetEmployeePayableDays")',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify({
+                StartDate:   year + '-' + pad(monthNum) + '-01',
+                EndDate:     year + '-' + pad(monthNum) + '-' + pad(lastDay),
+                EmployeeIds: String(empId)
+            }),
+            contentType: 'application/json',
+            success: function (response) {
+                if (response.isSuccess) {
+                    currentPayableDays = parseFloat(response.data.totalPayableDays) || 0;
+                    $('#cardCurrentDays').text(currentPayableDays);
+                    $('#cardMonthDays').text(response.data.totalMonthDays || '—');
+                } else {
+                    currentPayableDays = 0;
+                    $('#cardCurrentDays').text('N/A');
+                    $('#cardMonthDays').text('N/A');
+                }
+                updateLiveCalc();
+            },
+            error: function () {
+                currentPayableDays = 0;
+                $('#cardCurrentDays').text('Error');
+                $('#cardMonthDays').text('Error');
+                updateLiveCalc();
+            }
+        });
+    }
+
+    $('#monthOverride, #overrideYear').on('change', function () {
+        if (selectedEmployee) fetchEmployeeSalaryDays(selectedEmployee.id || '');
+    });
+
+    function getDeltaBounds() {
+        var monthDaysText = $('#cardMonthDays').text();
+        var monthDays = (monthDaysText === '—' || monthDaysText === 'N/A' || monthDaysText === 'Error') ? null : parseFloat(monthDaysText);
+        return {
+            max: monthDays !== null ? (monthDays - currentPayableDays) : null,
+            min: -currentPayableDays
+        };
+    }
+
+    function updateLiveCalc() {
+        var delta     = parseFloat($('#adjustmentDelta').val()) || 0;
+        var finalDays = currentPayableDays + delta;
+        $('#calcCurrentDays').text(currentPayableDays.toFixed(1));
+        $('#calcDelta').text((delta >= 0 ? '+' : '') + delta.toFixed(1));
+        $('#calcResult').text(finalDays.toFixed(1) + ' days');
+        $('#overridePayableDays').val(finalDays.toFixed(2));
+        $('#spnOverridePayableDays').hide();
+        if (selectedEmployee) $('#liveCalcBox').show();
+    }
+
+    $('#adjustmentDelta').on('input', function () {
+        var delta   = parseFloat($(this).val());
+        var bounds  = getDeltaBounds();
+
+        if (!isNaN(delta) && delta !== 0 && bounds.max !== null && (delta > bounds.max || delta < bounds.min)) {
+            $('#spnadjustmentDelta')
+                .text('Delta must keep final payable days between 0 and ' + $('#cardMonthDays').text() + '.')
+                .show();
+        } else {
+            $('#spnadjustmentDelta').hide();
+        }
+        updateLiveCalc();
+    });
+
+    $('#btnAddOverride').on('click', function () {
+        resetForm();
+        $('#modalTitle').text('Add Salary Payable Days Override');
+        $('#overrideModal').modal('show');
+    });
+
+    function OverrideEditClick(id) {
+        var data = overrideDataCache[id];
+        if (data) EditOverride(data);
+    }
+
+    function OverrideDeleteClick(id) {
+        var data = overrideDataCache[id];
+        if (data) DeleteOverride(data);
+    }
+
+    $('#btnSaveOverride').on('click', function () {
+        if (isSavingOverride) return;
+
+        var id        = parseInt($('#overrideId').val());
+        var isUpdate  = id > 0;
+        var empId     = $('#employeeSelect').val();
+        var month     = $('#monthOverride').val();
+        var year      = $('#overrideYear').val();
+        var delta     = parseFloat($('#adjustmentDelta').val());
+        var payableDays = $('#overridePayableDays').val();
+        var reason    = $('#overrideReason').val();
+        var isValid   = true;
+
+        if (!empId) { $('#spnEmployeeOverride').show(); isValid = false; } else { $('#spnEmployeeOverride').hide(); }
+        if (!month) { $('#spnMonthOverride').show(); isValid = false; } else { $('#spnMonthOverride').hide(); }
+        if (!year)  { $('#spnOverrideYear').show();  isValid = false; } else { $('#spnOverrideYear').hide(); }
+
+        if (isNaN(delta) || delta === 0) {
+            $('#spnadjustmentDelta').text('Please enter a non-zero adjustment delta').show();
+            isValid = false;
+        } else {
+            var bounds = getDeltaBounds();
+            if (bounds.max !== null && (delta > bounds.max || delta < bounds.min)) {
+                $('#spnadjustmentDelta').text('Delta must keep final payable days between 0 and ' + $('#cardMonthDays').text() + '.').show();
+                isValid = false;
+            } else {
+                $('#spnadjustmentDelta').hide();
+            }
+        }
+
+        if (!payableDays) { $('#spnOverridePayableDays').show(); isValid = false; } else { $('#spnOverridePayableDays').hide(); }
+
+        if (!isValid) return;
+
+        var empCode = (allEmployees.find(function (e) { return String(e.id) === String(empId); }) || {}).employeeCode || '';
+
+        var payload = {
+            Id:                  id,
+            EmployeeId:          parseInt(empId),
+            EmployeeCode:        empCode,
+            MonthNumber:         parseInt(month),
+            Year:                parseInt(year),
+            OverridePayableDays: parseFloat(payableDays),
+            AdjustmentDelta:     delta,
+            Reason:              (reason || '').trim() || null,
+            CreatedBy:           parseInt(EmployeeId),
+            UpdatedBy:           parseInt(EmployeeId)
+        };
+
+        isSavingOverride = true;
+        setBtnLoading('#btnSaveOverride', isUpdate ? 'Updating...' : 'Saving...');
+
+        $.ajax({
+            url:         isUpdate ? '@baseUrl/SalaryPayableDaysOverrideAPI/Update'
+                                  : '@baseUrl/SalaryPayableDaysOverrideAPI/Create',
+            type:        isUpdate ? 'PUT' : 'POST',
+            contentType: 'application/json',
+            headers:     { 'Authorization': 'Bearer ' + Token },
+            data:        JSON.stringify(payload),
+            success: function (response) {
+                isSavingOverride = false;
+                setBtnNormal('#btnSaveOverride', isUpdate ? 'Update' : 'Save Override');
+                if (response.isSuccess) {
+                    showToast(response.responseMessage || 'Saved successfully.', 'success');
+                    $('#overrideModal').modal('hide');
+                    loadGrid();
+                } else {
+                    showToast(response.responseMessage || 'Unable to save record.', 'error');
+                }
+            },
+            error: function () {
+                isSavingOverride = false;
+                setBtnNormal('#btnSaveOverride', isUpdate ? 'Update' : 'Save Override');
+                showToast('Unable to save record.', 'error');
+            }
+        });
+    });
+
+    function EditOverride(data) {
+        resetForm();
+        $('#modalTitle').text('Update Salary Payable Days Override');
+        setBtnNormal('#btnSaveOverride', 'Update');
+        $('#overrideId').val(data.id || 0);
+
+        var emp = allEmployees.find(function (e) { return String(e.id) === String(data.employeeId); });
+        if (emp) {
+            selectEmployee(emp);
+        } else {
+            $('#cardEmployeeName').text(data.employeeName || '—');
+            $('#cardEmployeeCode').text(data.employeeCode || '—');
+            $('#employeeInfoCard').show();
+        }
+
+        $('#monthOverride').val(data.monthNumber || '');
+        $('#overrideYear').val(data.year || new Date().getFullYear());
+        $('#adjustmentDelta').val(data.adjustmentDelta ?? '');
+        $('#overridePayableDays').val(data.overridePayableDays ?? '');
+        $('#overrideReason').val(data.reason || '');
+        updateLiveCalc();
+
+        $('#overrideModal').modal('show');
+    }
+
+    function DeleteOverride(data) {
+        var id = data.id;
+        wmsConfirm('Are you sure you want to delete this override record?', function () {
+            $.ajax({
+                url:         '@baseUrl/SalaryPayableDaysOverrideAPI/Delete',
+                type:        'DELETE',
+                contentType: 'application/json',
+                headers:     { 'Authorization': 'Bearer ' + Token },
+                data:        JSON.stringify({ Id: id, DeletedBy: parseInt(EmployeeId) }),
+                success: function (response) {
+                    if (response.isSuccess) {
+                        showToast(response.responseMessage || 'Deleted successfully.', 'success');
+                        loadGrid();
+                    } else {
+                        showToast(response.responseMessage || 'Unable to delete record.', 'error');
+                    }
+                },
+                error: function () { showToast('Unable to delete record.', 'error'); }
+            });
+        }, { title: 'Delete Override Record', confirmText: 'Delete' });
+    }
+
+    function resetForm() {
+        $('#overrideId').val('0');
+        $('#employeeSelect').val('');
+        $('#employeeInfoCard').hide();
+        $('#liveCalcBox').hide();
+        selectedEmployee   = null;
+        currentPayableDays = 0;
+        BindMonthDropdown();
+        BindYearDropdown();
+        $('#adjustmentDelta').val('');
+        $('#overridePayableDays').val('');
+        $('#overrideReason').val('');
+        $('#spnEmployeeOverride, #spnMonthOverride, #spnOverrideYear, #spnOverridePayableDays, #spnadjustmentDelta').hide();
+        setBtnNormal('#btnSaveOverride', 'Save Override');
+        isSavingOverride = false;
+    }
+
+    // ── Export to Excel (ExcelJS — styled, no CreatedOn) ──
+    $('#btnExportExcel').on('click', async function () {
+        var selectedIds = Object.keys(selectedOverrideIds).map(Number);
+        if (selectedIds.length === 0) {
+            showToast('Please select at least one row to export.', 'warn');
+            return;
+        }
+        var selectedRows = selectedIds.map(function (id) { return overrideDataCache[id]; }).filter(Boolean);
+
+        var monthMap = {};
+        months.forEach(function (m) { monthMap[m.id] = m.name; });
+
+        var cols = [
+            { header: 'Employee Code',         key: 'employeeCode',        width: 16 },
+            { header: 'Employee Name',         key: 'employeeName',        width: 30 },
+            { header: 'Branch',                key: 'branchName',          width: 14 },
+            { header: 'Month',                 key: '_month',              width: 13 },
+            { header: 'Year',                  key: 'year',                width:  7 },
+            { header: 'Override Payable Days', key: 'overridePayableDays', width: 22 },
+            { header: 'Adjustment Delta',      key: 'adjustmentDelta',     width: 18 },
+            { header: 'Reason',                key: 'reason',              width: 36 },
+            { header: 'Created By',            key: 'createdByName',       width: 20 }
+        ];
+
+        var workbook  = new ExcelJS.Workbook();
+        var worksheet = workbook.addWorksheet('Salary Override');
+
+        worksheet.columns = cols.map(function (c) {
+            return { header: c.header, key: c.key, width: c.width };
+        });
+
+        worksheet.getRow(1).eachCell(function (cell) {
+            cell.font      = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D4159' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.border    = {
+                top:    { style: 'thin', color: { argb: 'FF1A2E40' } },
+                left:   { style: 'thin', color: { argb: 'FF1A2E40' } },
+                bottom: { style: 'thin', color: { argb: 'FF1A2E40' } },
+                right:  { style: 'thin', color: { argb: 'FF1A2E40' } }
+            };
+        });
+        worksheet.getRow(1).height = 20;
+
+        selectedRows.forEach(function (row, idx) {
+            var delta   = parseFloat(row.adjustmentDelta || 0);
+            var rowData = {
+                employeeCode:        row.employeeCode        || '',
+                employeeName:        row.employeeName        || '',
+                branchName:          row.branchName          || '',
+                _month:              monthMap[row.monthNumber] || row.monthNumber || '',
+                year:                row.year                || '',
+                overridePayableDays: row.overridePayableDays != null ? row.overridePayableDays : '',
+                adjustmentDelta:     (delta > 0 ? '+' : '') + delta,
+                reason:              row.reason              || '',
+                createdByName:       row.createdByName       || ''
+            };
+
+            var excelRow = worksheet.addRow(rowData);
+            excelRow.height = 16;
+
+            var bg = (idx % 2 === 0) ? 'FFFFFFFF' : 'FFF2F5F8';
+            excelRow.eachCell(function (cell) {
+                cell.font      = { name: 'Calibri', size: 10 };
+                cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+                cell.alignment = { vertical: 'middle' };
+                cell.border    = {
+                    top:    { style: 'thin', color: { argb: 'FFD9DEE3' } },
+                    left:   { style: 'thin', color: { argb: 'FFD9DEE3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD9DEE3' } },
+                    right:  { style: 'thin', color: { argb: 'FFD9DEE3' } }
+                };
+            });
+        });
+
+        var today   = new Date();
+        var dateStr = today.getFullYear() + '-' +
+                      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                      String(today.getDate()).padStart(2, '0');
+
+        var buffer = await workbook.xlsx.writeBuffer();
+        saveAs(
+            new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+            'SalaryPayableDaysOverride_' + dateStr + '.xlsx'
+        );
+    });
+</script>

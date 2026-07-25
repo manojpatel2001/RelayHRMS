@@ -1,317 +1,552 @@
-﻿@{
-    ViewData["Title"] = "Employee Panel";
-    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
-    string baseUrl = ViewBag.BaseUrl;
+@{
+    ViewData["Title"] = "Admin Leave Approval";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
     string apiBase = ViewBag.BaseUrlAPI;
 }
 
-<title>Search Panel</title>
-<link href="~/commoncss.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-<!-- jQuery + Bootstrap + SweetAlert -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<div class="wms-form-page">
 
-
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #ffffff;
-    }
-
-    .form-section {
-        padding: 15px;
-        border: 1px solid #ccc;
-    }
-
-    .btn-custom {
-        background-color: #3e4b6d;
-        color: white;
-        font-weight: 600;
-        padding: 4px 12px;
-        border: none;
-        border-radius: 4px;
-    }
-
-        .btn-custom:hover {
-            background-color: #2c3a57;
-        }
-
-    .search-panel-container {
-        background-color: #3e4b6d;
-        padding: 6px 15px;
-        border-radius: 6px;
-        margin-bottom: 15px;
-    }
-
-    .search-panel-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .search-heading {
-        font-size: 15px;
-        color: white;
-        margin: 0;
-    }
-
-    .form-label {
-        font-size: 13px;
-        font-weight: 500;
-        margin-bottom: 4px;
-    }
-
-    .form-control-sm, .form-select-sm {
-        height: calc(1.5em + .5rem + 2px);
-        font-size: 0.875rem;
-        padding: .25rem .5rem;
-    }
-
-    .text-center-cell {
-        text-align: center !important;
-    }
-
-        /* Also center any inner content */
-        .text-center-cell > div {
-            text-align: center !important;
-        }
-</style>
-
-<div class="search-panel-wrapper">
-    <div class="search-panel-container">
-        <div class="search-panel-row">
-            <div class="search-heading">Search Panel</div>
-        </div>
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0">Admin Leave Approval</h6>
     </div>
-</div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap align-items-end gap-3">
+            <div class="fg" style="flex:1 1 170px;min-width:150px;">
+                <label for="Leavetypeid">Search By</label>
+                <select id="Leavetypeid">
+                    <option value="0">-- Select --</option>
+                    <option value="1">Employee Code</option>
+                    <option value="2">Employee Name</option>
+                    <option value="3">Leave Name</option>
+                </select>
+            </div>
 
-<div class="form-section">
-    <div class="row justify-content-center mb-3">
-        <div class="col-md-4 d-flex align-items-center">
-            <label for="Leavetypeid" class="form-label me-2">Search By:</label>
-            <select class="form-control form-control-sm" id="Leavetypeid">
-                <option value="0">-- Select --</option>
-                <option value="1">Employee Code</option>
-                <option value="2">Employee Name</option>
-                <option value="3">Leave Name</option>
-            </select>
-        </div>
-        <div class="col-md-4 d-flex align-items-center">
-            <label for="input1" class="form-label me-2">Search For:</label>
-            <input type="text" class="form-control form-control-sm" id="input1" disabled />
-        </div>
-    </div>
+            <div class="fg" style="flex:1 1 200px;min-width:180px;">
+                <label for="input1">Search For</label>
+                <input type="text" id="input1" placeholder="Search text" disabled>
+                <span class="field-validation-error" id="spnSearchFor" style="display:none;">Please enter search text</span>
+            </div>
 
-    <div class="row justify-content-center mb-3">
-        <div class="col-md-4 d-flex align-items-center">
-            <label for="branchid" class="form-label me-2">By Branch:</label>
-            <select class="form-control form-control-sm" id="branchid">
-                <option value="0">-- Select --</option>
-            </select>
-        </div>
-        <div class="col-md-4 d-flex align-items-center gap-2">
-            <button type="button" class="search-panel-container  search-heading btn-sm form-label" id="goButtonId">GO</button>
-            <button type="button" class="search-panel-container  search-heading btn-sm form-label" id="clearButtonId">Clear</button>
-        </div>
-    </div>
+            <div class="fg" style="flex:1 1 180px;min-width:160px;">
+                <label for="branchid">By Branch</label>
+                <select id="branchid">
+                    <option value="0">All Branches</option>
+                </select>
+            </div>
 
-    <div class="search-panel-wrapper">
-        <div class="search-panel-container">
-            <div class="search-panel-row">
-                <div class="search-heading">Admin Leave Approval</div>
+            <div style="flex-shrink:0;">
+                <div class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);">Status</div>
+                <div class="d-flex gap-3">
+                    <div class="form-check form-check-inline m-0">
+                        <input class="form-check-input" type="radio" name="leaveStatus" id="radioPending" value="Pending" checked>
+                        <label class="form-check-label" for="radioPending">Pending</label>
+                    </div>
+                    <div class="form-check form-check-inline m-0">
+                        <input class="form-check-input" type="radio" name="leaveStatus" id="radioApproved" value="Approved">
+                        <label class="form-check-label" for="radioApproved">Approved</label>
+                    </div>
+                    <div class="form-check form-check-inline m-0">
+                        <input class="form-check-input" type="radio" name="leaveStatus" id="radioRejected" value="Rejected">
+                        <label class="form-check-label" for="radioRejected">Rejected</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2" style="flex-shrink:0;">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="goButtonId">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Go</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="clearButtonId">Clear</button>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="container mt-3">
-        <div class="d-flex justify-content-end mb-2" id="actionButtons" style="display: none;">
-            <button id="btnDelete" class="btn-custom me-2 form-label" value="Rejected">Reject</button>
+<div class="card" id="recordDetails" style="display:none;">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Leave Applications</h6>
+        <div class="d-flex gap-2">
+            <div id="btnApproveWrap" style="display:none;">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnApprove">
+                    <i class="bx bx-check"></i>
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Approve</span>
+                </button>
+            </div>
+            <div id="btnRejectWrap" style="display:none;">
+                <button type="button" class="btn btn-danger btn-sm d-inline-flex align-items-center gap-1" id="btnReject">
+                    <i class="bx bx-x"></i>
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Reject</span>
+                </button>
+            </div>
+            <div id="btnDeleteWrap" style="display:none;">
+                <button type="button" class="btn btn-danger btn-sm d-inline-flex align-items-center gap-1" id="btnDelete">
+                    <i class="bx bx-trash"></i>
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Delete</span>
+                </button>
+            </div>
         </div>
-
-        <div id="attendanceGrid">Loading...</div>
-
-       
-
-        <div id="recordSummary" class="text-center mt-2 text-muted"></div>
+    </div>
+    <div class="card-body">
+        <div id="attendanceGrid"></div>
     </div>
 </div>
 
+</div>
 
 <script>
-    const isShowAll = false;
-    let currentPage = 1;
-    const pageSize = 10;
-    let allData = [];
-    let selectedKeys = [];
+    /* ── Globals ─────────────────────────────────── */
+    var allData          = [];
+    var leaveDataCache    = {};
+    var selectedLeaveIds  = {};
+    var leaveGrid         = null;
+    var isLoadingLeave    = false;
+    var isProcessingLeave = false;
 
-      const Empid = parseInt(localStorage.getItem("EmployeeId"));
-        const savedCompany = localStorage.getItem('selectedCompany');
-    const companyDetails = JSON.parse(savedCompany || '{}');
-    const Compid = parseInt(companyDetails.CompanyId);
+    var Empid          = parseInt(localStorage.getItem("EmployeeId"));
+    var savedCompany   = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany || '{}');
+    var Compid         = parseInt(companyDetails.CompanyId);
+    var Token          = localStorage.getItem("authToken");
 
+    function getSelectedStatus() {
+        return $('input[name="leaveStatus"]:checked').val() || 'Pending';
+    }
+
+    function fmtDate(v) {
+        if (!v) return '-';
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    }
 
     $(document).ready(function () {
-        loadLeaveApplications();
         GetBranch();
-
-        $('#btnDelete').click(function () {
-            const status = $(this).val();
-            updateLeaveStatus(status);
-        });
+        loadLeaveApplications();
 
         $('#goButtonId').click(function () {
+            if (isLoadingLeave) return;
+            if (!validateSearchForm()) return;
             loadLeaveApplications();
         });
 
         $('#clearButtonId').click(function () {
+            if (isLoadingLeave) return;
             $('#Leavetypeid').val('0');
-            $('#input1').val('').prop('disabled', true);
+            $('#input1').val('').prop('disabled', true).attr('placeholder', 'Search text');
+            $('#spnSearchFor').hide();
             $('#branchid').val('0');
-            $('#attendanceGrid').html('');
-            $('#paginationControls').hide();
-            $('#recordSummary').text('');
+            $('#radioPending').prop('checked', true);
+            allData = [];
+            leaveDataCache = {};
+            selectedLeaveIds = {};
             loadLeaveApplications();
         });
 
         $('#Leavetypeid').change(function () {
-            $('#input1').prop('disabled', $(this).val() === '0');
+            var val = $(this).val();
+            var placeholders = { '1': 'Enter Employee Code', '2': 'Enter Employee Name', '3': 'Enter Leave Name' };
+            $('#input1').prop('disabled', val === '0').attr('placeholder', placeholders[val] || 'Search text');
+            if (val === '0') { $('#input1').val(''); $('#spnSearchFor').hide(); }
         });
+
+        $('#input1').on('input', function () { $('#spnSearchFor').hide(); });
+
+        $('input[name="leaveStatus"]').change(function () {
+            selectedLeaveIds = {};
+            loadLeaveApplications();
+        });
+
+        $('#btnApprove').click(function () { updateLeaveStatus('Approved'); });
+        $('#btnReject').click(function ()  { updateLeaveStatus('Rejected'); });
+        $('#btnDelete').click(function ()  { deleteLeaveApplications(); });
     });
 
-    function loadLeaveApplications() {
-       if ($("#attendanceGrid").data("dxDataGrid")) {
-            $("#attendanceGrid").dxDataGrid("dispose");
-            $("#attendanceGrid").empty(); // Optional: clear DOM
+    function validateSearchForm() {
+        var searchTypeValue = $('#Leavetypeid').val();
+        var searchFor = $('#input1').val().trim();
+        if (searchTypeValue !== '0' && !searchFor) {
+            $('#spnSearchFor').show();
+            return false;
         }
-        const searchTypeValue = $('#Leavetypeid').val();
-        const searchFor = $('#input1').val().trim();
-        const branchId = $('#branchid').val();
-        let searchTypeText = '';
+        $('#spnSearchFor').hide();
+        return true;
+    }
 
-        if (searchTypeValue == '1') searchTypeText = 'Employee Code';
+    /* ── Load Leave Applications ─────────────────── */
+    function loadLeaveApplications() {
+        if (isLoadingLeave) return;
+        isLoadingLeave = true;
+        setBtnLoading('#goButtonId', 'Loading...');
+        if (leaveGrid) leaveGrid.showLoader();
+
+        selectedLeaveIds = {};
+
+        var searchTypeValue = $('#Leavetypeid').val();
+        var searchFor        = $('#input1').val().trim();
+        var branchId          = $('#branchid').val();
+        var selectedStatus    = getSelectedStatus();
+
+        var searchTypeText = '';
+        if      (searchTypeValue == '1') searchTypeText = 'Employee Code';
         else if (searchTypeValue == '2') searchTypeText = 'Employee Name';
         else if (searchTypeValue == '3') searchTypeText = 'Leave Name';
 
-        const payload = {
-            SearchType: searchTypeText,
-            SearchFor: searchFor,
-            BranchId: branchId,
-             CompId:Compid
+        var payload = {
+            SearchType : searchTypeText,
+            SearchFor  : searchFor,
+            BranchId   : branchId,
+            CompId     : Compid,
+            Status     : selectedStatus
         };
 
-        $('#attendanceGrid').html('<div class="text-center">Loading...</div>');
-
         $.ajax({
-            url: '@(apiBase)/LeaveApplication/GetLeaveApplicationsforApproveAdmin',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(payload),
-            success: function (data) {
+            url         : '@(apiBase)/LeaveApplication/GetLeaveApplicationsforApproveAdmin',
+            type        : 'POST',
+            contentType : 'application/json',
+            headers     : { 'Authorization': 'Bearer ' + Token },
+            data        : JSON.stringify(payload),
+            success : function (data) {
+                isLoadingLeave = false;
+                setBtnNormal('#goButtonId', 'Go');
+
                 if (data.isSuccess && data.data && data.data.length > 0) {
                     allData = data.data;
-                    currentPage = 1;
-                   renderTable(allData);
-                    $('#paginationControls').show();
+                    leaveDataCache = {};
+                    allData.forEach(function (row) { leaveDataCache[row.leaveApplicationid] = row; });
+                    renderGrid(allData);
+                    $('#recordDetails').show();
                 } else {
-                    $('#attendanceGrid').html('<div class="text-center text-muted">No records found.</div>');
-                    $('#recordSummary').text('');
-                    $('#paginationControls').hide();
+                    allData = [];
+                    leaveDataCache = {};
+                    renderGrid([]);
+                    $('#recordDetails').show();
                 }
             },
-            error: function () {
-                $('#attendanceGrid').html('<div class="text-center text-danger">Error fetching data.</div>');
-                $('#recordSummary').text('');
-                $('#paginationControls').hide();
+            error : function () {
+                isLoadingLeave = false;
+                setBtnNormal('#goButtonId', 'Go');
+                if (leaveGrid) leaveGrid.hideLoader();
+                showToast('Error fetching leave applications.', 'error');
             }
         });
     }
 
-   
-    function renderTable(data) {
-        debugger;
-        console.log("data",data);
-        $("#attendanceGrid").dxDataGrid({
-            dataSource: data,
-            keyExpr: "leaveApplicationId",
-            showBorders: true,
-             columnAutoWidth: false,
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "always"
-            },
-            onSelectionChanged: function (e) {
-                selectedKeys = e.selectedRowKeys;
-                $("#actionButtons").toggle(selectedKeys.length > 0);
-            },
-            columns: [
-                { dataField: "leaveApplicationId", caption: "ApplicationId", width: 80,cssClass: "text-center-cell" },
-                { dataField: "leaveTypeName", caption: "Leave Type",cssClass: "text-center-cell" },
-                { dataField: "employeeName", caption: "Employee Name" ,cssClass: "text-center-cell"},
-                { dataField: "employeeCode", caption: "Employee Code" ,cssClass: "text-center-cell" },
-                { dataField: "fromDate", caption: "From Date", dataType: "date", format: "dd/MM/yyyy",cssClass: "text-center-cell"},
-                { dataField: "todate", caption: "To Date", dataType: "date", format: "dd/MM/yyyy",cssClass: "text-center-cell" },
-                { dataField: "no_Of_Date", caption: "Period",cssClass: "text-center-cell" },
-                { dataField: "reason", caption: "Reason" ,cssClass: "text-center-cell"},
-                { dataField: "applicationType", caption: "Application Type" ,cssClass: "text-center-cell"},
-                { dataField: "reportingPersonName", caption: "Reporting Person",cssClass: "text-center-cell" },
-                  { dataField: "leaveStatus", caption: "Leave Status",cssClass: "text-center-cell" },
-            ]
-        });
+    function leaveToggleRow(id, checked) {
+        if (checked) selectedLeaveIds[id] = true;
+        else delete selectedLeaveIds[id];
     }
 
-   
+    /* ── Render Grid ──────────────────────────────── */
+    function renderGrid(data) {
+        var selectedStatus = getSelectedStatus();
 
+        if (selectedStatus === 'Pending') {
+            $('#btnApproveWrap, #btnRejectWrap').show();
+            $('#btnDeleteWrap').hide();
+        } else {
+            $('#btnApproveWrap, #btnRejectWrap').hide();
+            $('#btnDeleteWrap').show();
+        }
+
+        var columns = [
+            {
+                header: '', sortable: false, width: '40px', align: 'center',
+                render: function (v, row) {
+                    var checked = !!selectedLeaveIds[row.leaveApplicationid];
+                    return '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="leaveToggleRow(' + row.leaveApplicationid + ', this.checked)">';
+                }
+            },
+            { field: 'leaveTypeName', header: 'Leave Type', width: '120px' },
+            { field: 'employeeName', header: 'Employee Name', width: '160px' },
+            { field: 'employeeCode', header: 'Employee Code', width: '120px' },
+            { field: 'branchName', header: 'Branch Name', width: '120px' },
+            { field: 'fromDate', header: 'From Date', width: '110px', align: 'center', render: function (v) { return fmtDate(v); } },
+            { field: 'todate', header: 'To Date', width: '110px', align: 'center', render: function (v) { return fmtDate(v); } },
+            { field: 'no_Of_Date', header: 'Period', width: '80px', align: 'center' },
+            { field: 'reason', header: 'Reason', width: '180px' },
+            { field: 'applicationType', header: 'Application Type', width: '140px' },
+            { field: 'reportingPersonName', header: 'Reporting Person', width: '150px' },
+            { field: 'leaveStatus', header: 'Leave Status', width: '110px', align: 'center' },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '100px', align: 'center',
+                render: function (v, row) {
+                    if (getSelectedStatus() === 'Pending') {
+                        return '<button type="button" class="wg-btn wg-btn-outline" title="Approve" onclick="RowApprove(' + row.leaveApplicationid + ')"><i class="bx bx-check"></i></button> ' +
+                               '<button type="button" class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Reject" onclick="RowReject(' + row.leaveApplicationid + ')"><i class="bx bx-x"></i></button>';
+                    }
+                    return '<button type="button" class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="RowDelete(' + row.leaveApplicationid + ')"><i class="bx bx-trash"></i></button>';
+                }
+            }
+        ];
+
+        if (!leaveGrid) {
+            leaveGrid = WMSGrid.create({
+                container: 'attendanceGrid',
+                title: 'Leave Applications',
+                icon: 'bx-calendar-check',
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false },
+                data: data,
+                extraButtons: [
+                    {
+                        id: 'leaveSelectAll',
+                        label: 'Select All',
+                        icon: 'bx-check-square',
+                        onClick: function (e, gridData) {
+                            var allSelected = gridData.length > 0 && gridData.every(function (r) { return !!selectedLeaveIds[r.leaveApplicationid]; });
+                            if (allSelected) {
+                                gridData.forEach(function (r) { delete selectedLeaveIds[r.leaveApplicationid]; });
+                            } else {
+                                gridData.forEach(function (r) { selectedLeaveIds[r.leaveApplicationid] = true; });
+                            }
+                            leaveGrid.refresh();
+                        }
+                    },
+                    {
+                        id: 'leaveExportExcel',
+                        label: 'Export to Excel',
+                        icon: 'bx-download',
+                        onClick: function (e, gridData) { exportLeaveToExcel(gridData); }
+                    }
+                ],
+                columns: columns
+            });
+        } else {
+            leaveGrid.setData(data);
+            leaveGrid.hideLoader();
+            // Actions column depends on the current status filter, which can change between loads
+            leaveGrid.getColumns().length = 0;
+            columns.forEach(function (c) { leaveGrid.getColumns().push(c); });
+            leaveGrid.reset();
+            leaveGrid.setData(data);
+        }
+    }
+
+    /* ── Load Branches ───────────────────────────── */
     function GetBranch() {
         $.ajax({
-            url: '@(apiBase)/BranchAPI/GetAllBranch',
-            type: 'GET',
-            contentType: 'application/json',
-            success: function (data) {
+            url         : '@(apiBase)/BranchAPI/GetAllBranchesListByCompanyId/' + Compid,
+            type        : 'GET',
+            headers     : { 'Authorization': 'Bearer ' + Token },
+            contentType : 'application/json',
+            success     : function (data) {
                 if (data.isSuccess && data.data && data.data.length > 0) {
-                    const branches = data.data;
-                    const $branchDropdown = $('#branchid');
-                    $branchDropdown.empty().append('<option value="0">-- Select --</option>');
-                    branches.forEach(branch => {
-                        $branchDropdown.append(`<option value="${branch.branchId}">${branch.branchName}</option>`);
+                    var $dd = $('#branchid');
+                    $dd.empty().append('<option value="0">All Branches</option>');
+                    data.data.forEach(function (b) {
+                        $dd.append('<option value="' + b.branchId + '">' + b.branchName + '</option>');
                     });
                 }
             },
-            error: function () {
-                console.error("Error loading branch data.");
+            error : function () {
+                showToast('Error loading branch list.', 'error');
             }
         });
     }
 
-    function updateLeaveStatus(status) {
-        if (selectedKeys.length === 0) {
-            Swal.fire('Warning', 'Please select at least one application.', 'warning');
+    /* ── Approve / Reject ────────────────────────── */
+    function RowApprove(id) { updateLeaveStatus('Approved', [id]); }
+    function RowReject(id)  { updateLeaveStatus('Rejected', [id]); }
+
+    function updateLeaveStatus(status, ids) {
+        if (isProcessingLeave) return;
+
+        var targetIds = ids || Object.keys(selectedLeaveIds).map(Number);
+        if (targetIds.length === 0) {
+            showToast('Please select at least one application.', 'warn');
             return;
         }
 
-        const payload = {
-            Ids: selectedKeys,
-            Status: status
+        var btnSel = status === 'Approved' ? '#btnApprove' : '#btnReject';
+        isProcessingLeave = true;
+        setBtnLoading(btnSel, status === 'Approved' ? 'Approving...' : 'Rejecting...');
+
+        var payload = {
+            Ids        : targetIds,
+            Status     : status,
+            EmployeeId : Empid
         };
 
         $.ajax({
-            url: '@(apiBase)/LeaveApplication/LeaveapplicationApproveorReject',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(payload),
-            success: function (res) {
-
+            url         : '@(apiBase)/LeaveApplication/LeaveapplicationApproveorReject',
+            type        : 'POST',
+            contentType : 'application/json',
+            headers     : { 'Authorization': 'Bearer ' + Token },
+            data        : JSON.stringify(payload),
+            success     : function (res) {
+                isProcessingLeave = false;
+                setBtnNormal(btnSel, status === 'Approved' ? 'Approve' : 'Reject');
                 if (res.isSuccess) {
-                    Swal.fire('Success', res.message, 'success');
-                     selectedKeys = [];
-                   $("#actionButtons").hide();
+                    showToast(res.message || (status + ' successfully.'), 'success');
+                    selectedLeaveIds = {};
                     loadLeaveApplications();
                 } else {
-                    Swal.fire('Error', res.message || 'Something went wrong.', 'error');
+                    showToast(res.message || 'Something went wrong.', 'error');
                 }
             },
-            error: function () {
-                Swal.fire('Error', 'Failed to update status.', 'error');
+            error : function () {
+                isProcessingLeave = false;
+                setBtnNormal(btnSel, status === 'Approved' ? 'Approve' : 'Reject');
+                showToast('Failed to update status.', 'error');
             }
         });
+    }
+
+    /* ── Delete Leave Applications ───────────────── */
+    function RowDelete(id) { deleteLeaveApplications([id]); }
+
+    function deleteLeaveApplications(ids) {
+        if (isProcessingLeave) return;
+
+        var targetIds = ids || Object.keys(selectedLeaveIds).map(Number);
+        if (targetIds.length === 0) {
+            showToast('Please select at least one application to delete.', 'warn');
+            return;
+        }
+
+        var selectedRows = targetIds.map(function (id) { return leaveDataCache[id]; }).filter(Boolean);
+        var approvedRows = selectedRows.filter(function (row) { return row.leaveStatus === 'Approved'; });
+
+        if (approvedRows.length > 0) {
+            showToast('Approved applications cannot be deleted.', 'warn');
+            return;
+        }
+
+        wmsConfirm(targetIds.length + ' application(s) will be deleted permanently. Are you sure?', function () {
+            isProcessingLeave = true;
+            setBtnLoading('#btnDelete', 'Deleting...');
+
+            var payload = {
+                Id        : targetIds,
+                DeletedBy : String(Empid)
+            };
+
+            $.ajax({
+                url         : '@(apiBase)/LeaveApplication/Delete',
+                type        : 'DELETE',
+                contentType : 'application/json',
+                headers     : { 'Authorization': 'Bearer ' + Token },
+                data        : JSON.stringify(payload),
+                success     : function (res) {
+                    isProcessingLeave = false;
+                    setBtnNormal('#btnDelete', 'Delete');
+                    if (res.isSuccess) {
+                        showToast(res.message || 'Applications deleted successfully.', 'success');
+                        selectedLeaveIds = {};
+                        loadLeaveApplications();
+                    } else {
+                        showToast(res.message || 'Something went wrong.', 'error');
+                    }
+                },
+                error : function () {
+                    isProcessingLeave = false;
+                    setBtnNormal('#btnDelete', 'Delete');
+                    showToast('Failed to delete applications.', 'error');
+                }
+            });
+        }, { title: 'Delete Leave Application(s)', confirmText: 'Delete' });
+    }
+
+    /* ── Export to Excel ──────────────────────────── */
+    function exportLeaveToExcel(gridData) {
+        var selectedIds = Object.keys(selectedLeaveIds).map(Number);
+        var selectedRows = selectedIds.length > 0
+            ? selectedIds.map(function (id) { return leaveDataCache[id]; }).filter(Boolean)
+            : (gridData || allData);
+
+        if (!selectedRows || selectedRows.length === 0) {
+            showToast('No data available to export.', 'warn');
+            return;
+        }
+
+        if (typeof ExcelJS === 'undefined') {
+            showToast('ExcelJS library not loaded. Please refresh the page.', 'error');
+            return;
+        }
+
+        var workbook  = new ExcelJS.Workbook();
+        var worksheet = workbook.addWorksheet('Leave Applications');
+
+        worksheet.columns = [
+            { header: 'Leave Type',       key: 'leaveTypeName',        width: 18 },
+            { header: 'Employee Name',     key: 'employeeName',         width: 25 },
+            { header: 'Employee Code',     key: 'employeeCode',         width: 15 },
+            { header: 'Branch Name',       key: 'branchName',           width: 18 },
+            { header: 'From Date',         key: 'fromDate',             width: 14 },
+            { header: 'To Date',           key: 'todate',               width: 14 },
+            { header: 'Period',            key: 'no_Of_Date',           width: 10 },
+            { header: 'Reason',            key: 'reason',               width: 25 },
+            { header: 'Application Type',  key: 'applicationType',      width: 18 },
+            { header: 'Reporting Person',  key: 'reportingPersonName',  width: 22 },
+            { header: 'Leave Status',      key: 'leaveStatus',          width: 15 }
+        ];
+
+        var headerRow = worksheet.getRow(1);
+        headerRow.eachCell(function (cell) {
+            cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D4159' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border    = {
+                top    : { style: 'thin' },
+                left   : { style: 'thin' },
+                bottom : { style: 'thin' },
+                right  : { style: 'thin' }
+            };
+        });
+        headerRow.height = 25;
+
+        function safe(val) { return (val === null || val === undefined) ? '' : String(val); }
+
+        selectedRows.forEach(function (row) {
+            if (!row) return;
+            var dataRow = worksheet.addRow({
+                leaveTypeName      : safe(row.leaveTypeName),
+                employeeName       : safe(row.employeeName),
+                employeeCode       : safe(row.employeeCode),
+                branchName         : safe(row.branchName),
+                fromDate           : fmtDate(row.fromDate),
+                todate             : fmtDate(row.todate),
+                no_Of_Date         : safe(row.no_Of_Date),
+                reason             : safe(row.reason),
+                applicationType    : safe(row.applicationType),
+                reportingPersonName: safe(row.reportingPersonName),
+                leaveStatus        : safe(row.leaveStatus)
+            });
+
+            dataRow.eachCell(function (cell) {
+                cell.border = {
+                    top    : { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left   : { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom : { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right  : { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                };
+                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            });
+        });
+
+        var status   = getSelectedStatus();
+        var today    = new Date();
+        var dateStr  = String(today.getDate()).padStart(2, '0') + '-' +
+                       String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                       today.getFullYear();
+        var fileName = 'LeaveApplications_' + status + '_' + dateStr + '.xlsx';
+
+        workbook.xlsx.writeBuffer()
+            .then(function (buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+                showToast(selectedRows.length + ' record(s) exported successfully.', 'success');
+            })
+            .catch(function (err) {
+                console.error('Export error:', err);
+                showToast('Export failed: ' + err.message, 'error');
+            });
     }
 </script>

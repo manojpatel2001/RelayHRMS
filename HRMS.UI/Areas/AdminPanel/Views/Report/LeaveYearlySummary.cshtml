@@ -1,0 +1,564 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Yearly Leave Balance";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<!-- ExcelJS + FileSaver for Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Yearly Leave Balance</h6>
+            <div id="searchViewContainer" style="display:none;">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnView">
+                    <i class="bx bx-download"></i>
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">View &amp; Export</span>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 200px;min-width:180px;">
+                    <label for="branchDropdown">Branch</label>
+                    <div id="branchDropdown"></div>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate" />
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate" />
+                </div>
+
+                <div class="fg" style="flex:1 1 220px;min-width:200px;">
+                    <label for="employeeSearch">Search Employee</label>
+                    <input type="text" id="employeeSearch" placeholder="Search employees..." />
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnfind">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Find</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="recordCount" class="mb-2" style="display:none;font-weight:600;"></div>
+
+            <div id="noDataMessage" class="text-center text-muted" style="padding:40px;font-style:italic;">
+                No data to display. Please select a branch and date range, then click Find to load employee data.
+            </div>
+
+            <div id="employeeGrid" style="display:none;"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var Empid = parseInt(localStorage.getItem("EmployeeId"));
+        var Role = localStorage.getItem("RoleSlug");
+        var Token = localStorage.getItem("authToken");
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var Compname = companyDetails.CompanyName;
+        var CompanyId = companyDetails.CompanyId;
+
+        var originalEmployeeData = [];
+        var grid = null;
+        var currentRows = [];
+        var selectedIds = {};
+        var isFinding = false;
+        var isViewing = false;
+
+        function goBack() { window.history.back(); }
+        window.goBack = goBack;
+
+        $(document).ready(function () {
+            setDefaultDates();
+            BindBranchDropdown();
+            hideDataElements();
+        });
+
+        function setDefaultDates() {
+            var today = new Date();
+            var firstDay = new Date(today.getFullYear(), 0, 1); // Jan 1
+            var lastDay = new Date(today.getFullYear(), 11, 31); // Dec 31
+
+            $('#startDate').val(formatDateForInput(firstDay));
+            $('#endDate').val(formatDateForInput(lastDay));
+        }
+
+        function formatDateForInput(date) {
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        }
+
+        function hideDataElements() {
+            $('#recordCount').hide();
+            $('#searchViewContainer').hide();
+            $('#noDataMessage').show();
+            $('#employeeGrid').hide();
+        }
+
+        function showDataElements() {
+            $('#recordCount').show();
+            $('#searchViewContainer').show();
+            $('#noDataMessage').hide();
+            $('#employeeGrid').show();
+        }
+
+        function BindBranchDropdown() {
+            $.ajax({
+                url: '@baseDomainUrl/api/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (response?.data?.length > 0) {
+                        $("#branchDropdown").dxTagBox({
+                            items: response.data,
+                            displayExpr: "branchName",
+                            valueExpr: "branchId",
+                            placeholder: "--Select Branch--",
+                            showSelectionControls: true,
+                            searchEnabled: true,
+                            showClearButton: true,
+                            maxDisplayedTags: 3,
+                            applyValueMode: "instantly",
+                            multiline: false,
+                            minSearchLength: 0,
+                            width: "100%"
+                        });
+                    }
+                },
+                error: function () {
+                    console.error('Failed to load branches');
+                    showToast('Failed to load branches.', 'error');
+                }
+            });
+        }
+
+        window._toggleEmpRow = function (id, checked) {
+            if (checked) selectedIds[id] = true;
+            else delete selectedIds[id];
+        };
+
+        function getSelectedRows() {
+            return currentRows.filter(function (r) { return !!selectedIds[r.id]; });
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                {
+                    header: '', sortable: false, width: '40px',
+                    render: function (v, row) {
+                        var checked = selectedIds[row.id] ? ' checked' : '';
+                        return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleEmpRow(' + row.id + ', this.checked)">';
+                    }
+                },
+                { field: 'employeeCode', header: 'Employee Code', width: '150px' },
+                { field: 'fullName', header: 'Employee Name', width: '220px' },
+                { field: 'branchName', header: 'Branch', width: '150px' }
+            ];
+
+            currentRows = data;
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'employeeGrid',
+                    title: 'Employees',
+                    icon: 'bx-group',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        function updateRecordCount(count) {
+            $('#recordCount').text(count + ' Records found.');
+            $('#recordCount').css('color', count > 0 ? '#28a745' : '#dc3545');
+        }
+
+        $('#employeeSearch').on('input', function () {
+            var searchValue = $(this).val();
+            var filtered = originalEmployeeData;
+
+            if (searchValue) {
+                var s = searchValue.toLowerCase();
+                filtered = originalEmployeeData.filter(function (r) {
+                    return (r.fullName && r.fullName.toLowerCase().indexOf(s) !== -1) ||
+                        (r.employeeCode && r.employeeCode.toLowerCase().indexOf(s) !== -1) ||
+                        (r.branchName && r.branchName.toLowerCase().indexOf(s) !== -1);
+                });
+            }
+
+            renderGrid(filtered);
+            updateRecordCount(filtered.length);
+        });
+
+        $('#btnfind').on('click', function () {
+            if (isFinding) return;
+
+            var branchTagBox = $("#branchDropdown").dxTagBox("instance");
+            var selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+
+            if (!selectedBranchIds || selectedBranchIds.length === 0) {
+                showToast('Please select at least one branch.', 'warn');
+                return;
+            }
+
+            var startDate = $('#startDate').val();
+            var endDate = $('#endDate').val();
+
+            if (!startDate || !endDate) {
+                showToast('Please select both start and end dates.', 'warn');
+                return;
+            }
+
+            var startDateObj = new Date(startDate);
+            var selectedMonth = startDateObj.getMonth() + 1;
+            var selectedYear = startDateObj.getFullYear();
+
+            isFinding = true;
+            setBtnLoading('#btnfind', 'Find');
+            hideDataElements();
+            selectedIds = {};
+
+            var branchIdsParam = selectedBranchIds.join(',');
+
+            $.ajax({
+                url: '@baseDomainUrl/api/EmployeeMasterAPI/GetAllEmployee_DropDown/' + CompanyId + '?BranchId=' + branchIdsParam + '&Month=' + selectedMonth + '&Year=' + selectedYear,
+                type: "GET",
+                headers: { 'Authorization': 'Bearer ' + Token },
+                dataType: "json",
+                success: function (response) {
+                    isFinding = false;
+                    setBtnNormal('#btnfind', 'Find');
+
+                    var employeeData = response.data || response;
+                    originalEmployeeData = employeeData;
+
+                    if (employeeData && employeeData.length > 0) {
+                        showDataElements();
+                        grid = null;
+                        $('#employeeGrid').empty();
+                        renderGrid(employeeData);
+                        updateRecordCount(employeeData.length);
+                    } else {
+                        hideDataElements();
+                        $('#noDataMessage').text('No employees found for the selected branch(es).').show();
+                    }
+                },
+                error: function () {
+                    isFinding = false;
+                    setBtnNormal('#btnfind', 'Find');
+                    hideDataElements();
+                    $('#noDataMessage').text('Failed to load employees. Please try again.').show();
+                    showToast('Failed to load employees.', 'error');
+                }
+            });
+        });
+
+        $('#btnClear').on('click', function () {
+            var branchTagBox = $("#branchDropdown").dxTagBox("instance");
+            if (branchTagBox) {
+                branchTagBox.option("value", []);
+            }
+            setDefaultDates();
+
+            grid = null;
+            currentRows = [];
+            selectedIds = {};
+            $('#employeeGrid').empty();
+
+            hideDataElements();
+            $('#noDataMessage').text('No data to display. Please select a branch and date range, then click Find to load employee data.');
+            $('#employeeSearch').val('');
+            originalEmployeeData = [];
+        });
+
+        $('#btnView').on('click', function () {
+            if (isViewing) return;
+
+            var branchTagBox = $("#branchDropdown").dxTagBox("instance");
+            var selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+
+            if (!selectedBranchIds || selectedBranchIds.length === 0) {
+                showToast('Please select at least one branch.', 'warn');
+                return;
+            }
+
+            var startDate = $('#startDate').val();
+            var endDate = $('#endDate').val();
+
+            if (!startDate || !endDate) {
+                showToast('Please select both start and end dates.', 'warn');
+                return;
+            }
+
+            var selected = getSelectedRows();
+
+            if (!selected.length) {
+                showToast('Select at least one employee.', 'warn');
+                return;
+            }
+
+            var empCodes = selected.map(function (emp) { return emp.employeeCode; }).join(',');
+
+            isViewing = true;
+            setBtnLoading('#btnView', 'View & Export');
+
+            var empCodesParam = '' + empCodes;
+            var fullUrl = '@baseDomainUrl/api/ReportAPI/GetLeaveYearlySummary?EmpCode=' + encodeURIComponent(empCodesParam) + '&StratDate=' + startDate + '&EndDate=' + endDate;
+
+            $.ajax({
+                url: fullUrl,
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    if (!res || !res.data || res.data.length === 0) {
+                        showToast('No leave balance records found.', 'info');
+                        return;
+                    }
+                    exportToExcel(res.data, startDate, endDate);
+                },
+                error: function (xhr, status, error) {
+                    console.error('API Error:', xhr.status, xhr.statusText, xhr.responseText, error);
+
+                    var errorMsg = 'Failed to fetch data.';
+                    if (xhr.responseText) {
+                        try {
+                            var errorResponse = JSON.parse(xhr.responseText);
+                            errorMsg = errorResponse.message || errorResponse.title || errorMsg;
+                        } catch (e) {
+                            errorMsg = xhr.responseText;
+                        }
+                    }
+
+                    showToast(errorMsg, 'error');
+                },
+                complete: function () {
+                    isViewing = false;
+                    setBtnNormal('#btnView', 'View & Export');
+                }
+            });
+        });
+
+        function exportToExcel(data, startDate, endDate) {
+            var workbook = new ExcelJS.Workbook();
+            var worksheet = workbook.addWorksheet("Leave Balance");
+
+            var formatDate = function (dateStr) {
+                var parts = dateStr.split("-");
+                return parts[2] + "-" + parts[1] + "-" + parts[0];
+            };
+
+            var today = new Date();
+            var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            var formattedDate = days[today.getDay()] + ',' + String(today.getDate()).padStart(2, '0') + ' ' + months[today.getMonth()] + ',' + today.getFullYear();
+
+            worksheet.mergeCells('A1:AA1');
+            worksheet.getCell('A1').value = 'Company Name : ' + Compname;
+            worksheet.getCell('A1').font = { bold: true, size: 12 };
+            worksheet.getCell('A1').alignment = { horizontal: 'left', vertical: 'middle' };
+
+            worksheet.mergeCells('A2:AA2');
+            worksheet.getCell('A2').value = formattedDate;
+            worksheet.getCell('A2').font = { bold: true };
+            worksheet.getCell('A2').alignment = { horizontal: 'left', vertical: 'middle' };
+
+            worksheet.mergeCells('A3:AA3');
+            worksheet.getCell('A3').value = 'Leave Transaction From := ' + formatDate(startDate) + ' To ' + formatDate(endDate);
+            worksheet.getCell('A3').font = { bold: true };
+            worksheet.getCell('A3').alignment = { horizontal: 'left', vertical: 'middle' };
+
+            worksheet.addRow([]);
+
+            var row5 = worksheet.getRow(5);
+            row5.values = [
+                'Employee Code',
+                'Employee Name',
+                'Opening Balance', '', '', '', '',
+                'Nov--2025', '', '', '', '',
+                'Dec--2025', '', '', '', '',
+                'Jan--2026', '', '', '', ''
+            ];
+
+            var row6 = worksheet.getRow(6);
+            row6.values = [
+                '', '', '', '', '', '', '',
+                'HD', 'ML', 'PL', 'SH/COMP', '',
+                'HD', 'ML', 'PL', 'SH/COMP', '',
+                'HD', 'ML', 'PL', 'SH/COMP', '',
+                'HD', 'ML', 'PL', 'SH/COMP', ''
+            ];
+
+            [row5, row6].forEach(function (row) {
+                row.eachCell(function (cell) {
+                    cell.font = { bold: true, size: 10 };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                });
+            });
+
+            worksheet.mergeCells('A5:A6');
+            worksheet.mergeCells('B5:B6');
+            worksheet.mergeCells('C5:C6');
+            worksheet.mergeCells('D5:D6');
+            worksheet.mergeCells('E5:E6');
+            worksheet.mergeCells('F5:F6');
+            worksheet.mergeCells('G5:G6');
+
+            worksheet.mergeCells('H5:L5');
+            worksheet.mergeCells('M5:Q5');
+            worksheet.mergeCells('R5:V5');
+            worksheet.mergeCells('W5:AA5');
+
+            var employeeMap = {};
+
+            data.forEach(function (row) {
+                var empCode = row.employeeCode;
+
+                if (!employeeMap[empCode]) {
+                    employeeMap[empCode] = {
+                        empCode: empCode,
+                        fullName: row.fullName,
+                        leaves: {
+                            HD: {},
+                            ML: {},
+                            PL: {},
+                            'SH/COMP': {},
+                            SHL: {},
+                            COMP: {}
+                        }
+                    };
+                }
+
+                var leaveType = row.leaveType;
+                if (leaveType) {
+                    if (leaveType === 'SHL' || leaveType === 'COMP') {
+                        if (!employeeMap[empCode].leaves['SH/COMP'].opening) {
+                            employeeMap[empCode].leaves['SH/COMP'] = row;
+                        } else {
+                            var existing = employeeMap[empCode].leaves['SH/COMP'];
+                            existing.opening = (existing.opening || 0) + (row.opening || 0);
+                            existing.used_Nov = (existing.used_Nov || 0) + (row.used_Nov || 0);
+                            existing.used_Dec = (existing.used_Dec || 0) + (row.used_Dec || 0);
+                            existing.used_Jan = (existing.used_Jan || 0) + (row.used_Jan || 0);
+                        }
+                    } else if (employeeMap[empCode].leaves[leaveType] !== undefined) {
+                        employeeMap[empCode].leaves[leaveType] = row;
+                    }
+                }
+            });
+
+            Object.values(employeeMap).forEach(function (emp) {
+                var leaves = emp.leaves;
+
+                var hdData = leaves.HD || {};
+                var mlData = leaves.ML || {};
+                var plData = leaves.PL || {};
+                var shCompData = leaves['SH/COMP'] || {};
+
+                var rowData = [
+                    emp.empCode,
+                    emp.fullName,
+                    hdData.opening || 0,
+                    mlData.opening || 0,
+                    plData.opening || 0,
+                    shCompData.opening || 0,
+                    '',
+                    hdData.used_Nov || 0,
+                    mlData.used_Nov || 0,
+                    plData.used_Nov || 0,
+                    shCompData.used_Nov || 0,
+                    '',
+                    hdData.used_Dec || 0,
+                    mlData.used_Dec || 0,
+                    plData.used_Dec || 0,
+                    shCompData.used_Dec || 0,
+                    '',
+                    hdData.used_Jan || 0,
+                    mlData.used_Jan || 0,
+                    plData.used_Jan || 0,
+                    shCompData.used_Jan || 0,
+                    ''
+                ];
+
+                var excelRow = worksheet.addRow(rowData);
+
+                excelRow.eachCell(function (cell, colNumber) {
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+
+                    if (colNumber >= 8) {
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    } else {
+                        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                    }
+                });
+            });
+
+            worksheet.getColumn(1).width = 12;
+            worksheet.getColumn(2).width = 28;
+            worksheet.getColumn(3).width = 13;
+            worksheet.getColumn(4).width = 15;
+            worksheet.getColumn(5).width = 10;
+            worksheet.getColumn(6).width = 20;
+            worksheet.getColumn(7).width = 15;
+
+            for (var i = 8; i <= 27; i++) {
+                worksheet.getColumn(i).width = 8;
+            }
+
+            worksheet.getRow(5).height = 30;
+            worksheet.getRow(6).height = 20;
+
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                var fileName = 'Leave_Balance_' + today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0') + '.xlsx';
+                var blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                saveAs(blob, fileName);
+
+                showToast('Excel file exported successfully!', 'success');
+            }).catch(function (error) {
+                console.error('Export error:', error);
+                showToast('Failed to export Excel file.', 'error');
+            });
+        }
+    })();
+</script>

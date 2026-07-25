@@ -25,5 +25,6 @@ namespace HRMS_Core.Leave
         public string? Comp_Off_Type { get; set; }
         public string? ComoffReason { get; set; }
         public DateTime? ApprovalDate { get; set; }
+        public string? ApprovedBy { get; set; }
     }
 }

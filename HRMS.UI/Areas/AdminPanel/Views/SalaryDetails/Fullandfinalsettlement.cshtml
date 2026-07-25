@@ -1,0 +1,933 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Full & Final Settlement";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<style>
+    .reason-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 12px;
+        border-radius: 20px;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: .3px;
+        border: 1px solid transparent;
+    }
+
+    .reason-resignation {
+        background: #FFF4E5;
+        color: #B8860B;
+        border-color: #F0C36D;
+    }
+
+    .reason-retirement {
+        background: var(--pu-100);
+        color: var(--pu-900);
+        border-color: var(--pu-300);
+    }
+
+    .reason-death {
+        background: #F1F1F1;
+        color: #5f6368;
+        border-color: #cfd2d6;
+    }
+
+    .emp-detail-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .emp-detail-table tr {
+            border-bottom: 1px solid var(--pu-100);
+        }
+
+            .emp-detail-table tr:last-child {
+                border-bottom: none;
+            }
+
+        .emp-detail-table td {
+            padding: 6px 8px;
+            font-size: var(--fs-xs);
+            vertical-align: top;
+        }
+
+            .emp-detail-table td:first-child {
+                color: #7a85a0;
+                font-weight: 600;
+                width: 44%;
+                white-space: nowrap;
+            }
+
+            .emp-detail-table td:last-child {
+                color: var(--pu-900);
+                font-weight: 700;
+            }
+
+    .fnf-leave-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 4px;
+    }
+
+        .fnf-leave-table th {
+            background: var(--pu-600);
+            color: #fff;
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 7px 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .fnf-leave-table td {
+            border: 1px solid var(--pu-100);
+            padding: 5px 8px;
+            font-size: 12px;
+            text-align: center;
+            color: var(--pu-900);
+        }
+
+        .fnf-leave-table tbody tr:nth-child(even) {
+            background: var(--pu-50);
+        }
+
+        .fnf-leave-table td:first-child {
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .fnf-leave-table td input[type="number"] {
+            width: 65px;
+            height: 26px;
+            text-align: center;
+            border: 1px solid #B8C4CC;
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 12px;
+        }
+
+        .fnf-leave-table td input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+            accent-color: var(--pu-600);
+        }
+
+    .fnf-net-box {
+        background: var(--pu-100);
+        border: 1px solid var(--pu-300);
+        border-radius: 8px;
+        padding: 12px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 14px;
+    }
+
+        .fnf-net-box .fnf-net-label {
+            color: var(--pu-700);
+            font-size: var(--fs-sm);
+            font-weight: 600;
+        }
+
+        .fnf-net-box .fnf-net-value {
+            color: var(--pu-900);
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+    #detailsArea {
+        display: none;
+    }
+</style>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Full &amp; Final Settlement</h6>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnBackFnf">Back</button>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-end gap-3">
+                <div class="fg fg-req" style="flex:1 1 260px;min-width:220px;">
+                    <label for="empSelect">Employee</label>
+                    <select id="empSelect">
+                        <option value="" selected disabled>Select Employee</option>
+                    </select>
+                    <span class="field-validation-error" id="empErr" style="display:none;">Please select an employee</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate">
+                    <span class="field-validation-error" id="startDateErr" style="display:none;">Please select start date</span>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate">
+                    <span class="field-validation-error" id="endDateErr" style="display:none;">Please select end date</span>
+                </div>
+
+                <div style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="goBtn">
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Area -->
+    <div id="detailsArea">
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card" style="margin-bottom:14px;">
+                    <div class="card-header"><h6 class="mb-0">Leave Encashment</h6></div>
+                    <div class="card-body" style="overflow-x:auto;">
+                        <div id="leaveBalanceArea"><div class="text-muted">Loading leave balance...</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card" style="margin-bottom:14px;">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Employee Details</h6>
+                        <span class="reason-badge" id="reasonBadge"></span>
+                    </div>
+                    <div class="card-body">
+                        <table class="emp-detail-table" id="empDetailTable"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance & Payable Days -->
+        <div class="card">
+            <div class="card-header"><h6 class="mb-0">Attendance &amp; Payable Days</h6></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2"><div class="fg"><label>Month Days</label><input type="number" id="inp_monthDays" min="0" step="1" readonly></div></div>
+                    <div class="col-md-2"><div class="fg"><label>Present Days</label><input type="number" id="inp_present" min="0" step="0.5"></div></div>
+                    <div class="col-md-2"><div class="fg"><label>Absent Days</label><input type="number" id="inp_absent" min="0" step="0.5"></div></div>
+                    <div class="col-md-2"><div class="fg"><label>Leave Days</label><input type="number" id="inp_leave" min="0" step="0.5"></div></div>
+                    <div class="col-md-2"><div class="fg"><label>Week Off</label><input type="number" id="inp_weekoff" min="0" step="0.5"></div></div>
+                    <div class="col-md-2"><div class="fg"><label>Holiday</label><input type="number" id="inp_holiday" min="0" step="0.5"></div></div>
+                    <div class="col-md-2"><div class="fg"><label>Half Days</label><input type="number" id="inp_halfDay" min="0" step="0.5"></div></div>
+                    <div class="col-md-2"><div class="fg"><label>LWP Days</label><input type="number" id="inp_lwp" min="0" step="0.5"></div></div>
+                    <div class="col-md-2"><div class="fg"><label>Payable Days &#11088;</label><input type="number" id="inp_payable" min="0" step="0.5"></div></div>
+                    <div class="col-md-2"><div class="fg"><label>Arrear Days</label><input type="number" id="inp_arrearDays" min="0" step="1" value="0"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Salary Details -->
+        <div class="card">
+            <div class="card-header"><h6 class="mb-0">Salary Details</h6></div>
+            <div class="card-body">
+                <div id="salaryGrid">
+                    <div class="text-muted">Select employee with dates and click Go to load salary data.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Other Calculations -->
+        <div class="card">
+            <div class="card-header"><h6 class="mb-0">Other Calculations</h6></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="fg">
+                            <label for="inp_arrearMonth">Arrear Month</label>
+                            <select id="inp_arrearMonth">
+                                <option value="">-- Month --</option>
+                                <option>January</option>
+                                <option>February</option>
+                                <option>March</option>
+                                <option>April</option>
+                                <option>May</option>
+                                <option>June</option>
+                                <option>July</option>
+                                <option>August</option>
+                                <option>September</option>
+                                <option>October</option>
+                                <option>November</option>
+                                <option>December</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="fg">
+                            <label for="inp_arrearYear">Arrear Year</label>
+                            <select id="inp_arrearYear">
+                                <option value="">-- Year --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="fg">
+                            <label for="inp_gratuity">Gratuity Amount</label>
+                            <input type="number" id="inp_gratuity" min="0" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="fg">
+                            <label for="inp_bonus">Bonus Amount</label>
+                            <input type="number" id="inp_bonus" min="0" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="fg">
+                            <label for="inp_tds">TDS Amount</label>
+                            <input type="number" id="inp_tds" min="0" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="fg">
+                            <label for="inp_otherDed">Other Deduction</label>
+                            <input type="number" id="inp_otherDed" min="0" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="fg">
+                            <label for="inp_remarks">Remarks</label>
+                            <textarea id="inp_remarks" maxlength="500" placeholder="Enter remarks..." rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end gap-2 mb-4">
+            <button type="button" class="btn btn-secondary btn-sm" id="clearBtn">Clear</button>
+            <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="saveBtn">
+                <span class="btn-spinner-icon"></span>
+                <span class="btn-label-text">Save Settlement</span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    /* ──────────────────────────────────────────
+       CONFIG & STATE
+    ────────────────────────────────────────── */
+    var API_BASE       = '@baseDomainUrl' + '/api';
+    var savedCompany   = localStorage.getItem('selectedCompany');
+    var companyDetails = JSON.parse(savedCompany || '{}');
+    var COMP_ID        = parseInt(companyDetails.CompanyId) || 0;
+    var LOGGED_EMP_ID  = parseInt(localStorage.getItem('EmployeeId')) || 0;
+    var Token          = localStorage.getItem('authToken');
+
+    var currentEmp        = null;
+    var leaveRows         = [];
+    var leftEmployeesList = [];
+    var isGoingFnf         = false;
+    var isSavingFnf        = false;
+
+    var EARNINGS = [
+        { key: 'BasicSalary',             label: 'Basic Salary' },
+        { key: 'HRA',                     label: 'HRA' },
+        { key: 'ConveyanceAllowance',     label: 'Conveyance' },
+        { key: 'ChildEducationAllowance', label: 'Child Edu.' },
+        { key: 'MedicalAllowance',        label: 'Medical' },
+        { key: 'DeputationAllowance',     label: 'Deputation' },
+        { key: 'Arrears',                 label: 'Arrears' },
+        { key: 'TotalGrossSalary',        label: 'Total Gross', ro: true }
+    ];
+    var DEDUCTIONS = [
+        { key: 'PF',              label: 'PF' },
+        { key: 'ESIC',            label: 'ESIC' },
+        { key: 'ProfessionalTax', label: 'Prof. Tax' },
+        { key: 'GroupMedical',    label: 'Group Medical' },
+        { key: 'TermInsurance',   label: 'Term Insurance' },
+        { key: 'LWF',             label: 'LWF' },
+        { key: 'TDS',             label: 'TDS' },
+        { key: 'Loan',            label: 'Loan' },
+        { key: 'OtherDeduction',  label: 'Other Deduction' },
+        { key: 'TotalDeductions', label: 'Total Deductions', ro: true }
+    ];
+
+    /* ──────────────────────────────────────────
+       INIT
+    ────────────────────────────────────────── */
+    $(document).ready(function () {
+        fillYears();
+        loadLeftEmployees();
+
+        $('#goBtn').on('click', handleGo);
+        $('#saveBtn').on('click', handleSave);
+        $('#clearBtn').on('click', handleClear);
+        $('#btnBackFnf').on('click', function () {
+            window.location.href = '@UIBaseUrl/AdminPanel/SalaryDetails/FullandfinalsettlementReport';
+        });
+
+        $('#empSelect, #startDate, #endDate').on('input change', function () {
+            var map = { empSelect: 'empErr', startDate: 'startDateErr', endDate: 'endDateErr' };
+            var errId = map[$(this).attr('id')];
+            if (errId) $('#' + errId).hide();
+            $(this).removeClass('is-invalid');
+        });
+    });
+
+    function fillYears() {
+        var yr = new Date().getFullYear();
+        var el = document.getElementById('inp_arrearYear');
+        for (var y = yr; y >= yr - 10; y--) {
+            el.innerHTML += '<option value="' + y + '">' + y + '</option>';
+        }
+    }
+
+    /* ──────────────────────────────────────────
+       LOAD LEFT EMPLOYEES DROPDOWN
+    ────────────────────────────────────────── */
+    function loadLeftEmployees() {
+        $.ajax({
+            url: API_BASE + '/MonthlySalaryDetailsAPI/GetLeftEmployeedropDown/' + COMP_ID,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                var list = [];
+                if (res && res.isSuccess) {
+                    if (res.data && Array.isArray(res.data.data)) {
+                        list = res.data.data;
+                    } else if (Array.isArray(res.data)) {
+                        list = res.data;
+                    }
+                }
+                leftEmployeesList = list.map(function (e) {
+                    var empId = e.Id || e.id || e.EmployeeId || e.employeeId || e.EmpId || e.empId || '';
+                    return {
+                        id: empId,
+                        code: e.EmployeeCode || '',
+                        name: e.FullName || '',
+                        doj: e.DateOfJoining || e.dateOfJoining || '',
+                        left: e.LeftDate || e.leftDate || '',
+                        resign: e.RegAcceptDate || e.regAcceptDate || '',
+                        reason: e.LeftReason || e.leftReason || 'Resignation',
+                        desig: e.DesignationName || e.designationName || '',
+                        dept: e.DepartmentName || e.departmentName || '',
+                        branch: e.BranchName || e.branchName || '',
+                        gross: e.GrossSalary || e.grossSalary || 0,
+                        years: e.TotalYearsInCompany || e.totalYearsInCompany || 0
+                    };
+                });
+
+                var $sel = $('#empSelect');
+                $sel.empty().append('<option value="" selected disabled>Select Employee</option>');
+                leftEmployeesList.forEach(function (emp) {
+                    var label = emp.code ? (emp.code + ' - ' + emp.name) : emp.name;
+                    $sel.append($('<option>', { value: emp.id, text: label }));
+                });
+            },
+            error: function () {
+                showToast('Failed to load employee list.', 'error');
+            }
+        });
+    }
+
+    /* ──────────────────────────────────────────
+       GO
+    ────────────────────────────────────────── */
+    function handleGo() {
+        if (isGoingFnf) return;
+
+        clearErrors();
+        var err       = false;
+        var empId     = $('#empSelect').val();
+        var startDate = $('#startDate').val();
+        var endDate   = $('#endDate').val();
+
+        if (!empId)     { $('#empErr').show(); err = true; }
+        if (!startDate) { $('#startDateErr').show(); $('#startDate').addClass('is-invalid'); err = true; }
+        if (!endDate)   { $('#endDateErr').show();   $('#endDate').addClass('is-invalid');   err = true; }
+
+        if (!err && startDate && endDate && endDate < startDate) {
+            $('#endDateErr').text('End Date cannot be earlier than Start Date').show();
+            $('#endDate').addClass('is-invalid');
+            err = true;
+        }
+
+        if (err) return;
+
+        isGoingFnf = true;
+        setBtnLoading('#goBtn', 'Loading...');
+
+        var emp = leftEmployeesList.find(function (e) { return String(e.id) === String(empId); });
+
+        currentEmp = {
+            employeeId:          parseInt(empId),
+            employeeCode:        emp ? emp.code   : '',
+            employeeName:        emp ? emp.name   : '',
+            dateOfJoining:       emp ? emp.doj    : '',
+            leftDate:            emp ? emp.left   : '',
+            resignationDate:     emp ? emp.resign : '',
+            leftReason:          emp ? emp.reason : 'Resignation',
+            designationName:     emp ? emp.desig  : '',
+            departmentName:      emp ? emp.dept   : '',
+            branchName:          emp ? emp.branch : '',
+            grossSalary:         emp ? (parseFloat(emp.gross) || 0)  : 0,
+            totalYearsInCompany: emp ? (parseFloat(emp.years) || 0)  : 0
+        };
+
+        renderEmpInfo(currentEmp);
+        $('#detailsArea').slideDown(250);
+
+        fetchLeaveBalance(empId);
+
+        Promise.all([
+            fetchEmpDetails(empId),
+            fetchSalary(startDate, endDate)
+        ]).finally(function () {
+            isGoingFnf = false;
+            setBtnNormal('#goBtn', 'Go');
+        });
+    }
+
+    /* ──────────────────────────────────────────
+       API CALLS
+    ────────────────────────────────────────── */
+
+    // 1. Full Employee Details
+    function fetchEmpDetails(empId) {
+        return new Promise(function (resolve) {
+            $.ajax({
+                url: API_BASE + '/MonthlySalaryDetailsAPI/GetLeftEmployeeDetails/' + empId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    var d = null;
+                    if (res && res.isSuccess) {
+                        if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+                            d = res.data.data[0];
+                        } else if (res.data && !Array.isArray(res.data)) {
+                            d = res.data;
+                        }
+                    }
+                    if (d) fillEmpDetailsFromAPI(d);
+                    resolve();
+                },
+                error: function () { resolve(); }
+            });
+        });
+    }
+
+    function fillEmpDetailsFromAPI(d) {
+        currentEmp.designationName     = d.DesignationName     || d.designationName     || currentEmp.designationName     || '';
+        currentEmp.departmentName      = d.DepartmentName      || d.departmentName      || currentEmp.departmentName      || '';
+        currentEmp.branchName          = d.BranchName          || d.branchName          || currentEmp.branchName          || '';
+        currentEmp.dateOfJoining       = d.DateOfJoining       || d.dateOfJoining       || currentEmp.dateOfJoining       || '';
+        currentEmp.leftDate            = d.LeftDate            || d.leftDate            || currentEmp.leftDate            || '';
+        currentEmp.resignationDate     = d.RegAcceptDate       || d.regAcceptDate       || currentEmp.resignationDate     || '';
+        currentEmp.grossSalary         = d.GrossSalary         || d.grossSalary         || currentEmp.grossSalary         || 0;
+        currentEmp.totalYearsInCompany = d.TotalYearsInCompany || d.totalYearsInCompany || currentEmp.totalYearsInCompany || 0;
+
+        if (d.IsDeath || d.isDeath) {
+            currentEmp.leftReason = 'Death';
+        } else if (d.IsRetire || d.isRetire) {
+            currentEmp.leftReason = 'Retirement';
+        } else {
+            currentEmp.leftReason = d.LeftReason || d.leftReason || 'Resignation';
+        }
+
+        renderEmpInfo(currentEmp);
+    }
+
+    // 2. Salary Details
+    function fetchSalary(startDate, endDate) {
+        return new Promise(function (resolve) {
+            $.ajax({
+                url: API_BASE + '/MonthlySalaryDetailsAPI/GetMonthlySalary',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify({
+                    StartDate:     startDate,
+                    EndDate:       endDate,
+                    EmployeeCodes: currentEmp.employeeCode,
+                    CompanyId:     COMP_ID,
+                    Action:        'GetData',
+                    CreatedBy:     LOGGED_EMP_ID
+                }),
+                success: function (res) {
+                    var d = (res && res.isSuccess && res.data && res.data.length > 0) ? res.data[0] : null;
+                    renderSalGrid(d);
+                    if (d) fillDays(d);
+                    resolve();
+                },
+                error: function () {
+                    renderSalGrid(null);
+                    resolve();
+                }
+            });
+        });
+    }
+
+    // 3. Leave Balance
+    function fetchLeaveBalance(empId) {
+        $('#leaveBalanceArea').html('<div class="text-muted">Loading leave balance...</div>');
+        $.ajax({
+            url: API_BASE + '/LeaveApplication/GetLeaveType',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify({ Compid: COMP_ID, Empid: empId }),
+            success: function (res) {
+                var data = null;
+                if (res && res.isSuccess) {
+                    if (res.data && Array.isArray(res.data.data)) {
+                        data = res.data.data;
+                    } else if (Array.isArray(res.data)) {
+                        data = res.data;
+                    }
+                }
+                leaveRows = data || [];
+                renderLeave(leaveRows);
+            },
+            error: function () {
+                $('#leaveBalanceArea').html('<div class="text-muted">Failed to load leave balance.</div>');
+            }
+        });
+    }
+
+    // 4. Duplicate-settlement check (re-uses the list page's existing endpoint)
+    function checkDuplicateFnf(empCode, monthNumber, year) {
+        return new Promise(function (resolve) {
+            $.ajax({
+                url: API_BASE + '/MonthlySalaryDetailsAPI/GetFullFinalStatement',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify({ Month: monthNumber, Year: year, EmployeeCode: empCode }),
+                success: function (res) {
+                    resolve(!!(res && res.isSuccess && res.data && res.data.length > 0));
+                },
+                error: function () { resolve(false); }
+            });
+        });
+    }
+
+    /* ──────────────────────────────────────────
+       RENDER
+    ────────────────────────────────────────── */
+    function renderEmpInfo(emp) {
+        var rMap = { Resignation: 'reason-resignation', Retirement: 'reason-retirement', Death: 'reason-death' };
+        $('#reasonBadge')
+            .attr('class', 'reason-badge ' + (rMap[emp.leftReason] || 'reason-resignation'))
+            .text(emp.leftReason || 'Resignation');
+
+        var fmt = function (v) { return v ? new Date(v).toLocaleDateString('en-IN') : '—'; };
+        var rows = [
+            ['Employee Code',    emp.employeeCode      || '—'],
+            ['Employee Name',    emp.employeeName      || '—'],
+            ['Designation',      emp.designationName   || '—'],
+            ['Department',       emp.departmentName    || '—'],
+            ['Branch',           emp.branchName        || '—'],
+            ['Date of Joining',  fmt(emp.dateOfJoining)],
+            ['Total in Company', emp.totalYearsInCompany ? emp.totalYearsInCompany.toFixed(1) + ' Yrs' : '—'],
+            ['Resignation Date', fmt(emp.resignationDate)],
+            ['Left Date',        fmt(emp.leftDate)],
+            ['Gross Salary',     emp.grossSalary ? '₹ ' + Number(emp.grossSalary).toLocaleString('en-IN') : '—']
+        ];
+        var html = '';
+        rows.forEach(function (r) { html += '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; });
+        $('#empDetailTable').html(html);
+    }
+
+    function fillDays(d) {
+        $('#inp_monthDays').val(d.MonthDays   || d.monthDays   || 0);
+        $('#inp_present').val( d.PresentDays  || d.presentDays || 0);
+        $('#inp_absent').val(  d.AbsentDays   || d.absentDays  || 0);
+        $('#inp_leave').val(   d.Leave        || d.LeaveDays   || d.leaveDays  || 0);
+        $('#inp_weekoff').val( d.WeekOff      || d.WeekOffDays || d.weekOffDays || 0);
+        $('#inp_holiday').val( d.Holiday      || d.HolidayDays || d.holidayDays || 0);
+        $('#inp_halfDay').val( d.HalfDays     || d.halfDays    || 0);
+        $('#inp_lwp').val(     d.LwpDays      || d.lwpDays     || 0);
+        $('#inp_payable').val( d.PayableDays  || d.SalaryDays  || d.payableDays || 0);
+    }
+
+    function resetDays() {
+        ['monthDays', 'present', 'absent', 'leave', 'weekoff', 'holiday', 'halfDay', 'lwp', 'payable'].forEach(function (k) {
+            $('#inp_' + k).val('');
+        });
+        $('#inp_arrearDays').val(0);
+    }
+
+    function renderSalGrid(d) {
+        if (!d) {
+            $('#salaryGrid').html('<div class="text-muted">No salary data found for selected period.</div>');
+            return;
+        }
+
+        var html = '<div class="sec-lbl" style="margin-top:0;">Earnings</div><div class="row">';
+        EARNINGS.forEach(function (f) {
+            var v  = (d[f.key] !== undefined && d[f.key] !== null) ? d[f.key] : 0;
+            var ro = f.ro ? ' readonly' : '';
+            html += '<div class="col-md-3"><div class="fg"><label>' + f.label + '</label>'
+                  + '<input type="number" id="sal_' + f.key + '" value="' + v + '" min="0" step="0.01"' + ro + '></div></div>';
+        });
+        html += '</div><div class="divider"></div><div class="sec-lbl" style="margin-top:0;">Deductions</div><div class="row">';
+        DEDUCTIONS.forEach(function (f) {
+            var v  = (d[f.key] !== undefined && d[f.key] !== null) ? d[f.key] : 0;
+            var ro = f.ro ? ' readonly' : '';
+            html += '<div class="col-md-3"><div class="fg"><label>' + f.label + '</label>'
+                  + '<input type="number" id="sal_' + f.key + '" value="' + v + '" min="0" step="0.01"' + ro + '></div></div>';
+        });
+        html += '</div>';
+
+        var net = Number(d.NetSalary || d.netSalary || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        html += '<div class="fnf-net-box">'
+              + '<div class="fnf-net-label">Net Salary (Auto Calculated)</div>'
+              + '<div class="fnf-net-value" id="netDisplay">₹ ' + net + '</div></div>';
+
+        $('#salaryGrid').html(html);
+        $('#salaryGrid input:not([readonly])').on('input', recalcNet);
+    }
+
+    function recalcNet() {
+        var gross = 0, ded = 0;
+        EARNINGS.forEach(function (f)   { if (!f.ro) gross += parseFloat($('#sal_' + f.key).val()) || 0; });
+        DEDUCTIONS.forEach(function (f) { if (!f.ro) ded   += parseFloat($('#sal_' + f.key).val()) || 0; });
+        $('#sal_TotalGrossSalary').val(gross.toFixed(2));
+        $('#sal_TotalDeductions').val(ded.toFixed(2));
+        $('#netDisplay').text('₹ ' + Number(gross - ded).toLocaleString('en-IN', { minimumFractionDigits: 2 }));
+    }
+
+    function renderLeave(data) {
+        if (!data || !data.length) {
+            $('#leaveBalanceArea').html('<div class="text-muted">No leave balance found.</div>');
+            return;
+        }
+        var html = '<table class="fnf-leave-table"><thead><tr>'
+            + '<th>Leave Type</th><th>Opening</th><th>Credit</th><th>Used</th>'
+            + '<th>Pending</th><th>Balance</th><th>Encashable</th><th>Approved</th><th>Tax Free</th>'
+            + '</tr></thead><tbody>';
+
+        data.forEach(function (r, i) {
+            var leaveType      = r.LeaveType      || r.leaveType      || r.leave      || '';
+            var opening        = r.Opening        || r.opening        || 0;
+            var credit         = r.Credit         || r.credit         || 0;
+            var used           = r.Used           || r.used           || 0;
+            var pendingLeaves  = r.PendingLeaves   || r.pendingLeaves  || 0;
+            var balance        = r.Balance        || r.balance        || 0;
+            var isEncashable   = r.IsEncashable    || r.isEncashable   || false;
+            var encashableDays = r.EncashableDays  || r.encashableDays || 0;
+
+            var encCol = isEncashable
+                ? '<input type="number" class="leave-approved" data-idx="' + i + '" value="' + encashableDays + '" min="0" step="0.5" max="' + encashableDays + '">'
+                : '<span style="color:#bbb">—</span>';
+            var taxCol = isEncashable
+                ? '<input type="checkbox" class="leave-taxfree" data-idx="' + i + '">'
+                : '<span style="color:#bbb">—</span>';
+
+            html += '<tr>'
+                + '<td>' + escHtml(leaveType) + '</td>'
+                + '<td>' + opening + '</td>'
+                + '<td>' + credit  + '</td>'
+                + '<td>' + used    + '</td>'
+                + '<td>' + pendingLeaves + '</td>'
+                + '<td><strong>' + balance + '</strong></td>'
+                + '<td>' + (isEncashable ? encashableDays : '<span style="color:#bbb">—</span>') + '</td>'
+                + '<td>' + encCol + '</td>'
+                + '<td>' + taxCol + '</td>'
+                + '</tr>';
+        });
+        html += '</tbody></table>';
+        $('#leaveBalanceArea').html(html);
+    }
+
+    /* ──────────────────────────────────────────
+       SAVE
+    ────────────────────────────────────────── */
+    async function handleSave() {
+        if (isSavingFnf) return;
+
+        if (!currentEmp) {
+            showToast('Please click Go to load employee data first.', 'warn');
+            return;
+        }
+
+        // Gather leave encash
+        var encashDays = 0, encashDetails = [];
+        $('.leave-approved').each(function () {
+            var days = parseFloat($(this).val()) || 0;
+            var idx  = parseInt($(this).data('idx'));
+            var tax  = $('.leave-taxfree[data-idx="' + idx + '"]').prop('checked') || false;
+            encashDays += days;
+            if (days > 0 && leaveRows[idx]) {
+                encashDetails.push({
+                    leaveType: leaveRows[idx].LeaveType || leaveRows[idx].leaveType || leaveRows[idx].leave,
+                    days:    days,
+                    taxFree: tax
+                });
+            }
+        });
+
+        // Read salary fields
+        var earn = {}, ded = {};
+        EARNINGS.forEach(function (f)   { earn[f.key] = parseFloat($('#sal_' + f.key).val()) || 0; });
+        DEDUCTIONS.forEach(function (f) { ded[f.key]  = parseFloat($('#sal_' + f.key).val()) || 0; });
+        var netSal = (earn.TotalGrossSalary || 0) - (ded.TotalDeductions || 0);
+
+        // Derive MonthNumber / MonthName / Year from EndDate
+        var startDateStr = $('#startDate').val();
+        var endDateStr   = $('#endDate').val();
+        var endDateObj   = endDateStr ? new Date(endDateStr) : new Date();
+        var monthNames   = ['January','February','March','April','May','June',
+                            'July','August','September','October','November','December'];
+
+        // Backend DateTime? needs ISO format "YYYY-MM-DDT00:00:00" — plain "YYYY-MM-DD" can fail
+        function toIso(d) { return d ? d + 'T00:00:00' : null; }
+
+        var payload = {
+            Action:      'SaveFnF',
+            CompanyId:   COMP_ID,
+            CreatedBy:   LOGGED_EMP_ID,
+
+            EmployeeId:   currentEmp.employeeId,
+            EmployeeCode: currentEmp.employeeCode,
+            EmployeeName: currentEmp.employeeName,
+
+            StartDate:   toIso(startDateStr),
+            EndDate:     toIso(endDateStr),
+            MonthNumber: endDateObj.getMonth() + 1,
+            MonthName:   monthNames[endDateObj.getMonth()],
+            Year:        endDateObj.getFullYear(),
+
+            MonthDays:   parseInt($('#inp_monthDays').val())  || 0,
+            PresentDays: parseFloat($('#inp_present').val())  || 0,
+            AbsentDays:  parseFloat($('#inp_absent').val())   || 0,
+            Leave:       parseFloat($('#inp_leave').val())    || 0,
+            WeekOff:     parseInt($('#inp_weekoff').val())    || 0,
+            Holiday:     parseInt($('#inp_holiday').val())    || 0,
+            HalfDays:    parseFloat($('#inp_halfDay').val())  || 0,
+            LWPDays:     parseFloat($('#inp_lwp').val())      || 0,
+            PayableDays: parseFloat($('#inp_payable').val())  || 0,
+            ArrearDays:  parseInt($('#inp_arrearDays').val()) || 0,
+
+            GrossSalary:             earn.TotalGrossSalary        || 0,
+            BasicSalary:             earn.BasicSalary             || 0,
+            HRA:                     earn.HRA                     || 0,
+            ConveyanceAllowance:     earn.ConveyanceAllowance     || 0,
+            ChildEducationAllowance: earn.ChildEducationAllowance || 0,
+            MedicalAllowance:        earn.MedicalAllowance        || 0,
+            DeputationAllowance:     earn.DeputationAllowance     || 0,
+            Arrears:                 earn.Arrears                 || 0,
+            TotalGrossSalary:        earn.TotalGrossSalary        || 0,
+
+            PF:              ded.PF              || 0,
+            ESIC:            ded.ESIC            || 0,
+            ProfessionalTax: ded.ProfessionalTax || 0,
+            GroupMedical:    ded.GroupMedical    || 0,
+            TermInsurance:   ded.TermInsurance   || 0,
+            LWF:             ded.LWF             || 0,
+            TDS:             ded.TDS             || 0,
+            Loan:            ded.Loan            || 0,
+            OtherDeduction:  ded.OtherDeduction  || 0,
+            TotalDeductions: ded.TotalDeductions || 0,
+            NetSalary:       netSal,
+
+            GratuityAmount:      parseFloat($('#inp_gratuity').val()) || 0,
+            BonusAmount:         parseFloat($('#inp_bonus').val())    || 0,
+            TDSAmount:           parseFloat($('#inp_tds').val())      || 0,
+            OtherDeductionExtra: parseFloat($('#inp_otherDed').val()) || 0,
+            LeaveEncashDays:     encashDays,
+            ArrearMonth:         $('#inp_arrearMonth').val()          || null,
+            ArrearYear:          parseInt($('#inp_arrearYear').val()) || null,
+            Remarks:             $('#inp_remarks').val().trim()       || null
+        };
+
+        isSavingFnf = true;
+        setBtnLoading('#saveBtn', 'Please wait...');
+
+        var alreadyExists = await checkDuplicateFnf(currentEmp.employeeCode, payload.MonthNumber, payload.Year);
+        if (alreadyExists) {
+            isSavingFnf = false;
+            setBtnNormal('#saveBtn', 'Save Settlement');
+            showToast('A Full & Final Settlement already exists for ' + currentEmp.employeeName + ' in ' + payload.MonthName + ' ' + payload.Year + '.', 'warn');
+            return;
+        }
+
+        setBtnNormal('#saveBtn', 'Save Settlement');
+        isSavingFnf = false;
+
+        var netFmt = Number(netSal).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        wmsConfirm(
+            'Save Full &amp; Final Settlement for <b>' + escHtml(currentEmp.employeeName) + '</b>?<br><small style="color:#666">Net Payable: &#8377; ' + netFmt + '</small>',
+            function () {
+                isSavingFnf = true;
+                setBtnLoading('#saveBtn', 'Saving...');
+
+                $.ajax({
+                    url:         API_BASE + '/MonthlySalaryDetailsAPI/SaveFnFSettlement',
+                    method:      'POST',
+                    contentType: 'application/json',
+                    headers:     { 'Authorization': 'Bearer ' + Token },
+                    data:        JSON.stringify(payload),
+                    success: function (res) {
+                        isSavingFnf = false;
+                        setBtnNormal('#saveBtn', 'Save Settlement');
+                        if (res && res.isSuccess) {
+                            showToast(res.responseMessage || 'Settlement saved successfully.', 'success');
+                            handleClear();
+                        } else {
+                            showToast(res.responseMessage || 'Failed to save settlement.', 'error');
+                        }
+                    },
+                    error: function (xhr) {
+                        isSavingFnf = false;
+                        setBtnNormal('#saveBtn', 'Save Settlement');
+                        var msg = (xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Failed to save settlement.';
+                        showToast(msg, 'error');
+                    }
+                });
+            },
+            { title: 'Confirm Settlement', confirmText: 'Yes, Save' }
+        );
+    }
+
+    /* ──────────────────────────────────────────
+       CLEAR
+    ────────────────────────────────────────── */
+    function handleClear() {
+        clearErrors();
+        $('#empSelect').val('');
+        $('#startDate, #endDate').val('');
+        $('#detailsArea').slideUp(200);
+        currentEmp = null;
+        leaveRows  = [];
+        resetDays();
+        $('#inp_arrearMonth').val('');
+        $('#inp_arrearYear').val('');
+        $('#inp_gratuity, #inp_bonus, #inp_tds, #inp_otherDed').val(0);
+        $('#inp_remarks').val('');
+        $('#empDetailTable').html('');
+        $('#reasonBadge').text('').attr('class', 'reason-badge');
+        $('#leaveBalanceArea').html('<div class="text-muted">Loading leave balance...</div>');
+        $('#salaryGrid').html('<div class="text-muted">Select employee with dates and click Go to load salary data.</div>');
+    }
+
+    /* ──────────────────────────────────────────
+       HELPERS
+    ────────────────────────────────────────── */
+    function clearErrors() {
+        $('.field-validation-error').hide();
+        $('.is-invalid').removeClass('is-invalid');
+        $('#endDateErr').text('Please select end date');
+    }
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+</script>

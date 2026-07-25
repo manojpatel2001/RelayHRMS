@@ -1,0 +1,45 @@
+﻿using HRMS_Core.VM;
+using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Leave;
+using HRMS_Core.VM.Report;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace HRMS_Infrastructure.Interface.Report
+{
+    public interface IReportRepository
+    {
+        Task<List<LeaveBalanceViewModelForAdmin>> GetLeaveBalanceForAdmin(LeaveBalance_ParamForAdmin vm);
+        Task<List<ActiveorInactiveUsers>> GetActiveOrInactiveUsers(string Action, int Compid);
+        Task<List<MobileUserViewModel>> GetActiveOrInactiveMobileUsers(string Action, int Compid);
+        Task<List<MonthlySalarySummaryViewModel>> GetYearlySalaryReportForAdmin(int StartYear, int EndYear);
+        Task<List<HolidayViewModel>> GetHolidaysForYear(int Year);
+        Task<List<UsedLeavesSummary>> GetUsedLeavesSummary();
+        Task<SP_Response> UpdateMobileUsers(UpdateMobileUserStatusRequest model);
+        Task<List<CompoffLapseReminderViewModel>> GetCompoffLapseReminder(DateTime SelectedDate, int LapseDays);
+        Task<(List<EmployeeLeaveApplication>, List<EmployeeLeaveStatus>)>
+               GetEmployeeMonthlyLeaveStatus(string EmpId, int SelectedMonth, int SelectedYear, int CompId);
+        Task<List<EmployeeYearlyLeaveStatus>> GetEmployeeYearlyLeaveStatus(string EmpId, int CompId, int Year);
+        Task<List<LeaveYearlySummaryViewModel>> GetLeaveYearlySummary(string EmpCode, DateTime StartDate, DateTime EndDate);
+        Task<List<BranchWiseJoiningCountVM>> GetBranchWiseJoiningCount(int Companyid, DateTime StartDate, DateTime EndDate);
+        Task<List<LateEarlyMarkReportViewModel>> LateEarlyMarkReport(Reportvm reportvm);
+        Task<List<MobileInOutSummaryVM>> MobileInOutSummary(Reportvm reportvm);
+
+        Task<List<ProbationStatusSearchViewModel>> GetProbationStatusSearchAsync(GetProbationSearchParam Model); 
+        Task<List<EmployeeDetailsForLettervm>> GetEmployeeDetailsForLetter(int EmployeeId, string LetterType); 
+        Task<List<EmployeeDetailsForPromotionincrementlettervm>> GetEmployeeDetailsForPromotionincrementletter(int EmployeeId ,string LetterType); 
+        Task<List<ActiveEmployeeDetailsForLetterViewModel>> GetActiveEmployeeDetailsForLetter(int EmployeeId ,string LetterType); 
+        Task<List<GetAllLeftEmployeeVm>> GetAllLeftEmployee(int companyId, string BranchId, int Year,string LetterType); 
+        Task<List<GetAllLeftEmployeeVm>> GetEmployeeforPromotionincrementletter(int companyId, string BranchId, int Year ,string Lettertype); 
+        Task<List<GetAllLeftEmployeeVm>> GetAllEmployeeforletter(int companyId, string BranchId, int Year, string LetterType); 
+        Task<List<letterInformation>> GetLetterInformation(); 
+
+
+
+    }
+
+  
+}

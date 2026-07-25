@@ -1,0 +1,480 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Leave Cancellation Requests";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+<title>Leave Cancellation Approval</title>
+
+<!-- ExcelJS + FileSaver for Export -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Leave Cancellation Requests</h6>
+            <a href="/AdminPanel/Report/AddLeavecancellationRequestAdmin" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bx bx-plus"></i> Add
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 160px;min-width:150px;">
+                    <label for="searchby">Search By</label>
+                    <select id="searchby">
+                        <option value="1">Emp Name</option>
+                        <option value="2">Emp Code</option>
+                        <option value="3">Leave Type</option>
+                        <option value="4">Manager Name</option>
+                    </select>
+                </div>
+
+                <div class="fg" style="flex:1 1 190px;min-width:170px;">
+                    <label for="searchfor">Search For</label>
+                    <input type="text" id="searchfor" placeholder="Enter search text" />
+                </div>
+
+                <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                    <label for="fromdate">From Date</label>
+                    <input type="date" id="fromdate" />
+                </div>
+
+                <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                    <label for="todate">To Date</label>
+                    <input type="date" id="todate" />
+                    <span class="field-validation-error" id="spnDateRange" style="display:none;">To Date must be after From Date</span>
+                </div>
+
+                <div style="flex:0 0 auto;">
+                    <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Status</span>
+                    <div class="d-flex gap-3">
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="type" id="r2" checked>
+                            <label class="form-check-label" for="r2">Pending</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="type" id="r3">
+                            <label class="form-check-label" for="r3">Approved</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="type" id="r4">
+                            <label class="form-check-label" for="r4">Rejected</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="actionButtonsWrap" style="display:none;">
+                <div class="d-flex justify-content-end gap-2 mb-3">
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnSelectAllLc">
+                        <i class="bx bx-check-square"></i> Select All
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnExportLc">
+                        <i class="bx bx-download"></i> Export to Excel
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnApprove">
+                        <i class="bx bx-check"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Approve</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="btnReject">
+                        <i class="bx bx-x"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Reject</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="gridContainerLeaveCancellation"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var EmployeeId = localStorage.getItem('EmployeeId');
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var CompanyId = companyDetails.CompanyId;
+
+        var selectedIds = {};
+        var currentRows = [];
+        var grid = null;
+        var isLoadingLc = false;
+        var isProcessingLc = false;
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function statusPill(status) {
+            if (status === 'Approved') return '<span class="wg-pill wg-pill-green">Approved</span>';
+            if (status === 'Rejected') return '<span class="wg-pill wg-pill-red">Rejected</span>';
+            if (status === 'Pending') return '<span class="wg-pill wg-pill-amber">Pending</span>';
+            return status || '-';
+        }
+
+        function getStatus() {
+            if ($('#r2').is(':checked')) return 'Pending';
+            if ($('#r3').is(':checked')) return 'Approved';
+            if ($('#r4').is(':checked')) return 'Rejected';
+            return null;
+        }
+
+        function getSearchByText(value) {
+            switch (value) {
+                case '1': return 'EmpName';
+                case '2': return 'EmpCode';
+                case '3': return 'LeaveType';
+                case '4': return 'ManagerName';
+                default: return null;
+            }
+        }
+
+        function goBack() { window.history.back(); }
+        window.goBack = goBack;
+
+        /* ── Document Ready ─────────────────────────── */
+        $(document).ready(function () {
+            $('#btnGo').click();
+
+            $('#fromdate, #todate').on('change', function () { $('#spnDateRange').hide(); });
+
+            $('#btnApprove').on('click', function () { handleApprovalOrRejection('Approved'); });
+            $('#btnReject').on('click', function () { handleApprovalOrRejection('Rejected'); });
+
+            $('input[name="type"]').on('change', function () {
+                $('#actionButtonsWrap').hide();
+                selectedIds = {};
+                currentRows = [];
+                grid = null;
+                $('#gridContainerLeaveCancellation').empty();
+            });
+
+            $('#btnSelectAllLc').on('click', function () {
+                var allSelected = currentRows.length > 0 && currentRows.every(function (r) { return !!selectedIds[r.leaveCancellationId]; });
+                selectedIds = {};
+                if (!allSelected) { currentRows.forEach(function (r) { selectedIds[r.leaveCancellationId] = true; }); }
+                if (grid) grid.refresh();
+            });
+
+            $('#btnExportLc').on('click', function () { exportLeaveCancellationToExcel(); });
+        });
+
+        /* ── GO Button ──────────────────────────────── */
+        $('#btnGo').on('click', function () {
+            if (isLoadingLc) return;
+
+            var fromDate = $('#fromdate').val();
+            var toDate = $('#todate').val();
+
+            if (fromDate && toDate && new Date(toDate) < new Date(fromDate)) {
+                $('#spnDateRange').show();
+                return;
+            }
+            $('#spnDateRange').hide();
+
+            var model = {
+                SearchBy: getSearchByText($('#searchby').val()),
+                SearchValue: $('#searchfor').val(),
+                FromDate: fromDate || null,
+                ToDate: toDate || null,
+                LeaveStatus: getStatus(),
+                Companyid: CompanyId
+            };
+
+            isLoadingLc = true;
+            setBtnLoading('#btnGo', 'Go');
+            selectedIds = {};
+            $('#actionButtonsWrap').hide();
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/GetLeaveCancellationReportAdmin")',
+                type: 'POST',
+                data: JSON.stringify(model),
+                contentType: 'application/json',
+                success: function (res) {
+                    isLoadingLc = false;
+                    setBtnNormal('#btnGo', 'Go');
+
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        currentRows = res.data;
+                        renderGrid(currentRows);
+                        $('#actionButtonsWrap').show();
+                    } else {
+                        currentRows = [];
+                        grid = null;
+                        $('#gridContainerLeaveCancellation').empty();
+                        showToast(res.responseMessage || 'No data found.', 'info');
+                        $('#actionButtonsWrap').hide();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingLc = false;
+                    setBtnNormal('#btnGo', 'Go');
+                    console.error('AJAX Error:', { status: status, error: error, responseText: xhr.responseText });
+                    currentRows = [];
+                    grid = null;
+                    $('#gridContainerLeaveCancellation').empty();
+                    showToast('Error loading data: ' + error, 'error');
+                    $('#actionButtonsWrap').hide();
+                }
+            });
+        });
+
+        /* ── Clear Button ───────────────────────────── */
+        $('#btnClear').click(function () {
+            $('#searchby').val('1');
+            $('#searchfor').val('');
+            $('#fromdate').val('');
+            $('#todate').val('');
+            $('#spnDateRange').hide();
+            $('input[name="type"]').prop('checked', false);
+            $('#r2').prop('checked', true);
+            selectedIds = {};
+            currentRows = [];
+            grid = null;
+            $('#gridContainerLeaveCancellation').empty();
+            $('#actionButtonsWrap').hide();
+        });
+
+        window._toggleLcRow = function (id, checked) {
+            if (checked) selectedIds[id] = true;
+            else delete selectedIds[id];
+        };
+
+        window._rowApproveLc = function (id) { handleApprovalOrRejection('Approved', [id]); };
+        window._rowRejectLc = function (id) { handleApprovalOrRejection('Rejected', [id]); };
+
+        function getSelectedRows() {
+            return currentRows.filter(function (r) { return !!selectedIds[r.leaveCancellationId]; });
+        }
+
+        /* ── Render WMSGrid ───────────────────────────── */
+        function renderGrid(data) {
+            var columns = [
+                {
+                    header: '', sortable: false, width: '40px',
+                    render: function (v, row) {
+                        var checked = selectedIds[row.leaveCancellationId] ? ' checked' : '';
+                        return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleLcRow(' + row.leaveCancellationId + ', this.checked)">';
+                    }
+                },
+                { field: 'employeeCode', header: 'Employee Code', width: '120px' },
+                { field: 'fullName', header: 'Employee Name', width: '180px' },
+                { field: 'leave_Name', header: 'Leave Type', width: '130px' },
+                { header: 'From Date', sortable: false, width: '110px', render: function (v, row) { return fmtDate(row.fromDate); } },
+                { header: 'To Date', sortable: false, width: '110px', render: function (v, row) { return fmtDate(row.toDate); } },
+                { field: 'no_Of_Date', header: 'Days', width: '70px' },
+                { field: 'reason', header: 'Cancellation Reason', width: '200px' },
+                { header: 'Status', sortable: false, width: '110px', render: function (v, row) { return statusPill(row.leaveStatus); } },
+                { header: 'Approved By', sortable: false, width: '150px', render: function (v, row) { return row.updatedBy ? row.updatedBy : '-'; } },
+                { header: 'Approved Date', sortable: false, width: '120px', render: function (v, row) { return row.updatedDate ? fmtDate(row.updatedDate) : '-'; } },
+                {
+                    header: 'Action', sortable: false, width: '90px', stickyRight: true,
+                    render: function (v, row) {
+                        if (row.leaveStatus !== 'Pending') return '<span class="text-muted">-</span>';
+                        return '<div class="d-flex gap-1">' +
+                            '<button class="wg-btn wg-btn-outline" title="Approve" onclick="_rowApproveLc(' + row.leaveCancellationId + ')"><i class="bx bx-check"></i></button>' +
+                            '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Reject" onclick="_rowRejectLc(' + row.leaveCancellationId + ')"><i class="bx bx-x"></i></button>' +
+                            '</div>';
+                    }
+                }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerLeaveCancellation',
+                    title: 'Leave Cancellation Requests',
+                    icon: 'bx-calendar-x',
+                    exportName: 'LeaveCancellationRequests',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        /* ── Export to Excel ─────────────────────────── */
+        function exportLeaveCancellationToExcel() {
+            var rows = getSelectedRows();
+            if (rows.length === 0) rows = currentRows;
+
+            if (!rows || rows.length === 0) {
+                showToast('No data available to export.', 'warn');
+                return;
+            }
+
+            if (typeof ExcelJS === 'undefined') {
+                showToast('ExcelJS library not loaded. Please refresh the page.', 'error');
+                return;
+            }
+
+            var workbook = new ExcelJS.Workbook();
+            var worksheet = workbook.addWorksheet('Leave Cancellation');
+
+            worksheet.columns = [
+                { header: 'Employee Code', key: 'employeeCode', width: 15 },
+                { header: 'Employee Name', key: 'fullName', width: 25 },
+                { header: 'Leave Type', key: 'leave_Name', width: 18 },
+                { header: 'From Date', key: 'fromDate', width: 14 },
+                { header: 'To Date', key: 'toDate', width: 14 },
+                { header: 'Days', key: 'no_Of_Date', width: 8 },
+                { header: 'Cancellation Reason', key: 'reason', width: 30 },
+                { header: 'Leave Status', key: 'leaveStatus', width: 15 },
+                { header: 'Approved By', key: 'updatedBy', width: 20 },
+                { header: 'Approved Date', key: 'approvedDate', width: 15 }
+            ];
+
+            var headerRow = worksheet.getRow(1);
+            headerRow.eachCell(function (cell) {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F6F8E' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = {
+                    top: { style: 'thin' }, left: { style: 'thin' },
+                    bottom: { style: 'thin' }, right: { style: 'thin' }
+                };
+            });
+            headerRow.height = 25;
+
+            function safe(val) { return (val === null || val === undefined) ? '' : String(val); }
+
+            rows.forEach(function (row) {
+                if (!row) return;
+
+                var approvedDate = '-';
+                if (row.updatedDate) {
+                    var d = new Date(row.updatedDate);
+                    if (!isNaN(d.getTime())) {
+                        approvedDate = String(d.getDate()).padStart(2, '0') + '/' +
+                            String(d.getMonth() + 1).padStart(2, '0') + '/' +
+                            d.getFullYear();
+                    }
+                }
+
+                var dataRow = worksheet.addRow({
+                    employeeCode: safe(row.employeeCode),
+                    fullName: safe(row.fullName),
+                    leave_Name: safe(row.leave_Name),
+                    fromDate: fmtDate(row.fromDate),
+                    toDate: fmtDate(row.toDate),
+                    no_Of_Date: safe(row.no_Of_Date),
+                    reason: safe(row.reason),
+                    leaveStatus: safe(row.leaveStatus),
+                    updatedBy: row.updatedBy ? safe(row.updatedBy) : '-',
+                    approvedDate: approvedDate
+                });
+
+                dataRow.eachCell(function (cell) {
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                    };
+                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                });
+            });
+
+            var status = getStatus() || 'Export';
+            var today = new Date();
+            var dateStr = String(today.getDate()).padStart(2, '0') + '-' +
+                String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                today.getFullYear();
+            var fileName = 'LeaveCancellation_' + status + '_' + dateStr + '.xlsx';
+
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+                showToast(rows.length + ' record(s) exported successfully.', 'success');
+            }).catch(function (err) {
+                console.error('Export error:', err);
+                showToast('Export failed: ' + err.message, 'error');
+            });
+        }
+
+        /* ── Approve / Reject ───────────────────────── */
+        function handleApprovalOrRejection(status, ids) {
+            if (isProcessingLc) return;
+
+            var targetIds = ids || Object.keys(selectedIds).map(function (k) { return parseInt(k); });
+
+            if (!targetIds || targetIds.length === 0) {
+                showToast('Please select at least one record.', 'warn');
+                return;
+            }
+
+            var selectedRecords = currentRows.filter(function (r) { return targetIds.includes(r.leaveCancellationId); });
+            var nonPendingRecords = selectedRecords.filter(function (r) { return r.leaveStatus !== 'Pending'; });
+
+            if (nonPendingRecords.length > 0) {
+                showToast(nonPendingRecords.length + ' selected record(s) are not Pending and cannot be ' + status.toLowerCase() + '.', 'warn');
+                return;
+            }
+
+            isProcessingLc = true;
+            var btnSel = status === 'Approved' ? '#btnApprove' : '#btnReject';
+            setBtnLoading(btnSel, status === 'Approved' ? 'Approving...' : 'Rejecting...');
+
+            var payload = selectedRecords.map(function (row) {
+                return {
+                    leaveCancellationId: row.leaveCancellationId,
+                    employeeId: row.id,
+                    isApproved: (status === 'Approved'),
+                    isRejected: (status === 'Rejected'),
+                    updatedBy: EmployeeId
+                };
+            });
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/LeaveCancellationAPI/UpdateLeaveCancellationStatus")',
+                type: 'PUT',
+                data: JSON.stringify(payload),
+                contentType: 'application/json',
+                success: function (response) {
+                    if (response.isSuccess) {
+                        showToast(response.responseMessage || 'Updated successfully.', 'success');
+                        selectedIds = {};
+                        $('#btnGo').click();
+                    } else {
+                        showToast(response.responseMessage || 'Failed to update.', 'error');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    showToast('Something went wrong during update.', 'error');
+                },
+                complete: function () {
+                    isProcessingLc = false;
+                    setBtnNormal(btnSel, status === 'Approved' ? 'Approve' : 'Reject');
+                }
+            });
+        }
+    })();
+</script>

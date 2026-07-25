@@ -1,588 +1,1027 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
-    string baseUrlLayout = Configuration["BaseUrlSettings:baseUrl"];
+    string baseUrlLayout   = Configuration["BaseUrlSettings:baseUrl"];
     string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
-    var uri = new Uri(baseUrlLayout);
-    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    var uri                = new Uri(baseUrlLayout);
+    string baseDomainUrl   = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - RELAY EXPRESS</title>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  
-    <!--favicon-->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " — HRMS" : "Admin Panel — HRMS")</title>
     <link rel="icon" href="~/assets/images/relayfevicon.jpeg" type="image/png" />
-    <!--plugins-->
-    <link href="~/assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css" rel="stylesheet" />
-    <link rel="stylesheet" href="~/assets/plugins/notifications/css/lobibox.min.css" />
-    <!-- Bootstrap CSS -->
-    <link href="~/assets/css/bootstrap.min.css" rel="stylesheet">
 
-    <link href="~/assets/css/app.css" rel="stylesheet">
-    <link href="~/assets/css/icons.css" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
 
+    <!-- WMS Core CSS (layout, palette, theme) -->
+    <link rel="stylesheet" href="~/assets/css/wms-site.css" />
+    <link rel="stylesheet" href="~/assets/css/app-shell.css" />
+    <link rel="stylesheet" href="~/assets/css/wms-theme.css" />
+    <link rel="stylesheet" href="~/assets/css/wms-modal.css" />
+    <!-- HRMS UI enhancements (stat cards, notification, modals) -->
+    <link rel="stylesheet" href="~/assets/css/hrms-ui.css" />
+
+    <!-- DevExtreme base theme (required by dx.all.js widgets: popups, grids, toolbars) -->
     <link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/21.1.5/css/dx.common.css">
     <link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/21.1.5/css/dx.light.css">
-    <!--Compnay modal css-->
+
+    <!-- Bootstrap (modals, forms, grid used inside page content) -->
+    <link href="~/assets/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- HRMS Plugin / App CSS -->
+    <link href="~/assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/assets/plugins/notifications/css/lobibox.min.css" />
+    <link href="~/assets/css/icons.css" rel="stylesheet" />
+    <link href="~/assets/css/export-data.css" rel="stylesheet" />
     <link href="~/assets/css/company-modal.css" rel="stylesheet" />
+    <link href="~/assets/css/compoffleavemodal.css" rel="stylesheet" />
 
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/css/boxicons.min.css" rel="stylesheet">
-    <!--layout-->
-    <link href="~/assets/css/relay.css" rel="stylesheet" />
+    <!-- HRMS Premium UI — must be last to override Bootstrap + DevExtreme -->
+    <link rel="stylesheet" href="~/assets/css/hrms-premium.css" />
+    <link rel="stylesheet" href="~/assets/css/hrms-wms-form-bridge.css" />
 
-   
+    <!-- Styles for the .searchable-select-wrapper widget (searchableselect.js) —
+         without this, its dropdown-arrow SVG and dropdown panel have no CSS at
+         all and fall back to raw browser defaults (a ~300px arrow, unstyled list). -->
+    <link rel="stylesheet" href="~/assets/css/searchable-select.css" />
+
+    <!-- Theme must run before first paint to avoid palette flash -->
+    <script src="~/assets/js/wms-theme.js"></script>
 
     <style>
-         .loader-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: none; /* hidden by default */
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    backdrop-filter: blur(4px); /* blur background */
-    background: rgba(255, 255, 255, 0.3); /* light transparent overlay */
-    flex-direction: column;
-    }
+        /* ── Notification: #notificationCount hidden, synced to dot by hrms-shell.js ── */
+        #notificationCount { display:none; }
+        .hrms-notif-wrap { position: relative; }
+        /* notification-dropdown + notification-item styles → hrms-ui.css */
 
-    /* Spinner image */
-    .logo-spinner {
-    width: 80px;
-    height: 80px;
-    animation: spin 1s linear infinite;
-    }
-
-    /* Optional: loading text */
-    .loading-text {
-    margin-top: 10px;
-    font-size: 18px;
-    color: #333;
-    }
-
-    /* Spinner animation */
-    @@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-    }
-
-        .dropdown-submenu {
-            position: relative;
+        /* ── Company name in top nav (slim) ── */
+        .hrms-company-name {
+            font-size: 11px; color: rgba(255,255,255,.75);
+            max-width: 200px; overflow: hidden;
+            white-space: nowrap; text-overflow: ellipsis;
         }
+        .companyNameLayout {
+            max-width: 200px; overflow-x: auto; white-space: nowrap;
+            scrollbar-width: none;
+        }
+        .companyNameLayout::-webkit-scrollbar { display: none; }
 
+        /* ── Tooltip on company name ── */
+        .custom-tooltip { display:inline-block; cursor:grab; position:relative; }
+        .custom-tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute; bottom:150%; left:0;
+            background: rgba(0,0,0,.85); color:#fff;
+            padding: 6px 10px; border-radius:5px;
+            white-space: normal; max-width:400px;
+            opacity:0; pointer-events:none;
+            transition: opacity .3s;
+            z-index: 1000;
+        }
+        .custom-tooltip:hover::after { opacity:1; }
 
-            .dropdown-submenu .submenu {
-                display: none !important;
-                position: absolute;
-                top: 0;
-                left: 100%;
-                margin-left: 0.1rem;
-                background-color: #fff;
-                border: 1px solid #ddd;
-                min-width: 150px;
-                z-index: 1000;
-            }
+        /* ── Sidebar sub-group (nested within a group body) ── */
+        .sb-subgroup { margin: 3px 6px 3px 6px; border-radius:6px; overflow:hidden; }
+        .sb-subgroup .sb-group-hdr {
+            font-size: 11.5px !important;
+            padding: 5px 10px !important;
+            background: linear-gradient(to bottom, #6b8fa8, #5a7e99) !important;
+        }
+        .sb-link-indent { padding-left: 28px !important; font-size: 11.5px !important; }
 
-            .dropdown-submenu:hover .submenu {
-                display: block !important;
-            }
+        /* ── Bootstrap dropdown submenu (kept for page content) ── */
+        .dropdown-submenu { position: relative; }
+        .dropdown-submenu .sub-menu {
+            display: none; position: absolute;
+            top:0; left:100%;
+            background:#fff; border:1px solid #ccc;
+            border-radius:4px; box-shadow:0 0 10px rgba(0,0,0,.1);
+            min-width:160px; padding:0; z-index:999;
+        }
+        .dropdown-submenu:hover .sub-menu { display: block; }
 
+        /* ── readonly menu items ── */
+        .readonly { pointer-events:none; color:gray; opacity:.3; cursor:not-allowed; }
 
+        /* ══════════════════════════════════════════════════════════════
+           UI REFINEMENTS  (WMS-native sizing, minimal overrides)
+           ══════════════════════════════════════════════════════════════ */
 
-        .submenu-toggle {
+        /* ── HRMS brand text (replaces logo image) ── */
+        .hrms-brand-text {
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 3.5px;
+            color: #ffffff;
+            text-transform: uppercase;
+            font-family: 'Inter', sans-serif;
+            padding: 0 2px;
+        }
+        .as-top-nav-brand { text-decoration: none !important; }
+
+        /* ── Company name + page subtitle in gradient project header ── */
+        .hrms-proj-header-brand {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
+            align-items: baseline;
+            gap: 10px;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .hrms-company-headline {
+            font-size: 17px;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            flex-shrink: 0;
+            text-shadow: 0 1px 6px rgba(0,0,0,.25);
+        }
+        .hrms-proj-separator {
+            color: rgba(255,255,255,.35);
+            font-size: 17px;
+            font-weight: 200;
+            flex-shrink: 0;
+        }
+        .hrms-page-subtitle {
+            font-size: 12px;
+            color: rgba(255,255,255,.70);
+            font-weight: 400;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-top: 2px;
         }
 
+        /* ── Sidebar: hide left icon, add right › arrow only ── */
+        .sidebar .sb-link { position: relative !important; padding-right: 26px !important; }
+        .sidebar .sb-link .sb-ic { display: none !important; }
+        .sidebar .sb-link::after {
+            content: '›';
+            font-size: 18px;
+            line-height: 1;
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: .30;
+            transition: opacity .15s, transform .15s;
+        }
+        .sidebar .sb-link:hover::after     { opacity: .80; transform: translateY(-50%) translateX(2px); }
+        .sidebar .sb-link.is-active::after { opacity: 1;   transform: translateY(-50%) translateX(2px); }
 
-       
-
+        /* ── Dashboard link right arrow ── */
+        .sidebar .sb-dash-link { position: relative !important; padding-right: 26px !important; }
+        .sidebar .sb-dash-link::after {
+            content: '›';
+            font-size: 18px;
+            line-height: 1;
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: .30;
+            transition: opacity .15s;
+        }
+        .sidebar .sb-dash-link:hover::after     { opacity: .80; }
+        .sidebar .sb-dash-link.is-active::after { opacity: 1; }
     </style>
 
-
-
-  
-
- 
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <!--Loader-->
-    <div id="loader" class="loader-container">
-        <img src="@baseDomainUrl/loders/loder.png" class="logo-spinner" alt="Loading..." />
-        <div class="loading-text">Loading,please wait...</div>
-    </div>
-    <!-- Header -->
-    <header class="main-header">
-        <div class="header-content">
-            <div class="header-left">
-                <div class="mobile-toggle" onclick="toggleSidebar()">
-                    <i class='bx bx-menu' style="font-size: 20px;"></i>
-                </div>
 
-                <div class="logo-section">
-                    <div class="logo">RE</div>
-                    <span class="brand-name">
-                        <img src="~/assets/images/relaylogo.jpeg" class="logo-icon" alt="logo icon">
+    <!-- ══ Page Loader — WMS premium dot spinner ══ -->
+    <div id="loader" class="wg-page-loader" style="display:none">
+        <div class="wg-dot-spinner">
+            <div></div><div></div><div></div><div></div><div></div><div></div>
+            <div></div><div></div><div></div><div></div><div></div><div></div>
+        </div>
+        <p class="hrms-loader-text">Please wait<span class="hrms-loader-dots"></span></p>
+    </div>
+
+    <!-- Critical deps: load before app-shell (and before @RenderBody inline scripts) -->
+    <script src="~/assets/js/jquery.min.js"></script>
+    <script src="~/assets/js/bootstrap.bundle.min.js"></script>
+    <script src="~/assets/js/hrms-loader.js"></script>
+    <script src="~/assets/js/hrms-notify.js"></script>
+    <script src="~/assets/js/hrms-utils.js"></script>
+    <script src="~/assets/js/hrms-grid-config.js"></script>
+    <script src="~/assets/js/wms-grid.js"></script>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         APP SHELL WRAP
+         ══════════════════════════════════════════════════════════════ -->
+    <div id="app-shell-wrap">
+        <div class="app-shell">
+
+            <!-- ══ SLIM TOP NAV (28 px) ══════════════════════════════════ -->
+            <header class="as-top-nav">
+                <div class="as-top-nav-left">
+                    <a class="as-top-nav-brand" href="@UIBaseUrlLayout/AdminPanel/Home/index">
+                        <span class="hrms-brand-text">HRMS</span>
+                    </a>
+                </div>
+                <div class="as-top-nav-right">
+                    <!-- Company name -->
+                    <span class="hrms-company-name companyNameLayout">
+                        <span class="custom-tooltip"></span>
                     </span>
+                    <span class="as-top-nav-sep">|</span>
+                    <span class="as-top-nav-loggedas">Logged in as <strong id="as-userName" class="user-name">User</strong></span>
+                    <span class="as-top-nav-sep">|</span>
+                    <!-- My Account dropdown -->
+                    <div id="as-user-dd-wrap" class="as-user-dd-wrap">
+                        <button type="button" class="as-top-nav-link" id="as-myAccountBtn"
+                                onclick="AppShell.toggleUserDd();return false;" title="My Account">
+                            My Account <i class="bx bx-chevron-down" style="font-size:11px;margin-left:2px;opacity:.85"></i>
+                        </button>
+                        <div id="as-user-dd" class="as-user-dd">
+                            <div id="dropdown-user-info" style="padding:12px 16px;border-bottom:1px solid #F1F5F9;background:#F8FAFC">
+                                <div style="font-size:13px;font-weight:700;color:#1e3a5f" id="dropdown-name"></div>
+                                <div style="font-size:11px;color:#64748B" id="dropdown-role">Admin Panel</div>
+                            </div>
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Employee/MyProfile" class="as-user-dd-item">
+                                <i class="bx bx-user"></i> My Profile
+                            </a>
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Home/index" class="as-user-dd-item" id="dropdownESSSwitch" style="display:none;">
+                                <i class="bx bx-transfer"></i> Switch to ESS
+                            </a>
+                            <a href="javascript:;" class="as-user-dd-item" id="companyDrop">
+                                <i class="bx bx-building"></i> Change Company
+                            </a>
+                            <a href="@UIBaseUrlLayout/AuthManage/ChangePassword" class="as-user-dd-item" id="changePassword">
+                                <i class="bx bx-key"></i> Change Password
+                            </a>
+                            <div style="border-top:1px solid #F1F5F9;margin:4px 0"></div>
+                            <a href="#" class="as-user-dd-item as-user-dd-signout" id="btnLogout">
+                                <i class="bx bx-log-out"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                    <span class="as-top-nav-sep">|</span>
+                    <!-- Standalone Sign Out link — reuses #btnLogout's existing click
+                         handler (logout.js) rather than duplicating the logout logic. -->
+                    <button type="button" class="as-top-nav-link" id="as-signOutBtn"
+                            onclick="document.getElementById('btnLogout').click();return false;" title="Sign Out">
+                        <i class="bx bx-log-out"></i> Sign Out
+                    </button>
                 </div>
+            </header>
 
-                <div class="search-section">
-                    <div class="search-box">
-                        <input type="text" placeholder="Type to search...">
-                        <i class='bx bx-search'></i>
+            <!-- ══ PROJECT HEADER (40 px) ════════════════════════════════ -->
+            <header class="as-project-header">
+                <div class="as-project-header-left">
+                    <button class="as-top-nav-link" id="mob-menu-btn"
+                            onclick="hrmsToggleMobSidebar()" title="Toggle navigation"
+                            style="padding:3px 8px;background:rgba(255,255,255,.12)">
+                        <i class="bx bx-menu"></i>
+                    </button>
+                    <div class="hrms-proj-header-brand">
+                        <span class="hrms-company-headline" id="hrms-company-header">HRMS</span>
+                        <span class="hrms-proj-separator">|</span>
+                        <span class="hrms-page-subtitle" id="topbar-page-title">@(ViewData["Title"]?.ToString() ?? "Admin Panel")</span>
+                    </div>
+                </div>
+                <div class="as-project-header-right">
+                    <!-- HRMS Notification Bell -->
+                    <div class="hrms-notif-wrap" id="bellIcon">
+                        <button type="button" class="as-notif-btn" id="notif-bell-btn"
+                                title="Notifications"
+                                onclick="document.getElementById('notificationDropdown').classList.toggle('show');event.stopPropagation();">
+                            <i class="bx bx-bell"></i>
+                            <span class="as-notif-dot" id="notif-dot-topbar">0</span>
+                        </button>
+                        <!-- Populated by notification-remainder.js -->
+                        <div class="notification-dropdown" id="notificationDropdown">
+                            <div class="notification-header">
+                                <h6><i class="bx bx-bell"></i> Notifications</h6>
+                                <button class="notif-mark-all-btn" type="button"
+                                        onclick="if(typeof readNotification==='function') readNotification('All'); loadAllUnreadNotification(); return false;">
+                                    Mark all read
+                                </button>
+                            </div>
+                            <div class="notification-list" id="notificationList"></div>
+                            <div class="notification-footer">
+                                <a href="#" class="notif-view-all" onclick="return false;">
+                                    View all notifications <i class="bx bx-right-arrow-alt"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <!-- Hidden HRMS badge element (kept for JS compat) -->
+                        <span id="notificationCount" style="display:none">0</span>
+                    </div>
+
+                    <!-- Search pages (reads from #sidebar-link via app-shell.js) -->
+                    <div class="as-quick-search-wrap">
+                        <span class="as-quick-search-icon"><i class="bx bx-search"></i></span>
+                        <input type="text" id="as-globalSearch" class="as-quick-search-input"
+                               placeholder="Search pages…"
+                               autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" />
+                        <div id="as-globalSearch-dd" class="as-quick-search-dd"></div>
+                    </div>
+
+                    <!-- Jump to page -->
+                    <select id="as-jumpToPage" class="as-jump-select wms-no-dd" title="Jump to a page" aria-label="Jump to a page">
+                        <option value="">Jump to a page…</option>
+                    </select>
+                </div>
+            </header>
+
+            <!-- ══ MODULE TABS (38 px) ═══════════════════════════════════ -->
+            <nav class="as-tab-nav" id="as-tab-nav" role="tablist" aria-label="Module tabs">
+                <a class="as-tab-nav-item" href="@UIBaseUrlLayout/AdminPanel/Home/index"
+                   data-tab-ctrl="home"><i class="bx bx-home-circle"></i><span>Dashboard</span></a>
+                <a class="as-tab-nav-item adminControlPanelMenu" href="@UIBaseUrlLayout/AdminPanel/ManageRole/ManageRole"
+                   data-tab-ctrl="managerolepermission"><i class="bx bx-cog"></i><span>Control Panel</span></a>
+                <a class="as-tab-nav-item" href="@UIBaseUrlLayout/AdminPanel/JobMaster/State"
+                   data-tab-ctrl="jobmaster"><i class="bx bx-briefcase"></i><span>Job Master</span></a>
+                <a class="as-tab-nav-item" href="@UIBaseUrlLayout/AdminPanel/OtherMaster/OrganizationPolicy"
+                   data-tab-ctrl="othermaster"><i class="bx bx-list-ul"></i><span>Other Master</span></a>
+                <a class="as-tab-nav-item" href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/BankMaster"
+                   data-tab-ctrl="companystructure"><i class="bx bx-building-house"></i><span>Company Structure</span></a>
+                <a class="as-tab-nav-item" href="@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster"
+                   data-tab-ctrl="employeemaster"><i class="bx bx-user"></i><span>Employee</span></a>
+                <a class="as-tab-nav-item" href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/Index"
+                   data-tab-ctrl="salarydetails"><i class="bx bx-wallet"></i><span>Salary Details</span></a>
+                <a class="as-tab-nav-item adminLeaveMenu" href="@UIBaseUrlLayout/EmployeePanel/Leave/AdminLeaveApproval"
+                   data-tab-ctrl="leave"><i class="bx bx-calendar"></i><span>Leave</span></a>
+                <a class="as-tab-nav-item adminLetterMenu" href="@UIBaseUrlLayout/AdminPanel/Report/Reports"
+                   data-tab-ctrl="report"><i class="bx bx-bar-chart-alt-2"></i><span>Reports</span></a>
+            </nav>
+
+            <!-- ══ SIDEBAR ════════════════════════════════════════════════ -->
+            <aside class="sidebar" id="sidebar">
+                <!-- Profile block — populated by logindetails.js -->
+                <div class="sb-user" id="sb-profile-block">
+                    <div class="sb-user-av" id="sb-user-av">
+                        <img src="@baseDomainUrl/default-image/avatar-2.png"
+                             alt="Profile" id="sb-user-avatar-img" class="profileImage"
+                             style="width:100%;height:100%;object-fit:cover;border-radius:50%" />
+                    </div>
+                    <div class="sb-user-info" id="sb-user-info">
+                        <div class="sb-user-name user-name" id="sb-user-name">Loading…</div>
+                        <div class="sb-user-role designation" id="sb-user-role">Admin Panel</div>
                     </div>
                 </div>
 
-                <div class="company-info companyNameLayout">
-                </div>
-            </div>
+                <!-- ══ Nav Links ══ -->
+                <div id="sidebar-link">
 
-            <div class="user-section" onclick="toggleUserDropdown()">
-                <div class="user-avatar">
-                    <img class="user-avatar" src="@baseDomainUrl/default-image/avatar-2.png" alt="User Image" style="border: 1px solid #000;" />
-                </div>
-
-                <div class="user-info">
-                    <h6 class="user-name">Unknown</h6>
-                    <small class="designation">Unknown</small>
-                </div>
-                <i class='bx bx-chevron-down' id="userChevron"></i>
-
-                <!-- User Dropdown Menu -->
-                <div class="user-dropdown" id="userDropdown">
-                   
-                    
-                    <a href="@UIBaseUrlLayout/EmployeePanel/Home/index" class="user-dropdown-item" id="dropdownESSSwitch">
-                        <i class='bx bx-user'></i>
-                        <span>ESS</span>
+                    <!-- Dashboard -->
+                    <a href="@UIBaseUrlLayout/AdminPanel/Home/index" class="sb-dash-link">
+                        <span class="sb-ic"><i class="bx bx-home-circle"></i></span>
+                        <span class="sb-label">Dashboard</span>
                     </a>
 
-                    <a href="javascript:;" class="user-dropdown-item" id="companyDrop">
-                       
-                        <i class='bx bx-building'></i>
-                        <span>Change Company</span>
-                    </a>
-
-                    <a href="@UIBaseUrlLayout/AuthManage/ChangePassword" class="user-dropdown-item" id="changePassword">
-                        <i class='bx bx-building'></i>
-                        <span>Change Password</span>
-                    </a>
-
-                  
-                   @*  <a href="#" class="user-dropdown-item">
-                        <i class='bx bx-user'></i>
-                        <span>My Profile</span>
-                    </a>
-                    <a href="#" class="user-dropdown-item">
-                        <i class='bx bx-cog'></i>
-                        <span>account settings</span>
-                    </a>
-                    <a href="#" class="user-dropdown-item">
-                        <i class='bx bx-bell'></i>
-                        <span>notifications</span>
-                    </a>
-                    <a href="#" class="user-dropdown-item">
-                        <i class='bx bx-help-circle'></i>
-                        <span>help & support</span>
-                    </a>
-                    <a href="#" class="user-dropdown-item">
-                        <i class='bx bx-moon'></i>
-                        <span>dark mode</span>
-                    </a> *@
-                    <div style="border-top: 1px solid #e9ecef; margin: 5px 0;"></div>
-                    <a href="#" class="user-dropdown-item logout" id="btnLogout">
-                        <i class='bx bx-log-out'></i>
-                        <span>Logout</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Navigation Bar (Desktop) -->
-    <nav class="main-navbar">
-        <ul class="nav-items">
-            <!-- Dashboard -->
-            <li class="nav-item">
-                <a href="@UIBaseUrlLayout/AdminPanel/Home/index" class="nav-link active">
-                    <i class='bx bx-home-circle nav-icon'></i>
-                    Dashboard
-                </a>
-            </li>
-
-            <!-- Control Panel -->
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class='bx bx-cog nav-icon'></i>
-                    Control Panel
-                    <i class='bx bx-chevron-down' style="margin-left: 5px;"></i>
-                </a>
-                <div class="dropdown-menu">
-
-                    <div class="dropdown-submenu">
-                        <a href="#" class="dropdown-item submenu-toggle">Company Info <i class='bx bx-chevron-right '></i></a>
-                        <div class="dropdown-menu submenu">
-                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyInformation/CompanyDetails" class="dropdown-item">Company Details</a>
-
+                    <!-- ── Control Panel ── -->
+                    <div class="sb-group collapsed adminControlPanelMenu">
+                        <div class="sb-group-hdr" onclick="sbToggleGroup(this.parentElement)">
+                            <span class="sb-group-hdr-ic"><i class="bx bx-cog"></i></span>
+                            <span class="sb-group-hdr-txt">Control Panel</span>
+                            <i class="bx bx-chevron-down sb-group-chevron"></i>
+                        </div>
+                        <div class="sb-group-body">
+                            <!-- Company Info (hidden until permission shows it) -->
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyInformation/CompanyDetails" class="sb-link" id="sidebarCompanyInfo" style="display:none;">
+                                <span class="sb-ic"><i class="bx bx-building"></i></span>
+                                <span class="sb-label">Company Details</span>
+                            </a>
+                            <!-- Role & Permission -->
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageRole/ManageRole" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-shield"></i></span>
+                                <span class="sb-label">Manage Role</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/PermissionMaster/PermissionMaster" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-shield"></i></span>
+                                <span class="sb-label">Manage Permission</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/ImportData/Index" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-import"></i></span>
+                                <span class="sb-label">Import Data</span>
+                            </a>
+                            <!-- Assign Permission -->
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageRolePermission/RolePermission" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-key"></i></span>
+                                <span class="sb-label">Assign Role</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageUserPermission/UserPermission" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-key"></i></span>
+                                <span class="sb-label">Assign User</span>
+                            </a>
+                            <!-- Approvals -->
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageApproval/ApprovalMaster" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-check-circle"></i></span>
+                                <span class="sb-label">Approval Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageApproval/ApprovalManagement" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-check-circle"></i></span>
+                                <span class="sb-label">Approval Management</span>
+                            </a>
                         </div>
                     </div>
 
-                    <div class="dropdown-submenu">
-                        <a href="#" class="dropdown-item submenu-toggle">Manage Role and Permission <i class='bx bx-chevron-right '></i></a>
-                        <div class="dropdown-menu submenu">
-                            <a href="@UIBaseUrlLayout/AdminPanel/ManageRole/ManageRole" class="dropdown-item">Manage Role</a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/PermissionMaster/PermissionMaster" class="dropdown-item">Manage Permission</a>
+                    <!-- ── Job Master ── -->
+                    <div class="sb-group collapsed">
+                        <div class="sb-group-hdr" onclick="sbToggleGroup(this.parentElement)">
+                            <span class="sb-group-hdr-ic"><i class="bx bx-briefcase"></i></span>
+                            <span class="sb-group-hdr-txt">Job Master</span>
+                            <i class="bx bx-chevron-down sb-group-chevron"></i>
+                        </div>
+                        <div class="sb-group-body">
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/State" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">State Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageBranch" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Branch Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageDepartment" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Department Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageDesignation" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Designation Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageGrade" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Grade Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/Reason" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Reason Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageShifts" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Shift Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/NewsAnnouncement" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">News Announcement</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/UniformMaster" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Uniform Master</span>
+                            </a>
                         </div>
                     </div>
 
-                    <a href="@UIBaseUrlLayout/AdminPanel/ImportData/Index" class="dropdown-item">Import Data</a>
-
-                    <div class="dropdown-submenu">
-                        <a href="#" class="dropdown-item submenu-toggle">Assign Permission <i class='bx bx-chevron-right'></i></a>
-                        <div class="dropdown-menu submenu">
-                            <a href="@UIBaseUrlLayout/AdminPanel/ManageRolePermission/RolePermission" class="dropdown-item">Assign Role</a>
+                    <!-- ── Other Master ── -->
+                    <div class="sb-group collapsed">
+                        <div class="sb-group-hdr" onclick="sbToggleGroup(this.parentElement)">
+                            <span class="sb-group-hdr-ic"><i class="bx bx-list-ul"></i></span>
+                            <span class="sb-group-hdr-txt">Other Master</span>
+                            <i class="bx bx-chevron-down sb-group-chevron"></i>
+                        </div>
+                        <div class="sb-group-body">
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/OrganizationPolicy" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Organization Policy</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/GeoLocationMasterAssign" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Geo Location</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/TicketType" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Ticket Type</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/TicketStatus" class="sb-link liTicketStatus" style="display:none;">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Ticket Status</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/PasswordManager/ResetPassword" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Reset Employee Password</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/SkillMaster" class="sb-link drpSkillMaster" style="display:none;">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Skill Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/EmployeeHolidayMarking" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Employee Holiday Marking</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/AttendanceLock" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Attendance Lock</span>
+                            </a>
+                            <!-- Manpower -->
+                            <a href="@UIBaseUrlLayout/AdminPanel/Manpower/ManpowerRequisition" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-group"></i></span>
+                                <span class="sb-label">Manpower Requisition</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Manpower/EmployeeJoiningEntry" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-group"></i></span>
+                                <span class="sb-label">Employee Joining Entry</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/EmployeePanel/ManPowerApproval/ManPowerApproval" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-group"></i></span>
+                                <span class="sb-label">Man Power Approval</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Manpower/ManpowerRequisitionApprovalStatus" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-group"></i></span>
+                                <span class="sb-label">Requisition Approval Status</span>
+                            </a>
                         </div>
                     </div>
-                </div>
-            </li>
 
-            <!-- Job Master -->
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class='bx bx-briefcase nav-icon'></i>
-                    Job Master
-                    <i class='bx bx-chevron-down' style="margin-left: 5px;"></i>
-                </a>
-                <div class="dropdown-menu">
-                    <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/State" class="dropdown-item">State Master</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageBranch" class="dropdown-item">Branch Master</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageDepartment" class="dropdown-item">Department Master</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageDesignation" class="dropdown-item">Designation Master</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageGrade" class="dropdown-item">Grade Master</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/Reason" class="dropdown-item">Reason Master</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageShifts" class="dropdown-item">Shift Master</a>
-                </div>
-            </li>
+                    <!-- ── Company Structure ── -->
+                    <div class="sb-group collapsed">
+                        <div class="sb-group-hdr" onclick="sbToggleGroup(this.parentElement)">
+                            <span class="sb-group-hdr-ic"><i class="bx bx-building-house"></i></span>
+                            <span class="sb-group-hdr-txt">Company Structure</span>
+                            <i class="bx bx-chevron-down sb-group-chevron"></i>
+                        </div>
+                        <div class="sb-group-body">
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/BankMaster" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Bank Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/WeekOffMaster" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">WeekOff Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/HolidayMaster" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Holiday Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/WarningMaster" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Warning Master</span>
+                            </a>
+                        </div>
+                    </div>
 
-            <!-- Other Master -->
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class='bx bx-list-ul nav-icon'></i>
-                    Other Master
-                    <i class='bx bx-chevron-down' style="margin-left: 5px;"></i>
-                </a>
-                <div class="dropdown-menu">
-                    <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/OrganizationPolicy" class="dropdown-item">Organization Policy</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/GeoLocationMasterAssign" class="dropdown-item">Geo Location Master-Assign</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/TicketType" class="dropdown-item">Ticket Type</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/PunchInLocation" class="dropdown-item">Punch In Location</a>
-                </div>
-            </li>
+                    <!-- ── Employee ── -->
+                    <div class="sb-group collapsed">
+                        <div class="sb-group-hdr" onclick="sbToggleGroup(this.parentElement)">
+                            <span class="sb-group-hdr-ic"><i class="bx bx-user"></i></span>
+                            <span class="sb-group-hdr-txt">Employee</span>
+                            <i class="bx bx-chevron-down sb-group-chevron"></i>
+                        </div>
+                        <div class="sb-group-body">
+                            <a href="@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Employee Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/LeftEmployee/LeftEmployeeDetails" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Left Employee Details</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/EmployeeIncrement/EmployeeIncrementApplication" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Increment Application</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/GradeAllowance/GradeAllowance" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Gradewise Allowance</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Increment/EmployeeIncrement" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Employee Increment</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceRegularization" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Attendance Regularization</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/EmployeePanel/ManageProbation/Probation" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Probation Over</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageProbation/ProbationConfirmation" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Probation Review &amp; Confirmation</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Employeetransfer/Employeetransfer" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Employee Transfer</span>
+                            </a>
+                            <a href="javascript:;" class="sb-link" id="btnfetchUpcomingEscalaionProbation">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Pending Probation</span>
+                            </a>
+                        </div>
+                    </div>
 
-            <!-- Company Structure -->
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class='bx bx-building-house nav-icon'></i>
-                    Company Structure
-                    <i class='bx bx-chevron-down' style="margin-left: 5px;"></i>
-                </a>
-                <div class="dropdown-menu">
-                    <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/BankMaster" class="dropdown-item">Bank Master</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/WeekOffMaster" class="dropdown-item">WeekOff Master</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/HolidayMaster" class="dropdown-item">Holiday Master</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/WarningMaster" class="dropdown-item">Warning Master</a>
-                </div>
-            </li>
+                    <!-- ── Salary Details ── -->
+                    <div class="sb-group collapsed">
+                        <div class="sb-group-hdr" onclick="sbToggleGroup(this.parentElement)">
+                            <span class="sb-group-hdr-ic"><i class="bx bx-wallet"></i></span>
+                            <span class="sb-group-hdr-txt">Salary Details</span>
+                            <i class="bx bx-chevron-down sb-group-chevron"></i>
+                        </div>
+                        <div class="sb-group-body">
+                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/Index" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Salary Master</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/AddLoanApplication" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Loan Application</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/FullandfinalsettlementReport" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Full &amp; Final Settlement</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/SalaryPayableDaysOverride" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Salary Payable Days Override</span>
+                            </a>
+                        </div>
+                    </div>
 
-            <!-- Employee Master -->
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class='bx bx-user nav-icon'></i>
-                    Employee
-                    <i class='bx bx-chevron-down' style="margin-left: 5px;"></i>
-                </a>
-                <div class="dropdown-menu">
-                    <a href="@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster" class="dropdown-item">Employee Master</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/LeftEmployee/LeftEmployeeDetails" class="dropdown-item">Left Employee Details</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/EmployeeIncrement/EmployeeIncrementApplication" class="dropdown-item">Employee Increment Application</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/GradeAllowance/GradeAllowance" class="dropdown-item">Gradewise Allowance</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/Increment/EmployeeIncrement" class="dropdown-item">Employee Increment</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/BulkIncrement/BulkIncrement" class="dropdown-item">Bulk Increment</a>
-                    <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceRegularization" class="dropdown-item">Attendance Regularization</a>
-                </div>
-            </li>
+                    <!-- ── Leave ── -->
+                    <div class="sb-group collapsed adminLeaveMenu">
+                        <div class="sb-group-hdr" onclick="sbToggleGroup(this.parentElement)">
+                            <span class="sb-group-hdr-ic"><i class="bx bx-calendar"></i></span>
+                            <span class="sb-group-hdr-txt">Leave</span>
+                            <i class="bx bx-chevron-down sb-group-chevron"></i>
+                        </div>
+                        <div class="sb-group-body">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/AdminLeaveApproval" class="sb-link essAdminLeaveApproval">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Admin Leave Approval</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/DashboardReport/CompOffApprovalApplicationAdmin" class="sb-link essAdminLeaveApproval">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Comp Off Application</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/LeaveTransaction" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Leave Manage</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/LeavecancellationRequestRepotAdmin" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Leave Cancellation</span>
+                            </a>
+                        </div>
+                    </div>
 
-            <!-- Salary Details -->
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class='bx bx-wallet nav-icon'></i>
-                    Salary Details
-                    <i class='bx bx-chevron-down' style="margin-left: 5px;"></i>
-                </a>
-                <div class="dropdown-menu">
-                    <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/Index" class="dropdown-item">Salary Master</a>
-                </div>
-            </li>
+                    <!-- ── Reports ── -->
+                    <div class="sb-group collapsed adminLetterMenu">
+                        <div class="sb-group-hdr" onclick="sbToggleGroup(this.parentElement)">
+                            <span class="sb-group-hdr-ic"><i class="bx bx-bar-chart-alt-2"></i></span>
+                            <span class="sb-group-hdr-txt">Reports</span>
+                            <i class="bx bx-chevron-down sb-group-chevron"></i>
+                        </div>
+                        <div class="sb-group-body">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/Reports" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">All Reports</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceRegisterAdmin" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Attendance Register</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/SalaryRegisterAdmin" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Salary Register</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/DashboardReport/EmpInOutReportForAdmin" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Employee In Out Report</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/LeaveBalanceAdmin" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Leave Balance Report</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/TodaysAttendanceForAdmin" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Today's Attendance</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/ActiveInActiveUsers" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Active / Inactive Users</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/WhosOffReport" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Who's Off Report</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/LeaveYearlySummary" class="sb-link">
+                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                                <span class="sb-label">Yearly Leave Summary</span>
+                            </a>
+                        </div>
+                    </div>
 
-            <!-- Report -->
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class='bx bx-bar-chart-square nav-icon'></i>
-                    Report
-                    <i class='bx bx-chevron-down' style="margin-left: 5px;"></i>
-                </a>
-                <div class="dropdown-menu">
-                    <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceRegisterAdmin" class="dropdown-item">Attendance Register</a>
-                </div>
-            </li>
+                </div><!-- #sidebar-link -->
+            </aside>
 
-        </ul>
-    </nav>
-
-
-    <!-- Mobile Sidebar -->
-    <div class="mobile-sidebar" id="mobileSidebar">
-        <ul class="mobile-nav-items">
-    <li class="mobile-nav-item">
-        <a href="@UIBaseUrlLayout/AdminPanel/Home/index" class="mobile-nav-link">
-            <div class="mobile-nav-link-content">
-                <i class='bx bx-home-circle'></i>
-                <span>Dashboard</span>
+            <!-- ── Floating collapse toggle ── -->
+            <div class="sb-toggle-btn" id="sb-toggle-btn" onclick="sbToggleCollapse()" title="Toggle sidebar">
+                <i class="bx bx-chevrons-left" id="sb-toggle-icon"></i>
             </div>
-        </a>
-    </li>
 
-    <li class="mobile-nav-item">
-        <a href="#" class="mobile-nav-link" onclick="toggleMobileSubmenu(event, 'controlPanel')">
-            <div class="mobile-nav-link-content">
-                <i class='bx bx-cog'></i>
-                <span>Control Panel</span>
-            </div>
-            <i class='bx bx-chevron-down mobile-toggle-icon'></i>
-        </a>
+            <!-- ══ MAIN CONTENT AREA ════════════════════════════════════ -->
+            <main class="main-area" id="main-area">
 
-        <div class="mobile-submenu" id="controlPanel">
-               <div class="mobile-submenu-with-nested" onclick="toggleSubSubMenu(event, 'companyDetails')">
-                <span>Company Info</span>
-                <i class='bx bx-chevron-right submenu-toggle-icon'></i>
-            </div>
-
-            <div class="mobile-subsubmenu" id="companyDetails">
-                <a href="@UIBaseUrlLayout/AdminPanel/CompanyInformation/CompanyDetails" class="mobile-submenu-item">Company Details</a>
-            </div>
-
-                <div class="mobile-submenu-with-nested" onclick="toggleSubSubMenu(event, 'ManageRolePermission')">
-                <span>Manage Role & Permission</span>
-                <i class='bx bx-chevron-right submenu-toggle-icon'></i>
-            </div>
-
-            <div class="mobile-subsubmenu" id="ManageRolePermission">
-                <a href="@UIBaseUrlLayout/AdminPanel/ManageRole/ManageRole" class="mobile-submenu-item">Manage Role</a>
-                <a href="@UIBaseUrlLayout/AdminPanel/PermissionMaster/PermissionMaster" class="mobile-submenu-item">Manage Permission</a>
-            </div>
-          
-            <a href="@UIBaseUrlLayout/AdminPanel/ImportData/Index" class="mobile-submenu-item">Import Data</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/ManageRolePermission/RolePermission" class="mobile-submenu-item">Assign Permission</a>
-        </div>
-    </li>
-
-    <li class="mobile-nav-item">
-        <a href="#" class="mobile-nav-link" onclick="toggleMobileSubmenu(event, 'jobMaster')">
-            <div class="mobile-nav-link-content">
-                <i class='bx bx-briefcase'></i>
-                <span>Job Master</span>
-            </div>
-            <i class='bx bx-chevron-down mobile-toggle-icon'></i>
-        </a>
-        <div class="mobile-submenu" id="jobMaster">
-            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/State" class="mobile-submenu-item">State Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageBranch" class="mobile-submenu-item">Branch Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageDepartment" class="mobile-submenu-item">Department Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageDesignation" class="mobile-submenu-item">Designation Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageGrade" class="mobile-submenu-item">Grade Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/Reason" class="mobile-submenu-item">Reason Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageShifts" class="mobile-submenu-item">Shift Master</a>
-        </div>
-    </li>
-
-    <li class="mobile-nav-item">
-        <a href="#" class="mobile-nav-link" onclick="toggleMobileSubmenu(event, 'employee')">
-            <div class="mobile-nav-link-content">
-                <i class='bx bx-user'></i>
-                <span>Employee</span>
-            </div>
-            <i class='bx bx-chevron-down mobile-toggle-icon'></i>
-        </a>
-        <div class="mobile-submenu" id="employee">
-
-            <a href="@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster" class="mobile-submenu-item">Employee Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/LeftEmployee/LeftEmployeeDetails" class="mobile-submenu-item">Left Employee Details</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/EmployeeIncrement/EmployeeIncrementApplication" class="mobile-submenu-item">Employee Increment Application</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/GradeAllowance/GradeAllowance" class="mobile-submenu-item">Gradewise Allowance</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/Increment/EmployeeIncrement" class="mobile-submenu-item">Employee Increment</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/BulkIncrement/BulkIncrement" class="mobile-submenu-item">Bulk Increment</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceRegularization" class="mobile-submenu-item">Attendance Regularization</a>
-        </div>
-    </li>
-
-    
-
-    <li class="mobile-nav-item">
-        <a href="#" class="mobile-nav-link" onclick="toggleMobileSubmenu(event, 'otherMaster')">
-            <div class="mobile-nav-link-content">
-                <i class='bx bx-layer'></i>
-                <span>Other Master</span>
-            </div>
-            <i class='bx bx-chevron-down mobile-toggle-icon'></i>
-        </a>
-        <div class="mobile-submenu" id="otherMaster">
-            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/OrganizationPolicy" class="mobile-submenu-item">Organization Policy</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/GeoLocationMasterAssign" class="mobile-submenu-item">Geo Location Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/TicketType" class="mobile-submenu-item">Ticket Type</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/PunchInLocation" class="mobile-submenu-item">Punch In Location</a>
-        </div>
-    </li>
-
-    <li class="mobile-nav-item">
-        <a href="#" class="mobile-nav-link" onclick="toggleMobileSubmenu(event, 'companyStructure')">
-            <div class="mobile-nav-link-content">
-                <i class='bx bx-building'></i>
-                <span>Company Structure</span>
-            </div>
-            <i class='bx bx-chevron-down mobile-toggle-icon'></i>
-        </a>
-        <div class="mobile-submenu" id="companyStructure">
-            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/BankMaster" class="mobile-submenu-item">Bank Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/WeekOffMaster" class="mobile-submenu-item">WeekOff Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/HolidayMaster" class="mobile-submenu-item">Holiday Master</a>
-            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/WarningMaster" class="mobile-submenu-item">Warning Master</a>
-        </div>
-    </li>
-
-    <li class="mobile-nav-item">
-        <a href="#" class="mobile-nav-link" onclick="toggleMobileSubmenu(event, 'salaryDetails')">
-            <div class="mobile-nav-link-content">
-                <i class='bx bx-wallet'></i>
-                <span>Salary Details</span>
-            </div>
-            <i class='bx bx-chevron-down mobile-toggle-icon'></i>
-        </a>
-        <div class="mobile-submenu" id="salaryDetails">
-            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/Index" class="mobile-submenu-item">Salary Master</a>
-        </div>
-    </li>
-
-    <li class="mobile-nav-item">
-        <a href="#" class="mobile-nav-link" onclick="toggleMobileSubmenu(event, 'reports')">
-            <div class="mobile-nav-link-content">
-                <i class='bx bx-chart'></i>
-                <span>Reports</span>
-            </div>
-            <i class='bx bx-chevron-down mobile-toggle-icon'></i>
-        </a>
-        <div class="mobile-submenu" id="reports">
-            <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceRegisterAdmin" class="mobile-submenu-item">Attendance Register</a>
-        </div>
-    </li>
-</ul>
-
-    </div>
-
-
-    <!-- Overlay -->
-    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-
-    <!--Company drop down-->
-    	<div id="companyModalContainer"></div> 
-
-    <!-- Main Content Area -->
-    <!--start page wrapper -->
-    <div class="page-wrapper p-0" id="pageWrapper">
-
-        <div class="main-content">
-
-            <div class="page-content">
+                <!-- ══ BREADCRUMB ═══════════════════════════════════════════ -->
+                <!-- Filled in by markActiveSidebarLink() in hrms-shell.js (Home / <sidebar group> / <page>) —
+                     driven by the sidebar's own active-link detection, not the top module tabs, since that's
+                     the one system already proven reliable (it also drives group expand/collapse).
+                     Lives inline in the scrollable page content (not a fixed shell row), so it just scrolls
+                     away with the page like the rest of the content — no extra shell height bookkeeping. -->
+                <nav class="as-breadcrumb-bar" id="as-breadcrumb-bar" aria-label="Breadcrumb">
+                    <a href="@UIBaseUrlLayout/AdminPanel/Home/index" title="Home"><i class="bx bx-home-alt"></i></a>
+                    <span class="as-breadcrumb-sep" id="as-breadcrumb-sep" style="display:none">/</span>
+                    <span id="as-breadcrumb-group" class="as-breadcrumb-group"></span>
+                    <span class="as-breadcrumb-sep" id="as-breadcrumb-sep2" style="display:none">/</span>
+                    <span id="as-breadcrumb-current" class="as-breadcrumb-current"></span>
+                </nav>
 
                 @RenderBody()
 
+                <!-- ── Footer ── -->
+                <footer class="app-footer">
+                    <span class="app-footer-copy">© @DateTime.Now.Year <strong>HRMS</strong> · All rights reserved</span>
+                    <span class="app-footer-divider">|</span>
+                    <span class="app-footer-brand">
+                        <i class="bx bx-code-alt" style="font-size:13px;vertical-align:-2px"></i>
+                        Developed &amp; Maintained by&nbsp;<strong>SKYLINE WEB SOLUTIONS</strong>
+                    </span>
+                </footer>
+
+            </main>
+
+        </div><!-- .app-shell -->
+    </div><!-- #app-shell-wrap -->
+
+    <!-- ══ SIDEBAR OVERLAY (mobile) ══ -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobSidebar()"></div>
+
+    <!-- ══ HRMS Modals / Containers ══ -->
+    <div id="companyModalContainer"></div>
+    <div id="sessionTimmerContainer"></div>
+    <audio id="notificationSound" src="@baseDomainUrl/notification/notification-remainder-tone.mp3" preload="auto"></audio>
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Export Modal -->
+    <div class="ec-modal-overlay" id="exportModal">
+        <div class="ec-modal">
+            <div class="ec-modal-header">
+                <h2>📊 Export Configuration</h2>
+                <button class="close-btn" onclick="closeExportModal()">&times;</button>
+            </div>
+            <div class="ec-modal-body">
+                <div class="selection-container">
+                    <div class="ec-column-section">
+                        <h3>📋 Available Columns</h3>
+                        <div class="ec-column-list" id="availableColumns"></div>
+                        <div class="control-buttons">
+                            <button class="ec-control-btn" onclick="selectAllColumns()">Select All</button>
+                            <button class="ec-control-btn" onclick="clearAllColumns()">Clear All</button>
+                        </div>
+                    </div>
+                    <div class="transfer-buttons">
+                        <button class="ec-transfer-btn" onclick="moveToSelected()" title="Add Selected">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z" /></svg>
+                        </button>
+                        <button class="ec-transfer-btn" onclick="moveToAvailable()" title="Remove Selected">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10,3V5H7.41L17.24,14.83L15.83,16.24L6,6.41V10H4V3M5,19H19V5H12V3H19C20.11,3 21,3.9 21,5V19A2,2 0 0,0 3,19V12H5V19Z" /></svg>
+                        </button>
+                    </div>
+                    <div class="ec-column-section">
+                        <h3>✅ Selected Columns for Export</h3>
+                        <div class="ec-column-list" id="selectedColumns"></div>
+                        <div class="control-buttons">
+                            <button class="ec-control-btn" onclick="moveUp()">Move Up</button>
+                            <button class="ec-control-btn" onclick="moveDown()">Move Down</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="ec-modal-footer">
+                <div class="export-format">
+                    <label for="exportFormat">Export Format:</label>
+                    <select id="exportFormat">
+                        <option value="xlsx">Excel (.xlsx)</option>
+                        <option value="csv">CSV (.csv)</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button class="ec-btn ec-btn-secondary" onclick="closeExportModal()">Cancel</button>
+                    <button class="ec-btn ec-btn-primary" onclick="performExport()" id="exportEmployee">🚀 Export Data</button>
+                    <button class="ec-btn ec-btn-primary" id="exportingEmployee" style="display:none">
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>🚀 Export Data
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!--End Back To Top Button-->
-    <footer class="page-footer">
-        <p class="mb-0">
-            Copyright © @DateTime.Now.Year. All rights reserved.
-        </p>
-    </footer>
-    <!--end wrapper-->
+    <!-- Comp-Off / Leave Balance Modal -->
+    <div class="leave-balance-modal-container">
+        <div class="modal fade" id="leaveBalanceModal" data-bs-backdrop="true" data-bs-keyboard="true" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-xl custom-modal-dialog">
+                <div class="modal-content custom-modal-content">
+                    <div class="modal-header modal-header-gradient custom-modal-header">
+                        <div class="container-fluid px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="header-icon me-2"><i class="bx bx-award"></i></div>
+                                <div>
+                                    <h5 class="mb-0 fw-bold">Welcome Back!</h5>
+                                    <small class="opacity-75">Your Notification Summary</small>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="hrms-modal-close" data-bs-dismiss="modal" aria-label="Close"><i class="bx bx-x"></i></button>
+                    </div>
+                    <div class="modal-body p-3 custom-modal-body">
+                        <ul class="nav nav-tabs mb-3 custom-nav-tabs" id="reportTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="compOffTab" data-bs-toggle="tab" data-bs-target="#compOff" type="button" role="tab">
+                                    <span class="tab-loader" id="compOffLoader"><span class="hrms-tab-spinner"></span></span>
+                                    Comp-Off <span class="balance-badge ms-2" id="compOffTotal">0</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="upCommingProbationTab" data-bs-toggle="tab" data-bs-target="#upCommingProbation" type="button" role="tab">
+                                    <span class="tab-loader" id="upcomingProbationLoader"><span class="hrms-tab-spinner"></span></span>
+                                    Upcoming Probation <span class="balance-badge ms-2" id="upcomingProbationTotal">0</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="pendingProbationTab" data-bs-toggle="tab" data-bs-target="#pendingProbation" type="button" role="tab">
+                                    <span class="tab-loader" id="pendingProbationLoader"><span class="hrms-tab-spinner"></span></span>
+                                    Pending Approval Probation <span class="balance-badge ms-2" id="pendingProbationTotal">0</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="loanTab" data-bs-toggle="tab" data-bs-target="#loan" type="button" role="tab">
+                                    <span class="tab-loader" id="loanLoader"><span class="hrms-tab-spinner"></span></span>
+                                    Loan <span class="balance-badge ms-2" id="loanTotal">0</span>
+                                </button>
+                            </li>
+                        </ul>
+                        <div class="tab-content custom-tab-content" id="reportTabsContent">
+                            <div id="noRecordsMessage" style="display:none">
+                                <div class="text-center py-4">
+                                    <i class="bx bx-info-circle" style="font-size:2rem;color:#9ca3af"></i>
+                                    <p class="mt-2" style="color:#6b7280">No records found in any category</p>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade show active" id="compOff" role="tabpanel">
+                                <div class="loading-placeholder" id="compOffLoading">
+                                    <div class="wg-dot-spinner hrms-modal-spinner"></div>
+                                    <p>Loading Comp-Off records…</p>
+                                </div>
+                                <div id="compOffContent" style="display:none">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="employee-card flex-grow-1 me-3">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bx bxs-user-circle text-primary fs-4 me-2"></i>
+                                                <div>
+                                                    <h6 class="mb-0 fw-bold" id="employeeName">-</h6>
+                                                    <small class="text-muted">Code: <span class="fw-semibold" id="employeeCode">-</span></small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-2"><i class="bx bx-trending-up text-primary me-1"></i>Comp-Off Leave Records</h6>
+                                    <div class="leave-records-container" id="compOffRecordsContainer"></div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="upCommingProbation" role="tabpanel">
+                                <div class="loading-placeholder" id="upcomingProbationLoading">
+                                    <div class="wg-dot-spinner hrms-modal-spinner"></div>
+                                    <p>Loading Upcoming Probation records…</p>
+                                </div>
+                                <div id="upcomingProbationContent" style="display:none">
+                                    <h6 class="fw-bold text-dark mb-2"><i class="bx bx-trending-up text-primary me-1"></i>Upcoming Probation Records</h6>
+                                    <div class="leave-records-container" id="upCommingProbationRecordsContainer"></div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="pendingProbation" role="tabpanel">
+                                <div class="loading-placeholder" id="pendingProbationLoading">
+                                    <div class="wg-dot-spinner hrms-modal-spinner"></div>
+                                    <p>Loading Pending Probation records…</p>
+                                </div>
+                                <div id="pendingProbationContent" style="display:none">
+                                    <h6 class="fw-bold text-dark mb-2"><i class="bx bx-trending-up text-primary me-1"></i>Pending Approval Probation Records</h6>
+                                    <div>&nbsp;&nbsp;<a href="/EmployeePanel/ManageProbation/Probation"><i>Go for Approval</i></a></div>
+                                    <div class="leave-records-container" id="pendingProbationRecordsContainer"></div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="loan" role="tabpanel">
+                                <div class="loading-placeholder" id="loanLoading">
+                                    <div class="wg-dot-spinner hrms-modal-spinner"></div>
+                                    <p>Loading Loan records…</p>
+                                </div>
+                                <div id="loanContent" style="display:none">
+                                    <h6 class="fw-bold text-dark mb-2"><i class="bx bx-money text-primary me-1"></i>Pending Loan Approval Records</h6>
+                                    <div>&nbsp;&nbsp;<a href="/EmployeePanel/SalaryDetail/LoanApproval"><i>Go for Approval</i></a></div>
+                                    <div class="leave-records-container" id="loanRecordsContainer"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 px-3 pb-3 custom-modal-footer">
+                        <button type="button" class="btn btn-primary w-100" data-bs-dismiss="modal">
+                            <i class="bx bx-check-circle me-1"></i>Got it, Thanks!
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <script src="~/assets/js/jquery.min.js"></script>
-    <script src="~/assets/js/bootstrap.bundle.min.js"></script>
-    <!--plugins-->
- 
+    <!-- Escalation / Pending Probation Modal -->
+    <div class="modal fade" id="escalatioModel" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title mb-0" id="exampleModalLabel">Pending Probation</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-success btn-sm d-inline-flex align-items-center gap-1" id="btnExportEscalation">
+                            <i class="bx bx-file-excel"></i> Export
+                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div id="upEscalationContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <script>
-        // Show loader when the page starts loading
-        window.addEventListener("load", function () {
-            // Hide loader when page is fully loaded
-            document.getElementById("loader").style.display = "none";
-        });
+    <!-- Scroll-to-top button -->
+    <button id="scroll-to-top" title="Go to top" aria-label="Scroll to top"
+            style="display:none;position:fixed;bottom:28px;right:28px;z-index:9999;width:42px;height:42px;
+                   border-radius:50%;border:none;background:linear-gradient(135deg,#1e3a5f,#2d7ab5);
+                   color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 14px rgba(45,122,181,.40);
+                   transition:opacity .25s,transform .25s;opacity:0;pointer-events:none;
+                   align-items:center;justify-content:center;">
+        <i class="bx bx-chevron-up" style="line-height:1"></i>
+    </button>
 
-        // Optional: Show loader immediately
-        document.getElementById("loader").style.display = "flex";
-    </script>
-
+    <!-- ══ SCRIPTS ══════════════════════════════════════════════════════ -->
+    <script src="~/assets/js/searchableselect.js"></script>
+    <script src="~/assets/js/signalr.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="~/assets/js/export-data.js"></script>
     <script src="~/assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js"></script>
     <script src="~/assets/plugins/notifications/js/lobibox.min.js"></script>
     <script src="~/assets/plugins/notifications/js/notifications.min.js"></script>
     <script src="~/assets/plugins/notifications/js/notification-custom-script.js"></script>
-    <script src="~/assets/plugins/notifications/js/notification-custom-script.js"></script>
-    <!--app JS-->
-    <script src="~/assets/js/app.js"></script>
     <script src="~/assets/js/dx.all.js"></script>
+    <script src="~/assets/js/hrms-wms-dropdown.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <script>
-        var uiBaseUrlLayout='@UIBaseUrlLayout'
-        var BaseUrlLayout='@baseUrlLayout';
-        var BaseDomainUrl='@baseDomainUrl';
-    </script>
-    <script src="~/assets/js/companymodalloader.js"></script>
+        var uiBaseUrlLayout = '@UIBaseUrlLayout';
+        var BaseUrlLayout   = '@baseUrlLayout';
+        var BaseDomainUrl   = '@baseDomainUrl';
 
-    <script src="~/assets/js/logout.js"></script>
-   
-    <script src="~/assets/js/permissions.js"></script>
-
-    <script>
-
-        $('.dropdown-item').click(function () {
-             localStorage.removeItem("PreviousPageUrl");
-            localStorage.setItem("PreviousPageUrl", window.location.href);
-            // Allow the default link to proceed
+        // Show loader while page loads
+        document.getElementById("loader").style.display = "flex";
+        window.addEventListener("load", function () {
+            document.getElementById("loader").style.display = "none";
         });
 
+        // Close notification dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            var dd = document.getElementById('notificationDropdown');
+            var bell = document.getElementById('notif-bell-btn');
+            if (dd && !dd.contains(e.target) && bell && !bell.contains(e.target)) {
+                dd.classList.remove('show');
+            }
+        });
     </script>
+
+    <script src="~/assets/js/companymodalloader.js"></script>
+    <script src="~/assets/js/logout.js"></script>
+    <script src="~/assets/js/permissions.js"></script>
+    <script src="~/assets/js/logindetails.js"></script>
     <script src="~/assets/js/common-input-handler.js"></script>
-    <!--end page wrapper -->
+    <script src="~/assets/js/notification-remainder.js"></script>
+    <script src="~/assets/js/compoffleavemodal.js"></script>
+    <script src="~/assets/js/escalation.js"></script>
 
-    <!--Layout js file-->
-    <script src="~/assets/js/relay.js"></script>
+    <!-- WMS-style shell scripts -->
+    <script src="~/assets/js/app-shell.js"></script>
+    <script src="~/assets/js/hrms-shell.js"></script>
 
-  
+    <script>
+        // Store current URL for back-navigation
+        $(document).ready(function () {
+            $('.dropdown-item, .sb-link, .sb-dash-link').click(function () {
+                localStorage.removeItem("PreviousPageUrl");
+                localStorage.setItem("PreviousPageUrl", window.location.href);
+            });
+        });
+    </script>
 
     @RenderSection("Scripts", required: false)
-
 </body>
 </html>

@@ -1,0 +1,506 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Full & Final Settlement";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Full &amp; Final Settlement</h6>
+        <a href="/AdminPanel/SalaryDetails/Fullandfinalsettlement" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bx bx-plus"></i> Add
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap align-items-end gap-3">
+            <div class="fg fg-req" style="flex:1 1 180px;min-width:160px;">
+                <label for="monthDropdown">Month</label>
+                <select id="monthDropdown">
+                    <option value="" selected disabled>Select Month</option>
+                </select>
+                <span class="field-validation-error" id="errorMonth" style="display:none;">Please select month</span>
+            </div>
+
+            <div class="fg fg-req" style="flex:1 1 140px;min-width:130px;">
+                <label for="yearDropdown">Year</label>
+                <select id="yearDropdown">
+                    <option value="" selected disabled>Select Year</option>
+                </select>
+                <span class="field-validation-error" id="errorYear" style="display:none;">Please select year</span>
+            </div>
+
+            <div class="fg" style="flex:1 1 240px;min-width:200px;">
+                <label for="employeeDropdown">Employee</label>
+                <select id="employeeDropdown">
+                    <option value="">All Employees</option>
+                </select>
+            </div>
+
+            <div class="d-flex gap-2" style="flex-shrink:0;">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Go</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnBack">Back</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card" id="recordDetails" style="display:none;">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Full &amp; Final Records</h6>
+        <button type="button" class="btn btn-danger btn-sm d-inline-flex align-items-center gap-1" id="btnDelete">
+            <i class="bx bx-trash"></i>
+            <span class="btn-spinner-icon"></span>
+            <span class="btn-label-text">Delete Selected</span>
+        </button>
+    </div>
+    <div class="card-body">
+        <div id="salaryGridContainer"></div>
+    </div>
+</div>
+
+</div>
+
+<!-- Salary Slip Modal -->
+<div class="modal fade" id="salarySlipModal" tabindex="-1" aria-labelledby="salarySlipLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="salarySlipLabel">Full &amp; Final Slip - <span id="modalMonthYear"></span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="salarySlipContent"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ─── Globals ───────────────────────────────────────────────────────────────
+    const savedCompany = localStorage.getItem('selectedCompany');
+    var companyDetails  = JSON.parse(savedCompany);
+    const CompanyId     = companyDetails.CompanyId;
+    const EmployeeId    = localStorage.getItem('EmployeeId');
+    const Token         = localStorage.getItem("authToken");
+
+    var fnfGrid = null;
+    var fnfDataCache = {};
+    var selectedFnfIds = {};
+    var isGoingFnf = false;
+    var isDeletingFnf = false;
+
+    function fmtDate(v) {
+        if (!v) return '-';
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        return String(d.getDate()).padStart(2, '0') + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + d.getFullYear();
+    }
+
+    function fmtMoney(v) {
+        return Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function goBack() {
+        window.location.href = '@UIBaseUrl/AdminPanel/Home/index';
+    }
+    $('#btnBack').on('click', goBack);
+
+    // ─── Document ready ────────────────────────────────────────────────────────
+    $(document).ready(function () {
+        localStorage.removeItem("SalaryMonth");
+        localStorage.removeItem("SalaryYear");
+        localStorage.removeItem("SalaryEmpCodes");
+
+        const months = [
+            { monthNumber: 1,  monthName: 'January'   },
+            { monthNumber: 2,  monthName: 'February'  },
+            { monthNumber: 3,  monthName: 'March'     },
+            { monthNumber: 4,  monthName: 'April'     },
+            { monthNumber: 5,  monthName: 'May'       },
+            { monthNumber: 6,  monthName: 'June'      },
+            { monthNumber: 7,  monthName: 'July'      },
+            { monthNumber: 8,  monthName: 'August'    },
+            { monthNumber: 9,  monthName: 'September' },
+            { monthNumber: 10, monthName: 'October'   },
+            { monthNumber: 11, monthName: 'November'  },
+            { monthNumber: 12, monthName: 'December'  }
+        ];
+
+        var $monthSel = $('#monthDropdown');
+        months.forEach(function (m) {
+            $monthSel.append($('<option>', { value: m.monthNumber, text: m.monthName }));
+        });
+
+        const currentYear = new Date().getFullYear();
+        var $yearSel = $('#yearDropdown');
+        for (let i = currentYear - 1; i <= currentYear; i++) {
+            $yearSel.append($('<option>', { value: i, text: i.toString() }));
+        }
+
+        loadLeftEmployees();
+    });
+
+    // ─── Load left employees ───────────────────────────────────────────────────
+    function loadLeftEmployees() {
+        $.ajax({
+            url: '@baseUrl/MonthlySalaryDetailsAPI/GetLeftEmployeedropDown/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                var list = [];
+                if (res && res.isSuccess) {
+                    if (res.data && Array.isArray(res.data.data)) list = res.data.data;
+                    else if (Array.isArray(res.data))             list = res.data;
+                }
+                if (list.length > 0) {
+                    const seen = new Set();
+                    const uniqueList = list.filter(function (emp) {
+                        if (seen.has(emp.EmployeeCode)) return false;
+                        seen.add(emp.EmployeeCode);
+                        return true;
+                    });
+                    var $empSel = $('#employeeDropdown');
+                    uniqueList.forEach(function (emp) {
+                        $empSel.append($('<option>', { value: emp.EmployeeCode, text: emp.EmployeeCode + ' - ' + emp.FullName }));
+                    });
+                }
+            },
+            error: function () {
+                showToast('Failed to load employee list.', 'error');
+            }
+        });
+    }
+
+    // ─── GO button ─────────────────────────────────────────────────────────────
+    $('#btnGo').on('click', function () {
+        if (isGoingFnf) return;
+
+        $('#recordDetails').hide();
+
+        var month   = $('#monthDropdown').val();
+        var year    = $('#yearDropdown').val();
+        var empCode = $('#employeeDropdown').val() || '';
+
+        var isValid = true;
+        if (!month) { $('#errorMonth').show(); isValid = false; } else { $('#errorMonth').hide(); }
+        if (!year)  { $('#errorYear').show();  isValid = false; } else { $('#errorYear').hide();  }
+
+        if (!isValid) return;
+
+        isGoingFnf = true;
+        setBtnLoading('#btnGo', 'Loading...');
+        fetchAndBindFFData(month, year, empCode);
+    });
+
+    // ─── Fetch & bind grid ─────────────────────────────────────────────────────
+    function fetchAndBindFFData(month, year, empCode) {
+        var requestData = {
+            Month:        parseInt(month),
+            Year:         parseInt(year),
+            EmployeeCode: empCode || ''
+        };
+
+        $.ajax({
+            url: '@(baseDomainUrl + "/api/MonthlySalaryDetailsAPI/GetFullFinalStatement")',
+            type: 'POST',
+            data: JSON.stringify(requestData),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                isGoingFnf = false;
+                setBtnNormal('#btnGo', 'Go');
+
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    var gridData = Array.isArray(response.data) ? response.data : [response.data];
+                    selectedFnfIds = {};
+                    fnfDataCache = {};
+                    gridData.forEach(function (row) { fnfDataCache[row.Id] = row; });
+                    renderFnfGrid(gridData);
+                    $('#recordDetails').show();
+                } else {
+                    fnfDataCache = {};
+                    selectedFnfIds = {};
+                    renderFnfGrid([]);
+                    $('#recordDetails').show();
+                }
+            },
+            error: function () {
+                isGoingFnf = false;
+                setBtnNormal('#btnGo', 'Go');
+                $('#recordDetails').hide();
+                showToast("An error occurred while fetching full & final records.", 'error');
+            }
+        });
+    }
+
+    function fnfToggleRow(id, checked) {
+        if (checked) selectedFnfIds[id] = true;
+        else delete selectedFnfIds[id];
+    }
+
+    function renderFnfGrid(rows) {
+        if (!fnfGrid) {
+            fnfGrid = WMSGrid.create({
+                container: 'salaryGridContainer',
+                title: 'Full & Final Records',
+                icon: 'bx-receipt',
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false },
+                data: rows,
+                extraButtons: [{
+                    id: 'fnfSelectAll',
+                    label: 'Select All',
+                    icon: 'bx-check-square',
+                    onClick: function (e, data) {
+                        var allSelected = data.length > 0 && data.every(function (r) { return !!selectedFnfIds[r.Id]; });
+                        if (allSelected) {
+                            data.forEach(function (r) { delete selectedFnfIds[r.Id]; });
+                        } else {
+                            data.forEach(function (r) { selectedFnfIds[r.Id] = true; });
+                        }
+                        fnfGrid.refresh();
+                    }
+                }],
+                columns: [
+                    {
+                        header: '', sortable: false, width: '40px', align: 'center',
+                        render: function (v, row) {
+                            var checked = !!selectedFnfIds[row.Id];
+                            return '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="fnfToggleRow(' + row.Id + ', this.checked)">';
+                        }
+                    },
+                    { field: 'EmployeeCode', header: 'Emp Code', width: '100px' },
+                    { field: 'EmployeeName', header: 'Name', width: '160px' },
+                    { field: 'MonthName', header: 'Month', width: '90px' },
+                    { field: 'Year', header: 'Year', width: '70px', align: 'center' },
+                    { field: 'GrossSalary', header: 'Gross Salary', width: '110px', align: 'right', render: function (v) { return fmtMoney(v); } },
+                    { field: 'TotalGrossSalary', header: 'Total Gross', width: '110px', align: 'right', render: function (v) { return fmtMoney(v); } },
+                    { field: 'NetSalary', header: 'Net Salary', width: '110px', align: 'right', render: function (v) { return fmtMoney(v); } },
+                    { field: 'TotalDeductions', header: 'Deductions', width: '100px', align: 'right', render: function (v) { return fmtMoney(v); } },
+                    { field: 'PresentDays', header: 'Present', width: '75px', align: 'center' },
+                    { field: 'AbsentDays', header: 'Absent', width: '70px', align: 'center' },
+                    { field: 'SalaryDays', header: 'Salary Days', width: '90px', align: 'center' },
+                    { field: 'PayableDays', header: 'Payable Days', width: '95px', align: 'center' },
+                    { field: 'Arrears', header: 'Arrears', width: '100px', align: 'right', render: function (v) { return fmtMoney(v); } },
+                    { field: 'OtherDeduction', header: 'Other Ded.', width: '100px', align: 'right', render: function (v) { return fmtMoney(v); } },
+                    { field: 'CreatedDate', header: 'Created', width: '100px', align: 'center', render: function (v) { return fmtDate(v); } },
+                    {
+                        header: 'Actions', sortable: false, stickyRight: true, width: '70px', align: 'center',
+                        render: function (v, row) {
+                            return '<button type="button" class="wg-btn wg-btn-outline" title="View Slip" onclick="fnfShowSlip(' + row.Id + ')"><i class="bx bx-show"></i></button>';
+                        }
+                    }
+                ]
+            });
+        } else {
+            fnfGrid.setData(rows);
+        }
+    }
+
+    function fnfShowSlip(id) {
+        var data = fnfDataCache[id];
+        if (data) showSalarySlipModal(data);
+    }
+
+    // ─── Delete ────────────────────────────────────────────────────────────────
+    $('#btnDelete').on('click', function () {
+        if (isDeletingFnf) return;
+
+        var deleteIds = Object.keys(selectedFnfIds).map(Number);
+        if (deleteIds.length === 0) {
+            showToast("Please select at least one row to delete.", 'warn');
+            return;
+        }
+
+        var currentMonth   = $('#monthDropdown').val();
+        var currentYear    = $('#yearDropdown').val();
+        var currentEmpCode = $('#employeeDropdown').val() || '';
+
+        wmsConfirm('Are you sure you want to delete the selected full & final record(s)?', function () {
+            isDeletingFnf = true;
+            setBtnLoading('#btnDelete', 'Deleting...');
+
+            var deleteObj = { id: deleteIds, deletedBy: EmployeeId };
+
+            $.ajax({
+                url: '@baseUrl/MonthlySalaryDetailsAPI/DeleteSalaryDetails',
+                type: 'DELETE',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify(deleteObj),
+                success: function (response) {
+                    isDeletingFnf = false;
+                    setBtnNormal('#btnDelete', 'Delete Selected');
+                    if (response.isSuccess) {
+                        showToast(response.responseMessage || "Deleted successfully.", 'success');
+                        fetchAndBindFFData(currentMonth, currentYear, currentEmpCode);
+                    } else {
+                        showToast(response.responseMessage, 'error');
+                    }
+                },
+                error: function () {
+                    isDeletingFnf = false;
+                    setBtnNormal('#btnDelete', 'Delete Selected');
+                    showToast("Something went wrong!", 'error');
+                }
+            });
+        }, { title: 'Delete Records', confirmText: 'Delete' });
+    });
+
+    // ─── Salary Slip Modal ─────────────────────────────────────────────────────
+    function showSalarySlipModal(data) {
+        $('#modalMonthYear').text((data.MonthName || '') + ' ' + (data.Year || ''));
+
+        var positiveEarnings = [
+            { name: "Basic Salary",          actual: parseFloat(data.BasicSalary)             || 0 },
+            { name: "HRA",                   actual: parseFloat(data.HRA)                     || 0 },
+            { name: "Conveyance",            actual: parseFloat(data.ConveyanceAllowance)     || 0 },
+            { name: "Child Education",       actual: parseFloat(data.ChildEducationAllowance) || 0 },
+            { name: "Medical",               actual: parseFloat(data.MedicalAllowance)        || 0 },
+            { name: "Arrears",               actual: parseFloat(data.Arrears)                 || 0 }
+        ].filter(function (e) { return e.actual > 0; });
+
+        var deputationAllowance = parseFloat(data.DeputationAllowance) || 0;
+        if (deputationAllowance > 0) {
+            positiveEarnings.push({ name: "Deputation Allowance", actual: deputationAllowance });
+        }
+
+        var totalEarnings = positiveEarnings.reduce(function (sum, e) { return sum + e.actual; }, 0);
+
+        var deductions = [
+            { name: "PF",               actual: parseFloat(data.PF)              || 0 },
+            { name: "ESIC",             actual: parseFloat(data.ESIC)            || 0 },
+            { name: "Professional Tax", actual: parseFloat(data.ProfessionalTax) || 0 },
+            { name: "Group Medical",    actual: parseFloat(data.GroupMedical)    || 0 },
+            { name: "Term Insurance",   actual: parseFloat(data.TermInsurance)   || 0 },
+            { name: "LWF",              actual: parseFloat(data.LWF)             || 0 },
+            { name: "TDS",              actual: parseFloat(data.TDS)             || 0 },
+            { name: "Loan",             actual: parseFloat(data.Loan)            || 0 },
+            { name: "Other Deduction",  actual: parseFloat(data.OtherDeduction)  || 0 }
+        ].filter(function (d) { return d.actual > 0; });
+
+        if (deputationAllowance < 0) {
+            deductions.push({ name: "Deputation Allowance (Recovery)", actual: Math.abs(deputationAllowance) });
+        }
+
+        var totalded = deductions.reduce(function (sum, d) { return sum + d.actual; }, 0);
+
+        var headerInfo = `
+            <div class="row mb-1" style="font-size:12px;">
+                <div class="col-md-6 p-1"><strong>Employee:</strong> ${data.EmployeeCode} - ${data.EmployeeName}</div>
+                <div class="col-md-6 p-1"><strong>Present:</strong> ${data.PresentDays || 0} | <strong>Week Off:</strong> ${data.WeekOff || 0}</div>
+            </div>
+            <div class="row mb-1" style="font-size:12px;">
+                <div class="col-md-6 p-1"><strong>Month Days:</strong> ${data.MonthDays || 0} | <strong>Holiday:</strong> ${data.Holiday || 0}</div>
+                <div class="col-md-6 p-1"><strong>Absent:</strong> ${data.AbsentDays || 0} | <strong>Salary Days:</strong> ${data.SalaryDays || 0}</div>
+            </div>
+            <div class="row mb-1" style="font-size:12px;">
+                <div class="col-md-6 p-1"><strong>Leave:</strong> ${data.Leave || 0} | <strong>Payable Days:</strong> ${data.PayableDays || 0}</div>
+            </div>`;
+
+        var compactCSS = `
+            <style>
+                .compact-table { margin-bottom: 5px !important; font-size: 12px !important; }
+                .compact-table thead th { background-color: #f5f5f5 !important; padding: 4px 6px !important; }
+                .compact-table tbody td { padding: 3px 6px !important; }
+            </style>`;
+
+        var earningsRows = positiveEarnings.map(function (e) {
+            return `<tr><td>${e.name}</td><td class="text-end">&#8377;${e.actual.toFixed(2)}</td></tr>`;
+        }).join('');
+
+        var earningsTable = `
+            <div class="col-md-6" style="padding:0 3px;">
+                <table class="table table-bordered compact-table">
+                    <thead>
+                        <tr><th colspan="2" class="text-center">Earnings</th></tr>
+                        <tr class="table-light">
+                            <th style="width:70%">Component</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${earningsRows}
+                        <tr class="fw-bold">
+                            <td>Total Earnings</td>
+                            <td class="text-end">&#8377;${totalEarnings.toFixed(2)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>`;
+
+        var deductionRows = deductions.map(function (d) {
+            return `<tr><td>${d.name}</td><td class="text-end">&#8377;${d.actual.toFixed(2)}</td></tr>`;
+        }).join('');
+
+        var deductionsTable = `
+            <div class="col-md-6" style="padding:0 3px;">
+                <table class="table table-bordered compact-table">
+                    <thead>
+                        <tr><th colspan="2" class="text-center">Deductions</th></tr>
+                        <tr class="table-light">
+                            <th style="width:70%">Component</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${deductionRows}
+                        <tr class="fw-bold">
+                            <td>Total Deductions</td>
+                            <td class="text-end">&#8377;${totalded.toFixed(2)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>`;
+
+        var netSalary = parseFloat(data.NetSalary) || 0;
+        var content = `
+            ${compactCSS}
+            ${headerInfo}
+            <div class="row" style="margin:0 -3px;">${earningsTable}${deductionsTable}</div>
+            <div class="row mt-1">
+                <div class="col-md-12 text-end">
+                    <h6 class="text-success mb-0" style="font-size:13px;">
+                        Net Salary: &#8377;${netSalary.toFixed(2)}
+                    </h6>
+                </div>
+            </div>`;
+
+        $('#salarySlipModal .modal-dialog').removeClass('modal-xl').addClass('modal-lg');
+        $('#salarySlipContent').html(content);
+
+        var modal = new bootstrap.Modal(document.getElementById('salarySlipModal'));
+        modal.show();
+    }
+
+    // ─── Clear button ──────────────────────────────────────────────────────────
+    $('#btnClear').on('click', function () {
+        $('#monthDropdown').val('');
+        $('#yearDropdown').val('');
+        $('#employeeDropdown').val('');
+
+        fnfDataCache = {};
+        selectedFnfIds = {};
+        if (fnfGrid) fnfGrid.setData([]);
+
+        $('#recordDetails').hide();
+        $('#errorMonth').hide();
+        $('#errorYear').hide();
+
+        isGoingFnf = false;
+        isDeletingFnf = false;
+        setBtnNormal('#btnGo', 'Go');
+        setBtnNormal('#btnDelete', 'Delete Selected');
+    });
+</script>

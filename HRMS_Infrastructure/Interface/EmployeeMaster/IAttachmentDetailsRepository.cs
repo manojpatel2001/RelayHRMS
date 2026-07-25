@@ -12,10 +12,11 @@ namespace HRMS_Infrastructure.Interface.EmployeeMaster
 {
     public interface IAttachmentDetailsRepository
     {
-        Task<VMCommonResult> CreateAttachmentDetail(VmAttachmentDetails model);
-        Task<VMCommonResult> UpdateAttachmentDetail(VmAttachmentDetails model);
-        Task<VMCommonResult> DeleteAttachmentDetail(DeleteRecordVM deleteRecord);
+        Task<SP_Response> CreateAttachmentDetail(VmAttachmentDetails model);
+        Task<SP_Response> UpdateAttachmentDetail(VmAttachmentDetails model);
+        Task<SP_Response> DeleteAttachmentDetail(DeleteRecordVM deleteRecord);
         Task<AttachmentDetails?> GetAttachmentDetailById(vmCommonGetById vmCommonGetById);
         Task<List<AttachmentDetails>> GetAllAttachmentDetails(vmCommonGetById vmCommonGetById);
+        Task<List<DocumentType>> GetAllDocumentTypes();
     }
 }

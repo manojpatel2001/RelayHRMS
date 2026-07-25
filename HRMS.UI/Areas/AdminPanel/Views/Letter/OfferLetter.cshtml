@@ -1,0 +1,825 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Offer Letter";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<meta charset="UTF-8">
+<title>Offer Letter</title>
+
+<!-- DevExtreme -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/devextreme@23.2.3/dist/css/dx.light.css">
+
+<style>
+    #branchDropdown {
+        min-width: 220px;
+    }
+
+    #employeeGrid {
+        height: calc(100vh - 420px);
+        min-height: 350px;
+    }
+
+    .no-data-message {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+        font-style: italic;
+        font-size: 14px;
+    }
+
+    .custom-modal-width {
+        max-width: 95% !important;
+        width: 95% !important;
+    }
+
+    #offerLetterBody {
+        overflow-y: auto;
+        max-height: 75vh;
+    }
+
+    .grid-loader {
+        position: absolute;
+        display: none;
+        inset: 0;
+        background: rgba(255,255,255,0.6);
+        z-index: 10;
+    }
+
+        .grid-loader.d-flex {
+            display: flex !important;
+        }
+
+    .grid-logo-spinner {
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .page-break {
+        border-top: 2px dashed #aaa;
+        margin: 40px 0;
+    }
+</style>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Offer Letter Generation</h6>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
+                    <label for="branchDropdown">Branch</label>
+                    <div id="branchDropdown"></div>
+                </div>
+
+                <div class="fg" style="flex:0 1 130px;min-width:120px;">
+                    <label for="yearSelect">Year</label>
+                    <select id="yearSelect"></select>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnfind" onclick="onFind()">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Find</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="onClear()">Clear</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="recordCount" class="mb-2" style="display:none;font-weight:600;"></div>
+
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3" id="searchViewContainer" style="display:none;">
+                <div class="fg" style="flex:1 1 260px;min-width:220px;">
+                    <label for="employeeSearch">Search Candidates</label>
+                    <input type="text" id="employeeSearch" placeholder="Search candidates..." />
+                </div>
+            </div>
+
+            <div id="actionButtonsContainer" style="display:none;">
+                <div class="d-flex justify-content-end gap-2 mb-3">
+                    <button type="button" class="btn btn-primary btn-sm" id="btnView">View</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnDownloadMultiple">Download PDF</button>
+                </div>
+            </div>
+
+            <div class="grid-wrapper" style="position:relative;" id="gridTag">
+                <div id="grid-loader" class="grid-loader justify-content-center align-items-center flex-column">
+                    <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" />
+                    <div class="grid-loading-text text-dark" style="font-size:16px;">Loading...</div>
+                </div>
+                <div class="no-data-message" id="noDataMessage">
+                    No data to display. Please select a branch and click Find to load candidate data.
+                </div>
+                <div id="employeeGrid"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Offer Letter Modal -->
+<div class="modal fade" id="offerLetterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl custom-modal-width">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Offer Letter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="offerLetterBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btnDownloadPDF">Download PDF</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PDF Generation Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+    const Empid        = parseInt(localStorage.getItem("EmployeeId"));
+    const Role         = localStorage.getItem("RoleSlug");
+    const Token        = localStorage.getItem("authToken");
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany || '{}');
+    const Compname     = companyDetails.CompanyName;
+    const CompanyId    = companyDetails.CompanyId;
+
+    let originalEmployeeData = [];
+    let currentEmployeeData  = null;
+    let hrManagerData        = null;
+
+    // ── Gender & Name Helpers ─────────────────────────────────────────────────
+    function getTitlePrefix(gender) {
+        if (!gender) return '';
+        const g = gender.toString().trim().toLowerCase();
+        if (g === 'male'   || g === 'm' || g === '1') return 'Mr.';
+        if (g === 'female' || g === 'f' || g === '2') return 'Ms.';
+        return '';
+    }
+
+    function cleanEmployeeName(fullName) {
+        return (fullName || '').replace(/^(Mr\.|Mrs\.|Ms\.|Mr\/Ms\.)\s*/i, '').trim();
+    }
+
+    // displayName = "Mr. Ramesh Shah" or "Ms. Priya" or just "Aminkhan" if no gender
+    function getDisplayName(fullName, gender) {
+        const prefix = getTitlePrefix(gender);
+        const name   = cleanEmployeeName(fullName);
+        return prefix ? `${prefix} ${name}` : name;
+    }
+
+    // ── On Ready ──────────────────────────────────────────────────────────────
+    $(document).ready(function () {
+        populateYearDropdown();
+        BindBranchDropdown();
+        fetchLetterInformation();
+        hideDataElements();
+    });
+
+    $('#yearSelect').on('change', function () {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+        if (selectedBranchIds && selectedBranchIds.length > 0) onFind();
+    });
+
+    function hideDataElements() {
+        $('#recordCount').hide();
+        $('#searchViewContainer').hide();
+        $('#actionButtonsContainer').hide();
+        $('#noDataMessage').show();
+        $('#employeeGrid').hide();
+    }
+
+    function showDataElements() {
+        $('#recordCount').show();
+        $('#searchViewContainer').show();
+        $('#actionButtonsContainer').show();
+        $('#noDataMessage').hide();
+        $('#employeeGrid').show();
+    }
+
+    function goBack() { window.history.back(); }
+
+    function populateYearDropdown() {
+        const startYear   = 2025;
+        const currentYear = new Date().getFullYear();
+        const yearDropdown = $("#yearSelect");
+        yearDropdown.empty();
+        for (let year = currentYear; year >= startYear; year--) {
+            yearDropdown.append(`<option value="${year}">${year}</option>`);
+        }
+        yearDropdown.val(currentYear);
+    }
+
+    function BindBranchDropdown() {
+        $.ajax({
+            url: '@baseDomainUrl/api/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response?.data?.length > 0) {
+                    $("#branchDropdown").dxTagBox({
+                        items: response.data,
+                        displayExpr: "branchName",
+                        valueExpr: "branchId",
+                        placeholder: "--Select Branch--",
+                        showSelectionControls: true,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        maxDisplayedTags: 3,
+                        applyValueMode: "instantly",
+                        multiline: false,
+                        minSearchLength: 0,
+                        width: "100%"
+                    });
+                }
+            },
+            error: function () { showToast('Failed to load branches.', 'error'); }
+        });
+    }
+
+    function fetchLetterInformation() {
+        $.ajax({
+            url: '@baseDomainUrl/api/ReportAPI/GetLetterInformation',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response && response.isSuccess && response.data) {
+                    hrManagerData = Array.isArray(response.data) && response.data.length > 0
+                        ? response.data[0]
+                        : { fullName: 'HR Manager', isHrManager: true, employeeId: null };
+                } else {
+                    hrManagerData = { fullName: 'HR Manager', isHrManager: true, employeeId: null };
+                }
+            },
+            error: function () {
+                hrManagerData = { fullName: 'HR Manager', isHrManager: true, employeeId: null };
+            }
+        });
+    }
+
+    function updateRecordCount() {
+        const grid = $("#employeeGrid").dxDataGrid("instance");
+        if (grid) {
+            const filteredCount = grid.getVisibleRows().length;
+            $('#recordCount').text(`${filteredCount} Records found.`);
+            $('#recordCount').css('color', filteredCount > 0 ? '#28a745' : '#dc3545');
+        }
+    }
+
+    function onFind() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+
+        if (!selectedBranchIds || selectedBranchIds.length === 0) {
+            showToast('Please select at least one branch.', 'warn');
+            return;
+        }
+
+        const selectedYear   = $('#yearSelect').val();
+        const branchIdsParam = selectedBranchIds.join(',');
+           const letterType      = 'OFL';
+        $('#grid-loader').addClass('d-flex').show();
+        hideDataElements();
+
+        $.ajax({
+            url: `@baseDomainUrl/api/ReportAPI/GetAllEmployeeforletter/${CompanyId}?BranchId=${branchIdsParam}&Year=${selectedYear}&LetterType=${letterType}`,
+            type: "GET",
+            headers: { 'Authorization': 'Bearer ' + Token },
+            dataType: "json",
+            success: function (response) {
+                const employeeData = response.data || response;
+                originalEmployeeData = employeeData;
+
+                if (employeeData && employeeData.length > 0) {
+                    showDataElements();
+
+                    const grid = $("#employeeGrid").dxDataGrid({
+                        dataSource: employeeData,
+                        keyExpr: "id",
+                        selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        paging: { enabled: false },
+                        scrolling: { mode: "standard", useNative: true, showScrollbar: "always" },
+                        searchPanel: { visible: false },
+                        height: 500,
+                        columns: [
+                            { dataField: "employeeCode", caption: "Candidate Code", width: 150 },
+                            { dataField: "id",           caption: "CandidateId",    visible: false },
+                            { dataField: "fullName",     caption: "Candidate Name" },
+                            { dataField: "branchName",   caption: "Branch",         width: 150 }
+                        ],
+                        onContentReady: function () { updateRecordCount(); }
+                    }).dxDataGrid("instance");
+
+                    $('#employeeSearch').off('input').on('input', function () {
+                        const searchValue = $(this).val();
+                        if (searchValue) {
+                            grid.filter([
+                                ['fullName',     'contains', searchValue], 'or',
+                                ['employeeCode', 'contains', searchValue], 'or',
+                                ['branchName',   'contains', searchValue]
+                            ]);
+                        } else {
+                            grid.clearFilter();
+                        }
+                        setTimeout(updateRecordCount, 100);
+                    });
+
+                    $('#recordCount').text(`${employeeData.length} Records found.`).css('color', '#28a745');
+                } else {
+                    hideDataElements();
+                    $('#noDataMessage').text('No candidates found for the selected branch(es).').show();
+                }
+
+                $('#grid-loader').removeClass('d-flex').hide();
+            },
+            error: function () {
+                $('#grid-loader').removeClass('d-flex').hide();
+                hideDataElements();
+                $('#noDataMessage').text('Failed to load candidates. Please try again.').show();
+                showToast('Failed to load candidates.', 'error');
+            }
+        });
+    }
+
+    function onClear() {
+        const branchTagBox = $("#branchDropdown").dxTagBox("instance");
+        if (branchTagBox) branchTagBox.option("value", []);
+        $('#yearSelect').val(new Date().getFullYear());
+
+        const grid = $("#employeeGrid").dxDataGrid("instance");
+        if (grid) grid.option("dataSource", []);
+
+        hideDataElements();
+        $('#noDataMessage').text('No data to display. Please select a branch and click Find to load candidate data.');
+        $('#employeeSearch').val('');
+        originalEmployeeData = [];
+    }
+
+    // ── View button ───────────────────────────────────────────────────────────
+    $('#btnView').on('click', function () {
+        const grid    = $('#employeeGrid').dxDataGrid("instance");
+        const selected = grid.getSelectedRowsData();
+
+        if (!selected.length) {
+            showToast('Please select at least one candidate.', 'warn');
+            return;
+        }
+        if (selected.length > 1) {
+            showToast('Please select only one candidate to view.', 'warn');
+            return;
+        }
+
+        const candidateId = selected[0].id;
+        const letterType      = 'OFL';
+        const $btn = $(this);
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...');
+
+        $.ajax({
+            url: `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${candidateId}&LetterType=${letterType}`,
+            type: "GET",
+            headers: { 'Authorization': 'Bearer ' + Token },
+            dataType: "json",
+            success: function (response) {
+                if (response && response.isSuccess) {
+                    let data = response.data || response.Data;
+                    if (Array.isArray(data)) {
+                        if (data.length === 0) { showToast('No candidate data found.', 'error'); return; }
+                        data = data[0];
+                    }
+                    currentEmployeeData = data;
+                    $('#offerLetterBody').html(generateOfferLetterHTML(data));
+                    const modal = new bootstrap.Modal(document.getElementById('offerLetterModal'));
+                    modal.show();
+                } else {
+                    showToast(response.responseMessage || 'Failed to fetch candidate details.', 'error');
+                }
+            },
+            error: function (xhr, status, error) {
+                showToast(`Failed to fetch candidate details: ${error}`, 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html('View');
+            }
+        });
+    });
+
+    // ── Download Multiple button ───────────────────────────────────────────────
+    $('#btnDownloadMultiple').on('click', function () {
+        const grid    = $('#employeeGrid').dxDataGrid("instance");
+        const selected = grid.getSelectedRowsData();
+
+        if (!selected.length) {
+            showToast('Please select at least one candidate.', 'warn');
+            return;
+        }
+
+        const $btn = $(this);
+        setBtnLoading($btn, 'Generating...');
+
+        let completedCount = 0;
+        const totalCount   = selected.length;
+             const letterType      = 'OFL';
+
+        selected.forEach((candidate) => {
+            $.ajax({
+                url: `@baseDomainUrl/api/ReportAPI/GetActiveEmployeeDetailsForLetter?EmployeeId=${candidate.id}&LetterType=${letterType}`,
+                type: "GET",
+                headers: { 'Authorization': 'Bearer ' + Token },
+                dataType: "json",
+                success: function (response) {
+                    if (response && response.isSuccess) {
+                        let data = response.data || response.Data;
+                        if (Array.isArray(data)) {
+                            if (data.length === 0) { finalize(); return; }
+                            data = data[0];
+                        }
+                        generatePDFFromHTML(generateOfferLetterHTML(data), data.employeeCode || data.candidateCode || 'CANDIDATE', 'Offer', finalize);
+                    } else { finalize(); }
+                },
+                error: function () { finalize(); }
+            });
+        });
+
+        function finalize() {
+            completedCount++;
+            if (completedCount === totalCount) {
+                setBtnNormal($btn, 'Download PDF');
+                showToast(`${totalCount} PDF(s) generated successfully!`, 'success');
+            }
+        }
+    });
+
+    // ── Shared PDF generator ──────────────────────────────────────────────────
+    function generatePDFFromHTML(html, code, prefix, callback) {
+        const tempContainer = $('<div>').css({ position: 'absolute', left: '-9999px', top: '0' }).appendTo('body');
+        tempContainer.html(html);
+        const element = tempContainer.find('.offer-letter-container')[0];
+
+        html2canvas(element, { scale: 2, logging: false, useCORS: true }).then(canvas => {
+            const imgData    = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf        = new jsPDF('p', 'mm', 'a4');
+            const imgWidth   = 210;
+            const pageHeight = 297;
+            const imgHeight  = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft   = imgHeight;
+            let position     = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            pdf.save(`${prefix}_Letter_${code}_${new Date().getTime()}.pdf`);
+            tempContainer.remove();
+            if (callback) callback();
+        }).catch(error => {
+            console.error('PDF generation error:', error);
+            tempContainer.remove();
+            if (callback) callback();
+        });
+    }
+
+    // ── Offer Letter HTML ─────────────────────────────────────────────────────
+    function generateOfferLetterHTML(data) {
+
+        const formatDate = (dateStr) => {
+            if (!dateStr) return 'N/A';
+            const d     = new Date(dateStr);
+            const day   = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year  = d.getFullYear();
+            return `${day}/${month}/${year}`;
+        };
+
+        const today        = formatDate(new Date().toISOString());
+        // const logoUrl      = '/assets/images/relaylogo.jpeg';
+
+        // ── FIX: correct gender handling ──
+        const titlePrefix    = getTitlePrefix(data.gender);
+        const cleanName      = cleanEmployeeName(data.fullName || '[Candidate Name]');
+        const displayName    = titlePrefix ? `${titlePrefix} ${cleanName}` : cleanName;
+        const firstName      = cleanName.split(' ')[0];
+        const salutationName = titlePrefix ? `${titlePrefix} ${firstName}` : firstName;
+
+        const email          = data.email              || data.emailId          || '';
+        const contactNo      = data.contactNo          || data.mobileNumber     || '';
+        const designation    = data.designationName    || data.designation      || '[Designation]';
+        const department     = data.departmentName     || data.department       || '[Department]';
+        const branchLocation = data.branchName         || data.branchLocation   || '[Branch Location]';
+        const reportingMgr   = data.reportingManagerName || data.reportingManager || '[Reporting Manager Name]';
+        const joiningDate    = formatDate(data.joiningDate || data.dateOfJoining || data.expectedJoiningDate);
+        const annualCtc      = data.annualCtc          || data.ctc              || '';
+        const ctcInWords     = data.ctcInWords         || data.salaryInWords    || '';
+        const companyAddress = data.companyAddress     || '406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway, Makarba, Ahmedabad - 380051 Gujarat, India';
+        const directorName   = data.directorName       || 'Atri Patel';
+        const logoUrl      =  '/assets/images/relaylogo.jpeg';
+        const companyName  = data.companyName     || Compname      || '';
+        const refNo        = data.refNumber
+        return `
+        <div class="offer-letter-container" style="
+            width:100%; max-width:900px; margin:0 auto;
+            padding:50px 70px; background:white;
+            font-family:'Calibri','Arial',sans-serif;
+            font-size:14px; color:#222; box-sizing:border-box;
+            border:1px solid #ddd; line-height:1.8;">
+
+            <!-- HEADER -->
+            <table style="width:100%; margin-bottom:30px;">
+                <tr>
+                   <td style="vertical-align:top;">
+                        <p style="margin:0; font-size:13px;">
+                            <strong>Ref No :</strong> ${refNo}
+                        </p>
+                    </td>
+                    <td style="text-align:right; vertical-align:top;">
+                        <img src="${logoUrl}" alt="Company Logo"
+                             style="max-width:220px; height:auto;"
+                             onerror="this.style.display='none'" />
+                    </td>
+                </tr>
+            </table>
+
+            <!-- DATE -->
+            <p style="margin:0 0 18px 0; font-size:14px; text-align:right;">
+                <strong>${today}</strong>
+            </p>
+
+            <!-- TO BLOCK -->
+            <p style="margin:0;">To,</p>
+            <p style="margin:4px 0;">
+                <strong><u style="color:#e74c3c;">${displayName}</u></strong>
+            </p>
+            ${email     ? `<p style="margin:4px 0;"><strong>Email ID -</strong> ${email}</p>`        : ''}
+            ${contactNo ? `<p style="margin:4px 0;"><strong>Contact No. -</strong> ${contactNo}</p>` : ''}
+
+            <!-- TITLE -->
+            <p style="text-align:center; font-size:16px; font-weight:bold;
+                      text-decoration:underline; margin:30px 0 20px 0; color:#3f4d6b;">
+                Employment Offer Letter
+            </p>
+
+            <!-- SALUTATION -->
+            <p><strong>Dear ${salutationName},</strong></p>
+
+            <p>
+                Further to the interviews you had with us, we are pleased to offer you the position of
+                <strong style="color:#e74c3c;">"${designation} - ${department}"</strong>
+                with <strong>Relay Express Pvt. Ltd.</strong>
+            </p>
+
+            <p>
+                This job offer is for our <strong style="color:#e74c3c;">"${branchLocation}"</strong> Branch;
+                however as and when required, you may be transferred to any of the offices in India.
+                During probation, the notice period required for resignation is <strong>15 days</strong>
+                and after completion of Probation <strong>30 Days</strong>.
+            </p>
+
+            <p>
+                You will have to do your daily reporting to
+                <strong style="color:#e74c3c;">${reportingMgr}.</strong>
+            </p>
+
+            <p>
+                You are expected to join on or before
+                <strong style="color:#e74c3c;">"${joiningDate}".</strong>
+                This offer is valid only for <strong>3 days</strong> from the date of issuance.
+            </p>
+
+            <p>
+                Your <strong>Annual CTC</strong> will be
+                <strong>Rs. ${annualCtc} /-</strong>
+                ${ctcInWords ? `<strong>(Rupees ${ctcInWords})</strong>` : ''}
+                <strong>(Annexure-I)</strong>
+            </p>
+
+            <p>
+                The appointment is on terms, mutually agreed between us during the course of interview.
+                Formal appointment Letter with terms &amp; conditions will be handed over to you upon
+                your joining and further completing the joining formalities.
+            </p>
+
+            <p>
+                This offer letter is based on the information furnished in your application for employment
+                and during the interviews you had with us. If, at any time in future, it comes to light
+                that any of this information is incorrect or any relevant information has been withheld,
+                then your employment is liable to be terminated without notice.
+            </p>
+
+            <p>
+                Kindly find attached the <strong>Joining HR Checklist (Annexure-II)</strong> which has
+                the list of documents to be submitted at the time of joining or before joining on the
+                mail <strong>hrd@relayexpress.in</strong>
+            </p>
+
+            <p>
+                Please sign a copy of this letter as a token of acceptance and return the same to the
+                Human Resource Department.
+            </p>
+
+            <p>We wish you all the best and look forward to a long and mutually rewarding association.</p>
+
+            <!-- SIGNATURE -->
+            <div style="margin-top:50px;">
+                <p style="margin:4px 0;"><strong> For,${companyName} Pvt Ltd </strong></p>
+                <br/>
+                <p style="margin:4px 0; color:#e74c3c;"><strong><u>Mr. ${directorName}</u></strong></p>
+                <p style="margin:4px 0;"><strong>Director</strong></p>
+            </div>
+
+            <!-- ACCEPTANCE BLOCK -->
+            <div style="margin-top:40px; border-top:1px solid #ccc; padding-top:20px;">
+                <p style="margin:0 0 10px 0;">
+                    I, <strong>${displayName}</strong>, accept the offer mentioned
+                    herewith and undertake to abide the same.
+                </p>
+                <table style="width:100%; font-size:13px; margin-top:14px;">
+                    <tr>
+                        <td style="width:50%;">
+                            <strong>Date Of Acceptance:</strong>
+                            <span style="display:inline-block; width:160px; border-bottom:1px solid #000;">&nbsp;</span>
+                        </td>
+                        <td style="width:25%;">
+                            <strong>Date Of Joining:</strong>
+                            <span style="display:inline-block; width:100px; border-bottom:1px solid #000;">&nbsp;</span>
+                        </td>
+                        <td style="width:25%; text-align:right;">
+                            <strong>Signature:</strong>
+                            <span style="display:inline-block; width:100px; border-bottom:1px solid #000;">&nbsp;</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- FOOTER -->
+            <div style="margin-top:30px; font-size:11px; text-align:center; color:#555;">
+                <p style="margin:2px 0;"><strong>This is a Computer-generated statement hence no signature required.</strong></p>
+                <p style="margin:2px 0;"><strong>Personal &amp; Confidential</strong></p>
+            </div>
+            <div style="margin-top:10px; font-size:11px; text-align:center; color:#666;">
+                <p><strong>${companyAddress}</strong> &ndash; Page - 1</p>
+            </div>
+
+            <!-- PAGE BREAK -->
+            <div style="border-top:2px dashed #aaa; margin:40px 0;"></div>
+
+            <!-- ANNEXURE I -->
+            <p style="margin:0 0 6px 0; text-align:center; font-size:15px; font-weight:bold; text-decoration:underline; color:#3f4d6b;">
+                Annexure I
+            </p>
+            <p style="margin:0 0 20px 0; text-align:center; font-size:14px; font-weight:bold; text-decoration:underline; color:#3f4d6b;">
+                JOINING HR CHECK LIST
+            </p>
+
+            <!-- ANNEXURE II -->
+            <p style="margin:0 0 10px 0; font-size:14px; font-weight:bold; text-decoration:underline; color:#3f4d6b;">Annexure II</p>
+            <p style="margin:0 0 10px 0; font-style:italic; font-size:13px;">Please send clear and readable Soft Copy only</p>
+
+            <!-- MANDATORY -->
+            <p style="margin:0 0 6px 0; font-weight:bold; font-size:13px; color:#3f4d6b;">MANDATORY</p>
+            <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">
+                <thead>
+                    <tr style="background-color:#3f4d6b; color:white;">
+                        <th style="padding:6px 10px; text-align:left;">#</th>
+                        <th style="padding:6px 10px; text-align:left;">Document</th>
+                        <th style="padding:6px 10px; text-align:left;">Format</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${[
+                        ['1', 'Joining Form',                                       'Original'],
+                        ['2', 'Updated Resume',                                     'Soft Copy'],
+                        ['3', '1 Passport Size Latest Photograph (Colour Scan)',    '.jpg'],
+                        ['4', 'Address Proof – Present and Permanent',              '.pdf'],
+                        ['5', 'Aadhaar Card',                                       'Colour Scan .pdf'],
+                        ['6', 'Electricity Bill / House Tax Bill / Rent Agreement', '.pdf'],
+                        ['7', 'PAN Card',                                           'Colour Scan .pdf'],
+                        ['8', 'Valid Driving License',                              'Colour Scan .pdf'],
+                        ['9', 'Cancelled Cheque',                                   'Colour Scan .pdf'],
+                    ].map(([n, doc, fmt], i) => `
+                        <tr style="background-color:${i % 2 === 0 ? '#f9f9f9' : '#ffffff'};">
+                            <td style="padding:5px 10px; border:1px solid #ccc;">${n}</td>
+                            <td style="padding:5px 10px; border:1px solid #ccc;">${doc}</td>
+                            <td style="padding:5px 10px; border:1px solid #ccc;">${fmt}</td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>
+
+            <!-- NECESSARY -->
+            <p style="margin:0 0 6px 0; font-weight:bold; font-size:13px; color:#3f4d6b;">NECESSARY (Colour Scan Copy in .pdf)</p>
+            <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">
+                <thead>
+                    <tr style="background-color:#3f4d6b; color:white;">
+                        <th style="padding:6px 10px; text-align:left;">#</th>
+                        <th style="padding:6px 10px; text-align:left;">Document</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${[
+                        ['1', 'All Educational Documents / Certificates'],
+                        ['2', 'Appointment Letter of Previous Company'],
+                        ['3', 'Pay Slip for last 3 months / Bank Statement of Salary'],
+                        ['4', 'Previous Employer Experience Certificate'],
+                        ['5', 'Resignation Acceptance and Relieving Letter from Previous Employer'],
+                    ].map(([n, doc], i) => `
+                        <tr style="background-color:${i % 2 === 0 ? '#f9f9f9' : '#ffffff'};">
+                            <td style="padding:5px 10px; border:1px solid #ccc;">${n}</td>
+                            <td style="padding:5px 10px; border:1px solid #ccc;">${doc}</td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>
+
+            <!-- IF APPLICABLE -->
+            <p style="margin:0 0 6px 0; font-weight:bold; font-size:13px; color:#3f4d6b;">IF APPLICABLE</p>
+            <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">
+                <thead>
+                    <tr style="background-color:#3f4d6b; color:white;">
+                        <th style="padding:6px 10px; text-align:left;">#</th>
+                        <th style="padding:6px 10px; text-align:left;">Document</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background-color:#f9f9f9;">
+                        <td style="padding:5px 10px; border:1px solid #ccc;">1</td>
+                        <td style="padding:5px 10px; border:1px solid #ccc;">Tax Saving Investment Details</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- PAGE 2 FOOTER -->
+            <div style="margin-top:20px; font-size:11px; text-align:center; color:#666;">
+                <p><strong>${companyAddress}</strong> &ndash; Page - 2</p>
+            </div>
+        </div>`;
+    }
+
+    // ── Download from modal ────────────────────────────────────────────────────
+    $('#btnDownloadPDF').on('click', function () {
+        const $btn    = $(this);
+        $btn.prop('disabled', true).addClass('btn-loading');
+
+        const element = document.getElementById('offerLetterBody').querySelector('.offer-letter-container');
+
+        html2canvas(element, { scale: 2, logging: false, useCORS: true }).then(canvas => {
+            const imgData    = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf        = new jsPDF('p', 'mm', 'a4');
+            const imgWidth   = 210;
+            const pageHeight = 297;
+            const imgHeight  = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft   = imgHeight;
+            let position     = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            const code = currentEmployeeData?.employeeCode || currentEmployeeData?.candidateCode || 'CANDIDATE';
+            pdf.save(`Offer_Letter_${code}_${new Date().getTime()}.pdf`);
+            $btn.prop('disabled', false).removeClass('btn-loading');
+        }).catch(error => {
+            console.error('PDF generation error:', error);
+            showToast('Failed to generate PDF.', 'error');
+            $btn.prop('disabled', false).removeClass('btn-loading');
+        });
+    });
+
+    $('#offerLetterModal').on('hidden.bs.modal', function () {
+        const grid = $('#employeeGrid').dxDataGrid("instance");
+        if (grid) grid.clearSelection();
+    });
+</script>

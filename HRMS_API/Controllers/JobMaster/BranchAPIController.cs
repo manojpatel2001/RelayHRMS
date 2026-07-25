@@ -199,12 +199,21 @@ namespace HRMS_API.Controllers.JobMaster
 
 
 
-        [HttpGet("GetBranchWiseEmpCount")]
-        public async Task<APIResponse> GetBranchWiseEmpCount()
+        [HttpGet("GetBranchWiseEmpCount/{CompanyId}")]
+        public async Task<APIResponse> GetBranchWiseEmpCount(int CompanyId)
         {
             try
             {
-                var data = await _unitOfWork.BranchRepository.GetBranchWiseEmpCount();
+                var data = await _unitOfWork.BranchRepository.GetBranchWiseEmpCount(CompanyId);
+                if(data==null || !data.Any())
+                {
+                    return new APIResponse()
+                    {
+                        isSuccess = false,
+                       
+                        ResponseMessage = "No record found!"
+                    };
+                }
 
                 return new APIResponse()
                 {
@@ -240,6 +249,37 @@ namespace HRMS_API.Controllers.JobMaster
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
             }
         }
+        [HttpGet("GetBranchesByEmployee")]
+        public async Task<APIResponse> GetBranchesByEmployee(int EmpId ,int CompId)
+        {
+            try
+            {
+                var data = await _unitOfWork.BranchRepository.GetBranchesByEmployee(EmpId , CompId);    
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+        [HttpGet("GetEmployeesByBranchAndUser")]
+        public async Task<APIResponse> GetEmployeesByBranchAndUser(int Empid , int CompId )
+        {
+            try
+            {
+                var data = await _unitOfWork.BranchRepository.GetEmployeesByBranchAndUser (Empid , CompId );
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
     }
 }

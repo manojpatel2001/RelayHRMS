@@ -1,0 +1,421 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Probation Status";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<title>Probation Status</title>
+
+<!-- ExcelJS + FileSaver for Export -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Probation Status</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 160px;min-width:150px;">
+                    <label for="searchby">Search By</label>
+                    <select id="searchby">
+                        <option value="">Select</option>
+                        <option value="EmpCode">Emp Code</option>
+                        <option value="EmpName">Emp Name</option>
+                        <option value="Status">Status</option>
+                    </select>
+                </div>
+
+                <div class="fg" style="flex:1 1 190px;min-width:170px;">
+                    <label for="searchfor">Search For</label>
+                    <input type="text" id="searchfor" placeholder="Enter search text" />
+                </div>
+
+                <div class="fg" style="flex:1 1 200px;min-width:180px;">
+                    <label for="branchDropdown">Branch <span class="text-danger">*</span></label>
+                    <select id="branchDropdown" multiple></select>
+                    <span class="field-validation-error" id="spnBranch" style="display:none;">Please Select Branch</span>
+                </div>
+
+                <div style="flex:0 0 auto;">
+                    <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Status</span>
+                    <div class="d-flex gap-3">
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="type" id="r1" value="Pending" checked>
+                            <label class="form-check-label" for="r1">Pending</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="type" id="r2" value="Final">
+                            <label class="form-check-label" for="r2">Approved</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="actionButtonsWrap" style="display:none;">
+                <div class="d-flex justify-content-end gap-2 mb-3">
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnSelectAllProbation">
+                        <i class="bx bx-check-square"></i> Select All
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnExportExcel">
+                        <i class="bx bx-download"></i> Export to Excel
+                    </button>
+                </div>
+            </div>
+
+            <div id="gridContainerProbation"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var CompanyId = companyDetails.CompanyId;
+        var EmployeeId = localStorage.getItem('EmployeeId');
+        var Token = localStorage.getItem('authToken');
+
+        var selectedIds = {};
+        var currentRows = [];
+        var grid = null;
+        var isLoadingProbation = false;
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function goBack() { window.history.back(); }
+        window.goBack = goBack;
+
+        function getStatus() {
+            return $('input[name="type"]:checked').val() || 'Pending';
+        }
+
+        /* ── Document Ready ─────────────────────────── */
+        $(document).ready(function () {
+            BindBranchDropdown();
+            $('#r1').prop('checked', true);
+            loadDefaultPendingData();
+
+            $('input[name="type"]').on('change', function () {
+                $('#actionButtonsWrap').hide();
+                selectedIds = {};
+                currentRows = [];
+                grid = null;
+                $('#gridContainerProbation').empty();
+            });
+
+            $('#btnSelectAllProbation').on('click', function () {
+                var allSelected = currentRows.length > 0 && currentRows.every(function (r) { return !!selectedIds[r.rowIndex]; });
+                selectedIds = {};
+                if (!allSelected) { currentRows.forEach(function (r) { selectedIds[r.rowIndex] = true; }); }
+                if (grid) grid.refresh();
+            });
+
+            $('#btnExportExcel').on('click', function () { doExportProbationData(); });
+        });
+
+        function BindBranchDropdown() {
+            $.ajax({
+                url: '@(baseDomainUrl)/api/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (response && response.data && response.data.length > 0) {
+                        var $dd = $('#branchDropdown');
+                        $dd.empty();
+                        response.data.forEach(function (branch) {
+                            $dd.append('<option value="' + branch.branchId + '">' + branch.branchName + '</option>');
+                        });
+                    }
+                },
+                error: function () { console.error('Failed to load branches'); }
+            });
+        }
+
+        function getSelectedBranchIds() {
+            var val = $('#branchDropdown').val();
+            if (!val) return [];
+            return Array.isArray(val) ? val : [val];
+        }
+
+        function getSelectedRows() {
+            return currentRows.filter(function (r) { return !!selectedIds[r.rowIndex]; });
+        }
+
+        window._toggleProbationRow = function (id, checked) {
+            if (checked) selectedIds[id] = true;
+            else delete selectedIds[id];
+        };
+
+        /* ── Render WMSGrid ───────────────────────────── */
+        function renderGrid(data) {
+            var processedData = data.map(function (item, idx) {
+                return {
+                    rowIndex: idx,
+                    employeeId: item.employeeId,
+                    employeeCode: item.employeeCode,
+                    fullName: item.fullName,
+                    branchName: item.branchName,
+                    dateOfJoining: item.dateOfJoining,
+                    probationEndDate: item.probationEndDate,
+                    reviewType: item.reviewType,
+                    updatedBy: item.updatedBy,
+                    updatedDate: item.updatedDate
+                };
+            });
+
+            currentRows = processedData;
+            selectedIds = {};
+
+            var columns = [
+                {
+                    header: '', sortable: false, width: '40px',
+                    render: function (v, row) {
+                        var checked = selectedIds[row.rowIndex] ? ' checked' : '';
+                        return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleProbationRow(' + row.rowIndex + ', this.checked)">';
+                    }
+                },
+                { field: 'employeeCode', header: 'Emp Code', width: '100px' },
+                { field: 'fullName', header: 'Employee Name', width: '200px' },
+                { field: 'branchName', header: 'Branch', width: '150px' },
+                { header: 'Date of Joining', sortable: false, width: '140px', render: function (v, row) { return fmtDate(row.dateOfJoining); } },
+                { header: 'Probation End Date', sortable: false, width: '160px', render: function (v, row) { return row.probationEndDate ? fmtDate(row.probationEndDate) : '-'; } },
+                { field: 'reviewType', header: 'Review Type', width: '100px' },
+                { header: 'Review By', sortable: false, width: '150px', render: function (v, row) { return row.updatedBy ? row.updatedBy : '-'; } }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerProbation',
+                    title: 'Probation Status',
+                    icon: 'bx-user-check',
+                    exportName: 'ProbationStatus',
+                    data: processedData,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(processedData);
+            }
+        }
+
+        function loadDefaultPendingData() {
+            if (isLoadingProbation) return;
+            isLoadingProbation = true;
+            if (grid) grid.showLoader();
+
+            var model = {
+                searchBy: null,
+                searchValue: null,
+                branchId: null,
+                status: 'Pending'
+            };
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/ReportAPI/GetProbationStatusSearch")',
+                type: 'POST',
+                data: JSON.stringify(model),
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    isLoadingProbation = false;
+                    if (grid) grid.hideLoader();
+
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        renderGrid(res.data);
+                        $('#actionButtonsWrap').show();
+                    } else {
+                        currentRows = [];
+                        grid = null;
+                        $('#gridContainerProbation').empty();
+                        $('#actionButtonsWrap').hide();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingProbation = false;
+                    if (grid) grid.hideLoader();
+                    console.error('API Error:', xhr.responseText);
+                    showToast('Error occurred while fetching data', 'error');
+                }
+            });
+        }
+
+        /* ── Export to Excel ─────────────────────────── */
+        function doExportProbationData() {
+            try {
+                var rows = getSelectedRows();
+                if (!rows || rows.length === 0) rows = currentRows;
+
+                if (!rows || rows.length === 0) {
+                    showToast('No data available to export.', 'warn');
+                    return;
+                }
+
+                if (typeof ExcelJS === 'undefined') {
+                    showToast('ExcelJS library not loaded. Please refresh the page.', 'error');
+                    return;
+                }
+
+                var workbook = new ExcelJS.Workbook();
+                var worksheet = workbook.addWorksheet('Probation Status');
+
+                worksheet.columns = [
+                    { header: 'Emp Code', key: 'employeeCode', width: 12 },
+                    { header: 'Employee Name', key: 'fullName', width: 25 },
+                    { header: 'Branch', key: 'branchName', width: 20 },
+                    { header: 'Date of Joining', key: 'dateOfJoining', width: 15 },
+                    { header: 'Probation End Date', key: 'probationEndDate', width: 18 },
+                    { header: 'Review Type', key: 'reviewType', width: 15 },
+                    { header: 'Review By', key: 'updatedBy', width: 20 }
+                ];
+
+                var headerRow = worksheet.getRow(1);
+                headerRow.eachCell(function (cell) {
+                    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F6F8E' } };
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    cell.border = {
+                        top: { style: 'thin' }, left: { style: 'thin' },
+                        bottom: { style: 'thin' }, right: { style: 'thin' }
+                    };
+                });
+                headerRow.height = 25;
+
+                function safe(val) { return (val === null || val === undefined) ? '' : String(val); }
+
+                rows.forEach(function (row) {
+                    if (!row) return;
+                    var dataRow = worksheet.addRow({
+                        employeeCode: safe(row.employeeCode),
+                        fullName: safe(row.fullName),
+                        branchName: safe(row.branchName),
+                        dateOfJoining: fmtDate(row.dateOfJoining),
+                        probationEndDate: row.probationEndDate ? fmtDate(row.probationEndDate) : '-',
+                        reviewType: safe(row.reviewType),
+                        updatedBy: row.updatedBy ? safe(row.updatedBy) : '-'
+                    });
+
+                    dataRow.eachCell(function (cell) {
+                        cell.border = {
+                            top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                            left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                            bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                            right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                        };
+                        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                    });
+                });
+
+                var status = getStatus() || 'Export';
+                var today = new Date();
+                var dateStr = String(today.getDate()).padStart(2, '0') + '-' +
+                    String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                    today.getFullYear();
+                var fileName = 'Probation_Status_' + status + '_' + dateStr + '.xlsx';
+
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+                    showToast(rows.length + ' record(s) exported successfully.', 'success');
+                }).catch(function (err) {
+                    console.error('Export error:', err);
+                    showToast('Export failed: ' + err.message, 'error');
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        /* ── GO Button ──────────────────────────────── */
+        $('#btnGo').on('click', function () {
+            if (isLoadingProbation) return;
+
+            isLoadingProbation = true;
+            setBtnLoading('#btnGo', 'Go');
+
+            var selectedBranches = getSelectedBranchIds();
+
+            var model = {
+                searchBy: $('#searchby').val() || null,
+                searchValue: $('#searchfor').val() || null,
+                branchId: selectedBranches.length > 0 ? selectedBranches.join(',') : null,
+                status: getStatus() || 'Pending'
+            };
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/ReportAPI/GetProbationStatusSearch")',
+                type: 'POST',
+                data: JSON.stringify(model),
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    isLoadingProbation = false;
+                    setBtnNormal('#btnGo', 'Go');
+
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        renderGrid(res.data);
+                        $('#actionButtonsWrap').show();
+                    } else {
+                        currentRows = [];
+                        grid = null;
+                        $('#gridContainerProbation').empty();
+                        $('#actionButtonsWrap').hide();
+                        showToast('No Data Found', 'info');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingProbation = false;
+                    setBtnNormal('#btnGo', 'Go');
+                    console.error('API Error:', xhr.responseText);
+                    showToast('Error occurred while fetching data', 'error');
+                }
+            });
+        });
+
+        /* ── Clear Button ───────────────────────────── */
+        $('#btnClear').on('click', function () {
+            $('#searchby').val('');
+            $('#searchfor').val('');
+            $('#branchDropdown').val([]).trigger('change');
+            $('#spnBranch').hide();
+
+            $('input[name="type"]').prop('checked', false);
+            $('#r1').prop('checked', true);
+
+            selectedIds = {};
+            currentRows = [];
+            grid = null;
+            $('#gridContainerProbation').empty();
+            $('#actionButtonsWrap').hide();
+
+            loadDefaultPendingData();
+        });
+    })();
+</script>

@@ -1,0 +1,192 @@
+﻿using Dapper;
+using HRMS_Core.DbContext;
+using HRMS_Core.VM;
+using HRMS_Core.VM.ExitApplication;
+using HRMS_Infrastructure.Interface.ExitApplication;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace HRMS_Infrastructure.Repository.ExitApplicationRepo
+{
+    public class NOCRepository: Repository<NOSForm>, INOCRepository
+    {
+        private readonly HRMSDbContext _db;
+        private readonly string _connectionString;
+
+        public NOCRepository(HRMSDbContext db) : base(db)
+        {
+            _db = db;
+            _connectionString = db.Database.GetDbConnection().ConnectionString;
+
+        }
+        public async Task<SP_Response> CreateNOC(NOSForm model)
+        {
+            var response = new SP_Response();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Operation", "INSERT");
+                    parameters.Add("@ExitApplicationID", model.ExitApplicationID);
+                    parameters.Add("@ItemName", model.ItemName);
+                    parameters.Add("@IsHandedOver", model.IsHandedOver);
+                    parameters.Add("@HandoverTo", model.HandoverTo);
+                    parameters.Add("@Remarks", model.Remarks);
+
+                    // ⭐ Fix for byte[] - pass null directly, not DBNull.Value
+                    parameters.Add("@DocumentProof", model.DocumentProof, DbType.Binary);
+
+                    parameters.Add("@CreatedBy", model.CreatedBy);
+
+                    var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                        "sp_NOSForm_CRUD",
+                        parameters,
+                        commandType: CommandType.StoredProcedure);
+
+                    response.Success = result.Success;
+                    response.ResponseMessage = result.ResponseMessage;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.Success = -1;
+                response.ResponseMessage = $"Error: {ex.Message}";
+            }
+            return response;
+        }
+
+        public async Task<List<NOSForm>> GetNOCByExitApplicationId(int exitApplicationId)
+        {
+
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Operation", "SELECT");
+                    parameters.Add("@ExitApplicationID", exitApplicationId);
+
+                    var result = await connection.QueryAsync<NOSForm>(
+                        "sp_NOSForm_CRUD",
+                        parameters,
+                        commandType: CommandType.StoredProcedure);
+
+                    return result.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error fetching NOC data: {ex.Message}");
+            }
+        }
+        public async Task<List<NOCFormDataResponse>> GetNOCByGetEmployeeExitDetails(int EmployeeId)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var results = await connection.QueryAsync<dynamic>(
+                        "usp_GetEmployeeExitDetails",
+                        new { EmployeeID = EmployeeId },
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (results == null || !results.Any())
+                    {
+                        return new List<NOCFormDataResponse>();
+                    }
+
+                    var groupedResults = results
+                        .GroupBy(r => (int)r.EmpId)
+                        .Select(g =>
+                        {
+                            var first = g.First();
+                            return new NOCFormDataResponse
+                            {                                
+                                EmployeeName = first.FullName,
+                                EmployeeCode = first.EmployeeCode,
+                                Branch = first.BranchName,
+                                Department = first.DepartmentName,
+                                Designation = first.DesignationName,                     
+                                ResignationDate = first.ResignationDate,
+                                ReasonForResignation = first.ReasonForResignation,
+                                LastWorkingDate = first.LastWorkingDate,
+                                NoticePeriodDays = first.NoticePeriodDays,
+                                ShortFallDays = first.ShortFallDays,
+                                NocItems = g.Select(item => new NOCItem
+                                {
+                                    ItemName = item.ItemName,
+                                    IsHandedOver = Convert.ToBoolean(item.IsHandedOver),
+                                    HandoverTo = string.IsNullOrEmpty(item.HandoverTo) || item.HandoverTo == "NULL"
+                                        ? null
+                                        : item.HandoverTo,
+                                    Remarks = string.IsNullOrEmpty(item.Remarks) || item.Remarks == "NULL"
+                                        ? null
+                                        : item.Remarks
+                                }).ToList()
+                            };
+                        })
+                        .ToList();
+
+                    return groupedResults;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log exception
+                throw new Exception($"Error fetching NOC form data for EmployeeId: {EmployeeId}", ex);
+            }
+        }
+
+        public async Task<SP_Response> UpdateNOC(NOSForm model)
+        {
+            var response = new SP_Response();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Operation", "UPDATE");
+                    parameters.Add("@NOSID", model.NOSID);
+                    parameters.Add("@ExitApplicationID", model.ExitApplicationID);
+                    parameters.Add("@ItemName", model.ItemName);
+                    parameters.Add("@IsHandedOver", model.IsHandedOver);
+                    parameters.Add("@HandoverTo", model.HandoverTo);
+                    parameters.Add("@Remarks", model.Remarks);
+
+                    // ⭐ Fix for byte[]
+                    parameters.Add("@DocumentProof", model.DocumentProof, DbType.Binary);
+
+             
+
+                    var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
+                        "sp_NOSForm_CRUD",
+                        parameters,
+                        commandType: CommandType.StoredProcedure);
+
+                    response.Success = result.Success;
+                    response.ResponseMessage = result.ResponseMessage;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.Success = -1;
+                response.ResponseMessage = $"Error: {ex.Message}";
+            }
+            return response;
+        }
+
+    }
+}

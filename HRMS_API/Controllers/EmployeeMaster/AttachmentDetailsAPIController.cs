@@ -99,10 +99,10 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
                 var result = await _unitOfWork.AttachmentDetailsRepository.CreateAttachmentDetail(model);
 
-                if (result.Id > 0)
-                    return new APIResponse { isSuccess = true, ResponseMessage = "Record created successfully." };
+                if (result.Success > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
 
-                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to create record." };
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
             catch (Exception ex)
             {
@@ -145,10 +145,10 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
                     var result = await _unitOfWork.AttachmentDetailsRepository.UpdateAttachmentDetail(model);
 
-                if (result.Id > 0)
-                    return new APIResponse { isSuccess = true, ResponseMessage = "Record updated successfully." };
+                if (result.Success > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
 
-                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to update record." };
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
             catch (Exception ex)
             {
@@ -170,15 +170,33 @@ namespace HRMS_API.Controllers.EmployeeMaster
 
                 var result = await _unitOfWork.AttachmentDetailsRepository.DeleteAttachmentDetail(model);
 
-                if (result.Id > 0)
-                    return new APIResponse { isSuccess = true, ResponseMessage = "Record deleted successfully." };
+                if (result.Success > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = result.ResponseMessage };
 
-                return new APIResponse { isSuccess = false, ResponseMessage = "Unable to delete record." };
+                return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
             }
             catch (Exception ex)
             {
                 return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Error while deleting record." };
             }
         }
+
+        [HttpGet("GetAllDocumentTypes")]
+        public async Task<APIResponse> GetAllDocumentTypes()
+        {
+            try
+            {
+                var data = await _unitOfWork.AttachmentDetailsRepository.GetAllDocumentTypes();
+                if (data == null || !data.Any())
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Error while retrieving records." };
+            }
+        }
+
     }
 }

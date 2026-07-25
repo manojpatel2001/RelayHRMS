@@ -1,77 +1,173 @@
-﻿
+﻿(function () {
+    const tokenExist = localStorage.getItem("authToken");
+    if (!tokenExist) {
+        localStorage.clear();
+        window.location.href = uiBaseUrlLayout + "/AuthManage/Login";
+    }
+})();
 
+$(document).ready(async function () {
+    var CompnayList = [];
+    const tokenLogout = localStorage.getItem("authToken");
+    let decodedLogout = "";
+    let logoutEmail = "";
+    let logoutPassword = "";
 
+    // ✅ FIX 1 — Login ke time LoginHistoryID save karo
+    if (tokenLogout) {
+        try {
+            const decodedTemp = jwt_decode(tokenLogout);
+            // Sirf pehli baar save karo (agar pehle se nahi hai)
+            if (!localStorage.getItem('LoginHistoryID')) {
+                localStorage.setItem('LoginHistoryID', decodedTemp.LoginHistoryID);
+                console.log('LoginHistoryID saved:', decodedTemp.LoginHistoryID);
+            }
+        } catch (e) {
+            console.error('Token decode error on init:', e);
+        }
+    }
 
-var CompnayList = [];
-var token = localStorage.getItem("authToken");
-var decoded = "";
-if (token) {
-    $(".body-hiden-wrapper").show();
-    var decoded = jwt_decode(token);
-    CompnayList = JSON.parse(decoded.Company);
-    if (decoded.RoleSlug == "ess")
-    {
+    async function callRefreshTokenAPI() {
+        try {
+            var response = await fetch(BaseUrlLayout + '/AuthenticationAPI/Login', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + tokenLogout,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ Email: logoutEmail, Password: logoutPassword })
+            });
+            const refressData = await response.json();
+
+            if (refressData.isSuccess) {
+                // ✅ FIX 2 — Refresh ke time original ID bachao
+                const originalLoginHistoryID = localStorage.getItem('LoginHistoryID');
+
+                localStorage.removeItem('authToken');
+                localStorage.setItem("authToken", refressData.data.token);
+
+                // ✅ Original ID wapas rakho — overwrite mat karo
+                if (originalLoginHistoryID) {
+                    localStorage.setItem('LoginHistoryID', originalLoginHistoryID);
+                    console.log('LoginHistoryID preserved after refresh:', originalLoginHistoryID);
+                }
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+        }
+    }
+
+    function checkTokenExpiry() {
+        const token = localStorage.getItem("authToken");
+        if (!token) return;
+
+        const decoded = jwt_decode(token);
+        const exp = decoded.exp * 1000;
+        const now = Date.now();
+        const timeLeft = exp - now;
+
+        if (timeLeft <= 5 * 60 * 1000 && timeLeft > 0) {
+            callRefreshTokenAPI();
+        }
+    }
+
+    setInterval(checkTokenExpiry, 60 * 1000);
+
+    if (tokenLogout) {
+        $(".body-hiden-wrapper").show();
+        decodedLogout = jwt_decode(tokenLogout);
+        CompnayList = JSON.parse(decodedLogout.Company);
+
         if (!JSON.parse(localStorage.getItem("EmployeeId"))) {
             $(".body-hiden-wrapper").hide();
             window.location.href = uiBaseUrlLayout + '/AuthManage/Login';
         }
+
+        const savedCompany = localStorage.getItem('selectedCompany');
+        var company = JSON.parse(savedCompany);
+        var FullName = decodedLogout.FullName;
+        var Designation = decodedLogout.Designation;
+        var ProfileUrl = decodedLogout.ProfileUrl;
+        logoutEmail = decodedLogout.email;
+        logoutPassword = decodedLogout.Password;
+
+        $('.companyNameLayout').text(company.CompanyName);
+        $(".user-name").text(FullName);
+        $(".designation").text(Designation);
+
+        document.querySelectorAll('.custom-tooltip').forEach((el) => {
+            el.setAttribute('data-tooltip', el.textContent);
+        });
+
+        if (!savedCompany) {
+            localStorage.removeItem("authToken");
+            window.location.href = uiBaseUrlLayout + '/AuthManage/Login';
+        } else {
+            const companyDetails = JSON.parse(savedCompany);
+        }
+
+        $('#companyDrop').on('click', function () {
+            openCompanyModal(uiBaseUrlLayout, BaseUrlLayout, CompnayList, function (selectedCompany) {
+                if (selectedCompany) {
+                    localStorage.removeItem('selectedCompany');
+                    localStorage.setItem('selectedCompany', JSON.stringify(selectedCompany));
+                    location.reload();
+                }
+            });
+        });
+
+    } else {
+        $(".body-hiden-wrapper").hide();
+        localStorage.clear();
+        window.location.href = uiBaseUrlLayout + '/AuthManage/Login';
     }
 
-}
-else {
-    $(".body-hiden-wrapper").hide();
-    window.location.href = uiBaseUrlLayout + '/AuthManage/Login';
-}
-$('#btnLogout').click(function () {
-    localStorage.removeItem("authToken");
-    window.location.href = uiBaseUrlLayout+'/AuthManage/Login';
-            
-});
+    // ✅ FIX 3 — Logout button
+    $('#btnLogout').click(async function () {
+        try {
+            const token = localStorage.getItem("authToken");
 
+            // ✅ Pehle localStorage se lo
+            let historyIdToSend = localStorage.getItem('LoginHistoryID');
 
-$(document).ready(function () {
-    const savedCompany = localStorage.getItem('selectedCompany');
-    var company = JSON.parse(savedCompany);
-    var FullName = decoded.FullName;
-    var Designation = decoded.Designation;
-    var ProfileUrl = decoded.ProfileUrl;
-    $('.companyNameLayout').text(company.CompanyName);
+            // ✅ Agar nahi mila to token se decode karo
+            if (!historyIdToSend && token) {
+                try {
+                    const decoded = jwt_decode(token);
+                    historyIdToSend = decoded.LoginHistoryID || '';
+                } catch (e) {
+                    console.error('Token decode error:', e);
+                }
+            }
 
-    if (ProfileUrl!="") {
-        $('.user-img').attr('src', ProfileUrl);
-    }
-    else {
-        $('.user-img').attr('src', BaseDomainUrl + '/default-image/avatar-2.png');
-    }
-    $(".user-name").text(FullName);
-    $(".designation").text(Designation);
+            console.log('=== LOGOUT ===');
+            console.log('LoginHistoryID sending:', historyIdToSend);
 
+            await fetch(BaseUrlLayout + '/AuthenticationAPI/Logout', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json',
+                    'X-LoginHistoryID': historyIdToSend || ''
+                }
+            });
 
-    document.querySelectorAll('.custom-tooltip').forEach((el) => {
-        el.setAttribute('data-tooltip', el.textContent);
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            localStorage.clear();
+            window.location.href = uiBaseUrlLayout + '/AuthManage/Login';
+        }
     });
 
-
-    if (!savedCompany) {
-        // Simulate click on logout button
-        localStorage.removeItem("authToken");
-        window.location.href = uiBaseUrlLayout + '/AuthManage/Login';
-       
-    } else {
-        const companyDetails = JSON.parse(savedCompany);
-
-    }
-
-    $('#companyDrop').on('click', function () {
-        openCompanyModal(uiBaseUrlLayout, BaseUrlLayout, CompnayList, function (selectedCompany) {
-            if (selectedCompany) {
-                localStorage.removeItem('selectedCompany');
-                localStorage.setItem('selectedCompany', JSON.stringify(selectedCompany));
-                location.reload();
-            } else {
-            }
+    $(document).ready(async function () {
+        $.ajax({
+            url: uiBaseUrlLayout + '/AdminPanel/PartialView/LoadSessionTimmerModal',
+            type: 'GET',
+            success: function (html) {
+                $('#sessionTimmerContainer').html(html);
+            },
+            error: function () { }
         });
     });
 });
-
-

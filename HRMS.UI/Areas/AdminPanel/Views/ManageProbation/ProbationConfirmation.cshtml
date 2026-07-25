@@ -1,0 +1,819 @@
+@inject IConfiguration Configuration
+@{
+	ViewData["Title"] = "Probation Confirmation";
+	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+	<div class="card-header d-flex justify-content-between align-items-center">
+		<h6 class="mb-0">Probation Review &amp; Confirmation</h6>
+		<button type="button" id="exportExcelButton" class="btn btn-success btn-sm d-inline-flex align-items-center gap-1" onclick="downloadGridExcel()">
+			<i class="bx bx-file-excel"></i>
+			<span class="btn-spinner-icon"></span>
+			<span class="btn-label-text">Export Excel</span>
+		</button>
+	</div>
+
+	<div class="card-body">
+		<div class="d-flex flex-wrap gap-3 mb-3">
+			<div class="fg" style="min-width:200px;max-width:240px;flex:1 1 auto;">
+				<label for="ddlStatus">Probation Status</label>
+				<select id="ddlStatus">
+					<option selected value="">All</option>
+				</select>
+			</div>
+			<div class="fg" style="min-width:200px;max-width:240px;flex:1 1 auto;">
+				<label for="ddlYear">Year</label>
+				<select id="ddlYear">
+					<option selected value="">All</option>
+				</select>
+			</div>
+		</div>
+
+		<div id="probationGrid"></div>
+	</div>
+</div>
+
+<!-- Approval History Modal (replaces the old DevExtreme masterDetail row-expansion) -->
+<div class="modal fade" id="approvalHistoryModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-xl">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Approval History</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<div id="approvalHistoryGrid"></div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmEmailChangeModal" tabindex="-1">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header bg-warning text-dark">
+				<h5 class="modal-title">Confirmation</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+
+			<div class="modal-body">
+				<p>Are you sure you want to proceed with sending the confirmation email to this employee?</p>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" id="btnConfirmNo" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+				<button type="button" id="btnConfirmYes" class="btn btn-primary">Yes</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="modal fade"
+	 id="emailModal"
+	 tabindex="-1"
+	 data-bs-backdrop="static"
+	 data-bs-keyboard="false">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+
+			<div class="modal-header bg-info text-white">
+				<h5 class="modal-title">Update Employee Email</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+
+			<div class="modal-body">
+				<div class="row">
+					<div class="col-md-12">
+						<div class="fg fg-req">
+							<label for="employeeEmail">Employee Email</label>
+							<input type="text" id="employeeEmail" placeholder="Employee Email">
+						</div>
+						<span class="field-validation-error" id="spnEmployeeEmail" style="display:none;">Please Enter Employee Email</span>
+					</div>
+
+					<div class="col-md-12 mt-3">
+						<input type="checkbox" id="reportingEmailCheck" checked>
+						&nbsp;<label for="reportingEmailCheck"><i>Do you also want to send mail to reporting manager?</i></label>
+					</div>
+					<div class="col-md-12">
+						<div class="fg">
+							<label for="reportingEmail">Reporting Manager Email</label>
+							<input type="text" id="reportingEmail" placeholder="Reporting Manager Email">
+						</div>
+						<span class="field-validation-error" id="spnReportingEmail" style="display:none;">Please Enter Reporting Email</span>
+					</div>
+				</div>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" id="btnEmailSend" class="btn btn-primary d-inline-flex align-items-center gap-1">
+					<span class="btn-spinner-icon"></span>
+					<span class="btn-label-text">Send</span>
+				</button>
+			</div>
+
+		</div>
+	</div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<script>
+		const EmployeeId=localStorage.getItem('EmployeeId');
+	var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+	const CompanyId=companyDetails.CompanyId;
+		const Token=localStorage.getItem("authToken");
+
+	let probationGrid = null;
+	let probationRows = [];
+
+	$(document).ready(() =>
+	{
+			bindYearDropdown();
+			GetAllProbationStatus();
+			ProbationDataTable();
+	});
+
+
+		function bindYearDropdown() {
+			const ddlYear = $("#ddlYear");
+
+			ddlYear.empty();
+			ddlYear.append('<option value="">All</option>');
+
+			const currentYear = new Date().getFullYear();
+
+			// Previous, Current, Next year
+			for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+				ddlYear.append(
+					`<option value="${y}">${y}</option>`
+				);
+			}
+		}
+		$("#ddlStatus,#ddlYear").change(()=>{
+		ProbationDataTable();
+	});
+
+	function GetAllProbationStatus() {
+		$.ajax({
+			url: '@baseUrl/ProbationPerformanceAPI/GetAllProbationStatus',
+			method: 'GET',
+			headers: {
+				'Authorization': 'Bearer ' + Token
+			},
+			success: function (data) {
+				if (data.isSuccess && data.data && data.data.length > 0) {
+
+					var ddlProbationStatus = $("#ddlStatus");
+					ddlProbationStatus.empty();
+					ddlProbationStatus.append(
+						$('<option>', { value: '', text: 'All' })
+					);
+
+					$.each(data.data, function (index, item) {
+							if(item.ProbationStatusId!=6){
+							ddlProbationStatus.append(
+								$('<option>', {
+									value: item.ProbationStatusId,
+									text: item.ProbationStatusName
+								})
+							);
+							}
+					});
+				}
+			},
+			error: function (error) {
+				console.error('Error fetching probation status data:', error);
+			}
+		});
+	}
+
+	function fmtDate(v) {
+		if (!v) return '-';
+		var d = new Date(v);
+		if (isNaN(d.getTime())) return '-';
+		var day = String(d.getDate()).padStart(2, '0');
+		var month = String(d.getMonth() + 1).padStart(2, '0');
+		return day + '-' + month + '-' + d.getFullYear();
+	}
+
+	function escapeHtml(v) {
+		return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+			return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+		});
+	}
+
+	function truncRender(v) {
+		var text = (v === null || v === undefined || v === '') ? '-' : v;
+		return '<span style="display:block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(text) + '">' + escapeHtml(text) + '</span>';
+	}
+
+	function statusPill(v) {
+		var text = v || '-';
+		var t = text.toLowerCase();
+		var cls = 'wg-pill-pu';
+		if (t.indexOf('approv') !== -1 || t.indexOf('confirm') !== -1) cls = 'wg-pill-green';
+		else if (t.indexOf('reject') !== -1) cls = 'wg-pill-red';
+		else if (t.indexOf('pend') !== -1) cls = 'wg-pill-amber';
+		return '<span class="wg-pill ' + cls + '">' + escapeHtml(text) + '</span>';
+	}
+
+	function renderProbationGrid() {
+		probationGrid = WMSGrid.create({
+			container: 'probationGrid',
+			title: 'Probation Records',
+			icon: 'bx-id-card',
+			perPage: 100000,
+			data: probationRows,
+			features: { pagination: false, perPage: false, paginationInfo: false },
+			columns: [
+				{ field: 'employeeCode', header: 'Code', width: '90px' },
+				{ field: 'employeeName', header: 'Employee Name', width: '180px', render: truncRender },
+				{ field: 'personalEmailId', header: 'Personal Email', width: '200px', render: truncRender },
+				{ field: 'statusName', header: 'Status', width: '120px', align: 'center', render: function (v) { return statusPill(v); } },
+				{ field: 'remarksOfApprover', header: 'Remarks Of Approver', width: '200px', render: truncRender },
+				{ field: 'reportingManagerName', header: 'Reporting Manager', width: '180px', render: truncRender },
+				{ field: 'reportingManagerEmail', header: 'Manager Email', width: '200px', render: truncRender },
+				{ field: 'currentLevelNo', header: 'Current Level', width: '100px', align: 'center' },
+				{ field: 'currentApprover', header: 'Current Approver', width: '180px', render: truncRender },
+				{ field: 'probationEvaluationDays', header: 'Evaluation Days', width: '120px', align: 'center' },
+				{ field: 'probationDueDate', header: 'Probation Due Date', width: '130px', align: 'center', render: function (v) { return fmtDate(v); } },
+				{ field: 'probationEndDate', header: 'Probation End Date', width: '130px', align: 'center', render: function (v) { return fmtDate(v); } },
+				{ field: 'dateOfJoining', header: 'Date Of Joining', width: '130px', align: 'center', render: function (v) { return fmtDate(v); } },
+				{ field: 'actionDate', header: 'Action Date', width: '120px', align: 'center', render: function (v) { return v ? fmtDate(v) : 'No Action'; } },
+				{
+					header: 'Mail Sent Status', sortable: false, width: '120px', align: 'center',
+					render: function (v, row) {
+						return row.isMailSent
+							? '<span class="wg-pill wg-pill-green">Yes</span>'
+							: '<span class="wg-pill wg-pill-red">No</span>';
+					}
+				},
+				{
+					header: 'Approval History', sortable: false, width: '140px', align: 'center',
+					render: function (v, row) {
+						var n = (row.approvalHistory && row.approvalHistory.length) || 0;
+						return '<button type="button" class="wg-btn wg-btn-outline" onclick="openApprovalHistory(' + row.approvalRequestId + ')"><i class="bx bx-history"></i> View (' + n + ')</button>';
+					}
+				},
+				{
+					header: 'Actions', sortable: false, stickyRight: true, width: '90px', align: 'center',
+					render: function (v, row) {
+						if (row.statusId !== 2) return '';
+						return '<button type="button" class="wg-btn wg-btn-outline" title="Send Mail" onclick="sendMail(probationRows.find(function(r){return r.approvalRequestId===' + row.approvalRequestId + ';}))"><i class="bx bx-envelope"></i></button> ' +
+							   '<button type="button" class="wg-btn wg-btn-outline" title="Download PDF" onclick="downloadPDF(probationRows.find(function(r){return r.approvalRequestId===' + row.approvalRequestId + ';}))"><i class="bx bx-file-blank"></i></button>';
+					}
+				}
+			]
+		});
+	}
+
+	function openApprovalHistory(approvalRequestId) {
+		var row = probationRows.find(function (r) { return r.approvalRequestId === approvalRequestId; });
+		var history = (row && row.approvalHistory) || [];
+
+		WMSGrid.create({
+			container: 'approvalHistoryGrid',
+			title: 'Approval History',
+			icon: 'bx-history',
+			perPage: 100000,
+			data: history,
+			emptyText: 'No approval history available',
+			features: { pagination: false, perPage: false, paginationInfo: false, export: false },
+			columns: [
+				{ field: 'historyLevelNo', header: 'Level', width: '70px', align: 'center' },
+				{ field: 'historyStatus', header: 'Status', width: '130px', align: 'center', render: function (v) { return statusPill(v); } },
+				{ field: 'historyApproverName', header: 'Approver Name', width: '200px', render: truncRender },
+				{ field: 'historyRemarksOfApprover', header: 'Remarks Of Approver', width: '220px', render: truncRender },
+				{ field: 'historyAssignedOn', header: 'Assign Date', width: '120px', align: 'center', render: function (v) { return fmtDate(v); } },
+				{ field: 'historyActionOn', header: 'Action On', width: '120px', align: 'center', render: function (v) { return fmtDate(v); } },
+				{ field: 'historyEscalatedOn', header: 'Escalated Date', width: '120px', align: 'center', render: function (v) { return fmtDate(v); } }
+			]
+		});
+
+		new bootstrap.Modal(document.getElementById('approvalHistoryModal')).show();
+	}
+
+	  async function ProbationDataTable() {
+			try {
+				if (probationGrid) probationGrid.showLoader();
+
+				let statusId = $("#ddlStatus").val();
+				let year = $("#ddlYear").val();
+				if (!year) year = null;
+				if (!statusId) statusId = null;
+
+				const response = await $.ajax({
+					url: '@baseUrl/ProbationPerformanceAPI/GetAllConfirmationProbationDetails',
+					method: 'POST',
+					contentType: 'application/json',
+					headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+					data: JSON.stringify({
+						CompanyId: CompanyId,
+						StatusId: statusId,
+						Year: year,
+						ApprovalMasterId: 1
+					})
+				});
+
+				probationRows = response.data || [];
+
+				if (!probationGrid) {
+					renderProbationGrid();
+				} else {
+					probationGrid.setData(probationRows);
+					probationGrid.hideLoader();
+				}
+			} catch (error) {
+				console.error("Error loading probation data:", error);
+				if (probationGrid) probationGrid.hideLoader();
+			}
+		}
+
+			let selectedEmployeeData = null;
+
+		function sendMail(data) {
+			// Store data globally so YES button can access
+			selectedEmployeeData = data;
+			// Open confirmation modal
+			$("#confirmEmailChangeModal").modal("show");
+		}
+
+
+		$("#btnConfirmYes").on("click", function () {
+
+			// Close confirmation modal
+			$("#confirmEmailChangeModal").modal("hide");
+
+			// (Optional) Fill data in email modal
+			if (selectedEmployeeData) {
+				$("#employeeEmail").val(selectedEmployeeData.personalEmailId);
+				$("#reportingEmail").val(selectedEmployeeData.reportingManagerEmail);
+			}
+
+			// Open actual email modal
+			$("#emailModal").modal("show");
+		});
+
+
+		$("#btnEmailSend").on("click", async function () {
+			try {
+				setBtnLoading('#btnEmailSend', 'Sending...');
+				var email = $("#employeeEmail").val();
+				var reportingEmail = $("#reportingEmail").val();
+
+				if (!email) {
+					round_error_noti("Please enter email.");
+					setBtnNormal('#btnEmailSend', 'Send');
+					return;
+				}
+					const isChecked = $("#reportingEmailCheck").is(':checked');
+					if(isChecked){
+						if (!reportingEmail)
+						{
+								round_error_noti("Please enter reporting email.");
+							setBtnNormal('#btnEmailSend', 'Send');
+							return;
+						}
+					}
+					else{
+							reportingEmail=null;
+					}
+
+				// Get the PDF as a Base64 string
+				const pdfBase64 = await getPDFAsBase64(selectedEmployeeData);
+				if(!pdfBase64){
+					round_error_noti("Some thing went wrong.");
+					return ;
+				}
+				var emailPayload = {
+					EmployeeId: selectedEmployeeData.employeeId,
+					EmployeeName: selectedEmployeeData.employeeName,
+					EmployeeCode: selectedEmployeeData.employeeCode,
+					CompanyName: selectedEmployeeData.companyName,
+					ActionDate: selectedEmployeeData.actionDate,
+					Location: selectedEmployeeData.location,
+					PersonalEmailId: email,
+						ReportingManagerEmail:reportingEmail,
+					ApprovalRequestId:selectedEmployeeData.approvalRequestId,
+					ConfirmationPdf: pdfBase64 // Send as Base64 string
+				};
+
+
+				const response = await $.ajax({
+					url: '@baseUrl/ProbationPerformanceAPI/SendProbationConfirmationEmail',
+					method: 'POST',
+					contentType: 'application/json',
+					headers: {
+						'Authorization': 'Bearer ' + Token
+					},
+					data: JSON.stringify(emailPayload)
+				});
+
+				if (response.isSuccess) {
+					round_success_noti(response.responseMessage);
+					 ProbationDataTable();
+					$("#emailModal").modal("hide");
+				} else {
+					round_error_noti(response.responseMessage);
+				}
+			} catch (error) {
+				console.error("Error in sending email:", error);
+				round_error_noti("An error occurred while sending the email. Please try again.");
+			} finally {
+				setBtnNormal('#btnEmailSend', 'Send');
+			}
+		});
+
+
+
+		/* =====================================================================
+		   PDF TEMPLATE  –  Updated to match Confirmation_Letter_Draft.pdf
+		   Changes:
+			 • Ref No: HR/CL/{referenceNo}  (top-left)  +  Date DD/MM/YYYY  (top-right, next to logo)
+			 • Layout: To → Employee details → centred Subject → body → Signatory
+			 • Signatory changed to  Mahima Gupta / Manager - HR
+			 • "Note: computer-generated" line at bottom
+		   All other page logic is unchanged.
+		   ===================================================================== */
+			// ── Helper: lastName fallback → firstName ──
+	function getLastNameOrFirst(data) {
+		const nameParts = (data.employeeName || "").trim().split(/\s+/);
+		// employeeName format: "Mr. First Middle Last"
+		// Skip initial (Mr./Mrs./Ms.) if present
+		const skipInitials = /^(Mr\.|Mrs\.|Ms\.|Dr\.)$/i;
+		const filtered = nameParts.filter(p => !skipInitials.test(p));
+		if (filtered.length > 1) {
+			return filtered[filtered.length - 1]; // last name
+		}
+		return filtered[0] || data.employeeName || ""; // fallback to first
+	}
+
+		const pdfTemplateHTML = `
+	<div id="pdf-template" style="
+		display: none;
+		background: #ffffff;
+		padding: 52px 60px 48px 60px;
+		width: 740px;
+		font-family: 'Times New Roman', Times, serif;
+		font-size: 15px;
+		color: #000000;
+		line-height: 1.7;
+	">
+
+		<!-- ── Row 1: Ref No (left) | Logo + Date (right) ── -->
+		<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:0;">
+			<tr>
+				<td style="vertical-align:top; padding-top:4px;">
+					<span style="font-weight:700; font-size:15px; font-family:'Times New Roman',serif;">
+						Ref No : HR/CL/<span id="pdf-ref-no"></span>
+					</span>
+				</td>
+				<td style="text-align:right; vertical-align:top; width:160px;">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 52" width="190" height="50" style="display:block; margin-left:auto;">
+						<text x="0" y="32" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" fill="#162852" letter-spacing="-0.5">Relay </text>
+						<text x="102" y="32" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" fill="#162852">E</text>
+						<g transform="translate(121, 5)">
+							<line x1="1" y1="1" x2="19" y2="25" stroke="#162852" stroke-width="4.5" stroke-linecap="round"/>
+							<line x1="19" y1="1" x2="1" y2="25" stroke="#162852" stroke-width="4.5" stroke-linecap="round"/>
+							<polygon points="10,4 17,17 3,17" fill="#4DBD74"/>
+						</g>
+						<text x="143" y="32" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" fill="#162852">press</text>
+						<text x="210" y="46" font-family="Arial, sans-serif" font-weight="400" font-size="10.5" fill="#162852" text-anchor="end" letter-spacing="0.3">Next-Gen Distribution</text>
+					</svg>
+					<div style="font-family:'Times New Roman',serif; font-size:14px; margin-top:6px; color:#000;">
+						<span id="pdf-date"></span>
+					</div>
+				</td>
+			</tr>
+		</table>
+
+		<div style="height:28px;"></div>
+
+		<!-- ── To block ── -->
+		<p style="margin:0 0 4px 0; font-size:15px;">To,</p>
+		<div style="height:12px;"></div>
+		<p style="margin:0; line-height:1.8; font-size:15px;">
+			<strong>Employee Name: <span id="pdf-employee-name"></span></strong><br/>
+			<strong>Employee Code: <span id="pdf-employee-code"></span></strong><br/>
+			<strong>Branch: <span id="pdf-branch"></span></strong>
+		</p>
+
+		<!-- ── Subject ── -->
+		<p style="text-align:center; margin:28px 0 20px 0; font-size:16px;">
+			<strong>Subject: Confirmation Letter</strong>
+		</p>
+
+		<!-- ── Salutation ── -->
+		<p style="margin:0 0 14px 0; font-size:15px;">Dear <span id="pdf-salutation"></span>,</p>
+
+		<!-- ── Body ── -->
+		<p style="text-align:justify; margin:0 0 14px 0; font-size:15px;">
+			With reference to your Offer Letter, we congratulate you on your successful
+			completion of probation with us.
+		</p>
+		<p style="text-align:justify; margin:0 0 14px 0; font-size:15px;">
+			The management is pleased to confirm your services with effect from
+			<strong>"<span id="pdf-confirmation-date"></span>"</strong>.
+		</p>
+		<p style="text-align:justify; margin:0 0 28px 0; font-size:15px;">
+			We wish you all the best and expect that you continue to work with the same zeal
+			&amp; enthusiasm.
+		</p>
+
+		<!-- ── Signatory ── -->
+		<p style="margin:0 0 2px 0; font-size:15px;">Sincerely,</p>
+		<p style="margin:0 0 16px 0; font-size:15px;">
+				<strong>
+		<span style="color:#cc0000;" id="pdf-company-name"></span>
+	</strong>
+		</p>
+		<p style="margin:0 0 0 0; font-size:15px;">Mahima Gupta</p>
+		<p style="margin:0 0 32px 0; font-size:15px;"><strong>Manager - HR</strong></p>
+
+		<!-- ── Separator + Signature strip ── -->
+		<hr style="border:0; border-top:1px solid #888; margin:0 0 16px 0;">
+		<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+			<tr>
+				<td style="font-size:15px;">
+					<strong>Employee Name:</strong>
+					<span style="display:inline-block; border-bottom:1px solid #000; width:180px; margin-left:6px; vertical-align:bottom;">&nbsp;</span>
+				</td>
+				<td style="text-align:right; font-size:15px;">
+					<strong>Date:</strong>
+					<span style="display:inline-block; border-bottom:1px solid #000; width:90px; margin-left:6px; vertical-align:bottom;">&nbsp;</span>
+				</td>
+			</tr>
+		</table>
+		<p style="margin:0 0 48px 0; font-size:15px;"><strong>Employee Signature:</strong></p>
+
+		<!-- ── Note ── -->
+		<p style="text-align:center; font-size:12px; color:#444; margin:0 0 10px 0;">
+			Note: This is a computer-generated statement hence no signature required.
+		</p>
+
+		<!-- ── Footer ── -->
+		<hr style="border:0; border-top:1px solid #ccc; margin:8px 0 8px 0;">
+		<p style="text-align:center; font-size:11.5px; color:#555; margin:0;">
+			Head Office: 406, Kataria Arcade, Behind Adani CNG Pump, Off - S.G. Highway,
+			Makarba, Ahmedabad - 380051 Gujarat, India
+		</p>
+	</div>`;
+
+		/* ── Helper: format a date object as DD/MM/YYYY ── */
+		function formatDateDMY(dateObj) {
+			if (!dateObj) return "";
+			return String(dateObj.getDate()).padStart(2, '0') + '/' +
+				   String(dateObj.getMonth() + 1).padStart(2, '0') + '/' +
+				   dateObj.getFullYear();
+		}
+
+		/* ── Helper: fill all dynamic fields from employee data ── */
+			function fillPDFTemplate(data) {
+		document.getElementById("pdf-ref-no").textContent      = data.referenceNo || "";
+		document.getElementById("pdf-employee-name").textContent = data.employeeName || "";
+		document.getElementById("pdf-employee-code").textContent = data.employeeCode || "";
+		document.getElementById("pdf-branch").textContent        = data.branchName || "";
+			document.getElementById("pdf-company-name").textContent        = data.companyName || "";
+
+		const initial    = (data.initial || "").trim();
+		const lastNamePart = getLastNameOrFirst(data);
+		document.getElementById("pdf-salutation").textContent =
+			(initial ? initial + " " : "") + lastNamePart;
+
+		const confDate = data.probationEndDate ? new Date(data.probationEndDate) : null;
+		document.getElementById("pdf-confirmation-date").textContent = formatDateDMY(confDate);
+
+		const letterDate = data.actionDate ? new Date(data.actionDate) : new Date();
+		document.getElementById("pdf-date").textContent = formatDateDMY(letterDate);
+	}
+
+		async function downloadPDF(data) {
+			try {
+
+				// Get the PDF as a Uint8Array (Byte[])
+				const byteArray = await getPDFAsByteArray(data);
+
+				// Create a Blob from the Uint8Array
+				const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+				// Create a download link
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `Confirmation_Letter_${data.employeeCode}.pdf`;
+
+				// Append the element to the DOM (required for Firefox)
+				document.body.appendChild(a);
+
+				// Trigger the download
+				a.click();
+
+				// Clean up
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+
+			} catch (error) {
+				console.error("Error downloading PDF:", error);
+				alert("Failed to download PDF. Please try again.");
+			}
+		}
+
+
+		async function getPDFAsByteArray(data) {
+    // Insert the template into the DOM
+    document.body.insertAdjacentHTML('beforeend', pdfTemplateHTML);
+
+    // Fill all dynamic fields
+    fillPDFTemplate(data);
+
+    // Show the template
+    const template = document.getElementById("pdf-template");
+    template.style.display = "block";
+
+    // Adjust SVG dimensions to match container
+    const svgElement = document.querySelector('#pdf-template svg');
+    svgElement.setAttribute('width', '200');
+    svgElement.setAttribute('height', '42');
+
+    // Use html2canvas with options to ensure SVG is captured correctly
+    const canvas = await html2canvas(template, {
+        scale: 2, // Increase scale for better quality
+        useCORS: true, // Enable CORS if loading external resources
+        logging: true, // Enable logging for debugging
+    });
+
+    // Use jsPDF to generate the PDF
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("p", "mm", "a4");
+    const imgData = canvas.toDataURL("image/png");
+    const imgWidth = 210; // A4 width in mm
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    // Add image to PDF with adjusted dimensions
+    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+    // Remove the template from the DOM
+    template.remove();
+
+    // Return the PDF as a Uint8Array (Byte[])
+    return pdf.output('arraybuffer');
+}
+
+		async function getPDFAsBase64(data) {
+			// Insert the template into the DOM
+			document.body.insertAdjacentHTML('beforeend', pdfTemplateHTML);
+
+			// Fill all dynamic fields
+			fillPDFTemplate(data);
+
+			// Show the template
+			const template = document.getElementById("pdf-template");
+			template.style.display = "block";
+
+			// Use html2canvas to capture the template
+			const canvas = await html2canvas(template);
+
+			// Use jsPDF to generate the PDF
+			const { jsPDF } = window.jspdf;
+			const pdf = new jsPDF("p", "mm", "a4");
+			const imgData = canvas.toDataURL("image/png");
+			const imgWidth = 210; // A4 width in mm
+			const imgHeight = canvas.height * imgWidth / canvas.width;
+
+			pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+			// Remove the template from the DOM
+			template.remove();
+
+			// Return the PDF as a Base64 string
+			return pdf.output('datauristring').split(',')[1]; // Extract the Base64 part
+		}
+
+			async function downloadGridExcel() {
+		if (!probationRows.length) {
+			round_error_noti("No data to export");
+			return;
+		}
+
+		setBtnLoading('#exportExcelButton', 'Exporting...');
+
+		try {
+			const workbook = new ExcelJS.Workbook();
+			const mainWorksheet = workbook.addWorksheet("Probation Data");
+
+			const mainColumns = [
+				{ header: 'Code', key: 'employeeCode', width: 14 },
+				{ header: 'Employee Name', key: 'employeeName', width: 26 },
+				{ header: 'Personal Email', key: 'personalEmailId', width: 28 },
+				{ header: 'Status', key: 'statusName', width: 16 },
+				{ header: 'Remarks Of Approver', key: 'remarksOfApprover', width: 28 },
+				{ header: 'Reporting Manager', key: 'reportingManagerName', width: 24 },
+				{ header: 'Manager Email', key: 'reportingManagerEmail', width: 28 },
+				{ header: 'Current Level', key: 'currentLevelNo', width: 14 },
+				{ header: 'Current Approver', key: 'currentApprover', width: 24 },
+				{ header: 'Evaluation Days', key: 'probationEvaluationDays', width: 16 },
+				{ header: 'Probation Due Date', key: 'probationDueDate', width: 18 },
+				{ header: 'Probation End Date', key: 'probationEndDate', width: 18 },
+				{ header: 'Date Of Joining', key: 'dateOfJoining', width: 18 },
+				{ header: 'Action Date', key: 'actionDate', width: 16 },
+				{ header: 'Mail Sent Status', key: 'isMailSentText', width: 16 }
+			];
+			mainWorksheet.columns = mainColumns;
+
+			const usedWorksheetNames = new Set();
+			usedWorksheetNames.add("Probation Data");
+
+			probationRows.forEach(row => {
+				mainWorksheet.addRow({
+					employeeCode: row.employeeCode,
+					employeeName: row.employeeName,
+					personalEmailId: row.personalEmailId,
+					statusName: row.statusName,
+					remarksOfApprover: row.remarksOfApprover,
+					reportingManagerName: row.reportingManagerName,
+					reportingManagerEmail: row.reportingManagerEmail,
+					currentLevelNo: row.currentLevelNo,
+					currentApprover: row.currentApprover,
+					probationEvaluationDays: row.probationEvaluationDays,
+					probationDueDate: fmtDate(row.probationDueDate),
+					probationEndDate: fmtDate(row.probationEndDate),
+					dateOfJoining: fmtDate(row.dateOfJoining),
+					actionDate: row.actionDate ? fmtDate(row.actionDate) : 'No Action',
+					isMailSentText: row.isMailSent ? 'Yes' : 'No'
+				});
+
+				const approvalHistory = row.approvalHistory;
+				if (approvalHistory && approvalHistory.length > 0) {
+					// Generate a unique worksheet name
+					let worksheetName = `History_${row.employeeCode}`;
+					let counter = 1;
+
+					while (usedWorksheetNames.has(worksheetName)) {
+						worksheetName = `History_${row.employeeCode}_${counter}`;
+						counter++;
+					}
+					usedWorksheetNames.add(worksheetName);
+
+					const employeeHistoryWorksheet = workbook.addWorksheet(worksheetName);
+
+					employeeHistoryWorksheet.columns = [
+						{ header: "Level", key: "Level", width: 10 },
+						{ header: "Status", key: "Status", width: 15 },
+						{ header: "Approver", key: "Approver", width: 25 },
+						{ header: "Remarks", key: "Remarks", width: 30 },
+						{ header: "Assigned On", key: "AssignedOn", width: 15 },
+						{ header: "Action On", key: "ActionOn", width: 15 },
+						{ header: "Escalated On", key: "EscalatedOn", width: 15 },
+					];
+
+					const historyRows = approvalHistory.map(history => {
+						const formatDate = (date) => {
+							if (!date) return "";
+							const utcDate = new Date(date);
+							const day = String(utcDate.getUTCDate()).padStart(2, '0');
+							const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+							const year = String(utcDate.getUTCFullYear()).slice(-2);
+							return `${day}-${month}-${year}`;
+						};
+
+						return {
+							Level: history.historyLevelNo,
+							Status: history.historyStatus,
+							Approver: history.historyApproverName,
+							Remarks: history.historyRemarksOfApprover,
+							AssignedOn: formatDate(history.historyAssignedOn),
+							ActionOn: formatDate(history.historyActionOn),
+							EscalatedOn: formatDate(history.historyEscalatedOn),
+						};
+					});
+
+					employeeHistoryWorksheet.addRows(historyRows);
+				}
+			});
+
+			const buffer = await workbook.xlsx.writeBuffer();
+			saveAs(new Blob([buffer]), "Probation_Data_With_History.xlsx");
+		} catch (error) {
+			console.error("Export error:", error);
+			round_error_noti("Export failed. Check console for details.");
+		} finally {
+			setBtnNormal('#exportExcelButton', 'Export Excel');
+		}
+	}
+
+</script>

@@ -1,0 +1,221 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Master";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uriAPI = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Manage Probation</h6>
+    </div>
+    <div class="card-body">
+        <div id="GridContainer"></div>
+    </div>
+</div>
+
+</div>
+
+<!-- Approval History / Employee Details Modal -->
+<div class="modal fade" id="probationDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title mb-0">Probation Request Details</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="sec-lbl" style="margin-top:0">Employee Details</div>
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="employeeDetailsTable">
+                        <tbody id="employeeDetailsBody"></tbody>
+                    </table>
+                </div>
+                <div class="divider"></div>
+                <div class="sec-lbl">Approval History</div>
+                <div id="approvalHistoryGrid"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var EmployeeId = localStorage.getItem("EmployeeId");
+    var Token = localStorage.getItem("authToken");
+    var grid = null;
+    var currentRows = [];
+
+    $(document).ready(function () {
+        PendingApprovalDataTable();
+    });
+
+    function fmtDate(v) {
+        if (!v) return '-';
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        var day = String(d.getDate()).padStart(2, '0');
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        return day + '-' + month + '-' + d.getFullYear();
+    }
+
+    function fmtDateTime(v) {
+        if (!v) return '-';
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        var day = String(d.getDate()).padStart(2, '0');
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var hh = String(d.getHours()).padStart(2, '0');
+        var mm = String(d.getMinutes()).padStart(2, '0');
+        return day + '-' + month + '-' + d.getFullYear() + ' ' + hh + ':' + mm;
+    }
+
+    function PendingApprovalDataTable() {
+        if (grid) grid.showLoader();
+
+        var approverEmployeeId = EmployeeId;
+        var status = "Pending";
+
+        $.ajax({
+            type: "POST",
+            url: '@baseUrl/ProbationPerformanceAPI/GetPendingApprovalRequestsWithHistory',
+            headers: {
+                'Authorization': 'Bearer ' + Token,
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                approverEmployeeId: approverEmployeeId,
+                status: status
+            }),
+            success: function (data) {
+                currentRows = data.data || [];
+                renderGrid(currentRows);
+            },
+            error: function (xhr, status, error) {
+                if (grid) grid.hideLoader();
+                console.error('Error loading pending approvals:', error);
+                showToast('Failed to load pending probation approvals.', 'error');
+            }
+        });
+    }
+
+    function renderGrid(data) {
+        var columns = [
+            { field: 'requesterName', header: 'Requester', width: '260px' },
+            { field: 'currentLevelStatus', header: 'Status', width: '120px' },
+            { field: 'currentLevelNo', header: 'Level', width: '80px', align: 'center' },
+            { field: 'remarksOfApprover', header: 'Remarks Of Approver', width: '220px' },
+            { field: 'probationEndDate', header: 'Probation End Date', width: '140px', align: 'center', render: function (v) { return fmtDate(v); } },
+            { field: 'dateOfJoining', header: 'Date Of Joining', width: '140px', align: 'center', render: function (v) { return fmtDate(v); } },
+            { field: 'assignedOn', header: 'Assigned On', width: '160px', align: 'center', render: function (v) { return fmtDateTime(v); } },
+            { field: 'escalationDueOn', header: 'Due On', width: '160px', align: 'center', render: function (v) { return fmtDateTime(v); } },
+            {
+                header: 'Action', sortable: false, width: '160px', stickyRight: true,
+                render: function (v, row) {
+                    return '<button type="button" class="wg-btn wg-btn-outline" title="View Details" onclick="_viewDetails(' + row.currentApprovalRequestLevelId + ')"><i class="bx bx-history"></i></button> ' +
+                           '<button type="button" class="wg-btn wg-btn-primary" title="Evaluate" onclick="_evaluate(' + row.currentApprovalRequestLevelId + ')"><i class="bx bx-edit"></i></button>';
+                }
+            }
+        ];
+
+        if (!grid) {
+            grid = WMSGrid.create({
+                container: 'GridContainer',
+                title: 'Pending Probation Approvals',
+                icon: 'bx-id-card',
+                exportName: 'PendingProbationApprovals',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false }
+            });
+        } else {
+            grid.setData(data);
+            grid.hideLoader();
+        }
+    }
+
+    function findRow(currentApprovalRequestLevelId) {
+        return currentRows.find(function (r) { return r.currentApprovalRequestLevelId === currentApprovalRequestLevelId; });
+    }
+
+    window._viewDetails = function (currentApprovalRequestLevelId) {
+        var data = findRow(currentApprovalRequestLevelId);
+        if (!data) return;
+
+        var tbody = $('#employeeDetailsBody');
+        tbody.empty();
+
+        var nameParts = (data.requesterName || '').split(' - ');
+        var rows = [
+            ['Employee Code', nameParts[1] || 'N/A'],
+            ['Full Name', nameParts[0] || 'N/A'],
+            ['Date of Joining', data.dateOfJoining ? fmtDate(data.dateOfJoining) : 'N/A'],
+            ['Probation End Date', data.probationEndDate ? fmtDate(data.probationEndDate) : 'N/A'],
+            ['Days Remaining', data.daysRemainingInProbation || 'N/A'],
+            ['Branch', data.branchName || 'N/A'],
+            ['Review Type', data.reviewType || 'N/A']
+        ];
+        rows.forEach(function (r) {
+            tbody.append('<tr><th>' + r[0] + '</th><td>' + r[1] + '</td></tr>');
+        });
+
+        var historyData = [];
+        if (data.previousApprovalLevelsJson) {
+            try {
+                historyData = JSON.parse(data.previousApprovalLevelsJson);
+            } catch (e) {
+                console.error('Error parsing history JSON:', e);
+            }
+        }
+
+        WMSGrid.create({
+            container: 'approvalHistoryGrid',
+            title: 'Approval History',
+            icon: 'bx-history',
+            perPage: 100000,
+            data: historyData,
+            emptyText: 'No approval history available',
+            features: { pagination: false, perPage: false, paginationInfo: false, export: false },
+            columns: [
+                { field: 'HistoryLevelNo', header: 'Level', width: '80px' },
+                { field: 'HistoryStatus', header: 'Status', width: '120px' },
+                { field: 'HistoryApproverName', header: 'Approver', width: '260px' },
+                { field: 'HistoryRemarksOfApprover', header: 'Remarks Of Approver', width: '220px' },
+                { field: 'HistoryAssignedOn', header: 'Assigned On', width: '160px', render: function (v) { return fmtDateTime(v); } },
+                { field: 'HistoryEscalationDueOn', header: 'Due On', width: '160px', render: function (v) { return fmtDateTime(v); } }
+            ]
+        });
+
+        new bootstrap.Modal(document.getElementById('probationDetailModal')).show();
+    };
+
+    window._evaluate = function (currentApprovalRequestLevelId) {
+        var data = findRow(currentApprovalRequestLevelId);
+        if (!data) return;
+        evaluateEmployeeProbation(data);
+    };
+
+    function evaluateEmployeeProbation(data) {
+        localStorage.removeItem('ProbationEmployeeId');
+        localStorage.removeItem('ApprovalRequestLevelId');
+        localStorage.removeItem('ApprovalRequestId');
+        localStorage.removeItem('Level');
+        localStorage.setItem('ApprovalRequestLevelId', data.currentApprovalRequestLevelId);
+        localStorage.setItem('ApprovalRequestId', data.approvalRequestId);
+        localStorage.setItem('ProbationEmployeeId', data.requesterEmployeeId);
+        localStorage.setItem('Level', data.currentLevelNo);
+        window.location.href = '@UIBaseUrlLayout/EmployeePanel/ManageProbation/ProbationPerformance';
+    }
+})();
+</script>

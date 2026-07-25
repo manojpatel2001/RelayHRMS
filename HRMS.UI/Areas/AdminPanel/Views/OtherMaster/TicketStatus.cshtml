@@ -1,0 +1,153 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Ticket Status";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Ticket Status</h6>
+        <button id="addTypeBtn" type="button" class="btn btn-primary btn-sm">Add Ticket Status</button>
+    </div>
+    <div class="card-body">
+        <div id="ticketStatusGrid"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="addTicketStatusModel" tabindex="-1" aria-labelledby="ticketStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ticketStatusModalLabel"><span class="formType">Add</span> Ticket Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="fg fg-req">
+                    <label for="txtTicketStatus">Ticket Status</label>
+                    <input type="text" placeholder="Ticket Status" data-trim-input id="txtTicketStatus" />
+                    <span class="field-validation-error" id="spnTicketStatus" style="display:none;">Please Enter Ticket Status</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnCreateTicketStatus">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    const EmployeeId = localStorage.getItem("EmployeeId");
+    const Token = localStorage.getItem("authToken");
+    var TicketStatusId = 0;
+    var _statusCache = {};
+
+    var grid = WMSGrid.create({
+        container: 'ticketStatusGrid', title: 'All Ticket Statuses', icon: 'bx-check-shield', perPage: 10,
+        columns: [
+            { field: 'ticketStatusName', header: 'Ticket Status Name', width: '300px' },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '130px',
+                render: function (v, row) {
+                    return '<button class="wg-btn wg-btn-primary" onclick="updateTicketStatus(' + row.ticketStatusId + ')"><i class="bx bx-edit"></i> Edit</button> ' +
+                           '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" onclick="deleteTicketStatus(' + row.ticketStatusId + ')"><i class="bx bx-trash"></i></button>';
+                }
+            }
+        ], features: { export: true }
+    });
+
+    $(() => { loadDataTable(); });
+
+    $('#addTypeBtn').click(function () { clearTicketStatusForm(); $('#addTicketStatusModel').modal('show'); });
+    $('#addTicketStatusModel').on('hidden.bs.modal', function () { clearTicketStatusForm(); });
+
+    function loadDataTable() {
+        grid.showLoader();
+        $.ajax({
+            type: 'GET', url: '@baseUrl/TicketStatusAPI/GetAllTicketStatus', _silentLoader: true,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (data) {
+                var rows = data.isSuccess ? data.data : [];
+                _statusCache = {};
+                rows.forEach(function (r) { _statusCache[r.ticketStatusId] = r; });
+                grid.setData(rows); grid.hideLoader();
+            },
+            error: function () { grid.hideLoader(); showToast('Failed to load ticket statuses.', 'error'); }
+        });
+    }
+
+    $('#btnCreateTicketStatus').click(function () {
+        var ticketStatus = $('#txtTicketStatus').val();
+        if (!ticketStatus) { $('#spnTicketStatus').show(); $('#txtTicketStatus').addClass('is-invalid'); return; }
+        $('#spnTicketStatus').hide(); $('#txtTicketStatus').removeClass('is-invalid');
+
+        setBtnLoading('#btnCreateTicketStatus', TicketStatusId == 0 ? 'Saving...' : 'Updating...');
+        var data = {
+            ticketStatusId: TicketStatusId == 0 ? 0 : TicketStatusId,
+            ticketStatusName: ticketStatus
+        };
+        $.ajax({
+            url: TicketStatusId == 0 ? '@baseUrl/TicketStatusAPI/CreateTicketStatus' : '@baseUrl/TicketStatusAPI/UpdateTicketStatus',
+            type: TicketStatusId == 0 ? 'POST' : 'PUT',
+            contentType: 'application/json', _silentLoader: true,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(data),
+            success: function (response) {
+                if (response.isSuccess) {
+                    showToast(response.responseMessage || (TicketStatusId == 0 ? 'Status created.' : 'Status updated.'), 'success');
+                    $('#addTicketStatusModel').modal('hide'); loadDataTable();
+                } else {
+                    showToast(response.responseMessage || 'Something went wrong.', 'error');
+                    setBtnNormal('#btnCreateTicketStatus', TicketStatusId == 0 ? 'Save' : 'Update');
+                }
+            },
+            error: function () {
+                showToast('Error while saving.', 'error');
+                setBtnNormal('#btnCreateTicketStatus', TicketStatusId == 0 ? 'Save' : 'Update');
+            }
+        });
+    });
+
+    function updateTicketStatus(id) {
+        var data = _statusCache[id];
+        if (!data) return;
+        clearTicketStatusForm();
+        TicketStatusId = data.ticketStatusId;
+        $('#txtTicketStatus').val(data.ticketStatusName || '');
+        $('.formType').text('Update');
+        setBtnNormal('#btnCreateTicketStatus', 'Update');
+        $('#addTicketStatusModel').modal('show');
+    }
+
+    function deleteTicketStatus(id) {
+        wmsConfirm('Are you sure you want to delete this ticket status?<br><small style="color:#E53E3E;display:block;margin-top:4px">This action cannot be undone.</small>', function () {
+            $.ajax({
+                url: '@baseUrl/TicketStatusAPI/DeleteTicketStatus', type: 'DELETE',
+                contentType: 'application/json', _silentLoader: true,
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify({ id: id, deletedBy: EmployeeId }),
+                success: function (response) {
+                    showToast(response.isSuccess ? (response.responseMessage || 'Deleted.') : (response.responseMessage || 'Error.'), response.isSuccess ? 'success' : 'error');
+                    loadDataTable();
+                },
+                error: function () { showToast('Error deleting.', 'error'); }
+            });
+        });
+    }
+
+    function clearTicketStatusForm() {
+        TicketStatusId = 0;
+        $('#txtTicketStatus').val('').removeClass('is-invalid');
+        $('#spnTicketStatus').hide();
+        $('.formType').text('Add');
+        setBtnNormal('#btnCreateTicketStatus', 'Save');
+    }
+</script>

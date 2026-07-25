@@ -1,0 +1,289 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Late Early Mark Report";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+<title>Late Early Mark Report</title>
+
+<link rel="stylesheet" type="text/css" href="https://cdn3.devexpress.com/jslib/23.1.3/css/dx.light.css" />
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Late / Early Mark Report</h6>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">
+                <i class="bx bx-arrow-back"></i> Back
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 150px;min-width:140px;">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate" />
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 150px;min-width:140px;">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate" />
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
+                    <label for="branchDropdown">Branch</label>
+                    <div id="branchDropdown"></div>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
+                    <label for="employeeDropdown">Employee</label>
+                    <div id="employeeDropdown"></div>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnFetch">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="gridContainerLateEarly"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        const savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        const CompanyId = companyDetails.CompanyId;
+        const Token = localStorage.getItem("authToken");
+
+        var grid = null;
+        var isLoadingLateEarly = false;
+
+        function goBack() { window.history.back(); }
+        window.goBack = goBack;
+
+        $(document).ready(function () {
+            setDefaultDates();
+            BindBranchDropdown();
+            BindEmployeeDropdownByBranch([0]);
+        });
+
+        function setDefaultDates() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#startDate').val(today);
+            $('#endDate').val(today);
+        }
+
+        // ── Branch Dropdown ──────────────────────────────────────────────
+        function BindBranchDropdown() {
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (response?.data?.length > 0) {
+                        $("#branchDropdown").dxTagBox({
+                            items: response.data,
+                            displayExpr: "branchName",
+                            valueExpr: "branchId",
+                            placeholder: "--Select Branch--",
+                            showSelectionControls: true,
+                            searchEnabled: true,
+                            showClearButton: true,
+                            maxDisplayedTags: 3,
+                            applyValueMode: "instantly",
+                            multiline: false,
+                            width: "100%",
+                            onValueChanged: function (e) {
+                                let ids = e.value.length > 0 ? e.value : [0];
+                                BindEmployeeDropdownByBranch(ids);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        // ── Employee Dropdown ────────────────────────────────────────────
+        function BindEmployeeDropdownByBranch(selectedBranchIds) {
+            const branchParam = selectedBranchIds.join(",");
+            $.ajax({
+                type: "GET",
+                url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")?BranchIds=' + branchParam + '&CompanyId=' + CompanyId,
+                success: function (response) {
+                    const $emp = $("#employeeDropdown");
+                    const items = (response?.data?.length > 0)
+                        ? response.data.map(e => ({ employeeCode: e.employeeCode, displayName: `${e.fullName} - ${e.employeeCode}` }))
+                        : [];
+
+                    if ($emp.data('dxTagBox')) { $emp.dxTagBox('dispose'); }
+
+                    $emp.dxTagBox({
+                        items: items,
+                        displayExpr: "displayName",
+                        valueExpr: "employeeCode",
+                        placeholder: items.length > 0 ? "--Select Employee--" : "No Employees Found",
+                        showSelectionControls: items.length > 0,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        maxDisplayedTags: 3,
+                        applyValueMode: "instantly",
+                        multiline: false,
+                        width: "100%"
+                    });
+                }
+            });
+        }
+
+        // ── Go Button ────────────────────────────────────────────────────
+        $('#btnFetch').on('click', function () {
+            if (isLoadingLateEarly) return;
+
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+
+            if (!startDate) { showToast('Please select Start Date.', 'warn'); return; }
+            if (!endDate) { showToast('Please select End Date.', 'warn'); return; }
+
+            const branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
+            const employeeCodes = $("#employeeDropdown").dxTagBox("instance").option("value");
+
+            if (!branchIds || branchIds.length === 0) { showToast('Please select Branch.', 'warn'); return; }
+            if (!employeeCodes || employeeCodes.length === 0) { showToast('Please select at least one Employee.', 'warn'); return; }
+
+            isLoadingLateEarly = true;
+            setBtnLoading('#btnFetch', 'Go');
+
+            $.ajax({
+                url: '@baseDomainUrl/api/ReportAPI/LateEarlyMarkReport',
+                type: 'GET',
+                data: {
+                    StartDate: startDate,
+                    EndDate: endDate,
+                    BranchId: branchIds.join(","),
+                    EmpId: employeeCodes.join(","),
+                    CompanyId: CompanyId
+                },
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    isLoadingLateEarly = false;
+                    setBtnNormal('#btnFetch', 'Go');
+
+                    if (response.isSuccess && response.data?.length > 0) {
+                        renderGrid(response.data);
+                        // Disable filters after search
+                        $('#startDate, #endDate').prop('disabled', true);
+                        $("#branchDropdown").dxTagBox("instance").option("disabled", true);
+                        $("#employeeDropdown").dxTagBox("instance").option("disabled", true);
+                    } else if (response.isSuccess) {
+                        renderGrid([]);
+                        showToast('No records found for selected criteria.', 'info');
+                    } else {
+                        renderGrid([]);
+                        showToast(response.responseMessage || 'Error fetching data.', 'error');
+                    }
+                },
+                error: function () {
+                    isLoadingLateEarly = false;
+                    setBtnNormal('#btnFetch', 'Go');
+                    renderGrid([]);
+                    showToast('Error occurred while fetching data.', 'error');
+                }
+            });
+        });
+
+        // ── Render Grid ──────────────────────────────────────────────────
+        function lateStatusPill(v) {
+            v = v || '';
+            if (v === 'Late') return '<span class="wg-pill wg-pill-red">Late</span>';
+            if (v === 'On Time') return '<span class="wg-pill wg-pill-green">On Time</span>';
+            return '<span class="wg-pill wg-pill-amber">' + (v || '-') + '</span>';
+        }
+
+        function earlyStatusPill(v) {
+            v = v || '';
+            if (v === 'Early Leave') return '<span class="wg-pill wg-pill-amber">Early Leave</span>';
+            if (v === 'Full Shift') return '<span class="wg-pill wg-pill-green">Full Shift</span>';
+            return '<span class="wg-pill wg-pill-amber">' + (v || '-') + '</span>';
+        }
+
+        function remarksPill(v) {
+            v = v || '';
+            if (v === 'Regular') return '<span class="wg-pill wg-pill-green">Regular</span>';
+            if (v.indexOf('Late') !== -1 || v.indexOf('Early') !== -1) return '<span class="wg-pill wg-pill-red">' + v + '</span>';
+            return '<span class="wg-pill wg-pill-amber">' + (v || '-') + '</span>';
+        }
+
+        function fmtDateDMY(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                { field: 'employeeCode', header: 'Code', width: '100px' },
+                { field: 'employeeName', header: 'Name', width: '160px' },
+                { header: 'Date', sortable: false, width: '110px', render: function (v, row) { return fmtDateDMY(row.shiftDate); } },
+                { field: 'shiftName', header: 'Shift', width: '110px' },
+                { field: 'shiftStartTime', header: 'Shift In', width: '90px' },
+                { field: 'shiftEndTime', header: 'Shift Out', width: '90px' },
+                { field: 'actualInTime', header: 'Actual In', width: '90px', render: function (v) { return v || '-'; } },
+                { field: 'actualOutTime', header: 'Actual Out', width: '90px', render: function (v) { return v || '-'; } },
+                { header: 'Late Status', sortable: false, width: '100px', render: function (v, row) { return lateStatusPill(row.lateStatus); } },
+                { field: 'lateByMinutes', header: 'Late (min)', width: '90px', render: function (v) { return (v > 0 ? v + ' min' : '-'); } },
+                { header: 'Early Leave', sortable: false, width: '110px', render: function (v, row) { return earlyStatusPill(row.earlyLeaveStatus); } },
+                { field: 'earlyByMinutes', header: 'Early (min)', width: '90px', render: function (v) { return (v > 0 ? v + ' min' : '-'); } },
+                { header: 'Remarks', sortable: false, width: '160px', render: function (v, row) { return remarksPill(row.remarks); } },
+                { field: 'attendanceStatus', header: 'Status', width: '70px', render: function (v) { return v || '-'; } },
+                { field: 'workingHours', header: 'Working Hrs', width: '100px', render: function (v) { return v || '-'; } }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerLateEarly',
+                    title: 'Late / Early Mark Report',
+                    icon: 'bx-time-five',
+                    exportName: 'LateEarlyMarkReport',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        // ── Clear Button ─────────────────────────────────────────────────
+        $('#btnClear').on('click', function () {
+            $('#startDate, #endDate').prop('disabled', false);
+            setDefaultDates();
+
+            try { $("#branchDropdown").dxTagBox("instance").option({ value: [], disabled: false }); }
+            catch (e) {}
+
+            try { $("#employeeDropdown").dxTagBox("instance").option({ value: [], disabled: false }); }
+            catch (e) {}
+
+            grid = null;
+            $('#gridContainerLateEarly').empty();
+
+            BindEmployeeDropdownByBranch([0]);
+        });
+    })();
+</script>

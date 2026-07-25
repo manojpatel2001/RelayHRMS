@@ -1,0 +1,118 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Panel";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Employee Records</h6>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div style="flex:0 0 auto;">
+                    <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Status</span>
+                    <div class="d-flex gap-3">
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="Status" id="activeid" value="Active" checked>
+                            <label class="form-check-label" for="activeid">Active</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="Status" id="inactiveid" value="Inactive">
+                            <label class="form-check-label" for="inactiveid">Inactive</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="employeeGrid"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var apiBase = '@baseUrl';
+        var savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        var CompanyId = companyDetails.CompanyId;
+        var EmployeeId = sessionStorage.getItem('EmployeeId');
+        var Token = sessionStorage.getItem("authToken");
+
+        var grid = null;
+        var currentRows = [];
+
+        $(document).ready(function () {
+            var selectedStatus = 'Active';
+
+            loadEmployeeGrid(selectedStatus);
+
+            $('input[name="Status"]').change(function () {
+                selectedStatus = $(this).val();
+                loadEmployeeGrid(selectedStatus);
+            });
+        });
+
+        function renderGrid(data) {
+            var columns = [
+                { field: 'loginAlias', header: 'Login Alias', width: '190px' },
+                { field: 'employeeCode', header: 'Employee Code', width: '150px' },
+                { field: 'fullName', header: 'Employee Name', width: '200px' }
+            ];
+
+            currentRows = data;
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'employeeGrid',
+                    title: 'Employee Records',
+                    icon: 'bx-user',
+                    exportName: 'EmployeeRecords',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        function loadEmployeeGrid(status) {
+            if (grid) grid.showLoader();
+
+            $.ajax({
+                type: "GET",
+                url: apiBase + '/ReportAPI/ActiveOrInactive',
+                data: {
+                    Compid: CompanyId,
+                    Action: status
+                },
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    if (response.isSuccess) {
+                        renderGrid(response.data || []);
+                    } else {
+                        renderGrid([]);
+                    }
+                },
+                error: function (xhr) {
+                    console.error("AJAX Error:", xhr);
+                    renderGrid([]);
+                    showToast('Failed to load employee data.', 'error');
+                }
+            });
+        }
+    })();
+</script>

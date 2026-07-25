@@ -1,0 +1,310 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Manage Leave Balance";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseAPIDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Manage Leave Balance</h6>
+        <button id="addLeaveTransaction" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bx bx-plus"></i> Add
+        </button>
+    </div>
+    <div class="card-body">
+        <div id="gridContainerLeaveBalance"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="addLeaveTransactionModal" tabindex="-1" aria-labelledby="addLeaveTransactionLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title btn-heading-title">Add Leave Balance</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <form id="leaveTransactionForm">
+                    <div class="row">
+
+                        <!-- Employee -->
+                        <div class="col-md-4">
+                            <div class="fg fg-req">
+                                <label for="employeeLeave">Employee</label>
+                                <select id="employeeLeave">
+                                    <option value="" selected disabled>Employee</option>
+                                </select>
+                                <span id="spnemployeeLeave" class="field-validation-error" style="display:none;">Please Select Employee</span>
+                            </div>
+                        </div>
+
+                        <!-- Leave Type -->
+                        <div class="col-md-4">
+                            <div class="fg fg-req">
+                                <label for="leaveType">Leave Type</label>
+                                <select id="leaveType">
+                                    <option value="" selected disabled>Leave Type</option>
+                                </select>
+                                <span id="spnleaveType" class="field-validation-error" style="display:none;">Please Select Leave Type</span>
+                            </div>
+                        </div>
+
+                        <!-- Transaction Type -->
+                        <div class="col-md-4">
+                            <div>
+                                <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Transaction Type <span class="text-danger">*</span></span>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check form-check-inline m-0">
+                                        <input class="form-check-input" type="radio" name="transactionType" id="Credit" value="Credit">
+                                        <label class="form-check-label" for="Credit">Credit</label>
+                                    </div>
+                                    <div class="form-check form-check-inline m-0">
+                                        <input class="form-check-input" type="radio" name="transactionType" id="Debit" value="Debit">
+                                        <label class="form-check-label" for="Debit">Debit</label>
+                                    </div>
+                                </div>
+                                <span id="spntransactionType" class="field-validation-error" style="display:none;">Please Select Transaction Type</span>
+                            </div>
+                        </div>
+
+                        <!-- Leave Value -->
+                        <div class="col-md-4 mt-3">
+                            <div class="fg fg-req">
+                                <label for="leaveValue">Leave Value</label>
+                                <input type="text" data-decimal-two id="leaveValue" placeholder="Leave Value" />
+                                <span id="spnleaveValue" class="field-validation-error" style="display:none;">Please Enter Leave Value</span>
+                            </div>
+                        </div>
+
+                        <!-- Reason -->
+                        <div class="col-md-4 mt-3">
+                            <div class="fg fg-req">
+                                <label for="leaveReason">Reason</label>
+                                <textarea id="leaveReason" placeholder="Reason" rows="3"></textarea>
+                                <span id="spnleaveReason" class="field-validation-error" style="display:none;">Please Enter Reason</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="btnSaveLeaveTransaction" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    (function () {
+        var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+        const CompanyId = companyDetails ? companyDetails.CompanyId : null;
+        const EmployeeId = localStorage.getItem('EmployeeId');
+        const Token = localStorage.getItem('authToken');
+
+        var grid = null;
+        var currentRows = [];
+        var isSavingLeaveTransaction = false;
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '-' + month + '-' + d.getFullYear();
+        }
+
+        $(document).ready(function () {
+            loadGetLeaveBalanceReport();
+            BindEmployeeByBranchIdForLeave();
+            BindLeaveTypeDropdown();
+        });
+
+        $('#addLeaveTransaction').click(function () {
+            resetLeaveTransactionForm();
+            $('#addLeaveTransactionModal').modal('show');
+        });
+
+        function BindEmployeeByBranchIdForLeave() {
+            $.ajax({
+                url: '@baseUrl/EmployeeMasterAPI/GetAllEmployeeList/' + CompanyId,
+                method: 'GET',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (data) {
+                    if (data.isSuccess) {
+                        var $empSel = $('#employeeLeave');
+                        $empSel.empty().append('<option value="" selected disabled>Employee</option>');
+                        (data.data || []).forEach(function (e) {
+                            $empSel.append($('<option>', { value: e.EmployeeId, text: e.EmployeeName }));
+                        });
+                    }
+                },
+                error: function () { showToast('Unable to load employee list.', 'error'); }
+            });
+        }
+
+        function BindLeaveTypeDropdown() {
+            $.ajax({
+                url: '@baseUrl/LeaveTransactionAPI/GetAllLeaveTypeByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (data) {
+                    if (data.isSuccess) {
+                        var $typeSel = $('#leaveType');
+                        $typeSel.empty().append('<option value="" selected disabled>Leave Type</option>');
+                        (data.data || []).forEach(function (t) {
+                            $typeSel.append($('<option>', { value: t.Leave_TypeId, text: t.Leave_Name }));
+                        });
+                    }
+                },
+                error: function () { showToast('Unable to load leave types.', 'error'); }
+            });
+        }
+
+        function loadGetLeaveBalanceReport() {
+            if (grid) grid.showLoader();
+
+            $.ajax({
+                url: '@baseUrl/LeaveTransactionAPI/GetLeaveBalanceReport/' + CompanyId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    renderGrid(response.data || []);
+                },
+                error: function () {
+                    if (grid) grid.hideLoader();
+                    showToast('Unable to load leave balance data.', 'error');
+                }
+            });
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                { field: 'BranchName', header: 'Branch Name', width: '150px' },
+                { field: 'EmployeeCode', header: 'Employee Code', width: '120px' },
+                { field: 'FullName', header: 'Employee Name', width: '180px' },
+                { field: 'LeaveType', header: 'Leave Type', width: '130px' },
+                { field: 'LeaveBalance', header: 'Leave Balance', width: '110px' },
+                { header: 'Last Transaction Date', sortable: false, width: '150px', render: function (v, row) { return fmtDate(row.LastTransactionDate); } },
+                { field: 'Reason', header: 'Reason', width: '200px' },
+                {
+                    header: 'Action', sortable: false, stickyRight: true, width: '70px',
+                    render: function (v, row) {
+                        return '<button class="wg-btn wg-btn-primary" title="Edit" onclick="_editLeaveTransaction(' + currentRows.indexOf(row) + ')"><i class="bx bx-edit"></i></button>';
+                    }
+                }
+            ];
+
+            currentRows = data;
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerLeaveBalance',
+                    title: 'Leave Balances',
+                    icon: 'bx-calendar-star',
+                    exportName: 'LeaveBalances',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+                grid.hideLoader();
+            }
+        }
+
+        window._editLeaveTransaction = function (idx) {
+            UpdateLeaveTransactionData(currentRows[idx]);
+        };
+
+        function showbtnLoder() { setBtnLoading('#btnSaveLeaveTransaction', 'Saving...'); }
+        function hidebtnLoder() { setBtnNormal('#btnSaveLeaveTransaction', 'Save'); }
+
+        $('#btnSaveLeaveTransaction').click(function () {
+            if (isSavingLeaveTransaction) return;
+
+            var employee = $('#employeeLeave').val();
+            var leaveType = $('#leaveType').val();
+            var transactionType = $('input[name="transactionType"]:checked').val();
+            var leaveValue = $('#leaveValue').val();
+            var leaveReason = $('#leaveReason').val();
+            var isValid = true;
+
+            if (!employee) { $('#spnemployeeLeave').show(); isValid = false; } else { $('#spnemployeeLeave').hide(); }
+            if (!leaveType) { $('#spnleaveType').show(); isValid = false; } else { $('#spnleaveType').hide(); }
+            if (!transactionType) { $('#spntransactionType').show(); isValid = false; } else { $('#spntransactionType').hide(); }
+            if (!leaveValue || leaveValue <= 0) { $('#spnleaveValue').show(); isValid = false; } else { $('#spnleaveValue').hide(); }
+            if (!leaveReason) { $('#spnleaveReason').show(); isValid = false; } else { $('#spnleaveReason').hide(); }
+
+            if (!isValid) return;
+
+            isSavingLeaveTransaction = true;
+            showbtnLoder();
+
+            var leaveTransactionData = {
+                EmpId: parseInt(employee),
+                LeaveTypeId: parseInt(leaveType),
+                TransactionType: transactionType,
+                LeaveValue: parseFloat(leaveValue),
+                Reason: leaveReason,
+                CreatedBy: EmployeeId
+            };
+
+            $.ajax({
+                url: "@baseUrl/LeaveTransactionAPI/InsertLeaveTransaction",
+                type: "POST",
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                data: JSON.stringify(leaveTransactionData),
+                success: function (response) {
+                    if (response.isSuccess) {
+                        showToast(response.responseMessage || 'Saved successfully.', 'success');
+                        $('#addLeaveTransactionModal').modal('hide');
+                        loadGetLeaveBalanceReport();
+                    } else {
+                        showToast(response.responseMessage || 'Failed to save.', 'error');
+                    }
+                },
+                error: function () {
+                    showToast('Unable to save leave transaction.', 'error');
+                },
+                complete: function () {
+                    isSavingLeaveTransaction = false;
+                    hidebtnLoder();
+                }
+            });
+        });
+
+        function resetLeaveTransactionForm() {
+            $('#employeeLeave').val('');
+            $('#leaveType').val('');
+            $('input[name="transactionType"]').prop('checked', false);
+            $('#leaveValue').val('');
+            $('#leaveReason').val('');
+            $('#spnemployeeLeave, #spnleaveType, #spnleaveValue, #spntransactionType, #spnleaveReason').hide();
+        }
+
+        function UpdateLeaveTransactionData(data) {
+            resetLeaveTransactionForm();
+
+            if (data.Emp_Id) { $('#employeeLeave').val(data.Emp_Id); }
+            if (data.Leave_TypeId) { $('#leaveType').val(data.Leave_TypeId); }
+
+            $('#addLeaveTransactionModal').modal('show');
+        }
+    })();
+</script>

@@ -1,0 +1,272 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Employee Holiday Marking";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Employee Holiday Marking</h6>
+        <button id="addHolidayMarking" type="button" class="btn btn-primary btn-sm">Add Marking</button>
+    </div>
+    <div class="card-body">
+        <div id="holidayMarkingGrid"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="addHolidayMarkingModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title"><span class="formType">Add</span> Holiday Marking</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <input type="hidden" id="holidayMarkingId" value="0" />
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="fg fg-req">
+                            <label for="branchHoliday">Branch</label>
+                            <select id="branchHoliday">
+                                <option value="" selected disabled>Branch</option>
+                            </select>
+                            <span id="spnbranchHoliday" style="color:red; display:none; font-size:0.85em;">Please Select Branch</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="fg fg-req">
+                            <label for="employeeHoliday">Employee</label>
+                            <select id="employeeHoliday">
+                                <option value="" selected disabled>Employee</option>
+                            </select>
+                            <span id="spnemployeeHoliday" style="color:red; display:none; font-size:0.85em;">Please Select Employee</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="fg fg-req">
+                            <label for="holidayDate">Holiday Date</label>
+                            <input type="date" id="holidayDate" />
+                            <span class="field-validation-error" id="spnholidayDate" style="display:none;">Please Select Holiday Date</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="fg fg-req">
+                            <label for="holidayName">Holiday Name</label>
+                            <input type="text" id="holidayName" placeholder="Holiday Name" autocomplete="off" />
+                            <span class="field-validation-error" id="spnholidayName" style="display:none;">Please Enter Holiday Name</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnSaveHolidayMarking">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var Token      = localStorage.getItem('authToken');
+    var EmployeeId = localStorage.getItem('EmployeeId');
+    var CompanyId  = (JSON.parse(localStorage.getItem('selectedCompany') || '{}')).CompanyId;
+    var _markingCache = {};
+
+    var grid = WMSGrid.create({
+        container: 'holidayMarkingGrid',
+        title: 'All Holiday Markings',
+        icon: 'bx-calendar-check',
+        perPage: 10,
+        columns: [
+            { field: 'branchName',   header: 'Branch Name',    width: '160px' },
+            { field: 'employeeCode', header: 'Employee Code',  width: '130px' },
+            { field: 'fullName',     header: 'Employee Name',  width: '180px' },
+            { field: 'holidayDate',  header: 'Holiday Date',   width: '120px',
+                render: function (v) { return v ? new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; }
+            },
+            { field: 'holidayName', header: 'Holiday Name',   width: '160px' },
+            { field: 'marked',      header: 'Status',         width: '80px' },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '130px',
+                render: function (v, row) {
+                    return '<button class="wg-btn wg-btn-primary" onclick="_editMarking(' + row.employeeHolidayId + ')"><i class="bx bx-edit"></i> Edit</button> ' +
+                           '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" onclick="_deleteMarking(' + row.employeeHolidayId + ',\'' + (row.holidayName || '').replace(/'/g, "\\'") + '\')"><i class="bx bx-trash"></i></button>';
+                }
+            }
+        ],
+        features: { export: true }
+    });
+
+    function loadTable() {
+        grid.showLoader();
+        $.ajax({
+            url: '@baseUrl/EmployeeHolidayMarkingAPI/GetAllEmployeeHoliday/', type: 'GET', _silentLoader: true,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (r) {
+                var rows = r.isSuccess ? (r.data || []) : [];
+                _markingCache = {};
+                rows.forEach(function (row) { _markingCache[row.employeeHolidayId] = row; });
+                grid.setData(rows);
+                grid.hideLoader();
+            },
+            error: function () { grid.hideLoader(); showToast('Failed to load holiday markings.', 'error'); }
+        });
+    }
+
+    function bindBranch() {
+        return new Promise(function (resolve, reject) {
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId, type: 'GET', _silentLoader: true,
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (data) {
+                    if (data.isSuccess) {
+                        var $sel = $('#branchHoliday');
+                        $sel.empty().append('<option value="" selected disabled>Branch</option>');
+                        (data.data || []).forEach(function (b) {
+                            $sel.append($('<option>', { value: b.branchId, text: b.branchName }));
+                        });
+                        $sel.on('change', function () { bindEmployeeByBranch($(this).val()); });
+                        resolve();
+                    } else { reject(); }
+                },
+                error: reject
+            });
+        });
+    }
+
+    function bindEmployeeByBranch(branchId) {
+        if (!branchId) return;
+        $.ajax({
+            url: '@baseUrl/EmployeeMasterAPI/GetEmployeeListByBranchId', type: 'POST',
+            contentType: 'application/json', _silentLoader: true,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify({ BranchId: branchId, CompanyId: CompanyId }),
+            success: function (data) {
+                if (data.isSuccess) {
+                    var $sel = $('#employeeHoliday');
+                    $sel.empty().append('<option value="" selected disabled>Employee</option>');
+                    (data.data || []).forEach(function (e) {
+                        $sel.append($('<option>', { value: e.employeeId, text: e.employeeName }));
+                    });
+                }
+            }
+        });
+    }
+
+    $('#addHolidayMarking').on('click', function () { resetForm(); $('#addHolidayMarkingModal').modal('show'); });
+    $('#addHolidayMarkingModal').on('hidden.bs.modal', function () { resetForm(); });
+
+    $('#btnSaveHolidayMarking').on('click', function () {
+        var markingId   = parseInt($('#holidayMarkingId').val()) || 0;
+        var branch      = $('#branchHoliday').val();
+        var employee    = $('#employeeHoliday').val();
+        var holidayDate = $('#holidayDate').val();
+        var holidayName = $('#holidayName').val().trim();
+
+        var isValid = true;
+        if (!branch)      { $('#spnbranchHoliday').show();   isValid = false; } else { $('#spnbranchHoliday').hide(); }
+        if (!employee)    { $('#spnemployeeHoliday').show();  isValid = false; } else { $('#spnemployeeHoliday').hide(); }
+        if (!holidayDate) { $('#spnholidayDate').show();      isValid = false; } else { $('#spnholidayDate').hide(); }
+        if (!holidayName) { $('#spnholidayName').show(); $('#holidayName').addClass('is-invalid'); isValid = false; } else { $('#spnholidayName').hide(); $('#holidayName').removeClass('is-invalid'); }
+        if (!isValid) return;
+
+        var isUpdate = markingId > 0;
+        setBtnLoading('#btnSaveHolidayMarking', isUpdate ? 'Updating...' : 'Saving...');
+
+        var payload = {
+            EmployeeHolidayId: markingId,
+            EmployeeId:        parseInt(employee),
+            HolidayDate:       holidayDate,
+            Marked:            'H',
+            HolidayName:       holidayName,
+            CreatedBy:         parseInt(EmployeeId),
+            UpdatedBy:         parseInt(EmployeeId)
+        };
+
+        $.ajax({
+            url:  isUpdate ? '@baseUrl/EmployeeHolidayMarkingAPI/UpdateEmployeeHoliday' : '@baseUrl/EmployeeHolidayMarkingAPI/CreateEmployeeHoliday',
+            type: isUpdate ? 'PUT' : 'POST',
+            contentType: 'application/json', _silentLoader: true,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(payload),
+            success: function (r) {
+                if (r.isSuccess) {
+                    showToast(r.responseMessage || (isUpdate ? 'Updated successfully.' : 'Created successfully.'), 'success');
+                    $('#addHolidayMarkingModal').modal('hide');
+                    loadTable();
+                } else {
+                    showToast(r.responseMessage || 'Something went wrong.', 'error');
+                    setBtnNormal('#btnSaveHolidayMarking', isUpdate ? 'Update' : 'Save');
+                }
+            },
+            error: function () {
+                showToast('Unable to save holiday marking.', 'error');
+                setBtnNormal('#btnSaveHolidayMarking', isUpdate ? 'Update' : 'Save');
+            }
+        });
+    });
+
+    function resetForm() {
+        $('#holidayMarkingId').val('0');
+        $('#branchHoliday').val('');
+        $('#employeeHoliday').val('');
+        $('#holidayDate').val('');
+        $('#holidayName').val('').removeClass('is-invalid');
+        $('#spnbranchHoliday, #spnemployeeHoliday, #spnholidayDate, #spnholidayName').hide();
+        $('.formType').text('Add');
+        setBtnNormal('#btnSaveHolidayMarking', 'Save');
+    }
+
+    window._editMarking = function (id) {
+        var data = _markingCache[id];
+        if (!data) return;
+        resetForm();
+        $('#holidayMarkingId').val(data.employeeHolidayId || 0);
+
+        $('#branchHoliday').val(data.branchId);
+        bindEmployeeByBranch(data.branchId);
+        setTimeout(function () {
+            $('#employeeHoliday').val(data.employeeId);
+        }, 500);
+
+        var dateStr = data.holidayDate || '';
+        if (dateStr.indexOf('T') !== -1) dateStr = dateStr.split('T')[0];
+        $('#holidayDate').val(dateStr);
+        $('#holidayName').val(data.holidayName || '');
+        $('.formType').text('Update');
+        setBtnNormal('#btnSaveHolidayMarking', 'Update');
+        $('#addHolidayMarkingModal').modal('show');
+    };
+
+    window._deleteMarking = function (id, name) {
+        wmsConfirm('Are you sure you want to delete marking <strong>"' + name + '"</strong>?<br><small style="color:#E53E3E;display:block;margin-top:4px">This action cannot be undone.</small>', function () {
+            $.ajax({
+                url: '@baseUrl/EmployeeHolidayMarkingAPI/Delete?Id=' + id + '&DeletedBy=' + EmployeeId,
+                type: 'DELETE', _silentLoader: true,
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (r) {
+                    showToast(r.isSuccess ? (r.responseMessage || 'Deleted successfully.') : (r.responseMessage || 'Something went wrong.'), r.isSuccess ? 'success' : 'error');
+                    if (r.isSuccess) loadTable();
+                },
+                error: function () { showToast('Unable to delete holiday marking.', 'error'); }
+            });
+        });
+    };
+
+    $(document).ready(function () {
+        bindBranch();
+        loadTable();
+    });
+})();
+</script>
