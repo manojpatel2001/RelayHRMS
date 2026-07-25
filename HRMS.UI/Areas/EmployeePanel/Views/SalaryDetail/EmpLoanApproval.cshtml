@@ -1,4 +1,4 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Loan Application";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
@@ -9,205 +9,193 @@
 }
 
 <title>Loan Application</title>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #ffffff;
-    }
+<div class="wms-form-page">
 
-    .btn-custom {
-        background-color: #3e4b6d;
-        color: white;
-        border: none;
-        padding: 4px 12px;
-        font-size: 13px;
-        font-weight: 600;
-        border-radius: 4px;
-        transition: none;
-        box-shadow: none;
-    }
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Loan Application</h6>
+            <div class="d-flex gap-2">
+                <button id="btnDelete" type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" style="display:none;">
+                    <i class="bx bx-trash"></i>
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Delete</span>
+                </button>
+                <button id="btnAdd" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="bx bx-plus"></i> Add
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="actionButtonsWrap" style="display:none;">
+                <div class="d-flex justify-content-end gap-2 mb-3">
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnSelectAllLoan">
+                        <i class="bx bx-check-square"></i> Select All
+                    </button>
+                </div>
+            </div>
 
-        .btn-custom:hover,
-        .btn-custom:focus,
-        .btn-custom:active {
-            background-color: #3e4b6d;
-            color: white;
-            outline: none;
-            box-shadow: none;
-        }
-
-    .btn-add {
-        background-color: #28a745;
-        color: white;
-        font-size: 13px;
-        padding: 4px 10px;
-        border: none;
-        border-radius: 3px;
-    }
-
-        .btn-add:hover {
-            background-color: #218838;
-        }
-
-    .search-panel-wrapper {
-        max-width: 100%;
-        margin: auto;
-    }
-
-    .search-panel-container {
-        background-color: #3e4b6d;
-        padding: 4px 12px;
-        border-radius: 6px;
-        margin-bottom: 15px;
-    }
-
-    .search-panel-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .search-heading {
-        font-size: 14px;
-        color: white;
-        margin: 0;
-    }
-
-    /* Grid width fixes */
-    .container {
-        max-width: 100% !important;
-        width: 100% !important;
-        padding-left: 15px;
-        padding-right: 15px;
-    }
-
-    .grid-container {
-        width: 100% !important;
-        overflow-x: auto;
-        margin: 0;
-        padding: 0;
-    }
-
-    #loanApplicationGrid {
-        width: 100% !important;
-        min-width: 100% !important;
-    }
-
-        #loanApplicationGrid .dx-datagrid {
-            width: 100% !important;
-        }
-
-        #loanApplicationGrid .dx-datagrid-content {
-            width: 100% !important;
-        }
-
-        #loanApplicationGrid .dx-datagrid-table {
-            width: 100% !important;
-            table-layout: auto !important;
-        }
-
-    .custom-action-buttons {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-</style>
-<!-- LOAN APPLICATION Heading with Add Button -->
-<div class="search-panel-wrapper">
-    <div class="search-panel-container">
-        <div class="search-panel-row">
-            <div class="search-heading">LOAN APPLICATION</div>
-            <button id="btnAdd" class="btn btn-add">Add</button>
+            <div id="gridContainerLoanApplication"></div>
         </div>
     </div>
-</div>
 
-<!-- Delete Button + Grid Container -->
-<div class="container mt-3">
-    <!-- Delete Button Row -->
-    <div id="actionButtons" class="custom-action-buttons text-end mb-2">
-        <button id="btnDelete" class="btn btn-custom" style="display: none;">Delete</button>
-    </div>
-
-    <!--Loader-->
-    <div id="grid-loader"
-         class="grid-loader justify-content-center align-items-center flex-column"
-         style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(3px); z-index: 9999;">
-        <img src="@baseDomainUrl/loders/loder.png"
-             class="grid-logo-spinner"
-             style="width: 40px; height: 40px; animation: spin 1s linear infinite;" />
-        <div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
-    </div>
-
-    <!-- Grid Container with proper width -->
-    <div class="grid-container">
-        <div id="loanApplicationGrid"></div>
-
-        <!-- No Records Message -->
-        <div id="noRecordMessage" style="display: none; text-align: center; padding: 40px; font-size: 14px; color: #666;">
-            No Records found.
-        </div>
-    </div>
 </div>
 
 <script>
-    const EmployeeId = localStorage.getItem('EmployeeId');
+    (function () {
+        const EmployeeId = localStorage.getItem('EmployeeId');
 
-    // Safe grid disposal function
-    function safeDisposeGrid() {
-        try {
-            var gridInstance = $("#loanApplicationGrid").data("dxDataGrid");
-            if (gridInstance) {
-                gridInstance.dispose();
-            }
-        } catch (e) {
-            // Grid doesn't exist, continue
+        var grid = null;
+        var currentRows = [];
+        var selectedIds = {};
+        var isProcessingLoan = false;
+
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
         }
-        $("#loanApplicationGrid").empty();
-    }
 
-    $(document).ready(function () {
-        loadLoanApplicationData();
+        function statusPill(row) {
+            if (row.isApproved === true) return '<span class="wg-pill wg-pill-green">Approved</span>';
+            if (row.isRejected === true) return '<span class="wg-pill wg-pill-red">Rejected</span>';
+            if (row.isPending === true) return '<span class="wg-pill wg-pill-amber">Pending</span>';
+            return '-';
+        }
 
-        $("#btnAdd").click(function () {
-            window.location.href = '@UIBaseUrl/EmployeePanel/SalaryDetail/EmpLoanApplication';
+        $(document).ready(function () {
+            loadLoanApplicationData();
+
+            $("#btnAdd").click(function () {
+                window.location.href = '@UIBaseUrl/EmployeePanel/SalaryDetail/EmpLoanApplication';
+            });
+
+            $("#btnDelete").click(function () { deleteSelected(); });
+
+            $('#btnSelectAllLoan').on('click', function () {
+                var allSelected = currentRows.length > 0 && currentRows.every(function (r) { return !!selectedIds[r.loanApplicationId]; });
+                selectedIds = {};
+                if (!allSelected) { currentRows.forEach(function (r) { selectedIds[r.loanApplicationId] = true; }); }
+                if (grid) grid.refresh();
+            });
         });
-        $("#btnDelete").click(function () {
-            debugger;
-            var grid = $("#loanApplicationGrid").dxDataGrid("instance");
-            var selectedRows = grid.getSelectedRowsData();
 
-            if (selectedRows.length === 0) {
-                round_error_noti("Please select at least one record.");
-                return;
-            }
+        window._toggleLoanRow = function (id, checked) {
+            if (checked) selectedIds[id] = true;
+            else delete selectedIds[id];
+        };
 
-            // Check for approved records
-            const approvedRecords = selectedRows.filter(row => row.status === 'Approved');
-            if (approvedRecords.length > 0) {
-                Swal.fire({
-                    title: "Not Allowed",
-                    text: "Approved records cannot be deleted.",
-                    icon: "error"
+        function getSelectedRows() {
+            return currentRows.filter(function (r) { return !!selectedIds[r.loanApplicationId]; });
+        }
+
+        function loadLoanApplicationData() {
+            if (grid) grid.showLoader();
+
+            $.ajax({
+                url: "@baseUrls/LoanApplicationAPI/GetLoanApprovalEss",
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ EmployeeId: EmployeeId }),
+                success: function (res) {
+                    if (res.isSuccess && res.data && res.data.length > 0) {
+                        let gridData = Array.isArray(res.data) ? res.data : [res.data];
+                        currentRows = gridData;
+                        selectedIds = {};
+                        renderGrid(gridData);
+                        $('#actionButtonsWrap').show();
+                    } else {
+                        currentRows = [];
+                        selectedIds = {};
+                        grid = null;
+                        $('#gridContainerLoanApplication').empty();
+                        $('#btnDelete').hide();
+                        $('#actionButtonsWrap').hide();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    currentRows = [];
+                    selectedIds = {};
+                    grid = null;
+                    $('#gridContainerLoanApplication').empty();
+                    $('#btnDelete').hide();
+                    $('#actionButtonsWrap').hide();
+                }
+            });
+        }
+
+        function renderGrid(data) {
+            var columns = [
+                {
+                    header: '', sortable: false, width: '40px',
+                    render: function (v, row) {
+                        var checked = selectedIds[row.loanApplicationId] ? ' checked' : '';
+                        return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleLoanRow(' + row.loanApplicationId + ', this.checked)">';
+                    }
+                },
+                { field: 'employeeCode', header: 'Employee Code', width: '120px' },
+                { field: 'employeeName', header: 'Employee', width: '180px' },
+                { field: 'loanTypeName', header: 'Loan Type', width: '150px' },
+                {
+                    field: 'loanAmount', header: 'Loan Amount', width: '130px',
+                    render: function (v) { return (v !== null && v !== undefined) ? parseFloat(v).toFixed(2) : '-'; }
+                },
+                { field: 'numberOfInstallments', header: 'No. Of Installments', width: '150px' },
+                { header: 'Installment Start Date', sortable: false, width: '150px', render: function (v, row) { return fmtDate(row.installmentStartDate); } },
+                { header: 'Application Date', sortable: false, width: '140px', render: function (v, row) { return fmtDate(row.applicationDate); } },
+                {
+                    header: 'Status', sortable: false, width: '110px', stickyRight: true,
+                    render: function (v, row) { return statusPill(row); }
+                }
+            ];
+
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerLoanApplication',
+                    title: 'Loan Applications',
+                    icon: 'bx-money',
+                    exportName: 'LoanApplications',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
                 });
+            } else {
+                grid.setData(data);
+                grid.hideLoader();
+            }
+
+            $('#btnDelete').show();
+        }
+
+        function deleteSelected() {
+            if (isProcessingLoan) return;
+
+            var selectedRows = getSelectedRows();
+            if (selectedRows.length === 0) {
+                showToast('Please select at least one record.', 'warn');
                 return;
             }
 
-            // Directly proceed with deletion (no confirmation dialog)
-            showLoder();
+            var approvedRecords = selectedRows.filter(function (row) { return row.status === 'Approved'; });
+            if (approvedRecords.length > 0) {
+                showToast('Approved records cannot be deleted.', 'error');
+                return;
+            }
 
-            const selectedIds = selectedRows.map(row => row.loanApplicationId);
+            isProcessingLoan = true;
+            setBtnLoading('#btnDelete', 'Deleting...');
+
+            const selectedIdsArr = selectedRows.map(function (row) { return row.loanApplicationId; });
 
             const deletePayload = {
-                Id: selectedIds,
+                Id: selectedIdsArr,
                 DeletedBy: EmployeeId
             };
-
-            console.log('deletePayload', deletePayload);
 
             $.ajax({
                 url: "@baseUrls/LoanApplicationAPI/Delete",
@@ -215,131 +203,22 @@
                 contentType: 'application/json',
                 data: JSON.stringify(deletePayload),
                 success: function (res) {
-                    hideLoder();
                     if (res.isSuccess) {
-                        round_success_noti(res.responseMessage || "Deleted successfully.");
+                        showToast(res.responseMessage || 'Deleted successfully.', 'success');
+                        selectedIds = {};
                         loadLoanApplicationData();
                     } else {
-                        round_error_noti(res.responseMessage || "Deletion failed.");
+                        showToast(res.responseMessage || 'Deletion failed.', 'error');
                     }
                 },
                 error: function () {
-                    hideLoder();
-                    round_error_noti("Something went wrong during deletion.");
+                    showToast('Something went wrong during deletion.', 'error');
+                },
+                complete: function () {
+                    isProcessingLoan = false;
+                    setBtnNormal('#btnDelete', 'Delete');
                 }
             });
-        });
-    });
-
-    async function showLoder() {
-        $('#grid-loader').addClass('d-flex').show();
-    }
-
-    async function hideLoder() {
-        $('#grid-loader').removeClass('d-flex').hide();
-    }
-
-    function loadLoanApplicationData() {
-        debugger;
-        showLoder();
-        console.log('EmployeeId:', EmployeeId);
-
-        $.ajax({
-            url: "@baseUrls/LoanApplicationAPI/GetLoanApprovalEss",
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ EmployeeId: EmployeeId }),  // Match ViewModel property spelling
-            success: function (res) {
-                hideLoder();
-                debugger;
-                if (res.isSuccess && res.data && res.data.length > 0) {
-                    let gridData = Array.isArray(res.data) ? res.data : [res.data];
-                    $("#btnDelete").show();
-                    loadGrid(gridData);
-                } else {
-                    $("#btnDelete").hide();
-                    safeDisposeGrid();
-                    $("#noRecordMessage").show();
-                }
-            },
-            error: function (xhr, status, error) {
-                hideLoder();
-                console.error('AJAX Error:', error);
-
-                // No data or error - hide delete button
-                $("#btnDelete").hide();
-                safeDisposeGrid();
-                $("#noRecordMessage").show();
-            }
-        });
-    }
-
-    function loadGrid(data) {
-        safeDisposeGrid();
-        $("#noRecordMessage").hide();
-
-        $("#loanApplicationGrid").dxDataGrid({
-            dataSource: data,
-            keyExpr: "loanApplicationId",
-            showBorders: true,
-            width: "100%",
-            height: "auto",
-            columnAutoWidth: true,
-            wordWrapEnabled: false,
-            paging: {
-                enabled: false
-            },
-            scrolling: {
-                mode: "standard",
-                useNative: true,
-                showScrollbar: "always"
-            },
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "always"
-            },
-            filterRow: { visible: false },
-            searchPanel: { visible: false },
-            columns: [
-                { dataField: "employeeCode", caption: "EmployeeCode", width: 100 },
-                { dataField: "employeeName", caption: "Employee", width: 250 },
-                { dataField: "loanTypeName", caption: "Loan Type", width: 150 },
-                { dataField: "loanAmount", caption: "Loan Amount", dataType: "number", format: "#,##0.00", width: 120 },
-                { dataField: "numberOfInstallments", caption: "Number Of Installments", dataType: "number", format: "#,##0.00", width: 120 },
-                { dataField: "installmentStartDate", caption: "Installment Start Date", dataType: "number", format: "#,##0.00", width: 120 },
-                { dataField: "applicationDate", caption: "Application Date", dataType: "date", format: "dd/MM/yyyy", width: 150 },
-                {
-                    caption: "Status",
-                    width: 80,
-                    alignment: "center",
-                    allowFiltering: false,
-                    allowSorting: false,
-                    cellTemplate: function(container, options) {
-                        const row = options.data;
-                        let statusText = "";
-
-                        if (row.isApproved === true) {
-                            statusText = "Approved";
-                        } else if (row.isRejected === true) {
-                            statusText = "Rejected";
-                        } else if (row.isPending === true) {
-                            statusText = "Pending";
-                        }
-
-                        $("<div>").text(statusText).appendTo(container);
-                    }
-                }
-            ]
-        });
-    }
-
-    // Handle window resize
-    $(window).on('resize', function() {
-        var gridInstance = $("#loanApplicationGrid").data("dxDataGrid");
-        if (gridInstance) {
-            setTimeout(function() {
-                gridInstance.updateDimensions();
-            }, 100);
         }
-    });
+    })();
 </script>

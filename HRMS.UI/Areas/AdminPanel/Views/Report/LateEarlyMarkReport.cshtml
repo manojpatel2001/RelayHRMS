@@ -1,4 +1,4 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Late Early Mark Report";
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
@@ -6,470 +6,284 @@
     var uri = new Uri(baseUrl);
     string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
+<title>Late Early Mark Report</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="stylesheet" type="text/css" href="https://cdn3.devexpress.com/jslib/23.1.3/css/dx.light.css" />
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<style>
-    body {
-        background-color: white !important;
-        margin: 0;
-        padding: 20px;
-        font-family: Arial, sans-serif;
-    }
+<div class="wms-form-page">
 
-    .inout-box {
-        background-color: white !important;
-        border: 1px solid #ccc;
-        padding: 12px;
-        border-radius: 5px;
-    }
-
-    .inout-header {
-        background-color: #3e4b6d;
-        color: white;
-        font-weight: bold;
-        padding: 8px 15px;
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-    }
-
-    .form-label {
-        width: 130px;
-        margin-bottom: 0;
-        font-weight: 500;
-    }
-
-    .form-group-row {
-        margin-bottom: 12px;
-    }
-
-    .form-select-sm, .form-control-sm {
-        width: 180px;
-    }
-
-    .btn-go {
-        background-color: #3e4b6d;
-        color: white;
-        border: none;
-        padding: 4px 12px;
-        font-size: 13px;
-        font-weight: 600;
-        border-radius: 4px;
-    }
-
-        .btn-go:hover, .btn-go:focus, .btn-go:active {
-            background-color: #3e4b6d;
-            color: white;
-            outline: none;
-            box-shadow: none;
-        }
-
-    .small-dropdown {
-        width: 180px !important;
-    }
-
-    .dx-datagrid-headers .dx-header-row > td,
-    .dx-datagrid-headers .dx-header-row > th {
-        background-color: #3e4b6d !important;
-        color: white !important;
-        font-weight: bold !important;
-        border-color: #2a3447 !important;
-    }
-
-    .dx-datagrid .dx-datagrid-headers .dx-datagrid-table .dx-row > td {
-        background-color: #3e4b6d !important;
-        color: white !important;
-        border-color: #2a3447 !important;
-    }
-
-    #inoutGridContainer {
-        margin-bottom: 20px !important;
-        height: 400px !important;
-        overflow: auto !important;
-    }
-
-    #grid-loader {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(255,255,255,0.6);
-        backdrop-filter: blur(3px);
-        z-index: 9999;
-    }
-
-    .grid-logo-spinner {
-        width: 40px;
-        height: 40px;
-        animation: spin 1s linear infinite;
-    }
-
-    @@keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
-
-        100% {
-            transform: rotate(360deg);
-        }
-    }
-
-    .grid-loading-text {
-        font-size: 16px;
-        color: #333;
-    }
-
-    /* Status badges */
-    .badge-late {
-        background-color: #dc3545;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-    }
-
-    .badge-ontime {
-        background-color: #28a745;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-    }
-
-    .badge-earlyleave {
-        background-color: #fd7e14;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-    }
-
-    .badge-fullshift {
-        background-color: #28a745;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-    }
-
-    .badge-nopunch {
-        background-color: #6c757d;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-    }
-
-    .badge-remarks-late-early {
-        background-color: #dc3545;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-    }
-
-    .badge-remarks-regular {
-        background-color: #28a745;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-    }
-
-    .badge-remarks-other {
-        background-color: #fd7e14;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-    }
-</style>
-
-<div class="inout-box">
-    <div class="inout-header">Late / Early Mark Report</div>
-
-    <div class="row justify-content-center mt-3">
-        <div class="col-lg-10">
-            <div class="row">
-                <!-- Left Column -->
-                <div class="col-md-6">
-                    <div class="form-group-row d-flex align-items-center">
-                        <label class="form-label">Start Date<span class="text-danger">*</span> :</label>
-                        <input type="date" class="form-control form-control-sm" id="startDate">
-                    </div>
-                    <div class="form-group-row d-flex align-items-center">
-                        <label class="form-label">Branch<span class="text-danger">*</span> :</label>
-                        <div id="branchDropdown" class="small-dropdown"></div>
-                    </div>
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Late / Early Mark Report</h6>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">
+                <i class="bx bx-arrow-back"></i> Back
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 150px;min-width:140px;">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate" />
                 </div>
 
-                <!-- Right Column -->
-                <div class="col-md-6">
-                    <div class="form-group-row d-flex align-items-center">
-                        <label class="form-label">End Date<span class="text-danger">*</span> :</label>
-                        <input type="date" class="form-control form-control-sm" id="endDate">
-                    </div>
-                    <div class="form-group-row d-flex align-items-center">
-                        <label class="form-label">Employee<span class="text-danger">*</span> :</label>
-                        <div id="employeeDropdown" class="small-dropdown"></div>
-                    </div>
+                <div class="fg fg-req" style="flex:1 1 150px;min-width:140px;">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate" />
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
+                    <label for="branchDropdown">Branch</label>
+                    <div id="branchDropdown"></div>
+                </div>
+
+                <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
+                    <label for="employeeDropdown">Employee</label>
+                    <div id="employeeDropdown"></div>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnFetch">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
                 </div>
             </div>
+
+            <div class="divider"></div>
+
+            <div id="gridContainerLateEarly"></div>
         </div>
     </div>
 
-    <div class="col-md-12 text-center mt-3">
-        <button class="btn-go" id="btnFetch">Go</button>
-        <button class="btn-go" id="btnClear">Clear</button>
-        <button onclick="goBack()" class="btn-go">Back</button>
-    </div>
 </div>
-
-<!-- Loader -->
-<div id="grid-loader" class="justify-content-center align-items-center flex-column">
-    <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" />
-    <div class="grid-loading-text">Loading...</div>
-</div>
-
-<!-- Grid -->
-<div id="inoutGridContainer" style="display:none" class="mt-4"></div>
 
 <script>
-    const savedCompany = localStorage.getItem('selectedCompany');
-    var companyDetails = JSON.parse(savedCompany);
-    const CompanyId = companyDetails.CompanyId;
-    const Token = localStorage.getItem("authToken");
+    (function () {
+        const savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        const CompanyId = companyDetails.CompanyId;
+        const Token = localStorage.getItem("authToken");
 
-    $(document).ready(function () {
-        setDefaultDates();
-        BindBranchDropdown();
-        BindEmployeeDropdownByBranch([0]);
-    });
+        var grid = null;
+        var isLoadingLateEarly = false;
 
-    function goBack() { window.history.back(); }
+        function goBack() { window.history.back(); }
+        window.goBack = goBack;
 
-    function setDefaultDates() {
-        const today = new Date().toISOString().split('T')[0];
-        $('#startDate').val(today);
-        $('#endDate').val(today);
-    }
+        $(document).ready(function () {
+            setDefaultDates();
+            BindBranchDropdown();
+            BindEmployeeDropdownByBranch([0]);
+        });
 
-    function showLoder() { $('#grid-loader').addClass('d-flex').show(); }
-    function hideLoder() { $('#grid-loader').removeClass('d-flex').hide(); }
+        function setDefaultDates() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#startDate').val(today);
+            $('#endDate').val(today);
+        }
 
-    // ── Branch Dropdown ──────────────────────────────────────────────
-    function BindBranchDropdown() {
-        $.ajax({
-            url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
-            method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + Token },
-            success: function (response) {
-                if (response?.data?.length > 0) {
-                    $("#branchDropdown").dxTagBox({
-                        items: response.data,
-                        displayExpr: "branchName",
-                        valueExpr: "branchId",
-                        placeholder: "--Select Branch--",
-                        showSelectionControls: true,
+        // ── Branch Dropdown ──────────────────────────────────────────────
+        function BindBranchDropdown() {
+            $.ajax({
+                url: '@baseUrl/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    if (response?.data?.length > 0) {
+                        $("#branchDropdown").dxTagBox({
+                            items: response.data,
+                            displayExpr: "branchName",
+                            valueExpr: "branchId",
+                            placeholder: "--Select Branch--",
+                            showSelectionControls: true,
+                            searchEnabled: true,
+                            showClearButton: true,
+                            maxDisplayedTags: 3,
+                            applyValueMode: "instantly",
+                            multiline: false,
+                            width: "100%",
+                            onValueChanged: function (e) {
+                                let ids = e.value.length > 0 ? e.value : [0];
+                                BindEmployeeDropdownByBranch(ids);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        // ── Employee Dropdown ────────────────────────────────────────────
+        function BindEmployeeDropdownByBranch(selectedBranchIds) {
+            const branchParam = selectedBranchIds.join(",");
+            $.ajax({
+                type: "GET",
+                url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")?BranchIds=' + branchParam + '&CompanyId=' + CompanyId,
+                success: function (response) {
+                    const $emp = $("#employeeDropdown");
+                    const items = (response?.data?.length > 0)
+                        ? response.data.map(e => ({ employeeCode: e.employeeCode, displayName: `${e.fullName} - ${e.employeeCode}` }))
+                        : [];
+
+                    if ($emp.data('dxTagBox')) { $emp.dxTagBox('dispose'); }
+
+                    $emp.dxTagBox({
+                        items: items,
+                        displayExpr: "displayName",
+                        valueExpr: "employeeCode",
+                        placeholder: items.length > 0 ? "--Select Employee--" : "No Employees Found",
+                        showSelectionControls: items.length > 0,
                         searchEnabled: true,
                         showClearButton: true,
                         maxDisplayedTags: 3,
                         applyValueMode: "instantly",
                         multiline: false,
-                        width: "100%",
-                        onValueChanged: function (e) {
-                            let ids = e.value.length > 0 ? e.value : [0];
-                            BindEmployeeDropdownByBranch(ids);
-                        }
+                        width: "100%"
                     });
                 }
-            }
-        });
-    }
-
-    // ── Employee Dropdown ────────────────────────────────────────────
-    function BindEmployeeDropdownByBranch(selectedBranchIds) {
-        const branchParam = selectedBranchIds.join(",");
-        $.ajax({
-            type: "GET",
-            url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")?BranchIds=' + branchParam + '&CompanyId=' + CompanyId,
-            success: function (response) {
-                const $emp = $("#employeeDropdown");
-                const items = (response?.data?.length > 0)
-                    ? response.data.map(e => ({ employeeCode: e.employeeCode, displayName: `${e.fullName} - ${e.employeeCode}` }))
-                    : [];
-
-                if ($emp.data('dxTagBox')) { $emp.dxTagBox('dispose'); }
-
-                $emp.dxTagBox({
-                    items: items,
-                    displayExpr: "displayName",
-                    valueExpr: "employeeCode",
-                    placeholder: items.length > 0 ? "--Select Employee--" : "No Employees Found",
-                    showSelectionControls: items.length > 0,
-                    searchEnabled: true,
-                    showClearButton: true,
-                    maxDisplayedTags: 3,
-                    applyValueMode: "instantly",
-                    multiline: false,
-                    width: "300%"
-                });
-            }
-        });
-    }
-
-    // ── Go Button ────────────────────────────────────────────────────
-    $('#btnFetch').on('click', function () {
-        const startDate = $('#startDate').val();
-        const endDate   = $('#endDate').val();
-
-        if (!startDate) { Swal.fire("Please select Start Date"); return; }
-        if (!endDate)   { Swal.fire("Please select End Date");   return; }
-
-        const branchIds   = $("#branchDropdown").dxTagBox("instance").option("value");
-        const employeeCodes = $("#employeeDropdown").dxTagBox("instance").option("value");
-
-        if (!branchIds || branchIds.length === 0)     { Swal.fire("Please select Branch");               return; }
-        if (!employeeCodes || employeeCodes.length === 0) { Swal.fire("Please select at least one Employee"); return; }
-
-        showLoder();
-
-        $.ajax({
-            url: '@baseDomainUrl/api/ReportAPI/LateEarlyMarkReport',
-            type: 'GET',
-            data: {
-                StartDate:  startDate,
-                EndDate:    endDate,
-                BranchId:   branchIds.join(","),
-                EmpId:      employeeCodes.join(","),
-                CompanyId:  CompanyId
-            },
-            headers: { 'Authorization': 'Bearer ' + Token },
-            success: function (response) {
-                console.log('response' ,response);
-                hideLoder();
-                if (response.isSuccess && response.data?.length > 0) {
-                    RenderGrid(response.data);
-                    // Disable filters after search
-                    $('#startDate, #endDate').prop('disabled', true);
-                    $("#branchDropdown").dxTagBox("instance").option("disabled", true);
-                    $("#employeeDropdown").dxTagBox("instance").option("disabled", true);
-                } else if (response.isSuccess) {
-                    Swal.fire({ icon: 'info', title: 'No Data Found', text: 'No records found for selected criteria.' });
-                } else {
-                    Swal.fire(response.responseMessage || "Error fetching data");
-                }
-            },
-            error: function () {
-                hideLoder();
-                Swal.fire("Error occurred while fetching data");
-            }
-        });
-    });
-
-    // ── Render Grid ──────────────────────────────────────────────────
-    function RenderGrid(data) {
-        if ($("#inoutGridContainer").data('dxDataGrid')) {
-            $("#inoutGridContainer").dxDataGrid('dispose');
+            });
         }
 
-        $("#inoutGridContainer").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            columnAutoWidth: false,
-            height: 420,
-            paging: { enabled: false },
-            scrolling: { mode: "standard" },
-            searchPanel: { visible: true, width: 200 },
-            export: {
-                enabled: true,
-                allowExportSelectedData: false,
-                formats: ['xlsx'],
-                texts: { exportAll: "Export to Excel" }
-            },
-            onExporting: function (e) {
-                e.fileName = `LateEarlyMark_${$('#startDate').val()}_to_${$('#endDate').val()}`;
-            },
-            columns: [
-                { dataField: "employeeCode",     caption: "Code",         width: 100, alignment: "center" },
-                { dataField: "employeeName",      caption: "Name",         width: 160 },
-                {
-                    dataField: "shiftDate", caption: "Date", width: 110,
-                    dataType: "date", format: "dd/MM/yyyy", alignment: "center"
+        // ── Go Button ────────────────────────────────────────────────────
+        $('#btnFetch').on('click', function () {
+            if (isLoadingLateEarly) return;
+
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+
+            if (!startDate) { showToast('Please select Start Date.', 'warn'); return; }
+            if (!endDate) { showToast('Please select End Date.', 'warn'); return; }
+
+            const branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
+            const employeeCodes = $("#employeeDropdown").dxTagBox("instance").option("value");
+
+            if (!branchIds || branchIds.length === 0) { showToast('Please select Branch.', 'warn'); return; }
+            if (!employeeCodes || employeeCodes.length === 0) { showToast('Please select at least one Employee.', 'warn'); return; }
+
+            isLoadingLateEarly = true;
+            setBtnLoading('#btnFetch', 'Go');
+
+            $.ajax({
+                url: '@baseDomainUrl/api/ReportAPI/LateEarlyMarkReport',
+                type: 'GET',
+                data: {
+                    StartDate: startDate,
+                    EndDate: endDate,
+                    BranchId: branchIds.join(","),
+                    EmpId: employeeCodes.join(","),
+                    CompanyId: CompanyId
                 },
-                { dataField: "shiftName",         caption: "Shift",        width: 110, alignment: "center" },
-                { dataField: "shiftStartTime",    caption: "Shift In",     width: 90,  alignment: "center" },
-                { dataField: "shiftEndTime",      caption: "Shift Out",    width: 90,  alignment: "center" },
-                { dataField: "actualInTime",      caption: "Actual In",    width: 90,  alignment: "center",
-                    customizeText: c => (!c.value ? '-' : c.value) },
-                { dataField: "actualOutTime",     caption: "Actual Out",   width: 90,  alignment: "center",
-                    customizeText: c => (!c.value ? '-' : c.value) },
-                {
-                    dataField: "lateStatus", caption: "Late Status", width: 100, alignment: "center",
-                    cellTemplate: function (container, options) {
-                        const v = options.value || '';
-                        const cls = v === 'Late' ? 'badge-late' : v === 'On Time' ? 'badge-ontime' : 'badge-nopunch';
-                        $('<span>').addClass(cls).text(v || '-').appendTo(container);
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (response) {
+                    isLoadingLateEarly = false;
+                    setBtnNormal('#btnFetch', 'Go');
+
+                    if (response.isSuccess && response.data?.length > 0) {
+                        renderGrid(response.data);
+                        // Disable filters after search
+                        $('#startDate, #endDate').prop('disabled', true);
+                        $("#branchDropdown").dxTagBox("instance").option("disabled", true);
+                        $("#employeeDropdown").dxTagBox("instance").option("disabled", true);
+                    } else if (response.isSuccess) {
+                        renderGrid([]);
+                        showToast('No records found for selected criteria.', 'info');
+                    } else {
+                        renderGrid([]);
+                        showToast(response.responseMessage || 'Error fetching data.', 'error');
                     }
                 },
-                {
-                    dataField: "lateByMinutes", caption: "Late (min)", width: 90, alignment: "center",
-                    customizeText: c => (c.value > 0 ? c.value + ' min' : '-')
-                },
-                {
-                    dataField: "earlyLeaveStatus", caption: "Early Leave", width: 110, alignment: "center",
-                    cellTemplate: function (container, options) {
-                        const v = options.value || '';
-                        const cls = v === 'Early Leave' ? 'badge-earlyleave' : v === 'Full Shift' ? 'badge-fullshift' : 'badge-nopunch';
-                        $('<span>').addClass(cls).text(v || '-').appendTo(container);
-                    }
-                },
-                {
-                    dataField: "earlyByMinutes", caption: "Early (min)", width: 90, alignment: "center",
-                    customizeText: c => (c.value > 0 ? c.value + ' min' : '-')
-                },
-                {
-                    dataField: "remarks", caption: "Remarks", width: 160, alignment: "center",
-                    cellTemplate: function (container, options) {
-                        const v = options.value || '';
-                        let cls = 'badge-remarks-other';
-                        if (v === 'Regular')           cls = 'badge-remarks-regular';
-                        else if (v.includes('Late') || v.includes('Early')) cls = 'badge-remarks-late-early';
-                        $('<span>').addClass(cls).text(v || '-').appendTo(container);
-                    }
-                },
-                { dataField: "attendanceStatus", caption: "Status",       width: 70,  alignment: "center",
-                    customizeText: c => (c.value || '-') },
-                { dataField: "workingHours",      caption: "Working Hrs",  width: 100, alignment: "center",
-                    customizeText: c => (c.value || '-') }
-            ]
+                error: function () {
+                    isLoadingLateEarly = false;
+                    setBtnNormal('#btnFetch', 'Go');
+                    renderGrid([]);
+                    showToast('Error occurred while fetching data.', 'error');
+                }
+            });
         });
 
-        $("#inoutGridContainer").show();
-    }
+        // ── Render Grid ──────────────────────────────────────────────────
+        function lateStatusPill(v) {
+            v = v || '';
+            if (v === 'Late') return '<span class="wg-pill wg-pill-red">Late</span>';
+            if (v === 'On Time') return '<span class="wg-pill wg-pill-green">On Time</span>';
+            return '<span class="wg-pill wg-pill-amber">' + (v || '-') + '</span>';
+        }
 
-    // ── Clear Button ─────────────────────────────────────────────────
-    $('#btnClear').on('click', function () {
-        $('#startDate, #endDate').prop('disabled', false);
-        setDefaultDates();
+        function earlyStatusPill(v) {
+            v = v || '';
+            if (v === 'Early Leave') return '<span class="wg-pill wg-pill-amber">Early Leave</span>';
+            if (v === 'Full Shift') return '<span class="wg-pill wg-pill-green">Full Shift</span>';
+            return '<span class="wg-pill wg-pill-amber">' + (v || '-') + '</span>';
+        }
 
-        try { $("#branchDropdown").dxTagBox("instance").option({ value: [], disabled: false }); }
-        catch (e) {}
+        function remarksPill(v) {
+            v = v || '';
+            if (v === 'Regular') return '<span class="wg-pill wg-pill-green">Regular</span>';
+            if (v.indexOf('Late') !== -1 || v.indexOf('Early') !== -1) return '<span class="wg-pill wg-pill-red">' + v + '</span>';
+            return '<span class="wg-pill wg-pill-amber">' + (v || '-') + '</span>';
+        }
 
-        try { $("#employeeDropdown").dxTagBox("instance").option({ value: [], disabled: false }); }
-        catch (e) {}
+        function fmtDateDMY(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
 
-        $("#inoutGridContainer").hide();
-        try {
-            const g = $("#inoutGridContainer").dxDataGrid("instance");
-            if (g) { g.option("dataSource", []); }
-        } catch (e) {}
+        function renderGrid(data) {
+            var columns = [
+                { field: 'employeeCode', header: 'Code', width: '100px' },
+                { field: 'employeeName', header: 'Name', width: '160px' },
+                { header: 'Date', sortable: false, width: '110px', render: function (v, row) { return fmtDateDMY(row.shiftDate); } },
+                { field: 'shiftName', header: 'Shift', width: '110px' },
+                { field: 'shiftStartTime', header: 'Shift In', width: '90px' },
+                { field: 'shiftEndTime', header: 'Shift Out', width: '90px' },
+                { field: 'actualInTime', header: 'Actual In', width: '90px', render: function (v) { return v || '-'; } },
+                { field: 'actualOutTime', header: 'Actual Out', width: '90px', render: function (v) { return v || '-'; } },
+                { header: 'Late Status', sortable: false, width: '100px', render: function (v, row) { return lateStatusPill(row.lateStatus); } },
+                { field: 'lateByMinutes', header: 'Late (min)', width: '90px', render: function (v) { return (v > 0 ? v + ' min' : '-'); } },
+                { header: 'Early Leave', sortable: false, width: '110px', render: function (v, row) { return earlyStatusPill(row.earlyLeaveStatus); } },
+                { field: 'earlyByMinutes', header: 'Early (min)', width: '90px', render: function (v) { return (v > 0 ? v + ' min' : '-'); } },
+                { header: 'Remarks', sortable: false, width: '160px', render: function (v, row) { return remarksPill(row.remarks); } },
+                { field: 'attendanceStatus', header: 'Status', width: '70px', render: function (v) { return v || '-'; } },
+                { field: 'workingHours', header: 'Working Hrs', width: '100px', render: function (v) { return v || '-'; } }
+            ];
 
-        BindEmployeeDropdownByBranch([0]);
-    });
+            if (!grid) {
+                grid = WMSGrid.create({
+                    container: 'gridContainerLateEarly',
+                    title: 'Late / Early Mark Report',
+                    icon: 'bx-time-five',
+                    exportName: 'LateEarlyMarkReport',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                grid.setData(data);
+            }
+        }
+
+        // ── Clear Button ─────────────────────────────────────────────────
+        $('#btnClear').on('click', function () {
+            $('#startDate, #endDate').prop('disabled', false);
+            setDefaultDates();
+
+            try { $("#branchDropdown").dxTagBox("instance").option({ value: [], disabled: false }); }
+            catch (e) {}
+
+            try { $("#employeeDropdown").dxTagBox("instance").option({ value: [], disabled: false }); }
+            catch (e) {}
+
+            grid = null;
+            $('#gridContainerLateEarly').empty();
+
+            BindEmployeeDropdownByBranch([0]);
+        });
+    })();
 </script>

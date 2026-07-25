@@ -1,4 +1,4 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Employee Leave/OD Status";
     Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
@@ -8,572 +8,166 @@
     string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
 }
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<div class="wms-form-page">
 
-<style>
-    body {
-        background-color: white !important;
-        margin: 0;
-        padding: 20px;
-        font-family: Arial, sans-serif;
-    }
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Employee Leave/OD Status</h6>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
+                    <label for="employeeDropdown">Employee</label>
+                    <select id="employeeDropdown">
+                        <option value="" selected disabled>Select Employee</option>
+                    </select>
+                    <span class="field-validation-error" id="spnEmployee" style="display:none;">Please select an employee</span>
+                </div>
 
-    .leave-box {
-        background-color: white !important;
-        border: 1px solid #ccc;
-        padding: 12px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-    }
-
-    .leave-header {
-        background-color: #5a6c8f;
-        color: white;
-        font-weight: bold;
-        padding: 8px 15px;
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-    }
-
-    .section-header {
-        background-color: #5a6c8f;
-        color: white;
-        font-weight: bold;
-        padding: 8px 15px;
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        margin-top: 20px;
-    }
-
-    .form-label {
-        margin-bottom: 5px;
-        font-weight: 500;
-        display: block;
-    }
-
-    .form-group-row {
-        margin-bottom: 12px;
-    }
-
-    .btn-go {
-        background-color: #5a6c8f;
-        color: white;
-        border: none;
-        padding: 6px 20px;
-        font-size: 13px;
-        font-weight: 600;
-        border-radius: 4px;
-        transition: none;
-        box-shadow: none;
-        margin: 0 5px;
-        cursor: pointer !important;
-        position: relative;
-        z-index: 9999;
-    }
-
-        .btn-go:hover,
-        .btn-go:focus,
-        .btn-go:active {
-            background-color: #4a5c7f;
-            color: white;
-            outline: none;
-            box-shadow: none;
-        }
-
-    /* Custom Searchable Multi-Select Styles */
-    .searchable-select-wrapper {
-        position: relative;
-        width: 100%;
-    }
-
-    .searchable-select-input {
-        width: 100%;
-        padding: 6px 35px 6px 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 13px;
-        cursor: pointer !important;
-        background-color: white;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        user-select: none;
-    }
-
-        .searchable-select-input:focus {
-            outline: none;
-            border-color: #5a6c8f;
-        }
-
-    .searchable-select-wrapper {
-        position: relative;
-        width: 100%;
-        cursor: pointer;
-    }
-
-    .searchable-select-arrow {
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        pointer-events: none;
-        width: 16px;
-        height: 16px;
-    }
-
-        .searchable-select-arrow svg {
-            width: 100%;
-            height: 100%;
-            fill: #666;
-        }
-
-    .searchable-select-dropdown {
-        position: absolute;
-        top: calc(100% + 4px);
-        left: 0;
-        right: 0;
-        background: white;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
-        display: none !important;
-        max-height: 300px;
-        overflow: hidden;
-    }
-
-        .searchable-select-dropdown.active {
-            display: block !important;
-        }
-
-    .searchable-select-search {
-        padding: 8px;
-        border-bottom: 1px solid #eee;
-    }
-
-        .searchable-select-search .search-input {
-            width: 100%;
-            padding: 6px 10px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 13px;
-        }
-
-    .searchable-select-options {
-        max-height: 200px;
-        overflow-y: auto;
-    }
-
-    .searchable-select-option {
-        padding: 8px 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14px;
-    }
-
-        .searchable-select-option:hover {
-            background-color: #f5f5f5;
-        }
-
-        .searchable-select-option.selected {
-            background-color: #e8f0fe;
-        }
-
-    select.form-select-sm {
-        width: 150px;
-        height: 32px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 4px 8px;
-        margin-right: 10px;
-    }
-
-    #grid-loader {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(255, 255, 255, 0.6);
-        backdrop-filter: blur(3px);
-        z-index: 9998;
-    }
-
-    .grid-logo-spinner {
-        width: 40px;
-        height: 40px;
-        animation: spin 1s linear infinite;
-    }
-
-    @@keyframes spin {
-        0%
-
-    {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-
-    }
-
-    .grid-loading-text {
-        font-size: 16px;
-        color: #333;
-    }
-
-    /* DevExtreme Grid Header Styling */
-    .dx-datagrid-headers .dx-header-row > td,
-    .dx-datagrid-headers .dx-header-row > th {
-        background-color: #5a6c8f !important;
-        color: white !important;
-        font-weight: bold !important;
-        border-color: #495a75 !important;
-    }
-
-    .dx-datagrid .dx-datagrid-headers {
-        background-color: #5a6c8f !important;
-    }
-
-    #monthlyLeaveGrid,
-    #yearlyLeaveGrid {
-        margin-top: 15px;
-        display: none;
-    }
-
-    .total-column {
-        background-color: #f0f0f0 !important;
-        font-weight: bold;
-    }
-
-    .inline-filter-row {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-top: 15px;
-        margin-bottom: 15px;
-    }
-
-    .filter-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .field-error {
-        font-size: 12px;
-        margin-top: 4px;
-    }
-</style>
-
-<!-- Top Filter Section -->
-<div class="leave-box">
-    <div class="leave-header">Employee Leave/OD Status</div>
-
-    <div class="row justify-content-center mt-3">
-        <div class="col-lg-4">
-            <div class="row">
-                <!-- Employee Dropdown -->
-                <div class="col-md-12">
-                    <label class="form-label">Employee<span class="text-danger">*</span> :</label>
-                    <div class="form-group-row">
-                        <div class="form-floating-custom flex-grow-1">
-                            <div class="searchable-select-wrapper">
-                                <input type="text" class="searchable-select-input" id="employeeDropdown" placeholder="Select Employee" readonly>
-                                <span class="searchable-select-arrow">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
-                                    </svg>
-                                </span>
-                                <div class="searchable-select-dropdown">
-                                    <div class="searchable-select-search">
-                                        <input type="text" placeholder="Search employee..." class="search-input">
-                                    </div>
-                                    <div class="searchable-select-options"></div>
-                                </div>
-                            </div>
-                            <div class="text-danger field-error" id="employeeError"></div>
-                        </div>
-                    </div>
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnClear">Clear</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Buttons -->
-    <div class="col-md-12 text-center mt-3">
-        <!-- Go Button -->
-        <button class="btn-go" onclick="handleGoButton()">Go</button>
-
-        <!-- Clear Button -->
-        <button class="btn-go" onclick="handleClearButton()">Clear</button>
-
-        <!-- Back Button -->
-        <button class="btn-go" onclick="handleBackButton()">Back</button>
-    </div>
-</div>
-
-<!-- Loader -->
-<div id="grid-loader" class="justify-content-center align-items-center flex-column">
-    <img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" />
-    <div class="grid-loading-text text-dark">Loading...</div>
-</div>
-
-<!-- Monthly Leave Status Section -->
-<div class="leave-box" id="monthlySection" style="display:none;">
-    <div class="section-header">Employee Leave Application Status</div>
-
-    <div class="inline-filter-row justify-content-center">
-        <div class="filter-item">
-            <label class="form-label">Month :</label>
-            <select class="form-select-sm" id="monthDropdown">
-                <option value="1">January</option>
-                <option value="2">February</option>
-                <option value="3">March</option>
-                <option value="4">April</option>
-                <option value="5">May</option>
-                <option value="6">June</option>
-                <option value="7">July</option>
-                <option value="8">August</option>
-                <option value="9">September</option>
-                <option value="10">October</option>
-                <option value="11">November</option>
-                <option value="12">December</option>
-            </select>
+    <!-- Monthly Leave Status Section -->
+    <div class="card mt-3" id="monthlySection" style="display:none;">
+        <div class="card-header">
+            <h6 class="mb-0">Employee Leave Application Status</h6>
         </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 160px;min-width:150px;">
+                    <label for="monthDropdown">Month</label>
+                    <select id="monthDropdown">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
 
-        <div class="filter-item">
-            <label class="form-label">Year :</label>
-            <select class="form-select-sm" id="yearDropdownMonthly"></select>
+                <div class="fg" style="flex:1 1 130px;min-width:120px;">
+                    <label for="yearDropdownMonthly">Year</label>
+                    <select id="yearDropdownMonthly"></select>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnFetchMonthly">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="monthlyLeaveApplicationGrid" style="display:none; margin-bottom: 15px;"></div>
+
+            <div id="monthlyLeaveGrid" style="display:none;"></div>
         </div>
-
-        <!-- Monthly Fetch Button -->
-        <button class="btn-go" onclick="handleFetchMonthly()">Go</button>
     </div>
 
-    <div id="monthlyLeaveApplicationGrid" style="display:none; margin-top: 15px;"></div>
-
-    <div id="monthlyLeaveGrid"></div>
-</div>
-
-<!-- Yearly Leave Status Section -->
-<div class="leave-box" id="yearlySection" style="display:none;">
-    <div class="section-header">Employee Yearly Leave Status</div>
-
-    <div class="inline-filter-row justify-content-center">
-        <div class="filter-item">
-            <label class="form-label">Year :</label>
-            <select class="form-select-sm" id="yearDropdownYearly"></select>
+    <!-- Yearly Leave Status Section -->
+    <div class="card mt-3" id="yearlySection" style="display:none;">
+        <div class="card-header">
+            <h6 class="mb-0">Employee Yearly Leave Status</h6>
         </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 130px;min-width:120px;">
+                    <label for="yearDropdownYearly">Year</label>
+                    <select id="yearDropdownYearly"></select>
+                </div>
 
-        <!-- Yearly Fetch Button -->
-        <button class="btn-go" onclick="handleFetchYearly()">Go</button>
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnFetchYearly">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="yearlyLeaveGrid" style="display:none;"></div>
+        </div>
     </div>
 
-    <div id="yearlyLeaveGrid"></div>
 </div>
 
 <script>
-    const savedCompany = localStorage.getItem('selectedCompany');
-    var companyDetails = JSON.parse(savedCompany);
-    const CompanyId = companyDetails.CompanyId;
-    const EmployeeId = localStorage.getItem('EmployeeId');
-    const Token = localStorage.getItem("authToken");
+    (function () {
+        const savedCompany = localStorage.getItem('selectedCompany');
+        var companyDetails = JSON.parse(savedCompany || '{}');
+        const CompanyId = companyDetails.CompanyId;
+        const EmployeeId = localStorage.getItem('EmployeeId');
+        const Token = localStorage.getItem("authToken");
 
-    // Custom Searchable Multi-Select Plugin
-    (function($) {
-        $.fn.searchableSelect = function(options) {
-            const settings = $.extend({
-                data: [],
-                valueKey: 'value',
-                textKey: 'text',
-                placeholder: 'Select',
-                searchPlaceholder: 'Search...',
-                onChange: null
-            }, options);
+        var isLoadingEmployee = false;
+        var isLoadingMonthly = false;
+        var isLoadingYearly = false;
 
-            return this.each(function() {
-                const $input = $(this);
-                const $wrapper = $input.closest('.searchable-select-wrapper');
-                const $dropdown = $wrapper.find('.searchable-select-dropdown');
-                const $searchInput = $dropdown.find('.search-input');
-                const $optionsContainer = $dropdown.find('.searchable-select-options');
+        var monthlyApplicationGrid = null;
+        var monthlyLeaveGrid = null;
+        var yearlyLeaveGrid = null;
 
-                let selectedValue = null;
-                let allData = settings.data;
+        function goBack() { window.history.back(); }
+        window.goBack = goBack;
 
-                $input.data('searchableSelect', {
-                    setData: function(newData) {
-                        allData = newData;
-                        selectedValue = null;
-                        renderOptions();
-                        updateInputDisplay();
-                    },
-                    getValue: function() {
-                        return selectedValue;
-                    },
-                    setValue: function(value) {
-                        selectedValue = value || null;
-                        renderOptions();
-                        updateInputDisplay();
-                    },
-                    clear: function() {
-                        selectedValue = null;
-                        renderOptions();
-                        updateInputDisplay();
-                    }
-                });
+        $(document).ready(function () {
+            BindEmployeeDropdown();
+            PopulateYearDropdowns();
+            SetCurrentMonthYear();
 
-                $input.on('click', function(e) {
-                    e.preventDefault();
-                    $('.searchable-select-dropdown').not($dropdown).removeClass('active');
-                    $dropdown.toggleClass('active');
-                    if ($dropdown.hasClass('active')) {
-                        $searchInput.focus();
-                    }
-                });
+            $('#employeeDropdown').on('change', function () { $('#spnEmployee').hide(); });
+        });
 
-                $dropdown.on('click', function(e) {
-                    e.stopPropagation();
-                });
+        /* ── Year / Month defaults ──────────────────────────── */
+        function PopulateYearDropdowns() {
+            const currentYear = new Date().getFullYear();
+            const startYear = 2025;
 
-                $searchInput.on('input', function() {
-                    const searchTerm = $(this).val().toLowerCase();
-                    renderOptions(searchTerm);
-                });
+            $('#yearDropdownMonthly').empty();
+            $('#yearDropdownYearly').empty();
 
-                function renderOptions(searchTerm = '') {
-                    $optionsContainer.empty();
-
-                    const filteredData = allData.filter(item => {
-                        const text = item[settings.textKey].toLowerCase();
-                        return text.includes(searchTerm.toLowerCase());
-                    });
-
-                    if (filteredData.length === 0) {
-                        $optionsContainer.html('<div style="padding: 12px; text-align: center; color: #999;">No results found</div>');
-                        return;
-                    }
-
-                    filteredData.forEach(item => {
-                        const value = item[settings.valueKey];
-                        const text = item[settings.textKey];
-                        const isSelected = selectedValue === value;
-
-                        const $option = $(`
-                            <div class="searchable-select-option ${isSelected ? 'selected' : ''}" data-value="${value}">
-                                <span>${text}</span>
-                            </div>
-                        `);
-
-                        $option.on('click', function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-
-                            selectedValue = value;
-                            updateInputDisplay();
-                            $dropdown.removeClass('active');
-
-                            if (settings.onChange) {
-                                settings.onChange(selectedValue);
-                            }
-                        });
-
-                        $optionsContainer.append($option);
-                    });
-                }
-
-                function updateInputDisplay() {
-                    if (!selectedValue) {
-                        $input.val('').attr('placeholder', settings.placeholder);
-                    } else {
-                        const item = allData.find(d => d[settings.valueKey] === selectedValue);
-                        if (item) {
-                            $input.val(item[settings.textKey]);
-                        }
-                    }
-                }
-
-                renderOptions();
-            });
-        };
-    })(jQuery);
-
-    $(document).ready(function() {
-        $(document).on('click', function(e) {
-            if (!$(e.target).closest('.searchable-select-wrapper').length) {
-                $('.searchable-select-dropdown').removeClass('active');
+            for (let year = startYear; year <= currentYear; year++) {
+                $('#yearDropdownMonthly').append(`<option value="${year}">${year}</option>`);
+                $('#yearDropdownYearly').append(`<option value="${year}">${year}</option>`);
             }
-        });
 
-        $('#employeeDropdown').searchableSelect({
-            data: [],
-            valueKey: 'employeeCode',
-            textKey: 'displayName',
-            placeholder: 'Select Employee',
-            searchPlaceholder: 'Search employee...'
-        });
-
-        $('.searchable-select-input').on('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const $dropdown = $(this).siblings('.searchable-select-dropdown');
-            $('.searchable-select-dropdown').not($dropdown).removeClass('active');
-            $dropdown.toggleClass('active');
-        });
-
-        BindEmployeeDropdown();
-        PopulateYearDropdowns();
-        SetCurrentMonthYear();
-    });
-
-    function goBack() {
-        window.history.back();
-    }
-
-    function PopulateYearDropdowns() {
-        const currentYear = new Date().getFullYear();
-        const startYear = 2025;
-
-        $('#yearDropdownMonthly').empty();
-        $('#yearDropdownYearly').empty();
-
-        for (let year = startYear; year <= currentYear; year++) {
-            $('#yearDropdownMonthly').append(`<option value="${year}">${year}</option>`);
-            $('#yearDropdownYearly').append(`<option value="${year}">${year}</option>`);
+            $('#yearDropdownMonthly').val(currentYear);
+            $('#yearDropdownYearly').val(currentYear);
         }
 
-        $('#yearDropdownMonthly').val(currentYear);
-        $('#yearDropdownYearly').val(currentYear);
-    }
+        function SetCurrentMonthYear() {
+            const currentMonth = new Date().getMonth() + 1;
+            $('#monthDropdown').val(currentMonth);
+        }
 
-    function SetCurrentMonthYear() {
-        const currentMonth = new Date().getMonth() + 1;
-        $('#monthDropdown').val(currentMonth);
-    }
+        /* ── Employee Dropdown ──────────────────────────────── */
+        function BindEmployeeDropdown() {
+            var payLoad = {
+                BranchId: null,
+                CompanyId: CompanyId
+            };
 
-    async function showLoder() {
-        $('#grid-loader').addClass('d-flex').show();
-    }
+            isLoadingEmployee = true;
 
-    async function hideLoder() {
-        $('#grid-loader').removeClass('d-flex').hide();
-    }
-
-    async function BindEmployeeDropdown() {
-        var payLoad = {
-            BranchId: null,
-            CompanyId: CompanyId
-        };
-
-        return new Promise((resolve, reject) => {
             $.ajax({
                 url: '@baseUrl/EmployeeMasterAPI/GetEmployeeListByBranchIdForLeft',
                 method: 'POST',
@@ -582,315 +176,302 @@
                     'Authorization': 'Bearer ' + Token
                 },
                 data: JSON.stringify(payLoad),
-                success: function(data) {
-                    if (data.isSuccess) {
-                        const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
-                        if (employeeDropdown && data.data && data.data.length > 0) {
-                            const employeeData = data.data.map(emp => ({
-                                employeeCode: emp.employeeCode,
-                                displayName: `${emp.fullName} - ${emp.employeeCode}`
+                success: function (data) {
+                    isLoadingEmployee = false;
+                    if (data.isSuccess && data.data && data.data.length > 0) {
+                        var $empSel = $('#employeeDropdown');
+                        $empSel.empty().append('<option value="" selected disabled>Select Employee</option>');
+                        data.data.forEach(function (emp) {
+                            $empSel.append($('<option>', {
+                                value: emp.employeeCode,
+                                text: emp.fullName + ' - ' + emp.employeeCode
                             }));
-                            employeeDropdown.setData(employeeData);
-                        }
-                        resolve(data.data);
+                        });
                     } else {
-                        reject('Failed to fetch employees');
+                        showToast('Unable to load employee list.', 'error');
                     }
                 },
-                error: function(error) {
-                    reject(error);
+                error: function (error) {
+                    isLoadingEmployee = false;
+                    showToast('Unable to load employee list.', 'error');
                 }
             });
-        });
-    }
-
-    // Function for Go button
-    function handleGoButton() {
-        console.log("Go button clicked!");
-        const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
-        const employeeCode = employeeDropdown.getValue();
-
-        if (!employeeCode) {
-            Swal.fire("Please select an Employee");
-            return;
         }
 
-        $('#monthlySection').show();
-        $('#yearlySection').show();
-        FetchMonthlyLeaveStatus();
-        FetchYearlyLeaveStatus();
-    }
+        /* ── GO Button (top search panel) ───────────────────── */
+        $('#btnGo').on('click', function () {
+            var employeeCode = $('#employeeDropdown').val();
 
-    // Function for Clear button
-    function handleClearButton() {
-        clearAllData();
-    }
-
-    // Function for Back button
-    function handleBackButton() {
-        goBack();
-    }
-
-    // Function for Monthly Fetch button
-    function handleFetchMonthly() {
-        FetchMonthlyLeaveStatus();
-    }
-
-    // Function for Yearly Fetch button
-    function handleFetchYearly() {
-        FetchYearlyLeaveStatus();
-    }
-
-    function FetchMonthlyLeaveStatus() {
-        const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
-        const employeeCode = employeeDropdown.getValue();
-
-        if (!employeeCode) {
-            Swal.fire("Please select an Employee first");
-            return;
-        }
-
-        const selectedMonth = $('#monthDropdown').val();
-        const selectedYear = $('#yearDropdownMonthly').val();
-
-        showLoder();
-
-        $.ajax({
-            url: '@baseDomainUrl/api/ReportAPI/GetEmployeeMonthlyLeaveStatus',
-            type: 'GET',
-            data: {
-                EmpId: employeeCode,
-                SelectedMonth: selectedMonth,
-                SelectedYear: selectedYear,
-                CompId: CompanyId
-            },
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
-            success: function(response) {
-                hideLoder();
-                if (response.isSuccess) {
-                    if (response.data.leaveApplications && response.data.leaveApplications.length > 0) {
-                        RenderMonthlyLeaveApplicationGrid(response.data.leaveApplications);
-                        $('#monthlyLeaveApplicationGrid').show();
-                    } else {
-                        $('#monthlyLeaveApplicationGrid').hide();
-                    }
-
-                    if (response.data.leaveStatuses && response.data.leaveStatuses.length > 0) {
-                        RenderMonthlyLeaveStatusGrid(response.data.leaveStatuses);
-                        $('#monthlyLeaveGrid').show();
-                    } else {
-                        $('#monthlyLeaveGrid').hide();
-                    }
-
-                    if ((!response.data.leaveApplications || response.data.leaveApplications.length === 0) &&
-                        (!response.data.leaveStatuses || response.data.leaveStatuses.length === 0)) {
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'No Data Found',
-                            text: 'No records found for the selected criteria.'
-                        });
-                    }
-                } else {
-                    Swal.fire(response.responseMessage || "Error fetching data");
-                }
-            },
-            error: function(xhr, status, error) {
-                hideLoder();
-                Swal.fire("Error occurred while fetching data");
-                console.error(error);
+            if (!employeeCode) {
+                $('#spnEmployee').show();
+                return;
             }
+            $('#spnEmployee').hide();
+
+            $('#monthlySection').show();
+            $('#yearlySection').show();
+            FetchMonthlyLeaveStatus();
+            FetchYearlyLeaveStatus();
         });
-    }
 
-    function RenderMonthlyLeaveApplicationGrid(data) {
-        if ($("#monthlyLeaveApplicationGrid").data('dxDataGrid')) {
-            $("#monthlyLeaveApplicationGrid").dxDataGrid('dispose');
-        }
-
-        $("#monthlyLeaveApplicationGrid").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            columnAutoWidth: true,
-            height: 'auto',
-            paging: { enabled: true, pageSize: 10 },
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [10, 20, 50],
-                showInfo: true
-            },
-            searchPanel: { visible: true },
-            export: {
-                enabled: false
-            },
-            columns: [
-                { dataField: "leaveType", caption: "Leave Name", alignment: "center" },
-                { dataField: "leavePeriod", caption: "Leave Period", alignment: "center", format: "#0.00" },
-                { dataField: "fromDate", caption: "From Date", alignment: "center", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "toDate", caption: "To Date", alignment: "center", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "leaveStatus", caption: "Leave Status", alignment: "center" }
-            ]
+        /* ── Clear Button ────────────────────────────────────── */
+        $('#btnClear').on('click', function () {
+            clearAllData();
         });
-    }
 
-    function FetchYearlyLeaveStatus() {
-        const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
-        const employeeCode = employeeDropdown.getValue();
+        /* ── Monthly / Yearly section Go buttons ─────────────── */
+        $('#btnFetchMonthly').on('click', function () {
+            FetchMonthlyLeaveStatus();
+        });
 
-        if (!employeeCode) {
-            Swal.fire("Please select an Employee first");
-            return;
-        }
+        $('#btnFetchYearly').on('click', function () {
+            FetchYearlyLeaveStatus();
+        });
 
-        const selectedYear = $('#yearDropdownYearly').val();
+        /* ── Monthly Leave Status ────────────────────────────── */
+        function FetchMonthlyLeaveStatus() {
+            var employeeCode = $('#employeeDropdown').val();
 
-        showLoder();
-
-        $.ajax({
-            url: '@baseDomainUrl/api/ReportAPI/GetEmployeeYearlyLeaveStatus',
-            type: 'GET',
-            data: {
-                EmpId: employeeCode,
-                CompId: CompanyId,
-                Year: selectedYear
-            },
-            headers: {
-                'Authorization': 'Bearer ' + Token
-            },
-            success: function(response) {
-                hideLoder();
-                if (response.isSuccess) {
-                    if (response.data && response.data.length > 0) {
-                        RenderYearlyLeaveGrid(response.data);
-                    } else {
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'No Data Found',
-                            text: 'No records found for the selected criteria.'
-                        });
-                        $('#yearlyLeaveGrid').hide();
-                    }
-                } else {
-                    Swal.fire(response.responseMessage || "Error fetching data");
-                }
-            },
-            error: function(xhr, status, error) {
-                hideLoder();
-                Swal.fire("Error occurred while fetching data");
-                console.error(error);
+            if (!employeeCode) {
+                $('#spnEmployee').show();
+                return;
             }
-        });
-    }
 
-    function RenderMonthlyLeaveStatusGrid(data) {
-        if ($("#monthlyLeaveGrid").data('dxDataGrid')) {
-            $("#monthlyLeaveGrid").dxDataGrid('dispose');
-        }
+            if (isLoadingMonthly) return;
 
-        $("#monthlyLeaveGrid").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            columnAutoWidth: true,
-            height: 'auto',
-            paging: { enabled: true, pageSize: 10 },
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [10, 20, 50],
-                showInfo: true
-            },
-            searchPanel: { visible: true },
-            export: {
-                enabled: false
-            },
-            columns: [
-                { dataField: "leaveType", caption: "Leave Type", alignment: "center" },
-                { dataField: "opening", caption: "Opening", alignment: "center", format: "#0.00" },
-                { dataField: "credit", caption: "Credit", alignment: "center", format: "#0.00" },
-                { dataField: "used", caption: "Used", alignment: "center", format: "#0.00" },
-                { dataField: "balance", caption: "Balance", alignment: "center", format: "#0.00" }
-            ]
-        });
+            const selectedMonth = $('#monthDropdown').val();
+            const selectedYear = $('#yearDropdownMonthly').val();
 
-        $("#monthlyLeaveGrid").show();
-    }
+            isLoadingMonthly = true;
+            setBtnLoading('#btnFetchMonthly', 'Go');
 
-    function RenderYearlyLeaveGrid(data) {
-        if ($("#yearlyLeaveGrid").data('dxDataGrid')) {
-            $("#yearlyLeaveGrid").dxDataGrid('dispose');
-        }
-
-        $("#yearlyLeaveGrid").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            columnAutoWidth: true,
-            allowColumnResizing: true,
-            columnResizingMode: "widget",
-            height: 'auto',
-            paging: { enabled: true, pageSize: 10 },
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [10, 20, 50],
-                showInfo: true
-            },
-            searchPanel: { visible: true },
-            export: {
-                enabled: false
-            },
-            columns: [
-                {
-                    dataField: "leaveName",
-                    caption: "Leave Name",
-                    minWidth: 150,
-                    fixed: true,
-                    fixedPosition: "left",
-                    alignment: "left"
+            $.ajax({
+                url: '@baseDomainUrl/api/ReportAPI/GetEmployeeMonthlyLeaveStatus',
+                type: 'GET',
+                data: {
+                    EmpId: employeeCode,
+                    SelectedMonth: selectedMonth,
+                    SelectedYear: selectedYear,
+                    CompId: CompanyId
                 },
-                { dataField: "jan", caption: "Jan", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "feb", caption: "Feb", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "mar", caption: "Mar", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "apr", caption: "Apr", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "may", caption: "May", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "jun", caption: "Jun", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "jul", caption: "Jul", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "aug", caption: "Aug", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "sep", caption: "Sep", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "oct", caption: "Oct", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "nov", caption: "Nov", minWidth: 60, alignment: "center", format: "#0.00" },
-                { dataField: "dec", caption: "Dec", minWidth: 60, alignment: "center", format: "#0.00" },
-                {
-                    dataField: "total",
-                    caption: "Total",
-                    minWidth: 80,
-                    alignment: "center",
-                    format: "#0.00",
-                    cssClass: "total-column"
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    isLoadingMonthly = false;
+                    setBtnNormal('#btnFetchMonthly', 'Go');
+
+                    if (response.isSuccess) {
+                        if (response.data.leaveApplications && response.data.leaveApplications.length > 0) {
+                            RenderMonthlyLeaveApplicationGrid(response.data.leaveApplications);
+                            $('#monthlyLeaveApplicationGrid').show();
+                        } else {
+                            $('#monthlyLeaveApplicationGrid').hide();
+                        }
+
+                        if (response.data.leaveStatuses && response.data.leaveStatuses.length > 0) {
+                            RenderMonthlyLeaveStatusGrid(response.data.leaveStatuses);
+                            $('#monthlyLeaveGrid').show();
+                        } else {
+                            $('#monthlyLeaveGrid').hide();
+                        }
+
+                        if ((!response.data.leaveApplications || response.data.leaveApplications.length === 0) &&
+                            (!response.data.leaveStatuses || response.data.leaveStatuses.length === 0)) {
+                            showToast('No records found for the selected criteria.', 'info');
+                        }
+                    } else {
+                        showToast(response.responseMessage || 'Error fetching data', 'error');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingMonthly = false;
+                    setBtnNormal('#btnFetchMonthly', 'Go');
+                    showToast('Error occurred while fetching data', 'error');
+                    console.error(error);
                 }
-            ],
-            scrolling: {
-                mode: "standard"
-            },
-            onContentReady: function(e) {
-                e.component.updateDimensions();
-            }
-        });
-
-        $("#yearlyLeaveGrid").show();
-    }
-
-    function clearAllData() {
-        const employeeDropdown = $('#employeeDropdown').data('searchableSelect');
-        if (employeeDropdown) {
-            employeeDropdown.clear();
+            });
         }
 
-        SetCurrentMonthYear();
-        PopulateYearDropdowns();
+        function RenderMonthlyLeaveApplicationGrid(data) {
+            var columns = [
+                { field: 'leaveType', header: 'Leave Name', width: '140px' },
+                {
+                    field: 'leavePeriod', header: 'Leave Period', width: '110px',
+                    render: function (v) { return (v !== null && v !== undefined) ? parseFloat(v).toFixed(2) : '-'; }
+                },
+                { header: 'From Date', sortable: false, width: '110px', render: function (v, row) { return fmtDate(row.fromDate); } },
+                { header: 'To Date', sortable: false, width: '110px', render: function (v, row) { return fmtDate(row.toDate); } },
+                { header: 'Leave Status', sortable: false, width: '120px', render: function (v, row) { return statusPill(row.leaveStatus); } }
+            ];
 
-        $('#monthlySection').hide();
-        $('#yearlySection').hide();
-        $('#monthlyLeaveGrid').hide();
-        $('#yearlyLeaveGrid').hide();
-        $('#monthlyLeaveApplicationGrid').hide();
-    }
+            if (!monthlyApplicationGrid) {
+                monthlyApplicationGrid = WMSGrid.create({
+                    container: 'monthlyLeaveApplicationGrid',
+                    title: 'Leave Applications',
+                    icon: 'bx-calendar-event',
+                    exportName: 'LeaveApplications',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                monthlyApplicationGrid.setData(data);
+            }
+        }
+
+        function RenderMonthlyLeaveStatusGrid(data) {
+            var columns = [
+                { field: 'leaveType', header: 'Leave Type', width: '150px' },
+                { field: 'opening', header: 'Opening', width: '100px', render: function (v) { return numFmt(v); } },
+                { field: 'credit', header: 'Credit', width: '100px', render: function (v) { return numFmt(v); } },
+                { field: 'used', header: 'Used', width: '100px', render: function (v) { return numFmt(v); } },
+                { field: 'balance', header: 'Balance', width: '100px', render: function (v) { return numFmt(v); } }
+            ];
+
+            if (!monthlyLeaveGrid) {
+                monthlyLeaveGrid = WMSGrid.create({
+                    container: 'monthlyLeaveGrid',
+                    title: 'Monthly Leave Status',
+                    icon: 'bx-calendar-check',
+                    exportName: 'MonthlyLeaveStatus',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                monthlyLeaveGrid.setData(data);
+            }
+
+            $('#monthlyLeaveGrid').show();
+        }
+
+        /* ── Yearly Leave Status ──────────────────────────────── */
+        function FetchYearlyLeaveStatus() {
+            var employeeCode = $('#employeeDropdown').val();
+
+            if (!employeeCode) {
+                $('#spnEmployee').show();
+                return;
+            }
+
+            if (isLoadingYearly) return;
+
+            const selectedYear = $('#yearDropdownYearly').val();
+
+            isLoadingYearly = true;
+            setBtnLoading('#btnFetchYearly', 'Go');
+
+            $.ajax({
+                url: '@baseDomainUrl/api/ReportAPI/GetEmployeeYearlyLeaveStatus',
+                type: 'GET',
+                data: {
+                    EmpId: employeeCode,
+                    CompId: CompanyId,
+                    Year: selectedYear
+                },
+                headers: {
+                    'Authorization': 'Bearer ' + Token
+                },
+                success: function (response) {
+                    isLoadingYearly = false;
+                    setBtnNormal('#btnFetchYearly', 'Go');
+
+                    if (response.isSuccess) {
+                        if (response.data && response.data.length > 0) {
+                            RenderYearlyLeaveGrid(response.data);
+                        } else {
+                            showToast('No records found for the selected criteria.', 'info');
+                            $('#yearlyLeaveGrid').hide();
+                        }
+                    } else {
+                        showToast(response.responseMessage || 'Error fetching data', 'error');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    isLoadingYearly = false;
+                    setBtnNormal('#btnFetchYearly', 'Go');
+                    showToast('Error occurred while fetching data', 'error');
+                    console.error(error);
+                }
+            });
+        }
+
+        function RenderYearlyLeaveGrid(data) {
+            var columns = [
+                { field: 'leaveName', header: 'Leave Name', width: '150px' },
+                { field: 'jan', header: 'Jan', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'feb', header: 'Feb', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'mar', header: 'Mar', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'apr', header: 'Apr', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'may', header: 'May', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'jun', header: 'Jun', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'jul', header: 'Jul', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'aug', header: 'Aug', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'sep', header: 'Sep', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'oct', header: 'Oct', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'nov', header: 'Nov', width: '60px', render: function (v) { return numFmt(v); } },
+                { field: 'dec', header: 'Dec', width: '60px', render: function (v) { return numFmt(v); } },
+                {
+                    field: 'total', header: 'Total', width: '80px',
+                    render: function (v) { return '<strong>' + numFmt(v) + '</strong>'; }
+                }
+            ];
+
+            if (!yearlyLeaveGrid) {
+                yearlyLeaveGrid = WMSGrid.create({
+                    container: 'yearlyLeaveGrid',
+                    title: 'Yearly Leave Status',
+                    icon: 'bx-calendar-week',
+                    exportName: 'YearlyLeaveStatus',
+                    data: data,
+                    columns: columns,
+                    perPage: 100000,
+                    features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+            } else {
+                yearlyLeaveGrid.setData(data);
+            }
+
+            $('#yearlyLeaveGrid').show();
+        }
+
+        /* ── Helpers ──────────────────────────────────────────── */
+        function fmtDate(v) {
+            if (!v) return '-';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return '-';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            return day + '/' + month + '/' + d.getFullYear();
+        }
+
+        function numFmt(v) {
+            return (v !== null && v !== undefined && v !== '') ? parseFloat(v).toFixed(2) : '0.00';
+        }
+
+        function statusPill(status) {
+            if (status === 'Approved') return '<span class="wg-pill wg-pill-green">Approved</span>';
+            if (status === 'Rejected') return '<span class="wg-pill wg-pill-red">Rejected</span>';
+            if (status === 'Pending') return '<span class="wg-pill wg-pill-amber">Pending</span>';
+            return status || '-';
+        }
+
+        /* ── Clear All ────────────────────────────────────────── */
+        function clearAllData() {
+            $('#employeeDropdown').val('');
+            $('#spnEmployee').hide();
+
+            SetCurrentMonthYear();
+            PopulateYearDropdowns();
+
+            $('#monthlySection').hide();
+            $('#yearlySection').hide();
+            $('#monthlyLeaveGrid').hide();
+            $('#yearlyLeaveGrid').hide();
+            $('#monthlyLeaveApplicationGrid').hide();
+        }
+    })();
 </script>

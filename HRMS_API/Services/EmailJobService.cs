@@ -647,7 +647,7 @@ namespace HRMS_API.Services
 
             RecurringJob.AddOrUpdate(
                 "reporting-schedule-check",
-                () => ScheduleReportingDailyEmail(),
+                () => ScheduleReportingDailyEmail(),n
                 "*/2 * * * *"
             );
 
