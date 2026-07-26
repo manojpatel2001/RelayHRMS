@@ -13,12 +13,12 @@
     <h6>SKILL DETAILS</h6>
 </div>
 
-
+<div class="card-body px-4">
 <form id="Skill-form">
     <div class="wms-form-page">
-        <div class="row px-5 mt-4">
+        <div class="row px-5">
             <!-- Primary Bank Details -->
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
                 <!-- Payment Mode -->
                 <div class="fg fg-req">
                     <label for="ddlSkill">Skill</label>
@@ -32,7 +32,7 @@
             </div>
 
             <!-- IFSC Code -->
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
                 <div class="fg fg-req">
                 <label for="txtYearsOfExp">Years of Experience</label>
                 <input type="text" id="txtYearsOfExp" data-decimal placeholder="Years of Experience" />
@@ -42,7 +42,7 @@
             </div>
 
             <!-- Account No -->
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
                 <div class="fg fg-req">
                 <label for="txtSkillComments">Comments</label>
                 <input type="text" id="txtSkillComments" data-trim-input placeholder="Comments" />
@@ -67,6 +67,7 @@
                 <div id="gridSkill"></div>
             </div>
         </div>
+</div>
 
 
 
@@ -209,15 +210,29 @@
                         'Authorization': 'Bearer ' +   localStorage.getItem("authToken")
                     },
             success: function(data) {
-              
-                    console.log(data);
 
-                          $("#gridSkill").dxDataGrid({
-                                dataSource: data.data || [],  // Use the provided data
+                    var rows = data.data || [];
+                    var $grid = $("#gridSkill");
+
+                    // Calling .dxDataGrid({...full config...}) again on every
+                    // load (initial + after every save/delete) re-initializes
+                    // the whole widget on top of its own DOM each time instead
+                    // of updating it -- the repeated stacking is what was
+                    // throwing the header row out of alignment with the body
+                    // rows. Build the grid once, then just refresh its
+                    // dataSource on subsequent loads.
+                    var existingInstance = $grid.data('dxDataGrid');
+                    if (existingInstance) {
+                        existingInstance.option('dataSource', rows);
+                        return;
+                    }
+
+                    $grid.dxDataGrid({
+                                dataSource: rows,
                             columns: [
-                                { dataField: 'skillName', caption: 'Skill Name', alignment: 'left' },
-                                { dataField: 'yearsOfExperience', caption: 'Years of Experience', alignment: 'left' },
-                                { dataField: 'comments', caption: 'Comments', alignment: 'left' },
+                                { dataField: 'skillName', caption: 'Skill Name', alignment: 'left', width: '30%' },
+                                { dataField: 'yearsOfExperience', caption: 'Years of Experience', alignment: 'left', width: '25%' },
+                                { dataField: 'comments', caption: 'Comments', alignment: 'left', width: '30%' },
                                   {
                                     dataField: '',
                                     caption: '',
@@ -260,7 +275,7 @@
                                     }
                                 }
                             ],
-                            columnsAutoWidth: true,
+                            columnsAutoWidth: false,
                             wordWrapEnabled: false,
                             rowAlternationEnabled: false,
                             showBorders: true,
@@ -278,10 +293,8 @@
                             onContentReady(e) {
                                 // $('#rowCount1').html('Total Records: ' + $("#GridContainer").dxDataGrid('instance').totalCount());
                             }
-                        }).dxDataGrid('instance');
+                        });
 
-                       
-                
             },
             error: function(error) {
                 console.error('Error fetching branch data:', error);

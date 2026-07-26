@@ -401,12 +401,19 @@ namespace HRMS_Core.DbContext
              modelBuilder.Entity<Reportvm>().HasNoKey().ToView(null); 
              modelBuilder.Entity<LoginHistory>().HasNoKey().ToView(null); 
              modelBuilder.Entity<GetSalaryvm>().HasNoKey().ToView(null); 
-             modelBuilder.Entity<UniformMaster>().HasNoKey().ToView(null); 
-             modelBuilder.Entity<ActiveEmployeeDetailsForLetterViewModel>().HasNoKey().ToView(null); 
-             modelBuilder.Entity<EmployeeDetailsForPromotionincrementlettervm>().HasNoKey().ToView(null); 
+             modelBuilder.Entity<UniformMaster>().HasNoKey().ToView(null);
+             modelBuilder.Entity<ActiveEmployeeDetailsForLetterViewModel>().HasNoKey().ToView(null);
+             modelBuilder.Entity<EmployeeDetailsForPromotionincrementlettervm>().HasNoKey().ToView(null);
 
-
-
+            // Default column type for every decimal property across all entities (including
+            // keyless SP/raw-SQL result models above) so EF stops warning about silent
+            // truncation from the provider's default precision/scale.
+            foreach (var property in modelBuilder.Model.GetEntityTypes()
+                         .SelectMany(e => e.GetProperties())
+                         .Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?)))
+            {
+                property.SetColumnType("decimal(18,2)");
+            }
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

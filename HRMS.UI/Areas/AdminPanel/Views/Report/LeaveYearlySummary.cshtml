@@ -29,7 +29,7 @@
             <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
                 <div class="fg fg-req" style="flex:1 1 200px;min-width:180px;">
                     <label for="branchDropdown">Branch</label>
-                    <div id="branchDropdown"></div>
+                    <select id="branchDropdown" multiple data-placeholder="--Select Branch--"></select>
                 </div>
 
                 <div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
@@ -128,6 +128,12 @@
             $('#employeeGrid').show();
         }
 
+        function getSelectedBranchIds() {
+            var val = $('#branchDropdown').val();
+            if (!val) return [];
+            return Array.isArray(val) ? val : [val];
+        }
+
         function BindBranchDropdown() {
             $.ajax({
                 url: '@baseDomainUrl/api/BranchAPI/GetAllBranchesListByCompanyId/' + CompanyId,
@@ -135,19 +141,10 @@
                 headers: { 'Authorization': 'Bearer ' + Token },
                 success: function (response) {
                     if (response?.data?.length > 0) {
-                        $("#branchDropdown").dxTagBox({
-                            items: response.data,
-                            displayExpr: "branchName",
-                            valueExpr: "branchId",
-                            placeholder: "--Select Branch--",
-                            showSelectionControls: true,
-                            searchEnabled: true,
-                            showClearButton: true,
-                            maxDisplayedTags: 3,
-                            applyValueMode: "instantly",
-                            multiline: false,
-                            minSearchLength: 0,
-                            width: "100%"
+                        var $dd = $('#branchDropdown');
+                        $dd.empty();
+                        response.data.forEach(function (branch) {
+                            $('<option>').val(branch.branchId).text(branch.branchName).appendTo($dd);
                         });
                     }
                 },
@@ -223,8 +220,7 @@
         $('#btnfind').on('click', function () {
             if (isFinding) return;
 
-            var branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            var selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+            var selectedBranchIds = getSelectedBranchIds();
 
             if (!selectedBranchIds || selectedBranchIds.length === 0) {
                 showToast('Please select at least one branch.', 'warn');
@@ -284,10 +280,7 @@
         });
 
         $('#btnClear').on('click', function () {
-            var branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            if (branchTagBox) {
-                branchTagBox.option("value", []);
-            }
+            $('#branchDropdown').val([]).trigger('change');
             setDefaultDates();
 
             grid = null;
@@ -304,8 +297,7 @@
         $('#btnView').on('click', function () {
             if (isViewing) return;
 
-            var branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            var selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+            var selectedBranchIds = getSelectedBranchIds();
 
             if (!selectedBranchIds || selectedBranchIds.length === 0) {
                 showToast('Please select at least one branch.', 'warn');

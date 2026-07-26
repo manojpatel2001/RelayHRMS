@@ -29,13 +29,13 @@
 
                 <div class="fg fg-req" style="flex:1 1 200px;min-width:180px;">
                     <label for="branchDropdown">Branch</label>
-                    <div id="branchDropdown"></div>
+                    <select id="branchDropdown" multiple data-placeholder="--Select Branch--"></select>
                     <span class="field-validation-error" id="spnBranch" style="display:none;">Please select Branch</span>
                 </div>
 
                 <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
                     <label for="employeeDropdown">Employee</label>
-                    <div id="employeeDropdown"></div>
+                    <select id="employeeDropdown" multiple data-placeholder="--Select Employee--"></select>
                     <span class="field-validation-error" id="spnEmployee" style="display:none;">Please select at least one Employee</span>
                 </div>
 
@@ -87,7 +87,27 @@
             BindEmployeeDropdownByBranch(selectedBranchIds);
 
             $('#startDate, #endDate').on('change', function () { $('#spnDateRange').hide(); });
+
+            $('#branchDropdown').on('change', function () {
+                $('#spnBranch').hide();
+                var ids = getSelectedBranchIds();
+                BindEmployeeDropdownByBranch(ids.length > 0 ? ids : [0]);
+            });
+
+            $('#employeeDropdown').on('change', function () { $('#spnEmployee').hide(); });
         });
+
+        function getSelectedBranchIds() {
+            var val = $('#branchDropdown').val();
+            if (!val) return [];
+            return Array.isArray(val) ? val : [val];
+        }
+
+        function getSelectedEmployeeIds() {
+            var val = $('#employeeDropdown').val();
+            if (!val) return [];
+            return Array.isArray(val) ? val : [val];
+        }
 
         function BindBranchDropdown() {
             $.ajax({
@@ -96,24 +116,10 @@
                 headers: { 'Authorization': 'Bearer ' + Token },
                 success: function (response) {
                     if (response?.data?.length > 0) {
-                        $("#branchDropdown").dxTagBox({
-                            items: response.data,
-                            displayExpr: "branchName",
-                            valueExpr: "branchId",
-                            placeholder: "--Select Branch--",
-                            showSelectionControls: true,
-                            searchEnabled: true,
-                            showClearButton: true,
-                            maxDisplayedTags: 3,
-                            applyValueMode: "instantly",
-                            multiline: false,
-                            minSearchLength: 0,
-                            width: "100%",
-                            onValueChanged: function (e) {
-                                $('#spnBranch').hide();
-                                var selectedBranchIds = e.value.length > 0 ? e.value : [0];
-                                BindEmployeeDropdownByBranch(selectedBranchIds);
-                            }
+                        var $dd = $('#branchDropdown');
+                        $dd.empty();
+                        response.data.forEach(function (branch) {
+                            $('<option>').val(branch.branchId).text(branch.branchName).appendTo($dd);
                         });
                     }
                 }
@@ -122,44 +128,20 @@
 
         function BindEmployeeDropdownByBranch(selectedBranchIds) {
             var branchParam = (selectedBranchIds?.length > 0) ? selectedBranchIds.join(",") : "0";
+            var $empDropdown = $("#employeeDropdown");
 
             $.ajax({
                 type: "GET",
                 url: '@(baseDomainUrl + "/api/EmployeeMasterAPI/GetAllEmployeeByBranchId")?BranchIds=' + branchParam + '&CompanyId=' + CompanyId,
                 success: function (response) {
-                    var $empDropdown = $("#employeeDropdown");
-
+                    $empDropdown.empty();
                     if (response?.data?.length > 0) {
-                        var employeeData = response.data.map(function (emp) {
-                            return {
-                                employeeCode: emp.employeeCode,
-                                displayName: emp.fullName + ' - ' + emp.employeeCode
-                            };
-                        });
-
-                        $empDropdown.dxTagBox({
-                            items: employeeData,
-                            displayExpr: "displayName",
-                            valueExpr: "employeeCode",
-                            placeholder: "--Select Employee--",
-                            showSelectionControls: true,
-                            searchEnabled: true,
-                            showClearButton: true,
-                            maxDisplayedTags: 3,
-                            applyValueMode: "instantly",
-                            multiline: false,
-                            minSearchLength: 0,
-                            width: "100%",
-                            onValueChanged: function () { $('#spnEmployee').hide(); }
+                        $empDropdown.attr('data-placeholder', '--Select Employee--');
+                        response.data.forEach(function (emp) {
+                            $('<option>').val(emp.employeeCode).text(emp.fullName + ' - ' + emp.employeeCode).appendTo($empDropdown);
                         });
                     } else {
-                        $empDropdown.dxTagBox({
-                            items: [],
-                            placeholder: "No Employees Found",
-                            searchEnabled: false,
-                            showClearButton: true,
-                            width: "100%"
-                        });
+                        $empDropdown.attr('data-placeholder', 'No Employees Found');
                     }
                 }
             });
@@ -241,8 +223,8 @@
             }
             $('#spnDateRange').hide();
 
-            var branchIds = $("#branchDropdown").dxTagBox("instance").option("value");
-            var employeeIds = $("#employeeDropdown").dxTagBox("instance").option("value");
+            var branchIds = getSelectedBranchIds();
+            var employeeIds = getSelectedEmployeeIds();
 
             if (!branchIds || branchIds.length <= 0) {
                 $('#spnBranch').show();
@@ -287,8 +269,8 @@
                             renderGrid(response.data);
                             $('#startDate').prop('disabled', true);
                             $('#endDate').prop('disabled', true);
-                            $("#branchDropdown").dxTagBox("instance").option("disabled", true);
-                            $("#employeeDropdown").dxTagBox("instance").option("disabled", true);
+                            document.getElementById('branchDropdown')._wmsSetDisabled(true);
+                            document.getElementById('employeeDropdown')._wmsSetDisabled(true);
                         } else {
                             currentRows = [];
                             grid = null;
@@ -315,21 +297,15 @@
             setDefaultDates();
 
             try {
-                var branchDropdown = $("#branchDropdown").dxTagBox("instance");
-                if (branchDropdown) {
-                    branchDropdown.option("value", []);
-                    branchDropdown.option("disabled", false);
-                }
+                $('#branchDropdown').val([]);
+                document.getElementById('branchDropdown')._wmsSetDisabled(false);
             } catch (error) {
                 console.error("Branch dropdown clear error:", error);
             }
 
             try {
-                var employeeDropdown = $("#employeeDropdown").dxTagBox("instance");
-                if (employeeDropdown) {
-                    employeeDropdown.option("value", []);
-                    employeeDropdown.option("disabled", false);
-                }
+                $('#employeeDropdown').val([]);
+                document.getElementById('employeeDropdown')._wmsSetDisabled(false);
             } catch (error) {
                 console.error("Employee dropdown clear error:", error);
             }

@@ -14,7 +14,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">Today's Attendance</h6>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='@Url.Action("Index", "MyReports")'">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">
                 <i class="bx bx-arrow-back"></i> Back
             </button>
         </div>
@@ -23,13 +23,15 @@
             <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
                 <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
                     <label for="branchDropdown">Branch</label>
-                    <div id="branchDropdown"></div>
+                    <select id="branchDropdown" multiple data-placeholder="--Select Branch--"></select>
                     <span id="spnbranch" class="field-validation-error" style="display:none;">Please Select Branch</span>
                 </div>
 
                 <div class="fg" style="flex:1 1 200px;min-width:180px;">
                     <label for="shiftDropdown">Shift</label>
-                    <div id="shiftDropdown"></div>
+                    <select id="shiftDropdown">
+                        <option value="">--Select Shift--</option>
+                    </select>
                     <span id="spnshift" class="field-validation-error" style="display:none;">Please Select Shift</span>
                 </div>
 
@@ -64,10 +66,29 @@
         var grid = null;
         var isLoadingGo = false;
 
+        function goBack() {
+            window.location.href = '@Url.Action("Index", "Home", new { area = "AdminPanel" })';
+        }
+        window.goBack = goBack;
+
         $(document).ready(function () {
             BindBranchDropdown();
             BindShiftDropdown();
+
+            $('#shiftDropdown').on('change', function () {
+                $('#spnshift').hide();
+                var selectedBranches = getSelectedBranchIds();
+                if (selectedBranches && selectedBranches.length > 0) {
+                    refreshAttendanceData();
+                }
+            });
         });
+
+        function getSelectedBranchIds() {
+            var val = $('#branchDropdown').val();
+            if (!val) return [];
+            return Array.isArray(val) ? val : [val];
+        }
 
         function BindBranchDropdown() {
             $.ajax({
@@ -78,19 +99,10 @@
                 },
                 success: function (response) {
                     if (response?.data?.length > 0) {
-                        $("#branchDropdown").dxTagBox({
-                            items: response.data,
-                            displayExpr: "branchName",
-                            valueExpr: "branchId",
-                            placeholder: "--Select Branch--",
-                            showSelectionControls: true,
-                            searchEnabled: true,
-                            showClearButton: true,
-                            maxDisplayedTags: 3,
-                            applyValueMode: "instantly",
-                            multiline: false,
-                            minSearchLength: 0,
-                            width: "100%"
+                        var $dd = $('#branchDropdown');
+                        $dd.empty();
+                        response.data.forEach(function (branch) {
+                            $('<option>').val(branch.branchId).text(branch.branchName).appendTo($dd);
                         });
                     }
                 },
@@ -104,21 +116,10 @@
             try {
                 const response = await fetchShiftData();
                 if (response.isSuccess && response.data?.length > 0) {
-                    $("#shiftDropdown").dxSelectBox({
-                        items: response.data,
-                        displayExpr: "shiftName",
-                        valueExpr: "shiftID",
-                        placeholder: "--Select Shift--",
-                        searchEnabled: true,
-                        showClearButton: true,
-                        width: "100%",
-                        onValueChanged: function (e) {
-                            var branchInstance = $("#branchDropdown").dxTagBox("instance");
-                            var selectedBranches = branchInstance.option("value");
-                            if (selectedBranches && selectedBranches.length > 0) {
-                                refreshAttendanceData();
-                            }
-                        }
+                    var $dd = $('#shiftDropdown');
+                    $dd.empty().append('<option value="">--Select Shift--</option>');
+                    response.data.forEach(function (shift) {
+                        $('<option>').val(shift.shiftID).text(shift.shiftName).appendTo($dd);
                     });
                 }
             } catch (error) {
@@ -194,11 +195,8 @@
         async function refreshAttendanceData() {
             if (isLoadingGo) return;
 
-            var branchInstance = $("#branchDropdown").dxTagBox("instance");
-            var shiftInstance = $("#shiftDropdown").dxSelectBox("instance");
-
-            var selectedBranches = branchInstance.option("value");
-            var selectedShift = shiftInstance.option("value");
+            var selectedBranches = getSelectedBranchIds();
+            var selectedShift = $('#shiftDropdown').val();
             var isValid = true;
 
             // Branch is mandatory
@@ -237,11 +235,8 @@
         }
 
         $("#btnClear").click(function () {
-            var branchInstance = $("#branchDropdown").dxTagBox("instance");
-            var shiftInstance = $("#shiftDropdown").dxSelectBox("instance");
-
-            branchInstance.option("value", []);
-            shiftInstance.option("value", null);
+            $('#branchDropdown').val([]).trigger('change');
+            $('#shiftDropdown').val('').trigger('change');
 
             if (grid) { grid.setData([]); }
 

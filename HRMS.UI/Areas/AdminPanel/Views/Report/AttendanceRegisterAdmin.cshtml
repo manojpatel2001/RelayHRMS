@@ -76,32 +76,6 @@
         padding: 5px 10px;
     }
 
-    /* Branch dropdown popup — hard cap on total height with the item list
-       scrolling inside it. DevExtreme's own dropDownOptions.maxHeight
-       doesn't reliably constrain the inner list on its own, so this backs
-       it up with !important CSS (which wins over DevExtreme's inline
-       height styles too), scoped to just this popup via wrapperAttr so it
-       can't affect any other dropdown on the page. */
-    .attn-branch-dd-popup .dx-overlay-content {
-        max-height: 250px !important;
-        overflow: hidden !important;
-    }
-    .attn-branch-dd-popup .dx-list {
-        max-height: 250px !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-    .attn-branch-dd-popup .dx-list-select-all {
-        flex-shrink: 0 !important;
-    }
-    .attn-branch-dd-popup .dx-scrollable {
-        flex: 1 1 auto !important;
-        min-height: 0 !important;
-    }
-    .attn-branch-dd-popup .dx-scrollable-container {
-        max-height: 100% !important;
-        overflow-y: auto !important;
-    }
 </style>
 
 <div class="wms-form-page">
@@ -118,7 +92,7 @@
             <div class="d-flex flex-wrap align-items-end gap-3 mb-3 attn-search-row">
                 <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
                     <label for="branchDropdown">Branch</label>
-                    <div id="branchDropdown"></div>
+                    <select id="branchDropdown" multiple data-placeholder="--Select Branch--"></select>
                 </div>
 
                 <div class="fg" style="flex:1 1 170px;min-width:160px;">
@@ -220,16 +194,18 @@
             hideDataElements();
         });
 
+        function getSelectedBranchIds() {
+            const val = $('#branchDropdown').val();
+            if (!val) return [];
+            return Array.isArray(val) ? val : [val];
+        }
+
         $('#monthSelect').on('change', function () {
-            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
-            if (selectedBranchIds && selectedBranchIds.length > 0) { onFind(); }
+            if (getSelectedBranchIds().length > 0) { onFind(); }
         });
 
         $('#yearSelect').on('change', function () {
-            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
-            if (selectedBranchIds && selectedBranchIds.length > 0) { onFind(); }
+            if (getSelectedBranchIds().length > 0) { onFind(); }
         });
 
         function hideDataElements() {
@@ -268,31 +244,10 @@
                 headers: { 'Authorization': 'Bearer ' + Token },
                 success: function (response) {
                     if (response?.data?.length > 0) {
-                        $("#branchDropdown").dxTagBox({
-                            items: response.data,
-                            displayExpr: "branchName",
-                            valueExpr: "branchId",
-                            placeholder: "--Select Branch--",
-                            showSelectionControls: true,
-                            searchEnabled: true,
-                            showClearButton: true,
-                            maxDisplayedTags: 3,
-                            applyValueMode: "instantly",
-                            multiline: false,
-                            minSearchLength: 0,
-                            width: "100%",
-                            dropDownOptions: {
-                                maxHeight: 250,
-                                // DevExtreme's own maxHeight doesn't reliably cap the inner
-                                // list, so this popup gets its own class purely so the CSS
-                                // below can force the list itself to scroll within a fixed
-                                // height, as a backstop regardless of the widget's internal
-                                // sizing behavior.
-                                wrapperAttr: { class: "attn-branch-dd-popup" }
-                            },
-                            onValueChanged: function (e) {
-                                // Don't auto load on branch selection - user needs to click Find
-                            }
+                        const $dd = $('#branchDropdown');
+                        $dd.empty();
+                        response.data.forEach(function (branch) {
+                            $('<option>').val(branch.branchId).text(branch.branchName).appendTo($dd);
                         });
                     }
                 },
@@ -339,8 +294,7 @@
         }
 
         function onFind() {
-            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+            const selectedBranchIds = getSelectedBranchIds();
 
             if (!selectedBranchIds || selectedBranchIds.length === 0) {
                 showToast('Please select at least one branch.', 'warn');
@@ -409,8 +363,7 @@
         });
 
         $('#btnClearSearch').on('click', function () {
-            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            if (branchTagBox) { branchTagBox.option("value", []); }
+            $('#branchDropdown').val([]).trigger('change');
             $('#monthSelect').val(new Date().getMonth() + 1);
             $('#yearSelect').val(new Date().getFullYear());
 
@@ -421,8 +374,7 @@
         });
 
         $('#btnView').on('click', function () {
-            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
+            const selectedBranchIds = getSelectedBranchIds();
 
             if (!selectedBranchIds || selectedBranchIds.length === 0) {
                 showToast('Please select at least one branch.', 'warn');
@@ -495,12 +447,9 @@
             const today = formatDate(new Date().toISOString().split('T')[0]);
 
             // Get selected branch names for report header
-            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            const selectedBranchIds = branchTagBox ? branchTagBox.option("value") : [];
-            const allBranches = branchTagBox ? branchTagBox.option("items") : [];
-            const selectedBranchNames = allBranches
-                .filter(branch => selectedBranchIds.includes(branch.branchId))
-                .map(branch => branch.branchName)
+            const selectedBranchNames = $('#branchDropdown option:selected')
+                .map(function () { return this.text; })
+                .get()
                 .join(', ');
 
             let header = `
@@ -640,10 +589,7 @@
 
         function clearFormAndSelection() {
             // Clear branch dropdown
-            const branchTagBox = $("#branchDropdown").dxTagBox("instance");
-            if (branchTagBox) {
-                branchTagBox.option("value", []);
-            }
+            $('#branchDropdown').val([]).trigger('change');
 
             // Reset month and year to current
             $('#monthSelect').val(new Date().getMonth() + 1);

@@ -90,7 +90,6 @@
             '.wms-grid-tbl-wrap tbody td:last-child  { border-right:none; }',
             '.wms-grid-tbl-wrap tbody tr:nth-child(even) td { background:var(--wg-row-even); }',
             '.wms-grid-tbl-wrap tbody tr:hover td { background:var(--wg-row-hover) !important; }',
-            '.wms-grid-tbl-wrap tbody tr:last-child td { border-bottom:none; }',
             '.wms-grid-tbl-wrap tbody tr.wg-clickable { cursor:pointer; }',
             '.wg-empty-row td { text-align:center; padding:36px 20px; color:#94A3B8; font-size:13px; }',
             /* ── FIX 3: Sticky Action column ── */

@@ -426,9 +426,35 @@
         sr.appendChild(sreset);
         panel.appendChild(sr);
 
+        // Top header: [Select All] ........... [count | Clear All]
+        const topBar = document.createElement('div');
+        topBar.className = 'wms-ms-topbar';
+        const saRow = document.createElement('div');
+        saRow.className = 'wms-ms-selall';
+        const saChk = document.createElement('span');
+        saChk.className = 'wms-ms-selall-chk';
+        const saTxt = document.createElement('span');
+        saTxt.textContent = 'Select All';
+        saRow.appendChild(saChk);
+        saRow.appendChild(saTxt);
+        const cnt = document.createElement('span');
+        cnt.className = 'wms-ms-count';
+        const clr = document.createElement('button');
+        clr.type = 'button';
+        clr.className = 'wms-ms-clear';
+        clr.textContent = 'Clear All';
+        topBar.appendChild(saRow);
+        topBar.appendChild(cnt);
+        topBar.appendChild(clr);
+        panel.appendChild(topBar);
+
         const ol = document.createElement('div');
         ol.className = 'wms-ms-opts';
         panel.appendChild(ol);
+
+        function realOpts() {
+            return opts.filter(o => o.value !== '');
+        }
 
         function updateLabel() {
             trigger.innerHTML = '';
@@ -436,17 +462,29 @@
             if (selected.length === 0) {
                 const ph = document.createElement('span');
                 ph.className = 'wms-ms-ph';
-                ph.textContent = 'Select…';
+                ph.textContent = sel.dataset.placeholder || 'Select…';
                 trigger.appendChild(ph);
-            } else {
+            } else if (selected.length <= 2) {
                 selected.forEach(o => {
                     const tag = document.createElement('span');
                     tag.className = 'wms-ms-tag';
                     tag.innerHTML = o.text + ' <span class="wms-ms-tag-remove" data-value="' + o.value + '">×</span>';
                     trigger.appendChild(tag);
                 });
+            } else {
+                const tag = document.createElement('span');
+                tag.className = 'wms-ms-tag';
+                tag.textContent = selected.length + ' selected';
+                trigger.appendChild(tag);
             }
             trigger.appendChild(chev);
+
+            const ro = realOpts();
+            const selCount = ro.filter(o => vals.includes(o.value)).length;
+            cnt.textContent = selCount ? selCount + ' selected' : '';
+            saRow.classList.toggle('all-checked', selCount > 0 && selCount === ro.length);
+            saRow.classList.toggle('partial', selCount > 0 && selCount < ro.length);
+            saChk.textContent = ro.length && selCount === ro.length ? '✓' : (selCount > 0 ? '–' : '');
         }
 
         function renderOpts(q) {
@@ -454,13 +492,18 @@
             ol.innerHTML = '';
             let vis = 0;
             opts.forEach(o => {
+                if (o.value === '') return;
                 if (q && o.text.toLowerCase().indexOf(q) === -1) return;
                 vis++;
                 const item = document.createElement('div');
                 item.className = 'wms-ms-opt' + (vals.includes(o.value) ? ' selected' : '');
+                const chkEl = document.createElement('span');
+                chkEl.className = 'wms-ms-opt-chk';
+                chkEl.textContent = vals.includes(o.value) ? '✓' : '';
                 const txtEl = document.createElement('span');
                 txtEl.className = 'wms-ms-opt-txt';
                 txtEl.textContent = o.text;
+                item.appendChild(chkEl);
                 item.appendChild(txtEl);
                 item.addEventListener('click', e => {
                     e.stopPropagation();
@@ -481,6 +524,28 @@
             });
             if (!vis) ol.innerHTML = '<div class="wms-ms-empty">No results</div>';
         }
+
+        clr.addEventListener('click', e => {
+            e.stopPropagation();
+            vals = [];
+            Array.from(sel.options).forEach(opt => { opt.selected = false; });
+            updateLabel();
+            renderOpts(si.value);
+            fire(sel);
+        });
+
+        saRow.addEventListener('click', e => {
+            e.stopPropagation();
+            const ro = realOpts();
+            const selCount = ro.filter(o => vals.includes(o.value)).length;
+            vals = (selCount === ro.length) ? [] : ro.map(o => o.value);
+            Array.from(sel.options).forEach(opt => {
+                opt.selected = vals.includes(opt.value);
+            });
+            updateLabel();
+            renderOpts(si.value);
+            fire(sel);
+        });
 
         updateLabel();
         renderOpts('');
@@ -584,6 +649,11 @@
         if (sel.dataset.onchange) {
             sel.onchange = new Function(sel.dataset.onchange);
         }
+
+        sel._wmsSetDisabled = function (disabled) {
+            trigger.disabled = !!disabled;
+            if (disabled) { panel.classList.remove('open'); trigger.classList.remove('open'); }
+        };
     }
 
     function tryBuildMulti(sel) {
