@@ -70,6 +70,45 @@
 	.emp-master-page .fg textarea {
 		min-height: 56px;
 	}
+
+	/* DevExtreme dxDateBox (Date of Joining / Date of Birth) — match the
+	   surrounding compact .fg input styling (border, radius, height,
+	   padding, font-size) instead of DevExtreme's own larger default
+	   theme appearance, so these two fields look consistent with every
+	   other field on this form. */
+	.emp-master-page .dx-datebox.dx-texteditor {
+		min-height: 32px;
+		border: 1px solid #B8C4CC;
+		border-radius: var(--r-sm, 4px);
+		background: #fff;
+	}
+	.emp-master-page .dx-datebox.dx-texteditor.dx-state-focused,
+	.emp-master-page .dx-datebox.dx-texteditor.dx-state-active {
+		border-color: #2F6F8E;
+		box-shadow: 0 0 0 3px rgba(47,111,142,.15);
+	}
+	.emp-master-page .dx-datebox .dx-texteditor-input {
+		min-height: 30px;
+		padding: 5px 10px;
+		font-size: 13px;
+		font-family: inherit;
+		color: var(--text, #1A1A1A);
+	}
+	.emp-master-page .dx-datebox .dx-texteditor-buttons-container {
+		height: 30px;
+	}
+	.emp-master-page .dx-datebox .dx-dropdowneditor-button {
+		width: 26px;
+		height: 30px;
+	}
+	.emp-master-page .dx-datebox .dx-clear-button-area {
+		width: 22px;
+		height: 30px;
+	}
+	.emp-master-page .dx-datebox .dx-placeholder {
+		font-size: 13px;
+		padding: 5px 10px;
+	}
 	.emp-master-page .form-grid-3 {
 		gap: 8px 16px;
 	}
@@ -318,7 +357,16 @@
 									</div>
 									<div class="fg fg-req">
 										<label for="doj">Date of Joining</label>
-										<input type="date" id="doj" placeholder=" ">
+										<!-- DevExtreme dxDateBox (initialized in the script below), not a
+										     native <input type="date">. Something (browser-level autofill
+										     or an extension — confirmed NOT our own JS/API/data) was
+										     overwriting the correctly-set ISO value with a human-readable
+										     one that native date inputs reject outright, showing as blank
+										     even though our own code set it correctly moments earlier. A
+										     DevExtreme widget isn't a native date input at all, so it isn't
+										     a target for that interference, and it gives both an explicit
+										     DD-MM-YYYY display AND a click-to-open calendar popup. -->
+										<div id="doj"></div>
 										<span class="field-validation-error" id="spnDoj" style="display:none;">Please Select Date Of Joining</span>
 									</div>
 
@@ -386,7 +434,8 @@
 
 									<div class="fg fg-req">
 										<label for="dob">Date of Birth</label>
-										<input type="date" id="dob" placeholder=" ">
+										<!-- See the identical comment on #doj above — same fix. -->
+										<div id="dob"></div>
 										<span class="field-validation-error" id="spnBirth" style="display:none;">Please Select Date Of Birth</span>
 									</div>
 
@@ -523,6 +572,7 @@
 				}
 				bindInitial();
 				bindWeekOff();
+				initDateBoxes();
 			  loadEmployeeRecords();
 			});
 
@@ -753,9 +803,62 @@
 		setBtnNormal('#btnUpdateEmployee', 'Update');
 	}
 
-	function formatDate(isoDateStr) {
-			if (!isoDateStr) return '';
-	  return isoDateStr.split('T')[0];
+	// #doj / #dob are DevExtreme dxDateBox widgets (init'd in initDateBoxes()
+	// below), not native <input type="date"> — see the markup comment on
+	// #doj for why. Idempotent: safe to call more than once (e.g. if the
+	// tab/page init runs more than once), it only creates each widget the
+	// first time.
+	function initDateBoxes() {
+		['doj', 'dob'].forEach(function (id) {
+			var $el = $('#' + id);
+			if ($el.data('dxDateBox')) return;
+			$el.dxDateBox({
+				displayFormat: 'dd-MM-yyyy',
+				useMaskBehavior: true,
+				openOnFieldClick: true,
+				showClearButton: true,
+				width: '100%'
+			});
+		});
+	}
+
+	// "2026-07-30T00:00:00" (or "2026-07-30") -> a JS Date for the dxDateBox
+	// widget's `value` option. Pulls the y/m/d apart with a regex (not a
+	// plain `new Date(isoDateStr)`) so this can't be affected by
+	// timezone-shift parsing quirks (a plain ISO-with-no-offset string is
+	// parsed as UTC by `new Date(...)`, which can roll the displayed day
+	// back or forward a day depending on the browser's local timezone).
+	function isoStringToLocalDate(isoDateStr) {
+		if (!isoDateStr) return null;
+		var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDateStr);
+		if (!m) return null;
+		return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+	}
+
+	// The reverse — a JS Date (as read back from a dxDateBox's `value`
+	// option) -> "yyyy-MM-dd" for the Update API, using the date's LOCAL
+	// components (not `toISOString()`, which converts to UTC first and can
+	// shift the day).
+	function localDateToIsoString(date) {
+		if (!date) return '';
+		var y = date.getFullYear();
+		var m = String(date.getMonth() + 1).padStart(2, '0');
+		var d = String(date.getDate()).padStart(2, '0');
+		return y + '-' + m + '-' + d;
+	}
+
+	function setDateField(id, isoDateStr) {
+		var widget = $('#' + id).dxDateBox('instance');
+		if (!widget) return;
+		widget.option('value', isoStringToLocalDate(isoDateStr));
+	}
+
+	// Reads a dxDateBox's current value back out as "yyyy-MM-dd" (or '' if
+	// empty), for building the Update payload.
+	function getDateFieldIso(id) {
+		var widget = $('#' + id).dxDateBox('instance');
+		if (!widget) return '';
+		return localDateToIsoString(widget.option('value'));
 	}
 
 	async function showLoder(){
@@ -834,7 +937,7 @@
 		  }
 		  $('#txtNumberEmpCode').val(employee.employeeCode || '');
 		  $('#txtRemark').val(employee.remark || '');
-		  $('#doj').val(formatDate(employee.dateOfJoining) || '');
+		  setDateField('doj', employee.dateOfJoining);
 		  wmsSetValue('ddlBranch', employee.branchId);
 		  wmsSetValue('ddlGrade', employee.gradeId);
 		  wmsSetValue('ddlShift', employee.shiftMasterId);
@@ -849,7 +952,7 @@
 		  wmsSetValue('ddlCategory', employee.categoryId);
 		  wmsSetValue('ddlDepartment', employee.departmentId);
 		  wmsSetValue('ddlEmpType', employee.employeeTypeId);		 
-		  $('#dob').val(formatDate(employee.dateOfBirth) || '');
+		  setDateField('dob', employee.dateOfBirth);
 		  wmsSetValue('ddlRole', employee.roleId);		
 		  wmsSetValue('drpReporting', employee.reportingManagerId);
 		 
@@ -903,7 +1006,7 @@
 			var lastName = $('#txtLastName').val().trim();
 			var employeeStringCode = $('#txtEmpCode').val(); // Assuming the first input is for EmployeeStringCode
 			var employeeNumberCode = $('#txtNumberEmpCode').val(); // Assuming the second input is for EmployeeNumberCode
-			var dateOfJoining = $('#doj').val();
+			var dateOfJoining = getDateFieldIso('doj'); // yyyy-MM-dd for the API
 			var branch = $('#ddlBranch').val();
 			var grade = $('#ddlGrade').val();
 			var shift = $('#ddlShift').val();
@@ -914,7 +1017,7 @@
 			 var basicSalary = $('#txtBasicSalary').val();
 			var department = $('#ddlDepartment').val();
 			var employeeType = $('#ddlEmpType').val();
-			var dateOfBirth = $('#dob').val();
+			var dateOfBirth = getDateFieldIso('dob'); // yyyy-MM-dd for the API
 			var RoleId = $('#ddlRole').val();
 			var loginAlias = $('#txtLoginAlias').val().trim();
 			// var password = $('#txtPassword').val().trim();

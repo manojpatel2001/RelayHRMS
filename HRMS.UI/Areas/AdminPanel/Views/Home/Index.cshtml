@@ -651,6 +651,13 @@
     }
     .branch-emp-popup .dx-popup-title .dx-toolbar-label,
     .branch-emp-popup .dx-popup-title .dx-item-content {
+        /* DevExtreme's own theme sets font-size directly on these label
+           elements, which overrides whatever is set on their .dx-popup-title
+           ancestor above (font-size isn't inherited once a descendant rule
+           sets its own) — so the caption stayed at the large default size
+           without this. */
+        font-size: 13.5px !important;
+        font-weight: 600 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -885,7 +892,14 @@
 
 
     #employeeDetailsPopup .dx-datagrid {
-        margin: 10px;
+        /* Edge-to-edge per the comment above #employeeDetailsPopup — a margin
+           here left a visible gap around the grid instead of it filling the
+           full popup content area. No CSS height here: the grid's own
+           `height: '100%'` widget option already sizes it against
+           #employeeDetailsGrid — an added CSS height fought that and made
+           DevExtreme compute a 0-height rows area (no rows, no "no data"
+           text) instead. */
+        margin: 0;
     }
 
     #grid-loader {
@@ -1294,8 +1308,35 @@
         });
 
         $('.side-panel-content').on('scroll', updateSidePanelScrollFade);
-        $(window).on('resize', syncSidePanelHeight);
+        $(window).on('resize', function() {
+            syncEmployeeGridHeight();
+            syncSidePanelHeight();
+        });
         syncSidePanelHeight();
+    }
+
+    // The "Employees Detail" branch grid used a fixed 250px height, which
+    // only happened to fill the space on smaller/laptop screens. On taller
+    // desktop monitors .main-area (see app-shell.css) is pinned to the full
+    // viewport height, so the fixed 250px grid left a large empty gap below
+    // it before the footer. This grows the grid to fill whatever vertical
+    // space is actually available (never below the original 250px), so more
+    // branch rows show instead of blank space, and the right side panel
+    // (synced to this column's height in syncSidePanelHeight) grows with it.
+    function syncEmployeeGridHeight() {
+        if (!branchGridInstance) return;
+        const mainArea = document.querySelector('.main-area');
+        const gridEl = document.getElementById('employeeGrid');
+        if (!mainArea || !gridEl) return;
+
+        const mainAreaBottom = mainArea.getBoundingClientRect().bottom;
+        const gridTop = gridEl.getBoundingClientRect().top;
+        const available = mainAreaBottom - gridTop - 54; // footer clearance + breathing room
+
+        const newHeight = Math.max(250, Math.floor(available));
+        if (branchGridInstance.option('height') !== newHeight) {
+            branchGridInstance.option('height', newHeight);
+        }
     }
 
     // Shows/hides the bottom fade hint on the right-panel content area
@@ -3560,6 +3601,8 @@
                         onContentReady(e) {
                             $('#grid-loader').removeClass('d-flex').hide()
                             const totalRecords = e.component.option("dataSource").length;
+                            branchGridInstance = e.component;
+                            syncEmployeeGridHeight();
                             syncSidePanelHeight();
                         }
                         // onRowClick: function(e) {
@@ -3583,6 +3626,7 @@
 
      // Global variables
     let employeeGridInstance = null;
+    let branchGridInstance = null; // #employeeGrid (branch summary) instance — used to grow its height to fill the viewport, see syncEmployeeGridHeight()
     let popupInstance = null;
     let pendingEmployeePopupTitle = "Employee Details";
 
