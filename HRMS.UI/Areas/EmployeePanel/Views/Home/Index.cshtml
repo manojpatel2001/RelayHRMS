@@ -104,6 +104,23 @@
     margin: 0;
     line-height: 1.45;
 }
+.ess-hero-card .hc-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: rgba(255,255,255,.85);
+    margin: 8px 0 0;
+    letter-spacing: 0.2px;
+}
+.ess-hero-card .hc-hint i {
+    font-size: 14px;
+    transition: transform 0.2s ease;
+}
+.ess-hero-card:hover .hc-hint i {
+    transform: translateX(3px);
+}
 .ess-hero-card .hc-badge {
     display: inline-block;
     background: rgba(255,255,255,.18);
@@ -479,6 +496,37 @@
 .ess-coming-soon p { font-size: 12.5px; margin: 0 0 4px; font-weight: 700; color: #5a7088; }
 .ess-coming-soon span { font-size: 11px; }
 
+/* ── Attendance Overview bars ──────────────────────────────────── */
+.ess-attn-row { margin-bottom: 12px; }
+.ess-attn-row:last-child { margin-bottom: 0; }
+.ess-attn-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+.ess-attn-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334e6a;
+}
+.ess-attn-label i { font-size: 14px; }
+.ess-attn-count { font-size: 11.5px; font-weight: 700; color: #5a7088; }
+.ess-attn-bar-track {
+    height: 7px;
+    border-radius: 4px;
+    background: #eef1f5;
+    overflow: hidden;
+}
+.ess-attn-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
 /* ── Card heights fill their row ───────────────────────────────
    Reverted to fixed pixel heights (see the comment on .ess-dash-grid
    above for why the fill-the-screen version was rolled back). All 8
@@ -506,6 +554,7 @@
         <div>
             <p class="hc-title"><i class="bx bxs-group" style="margin-right:6px;opacity:.9"></i>Employee &amp; Team</p>
             <p class="hc-desc">Explore your team's direct &amp; indirect reporting structure.</p>
+            <p class="hc-hint">Click to view <i class="bx bx-right-arrow-alt"></i></p>
         </div>
         <div class="hc-bg-icon"><i class="bx bxs-group"></i></div>
     </div>
@@ -514,6 +563,7 @@
         <div>
             <p class="hc-title"><i class="bx bx-history" style="margin-right:6px;opacity:.9"></i>Attendance &amp; Leave</p>
             <p class="hc-desc">Daily or monthly attendance details &amp; leave records.</p>
+            <p class="hc-hint">Click to view <i class="bx bx-right-arrow-alt"></i></p>
         </div>
         <div class="hc-badge" id="inTimeDisplay">In Time: <span id="inTime">—</span></div>
         <div class="hc-bg-icon"><i class="bx bx-calendar-check"></i></div>
@@ -523,6 +573,7 @@
         <div>
             <p class="hc-title"><i class="bx bx-rupee" style="margin-right:6px;opacity:.9"></i>Salary</p>
             <p class="hc-desc">View your processed &amp; published salary details.</p>
+            <p class="hc-hint">Click to view <i class="bx bx-right-arrow-alt"></i></p>
         </div>
         <div class="hc-bg-icon"><i class="bx bx-money"></i></div>
     </div>
@@ -531,6 +582,7 @@
         <div>
             <p class="hc-title"><i class="bx bx-line-chart" style="margin-right:6px;opacity:.9"></i>Reports</p>
             <p class="hc-desc">Access attendance, leave, and salary reports.</p>
+            <p class="hc-hint">Click to view <i class="bx bx-right-arrow-alt"></i></p>
         </div>
         <div class="hc-bg-icon"><i class="bx bx-bar-chart-alt-2"></i></div>
     </div>
@@ -643,17 +695,17 @@
         </div>
     </div>
 
-    <!-- Attendance Overview (placeholder — no attendance-aggregate API exists yet) -->
+    <!-- Attendance Overview — today's status breakdown for the logged-in
+         manager's own team (direct + indirect reports), not company-wide. -->
     <div>
         <div class="ess-panel ess-panel-fill">
             <div class="ess-panel-hdr">
                 <span><i class="bx bx-pie-chart-alt-2"></i>Attendance Overview</span>
+                <span class="ess-panel-hdr-badge" id="attnTeamCount">0</span>
             </div>
             <div class="ess-panel-body">
-                <div class="ess-coming-soon">
-                    <i class="bx bx-pie-chart-alt-2"></i>
-                    <p>Coming soon</p>
-                    <span>Needs an attendance-aggregate API</span>
+                <div id="attendanceOverviewList">
+                    <div class="ess-empty-state"><i class="bx bx-loader-alt"></i><p>Loading…</p></div>
                 </div>
             </div>
         </div>
@@ -984,6 +1036,102 @@ function toggleHolidaysExpand() {
     renderHolidays();
 }
 
+/* ── Attendance Overview (today, scoped to the manager's own team) ──
+   Two existing endpoints, no new backend: GetDirectIndirectEmployee
+   (called once for "direct" and once for "indirect" reports, merged)
+   gives the team roster; GetTodaysAttendanceAdmin gives today's
+   attendance for the whole company. There's no shared numeric
+   employee id between the two responses, so team membership is
+   matched by EmployeeCode instead. AttendanceStatus is a short code
+   (not a full word) — P/A/L/HF/H/W/LWP — mapped to the 4 buckets
+   below. There's no "Remote" concept in this backend at all, so that
+   reference-design category is intentionally left out rather than
+   faked; Half Day stands in as the 4th bucket since it's real data. */
+var ATTENDANCE_BUCKETS = [
+    { key: 'P',  label: 'Present',   icon: 'bx-check-circle',    color: '#28a745' },
+    { key: 'L',  label: 'On Leave',  icon: 'bx-calendar-x',      color: '#fd7e14' },
+    { key: 'A',  label: 'Absent',    icon: 'bx-user-x',          color: '#dc3545' },
+    { key: 'HF', label: 'Half Day',  icon: 'bx-time-five',       color: '#628db6' }
+];
+
+function loadTeamAttendanceOverview() {
+    // GetTodaysAttendanceDashbord is scoped per-branch (a required CSV of
+    // branch ids, not a company-wide call), and per-company. The team
+    // roster (GetDirectIndirectEmployee) doesn't carry a branch field, so
+    // branches are resolved separately via GetAllBranchesListByCompanyId
+    // (the one call here that needs the Authorization header).
+    //
+    // A manager's indirect reports can belong to a DIFFERENT company than
+    // the manager (a cross-company reporting line) — confirmed live while
+    // building this: 2 of this test manager's 6 team members had a
+    // companyId different from her own. Grouping the team by their own
+    // companyId and querying each company separately (instead of just
+    // Compid) is what makes those show up too, instead of silently
+    // dropping them.
+    var authToken = localStorage.getItem('authToken');
+    $.when(
+        $.ajax({ url: apiBase + '/EmployeeDashBoardAPI/GetDirectIndirectEmployee?Compid=' + Compid + '&EmployeeId=' + Empid + '&Action=direct', type: 'GET' }),
+        $.ajax({ url: apiBase + '/EmployeeDashBoardAPI/GetDirectIndirectEmployee?Compid=' + Compid + '&EmployeeId=' + Empid + '&Action=indirect', type: 'GET' })
+    ).done(function(directResp, indirectResp) {
+        var direct = Array.isArray(directResp[0].data) ? directResp[0].data : [];
+        var indirect = Array.isArray(indirectResp[0].data) ? indirectResp[0].data : [];
+        var team = direct.concat(indirect);
+        var teamCodes = {};
+        team.forEach(function(m) { if (m.employeeCode) teamCodes[m.employeeCode] = true; });
+
+        var companyIds = {};
+        team.forEach(function(m) { if (m.companyId) companyIds[m.companyId] = true; });
+        if (!Object.keys(companyIds).length) companyIds[Compid] = true;
+
+        var perCompanyFetches = Object.keys(companyIds).map(function(cid) {
+            return $.ajax({ url: apiBase + '/BranchAPI/GetAllBranchesListByCompanyId/' + cid, type: 'GET', headers: { 'Authorization': 'Bearer ' + authToken } })
+                .then(function(branchResp) {
+                    var branches = (branchResp.isSuccess && Array.isArray(branchResp.data)) ? branchResp.data : [];
+                    var branchIds = branches.map(function(b) { return b.branchId; }).filter(Boolean).join(',');
+                    if (!branchIds) return [];
+                    return $.ajax({ url: apiBase + '/EmpAttendanceAPI/GetTodaysAttendanceDashbord?BranchId=' + branchIds + '&ShiftMatserId=0&CompanyId=' + cid, type: 'GET' })
+                        .then(
+                            function(attnResp) { return (attnResp.isSuccess && Array.isArray(attnResp.data)) ? attnResp.data : []; },
+                            function() { return []; }
+                        );
+                }, function() { return []; });
+        });
+
+        $.when.apply($, perCompanyFetches).done(function() {
+            var perCompanyResults = perCompanyFetches.length === 1 ? [arguments[0]] : Array.prototype.slice.call(arguments);
+            var allAttendance = [].concat.apply([], perCompanyResults);
+            var teamAttendance = allAttendance.filter(function(a) { return teamCodes[a.employeeCode]; });
+            renderAttendanceOverview(teamAttendance);
+        }).fail(function() {
+            $('#attendanceOverviewList').html('<div class="ess-empty-state"><i class="bx bx-error"></i><p>Failed to load attendance.</p></div>');
+        });
+    }).fail(function() {
+        $('#attendanceOverviewList').html('<div class="ess-empty-state"><i class="bx bx-error"></i><p>Failed to load attendance.</p></div>');
+    });
+}
+
+function renderAttendanceOverview(teamAttendance) {
+    $('#attnTeamCount').text(teamAttendance.length);
+    if (!teamAttendance.length) {
+        $('#attendanceOverviewList').html('<div class="ess-empty-state"><i class="bx bx-group"></i><p>No team members found.</p></div>');
+        return;
+    }
+    var total = teamAttendance.length;
+    var html = '';
+    ATTENDANCE_BUCKETS.forEach(function(bucket) {
+        var count = teamAttendance.filter(function(a) { return a.attendanceStatus === bucket.key; }).length;
+        var pct = Math.round((count / total) * 100);
+        html += '<div class="ess-attn-row">' +
+            '<div class="ess-attn-row-top">' +
+                '<span class="ess-attn-label"><i class="bx ' + bucket.icon + '" style="color:' + bucket.color + '"></i>' + bucket.label + '</span>' +
+                '<span class="ess-attn-count">' + count + ' (' + pct + '%)</span>' +
+            '</div>' +
+            '<div class="ess-attn-bar-track"><div class="ess-attn-bar-fill" style="width:' + pct + '%;background:' + bucket.color + ';"></div></div>' +
+            '</div>';
+    });
+    $('#attendanceOverviewList').html(html);
+}
+
 /* ── Organization Policies ───────────────────────────────────── */
 function loadOrganizationPolicies() {
     $.ajax({
@@ -1145,6 +1293,7 @@ $(document).ready(function() {
     loadAnniversaries();
     loadUpcomingHolidays();
     loadOrganizationPolicies();
+    loadTeamAttendanceOverview();
     fetchInTime();
     startNewsCheck();
 });
