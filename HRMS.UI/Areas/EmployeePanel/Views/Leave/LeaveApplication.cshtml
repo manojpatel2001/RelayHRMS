@@ -7,6 +7,18 @@
 
 <title>Leave Application</title>
 
+<style>
+    /* #actionButtons also carries Bootstrap's .d-flex utility, which is
+       display:flex !important — jQuery's .hide()/.toggle(false) only ever
+       sets a plain (non-important) inline display:none, which always loses
+       to that !important rule, so the bar never actually hid no matter what
+       the JS condition was. This class wins because it's declared later in
+       the document than bootstrap.min.css, not because of specificity. */
+    #actionButtons.wms-force-hide {
+        display: none !important;
+    }
+</style>
+
 <div class="wms-form-page">
 
     <div class="card">
@@ -57,7 +69,7 @@
 
             <div class="divider"></div>
 
-            <div id="actionButtons" class="d-flex justify-content-end gap-2 mb-3" style="display:none;">
+            <div id="actionButtons" class="d-flex justify-content-end gap-2 mb-3 wms-force-hide">
                 <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="btnDelete">
                     <i class="bx bx-trash"></i>
                     <span class="btn-spinner-icon"></span>
@@ -84,6 +96,7 @@
     let grid = null;
     let isLoadingLeaveApp = false;
     let isDeletingLeaveApp = false;
+    let hasUserSearched = false;
 
     function fmtDate(v) {
         if (!v) return '-';
@@ -106,10 +119,12 @@
         loadSearchByOptions();
 
         $('#gobutoonid').on('click', function () {
+            hasUserSearched = true;
             fetchLeaveData();
         });
 
         $('input[name="leaveStatus"]').on('change', function () {
+            hasUserSearched = true;
             fetchLeaveData();
         });
 
@@ -122,6 +137,7 @@
             $('#input1').val('').prop('disabled', true);
             $('#pendingleaveid').prop('checked', true);
             selectedIds = {};
+            hasUserSearched = true;
             fetchLeaveData();
         });
 
@@ -166,7 +182,7 @@
         isLoadingLeaveApp = true;
         setBtnLoading('#gobutoonid', 'Go');
         selectedIds = {};
-        $('#actionButtons').hide();
+        $('#actionButtons').addClass('wms-force-hide');
 
         $.ajax({
             url: apiBase + '/LeaveApplication/GetLeaveApplications',
@@ -177,14 +193,14 @@
                 if (data.isSuccess && data.data && data.data.length > 0) {
                     currentRows = data.data;
                     renderGrid(currentRows);
-                    $('#actionButtons').show();
+                    $('#actionButtons').toggleClass('wms-force-hide', !(hasUserSearched && filter.Status === 'Pending'));
                     $('#recordSummary').text(currentRows.length + ' record(s) found.');
                 } else {
                     currentRows = [];
                     grid = null;
                     $('#gridContainerLeaveApplication').empty();
                     $('#recordSummary').text('');
-                    $('#actionButtons').hide();
+                    $('#actionButtons').addClass('wms-force-hide');
                 }
             },
             error: function (xhr) {
@@ -193,7 +209,7 @@
                 grid = null;
                 $('#gridContainerLeaveApplication').empty();
                 $('#recordSummary').text('');
-                $('#actionButtons').hide();
+                $('#actionButtons').addClass('wms-force-hide');
                 showToast(xhr.responseText || 'Something went wrong.', 'error');
             },
             complete: function () {
@@ -305,7 +321,7 @@
                         if (res.isSuccess) {
                             showToast(res.responseMessage || 'Records deleted successfully.', 'success');
                             selectedIds = {};
-                            $('#actionButtons').hide();
+                            $('#actionButtons').addClass('wms-force-hide');
                             fetchLeaveData();
                         } else {
                             showToast(res.responseMessage || 'Deletion failed.', 'error');

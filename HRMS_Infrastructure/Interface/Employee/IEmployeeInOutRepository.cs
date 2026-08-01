@@ -17,6 +17,7 @@ namespace HRMS_Infrastructure.Interface.Employee
     {
 
         Task<APIResponse> CreateEmpInOut(vmInOut Record);
+        Task<APIResponse> GetTodayInOutStatus(int employeeId);
         Task<VMCommonResult> CreateAttendanceDetails(AttendanceDetailsViewModel Record);
         Task<List<VMInOutRecord>> GetInOutRecord(int empid, string month, string year);             
         Task<List<VMInOutRecord>> GetMultipleInOutRecordAsync(int empid, string Month, string Year);

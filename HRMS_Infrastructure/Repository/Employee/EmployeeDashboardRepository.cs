@@ -1,5 +1,6 @@
 ﻿using HRMS_Core.DbContext;
 using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Ess.RecentActivity;
 using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Report;
 using HRMS_Infrastructure.Interface;
@@ -207,6 +208,28 @@ namespace HRMS_Infrastructure.Repository.Employee
             catch (Exception)
             {
                 return new List<RecentJoinedEmplForAdmin>();
+            }
+        }
+
+        public async Task<List<vmRecentActivityItem>> GetRecentActivity(int EmployeeId, int CompanyId)
+        {
+            try
+            {
+                var parameters = new[]
+                {
+                    new SqlParameter("@EmployeeId", EmployeeId),
+                    new SqlParameter("@CompanyId", CompanyId)
+                };
+
+                var result = await _db.Set<vmRecentActivityItem>()
+                    .FromSqlRaw("EXEC sp_GetRecentActivity @EmployeeId, @CompanyId", parameters)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                return new List<vmRecentActivityItem>();
             }
         }
 

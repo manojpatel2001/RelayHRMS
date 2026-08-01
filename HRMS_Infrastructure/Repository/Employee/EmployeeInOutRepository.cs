@@ -115,6 +115,36 @@ namespace HRMS_Infrastructure.Repository.Employee
             }
             return response;
         }
+        public async Task<APIResponse> GetTodayInOutStatus(int employeeId)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@EmployeeId", employeeId);
+
+                    var result = await connection.QueryFirstOrDefaultAsync<vmTodayInOutStatus>(
+                        "GetEmployeeTodayInOutStatus",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = true;
+                    response.ResponseMessage = "Fetched successfully.";
+                    response.Data = result ?? new vmTodayInOutStatus();
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
+            }
+            return response;
+        }
+
         public async Task<APIResponse> GetEmployeeInOutReport(EmployeeInOutFilterVM outFilterVM)
         {
             var response = new APIResponse();

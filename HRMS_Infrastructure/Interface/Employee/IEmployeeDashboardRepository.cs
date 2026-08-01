@@ -1,4 +1,5 @@
 ﻿using HRMS_Core.VM.Employee;
+using HRMS_Core.VM.Ess.RecentActivity;
 using HRMS_Core.VM.Leave;
 using HRMS_Core.VM.Report;
 using System;
@@ -23,5 +24,6 @@ namespace HRMS_Infrastructure.Interface.Employee
         Task<List<EmployeeDetailsViewModel>> GetEmployeeDetails(int EmpId);
         Task<List<RecentJoinedEmplForAdmin>> GetRecentJoinedEmployeesForAdmin();
         Task<List<NewJoinerDetailsViewModel>> GetBranchNewJoinerDetails(int CompId , int BranchId);
+        Task<List<vmRecentActivityItem>> GetRecentActivity(int EmployeeId, int CompanyId);
     }
 }

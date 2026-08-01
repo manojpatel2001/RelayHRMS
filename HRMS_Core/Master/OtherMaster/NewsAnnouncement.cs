@@ -21,6 +21,10 @@ namespace HRMS_Core.Master.OtherMaster
         public string? BranchWiseNewsAnnoun { get; set; }
         public bool IsDeleted { get; set; }
         public bool IsEnabled { get; set; }
+        public int? PopupDurationSeconds { get; set; }
+        public bool IsPopShowOnce { get; set; }
+        public int? LoginNotificationDurationSeconds { get; set; }
+        public bool IsLoginNotificationShowOnce { get; set; }
         public DateTime CreatedDate { get; set; }
         public int? CreatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }

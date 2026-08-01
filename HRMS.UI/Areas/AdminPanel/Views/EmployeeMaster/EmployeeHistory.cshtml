@@ -1,27 +1,1000 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
-	ViewData["Title"] = "Employee History";
-	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
-	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    ViewData["Title"] = "Employee History";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
 }
 
-<div class="row">
-	<div class="col-md-12  py-2">
-		<div class="d-flex justify-content-end">
-			<button type="button" class="btn btn-dark px-5 me-2" id="btnBackUpdateEmployee">Back</button>
+<!-- ExcelJS + FileSaver for Excel export, jsPDF + AutoTable for PDF export —
+     same CDN libraries already used by AttendanceRegisterAdmin.cshtml /
+     BranchWiseJoiningCount.cshtml elsewhere in this app. -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
-		</div>
-	</div>
+<style>
+    /* All colors use CSS custom properties from wms-theme.css/wms-site.css so
+       this page adapts automatically to the site's dark/light toggle — no
+       page-specific theme code needed. */
+
+    .eh-header-band {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md, 8px);
+        padding: 16px 20px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+    .eh-header-photo {
+        width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
+        border: 2px solid var(--border2, var(--border)); flex-shrink: 0;
+    }
+    .eh-header-info { flex: 1; min-width: 220px; }
+    .eh-header-name { font-size: 18px; font-weight: 700; color: var(--text); margin: 0 0 2px; }
+    .eh-header-meta { font-size: 12.5px; color: var(--muted, var(--text-3)); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+    .eh-header-meta span { display: inline-flex; align-items: center; gap: 4px; }
+    .eh-header-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+    .eh-status-badge {
+        font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 14px;
+        text-transform: uppercase; letter-spacing: .3px;
+    }
+    .eh-status-active { background: var(--green-bg, #E8F5E9); color: var(--green, #2E7D32); }
+    .eh-status-probation { background: var(--amber-bg, #FFF3E0); color: var(--amber, #E65100); }
+    .eh-status-notice { background: var(--blue-bg, #E3F2FD); color: var(--blue, #1565C0); }
+    .eh-status-exited { background: var(--red-bg, #FFEBEE); color: var(--red, #C62828); }
+
+    /* Overflow safety net — .main-area silently clips (not scrolls) anything
+       wider than the viewport, so every flex/grid ancestor in this page must
+       be allowed to shrink below its content's intrinsic width. Bootstrap's
+       .card is display:flex/flex-direction:column but does not set min-width:0
+       on .card-body, so a single wide child (chart canvas, long unwrapped
+       text) can force the whole chain to overflow to the right. */
+    #ehPageRoot { max-width: 100%; box-sizing: border-box; overflow-x: hidden; }
+    #ehPageRoot, #ehPageRoot .card, #ehPageRoot .card-body { min-width: 0; }
+
+    /* Career summary stat tiles */
+    .eh-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; max-width: 100%; }
+    .eh-stat-card {
+        background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md, 8px);
+        padding: 12px 14px; min-width: 0;
+    }
+    .eh-stat-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--muted, var(--text-3)); margin-bottom: 4px; }
+    .eh-stat-value { font-size: 18px; font-weight: 800; color: var(--text); }
+    .eh-stat-sub { font-size: 11px; color: var(--muted, var(--text-3)); margin-top: 2px; }
+
+    /* Employee search bar */
+    .eh-search-bar {
+        display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px;
+        padding: 14px 0 18px; margin-bottom: 14px; border-bottom: 1px solid var(--border);
+    }
+    .eh-empty-state {
+        text-align: center; padding: 60px 20px; color: var(--muted, var(--text-3));
+    }
+    .eh-empty-state i { font-size: 48px; opacity: .5; display: block; margin-bottom: 10px; }
+    .eh-empty-state p { margin: 0; font-size: 13.5px; }
+
+    /* Filters */
+    .eh-filter-bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
+
+    /* Charts */
+    .eh-chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 18px; max-width: 100%; }
+    .eh-chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md, 8px); padding: 10px; min-width: 0; overflow: hidden; }
+    .eh-chart-card .sec-lbl { margin-top: 0; }
+    .eh-chart-card > div[id$="Chart"] { max-width: 100%; box-sizing: border-box; }
+
+    /* Timeline */
+    .eh-timeline-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md, 8px); padding: 16px 20px; max-width: 100%; box-sizing: border-box; overflow: hidden; }
+    .eh-year-group { margin-bottom: 6px; }
+    .eh-year-hdr {
+        display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+        padding: 8px 4px; font-weight: 700; font-size: 14px; color: var(--text);
+        border-bottom: 1px solid var(--border);
+    }
+    .eh-year-hdr i.bx-chevron-down { transition: transform .2s ease; font-size: 18px; color: var(--muted); }
+    .eh-year-group.collapsed .eh-year-hdr i.bx-chevron-down { transform: rotate(-90deg); }
+    .eh-year-count { font-weight: 600; font-size: 11.5px; color: var(--muted); }
+    .eh-year-body { position: relative; padding-left: 26px; margin-top: 10px; }
+    .eh-year-group.collapsed .eh-year-body { display: none; }
+    .eh-year-body::before {
+        content: ''; position: absolute; left: 9px; top: 4px; bottom: 4px; width: 2px; background: var(--border2, var(--border));
+    }
+    .eh-event {
+        position: relative; padding: 8px 0 14px 20px; cursor: pointer; border-radius: 6px; transition: background .15s;
+    }
+    .eh-event:hover { background: var(--bg, rgba(0,0,0,.02)); }
+    .eh-event::before {
+        content: ''; position: absolute; left: -22px; top: 12px; width: 11px; height: 11px; border-radius: 50%;
+        background: var(--dot-color, #628db6); border: 2px solid var(--surface); box-shadow: 0 0 0 2px var(--dot-color, #628db6);
+    }
+    .eh-event-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+    .eh-event-icon { font-size: 14px; color: var(--dot-color, #628db6); }
+    .eh-event-title { font-weight: 700; font-size: 13.5px; color: var(--text); word-break: break-word; }
+    .eh-event-date { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+    .eh-event-desc { font-size: 12px; color: var(--text-3, var(--muted)); margin-top: 3px; word-break: break-word; }
+    .eh-event-pill {
+        display: inline-block; font-size: 9.5px; font-weight: 800; letter-spacing: .3px; text-transform: uppercase;
+        padding: 2px 8px; border-radius: 10px; margin-top: 4px;
+    }
+    .eh-pill-green  { background: var(--green-bg, #E8F5E9); color: var(--green, #2E7D32); }
+    .eh-pill-red    { background: var(--red-bg, #FFEBEE); color: var(--red, #C62828); }
+    .eh-pill-amber  { background: var(--amber-bg, #FFF3E0); color: var(--amber, #E65100); }
+    .eh-pill-blue   { background: var(--blue-bg, #E3F2FD); color: var(--blue, #1565C0); }
+    .eh-pill-teal   { background: var(--teal-bg, #E0F2F1); color: var(--teal, #00695C); }
+    .eh-pill-gray   { background: var(--border, #eee); color: var(--muted, #667); }
+
+    /* Side drawer — hidden via `display:none` + an off-screen `right` offset
+       rather than `opacity`/`transform`, which in this page were found to
+       silently fall back to their CSS-initial values (opacity:1, transform:none)
+       even with no .open class present, leaving the closed drawer permanently
+       covering the right ~420px of every page load. */
+    .eh-drawer-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1050;
+        display: none; opacity: 0; pointer-events: none; transition: opacity .2s ease;
+    }
+    .eh-drawer-overlay.open { display: block; opacity: 1; pointer-events: auto; }
+    .eh-drawer {
+        position: fixed; top: 0; right: -450px; bottom: 0; width: min(420px, 92vw);
+        background: var(--surface); border-left: 1px solid var(--border); z-index: 1051;
+        transition: right .25s ease; display: flex; flex-direction: column;
+        box-shadow: -8px 0 24px rgba(0,0,0,.15);
+    }
+    .eh-drawer.open { right: 0; }
+    .eh-drawer-hdr { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .eh-drawer-hdr h6 { margin: 0; color: var(--text); }
+    .eh-drawer-body { padding: 18px 20px; overflow-y: auto; flex: 1; }
+    .eh-drawer-row { margin-bottom: 12px; }
+    .eh-drawer-row label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--muted); display: block; margin-bottom: 2px; }
+    .eh-drawer-row .val { font-size: 13.5px; color: var(--text); }
+
+    /* Loading skeleton */
+    .eh-skeleton { background: linear-gradient(90deg, var(--border) 25%, var(--bg) 37%, var(--border) 63%); background-size: 400% 100%; animation: eh-shimmer 1.4s ease infinite; border-radius: 4px; }
+    @@keyframes eh-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+    .eh-skel-line { height: 14px; margin-bottom: 8px; }
+
+    /* Add Event category field groups — hidden until that category is chosen */
+    .eh-cat-fields { display: none; }
+    .eh-cat-fields.active { display: block; }
+
+    @@media print {
+        .eh-no-print, .eh-drawer, .eh-drawer-overlay, .eh-filter-bar, #btnBackUpdateEmployee { display: none !important; }
+        .eh-timeline-wrap { border: none; }
+    }
+</style>
+
+<div class="wms-form-page" id="ehPageRoot">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center eh-no-print">
+            <h6 class="mb-0">Employee History</h6>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnBackUpdateEmployee">
+                    <i class="bx bx-arrow-back"></i> Back
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+
+            <!-- Employee search — always visible so HR can look up any employee's
+                 history directly from this page (not just via the Employee Master
+                 grid's History row-action). -->
+            <div class="eh-search-bar eh-no-print">
+                <div class="fg" style="flex:1;max-width:380px;margin-bottom:0;">
+                    <label for="ehEmpSearch">Search Employee</label>
+                    <select id="ehEmpSearch" data-placeholder="Search by name or employee code...">
+                        <option value="">-- Select Employee --</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" id="ehEmpSearchGoBtn">
+                    <i class="bx bx-search-alt"></i> View History
+                </button>
+            </div>
+
+            <!-- Empty state — shown until an employee is selected/searched above -->
+            <div id="ehEmptyState" class="eh-empty-state" style="display:none;">
+                <i class="bx bx-user-search"></i>
+                <p>Search and select an employee above to view their complete history.</p>
+            </div>
+
+            <div id="ehMainContent" style="display:none;">
+
+            <!-- Profile header -->
+            <div class="eh-header-band" id="ehHeaderBand">
+                <div class="eh-skeleton" style="width:72px;height:72px;border-radius:50%;"></div>
+                <div class="eh-header-info">
+                    <div class="eh-skeleton eh-skel-line" style="width:220px;"></div>
+                    <div class="eh-skeleton eh-skel-line" style="width:340px;"></div>
+                </div>
+            </div>
+
+            <!-- Career summary -->
+            <div class="eh-stat-grid" id="ehStatGrid"></div>
+
+            <!-- Charts -->
+            <div class="eh-chart-row eh-no-print">
+                <div class="eh-chart-card">
+                    <div class="sec-lbl">Salary Trend</div>
+                    <div id="ehSalaryChart" style="height:220px;"></div>
+                </div>
+                <div class="eh-chart-card">
+                    <div class="sec-lbl">Attendance &amp; Leave Trend</div>
+                    <div id="ehAttendanceChart" style="height:220px;"></div>
+                </div>
+                <div class="eh-chart-card">
+                    <div class="sec-lbl">Performance Trend</div>
+                    <div id="ehPerformanceChart" style="height:220px;"></div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="sec-lbl eh-no-print">Search &amp; Filter Timeline</div>
+            <div class="eh-filter-bar eh-no-print">
+                <div class="fg" style="flex:1.5 1 180px;min-width:160px;">
+                    <label for="ehCategoryFilter">Category</label>
+                    <select id="ehCategoryFilter" multiple data-placeholder="All Categories"></select>
+                </div>
+                <div class="fg" style="flex:1 1 120px;min-width:110px;">
+                    <label for="ehFromDate">From Date</label>
+                    <input type="date" id="ehFromDate">
+                </div>
+                <div class="fg" style="flex:1 1 120px;min-width:110px;">
+                    <label for="ehToDate">To Date</label>
+                    <input type="date" id="ehToDate">
+                </div>
+                <div class="fg" style="flex:1.5 1 160px;min-width:150px;">
+                    <label for="ehSearchText">Search</label>
+                    <input type="text" id="ehSearchText" placeholder="Search title or description...">
+                </div>
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="ehBtnClearFilters">Clear</button>
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="ehBtnAddEvent">
+                        <i class="bx bx-plus"></i> Add Event
+                    </button>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mb-3 eh-no-print">
+                <button type="button" class="btn btn-outline btn-sm" id="ehBtnExportExcel"><i class="bx bx-file"></i> Excel</button>
+                <button type="button" class="btn btn-outline btn-sm" id="ehBtnExportPdf"><i class="bx bx-file-blank"></i> PDF</button>
+                <button type="button" class="btn btn-outline btn-sm" id="ehBtnPrint"><i class="bx bx-printer"></i> Print</button>
+            </div>
+
+            <div class="divider eh-no-print"></div>
+
+            <!-- Timeline -->
+            <div class="eh-timeline-wrap" id="ehTimelineWrap">
+                <div class="eh-skeleton eh-skel-line" style="width:100%;"></div>
+                <div class="eh-skeleton eh-skel-line" style="width:90%;"></div>
+                <div class="eh-skeleton eh-skel-line" style="width:95%;"></div>
+            </div>
+
+            </div><!-- /#ehMainContent -->
+
+        </div>
+    </div>
 </div>
 
+<!-- Side drawer — event detail -->
+<div class="eh-drawer-overlay eh-no-print" id="ehDrawerOverlay"></div>
+<div class="eh-drawer eh-no-print" id="ehDrawer">
+    <div class="eh-drawer-hdr">
+        <h6 id="ehDrawerTitle">Event Detail</h6>
+        <button type="button" class="btn-close" id="ehDrawerClose"></button>
+    </div>
+    <div class="eh-drawer-body" id="ehDrawerBody"></div>
+</div>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<!-- Add Event modal — one shared shell, category-specific field groups toggle -->
+<div class="modal fade" id="ehAddEventModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Add Lifecycle Event</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="fg fg-req">
+                    <label for="ehEventCategory">Event Category</label>
+                    <select id="ehEventCategory">
+                        <option value="">-- Select --</option>
+                        <option value="Promotion">Promotion (Designation/Grade Change)</option>
+                        <option value="DepartmentChange">Department Change</option>
+                        <option value="ShiftChange">Shift Change</option>
+                        <option value="Recruitment">Recruitment</option>
+                        <option value="PerformanceReview">Performance Review</option>
+                        <option value="Training">Training</option>
+                        <option value="Certification">Certification</option>
+                        <option value="Award">Award / Recognition</option>
+                        <option value="DisciplinaryAction">Disciplinary Action</option>
+                    </select>
+                </div>
+
+                <div class="eh-cat-fields" id="fields-Promotion">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-6 fg"><label>Old Designation</label><select id="p_oldDesignation"></select></div>
+                        <div class="col-md-6 fg"><label>New Designation</label><select id="p_newDesignation"></select></div>
+                        <div class="col-md-6 fg"><label>Old Grade</label><select id="p_oldGrade"></select></div>
+                        <div class="col-md-6 fg"><label>New Grade</label><select id="p_newGrade"></select></div>
+                        <div class="col-md-6 fg fg-req"><label>Effective Date</label><input type="date" id="p_effectiveDate"></div>
+                        <div class="col-md-12 fg"><label>Reason</label><textarea id="p_reason" rows="2"></textarea></div>
+                    </div>
+                </div>
+
+                <div class="eh-cat-fields" id="fields-DepartmentChange">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-6 fg"><label>Old Department</label><select id="d_oldDepartment"></select></div>
+                        <div class="col-md-6 fg"><label>New Department</label><select id="d_newDepartment"></select></div>
+                        <div class="col-md-6 fg fg-req"><label>Effective Date</label><input type="date" id="d_effectiveDate"></div>
+                        <div class="col-md-12 fg"><label>Reason</label><textarea id="d_reason" rows="2"></textarea></div>
+                    </div>
+                </div>
+
+                <div class="eh-cat-fields" id="fields-ShiftChange">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-6 fg"><label>Old Shift</label><select id="s_oldShift"></select></div>
+                        <div class="col-md-6 fg"><label>New Shift</label><select id="s_newShift"></select></div>
+                        <div class="col-md-6 fg fg-req"><label>Effective Date</label><input type="date" id="s_effectiveDate"></div>
+                        <div class="col-md-12 fg"><label>Reason</label><textarea id="s_reason" rows="2"></textarea></div>
+                    </div>
+                </div>
+
+                <div class="eh-cat-fields" id="fields-Recruitment">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-6 fg"><label>Application Date</label><input type="date" id="r_applicationDate"></div>
+                        <div class="col-md-6 fg"><label>Interview Date</label><input type="date" id="r_interviewDate"></div>
+                        <div class="col-md-6 fg"><label>Interviewer Name</label><input type="text" id="r_interviewerName"></div>
+                        <div class="col-md-6 fg"><label>Source</label>
+                            <select id="r_source">
+                                <option value="">-- Select --</option>
+                                <option value="Referral">Referral</option>
+                                <option value="Portal">Portal</option>
+                                <option value="Agency">Agency</option>
+                                <option value="Walk-in">Walk-in</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 fg"><label>Offer Date</label><input type="date" id="r_offerDate"></div>
+                        <div class="col-md-6 fg"><label>Offer Accepted Date</label><input type="date" id="r_offerAcceptedDate"></div>
+                        <div class="col-md-12 fg"><label>Remarks</label><textarea id="r_remarks" rows="2"></textarea></div>
+                    </div>
+                </div>
+
+                <div class="eh-cat-fields" id="fields-PerformanceReview">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-6 fg"><label>Review Period Start</label><input type="date" id="pr_periodStart"></div>
+                        <div class="col-md-6 fg"><label>Review Period End</label><input type="date" id="pr_periodEnd"></div>
+                        <div class="col-md-6 fg fg-req"><label>Review Date</label><input type="date" id="pr_reviewDate"></div>
+                        <div class="col-md-6 fg"><label>Rating (1-5)</label><input type="number" id="pr_rating" min="1" max="5"></div>
+                        <div class="col-md-6 fg"><label>Status</label>
+                            <select id="pr_status">
+                                <option value="Draft">Draft</option>
+                                <option value="Submitted">Submitted</option>
+                                <option value="Acknowledged">Acknowledged</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 fg"><label>Strengths</label><textarea id="pr_strengths" rows="2"></textarea></div>
+                        <div class="col-md-12 fg"><label>Areas of Improvement</label><textarea id="pr_areasOfImprovement" rows="2"></textarea></div>
+                    </div>
+                </div>
+
+                <div class="eh-cat-fields" id="fields-Training">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-12 fg fg-req"><label>Training Name</label><input type="text" id="t_trainingName"></div>
+                        <div class="col-md-6 fg"><label>Training Type</label><input type="text" id="t_trainingType"></div>
+                        <div class="col-md-6 fg"><label>Provider</label><input type="text" id="t_provider"></div>
+                        <div class="col-md-6 fg fg-req"><label>Start Date</label><input type="date" id="t_startDate"></div>
+                        <div class="col-md-6 fg"><label>End Date</label><input type="date" id="t_endDate"></div>
+                        <div class="col-md-6 fg"><label>Status</label>
+                            <select id="t_status">
+                                <option value="Scheduled">Scheduled</option>
+                                <option value="InProgress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 fg"><label>Score</label><input type="text" id="t_score"></div>
+                    </div>
+                </div>
+
+                <div class="eh-cat-fields" id="fields-Certification">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-12 fg fg-req"><label>Certification Name</label><input type="text" id="c_certificationName"></div>
+                        <div class="col-md-6 fg"><label>Issuing Body</label><input type="text" id="c_issuingBody"></div>
+                        <div class="col-md-6 fg fg-req"><label>Issue Date</label><input type="date" id="c_issueDate"></div>
+                        <div class="col-md-6 fg"><label>Expiry Date</label><input type="date" id="c_expiryDate"></div>
+                        <div class="col-md-6 fg"><label>Certificate URL</label><input type="text" id="c_certificateUrl"></div>
+                    </div>
+                </div>
+
+                <div class="eh-cat-fields" id="fields-Award">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-12 fg fg-req"><label>Award Name</label><input type="text" id="a_awardName"></div>
+                        <div class="col-md-6 fg"><label>Category</label><input type="text" id="a_awardCategory"></div>
+                        <div class="col-md-6 fg fg-req"><label>Award Date</label><input type="date" id="a_awardDate"></div>
+                        <div class="col-md-6 fg"><label>Awarded By</label><input type="text" id="a_awardedBy"></div>
+                        <div class="col-md-12 fg"><label>Description</label><textarea id="a_description" rows="2"></textarea></div>
+                    </div>
+                </div>
+
+                <div class="eh-cat-fields" id="fields-DisciplinaryAction">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-6 fg fg-req"><label>Warning Type</label><select id="w_warningMaster"></select></div>
+                        <div class="col-md-6 fg fg-req"><label>Issue Date</label><input type="date" id="w_issueDate"></div>
+                        <div class="col-md-6 fg"><label>Issued By</label><input type="text" id="w_issuedBy"></div>
+                        <div class="col-md-6 fg"><label>Status</label>
+                            <select id="w_status">
+                                <option value="Issued">Issued</option>
+                                <option value="Acknowledged">Acknowledged</option>
+                                <option value="Escalated">Escalated</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 fg"><label>Incident Description</label><textarea id="w_incidentDescription" rows="2"></textarea></div>
+                        <div class="col-md-12 fg"><label>Action Taken</label><textarea id="w_actionTaken" rows="2"></textarea></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="ehBtnSaveEvent">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-   $(document).ready(function () {
-	   $('#btnBackUpdateEmployee').on('click', function () {
-		const baseUIOrginUrl = window.location.origin;
-		 window.location.href = baseUIOrginUrl + '/EmployeeMaster/AdditionalInformation';
+(function () {
+    const apiBase = '@baseUrl';
+    const baseDomainUrl = '@baseDomainUrl';
+    const Token = localStorage.getItem("authToken");
+    const AdminEmployeeId = parseInt(localStorage.getItem('EmployeeId'));
+    let CurrentEmployeeId = parseInt(localStorage.getItem('CurrentEmployeeId'));
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany || '{}');
+    const CompanyId = companyDetails.CompanyId;
 
-	  });
-	});
+    var allEvents = [];
+    var filteredEvents = [];
+    var lookups = { designations: [], departments: [], grades: [], shifts: [] };
+
+    /* ── Category display metadata (icon + color) — kept in JS, not the DB,
+       same reasoning as the ESS Recent Activity feed built earlier. ── */
+    const CATEGORY_META = {
+        Joining:            { icon: 'bx-log-in',            color: '#2E7D32', label: 'Joining' },
+        Documents:          { icon: 'bx-file',               color: '#1168a0', label: 'Documents' },
+        Probation:          { icon: 'bx-time-five',          color: '#E65100', label: 'Probation' },
+        Confirmation:       { icon: 'bx-check-shield',        color: '#2E7D32', label: 'Confirmation' },
+        SalaryRevision:     { icon: 'bx-rupee',               color: '#00695C', label: 'Salary Revision' },
+        Promotion:          { icon: 'bx-trending-up',         color: '#7c3aed', label: 'Promotion' },
+        Transfer:           { icon: 'bx-transfer',            color: '#1168a0', label: 'Transfer' },
+        DepartmentChange:   { icon: 'bx-buildings',           color: '#1168a0', label: 'Department Change' },
+        ManagerChange:      { icon: 'bx-user-voice',          color: '#628db6', label: 'Reporting Manager Change' },
+        ShiftChange:        { icon: 'bx-time',                color: '#628db6', label: 'Shift Change' },
+        Attendance:         { icon: 'bx-fingerprint',         color: '#166534', label: 'Attendance' },
+        Leave:              { icon: 'bx-calendar-x',          color: '#92610e', label: 'Leave' },
+        Payroll:            { icon: 'bx-wallet',              color: '#00695C', label: 'Payroll' },
+        Resignation:        { icon: 'bx-log-out',             color: '#C62828', label: 'Resignation' },
+        NoticePeriod:       { icon: 'bx-calendar-exclamation', color: '#E65100', label: 'Notice Period' },
+        FnFSettlement:      { icon: 'bx-receipt',             color: '#00695C', label: 'Full & Final Settlement' },
+        Exit:               { icon: 'bx-door-open',           color: '#C62828', label: 'Exit' },
+        Recruitment:        { icon: 'bx-briefcase-alt',       color: '#7c3aed', label: 'Recruitment' },
+        PerformanceReview:  { icon: 'bx-line-chart',          color: '#1168a0', label: 'Performance Review' },
+        Training:           { icon: 'bx-book-open',           color: '#7c3aed', label: 'Training' },
+        Certification:      { icon: 'bx-medal',               color: '#7c3aed', label: 'Certification' },
+        Award:              { icon: 'bx-trophy',              color: '#F57F17', label: 'Award' },
+        DisciplinaryAction: { icon: 'bx-error',                color: '#C62828', label: 'Disciplinary Action' }
+    };
+    const STATUS_PILL = {
+        Approved: 'green', Effective: 'green', Confirmed: 'green', Completed: 'green', Processed: 'green', Valid: 'green', Recorded: 'green', Relieved: 'green', 'Offer Accepted': 'green',
+        Pending: 'amber', Draft: 'amber', 'In Process': 'amber', Scheduled: 'amber', Served: 'amber', 'In Progress': 'amber',
+        Rejected: 'red', Expired: 'red', Escalated: 'red',
+        Issued: 'blue', Acknowledged: 'blue', Submitted: 'blue'
+    };
+    function pillClass(status) { return 'eh-pill-' + (STATUS_PILL[status] || 'gray'); }
+
+    /* ── Profile header + career summary ────────────────────────────── */
+    function loadEmployeeHeader() {
+        $.ajax({
+            url: apiBase + '/EmployeeMasterAPI/GetRecordsForUpdate',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify({ CompanyId: CompanyId, EmployeeId: CurrentEmployeeId }),
+            success: function (response) {
+                if (!response.isSuccess) return;
+                lookups.designations = response.data.designations || [];
+                lookups.departments = response.data.departments || [];
+                lookups.grades = response.data.grades || [];
+                lookups.shifts = response.data.shifts || [];
+                renderHeader(response.data.employees);
+                fillLookupDropdowns();
+            }
+        });
+    }
+
+    function nameFromLookup(list, idKey, nameKey, id) {
+        var row = (list || []).find(function (x) { return x[idKey] == id; });
+        return row ? row[nameKey] : '-';
+    }
+
+    function renderHeader(emp) {
+        var photo = emp.employeeProfileUrl || (baseDomainUrl + '/uploads/defaultuserprofile/user-profile-png-image.png');
+        var fullName = [emp.initial, emp.firstName, emp.middleName, emp.lastName].filter(Boolean).join(' ');
+        var designation = nameFromLookup(lookups.designations, 'designationId', 'designationName', emp.designationId);
+        var department = nameFromLookup(lookups.departments, 'departmentId', 'departmentName', emp.departmentId);
+        var doj = emp.dateOfJoining ? new Date(emp.dateOfJoining) : null;
+        var tenureStr = '-';
+        if (doj && !isNaN(doj)) {
+            var months = (new Date().getFullYear() - doj.getFullYear()) * 12 + (new Date().getMonth() - doj.getMonth());
+            var yrs = Math.floor(months / 12), mos = months % 12;
+            tenureStr = (yrs > 0 ? yrs + ' yr ' : '') + mos + ' mo';
+        }
+
+        var statusHtml = '<span class="eh-status-badge eh-status-active">Active</span>';
+        var exitEvt = allEvents.find(function (e) { return e.activityType === 'Exit'; });
+        var noticeEvt = allEvents.find(function (e) { return e.activityType === 'NoticePeriod'; });
+        if (exitEvt && exitEvt.status === 'Relieved') statusHtml = '<span class="eh-status-badge eh-status-exited">Exited</span>';
+        else if (noticeEvt) statusHtml = '<span class="eh-status-badge eh-status-notice">Notice Period</span>';
+        else if (emp.probation) statusHtml = '<span class="eh-status-badge eh-status-probation">On Probation</span>';
+
+        $('#ehHeaderBand').html(
+            '<img class="eh-header-photo" src="' + photo + '">' +
+            '<div class="eh-header-info">' +
+                '<p class="eh-header-name">' + (fullName || '-') + ' <span style="font-weight:400;color:var(--muted);font-size:13px;">(' + (emp.employeeCode || emp.alfaCode || '-') + ')</span></p>' +
+                '<div class="eh-header-meta">' +
+                    '<span><i class="bx bx-id-card"></i>' + designation + '</span>' +
+                    '<span><i class="bx bx-buildings"></i>' + department + '</span>' +
+                    '<span><i class="bx bx-calendar"></i>Joined: ' + (doj ? doj.toLocaleDateString('en-GB') : '-') + '</span>' +
+                    '<span><i class="bx bx-time-five"></i>Tenure: ' + tenureStr + '</span>' +
+                '</div>' +
+            '</div>' +
+            '<div class="eh-header-badges">' + statusHtml + '</div>'
+        );
+    }
+
+    function renderStatCards() {
+        var promotions = allEvents.filter(function (e) { return e.activityType === 'Promotion'; }).length;
+        var leaveTotal = allEvents.filter(function (e) { return e.activityType === 'Leave' && e.status === 'Approved'; }).length;
+        var lastSalary = allEvents.filter(function (e) { return e.activityType === 'SalaryRevision'; }).sort(function (a, b) { return new Date(b.activityDate) - new Date(a.activityDate); })[0];
+        var lastReview = allEvents.filter(function (e) { return e.activityType === 'PerformanceReview'; }).sort(function (a, b) { return new Date(b.activityDate) - new Date(a.activityDate); })[0];
+
+        var cards = [
+            { label: 'Total Events', value: allEvents.length, sub: 'across career' },
+            { label: 'Promotions', value: promotions, sub: 'designation changes' },
+            { label: 'Leaves Approved', value: leaveTotal, sub: 'all time' },
+            { label: 'Last Salary Revision', value: lastSalary ? formatDate(lastSalary.activityDate) : '-', sub: lastSalary ? lastSalary.description : 'no records' },
+            { label: 'Last Performance Review', value: lastReview ? formatDate(lastReview.activityDate) : '-', sub: lastReview ? lastReview.status : 'no records' }
+        ];
+        $('#ehStatGrid').html(cards.map(function (c) {
+            return '<div class="eh-stat-card"><div class="eh-stat-label">' + c.label + '</div><div class="eh-stat-value">' + c.value + '</div><div class="eh-stat-sub">' + c.sub + '</div></div>';
+        }).join(''));
+    }
+
+    function formatDate(d) {
+        var dt = new Date(d);
+        if (isNaN(dt)) return '-';
+        return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    /* ── Timeline load + render ──────────────────────────────────────── */
+    function loadTimeline() {
+        $.ajax({
+            url: apiBase + '/EmployeeHistoryAPI/GetEmployeeLifecycleTimeline?EmployeeId=' + CurrentEmployeeId + '&CompanyId=' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                allEvents = (response.data || []).map(function (e, i) { e._idx = i; return e; });
+                renderStatCards();
+                renderHeaderStatusRefresh();
+                populateCategoryFilter();
+                applyFilters();
+                renderCharts();
+            },
+            error: function () {
+                $('#ehTimelineWrap').html('<div class="text-center text-muted py-4"><i class="bx bx-error" style="font-size:32px;"></i><p>Failed to load employee history.</p></div>');
+            }
+        });
+    }
+
+    function renderHeaderStatusRefresh() {
+        // status badge in header depends on allEvents (Exit/Notice) — re-render
+        // the badge only, header photo/name already rendered by loadEmployeeHeader.
+        var exitEvt = allEvents.find(function (e) { return e.activityType === 'Exit'; });
+        var noticeEvt = allEvents.find(function (e) { return e.activityType === 'NoticePeriod'; });
+        var statusHtml = '<span class="eh-status-badge eh-status-active">Active</span>';
+        if (exitEvt && exitEvt.status === 'Relieved') statusHtml = '<span class="eh-status-badge eh-status-exited">Exited</span>';
+        else if (noticeEvt) statusHtml = '<span class="eh-status-badge eh-status-notice">Notice Period</span>';
+        $('.eh-header-badges').html(statusHtml);
+    }
+
+    function populateCategoryFilter() {
+        var present = {};
+        allEvents.forEach(function (e) { present[e.activityType] = true; });
+        var $dd = $('#ehCategoryFilter');
+        $dd.empty();
+        Object.keys(CATEGORY_META).forEach(function (key) {
+            if (present[key]) $('<option>').val(key).text(CATEGORY_META[key].label).appendTo($dd);
+        });
+        if (typeof WmsMultiDropdown === 'function' && !$dd[0]._wmsBuilt) {
+            WmsMultiDropdown($dd[0]);
+        }
+    }
+
+    function applyFilters() {
+        var selectedCats = $('#ehCategoryFilter').val() || [];
+        var fromDate = $('#ehFromDate').val() ? new Date($('#ehFromDate').val()) : null;
+        var toDate = $('#ehToDate').val() ? new Date($('#ehToDate').val()) : null;
+        var searchText = ($('#ehSearchText').val() || '').toLowerCase();
+
+        filteredEvents = allEvents.filter(function (e) {
+            if (selectedCats.length && selectedCats.indexOf(e.activityType) === -1) return false;
+            var d = new Date(e.activityDate);
+            if (fromDate && d < fromDate) return false;
+            if (toDate && d > toDate) return false;
+            if (searchText) {
+                var hay = ((e.title || '') + ' ' + (e.description || '')).toLowerCase();
+                if (hay.indexOf(searchText) === -1) return false;
+            }
+            return true;
+        });
+        renderTimeline();
+    }
+
+    function renderTimeline() {
+        if (!filteredEvents.length) {
+            $('#ehTimelineWrap').html('<div class="text-center text-muted py-5"><i class="bx bx-time-five" style="font-size:36px;"></i><p class="mt-2">No lifecycle events match the current filters.</p></div>');
+            return;
+        }
+        var byYear = {};
+        filteredEvents.forEach(function (e) {
+            var y = new Date(e.activityDate).getFullYear();
+            if (!byYear[y]) byYear[y] = [];
+            byYear[y].push(e);
+        });
+        var years = Object.keys(byYear).sort(function (a, b) { return b - a; });
+        var html = years.map(function (y) {
+            var events = byYear[y];
+            var eventsHtml = events.map(function (e) {
+                var meta = CATEGORY_META[e.activityType] || { icon: 'bx-info-circle', color: '#628db6', label: e.activityType };
+                return '<div class="eh-event" style="--dot-color:' + meta.color + '" data-idx="' + e._idx + '">' +
+                    '<div class="eh-event-top">' +
+                        '<i class="bx ' + meta.icon + ' eh-event-icon"></i>' +
+                        '<span class="eh-event-title">' + escapeHtml(e.title) + '</span>' +
+                        '<span class="eh-event-date">' + formatDate(e.activityDate) + '</span>' +
+                    '</div>' +
+                    (e.description ? '<div class="eh-event-desc">' + escapeHtml(e.description) + '</div>' : '') +
+                    '<span class="eh-event-pill ' + pillClass(e.status) + '">' + escapeHtml(e.status || '') + '</span>' +
+                '</div>';
+            }).join('');
+            return '<div class="eh-year-group">' +
+                '<div class="eh-year-hdr" onclick="_ehToggleYear(this)">' +
+                    '<i class="bx bx-chevron-down"></i><span>' + y + '</span><span class="eh-year-count">' + events.length + ' event(s)</span>' +
+                '</div>' +
+                '<div class="eh-year-body">' + eventsHtml + '</div>' +
+            '</div>';
+        }).join('');
+        $('#ehTimelineWrap').html(html);
+    }
+
+    window._ehToggleYear = function (hdr) {
+        $(hdr).closest('.eh-year-group').toggleClass('collapsed');
+    };
+
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    /* ── Side drawer ─────────────────────────────────────────────────── */
+    $(document).on('click', '.eh-event', function () {
+        var idx = $(this).data('idx');
+        var e = allEvents.find(function (x) { return x._idx === idx; });
+        if (!e) return;
+        var meta = CATEGORY_META[e.activityType] || { label: e.activityType };
+        $('#ehDrawerTitle').text(meta.label);
+        $('#ehDrawerBody').html(
+            '<div class="eh-drawer-row"><label>Title</label><div class="val">' + escapeHtml(e.title) + '</div></div>' +
+            '<div class="eh-drawer-row"><label>Date</label><div class="val">' + formatDate(e.activityDate) + '</div></div>' +
+            '<div class="eh-drawer-row"><label>Description</label><div class="val">' + escapeHtml(e.description || '-') + '</div></div>' +
+            '<div class="eh-drawer-row"><label>Status</label><div class="val"><span class="eh-event-pill ' + pillClass(e.status) + '">' + escapeHtml(e.status || '') + '</span></div></div>'
+        );
+        $('#ehDrawerOverlay').addClass('open');
+        $('#ehDrawer').addClass('open');
+    });
+    function closeDrawer() { $('#ehDrawerOverlay, #ehDrawer').removeClass('open'); }
+    $('#ehDrawerClose, #ehDrawerOverlay').on('click', closeDrawer);
+
+    /* ── Filters wiring ──────────────────────────────────────────────── */
+    $('#ehCategoryFilter, #ehFromDate, #ehToDate').on('change', applyFilters);
+    $('#ehSearchText').on('input', applyFilters);
+    $('#ehBtnClearFilters').on('click', function () {
+        $('#ehCategoryFilter').val([]).trigger('change');
+        $('#ehFromDate, #ehToDate, #ehSearchText').val('');
+        applyFilters();
+    });
+
+    /* ── Charts (DevExtreme dxChart — already live elsewhere in this app) ── */
+    function renderCharts() {
+        var salaryPoints = allEvents.filter(function (e) { return e.activityType === 'SalaryRevision'; })
+            .sort(function (a, b) { return new Date(a.activityDate) - new Date(b.activityDate); })
+            .map(function (e) {
+                var m = /Gross: ([\d.]+) -> ([\d.]+)/.exec(e.description);
+                return { month: formatDate(e.activityDate), amount: m ? parseFloat(m[2]) : 0 };
+            });
+        if (salaryPoints.length) {
+            $('#ehSalaryChart').dxChart({
+                dataSource: salaryPoints,
+                series: [{ argumentField: 'month', valueField: 'amount', name: 'Gross Salary', type: 'line', color: '#2F6F8E' }],
+                argumentAxis: { label: { rotationAngle: -45, overlappingBehavior: 'rotate', font: { size: 10 } } },
+                legend: { visible: false }
+            });
+        } else {
+            $('#ehSalaryChart').html('<div class="text-center text-muted py-5">No salary revision data.</div>');
+        }
+
+        var monthly = {};
+        allEvents.filter(function (e) { return e.activityType === 'Attendance' || e.activityType === 'Leave'; }).forEach(function (e) {
+            var d = new Date(e.activityDate);
+            var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            if (!monthly[key]) monthly[key] = { month: key, attendance: 0, leave: 0 };
+            if (e.activityType === 'Attendance') { var cnt = parseInt(e.description) || 0; monthly[key].attendance += cnt; }
+            else monthly[key].leave += 1;
+        });
+        var attendancePoints = Object.values(monthly).sort(function (a, b) { return a.month.localeCompare(b.month); });
+        if (attendancePoints.length) {
+            $('#ehAttendanceChart').dxChart({
+                dataSource: attendancePoints,
+                series: [
+                    { argumentField: 'month', valueField: 'attendance', name: 'Days Present', type: 'bar', color: '#2E7D32' },
+                    { argumentField: 'month', valueField: 'leave', name: 'Leave Requests', type: 'bar', color: '#E65100' }
+                ],
+                argumentAxis: { label: { rotationAngle: -45, overlappingBehavior: 'rotate', font: { size: 10 } } },
+                legend: { visible: true, verticalAlignment: 'bottom', horizontalAlignment: 'center' }
+            });
+        } else {
+            $('#ehAttendanceChart').html('<div class="text-center text-muted py-5">No attendance/leave data.</div>');
+        }
+
+        var perfPoints = allEvents.filter(function (e) { return e.activityType === 'PerformanceReview'; })
+            .sort(function (a, b) { return new Date(a.activityDate) - new Date(b.activityDate); })
+            .map(function (e) {
+                var m = /Rating: (\d+)/.exec(e.description);
+                return { review: formatDate(e.activityDate), rating: m ? parseInt(m[1]) : null };
+            }).filter(function (p) { return p.rating !== null; });
+        if (perfPoints.length) {
+            $('#ehPerformanceChart').dxChart({
+                dataSource: perfPoints,
+                series: [{ argumentField: 'review', valueField: 'rating', name: 'Rating', type: 'spline', color: '#7c3aed' }],
+                valueAxis: { min: 0, max: 5 },
+                argumentAxis: { label: { rotationAngle: -45, overlappingBehavior: 'rotate', font: { size: 10 } } },
+                legend: { visible: false }
+            });
+        } else {
+            $('#ehPerformanceChart').html('<div class="text-center text-muted py-5">No performance review data.</div>');
+        }
+    }
+
+    /* ── Add Event modal ─────────────────────────────────────────────── */
+    function fillLookupDropdowns() {
+        fillSelectOptions('#p_oldDesignation, #p_newDesignation', lookups.designations, 'designationId', 'designationName');
+        fillSelectOptions('#d_oldDepartment, #d_newDepartment', lookups.departments, 'departmentId', 'departmentName');
+        fillSelectOptions('#s_oldShift, #s_newShift', lookups.shifts, 'shiftId', 'shiftName');
+        fillSelectOptions('#p_oldGrade, #p_newGrade', lookups.grades, 'gradeId', 'gradeName');
+    }
+    function fillSelectOptions(selector, data, valueKey, textKey) {
+        var $els = $(selector);
+        $els.each(function () {
+            var $el = $(this);
+            $el.empty().append('<option value="">-- Select --</option>');
+            (data || []).forEach(function (d) {
+                $('<option>').val(d[valueKey]).text(d[textKey]).appendTo($el);
+            });
+        });
+    }
+    function loadWarningTypes() {
+        $.ajax({
+            url: apiBase + '/WarningMasterAPI/GetAllWarningMaster',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                fillSelectOptions('#w_warningMaster', response.data || [], 'warningMasterId', 'warningName');
+            }
+        });
+    }
+
+    $('#ehBtnAddEvent').on('click', function () {
+        $('#ehEventCategory').val('');
+        $('.eh-cat-fields').removeClass('active').find('input, select, textarea').val('');
+        $('#ehAddEventModal').modal('show');
+    });
+    $('#ehEventCategory').on('change', function () {
+        $('.eh-cat-fields').removeClass('active');
+        var cat = $(this).val();
+        if (cat) $('#fields-' + cat).addClass('active');
+    });
+
+    function endpointFor(cat) {
+        return {
+            Promotion: { url: 'EmployeeDesignationHistoryAPI/CreateEmployeeDesignationHistory' },
+            DepartmentChange: { url: 'EmployeeDepartmentHistoryAPI/CreateEmployeeDepartmentHistory' },
+            ShiftChange: { url: 'EmployeeShiftHistoryAPI/CreateEmployeeShiftHistory' },
+            Recruitment: { url: 'EmployeeRecruitmentDetailsAPI/CreateEmployeeRecruitmentDetails' },
+            PerformanceReview: { url: 'EmployeePerformanceReviewAPI/CreateEmployeePerformanceReview' },
+            Training: { url: 'EmployeeTrainingAPI/CreateEmployeeTraining' },
+            Certification: { url: 'EmployeeCertificationAPI/CreateEmployeeCertification' },
+            Award: { url: 'EmployeeAwardAPI/CreateEmployeeAward' },
+            DisciplinaryAction: { url: 'EmployeeWarningHistoryAPI/CreateEmployeeWarningHistory' }
+        }[cat];
+    }
+
+    function payloadFor(cat) {
+        switch (cat) {
+            case 'Promotion': return {
+                EmployeeId: CurrentEmployeeId,
+                OldDesignationId: $('#p_oldDesignation').val() || null, NewDesignationId: $('#p_newDesignation').val() || null,
+                OldGradeId: $('#p_oldGrade').val() || null, NewGradeId: $('#p_newGrade').val() || null,
+                EffectiveDate: $('#p_effectiveDate').val(), Reason: $('#p_reason').val(), IsEnabled: true, CreatedBy: AdminEmployeeId
+            };
+            case 'DepartmentChange': return {
+                EmployeeId: CurrentEmployeeId,
+                OldDepartmentId: $('#d_oldDepartment').val() || null, NewDepartmentId: $('#d_newDepartment').val() || null,
+                EffectiveDate: $('#d_effectiveDate').val(), Reason: $('#d_reason').val(), IsEnabled: true, CreatedBy: AdminEmployeeId
+            };
+            case 'ShiftChange': return {
+                EmployeeId: CurrentEmployeeId,
+                OldShiftMasterId: $('#s_oldShift').val() || null, NewShiftMasterId: $('#s_newShift').val() || null,
+                EffectiveDate: $('#s_effectiveDate').val(), Reason: $('#s_reason').val(), IsEnabled: true, CreatedBy: AdminEmployeeId
+            };
+            case 'Recruitment': return {
+                EmployeeId: CurrentEmployeeId,
+                ApplicationDate: $('#r_applicationDate').val() || null, InterviewDate: $('#r_interviewDate').val() || null,
+                InterviewerName: $('#r_interviewerName').val(), Source: $('#r_source').val(),
+                OfferDate: $('#r_offerDate').val() || null, OfferAcceptedDate: $('#r_offerAcceptedDate').val() || null,
+                Remarks: $('#r_remarks').val(), IsEnabled: true, CreatedBy: AdminEmployeeId
+            };
+            case 'PerformanceReview': return {
+                EmployeeId: CurrentEmployeeId,
+                ReviewPeriodStart: $('#pr_periodStart').val() || null, ReviewPeriodEnd: $('#pr_periodEnd').val() || null,
+                ReviewDate: $('#pr_reviewDate').val(), Rating: $('#pr_rating').val() || null, Status: $('#pr_status').val(),
+                Strengths: $('#pr_strengths').val(), AreasOfImprovement: $('#pr_areasOfImprovement').val(), IsEnabled: true, CreatedBy: AdminEmployeeId
+            };
+            case 'Training': return {
+                EmployeeId: CurrentEmployeeId, TrainingName: $('#t_trainingName').val(), TrainingType: $('#t_trainingType').val(),
+                StartDate: $('#t_startDate').val(), EndDate: $('#t_endDate').val() || null, Provider: $('#t_provider').val(),
+                Status: $('#t_status').val(), Score: $('#t_score').val(), IsEnabled: true, CreatedBy: AdminEmployeeId
+            };
+            case 'Certification': return {
+                EmployeeId: CurrentEmployeeId, CertificationName: $('#c_certificationName').val(), IssuingBody: $('#c_issuingBody').val(),
+                IssueDate: $('#c_issueDate').val(), ExpiryDate: $('#c_expiryDate').val() || null, CertificateUrl: $('#c_certificateUrl').val(),
+                IsEnabled: true, CreatedBy: AdminEmployeeId
+            };
+            case 'Award': return {
+                EmployeeId: CurrentEmployeeId, AwardName: $('#a_awardName').val(), AwardCategory: $('#a_awardCategory').val(),
+                AwardDate: $('#a_awardDate').val(), AwardedBy: $('#a_awardedBy').val(), Description: $('#a_description').val(),
+                IsEnabled: true, CreatedBy: AdminEmployeeId
+            };
+            case 'DisciplinaryAction': return {
+                EmployeeId: CurrentEmployeeId, WarningMasterId: $('#w_warningMaster').val() || null, IssueDate: $('#w_issueDate').val(),
+                IssuedBy: $('#w_issuedBy').val(), Status: $('#w_status').val(),
+                IncidentDescription: $('#w_incidentDescription').val(), ActionTaken: $('#w_actionTaken').val(), IsEnabled: true, CreatedBy: AdminEmployeeId
+            };
+        }
+    }
+
+    $('#ehBtnSaveEvent').on('click', function () {
+        var cat = $('#ehEventCategory').val();
+        if (!cat) { showToast('Please select an event category.', 'warn'); return; }
+        var ep = endpointFor(cat);
+        var payload = payloadFor(cat);
+
+        setBtnLoading('#ehBtnSaveEvent', 'Saving...');
+        $.ajax({
+            url: apiBase + '/' + ep.url,
+            method: 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(payload),
+            success: function (response) {
+                setBtnNormal('#ehBtnSaveEvent', 'Save');
+                if (response.isSuccess) {
+                    showToast(response.responseMessage || 'Event added.', 'success');
+                    $('#ehAddEventModal').modal('hide');
+                    loadTimeline();
+                } else {
+                    showToast(response.responseMessage || 'Something went wrong.', 'error');
+                }
+            },
+            error: function () {
+                setBtnNormal('#ehBtnSaveEvent', 'Save');
+                showToast('Unable to save event.', 'error');
+            }
+        });
+    });
+
+    /* ── Export: Excel (ExcelJS + FileSaver) ────────────────────────────── */
+    $('#ehBtnExportExcel').on('click', function () {
+        var workbook = new ExcelJS.Workbook();
+        var ws = workbook.addWorksheet('Employee History');
+        ws.addRow(['Date', 'Category', 'Title', 'Description', 'Status']);
+        ws.getRow(1).eachCell(function (cell) {
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF343A40' } };
+        });
+        filteredEvents.forEach(function (e) {
+            ws.addRow([formatDate(e.activityDate), (CATEGORY_META[e.activityType] || {}).label || e.activityType, e.title, e.description, e.status]);
+        });
+        ws.columns.forEach(function (col) { col.width = 24; });
+        workbook.xlsx.writeBuffer().then(function (buffer) {
+            saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'EmployeeHistory.xlsx');
+        });
+    });
+
+    /* ── Export: PDF (jsPDF + AutoTable) ─────────────────────────────────── */
+    $('#ehBtnExportPdf').on('click', function () {
+        var doc = new jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        doc.text('Employee History', 14, 12);
+        doc.autoTable({
+            startY: 18,
+            head: [['Date', 'Category', 'Title', 'Description', 'Status']],
+            body: filteredEvents.map(function (e) {
+                return [formatDate(e.activityDate), (CATEGORY_META[e.activityType] || {}).label || e.activityType, e.title, e.description, e.status];
+            }),
+            styles: { fontSize: 8 }
+        });
+        doc.save('EmployeeHistory.pdf');
+    });
+
+    $('#ehBtnPrint').on('click', function () { window.print(); });
+
+    $('#btnBackUpdateEmployee').on('click', function () {
+        window.location.href = window.location.origin + '/AdminPanel/EmployeeMaster/AdditionalInformation';
+    });
+
+    /* ── Employee search bar — always visible so HR can look up any
+       employee's history directly from this page ──────────────────── */
+    function loadEmployeeSearchOptions(selectAfterLoad) {
+        $.ajax({
+            url: apiBase + '/EmployeeMasterAPI/GetAllEmployee?companyId=' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (!response.isSuccess) return;
+                var $sel = $('#ehEmpSearch');
+                (response.data || []).forEach(function (d) {
+                    var id = d.employeeId || d.id || d.EmployeeId;
+                    var name = d.fullName || d.FullName || '';
+                    var code = d.alfaEmployeeCode || d.employeeCode || '';
+                    $('<option>').val(id).text(code ? (name + ' (' + code + ')') : name).appendTo($sel);
+                });
+                if (selectAfterLoad) $sel.val(String(selectAfterLoad));
+                if (typeof WmsSingleDropdown === 'function') WmsSingleDropdown($sel[0]);
+            }
+        });
+    }
+
+    $('#ehEmpSearchGoBtn').on('click', function () {
+        var id = parseInt($('#ehEmpSearch').val());
+        if (!id) { showToast('Please select an employee.', 'error'); return; }
+        if (id === CurrentEmployeeId) return;
+        localStorage.setItem('CurrentEmployeeId', id);
+        window.location.reload();
+    });
+
+    /* ── Init ────────────────────────────────────────────────────────── */
+    $(document).ready(function () {
+        loadEmployeeSearchOptions(CurrentEmployeeId);
+        if (!CurrentEmployeeId) {
+            $('#ehEmptyState').show();
+            return;
+        }
+        $('#ehMainContent').show();
+        loadEmployeeHeader();
+        loadTimeline();
+        loadWarningTypes();
+    });
+})();
 </script>

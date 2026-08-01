@@ -175,6 +175,16 @@ namespace HRMS_Infrastructure.Repository
             CommonReasonsRepository = new CommonReasonsRepository(_dbContext);
             LoanApplicationRepository = new LoanApplicationRepository(_dbContext);
             EmployeeTransferRepository = new EmployeeTransferRepository(_dbContext);
+            EmployeeDesignationHistoryRepository = new EmployeeDesignationHistoryRepository(_dbContext);
+            EmployeeDepartmentHistoryRepository = new EmployeeDepartmentHistoryRepository(_dbContext);
+            EmployeeShiftHistoryRepository = new EmployeeShiftHistoryRepository(_dbContext);
+            EmployeeRecruitmentDetailsRepository = new EmployeeRecruitmentDetailsRepository(_dbContext);
+            EmployeePerformanceReviewRepository = new EmployeePerformanceReviewRepository(_dbContext);
+            EmployeeTrainingRepository = new EmployeeTrainingRepository(_dbContext);
+            EmployeeCertificationRepository = new EmployeeCertificationRepository(_dbContext);
+            EmployeeAwardRepository = new EmployeeAwardRepository(_dbContext);
+            EmployeeWarningHistoryRepository = new EmployeeWarningHistoryRepository(_dbContext);
+            EmployeeHistoryRepository = new EmployeeHistoryRepository(_dbContext);
             ExitApplicationRepository = new ExitApplicationRepository(_dbContext);
             NOCRepository = new NOCRepository(_dbContext);
             NewsAnnouncementRepository = new NewsAnnouncementRepository(_dbContext);
@@ -316,6 +326,16 @@ namespace HRMS_Infrastructure.Repository
         public ILoanApplicationRepository LoanApplicationRepository { get; set; }
 
         public IEmployeeTransferRepository EmployeeTransferRepository { get; set; }
+        public IEmployeeDesignationHistoryRepository EmployeeDesignationHistoryRepository { get; set; }
+        public IEmployeeDepartmentHistoryRepository EmployeeDepartmentHistoryRepository { get; set; }
+        public IEmployeeShiftHistoryRepository EmployeeShiftHistoryRepository { get; set; }
+        public IEmployeeRecruitmentDetailsRepository EmployeeRecruitmentDetailsRepository { get; set; }
+        public IEmployeePerformanceReviewRepository EmployeePerformanceReviewRepository { get; set; }
+        public IEmployeeTrainingRepository EmployeeTrainingRepository { get; set; }
+        public IEmployeeCertificationRepository EmployeeCertificationRepository { get; set; }
+        public IEmployeeAwardRepository EmployeeAwardRepository { get; set; }
+        public IEmployeeWarningHistoryRepository EmployeeWarningHistoryRepository { get; set; }
+        public IEmployeeHistoryRepository EmployeeHistoryRepository { get; set; }
         public IExitApplicationRepository ExitApplicationRepository { get; set; }
 
         public INOCRepository NOCRepository { get; set; }

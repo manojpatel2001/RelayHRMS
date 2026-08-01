@@ -43,6 +43,25 @@ namespace HRMS_API.Controllers.Employee
             }
         }
 
+        [HttpGet("GetTodayInOutStatus/{employeeId}")]
+        public async Task<APIResponse> GetTodayInOutStatus(int employeeId)
+        {
+            try
+            {
+                var response = await _unitOfWork.EmployeeInOutRepository.GetTodayInOutStatus(employeeId);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = $"An error occurred: {ex.Message}",
+                    Data = null
+                };
+            }
+        }
+
         [HttpPost("UpdateEmpOutTime")]
         public async Task<APIResponse> UpdateEmpOutTime([FromBody] EmployeeInOutRecord request)
         {

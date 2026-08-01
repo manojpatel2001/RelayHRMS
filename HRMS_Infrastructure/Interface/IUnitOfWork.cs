@@ -149,6 +149,16 @@ namespace HRMS_Infrastructure.Interface
         ICommonReasonsRepository CommonReasonsRepository { get; }
         ILoanApplicationRepository LoanApplicationRepository { get; }
         IEmployeeTransferRepository EmployeeTransferRepository { get; }
+        IEmployeeDesignationHistoryRepository EmployeeDesignationHistoryRepository { get; }
+        IEmployeeDepartmentHistoryRepository EmployeeDepartmentHistoryRepository { get; }
+        IEmployeeShiftHistoryRepository EmployeeShiftHistoryRepository { get; }
+        IEmployeeRecruitmentDetailsRepository EmployeeRecruitmentDetailsRepository { get; }
+        IEmployeePerformanceReviewRepository EmployeePerformanceReviewRepository { get; }
+        IEmployeeTrainingRepository EmployeeTrainingRepository { get; }
+        IEmployeeCertificationRepository EmployeeCertificationRepository { get; }
+        IEmployeeAwardRepository EmployeeAwardRepository { get; }
+        IEmployeeWarningHistoryRepository EmployeeWarningHistoryRepository { get; }
+        IEmployeeHistoryRepository EmployeeHistoryRepository { get; }
         IExitApplicationRepository ExitApplicationRepository { get; }
         INOCRepository NOCRepository { get; }
         INewsAnnouncementRepository NewsAnnouncementRepository { get; }

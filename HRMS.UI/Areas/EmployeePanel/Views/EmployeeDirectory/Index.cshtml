@@ -55,7 +55,7 @@
     }
 
     .search-panel-container {
-        background-color: #3e4b6d;
+        background-color: #3E6A8C;
         padding: 6px 15px;
         border-radius: 6px;
         margin-bottom: 15px;
@@ -91,14 +91,14 @@
         <div class="col-12 col-md-4 mb-3 mb-md-0">
             <div class="d-flex flex-column flex-md-row align-items-md-center">
                 <label for="branchid" class="fixed-label mb-1 mb-md-0">Branch:</label>
-                <div id="branchid" class="flex-grow-1" style="width: 100%"></div>
+                <select id="branchid" multiple class="flex-grow-1" style="width: 100%" data-placeholder="--Select Branch--"></select>
             </div>
         </div>
 
         <div class="col-12 col-md-4 mb-3 mb-md-0">
             <div class="d-flex flex-column flex-md-row align-items-md-center">
                 <label for="departmentid" class="fixed-label mb-1 mb-md-0">Department:</label>
-                <div id="departmentid" class="flex-grow-1" style="width: 100%"></div>
+                <select id="departmentid" multiple class="flex-grow-1" style="width: 100%" data-placeholder="--Select Department--"></select>
             </div>
         </div>
     </div>
@@ -108,7 +108,7 @@
         <div class="col-12 col-md-4 mb-3 mb-md-0">
             <div class="d-flex flex-column flex-md-row align-items-md-center">
                 <label for="designationid" class="fixed-label mb-1 mb-md-0">Designation:</label>
-                <div id="designationid" class="flex-grow-1" style="width: 100%"></div>
+                <select id="designationid" multiple class="flex-grow-1" style="width: 100%" data-placeholder="--Select Designation--"></select>
             </div>
         </div>
 
@@ -121,7 +121,7 @@
     </div>
 
     <!-- Third Row -->
-    <div class="row justify-content-center mt-md-3">
+    <div class="row justify-content-center align-items-md-center mt-md-3">
         <div class="col-12 col-md-4 mb-3 mb-md-0">
             <div class="d-flex flex-column flex-md-row align-items-md-center">
                 <label for="employeeid" class="fixed-label mb-1 mb-md-0">Employee Status:</label>
@@ -133,10 +133,10 @@
             </div>
         </div>
 
-        <div class="col-12 col-md-4 d-flex justify-content-center justify-content-md-start mt-2 mt-md-0">
-            <div class="d-flex gap-2">
-                <button type="button" class="search-panel-container search-heading btn-sm" id="gobutoonid">GO</button>
-                <button type="button" class="search-panel-container search-heading btn-sm" id="clearbuttonid">Clear</button>
+        <div class="col-12 col-md-4 d-flex align-items-center justify-content-center justify-content-md-start mt-2 mt-md-0">
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-primary btn-sm" id="gobutoonid">GO</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="clearbuttonid">Clear</button>
             </div>
         </div>
     </div>
@@ -353,7 +353,15 @@
     const Token=localStorage.getItem("authToken");
 
     $(document).ready(function(){
-        
+        // Build the searchable multi-select widget on each (still empty) select
+        // right away, before its options load — same approach as the
+        // Attendance Register page — so the plain multi-select box never
+        // flashes on screen while the ajax calls below are in flight.
+        if (typeof WmsMultiDropdown === 'function') {
+            WmsMultiDropdown(document.getElementById('branchid'));
+            WmsMultiDropdown(document.getElementById('departmentid'));
+            WmsMultiDropdown(document.getElementById('designationid'));
+        }
 
         loadbrach();
         loaddepartment();
@@ -366,7 +374,11 @@
 
     });
 
-
+    function getSelectedIds(selector) {
+        const val = $(selector).val();
+        if (!val) return [];
+        return Array.isArray(val) ? val : [val];
+    }
 
         function loadbrach() {
         $.ajax({
@@ -376,27 +388,11 @@
                 'Authorization': 'Bearer ' + Token
             },
             success: function (response) {
-                    $("#branchid").dxTagBox({
-                        items: response.data,
-                        displayExpr: "branchName",
-                        valueExpr: "branchId",
-                        placeholder: "--Select Branch--",
-                        showSelectionControls: true,
-                        searchEnabled: true,
-                        showClearButton: true,
-                        maxDisplayedTags: 3,
-                        applyValueMode: "instantly",
-                        multiline: false,
-                        minSearchLength: 0,
-                        dropDownWidth: "auto",
-                            width: "100%",
-                        onValueChanged: function (e) {
-                            let selectedBranchIds = e.value.length > 0 ? e.value : [0];
-                            // BindEmployeeDropdownByBranch(selectedBranchIds);
-                        }
-                        
+                    const $dd = $('#branchid');
+                    $dd.empty();
+                    (response.data || []).forEach(function (branch) {
+                        $('<option>').val(branch.branchId).text(branch.branchName).appendTo($dd);
                     });
-                
             }
         });
     }
@@ -410,25 +406,11 @@
                 'Authorization': 'Bearer ' + Token
             },
             success: function (response) {
-                    $("#departmentid").dxTagBox({
-                        items: response.data||[],
-                        displayExpr: "departmentName",
-                        valueExpr: "departmentId",
-                        placeholder: "--Select Department--",
-                        showSelectionControls: true,
-                        searchEnabled: true,
-                        showClearButton: true,
-                        maxDisplayedTags: 3,
-                        applyValueMode: "instantly",
-                        multiline: false,
-                        minSearchLength: 0,
-                        width: "100%",
-                        onValueChanged: function (e) {
-                            let selecteddepids = e.value.length > 0 ? e.value : [0];
-                            // BindEmployeeDropdownByBranch(selectedBranchIds);
-                        }
+                    const $dd = $('#departmentid');
+                    $dd.empty();
+                    (response.data || []).forEach(function (dept) {
+                        $('<option>').val(dept.departmentId).text(dept.departmentName).appendTo($dd);
                     });
-                
             }
         });
     }
@@ -442,25 +424,11 @@
                 'Authorization': 'Bearer ' + Token
             },
             success: function (response) {
-                    $("#designationid").dxTagBox({
-                        items: response.data||[],
-                        displayExpr: "designationName",
-                        valueExpr: "designationId",
-                        placeholder: "--Select Designation--",
-                        showSelectionControls: true,
-                        searchEnabled: true,
-                        showClearButton: true,
-                        maxDisplayedTags: 3,
-                        applyValueMode: "instantly",
-                        multiline: false,
-                        minSearchLength: 0,
-                        width: "100%",
-                        onValueChanged: function (e) {
-                            let selecteddepids = e.value.length > 0 ? e.value : [0];
-                            // BindEmployeeDropdownByBranch(selectedBranchIds);
-                        }
+                    const $dd = $('#designationid');
+                    $dd.empty();
+                    (response.data || []).forEach(function (desig) {
+                        $('<option>').val(desig.designationId).text(desig.designationName).appendTo($dd);
                     });
-             
             }
         });
    }
@@ -479,9 +447,9 @@
          }
 
          const payload = {
-                 BranchId: $('#branchid').dxTagBox("instance").option("value").join(','),     
-             DepartmentId: $('#departmentid').dxTagBox("instance").option("value").join(','), 
-             DesignationId: $('#designationid').dxTagBox("instance").option("value").join(','),
+                 BranchId: getSelectedIds('#branchid').join(','),
+             DepartmentId: getSelectedIds('#departmentid').join(','),
+             DesignationId: getSelectedIds('#designationid').join(','),
                     EmpCodeName: $('#empid').val(),
              isenable: isenable,
              isdeleted: isdeleted

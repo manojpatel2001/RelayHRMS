@@ -202,7 +202,7 @@
    WMS-style Toast  (showToast) + Confirm Dialog (wmsConfirm)
    Copied from WMS project — used by all migrated WMSGrid pages.
    ════════════════════════════════════════════════════════════════════════ */
-function showToast(msg, type) {
+function showToast(msg, type, duration) {
     document.querySelectorAll('.wms-toast').forEach(function (t) { t.remove(); });
     var colorMap   = { success:'#166534',green:'#166534', warn:'#92400E',warning:'#92400E',amber:'#92400E', error:'#991B1B',red:'#991B1B', info:'#1565C0',blue:'#1565C0' };
     var bgMap      = { success:'#DCFCE7',green:'#DCFCE7', warn:'#FEF3C7',warning:'#FEF3C7',amber:'#FEF3C7', error:'#FEE2E2',red:'#FEE2E2', info:'#DBEAFE',blue:'#DBEAFE' };
@@ -223,7 +223,7 @@ function showToast(msg, type) {
     document.body.appendChild(toast);
     setTimeout(function () {
         if (toast.parentNode) { toast.style.animation = 'wmsSlideOut .3s ease forwards'; setTimeout(function () { if (toast.parentNode) toast.remove(); }, 280); }
-    }, 3000);
+    }, duration || 3000);
 }
 
 /* ════════════════════════════════════════════════════════════════════════

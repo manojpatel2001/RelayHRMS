@@ -51,6 +51,10 @@ namespace HRMS_Infrastructure.Repository.JobMaster
                     parameters.Add("@BranchWiseNewsAnnoun", model.BranchWiseNewsAnnoun);
                     parameters.Add("@IsEnabled", model.IsEnabled);
                     parameters.Add("@IsDeleted", model.IsDeleted);
+                    parameters.Add("@PopupDurationSeconds", model.PopupDurationSeconds);
+                    parameters.Add("@IsPopShowOnce", model.IsPopShowOnce);
+                    parameters.Add("@LoginNotificationDurationSeconds", model.LoginNotificationDurationSeconds);
+                    parameters.Add("@IsLoginNotificationShowOnce", model.IsLoginNotificationShowOnce);
                     parameters.Add("@CreatedBy", model.CreatedBy);
 
                     var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(
@@ -120,6 +124,10 @@ namespace HRMS_Infrastructure.Repository.JobMaster
                     parameters.Add("@IsLoginNotification", model.IsLoginNotification);
                     parameters.Add("@BranchWiseNewsAnnoun", model.BranchWiseNewsAnnoun);
                     parameters.Add("@IsEnabled", model.IsEnabled);
+                    parameters.Add("@PopupDurationSeconds", model.PopupDurationSeconds);
+                    parameters.Add("@IsPopShowOnce", model.IsPopShowOnce);
+                    parameters.Add("@LoginNotificationDurationSeconds", model.LoginNotificationDurationSeconds);
+                    parameters.Add("@IsLoginNotificationShowOnce", model.IsLoginNotificationShowOnce);
                     parameters.Add("@UpdatedBy", model.UpdatedBy);
 
                     var result = await connection.QueryFirstOrDefaultAsync<SP_Response>(

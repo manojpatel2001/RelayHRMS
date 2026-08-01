@@ -18,6 +18,25 @@ namespace HRMS_API.Controllers.Employee
         }
 
 
+        [HttpGet("GetRecentActivity")]
+        public async Task<APIResponse> GetRecentActivity(int EmployeeId, int Compid)
+        {
+            try
+            {
+                var data = await _unitOfWork.EmployeeDashboardRepository.GetRecentActivity(EmployeeId, Compid);
+                return new APIResponse() { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve records, Please try again later!"
+                };
+            }
+        }
+
         [HttpGet("GetRecentJoinedEmployees")]
         public async Task<APIResponse> GetRecentJoinedEmployees(int Compid)
         {
