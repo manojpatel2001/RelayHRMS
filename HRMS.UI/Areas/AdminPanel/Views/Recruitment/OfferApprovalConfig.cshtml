@@ -1,0 +1,193 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Offer Approval Configuration";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Offer Approval Configuration</h6>
+        <button id="btnAddLevel" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bx bx-plus"></i> Add Approval Level
+        </button>
+    </div>
+    <div class="card-body">
+        <p class="text-muted">
+            Configure the approver chain for offers raised in this company. Recruiter and Hiring Manager
+            resolve automatically from the Job Position; other roles need a fixed approver.
+        </p>
+        <div id="levelConfigGridContainer"></div>
+    </div>
+</div>
+
+<!-- ===== Add / Edit Modal ===== -->
+<div class="modal fade" id="levelConfigModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><span class="formType">Add</span> Approval Level</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="mb-2">
+                    <label class="fg-req">Level No.</label>
+                    <input type="number" min="1" id="txtLevelNo" class="form-control" />
+                </div>
+                <div class="mb-2">
+                    <label class="fg-req">Approver Role</label>
+                    <select id="ddlApproverRole" class="form-select">
+                        <option value="Recruiter">Recruiter (auto — Job Position owner)</option>
+                        <option value="HiringManager">Hiring Manager (auto — Job Position reporting manager)</option>
+                        <option value="DepartmentHead">Department Head</option>
+                        <option value="HRManager">HR Manager</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Management">Management</option>
+                    </select>
+                </div>
+                <div class="mb-2" id="wrapFixedApprover">
+                    <label>Fixed Approver</label>
+                    <select id="ddlFixedApprover" class="form-select"><option value="">Select</option></select>
+                </div>
+                <div class="mb-2">
+                    <label>Escalation Days</label>
+                    <input type="number" min="1" id="txtEscalationDays" class="form-control" value="2" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btnSubmitLevel" class="btn btn-primary btn-sm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    const Token = localStorage.getItem("authToken");
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails ? companyDetails.CompanyId : null;
+    const EmployeeId = localStorage.getItem("EmployeeId");
+    let levelConfigId = 0;
+
+    $(document).ready(function () {
+        loadLevelConfig();
+        loadFixedApproverDropdown();
+    });
+
+    $('#ddlApproverRole').on('change', function () {
+        var autoResolved = $(this).val() === 'Recruiter' || $(this).val() === 'HiringManager';
+        $('#wrapFixedApprover').toggle(!autoResolved);
+    });
+
+    var levelConfigGrid = WMSGrid.create({
+        container: 'levelConfigGridContainer',
+        title: 'Approval Chain',
+        icon: 'bx-list-ol',
+        columns: [
+            { field: 'levelNo', header: 'Level', width: '70px', align: 'center' },
+            { field: 'approverRole', header: 'Approver Role', width: '160px' },
+            { field: 'fixedApproverEmployeeId', header: 'Fixed Approver Id', width: '140px' },
+            { field: 'escalationDays', header: 'Escalation (Days)', width: '140px', align: 'center' },
+            { field: 'isActive', header: 'Active', width: '80px', align: 'center', render: function (v) { return v ? '<i class="bx bx-check text-success"></i>' : ''; } },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '130px',
+                render: function (v, row) {
+                    return '<button class="wg-btn wg-btn-primary" title="Edit" onclick="_editLevel(' + row.offerApprovalLevelConfigId + ')"><i class="bx bx-edit"></i></button> ' +
+                           '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteLevel(' + row.offerApprovalLevelConfigId + ')"><i class="bx bx-trash"></i></button>';
+                }
+            }
+        ]
+    });
+
+    function loadLevelConfig() {
+        levelConfigGrid.showLoader();
+        $.ajax({
+            url: '@baseUrl/OfferApprovalAPI/GetLevelConfig?companyId=' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) { levelConfigGrid.setData(res.data || []); levelConfigGrid.hideLoader(); },
+            error: function () { levelConfigGrid.hideLoader(); showToast('Failed to load approval configuration.', 'error'); }
+        });
+    }
+
+    function loadFixedApproverDropdown() {
+        $.ajax({
+            url: '@baseUrl/EmployeeMasterAPI/GetAllEmployee_DropDown/' + CompanyId + '?BranchId=&Month=0&Year=0',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                var $sel = $('#ddlFixedApprover').empty().append('<option value="">Select</option>');
+                (response.data || []).forEach(function (item) {
+                    $sel.append($('<option>', { value: item.employeeId, text: item.fullName }));
+                });
+            },
+            error: function () { /* non-fatal */ }
+        });
+    }
+
+    $('#btnAddLevel').click(function () {
+        levelConfigId = 0;
+        $('#levelConfigModal .form-control, #levelConfigModal .form-select').val('');
+        $('#txtEscalationDays').val(2);
+        $('.formType').text('Add');
+        $('#wrapFixedApprover').show();
+        $('#levelConfigModal').modal('show');
+    });
+
+    $('#btnSubmitLevel').click(function () {
+        if (!$('#txtLevelNo').val() || !$('#ddlApproverRole').val()) {
+            showToast('Level number and approver role are required.', 'error');
+            return;
+        }
+
+        var payload = {
+            OfferApprovalLevelConfigId: levelConfigId,
+            CompanyId: CompanyId,
+            LevelNo: parseInt($('#txtLevelNo').val()),
+            ApproverRole: $('#ddlApproverRole').val(),
+            FixedApproverEmployeeId: $('#ddlFixedApprover').val() || null,
+            EscalationDays: parseInt($('#txtEscalationDays').val()) || 2,
+            IsActive: true,
+            CreatedBy: EmployeeId,
+            UpdatedBy: EmployeeId
+        };
+
+        $.ajax({
+            type: 'POST', url: '@baseUrl/OfferApprovalAPI/SaveLevelConfig',
+            data: JSON.stringify(payload), contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Saved successfully.', 'success'); $('#levelConfigModal').modal('hide'); loadLevelConfig(); }
+                else showToast(res.responseMessage || 'Save failed.', 'error');
+            }
+        });
+    });
+
+    window._editLevel = function (id) {
+        var row = (levelConfigGrid.getData ? levelConfigGrid.getData() : []).find(function (r) { return r.offerApprovalLevelConfigId === id; });
+        if (!row) return;
+        levelConfigId = id;
+        $('#txtLevelNo').val(row.levelNo);
+        $('#ddlApproverRole').val(row.approverRole).trigger('change');
+        $('#ddlFixedApprover').val(row.fixedApproverEmployeeId);
+        $('#txtEscalationDays').val(row.escalationDays);
+        $('.formType').text('Edit');
+        $('#levelConfigModal').modal('show');
+    };
+
+    window._deleteLevel = function (id) {
+        if (!confirm('Remove this approval level?')) return;
+        $.ajax({
+            type: 'DELETE', url: '@baseUrl/OfferApprovalAPI/DeleteLevelConfig/' + id + '?deletedBy=' + EmployeeId,
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Removed successfully.', 'success'); loadLevelConfig(); }
+                else showToast(res.responseMessage || 'Delete failed.', 'error');
+            }
+        });
+    };
+</script>

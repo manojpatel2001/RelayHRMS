@@ -1,0 +1,128 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Candidate Applications";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Candidate Applications</h6>
+        <div class="d-flex align-items-center gap-2">
+            <select id="ddlJobPositionFilter" class="form-select form-select-sm" style="width:260px">
+                <option value="">All Job Positions</option>
+            </select>
+            <a href="@Url.Action("CandidateApplicationForm", "Recruitment")" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bx bx-plus"></i> Add Candidate Application
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="candidateApplicationGridContainer"></div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    const Token = localStorage.getItem("authToken");
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails ? companyDetails.CompanyId : null;
+    const EmployeeId = localStorage.getItem("EmployeeId");
+
+    $(document).ready(function () {
+        loadJobPositionDropdown();
+        loadApplications();
+    });
+
+    function fmtDate(v) {
+        if (!v) return '';
+        var d = new Date(v);
+        if (isNaN(d)) return '';
+        return ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
+    }
+
+    function recommendationBadge(rec) {
+        if (!rec) return '<span class="badge bg-secondary">Not Screened</span>';
+        var colors = { 'Strong Match': 'success', 'Moderate Match': 'warning', 'Weak Match': 'danger' };
+        return '<span class="badge bg-' + (colors[rec] || 'secondary') + '">' + rec + '</span>';
+    }
+
+    function stageBadge(stage) {
+        return '<span class="badge bg-info text-dark">' + (stage || '') + '</span>';
+    }
+
+    var applicationGrid = WMSGrid.create({
+        container: 'candidateApplicationGridContainer',
+        title: 'All Candidate Applications',
+        icon: 'bx-user',
+        columns: [
+            { field: 'fullName', header: 'Candidate', width: '180px' },
+            { field: 'email', header: 'Email', width: '200px' },
+            { field: 'phone', header: 'Phone', width: '120px' },
+            { field: 'positionTitle', header: 'Job Position', width: '180px' },
+            { field: 'currentEmployer', header: 'Current Employer', width: '160px' },
+            { field: 'totalExperienceYears', header: 'Exp (Yrs)', width: '90px', align: 'center' },
+            { field: 'expectedCTC', header: 'Expected CTC', width: '110px', align: 'right' },
+            { field: 'overallScore', header: 'Score', width: '80px', align: 'center', render: function (v) { return v != null ? v : '-'; } },
+            { field: 'recommendation', header: 'Recommendation', width: '140px', render: function (v) { return recommendationBadge(v); } },
+            { field: 'stageName', header: 'Pipeline Stage', width: '140px', render: function (v) { return stageBadge(v); } },
+            { field: 'applicationDate', header: 'Applied On', width: '110px', render: function (v) { return fmtDate(v); } },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '90px',
+                render: function (v, row) {
+                    return '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteApplication(' + row.candidateApplicationId + ')"><i class="bx bx-trash"></i></button>';
+                }
+            }
+        ],
+        features: { export: true }
+    });
+
+    function loadJobPositionDropdown() {
+        $.ajax({
+            url: '@baseUrl/JobPositionAPI/GetJobPositionDropdown/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                var $sel = $('#ddlJobPositionFilter');
+                // Dynamic Dapper rows preserve the SQL column-alias casing (PascalCase).
+                (response.data || []).forEach(function (item) {
+                    $sel.append($('<option>', { value: item.JobPositionId, text: item.PositionTitle }));
+                });
+            }
+        });
+    }
+
+    $('#ddlJobPositionFilter').on('change', loadApplications);
+
+    function loadApplications() {
+        applicationGrid.showLoader();
+        var jobPositionId = $('#ddlJobPositionFilter').val() || null;
+        $.ajax({
+            type: 'POST',
+            url: '@baseUrl/CandidateApplicationAPI/GetAllCandidateApplications',
+            data: JSON.stringify({ JobPositionId: jobPositionId }),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) { applicationGrid.setData(res.data || []); applicationGrid.hideLoader(); },
+            error: function () { applicationGrid.hideLoader(); showToast('Failed to load candidate applications.', 'error'); }
+        });
+    }
+
+    window._deleteApplication = function (id) {
+        if (!confirm('Delete this candidate application?')) return;
+        $.ajax({
+            type: 'DELETE',
+            url: '@baseUrl/CandidateApplicationAPI/DeleteCandidateApplication',
+            data: JSON.stringify({ Id: id, DeletedBy: EmployeeId }),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Deleted successfully.', 'success'); loadApplications(); }
+                else showToast(res.responseMessage || 'Delete failed.', 'error');
+            }
+        });
+    };
+</script>

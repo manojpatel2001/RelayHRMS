@@ -1,0 +1,388 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Salary Structure Master";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Salary Structure Templates</h6>
+        <button id="btnAddTemplate" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bx bx-plus"></i> Add Template
+        </button>
+    </div>
+    <div class="card-body">
+        <div id="templateGridContainer"></div>
+    </div>
+</div>
+
+<!-- ===== Add / Edit Template Modal ===== -->
+<div class="modal fade" id="templateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><span class="formType">Add</span> Salary Structure Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="mb-2">
+                    <label class="fg-req">Template Name</label>
+                    <input type="text" id="txtTemplateName" class="form-control" placeholder="e.g. Standard CTC Template - E1" />
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label>Grade</label>
+                        <select id="ddlTemplateGrade" class="form-select"><option value="">Any Grade</option></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label>Designation</label>
+                        <select id="ddlTemplateDesignation" class="form-select"><option value="">Any Designation</option></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label>Status</label>
+                        <select id="ddlTemplateStatus" class="form-select">
+                            <option>Active</option>
+                            <option>Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" id="chkIsDefault">
+                            <label class="form-check-label" for="chkIsDefault">Default template for this Grade/Designation</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btnSubmitTemplate" class="btn btn-primary btn-sm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Manage Components Modal ===== -->
+<div class="modal fade" id="componentsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Components — <span id="componentsTemplateName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="d-flex justify-content-end mb-2">
+                    <button id="btnAddComponent" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                        <i class="bx bx-plus"></i> Add Component
+                    </button>
+                </div>
+                <div id="componentGridContainer"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Add / Edit Component Modal ===== -->
+<div class="modal fade" id="componentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><span class="componentFormType">Add</span> Component</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="mb-2">
+                    <label class="fg-req">Component Name</label>
+                    <input type="text" id="txtComponentName" class="form-control" placeholder="e.g. Basic, HRA, Special Allowance" />
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="fg-req">Category</label>
+                        <select id="ddlComponentCategory" class="form-select">
+                            <option value="Earning">Earning</option>
+                            <option value="Statutory">Statutory</option>
+                            <option value="Bonus">Bonus</option>
+                            <option value="Deduction">Deduction</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="fg-req">Calculation Type</label>
+                        <select id="ddlCalculationType" class="form-select">
+                            <option value="PercentOfCTC">% of CTC</option>
+                            <option value="PercentOfBasic">% of Basic</option>
+                            <option value="FlatAmount">Flat Amount</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="fg-req" id="lblComponentValue">Value (%)</label>
+                        <input type="number" step="0.0001" min="0" id="txtComponentValue" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label>Sort Order</label>
+                        <input type="number" min="0" id="txtComponentSortOrder" class="form-control" value="0" />
+                    </div>
+                </div>
+                <div class="form-text mt-2">
+                    "% of CTC" and "Flat Amount" components resolve first (e.g. Basic); "% of Basic" components (e.g. HRA, PF) are calculated from the resolved Basic amount.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btnSubmitComponent" class="btn btn-primary btn-sm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    const Token = localStorage.getItem("authToken");
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails ? companyDetails.CompanyId : null;
+    const EmployeeId = localStorage.getItem("EmployeeId");
+    let templateId = 0;
+    let componentId = 0;
+    let activeTemplateId = 0;
+
+    $(document).ready(function () {
+        loadTemplates();
+        loadTemplateDropdowns();
+    });
+
+    function fillSelect(selector, data, valueKey, textKey, placeholder) {
+        var $sel = $(selector);
+        var current = $sel.val();
+        $sel.empty().append('<option value="">' + placeholder + '</option>');
+        (data || []).forEach(function (item) {
+            $sel.append($('<option>', { value: item[valueKey], text: item[textKey] }));
+        });
+        if (current) $sel.val(current);
+    }
+
+    function loadTemplateDropdowns() {
+        $.ajax({
+            url: '@baseUrl/GradeAPI/GetAllGrade',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) { fillSelect('#ddlTemplateGrade', response.data, 'gradeId', 'gradeName', 'Any Grade'); }
+        });
+        $.ajax({
+            url: '@baseUrl/DesignationAPI/GetAllDesignationByCompanyId/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) { fillSelect('#ddlTemplateDesignation', response.data, 'designationId', 'designationName', 'Any Designation'); }
+        });
+    }
+
+    // ===== Templates grid =====
+    var templateGrid = WMSGrid.create({
+        container: 'templateGridContainer',
+        title: 'Templates',
+        icon: 'bx-wallet',
+        columns: [
+            { field: 'templateName', header: 'Template Name', width: '240px' },
+            { field: 'gradeName', header: 'Grade', width: '120px', render: function (v) { return v || 'Any'; } },
+            { field: 'designationName', header: 'Designation', width: '160px', render: function (v) { return v || 'Any'; } },
+            { field: 'isDefault', header: 'Default', width: '90px', align: 'center', render: function (v) { return v ? '<span class="badge bg-primary">Default</span>' : ''; } },
+            { field: 'status', header: 'Status', width: '100px', render: function (v) { return '<span class="badge bg-' + (v === 'Active' ? 'success' : 'secondary') + '">' + (v || '') + '</span>'; } },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '160px',
+                render: function (v, row) {
+                    return '<button class="wg-btn wg-btn-outline" title="Components" onclick="_manageComponents(' + row.salaryStructureTemplateId + ', \'' + (row.templateName || '').replace(/'/g, "\\'") + '\')"><i class="bx bx-list-ul"></i></button> ' +
+                           '<button class="wg-btn wg-btn-primary" title="Edit" onclick="_editTemplate(' + row.salaryStructureTemplateId + ')"><i class="bx bx-edit"></i></button> ' +
+                           '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteTemplate(' + row.salaryStructureTemplateId + ')"><i class="bx bx-trash"></i></button>';
+                }
+            }
+        ],
+        features: { export: true }
+    });
+
+    function loadTemplates() {
+        templateGrid.showLoader();
+        $.ajax({
+            url: '@baseUrl/SalaryStructureAPI/GetAllTemplates?companyId=' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) { templateGrid.setData(res.data || []); templateGrid.hideLoader(); },
+            error: function () { templateGrid.hideLoader(); showToast('Failed to load templates.', 'error'); }
+        });
+    }
+
+    $('#btnAddTemplate').click(function () {
+        templateId = 0;
+        $('#txtTemplateName').val('');
+        $('#ddlTemplateGrade').val('');
+        $('#ddlTemplateDesignation').val('');
+        $('#ddlTemplateStatus').val('Active');
+        $('#chkIsDefault').prop('checked', false);
+        $('.formType').text('Add');
+        $('#templateModal').modal('show');
+    });
+
+    $('#btnSubmitTemplate').click(function () {
+        if (!$('#txtTemplateName').val()) { showToast('Template name is required.', 'error'); return; }
+
+        var payload = {
+            SalaryStructureTemplateId: templateId,
+            TemplateName: $('#txtTemplateName').val(),
+            GradeId: $('#ddlTemplateGrade').val() || null,
+            DesignationId: $('#ddlTemplateDesignation').val() || null,
+            CompanyId: CompanyId,
+            IsDefault: $('#chkIsDefault').is(':checked'),
+            Status: $('#ddlTemplateStatus').val(),
+            CreatedBy: EmployeeId,
+            UpdatedBy: EmployeeId
+        };
+
+        var url = templateId > 0 ? '@baseUrl/SalaryStructureAPI/UpdateTemplate' : '@baseUrl/SalaryStructureAPI/CreateTemplate';
+        $.ajax({
+            type: 'POST', url: url, data: JSON.stringify(payload), contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Saved successfully.', 'success'); $('#templateModal').modal('hide'); loadTemplates(); }
+                else showToast(res.responseMessage || 'Save failed.', 'error');
+            }
+        });
+    });
+
+    window._editTemplate = function (id) {
+        var row = (templateGrid.getData ? templateGrid.getData() : []).find(function (r) { return r.salaryStructureTemplateId === id; });
+        if (!row) return;
+        templateId = id;
+        $('#txtTemplateName').val(row.templateName);
+        $('#ddlTemplateGrade').val(row.gradeId || '');
+        $('#ddlTemplateDesignation').val(row.designationId || '');
+        $('#ddlTemplateStatus').val(row.status || 'Active');
+        $('#chkIsDefault').prop('checked', !!row.isDefault);
+        $('.formType').text('Edit');
+        $('#templateModal').modal('show');
+    };
+
+    window._deleteTemplate = function (id) {
+        if (!confirm('Delete this salary structure template? This also removes its components.')) return;
+        $.ajax({
+            type: 'DELETE', url: '@baseUrl/SalaryStructureAPI/DeleteTemplate',
+            data: JSON.stringify({ Id: id, DeletedBy: EmployeeId }), contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Deleted successfully.', 'success'); loadTemplates(); }
+                else showToast(res.responseMessage || 'Delete failed.', 'error');
+            }
+        });
+    };
+
+    // ===== Components grid (inside modal) =====
+    var componentGrid = WMSGrid.create({
+        container: 'componentGridContainer',
+        title: 'Components',
+        icon: 'bx-list-ul',
+        columns: [
+            { field: 'sortOrder', header: '#', width: '50px', align: 'center' },
+            { field: 'componentName', header: 'Component', width: '160px' },
+            { field: 'componentCategory', header: 'Category', width: '110px' },
+            { field: 'calculationType', header: 'Calculation', width: '130px', render: function (v) { return ({ PercentOfCTC: '% of CTC', PercentOfBasic: '% of Basic', FlatAmount: 'Flat Amount' })[v] || v; } },
+            { field: 'value', header: 'Value', width: '100px', align: 'right' },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '110px',
+                render: function (v, row) {
+                    return '<button class="wg-btn wg-btn-primary" title="Edit" onclick="_editComponent(' + row.salaryStructureComponentId + ')"><i class="bx bx-edit"></i></button> ' +
+                           '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteComponent(' + row.salaryStructureComponentId + ')"><i class="bx bx-trash"></i></button>';
+                }
+            }
+        ]
+    });
+
+    window._manageComponents = function (id, name) {
+        activeTemplateId = id;
+        $('#componentsTemplateName').text(name || '');
+        loadComponents();
+        $('#componentsModal').modal('show');
+    };
+
+    function loadComponents() {
+        componentGrid.showLoader();
+        $.ajax({
+            url: '@baseUrl/SalaryStructureAPI/GetComponentsByTemplateId/' + activeTemplateId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) { componentGrid.setData(res.data || []); componentGrid.hideLoader(); },
+            error: function () { componentGrid.hideLoader(); showToast('Failed to load components.', 'error'); }
+        });
+    }
+
+    $('#btnAddComponent').click(function () {
+        componentId = 0;
+        $('#txtComponentName').val('');
+        $('#ddlComponentCategory').val('Earning');
+        $('#ddlCalculationType').val('PercentOfCTC');
+        $('#txtComponentValue').val('');
+        $('#txtComponentSortOrder').val(0);
+        $('.componentFormType').text('Add');
+        $('#componentModal').modal('show');
+    });
+
+    $('#ddlCalculationType').change(function () {
+        $('#lblComponentValue').text($(this).val() === 'FlatAmount' ? 'Value (Amount)' : 'Value (%)');
+    });
+
+    $('#btnSubmitComponent').click(function () {
+        if (!$('#txtComponentName').val() || $('#txtComponentValue').val() === '') {
+            showToast('Component name and value are required.', 'error');
+            return;
+        }
+
+        var payload = {
+            SalaryStructureComponentId: componentId,
+            SalaryStructureTemplateId: activeTemplateId,
+            ComponentName: $('#txtComponentName').val(),
+            ComponentCategory: $('#ddlComponentCategory').val(),
+            CalculationType: $('#ddlCalculationType').val(),
+            Value: parseFloat($('#txtComponentValue').val()) || 0,
+            SortOrder: parseInt($('#txtComponentSortOrder').val()) || 0,
+            CreatedBy: EmployeeId,
+            UpdatedBy: EmployeeId
+        };
+
+        var url = componentId > 0 ? '@baseUrl/SalaryStructureAPI/UpdateComponent' : '@baseUrl/SalaryStructureAPI/CreateComponent';
+        $.ajax({
+            type: 'POST', url: url, data: JSON.stringify(payload), contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Saved successfully.', 'success'); $('#componentModal').modal('hide'); loadComponents(); }
+                else showToast(res.responseMessage || 'Save failed.', 'error');
+            }
+        });
+    });
+
+    window._editComponent = function (id) {
+        var row = (componentGrid.getData ? componentGrid.getData() : []).find(function (r) { return r.salaryStructureComponentId === id; });
+        if (!row) return;
+        componentId = id;
+        $('#txtComponentName').val(row.componentName);
+        $('#ddlComponentCategory').val(row.componentCategory);
+        $('#ddlCalculationType').val(row.calculationType).trigger('change');
+        $('#txtComponentValue').val(row.value);
+        $('#txtComponentSortOrder').val(row.sortOrder);
+        $('.componentFormType').text('Edit');
+        $('#componentModal').modal('show');
+    };
+
+    window._deleteComponent = function (id) {
+        if (!confirm('Remove this component?')) return;
+        $.ajax({
+            type: 'DELETE', url: '@baseUrl/SalaryStructureAPI/DeleteComponent',
+            data: JSON.stringify({ Id: id, DeletedBy: EmployeeId }), contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Removed successfully.', 'success'); loadComponents(); }
+                else showToast(res.responseMessage || 'Delete failed.', 'error');
+            }
+        });
+    };
+</script>

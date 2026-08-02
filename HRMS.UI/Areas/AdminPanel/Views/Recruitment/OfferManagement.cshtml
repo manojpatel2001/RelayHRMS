@@ -1,0 +1,550 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Offer Management";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Offer Management</h6>
+        <button id="btnCreateOffer" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bx bx-plus"></i> Create Offer
+        </button>
+    </div>
+    <div class="card-body">
+        <div id="offerGridContainer"></div>
+    </div>
+</div>
+
+<!-- ===== Create / CTC Builder Modal ===== -->
+<div class="modal fade" id="offerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Offer — Salary Fitment &amp; CTC Builder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="fg-req">Candidate Application</label>
+                        <select id="ddlOfferCandidateApplication" class="form-select"><option value="">Select</option></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="d-flex justify-content-between align-items-center">
+                            <span>Salary Structure Template</span>
+                            <a href="@Url.Action("SalaryStructureMaster", "Recruitment")" target="_blank" class="small">Manage templates</a>
+                        </label>
+                        <select id="ddlSalaryTemplate" class="form-select"><option value="">Select</option></select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label>Current CTC</label>
+                        <input type="number" step="0.01" id="txtCurrentCTC" class="form-control" readonly />
+                    </div>
+                    <div class="col-md-3">
+                        <label>Expected CTC</label>
+                        <input type="number" step="0.01" id="txtExpectedCTC" class="form-control" readonly />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="fg-req">Final CTC (Annual)</label>
+                        <input type="number" step="0.01" id="txtFinalCTC" class="form-control" />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-primary btn-sm w-100" id="btnPreviewBreakup">
+                            <i class="bx bx-calculator"></i> Preview Breakup
+                        </button>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label>Position Budget Range</label>
+                        <input type="text" id="txtBudgetRange" class="form-control" readonly />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="fg-req">Joining Date</label>
+                        <input type="date" id="txtJoiningDate" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label>Offer Expiry Date</label>
+                        <input type="date" id="txtOfferExpiryDate" class="form-control" />
+                    </div>
+
+                    <div class="col-12">
+                        <hr />
+                        <h6>Salary Breakup</h6>
+                        <table class="table table-sm" id="tblBreakup">
+                            <thead><tr><th>Component</th><th>Category</th><th>Frequency</th><th class="text-end">Amount</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btnSaveOffer" class="btn btn-primary btn-sm">Save Offer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Generate Offer Letter Modal ===== -->
+<div class="modal fade" id="offerLetterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Offer Letter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="offerLetterBody" style="background:#fff;padding:20px;border:1px solid #ddd;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="btnDownloadOfferLetter" class="btn btn-outline-primary btn-sm">
+                    <i class="bx bx-download"></i> Download PDF
+                </button>
+                <button type="button" id="btnEmailOfferLetter" class="btn btn-primary btn-sm">
+                    <i class="bx bx-envelope"></i> Email to Candidate
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Record Candidate Response Modal ===== -->
+<div class="modal fade" id="responseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Record Candidate Response</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="mb-2">
+                    <label>Response</label>
+                    <select id="ddlResponseStatus" class="form-select">
+                        <option value="Accepted">Accepted</option>
+                        <option value="Declined">Declined</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="fg-req">Candidate Full Name (typed confirmation)</label>
+                    <input type="text" id="txtAcceptedName" class="form-control" />
+                </div>
+                <div class="mb-2">
+                    <label>Decline Reason (if declined)</label>
+                    <textarea id="txtDeclineReason" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btnSubmitResponse" class="btn btn-primary btn-sm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+    const Token = localStorage.getItem("authToken");
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails ? companyDetails.CompanyId : null;
+    const EmployeeId = localStorage.getItem("EmployeeId");
+    var currentOfferId = 0;
+    var acceptedStageId = null;
+    var selectedPositionBudget = { min: null, max: null };
+
+    $(document).ready(function () {
+        loadOffers();
+        loadCandidateApplicationDropdown();
+        loadSalaryTemplateDropdown();
+        loadAcceptedStageId();
+    });
+
+    function fmtDate(v) {
+        if (!v) return '';
+        var d = new Date(v);
+        if (isNaN(d)) return '';
+        return ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
+    }
+
+    function offerStatusBadge(status) {
+        var colors = { Draft: 'secondary', PendingApproval: 'warning', Approved: 'info', Rejected: 'danger', Released: 'primary', Accepted: 'success', Declined: 'danger', Expired: 'dark', Withdrawn: 'secondary' };
+        return '<span class="badge bg-' + (colors[status] || 'secondary') + '">' + (status || '') + '</span>';
+    }
+
+    var offerGrid = WMSGrid.create({
+        container: 'offerGridContainer',
+        title: 'All Offers',
+        icon: 'bx-file',
+        columns: [
+            { field: 'fullName', header: 'Candidate', width: '160px' },
+            { field: 'positionTitle', header: 'Job Position', width: '160px' },
+            { field: 'offeredCTC', header: 'Offered CTC', width: '110px', align: 'right' },
+            { field: 'joiningDate', header: 'Joining Date', width: '110px', render: function (v) { return fmtDate(v); } },
+            { field: 'offerStatus', header: 'Status', width: '110px', render: function (v) { return offerStatusBadge(v); } },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '260px',
+                render: function (v, row) {
+                    var buttons = '';
+                    if (row.offerStatus === 'Draft') {
+                        buttons += '<button class="wg-btn wg-btn-outline" title="Submit for Approval" onclick="_submitForApproval(' + row.offerId + ')"><i class="bx bx-send"></i></button> ';
+                    }
+                    if (row.offerStatus === 'Approved' || row.offerStatus === 'Released' || row.offerLetterUrl) {
+                        var letterTitle = row.offerLetterUrl ? 'View Letter' : 'Generate Letter';
+                        var letterIcon = row.offerLetterUrl ? 'bx-show' : 'bx-file';
+                        buttons += '<button class="wg-btn wg-btn-outline" title="' + letterTitle + '" onclick="_generateLetter(' + row.offerId + ')"><i class="bx ' + letterIcon + '"></i></button> ';
+                    }
+                    if (row.offerStatus === 'Approved') {
+                        buttons += '<button class="wg-btn wg-btn-outline" title="Release Offer" onclick="_releaseOffer(' + row.offerId + ')"><i class="bx bx-send"></i></button> ';
+                    }
+                    if (row.offerStatus === 'Released') {
+                        buttons += '<button class="wg-btn wg-btn-outline" title="Record Response" onclick="_openResponseModal(' + row.offerId + ')"><i class="bx bx-check-double"></i></button> ';
+                    }
+                    buttons += '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteOffer(' + row.offerId + ')"><i class="bx bx-trash"></i></button>';
+                    return buttons;
+                }
+            }
+        ],
+        features: { export: true }
+    });
+
+    function loadOffers() {
+        offerGrid.showLoader();
+        $.ajax({
+            url: '@baseUrl/OfferAPI/GetAllOffers',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) { offerGrid.setData(res.data || []); offerGrid.hideLoader(); },
+            error: function () { offerGrid.hideLoader(); showToast('Failed to load offers.', 'error'); }
+        });
+    }
+
+    function loadCandidateApplicationDropdown() {
+        $.ajax({
+            url: '@baseUrl/CandidateApplicationAPI/GetAllCandidateApplications',
+            method: 'POST', data: JSON.stringify({}), contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                var $sel = $('#ddlOfferCandidateApplication').empty().append('<option value="">Select</option>');
+                (res.data || []).forEach(function (item) {
+                    $sel.append($('<option>', {
+                        value: item.candidateApplicationId, text: item.fullName + ' - ' + (item.positionTitle || ''),
+                        'data-current-ctc': item.currentCTC || '', 'data-expected-ctc': item.expectedCTC || '',
+                        'data-job-position-id': item.jobPositionId, 'data-email': item.email, 'data-name': item.fullName,
+                        'data-position-title': item.positionTitle
+                    }));
+                });
+            }
+        });
+    }
+
+    function loadSalaryTemplateDropdown() {
+        $.ajax({
+            url: '@baseUrl/SalaryStructureAPI/GetAllTemplates?companyId=' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                var $sel = $('#ddlSalaryTemplate').empty().append('<option value="">Select</option>');
+                (res.data || []).forEach(function (item) {
+                    $sel.append($('<option>', { value: item.salaryStructureTemplateId, text: item.templateName }));
+                });
+            }
+        });
+    }
+
+    function loadAcceptedStageId() {
+        $.ajax({
+            url: '@baseUrl/CandidatePipelineAPI/GetAllPipelineStages',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                var stage = (res.data || []).find(function (s) { return s.stageName === 'Offer Accepted'; });
+                if (stage) acceptedStageId = stage.candidatePipelineStageId;
+            }
+        });
+    }
+
+    $('#ddlOfferCandidateApplication').on('change', function () {
+        var $opt = $(this).find('option:selected');
+        $('#txtCurrentCTC').val($opt.data('current-ctc') || '');
+        $('#txtExpectedCTC').val($opt.data('expected-ctc') || '');
+        var jobPositionId = $opt.data('job-position-id');
+        selectedPositionBudget = { min: null, max: null };
+        if (jobPositionId) {
+            $.ajax({
+                url: '@baseUrl/JobPositionAPI/GetJobPositionById/' + jobPositionId,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    if (res.isSuccess && res.data) {
+                        selectedPositionBudget = { min: res.data.minBudget, max: res.data.maxBudget };
+                        $('#txtBudgetRange').val((res.data.minBudget || 0) + ' - ' + (res.data.maxBudget || 0));
+                    }
+                }
+            });
+        }
+    });
+
+    $('#btnCreateOffer').click(function () {
+        $('#offerModal .form-control, #offerModal .form-select').val('');
+        $('#tblBreakup tbody').empty();
+        currentOfferId = 0;
+        $('#offerModal').modal('show');
+    });
+
+    $('#btnPreviewBreakup').click(function () {
+        var templateId = $('#ddlSalaryTemplate').val();
+        var finalCTC = parseFloat($('#txtFinalCTC').val());
+        if (!templateId || !finalCTC) { showToast('Select a template and enter Final CTC.', 'error'); return; }
+
+        $.ajax({
+            type: 'POST', url: '@baseUrl/OfferSalaryFitmentAPI/PreviewBreakup',
+            data: JSON.stringify({ SalaryStructureTemplateId: parseInt(templateId), FinalCTC: finalCTC }),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (!res.isSuccess) { showToast(res.responseMessage || 'Failed to compute breakup.', 'error'); return; }
+                var $tbody = $('#tblBreakup tbody').empty();
+                (res.data || []).forEach(function (row) {
+                    $tbody.append('<tr><td>' + row.componentName + '</td><td>' + row.componentCategory + '</td><td>' + row.frequency + '</td><td class="text-end">' + row.amount.toFixed(2) + '</td></tr>');
+                });
+            },
+            error: function () { showToast('Failed to compute breakup.', 'error'); }
+        });
+    });
+
+    $('#btnSaveOffer').click(function () {
+        var candidateApplicationId = $('#ddlOfferCandidateApplication').val();
+        var finalCTC = parseFloat($('#txtFinalCTC').val());
+        if (!candidateApplicationId || !finalCTC || !$('#txtJoiningDate').val()) {
+            showToast('Candidate, Final CTC and Joining Date are required.', 'error');
+            return;
+        }
+
+        var $opt = $('#ddlOfferCandidateApplication').find('option:selected');
+        var jobPositionId = $opt.data('job-position-id');
+
+        var fitmentPayload = {
+            Fitment: {
+                CandidateApplicationId: parseInt(candidateApplicationId),
+                SalaryStructureTemplateId: $('#ddlSalaryTemplate').val() ? parseInt($('#ddlSalaryTemplate').val()) : null,
+                CurrentCTC: parseFloat($('#txtCurrentCTC').val()) || null,
+                ExpectedCTC: parseFloat($('#txtExpectedCTC').val()) || null,
+                FinalCTC: finalCTC,
+                CreatedBy: EmployeeId
+            },
+            MinBudget: selectedPositionBudget.min,
+            MaxBudget: selectedPositionBudget.max
+        };
+
+        $.ajax({
+            type: 'POST', url: '@baseUrl/OfferSalaryFitmentAPI/SaveFitment',
+            data: JSON.stringify(fitmentPayload), contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (fitmentRes) {
+                if (!fitmentRes.isSuccess) { showToast(fitmentRes.responseMessage || 'Failed to save fitment.', 'error'); return; }
+
+                var offerPayload = {
+                    CandidateApplicationId: parseInt(candidateApplicationId),
+                    JobPositionId: parseInt(jobPositionId),
+                    OfferSalaryFitmentId: fitmentRes.data,
+                    OfferedCTC: finalCTC,
+                    JoiningDate: $('#txtJoiningDate').val(),
+                    OfferExpiryDate: $('#txtOfferExpiryDate').val() || null,
+                    CreatedBy: EmployeeId
+                };
+
+                $.ajax({
+                    type: 'POST', url: '@baseUrl/OfferAPI/CreateOffer',
+                    data: JSON.stringify(offerPayload), contentType: 'application/json',
+                    headers: { 'Authorization': 'Bearer ' + Token },
+                    success: function (res) {
+                        if (res.isSuccess) { showToast('Offer created successfully.', 'success'); $('#offerModal').modal('hide'); loadOffers(); }
+                        else showToast(res.responseMessage || 'Failed to create offer.', 'error');
+                    },
+                    error: function () { showToast('Failed to create offer.', 'error'); }
+                });
+            },
+            error: function () { showToast('Failed to save fitment.', 'error'); }
+        });
+    });
+
+    window._submitForApproval = function (offerId) {
+        if (!confirm('Submit this offer for approval?')) return;
+        $.ajax({
+            type: 'POST', url: '@baseUrl/OfferAPI/SubmitForApproval',
+            data: JSON.stringify({ OfferId: offerId, CreatedBy: EmployeeId }), contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Offer submitted for approval.', 'success'); loadOffers(); }
+                else showToast(res.responseMessage || 'Submit failed.', 'error');
+            }
+        });
+    };
+
+    window._releaseOffer = function (offerId) {
+        if (!confirm('Release this offer to the candidate?')) return;
+        $.ajax({
+            type: 'PUT', url: '@baseUrl/OfferAPI/ReleaseOffer',
+            data: JSON.stringify({ OfferId: offerId, UpdatedBy: EmployeeId }), contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Offer released to candidate.', 'success'); loadOffers(); }
+                else showToast(res.responseMessage || 'Release failed.', 'error');
+            }
+        });
+    };
+
+    window._deleteOffer = function (offerId) {
+        if (!confirm('Delete this offer?')) return;
+        $.ajax({
+            type: 'DELETE', url: '@baseUrl/OfferAPI/DeleteOffer',
+            data: JSON.stringify({ Id: offerId, DeletedBy: EmployeeId }), contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Offer deleted.', 'success'); loadOffers(); }
+                else showToast(res.responseMessage || 'Delete failed.', 'error');
+            }
+        });
+    };
+
+    // ===== Offer Letter generation (client-side html2canvas + jsPDF, house convention) =====
+    window._generateLetter = function (offerId) {
+        $.ajax({
+            url: '@baseUrl/OfferAPI/GetOfferById/' + offerId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (!res.isSuccess || !res.data) { showToast('Failed to load offer.', 'error'); return; }
+                currentOfferId = offerId;
+                $('#offerLetterBody').html(generateOfferLetterHTML(res.data));
+                $('#offerLetterModal').modal('show');
+            }
+        });
+    };
+
+    function generateOfferLetterHTML(d) {
+        return '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;">' +
+            '<h2 style="text-align:center;">Offer Letter</h2>' +
+            '<p>Dear <strong>' + (d.fullName || '') + '</strong>,</p>' +
+            '<p>We are pleased to offer you the position of <strong>' + (d.positionTitle || '') + '</strong> ' +
+            (d.designationName ? ('(' + d.designationName + ') ') : '') +
+            'at <strong>Relay Express</strong>, with an annual CTC of <strong>' + (d.offeredCTC || 0) + '</strong>, ' +
+            'joining on <strong>' + fmtDate(d.joiningDate) + '</strong>.</p>' +
+            '<table style="width:100%;border-collapse:collapse;margin-top:20px;">' +
+            '<tr><td style="border:1px solid #ccc;padding:8px;font-weight:bold;">Department</td><td style="border:1px solid #ccc;padding:8px;">' + (d.departmentName || 'N/A') + '</td></tr>' +
+            '<tr><td style="border:1px solid #ccc;padding:8px;font-weight:bold;">Branch</td><td style="border:1px solid #ccc;padding:8px;">' + (d.branchName || 'N/A') + '</td></tr>' +
+            '<tr><td style="border:1px solid #ccc;padding:8px;font-weight:bold;">Grade</td><td style="border:1px solid #ccc;padding:8px;">' + (d.gradeName || 'N/A') + '</td></tr>' +
+            '</table>' +
+            '<p style="margin-top:30px;">We look forward to welcoming you to our team.</p>' +
+            '<p style="margin-top:60px;">Regards,<br/><u>HR Team</u><br/>Relay Express</p>' +
+            '</div>';
+    }
+
+    $('#btnDownloadOfferLetter').click(function () {
+        var element = document.getElementById('offerLetterBody');
+        html2canvas(element, { scale: 2 }).then(function (canvas) {
+            var pdf = new jsPDF('p', 'mm', 'a4');
+            var imgData = canvas.toDataURL('image/png');
+            var pageWidth = pdf.internal.pageSize.getWidth();
+            var pageHeight = pdf.internal.pageSize.getHeight();
+            var imgHeight = (canvas.height * pageWidth) / canvas.width;
+            var heightLeft = imgHeight, position = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
+            heightLeft -= pageHeight;
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            pdf.save('OfferLetter_' + currentOfferId + '.pdf');
+
+            var pdfBlob = pdf.output('blob');
+            var formData = new FormData();
+            formData.append('letterFile', pdfBlob, 'OfferLetter_' + currentOfferId + '.pdf');
+            formData.append('offerId', currentOfferId);
+            formData.append('updatedBy', EmployeeId);
+
+            $.ajax({
+                type: 'POST', url: '@baseUrl/OfferAPI/UploadOfferLetter',
+                data: formData, processData: false, contentType: false,
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function () { loadOffers(); }
+            });
+        });
+    });
+
+    $('#btnEmailOfferLetter').click(function () {
+        $.ajax({
+            url: '@baseUrl/OfferAPI/GetOfferById/' + currentOfferId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (!res.isSuccess || !res.data) return;
+                var d = res.data;
+                var element = document.getElementById('offerLetterBody');
+                html2canvas(element, { scale: 2 }).then(function (canvas) {
+                    var pdf = new jsPDF('p', 'mm', 'a4');
+                    var imgData = canvas.toDataURL('image/png');
+                    var pageWidth = pdf.internal.pageSize.getWidth();
+                    var imgHeight = (canvas.height * pageWidth) / canvas.width;
+                    pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
+                    var pdfBase64 = pdf.output('datauristring').split(',')[1];
+
+                    $.ajax({
+                        type: 'POST', url: '@baseUrl/OfferAPI/SendOfferLetterEmail',
+                        data: JSON.stringify({
+                            OfferId: currentOfferId, PdfBase64: pdfBase64, CandidateEmail: d.email,
+                            CandidateName: d.fullName, PositionTitle: d.positionTitle, OfferedCTC: (d.offeredCTC || '').toString(),
+                            JoiningDate: fmtDate(d.joiningDate)
+                        }),
+                        contentType: 'application/json',
+                        headers: { 'Authorization': 'Bearer ' + Token },
+                        success: function (emailRes) {
+                            if (emailRes.isSuccess) { showToast('Offer letter emailed successfully.', 'success'); $('#offerLetterModal').modal('hide'); }
+                            else showToast(emailRes.responseMessage || 'Failed to email offer letter.', 'error');
+                        },
+                        error: function () { showToast('Failed to email offer letter.', 'error'); }
+                    });
+                });
+            }
+        });
+    });
+
+    // ===== Record Candidate Response =====
+    window._openResponseModal = function (offerId) {
+        currentOfferId = offerId;
+        $('#txtAcceptedName, #txtDeclineReason').val('');
+        $('#ddlResponseStatus').val('Accepted');
+        $('#responseModal').modal('show');
+    };
+
+    $('#btnSubmitResponse').click(function () {
+        if (!$('#txtAcceptedName').val()) { showToast('Candidate name is required.', 'error'); return; }
+
+        var status = $('#ddlResponseStatus').val();
+        $.ajax({
+            type: 'PUT', url: '@baseUrl/OfferAPI/RecordCandidateResponse',
+            data: JSON.stringify({
+                OfferId: currentOfferId, Status: status, AcceptedByCandidateName: $('#txtAcceptedName').val(),
+                DeclineReason: $('#txtDeclineReason').val(), AcceptedPipelineStageId: acceptedStageId, UpdatedBy: EmployeeId
+            }),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Candidate response recorded.', 'success'); $('#responseModal').modal('hide'); loadOffers(); }
+                else showToast(res.responseMessage || 'Failed to record response.', 'error');
+            }
+        });
+    });
+</script>

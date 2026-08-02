@@ -1,0 +1,282 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Interview Scheduling";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<link rel="stylesheet" href="~/assets/plugins/fullcalendar/css/main.min.css" />
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Interview Scheduling</h6>
+        <div class="d-flex align-items-center gap-2">
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary active" id="btnViewList">List</button>
+                <button type="button" class="btn btn-outline-primary" id="btnViewCalendar">Calendar</button>
+            </div>
+            <button id="btnScheduleInterview" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bx bx-plus"></i> Schedule Interview
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="interviewGridContainer"></div>
+        <div id="interviewCalendarContainer" style="display:none;"></div>
+    </div>
+</div>
+
+<!-- ===== Schedule Modal ===== -->
+<div class="modal fade" id="scheduleInterviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Schedule Interview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="fg-req">Candidate Application</label>
+                        <select id="ddlCandidateApplication" class="form-select"><option value="">Select</option></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="fg-req">Round Name</label>
+                        <input type="text" id="txtRoundName" class="form-control" placeholder="e.g. Technical Round 1" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="fg-req">Scheduled Date &amp; Time</label>
+                        <input type="datetime-local" id="txtScheduledDate" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label>Duration (minutes)</label>
+                        <input type="number" min="0" id="txtDurationMinutes" class="form-control" value="30" />
+                    </div>
+                    <div class="col-md-4">
+                        <label>Mode</label>
+                        <select id="ddlMode" class="form-select">
+                            <option value="Online">Online</option>
+                            <option value="Offline">Offline</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label>Meeting Link</label>
+                        <input type="text" id="txtMeetingLink" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label>Location</label>
+                        <input type="text" id="txtLocation" class="form-control" />
+                    </div>
+                    <div class="col-md-12">
+                        <label class="fg-req">Panelists</label>
+                        <select id="ddlPanelists" class="form-select" multiple size="4"></select>
+                        <small class="text-muted">Hold Ctrl/Cmd to select multiple panelists.</small>
+                    </div>
+                    <div class="col-md-12">
+                        <label>Remarks</label>
+                        <textarea id="txtRemarks" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btnSubmitInterview" class="btn btn-primary btn-sm">Schedule</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script src="~/assets/plugins/fullcalendar/js/main.min.js"></script>
+<script>
+    const Token = localStorage.getItem("authToken");
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails ? companyDetails.CompanyId : null;
+    const EmployeeId = localStorage.getItem("EmployeeId");
+    var calendarInstance = null;
+
+    $(document).ready(function () {
+        loadInterviews();
+        loadCandidateApplicationDropdown();
+        loadPanelistDropdown();
+    });
+
+    function fmtDateTime(v) {
+        if (!v) return '';
+        var d = new Date(v);
+        if (isNaN(d)) return '';
+        return ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear() + ' ' +
+               ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    }
+
+    function statusBadge(status) {
+        var colors = { Scheduled: 'info', Completed: 'success', Cancelled: 'danger', Rescheduled: 'warning', NoShow: 'secondary' };
+        return '<span class="badge bg-' + (colors[status] || 'secondary') + '">' + (status || '') + '</span>';
+    }
+
+    var interviewGrid = WMSGrid.create({
+        container: 'interviewGridContainer',
+        title: 'All Interviews',
+        icon: 'bx-calendar-event',
+        columns: [
+            { field: 'fullName', header: 'Candidate', width: '160px' },
+            { field: 'positionTitle', header: 'Job Position', width: '160px' },
+            { field: 'roundName', header: 'Round', width: '160px' },
+            { field: 'scheduledDate', header: 'Scheduled', width: '150px', render: function (v) { return fmtDateTime(v); } },
+            { field: 'mode', header: 'Mode', width: '90px' },
+            { field: 'status', header: 'Status', width: '100px', render: function (v) { return statusBadge(v); } },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '90px',
+                render: function (v, row) {
+                    return '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Cancel" onclick="_cancelInterview(' + row.interviewId + ')"><i class="bx bx-x"></i></button>';
+                }
+            }
+        ],
+        features: { export: true }
+    });
+
+    function loadInterviews() {
+        interviewGrid.showLoader();
+        $.ajax({
+            url: '@baseUrl/InterviewAPI/GetAllInterviews',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                interviewGrid.setData(res.data || []);
+                interviewGrid.hideLoader();
+                renderCalendarEvents(res.data || []);
+            },
+            error: function () { interviewGrid.hideLoader(); showToast('Failed to load interviews.', 'error'); }
+        });
+    }
+
+    function renderCalendarEvents(rows) {
+        if (calendarInstance) {
+            calendarInstance.removeAllEvents();
+            calendarInstance.addEventSource(rows.map(function (r) {
+                return { id: r.interviewId, title: r.fullName + ' - ' + r.roundName, start: r.scheduledDate };
+            }));
+        }
+    }
+
+    $('#btnViewList').click(function () {
+        $(this).addClass('active'); $('#btnViewCalendar').removeClass('active');
+        $('#interviewGridContainer').show(); $('#interviewCalendarContainer').hide();
+    });
+
+    $('#btnViewCalendar').click(function () {
+        $(this).addClass('active'); $('#btnViewList').removeClass('active');
+        $('#interviewGridContainer').hide(); $('#interviewCalendarContainer').show();
+
+        if (!calendarInstance) {
+            try {
+                var el = document.getElementById('interviewCalendarContainer');
+                calendarInstance = new FullCalendar.Calendar(el, {
+                    initialView: 'dayGridMonth',
+                    height: 650,
+                    eventClick: function (info) { showToast('Interview: ' + info.event.title, 'info'); }
+                });
+                calendarInstance.render();
+                renderCalendarEvents(interviewGrid.getData ? interviewGrid.getData() : []);
+                loadInterviews();
+            } catch (e) {
+                showToast('Calendar failed to load.', 'error');
+            }
+        }
+    });
+
+    function loadCandidateApplicationDropdown() {
+        $.ajax({
+            url: '@baseUrl/CandidateApplicationAPI/GetAllCandidateApplications',
+            method: 'POST',
+            data: JSON.stringify({}),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                var $sel = $('#ddlCandidateApplication').empty().append('<option value="">Select</option>');
+                (res.data || []).forEach(function (item) {
+                    $sel.append($('<option>', { value: item.candidateApplicationId, text: item.fullName + ' - ' + (item.positionTitle || '') }));
+                });
+            }
+        });
+    }
+
+    function loadPanelistDropdown() {
+        $.ajax({
+            url: '@baseUrl/EmployeeMasterAPI/GetAllEmployee_DropDown/' + CompanyId + '?BranchId=&Month=0&Year=0',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                var $sel = $('#ddlPanelists').empty();
+                (response.data || []).forEach(function (item) {
+                    $sel.append($('<option>', { value: item.employeeId, text: item.fullName }));
+                });
+            },
+            error: function () { /* non-fatal */ }
+        });
+    }
+
+    $('#btnScheduleInterview').click(function () {
+        $('#scheduleInterviewModal .form-control, #scheduleInterviewModal .form-select').val('');
+        $('#txtDurationMinutes').val(30);
+        $('#scheduleInterviewModal').modal('show');
+    });
+
+    $('#btnSubmitInterview').click(function () {
+        if (!$('#ddlCandidateApplication').val() || !$('#txtRoundName').val() || !$('#txtScheduledDate').val()) {
+            showToast('Candidate, Round Name and Scheduled Date are required.', 'error');
+            return;
+        }
+
+        var payload = {
+            Interview: {
+                CandidateApplicationId: parseInt($('#ddlCandidateApplication').val()),
+                RoundName: $('#txtRoundName').val(),
+                ScheduledDate: $('#txtScheduledDate').val(),
+                DurationMinutes: parseInt($('#txtDurationMinutes').val()) || null,
+                Mode: $('#ddlMode').val(),
+                MeetingLink: $('#txtMeetingLink').val(),
+                Location: $('#txtLocation').val(),
+                Remarks: $('#txtRemarks').val(),
+                CreatedBy: EmployeeId
+            },
+            PanelistEmployeeIds: ($('#ddlPanelists').val() || []).map(function (v) { return parseInt(v); })
+        };
+
+        $.ajax({
+            type: 'POST',
+            url: '@baseUrl/InterviewAPI/ScheduleInterview',
+            data: JSON.stringify(payload),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) {
+                    showToast('Interview scheduled successfully.', 'success');
+                    $('#scheduleInterviewModal').modal('hide');
+                    loadInterviews();
+                } else {
+                    showToast(res.responseMessage || 'Failed to schedule interview.', 'error');
+                }
+            },
+            error: function () { showToast('Failed to schedule interview.', 'error'); }
+        });
+    });
+
+    window._cancelInterview = function (id) {
+        if (!confirm('Cancel this interview?')) return;
+        $.ajax({
+            type: 'DELETE',
+            url: '@baseUrl/InterviewAPI/CancelInterview',
+            data: JSON.stringify({ Id: id, DeletedBy: EmployeeId }),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Interview cancelled.', 'success'); loadInterviews(); }
+                else showToast(res.responseMessage || 'Cancel failed.', 'error');
+            }
+        });
+    };
+</script>

@@ -47,6 +47,13 @@ namespace HRMS_Core.VM.OtherMaster
         public int? JobCategory { get; set; }
         public int? BranchId { get; set; }           // ✅ NEW
         public string? CustomerName { get; set; }
+
+        // Phase 1 Recruitment overhaul — additive fields (see 2026-08-02_ManpowerRequisition_Phase1Extension.sql).
+        // ReplacementOrNew is intentionally not added: RequirementType already covers New Position/Replacement.
+        public string? Priority { get; set; }
+        public int? ReplacedEmployeeId { get; set; }
+        public string? Remarks { get; set; }
+        public decimal? BudgetAmount { get; set; }
     }
 
 }

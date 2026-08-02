@@ -1,0 +1,349 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Job Posting";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Job Postings</h6>
+        <button id="btnAddJobPosting" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bx bx-plus"></i> Add Job Posting
+        </button>
+    </div>
+    <div class="card-body">
+        <div id="jobPostingGridContainer"></div>
+    </div>
+</div>
+
+<!-- ===== Add / Edit Modal ===== -->
+<div class="modal fade" id="jobPostingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><span class="formType">Add</span> Job Posting</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="fg-req">Job Position</label>
+                        <select id="ddlJobPosition" class="form-select"><option value="">Select</option></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="fg-req">Posting Title</label>
+                        <input type="text" id="txtPostingTitle" class="form-control" oninput="autoSlug()" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label>SEO Slug</label>
+                        <input type="text" id="txtSlug" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label>Location</label>
+                        <input type="text" id="txtLocation" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label>Work Mode</label>
+                        <select id="ddlWorkMode" class="form-select">
+                            <option value="">Select</option>
+                            <option>Onsite</option>
+                            <option>Remote</option>
+                            <option>Hybrid</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 form-check form-switch mt-4">
+                        <input class="form-check-input" type="checkbox" id="chkIsInternal" checked>
+                        <label class="form-check-label" for="chkIsInternal">Internal Posting</label>
+                    </div>
+                    <div class="col-md-3 form-check form-switch mt-4">
+                        <input class="form-check-input" type="checkbox" id="chkIsExternal">
+                        <label class="form-check-label" for="chkIsExternal">External Posting</label>
+                    </div>
+                    <div class="col-md-3">
+                        <label>Expiry Date</label>
+                        <input type="date" id="txtExpiryDate" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label>Status</label>
+                        <select id="ddlPostingStatus" class="form-select">
+                            <option>Draft</option>
+                            <option>Published</option>
+                            <option>Expired</option>
+                            <option>Closed</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label>Job Description</label>
+                        <textarea id="txtJobDescriptionHtml" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="col-md-12">
+                        <label>Responsibilities</label>
+                        <textarea id="txtResponsibilitiesHtml" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-12">
+                        <label>Benefits</label>
+                        <textarea id="txtBenefitsHtml" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <hr />
+                        <h6>External Channels (integration-ready — no live posting yet)</h6>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="chkLinkedIn">
+                            <label class="form-check-label" for="chkLinkedIn">LinkedIn</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="chkNaukri">
+                            <label class="form-check-label" for="chkNaukri">Naukri</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="chkIndeed">
+                            <label class="form-check-label" for="chkIndeed">Indeed</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="chkReferral">
+                            <label class="form-check-label" for="chkReferral">Referral Portal</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btnSubmitJobPosting" class="btn btn-primary btn-sm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    const Token = localStorage.getItem("authToken");
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails ? companyDetails.CompanyId : null;
+    const EmployeeId = localStorage.getItem("EmployeeId");
+    let jobPostingId = 0;
+
+    $(document).ready(function () {
+        loadJobPostings();
+        loadJobPositionDropdown();
+    });
+
+    function autoSlug() {
+        if (jobPostingId > 0) return; // don't overwrite an existing slug on edit
+        var title = $('#txtPostingTitle').val() || '';
+        $('#txtSlug').val(title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));
+    }
+
+    function fmtDate(v) {
+        if (!v) return '';
+        var d = new Date(v);
+        if (isNaN(d)) return '';
+        return ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
+    }
+
+    function postingStatusBadge(status) {
+        var colors = { Draft: 'secondary', Published: 'success', Expired: 'warning', Closed: 'danger' };
+        return '<span class="badge bg-' + (colors[status] || 'secondary') + '">' + (status || '') + '</span>';
+    }
+
+    var jobPostingGrid = WMSGrid.create({
+        container: 'jobPostingGridContainer',
+        title: 'All Job Postings',
+        icon: 'bx-globe',
+        columns: [
+            { field: 'postingTitle', header: 'Posting Title', width: '200px' },
+            { field: 'positionTitle', header: 'Job Position', width: '180px' },
+            { field: 'slug', header: 'Slug', width: '160px' },
+            { field: 'isInternal', header: 'Internal', width: '80px', align: 'center', render: function (v) { return v ? '<i class="bx bx-check text-success"></i>' : ''; } },
+            { field: 'isExternal', header: 'External', width: '80px', align: 'center', render: function (v) { return v ? '<i class="bx bx-check text-success"></i>' : ''; } },
+            { field: 'status', header: 'Status', width: '100px', render: function (v) { return postingStatusBadge(v); } },
+            { field: 'viewCount', header: 'Views', width: '70px', align: 'center' },
+            { field: 'applicationCount', header: 'Applications', width: '100px', align: 'center' },
+            { field: 'expiryDate', header: 'Expiry', width: '110px', render: function (v) { return fmtDate(v); } },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '170px',
+                render: function (v, row) {
+                    var publishBtn = row.status !== 'Published'
+                        ? '<button class="wg-btn wg-btn-outline" title="Publish" onclick="_publishJobPosting(' + row.jobPostingId + ')"><i class="bx bx-broadcast"></i></button> '
+                        : '';
+                    return publishBtn +
+                           '<button class="wg-btn wg-btn-primary" title="Edit" onclick="_editJobPosting(' + row.jobPostingId + ')"><i class="bx bx-edit"></i></button> ' +
+                           '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteJobPosting(' + row.jobPostingId + ')"><i class="bx bx-trash"></i></button>';
+                }
+            }
+        ],
+        features: { export: true }
+    });
+
+    function loadJobPostings() {
+        jobPostingGrid.showLoader();
+        $.ajax({
+            type: 'POST',
+            url: '@baseUrl/JobPostingAPI/GetAllJobPostings',
+            data: JSON.stringify({ CompanyId: CompanyId }),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) { jobPostingGrid.setData(res.data || []); jobPostingGrid.hideLoader(); },
+            error: function () { jobPostingGrid.hideLoader(); showToast('Failed to load job postings.', 'error'); }
+        });
+    }
+
+    function loadJobPositionDropdown() {
+        $.ajax({
+            url: '@baseUrl/JobPositionAPI/GetJobPositionDropdown/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                var $sel = $('#ddlJobPosition').empty().append('<option value="">Select</option>');
+                // GetJobPositionDropdown returns dynamic Dapper rows — these preserve the exact
+                // SQL column-alias casing (PascalCase) rather than the camelCase policy applied
+                // to typed POCO responses elsewhere on this page.
+                (response.data || []).forEach(function (item) {
+                    $sel.append($('<option>', { value: item.JobPositionId, text: item.PositionTitle }));
+                });
+            }
+        });
+    }
+
+    $('#btnAddJobPosting').click(function () {
+        resetForm();
+        $('.formType').text('Add');
+        $('#jobPostingModal').modal('show');
+    });
+
+    function resetForm() {
+        jobPostingId = 0;
+        $('#jobPostingModal .form-control, #jobPostingModal .form-select').val('');
+        $('#jobPostingModal input[type=checkbox]').prop('checked', false);
+        $('#chkIsInternal').prop('checked', true);
+        $('#ddlPostingStatus').val('Draft');
+    }
+
+    function collectForm() {
+        return {
+            JobPostingId: jobPostingId,
+            JobPositionId: parseInt($('#ddlJobPosition').val()) || 0,
+            PostingTitle: $('#txtPostingTitle').val(),
+            Slug: $('#txtSlug').val(),
+            IsInternal: $('#chkIsInternal').is(':checked'),
+            IsExternal: $('#chkIsExternal').is(':checked'),
+            JobDescriptionHtml: $('#txtJobDescriptionHtml').val(),
+            ResponsibilitiesHtml: $('#txtResponsibilitiesHtml').val(),
+            BenefitsHtml: $('#txtBenefitsHtml').val(),
+            Location: $('#txtLocation').val(),
+            WorkMode: $('#ddlWorkMode').val(),
+            ExpiryDate: $('#txtExpiryDate').val() || null,
+            Status: $('#ddlPostingStatus').val(),
+            CompanyId: CompanyId,
+            LinkedInEnabled: $('#chkLinkedIn').is(':checked'),
+            NaukriEnabled: $('#chkNaukri').is(':checked'),
+            IndeedEnabled: $('#chkIndeed').is(':checked'),
+            ReferralEnabled: $('#chkReferral').is(':checked'),
+            CreatedBy: EmployeeId,
+            UpdatedBy: EmployeeId
+        };
+    }
+
+    $('#btnSubmitJobPosting').click(function () {
+        if (!$('#ddlJobPosition').val() || !$('#txtPostingTitle').val()) {
+            showToast('Job Position and Posting Title are required.', 'error');
+            return;
+        }
+        var payload = collectForm();
+        var url = jobPostingId > 0 ? '@baseUrl/JobPostingAPI/UpdateJobPosting' : '@baseUrl/JobPostingAPI/CreateJobPosting';
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: JSON.stringify(payload),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) {
+                    showToast(res.responseMessage || 'Saved successfully.', 'success');
+                    $('#jobPostingModal').modal('hide');
+                    loadJobPostings();
+                } else {
+                    showToast(res.responseMessage || 'Save failed.', 'error');
+                }
+            },
+            error: function () { showToast('Save failed. Please try again later.', 'error'); }
+        });
+    });
+
+    window._editJobPosting = function (id) {
+        $.ajax({
+            url: '@baseUrl/JobPostingAPI/GetJobPostingById/' + id,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (!res.isSuccess || !res.data) return;
+                var d = res.data;
+                resetForm();
+                jobPostingId = d.jobPostingId;
+                $('#ddlJobPosition').val(d.jobPositionId);
+                $('#txtPostingTitle').val(d.postingTitle);
+                $('#txtSlug').val(d.slug);
+                $('#chkIsInternal').prop('checked', d.isInternal);
+                $('#chkIsExternal').prop('checked', d.isExternal);
+                $('#txtLocation').val(d.location);
+                $('#ddlWorkMode').val(d.workMode);
+                $('#txtExpiryDate').val(d.expiryDate ? d.expiryDate.substring(0, 10) : '');
+                $('#ddlPostingStatus').val(d.status);
+                $('#txtJobDescriptionHtml').val(d.jobDescriptionHtml);
+                $('#txtResponsibilitiesHtml').val(d.responsibilitiesHtml);
+                $('#txtBenefitsHtml').val(d.benefitsHtml);
+                $('#chkLinkedIn').prop('checked', d.linkedInEnabled);
+                $('#chkNaukri').prop('checked', d.naukriEnabled);
+                $('#chkIndeed').prop('checked', d.indeedEnabled);
+                $('#chkReferral').prop('checked', d.referralEnabled);
+                $('.formType').text('Edit');
+                $('#jobPostingModal').modal('show');
+            }
+        });
+    };
+
+    window._publishJobPosting = function (id) {
+        if (!confirm('Publish this job posting?')) return;
+        $.ajax({
+            type: 'PUT',
+            url: '@baseUrl/JobPostingAPI/PublishJobPosting',
+            data: JSON.stringify({ JobPostingId: id, UpdatedBy: EmployeeId }),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Published successfully.', 'success'); loadJobPostings(); }
+                else showToast(res.responseMessage || 'Publish failed.', 'error');
+            }
+        });
+    };
+
+    window._deleteJobPosting = function (id) {
+        if (!confirm('Delete this job posting?')) return;
+        $.ajax({
+            type: 'DELETE',
+            url: '@baseUrl/JobPostingAPI/DeleteJobPosting',
+            data: JSON.stringify({ Id: id, DeletedBy: EmployeeId }),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Deleted successfully.', 'success'); loadJobPostings(); }
+                else showToast(res.responseMessage || 'Delete failed.', 'error');
+            }
+        });
+    };
+</script>

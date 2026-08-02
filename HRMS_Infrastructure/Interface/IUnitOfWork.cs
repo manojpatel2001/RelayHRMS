@@ -17,6 +17,7 @@ using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Probations;
+using HRMS_Infrastructure.Interface.Recruitment;
 using HRMS_Infrastructure.Interface.Report;
 using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.SuperAdmin;
@@ -165,6 +166,28 @@ namespace HRMS_Infrastructure.Interface
         IProbationEvaluationFormRepository ProbationEvaluationFormRepository { get; }
         ISalaryPayableDaysOverrideRepo SalaryPayableDaysOverrideRepository { get; }
         IUniformMasterRepo UniformMasterRepository { get; }
+
+        IJobPositionRepository JobPositionRepository { get; }
+        IJobPostingRepository JobPostingRepository { get; }
+        ICandidateRepository CandidateRepository { get; }
+        ICandidateProfileRepository CandidateProfileRepository { get; }
+        ICandidateApplicationRepository CandidateApplicationRepository { get; }
+        ICandidateResumeScreeningResultRepository CandidateResumeScreeningResultRepository { get; }
+        ICandidatePipelineRepository CandidatePipelineRepository { get; }
+
+        IInterviewRepository InterviewRepository { get; }
+        IInterviewFeedbackRepository InterviewFeedbackRepository { get; }
+        ISelectionDecisionRepository SelectionDecisionRepository { get; }
+        ISalaryStructureRepository SalaryStructureRepository { get; }
+        IOfferSalaryFitmentRepository OfferSalaryFitmentRepository { get; }
+        IOfferRepository OfferRepository { get; }
+        IOfferApprovalRepository OfferApprovalRepository { get; }
+
+        ICandidateDocumentRepository CandidateDocumentRepository { get; }
+        ICandidateBGVRepository CandidateBGVRepository { get; }
+        ICandidateOnboardingChecklistRepository CandidateOnboardingChecklistRepository { get; }
+        ICandidateEmployeeConversionRepository CandidateEmployeeConversionRepository { get; }
+
         void Commit();
         Task CommitAsync();
     }

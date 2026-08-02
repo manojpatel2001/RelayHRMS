@@ -139,6 +139,9 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                         int manpowerRequisitionId = reader.GetInt32(reader.GetOrdinal("ManpowerRequisitionId"));
                         string serialNo = reader["SerialNo"].ToString();
 
+                        await reader.CloseAsync();
+                        await UpdatePhase1FieldsAsync(manpowerRequisitionId, manpowerRequisition);
+
                         return new APIResponse
                         {
                             isSuccess = true,
@@ -220,6 +223,9 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 if (spResult == null)
                     return new APIResponse { isSuccess = false, ResponseMessage = "Failed to update requisition.", Data = null };
 
+                if (spResult.Success == 1)
+                    await UpdatePhase1FieldsAsync(manpowerRequisition.ManpowerRequisitionId.Value, manpowerRequisition);
+
                 return new APIResponse
                 {
                     isSuccess = spResult.Success == 1,
@@ -232,6 +238,29 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                 return new APIResponse { isSuccess = false, ResponseMessage = $"Error: {ex.Message}", Data = null };
             }
         }
+
+        // Phase 1 Recruitment overhaul — writes the 4 additive fields via a small separate
+        // proc rather than editing the untracked ManageManpowerRequisition proc body.
+        private async Task UpdatePhase1FieldsAsync(int manpowerRequisitionId, ManpowerRequisition manpowerRequisition)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                var parameters = new DynamicParameters();
+                parameters.Add("@ManpowerRequisitionId", manpowerRequisitionId);
+                parameters.Add("@Priority", manpowerRequisition.Priority);
+                parameters.Add("@ReplacedEmployeeId", manpowerRequisition.ReplacedEmployeeId);
+                parameters.Add("@Remarks", manpowerRequisition.Remarks);
+                parameters.Add("@BudgetAmount", manpowerRequisition.BudgetAmount);
+
+                await connection.ExecuteAsync("sp_ManpowerRequisitionPhase1Fields_Update", parameters, commandType: System.Data.CommandType.StoredProcedure);
+            }
+            catch
+            {
+                // Non-fatal: the core requisition create/update already succeeded above.
+            }
+        }
+
         public async Task<APIResponse> DeleteManpowerRequisition(DeleteRecordVM model)
         {
             try

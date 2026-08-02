@@ -19,6 +19,7 @@ using HRMS_Infrastructure.Interface.Notifications;
 using HRMS_Infrastructure.Interface.OtherMaster;
 using HRMS_Infrastructure.Interface.PrivilegeSetting;
 using HRMS_Infrastructure.Interface.Probations;
+using HRMS_Infrastructure.Interface.Recruitment;
 using HRMS_Infrastructure.Interface.Report;
 using HRMS_Infrastructure.Interface.Salary;
 using HRMS_Infrastructure.Interface.SuperAdmin;
@@ -40,6 +41,7 @@ using HRMS_Infrastructure.Repository.Notifications;
 using HRMS_Infrastructure.Repository.OtherMaster;
 using HRMS_Infrastructure.Repository.PrivilegeSetting;
 using HRMS_Infrastructure.Repository.Probations;
+using HRMS_Infrastructure.Repository.Recruitment;
 using HRMS_Infrastructure.Repository.Report;
 using HRMS_Infrastructure.Repository.Salary;
 using HRMS_Infrastructure.Repository.SuperAdmin;
@@ -191,6 +193,27 @@ namespace HRMS_Infrastructure.Repository
             ProbationEvaluationFormRepository = new ProbationEvaluationFormRepository(_dbContext);
             SalaryPayableDaysOverrideRepository = new SalaryPayableDaysOverrideRepo(_dbContext);
             UniformMasterRepository = new UniformMasterRepo(_dbContext);
+
+            JobPositionRepository = new JobPositionRepository(_dbContext);
+            JobPostingRepository = new JobPostingRepository(_dbContext);
+            CandidateRepository = new CandidateRepository(_dbContext);
+            CandidateProfileRepository = new CandidateProfileRepository(_dbContext);
+            CandidateApplicationRepository = new CandidateApplicationRepository(_dbContext);
+            CandidateResumeScreeningResultRepository = new CandidateResumeScreeningResultRepository(_dbContext);
+            CandidatePipelineRepository = new CandidatePipelineRepository(_dbContext);
+
+            InterviewRepository = new InterviewRepository(_dbContext);
+            InterviewFeedbackRepository = new InterviewFeedbackRepository(_dbContext);
+            SelectionDecisionRepository = new SelectionDecisionRepository(_dbContext);
+            SalaryStructureRepository = new SalaryStructureRepository(_dbContext);
+            OfferSalaryFitmentRepository = new OfferSalaryFitmentRepository(_dbContext);
+            OfferRepository = new OfferRepository(_dbContext);
+            OfferApprovalRepository = new OfferApprovalRepository(_dbContext);
+
+            CandidateDocumentRepository = new CandidateDocumentRepository(_dbContext);
+            CandidateBGVRepository = new CandidateBGVRepository(_dbContext);
+            CandidateOnboardingChecklistRepository = new CandidateOnboardingChecklistRepository(_dbContext);
+            CandidateEmployeeConversionRepository = new CandidateEmployeeConversionRepository(_dbContext);
         }
 
         public IBranchRepository BranchRepository { get; set; }
@@ -347,6 +370,27 @@ namespace HRMS_Infrastructure.Repository
         public ISalaryPayableDaysOverrideRepo SalaryPayableDaysOverrideRepository { get; set; }
 
         public IUniformMasterRepo UniformMasterRepository { get; set; }
+
+        public IJobPositionRepository JobPositionRepository { get; set; }
+        public IJobPostingRepository JobPostingRepository { get; set; }
+        public ICandidateRepository CandidateRepository { get; set; }
+        public ICandidateProfileRepository CandidateProfileRepository { get; set; }
+        public ICandidateApplicationRepository CandidateApplicationRepository { get; set; }
+        public ICandidateResumeScreeningResultRepository CandidateResumeScreeningResultRepository { get; set; }
+        public ICandidatePipelineRepository CandidatePipelineRepository { get; set; }
+
+        public IInterviewRepository InterviewRepository { get; set; }
+        public IInterviewFeedbackRepository InterviewFeedbackRepository { get; set; }
+        public ISelectionDecisionRepository SelectionDecisionRepository { get; set; }
+        public ISalaryStructureRepository SalaryStructureRepository { get; set; }
+        public IOfferSalaryFitmentRepository OfferSalaryFitmentRepository { get; set; }
+        public IOfferRepository OfferRepository { get; set; }
+        public IOfferApprovalRepository OfferApprovalRepository { get; set; }
+
+        public ICandidateDocumentRepository CandidateDocumentRepository { get; set; }
+        public ICandidateBGVRepository CandidateBGVRepository { get; set; }
+        public ICandidateOnboardingChecklistRepository CandidateOnboardingChecklistRepository { get; set; }
+        public ICandidateEmployeeConversionRepository CandidateEmployeeConversionRepository { get; set; }
 
         public void Commit()
         {

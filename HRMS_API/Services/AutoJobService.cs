@@ -226,6 +226,90 @@ namespace HRMS_API.Services
                 Console.WriteLine($"❌ StackTrace: {ex.StackTrace}");
             }
         }
+        // Offer Approval escalation sweep — mirrors ScheduleDailyCheckProbation's generic
+        // escalation handling above, but scoped to the self-contained Offer Approval tables
+        // (see HRMS_API\Services\OfferApprovalService.cs). Reuses the same, already-generic
+        // ApprovalEscalatedEmailTemplate.html and also pushes an in-app SignalR notification
+        // directly to the overdue approver.
+        public async Task CheckOfferApprovalEscalations()
+        {
+            try
+            {
+                var overdueResponse = await _unitOfWork.OfferApprovalRepository.GetAndMarkOverdueLevels();
+                var overdueLevels = overdueResponse?.Data as List<HRMS_Core.Recruitment.OfferApprovalRequestLevel>;
+                if (overdueLevels == null || overdueLevels.Count == 0) return;
+
+                foreach (var level in overdueLevels)
+                {
+                    if (level.ApproverEmployeeId.HasValue)
+                    {
+                        var notification = new NotificationRemainders
+                        {
+                            NotificationMessage = $"Offer approval for {level.CandidateName} ({level.PositionTitle}) is overdue at your level.",
+                            NotificationTime = DateTime.UtcNow,
+                            ReceiverIds = level.ApproverEmployeeId.Value.ToString(),
+                            NotificationType = HRMS_Core.Notifications.NotificationType.OfferApprovalRequest,
+                            NotificationAffectedId = level.OfferId
+                        };
+
+                        var saved = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                        if (saved.Success > 0)
+                        {
+                            notification.NotificationRemainderId = saved.Success;
+                            var connections = NotificationRemainderConnectionManager.GetConnections(level.ApproverEmployeeId.Value.ToString());
+                            if (connections.Any())
+                                await _hubContext.Clients.Clients(connections).SendAsync("ReceiveNotificationRemainder", notification);
+                        }
+                    }
+                }
+
+                var groupedByCompany = overdueLevels.GroupBy(x => x.CompanyId);
+                foreach (var companyGroup in groupedByCompany)
+                {
+                    var rows = new StringBuilder();
+                    foreach (var level in companyGroup)
+                    {
+                        rows.Append($@"
+                                <tr>
+                                    <td>{level.CandidateName ?? "N/A"}</td>
+                                    <td>{level.PositionTitle ?? "N/A"}</td>
+                                    <td>N/A</td>
+                                    <td>Approver #{level.ApproverEmployeeId?.ToString() ?? "N/A"}</td>
+                                    <td>Level {level.LevelNo - 1}</td>
+                                    <td>Level {level.LevelNo}</td>
+                                </tr>"
+                        );
+                    }
+
+                    var emailReport = await _unitOfWork.EmailReportRepository.GetEmailSendTime(EmailReportType.EscalatedReport.ToString());
+                    if (emailReport == null || string.IsNullOrEmpty(emailReport.ToEmails)) continue;
+
+                    var placeholders = new Dictionary<string, string>
+                    {
+                        { "CompanyName", "N/A" },
+                        { "Year", DateTime.Now.Year.ToString() },
+                        { "EscalatedEmployeeList", rows.ToString() }
+                    };
+
+                    var emailRequest = new EmailRequest
+                    {
+                        ToEmails = emailReport.ToEmails.Split(',').ToList(),
+                        BccEmails = emailReport?.BccEmails?.Split(',').ToList(),
+                        CcEmails = emailReport?.CcEmails?.Split(',').ToList(),
+                        Subject = "Offer Approval Escalation Notification",
+                        TemplateName = "ApprovalEscalatedEmailTemplate.html",
+                        Placeholders = placeholders
+                    };
+
+                    await _emailService.SendEmailAsync(emailRequest);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error checking offer approval escalations: {ex.Message}");
+            }
+        }
+
         private string GetNotificationMessage(ProbationAlertDto alert)
         {
             return alert.AlertStatus switch
@@ -265,6 +349,13 @@ namespace HRMS_API.Services
                 "probation-daily-notification",
                 () => ScheduleDailyProbationNotification(),
                 "30 4 * * *"
+            );
+
+            // ✅ Offer approval escalation sweep (every 30 minutes)
+            RecurringJob.AddOrUpdate(
+                "offer-approval-escalation-check",
+                () => CheckOfferApprovalEscalations(),
+                "*/30 * * * *"
             );
         }
 

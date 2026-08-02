@@ -1,0 +1,112 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Offer Approvals";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="card">
+    <div class="card-header bg-transparent py-2">
+        <h6 class="mb-0">Pending Offer Approvals</h6>
+    </div>
+    <div class="card-body">
+        <div id="pendingOfferGridContainer"></div>
+    </div>
+</div>
+
+<!-- ===== Action Modal ===== -->
+<div class="modal fade" id="actionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><span id="actionModalTitle">Approve</span> Offer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="mb-2">
+                    <label>Remarks</label>
+                    <textarea id="txtActionRemarks" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btnConfirmAction" class="btn btn-primary btn-sm">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const Token = localStorage.getItem("authToken");
+    const EmployeeId = localStorage.getItem("EmployeeId");
+    var pendingActionLevelId = 0;
+    var pendingAction = '';
+
+    $(document).ready(function () {
+        loadPendingApprovals();
+    });
+
+    function fmtDate(v) {
+        if (!v) return '';
+        var d = new Date(v);
+        if (isNaN(d)) return '';
+        return ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
+    }
+
+    var pendingOfferGrid = WMSGrid.create({
+        container: 'pendingOfferGridContainer',
+        title: 'Awaiting Your Approval',
+        icon: 'bx-check-shield',
+        columns: [
+            { field: 'candidateName', header: 'Candidate', width: '160px' },
+            { field: 'positionTitle', header: 'Job Position', width: '160px' },
+            { field: 'offeredCTC', header: 'Offered CTC', width: '110px', align: 'right' },
+            { field: 'joiningDate', header: 'Joining Date', width: '110px', render: function (v) { return fmtDate(v); } },
+            { field: 'levelNo', header: 'Level', width: '70px', align: 'center' },
+            {
+                header: 'Actions', sortable: false, stickyRight: true, width: '160px',
+                render: function (v, row) {
+                    return '<button class="wg-btn wg-btn-primary" title="Approve" onclick="_openAction(' + row.offerApprovalRequestLevelId + ',\'Approve\')"><i class="bx bx-check"></i></button> ' +
+                           '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Reject" onclick="_openAction(' + row.offerApprovalRequestLevelId + ',\'Reject\')"><i class="bx bx-x"></i></button>';
+                }
+            }
+        ]
+    });
+
+    function loadPendingApprovals() {
+        pendingOfferGrid.showLoader();
+        $.ajax({
+            url: '@baseUrl/OfferApprovalAPI/GetPendingApprovals/' + EmployeeId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) { pendingOfferGrid.setData(res.data || []); pendingOfferGrid.hideLoader(); },
+            error: function () { pendingOfferGrid.hideLoader(); showToast('Failed to load pending approvals.', 'error'); }
+        });
+    }
+
+    window._openAction = function (levelId, action) {
+        pendingActionLevelId = levelId;
+        pendingAction = action;
+        $('#actionModalTitle').text(action);
+        $('#txtActionRemarks').val('');
+        $('#btnConfirmAction').removeClass('btn-primary btn-danger').addClass(action === 'Approve' ? 'btn-primary' : 'btn-danger');
+        $('#actionModal').modal('show');
+    };
+
+    $('#btnConfirmAction').click(function () {
+        $.ajax({
+            type: 'PUT', url: '@baseUrl/OfferApprovalAPI/ActionOnLevel',
+            data: JSON.stringify({
+                OfferApprovalRequestLevelId: pendingActionLevelId, Action: pendingAction,
+                ActionBy: parseInt(EmployeeId), Remarks: $('#txtActionRemarks').val()
+            }),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Recorded successfully.', 'success'); $('#actionModal').modal('hide'); loadPendingApprovals(); }
+                else showToast(res.responseMessage || 'Action failed.', 'error');
+            },
+            error: function () { showToast('Action failed.', 'error'); }
+        });
+    });
+</script>

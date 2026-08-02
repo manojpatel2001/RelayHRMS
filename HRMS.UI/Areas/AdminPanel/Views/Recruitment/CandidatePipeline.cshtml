@@ -1,0 +1,163 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Candidate Pipeline";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<style>
+    .kanban-board { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; }
+    .kanban-column { flex: 0 0 240px; background: var(--wg-row-even, #f5f8fa); border-radius: 8px; padding: 8px; min-height: 300px; }
+    .kanban-column-header { font-weight: 700; font-size: 12.5px; padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; }
+    .kanban-card { background: #fff; border: 1px solid #D0D8DC; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; cursor: grab; font-size: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .kanban-card.dragging { opacity: 0.5; }
+    .kanban-column.drag-over { outline: 2px dashed #2F6F8E; }
+    .kanban-card .cand-name { font-weight: 600; font-size: 13px; }
+    .kanban-card .cand-meta { color: #778899; font-size: 11px; }
+</style>
+
+<div class="wms-form-page">
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Candidate Pipeline</h6>
+        <select id="ddlJobPosition" class="form-select form-select-sm" style="width:280px">
+            <option value="">Select Job Position</option>
+        </select>
+    </div>
+    <div class="card-body">
+        <div id="kanbanBoard" class="kanban-board"><p class="text-muted">Select a job position to view its candidate pipeline.</p></div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    const Token = localStorage.getItem("authToken");
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    const CompanyId = companyDetails ? companyDetails.CompanyId : null;
+    const EmployeeId = localStorage.getItem("EmployeeId");
+
+    var stagesCache = [];
+
+    $(document).ready(function () {
+        loadJobPositionDropdown();
+        loadStages();
+
+        var params = new URLSearchParams(window.location.search);
+        var preselect = params.get('jobPositionId');
+        if (preselect) {
+            $('#ddlJobPosition').val(preselect);
+        }
+    });
+
+    $('#ddlJobPosition').on('change', function () {
+        var jobPositionId = $(this).val();
+        if (jobPositionId) loadKanban(jobPositionId);
+        else $('#kanbanBoard').html('<p class="text-muted">Select a job position to view its candidate pipeline.</p>');
+    });
+
+    function loadJobPositionDropdown() {
+        $.ajax({
+            url: '@baseUrl/JobPositionAPI/GetJobPositionDropdown/' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                var $sel = $('#ddlJobPosition');
+                var pending = $sel.val();
+                // Dynamic Dapper rows preserve the SQL column-alias casing (PascalCase).
+                (response.data || []).forEach(function (item) {
+                    $sel.append($('<option>', { value: item.JobPositionId, text: item.PositionTitle }));
+                });
+                var params = new URLSearchParams(window.location.search);
+                var preselect = params.get('jobPositionId');
+                if (preselect) { $sel.val(preselect); loadKanban(preselect); }
+            }
+        });
+    }
+
+    function loadStages() {
+        $.ajax({
+            url: '@baseUrl/CandidatePipelineAPI/GetAllPipelineStages',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) { stagesCache = response.data || []; }
+        });
+    }
+
+    function loadKanban(jobPositionId) {
+        $.ajax({
+            url: '@baseUrl/CandidateApplicationAPI/GetKanbanBoardData/' + jobPositionId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) { renderKanban(response.data || []); },
+            error: function () { showToast('Failed to load pipeline board.', 'error'); }
+        });
+    }
+
+    function recommendationColor(rec) {
+        var colors = { 'Strong Match': '#2E7D32', 'Moderate Match': '#E65100', 'Weak Match': '#C62828' };
+        return colors[rec] || '#778899';
+    }
+
+    // GetKanbanBoardData returns dynamic Dapper rows — these preserve the exact SQL
+    // column-alias casing (PascalCase), unlike the camelCase-serialized typed POCO
+    // endpoints (e.g. GetAllPipelineStages) used elsewhere on this page.
+    function renderKanban(cards) {
+        var stages = stagesCache.length ? stagesCache : [];
+        // Derive stage columns from the cards themselves if the stage master hasn't loaded yet.
+        if (!stages.length) {
+            var seen = {};
+            cards.forEach(function (c) { if (!seen[c.CurrentPipelineStageId]) { seen[c.CurrentPipelineStageId] = true; stages.push({ candidatePipelineStageId: c.CurrentPipelineStageId, stageName: c.StageName, sortOrder: c.SortOrder }); } });
+            stages.sort(function (a, b) { return a.sortOrder - b.sortOrder; });
+        }
+
+        var $board = $('#kanbanBoard').empty();
+        stages.forEach(function (stage) {
+            var stageId = stage.candidatePipelineStageId;
+            var stageCards = cards.filter(function (c) { return c.CurrentPipelineStageId === stageId; });
+
+            var $col = $('<div class="kanban-column" data-stage-id="' + stageId + '"></div>');
+            $col.append('<div class="kanban-column-header"><span>' + stage.stageName + '</span><span class="badge bg-secondary">' + stageCards.length + '</span></div>');
+
+            stageCards.forEach(function (c) {
+                var $card = $('<div class="kanban-card" draggable="true" data-app-id="' + c.CandidateApplicationId + '"></div>');
+                $card.append('<div class="cand-name">' + c.FullName + '</div>');
+                $card.append('<div class="cand-meta">' + (c.CurrentEmployer || '') + ' &middot; ' + (c.TotalExperienceYears || 0) + ' yrs</div>');
+                if (c.OverallScore != null) {
+                    $card.append('<div class="mt-1"><span class="badge" style="background:' + recommendationColor(c.Recommendation) + '">' + c.OverallScore + ' - ' + (c.Recommendation || '') + '</span></div>');
+                }
+                $card.on('dragstart', function (e) { $(this).addClass('dragging'); e.originalEvent.dataTransfer.setData('text/plain', c.CandidateApplicationId); });
+                $card.on('dragend', function () { $(this).removeClass('dragging'); });
+                $col.append($card);
+            });
+
+            $col.on('dragover', function (e) { e.preventDefault(); $(this).addClass('drag-over'); });
+            $col.on('dragleave', function () { $(this).removeClass('drag-over'); });
+            $col.on('drop', function (e) {
+                e.preventDefault();
+                $(this).removeClass('drag-over');
+                var appId = e.originalEvent.dataTransfer.getData('text/plain');
+                var toStageId = $(this).data('stage-id');
+                moveCandidate(appId, toStageId);
+            });
+
+            $board.append($col);
+        });
+    }
+
+    function moveCandidate(candidateApplicationId, toStageId) {
+        $.ajax({
+            type: 'PUT',
+            url: '@baseUrl/CandidatePipelineAPI/MoveCandidateToStage',
+            data: JSON.stringify({ CandidateApplicationId: parseInt(candidateApplicationId), ToStageId: toStageId, ActionBy: EmployeeId }),
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess) { showToast('Candidate moved successfully.', 'success'); loadKanban($('#ddlJobPosition').val()); }
+                else { showToast(res.responseMessage || 'Move failed.', 'error'); loadKanban($('#ddlJobPosition').val()); }
+            },
+            error: function () { showToast('Move failed.', 'error'); loadKanban($('#ddlJobPosition').val()); }
+        });
+    }
+</script>

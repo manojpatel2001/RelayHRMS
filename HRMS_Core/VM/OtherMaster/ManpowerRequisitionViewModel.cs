@@ -64,7 +64,12 @@
         public string? ESICNo { get; set; }
         public string? PAN { get; set; }
 
-        
+        // Phase 1 Recruitment overhaul — additive fields
+        public string? Priority { get; set; }
+        public int? ReplacedEmployeeId { get; set; }
+        public string? ReplacedEmployeeName { get; set; }
+        public string? Remarks { get; set; }
+        public decimal? BudgetAmount { get; set; }
     }
    
 }

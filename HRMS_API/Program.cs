@@ -108,6 +108,10 @@ builder.Services.AddScoped<FileUploadService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<AutoJobService>();
 builder.Services.AddScoped<EmailJobService>();
+builder.Services.AddScoped<ResumeScreeningService>();
+builder.Services.AddScoped<SalaryFitmentService>();
+builder.Services.AddScoped<OfferApprovalService>();
+builder.Services.AddScoped<EmployeeConversionService>();
 builder.Services.AddMemoryCache();
 
 // ====================== HANGFIRE ======================
