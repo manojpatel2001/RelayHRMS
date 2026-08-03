@@ -5,6 +5,9 @@
     string apiBase = ViewBag.BaseUrlAPI;
 }
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
 <div class="wms-form-page">
 
     <div class="card">
@@ -63,16 +66,21 @@
                     <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnSelectAllCoApp">
                         <i class="bx bx-check-square"></i> Select All
                     </button>
-                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="approveid">
-                        <i class="bx bx-check"></i>
-                        <span class="btn-spinner-icon"></span>
-                        <span class="btn-label-text">Approve</span>
+                    <button type="button" class="btn btn-outline btn-sm d-inline-flex align-items-center gap-1" id="btnExportCoApp">
+                        <i class="bx bx-download"></i> Export to Excel
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="rejectid">
-                        <i class="bx bx-x"></i>
-                        <span class="btn-spinner-icon"></span>
-                        <span class="btn-label-text">Reject</span>
-                    </button>
+                    <div id="approveRejectWrap" class="d-flex gap-2" style="display:none;">
+                        <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="approveid">
+                            <i class="bx bx-check"></i>
+                            <span class="btn-spinner-icon"></span>
+                            <span class="btn-label-text">Approve</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="rejectid">
+                            <i class="bx bx-x"></i>
+                            <span class="btn-spinner-icon"></span>
+                            <span class="btn-label-text">Reject</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -148,7 +156,95 @@
                 if (!allSelected) { currentRows.forEach(function (r) { selectedIds[r.comp_Off_Detailsid] = true; }); }
                 if (grid) grid.refresh();
             });
+
+            $('#btnExportCoApp').on('click', function () { exportCoApprovalToExcel(); });
         });
+
+        function getSelectedRows() {
+            return currentRows.filter(function (r) { return !!selectedIds[r.comp_Off_Detailsid]; });
+        }
+
+        function exportCoApprovalToExcel() {
+            var rows = getSelectedRows();
+            if (rows.length === 0) rows = currentRows;
+
+            if (!rows || rows.length === 0) {
+                showToast('No data available to export.', 'warn');
+                return;
+            }
+
+            if (typeof ExcelJS === 'undefined') {
+                showToast('ExcelJS library not loaded. Please refresh the page.', 'error');
+                return;
+            }
+
+            var workbook = new ExcelJS.Workbook();
+            var worksheet = workbook.addWorksheet('Comp Off Applications');
+
+            worksheet.columns = [
+                { header: 'Application Id', key: 'comp_Off_Detailsid', width: 15 },
+                { header: 'Employee Code', key: 'emp_Code', width: 15 },
+                { header: 'Employee Name', key: 'fullName', width: 25 },
+                { header: 'Branch Name', key: 'branchName', width: 20 },
+                { header: 'Extra Work Day', key: 'extra_Work_Day', width: 15 },
+                { header: 'Extra Hours', key: 'extra_Work_Hours', width: 12 },
+                { header: 'Reason', key: 'comoffReason', width: 30 },
+                { header: 'Status', key: 'application_Status', width: 15 }
+            ];
+
+            var headerRow = worksheet.getRow(1);
+            headerRow.eachCell(function (cell) {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F6F8E' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = {
+                    top: { style: 'thin' }, left: { style: 'thin' },
+                    bottom: { style: 'thin' }, right: { style: 'thin' }
+                };
+            });
+            headerRow.height = 25;
+
+            function safe(val) { return (val === null || val === undefined) ? '' : String(val); }
+
+            rows.forEach(function (row) {
+                if (!row) return;
+                var dataRow = worksheet.addRow({
+                    comp_Off_Detailsid: safe(row.comp_Off_Detailsid),
+                    emp_Code: safe(row.emp_Code),
+                    fullName: safe(row.fullName),
+                    branchName: safe(row.branchName),
+                    extra_Work_Day: fmtDate(row.extra_Work_Day),
+                    extra_Work_Hours: (row.extra_Work_Hours !== null && row.extra_Work_Hours !== undefined) ? parseFloat(row.extra_Work_Hours).toFixed(2) : '-',
+                    comoffReason: safe(row.comoffReason),
+                    application_Status: safe(row.application_Status)
+                });
+
+                dataRow.eachCell(function (cell) {
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                    };
+                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                });
+            });
+
+            var status = $('input[name="Status"]:checked').val() || 'Export';
+            var today = new Date();
+            var dateStr = String(today.getDate()).padStart(2, '0') + '-' +
+                          String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                          today.getFullYear();
+            var fileName = 'CompOffApplications_' + status + '_' + dateStr + '.xlsx';
+
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+                showToast(rows.length + ' record(s) exported successfully.', 'success');
+            }).catch(function (err) {
+                console.error('Export error:', err);
+                showToast('Export failed: ' + err.message, 'error');
+            });
+        }
 
         function loadAllApplications(searchtype, searchfor) {
             if (isLoadingCoApproval) return;
@@ -181,11 +277,8 @@
                     if (data.isSuccess && data.data && data.data.length > 0) {
                         currentRows = data.data;
                         renderGrid(currentRows, selectedStatus);
-                        if (selectedStatus === "Pending") {
-                            $('#actionButtons').show();
-                        } else {
-                            $('#actionButtons').hide();
-                        }
+                        $('#actionButtons').show();
+                        $('#approveRejectWrap').toggle(selectedStatus === "Pending");
                     } else {
                         currentRows = [];
                         grid = null;

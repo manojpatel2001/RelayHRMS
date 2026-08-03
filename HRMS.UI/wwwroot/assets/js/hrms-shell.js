@@ -130,6 +130,33 @@
             }
         });
 
+        // Fallback: pages reached via an "Add"/"Edit" button rather than a
+        // dedicated sidebar entry (e.g. .../CompOffApplication/Add) share no
+        // path prefix with their menu link (.../CompOffApplication/Index),
+        // so the loop above finds nothing and the breadcrumb used to fall
+        // back to the generic page title instead of "Leave / Comp Off
+        // Application". Match by area+controller instead, preferring the
+        // shortest same-controller link (the controller's main/Index entry).
+        if (!best) {
+            var pathParts = path.split('/').filter(Boolean);
+            if (pathParts.length >= 2) {
+                var controllerPrefix = '/' + pathParts.slice(0, 2).join('/');
+                links.forEach(function (a) {
+                    var raw = (a.getAttribute('href') || '').trim();
+                    if (!raw || raw === '#' || raw.indexOf('javascript') === 0) return;
+                    var hPath;
+                    try {
+                        hPath = new URL(raw, w.location.origin).pathname.toLowerCase().replace(/\/$/, '');
+                    } catch (_) { return; }
+                    if (hPath !== controllerPrefix && !hPath.startsWith(controllerPrefix + '/')) return;
+                    if (!best || hPath.length < bestLen) {
+                        best    = a;
+                        bestLen = hPath.length;
+                    }
+                });
+            }
+        }
+
         if (best) {
             best.classList.add('is-active');
 

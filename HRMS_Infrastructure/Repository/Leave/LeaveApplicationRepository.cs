@@ -66,10 +66,12 @@ namespace HRMS_Infrastructure.Repository.Leave
                     new SqlParameter("@SearchFor", (object?)filter.SearchFor ?? DBNull.Value),
                     new SqlParameter("@EmpId", (object?)filter.Emplooyeid ?? DBNull.Value),
                     new SqlParameter("@CompId", (object?)filter.CompId ?? DBNull.Value),
+                    new SqlParameter("@LeaveStatus", string.IsNullOrEmpty(filter.Status) ? DBNull.Value : filter.Status),
+                    new SqlParameter("@BranchId", (object?)filter.BranchId ?? DBNull.Value),
                 };
 
                         var result = await _db.Set<VmLeaveApplicationforApprove>()
-                            .FromSqlRaw("EXEC SP_GetLeaveApplicationsForAproval @SearchType, @SearchFor,@EmpId,@CompId", parameters)
+                            .FromSqlRaw("EXEC SP_GetLeaveApplicationsForAproval @SearchType, @SearchFor,@EmpId,@CompId,@LeaveStatus,@BranchId", parameters)
                             .ToListAsync();
 
                         return result;
