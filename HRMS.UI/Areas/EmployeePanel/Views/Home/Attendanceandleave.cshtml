@@ -1,551 +1,265 @@
-﻿@inject IConfiguration Configuration
+@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Attedance Calender";
+    ViewData["Title"] = "Attendance Calendar";
     Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
     string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
-    string UIBaseUrlLayout = Configuration["UIBaseUrlSettings:baseUrl"];
-    var uriAPI = new Uri(baseUrl);
-    string baseAPIDomainUrl = $"{uriAPI.Scheme}://{uriAPI.Host}:{uriAPI.Port}";
 }
-    
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-            margin: 0;
-            padding: 10px;
-            font-size: 1rem;
-        }
+<style>
+    /* Page-local overrides only — cards, buttons, form fields and the
+       Inter font all come from the shared theme CSS (hrms-premium.css). */
 
-        .calendar-container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            overflow: hidden;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+    .et-calendar-card { overflow: hidden; }
 
-        .calendar-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem;
-            text-align: center;
-        }
+    .et-cal-banner {
+        background: linear-gradient(135deg, var(--hp-blue-dark) 0%, var(--hp-blue-mid) 100%);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .et-cal-banner .btn span { display: inline; }
+    .et-cal-title { text-align: center; }
+    .et-month-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.1;
+        letter-spacing: .3px;
+    }
+    .et-year-subtitle {
+        font-size: 12.5px;
+        color: rgba(255,255,255,.75);
+        margin-top: 2px;
+    }
 
-        .calendar-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
+    .et-calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+    }
 
-            .calendar-nav button {
-                background: rgba(255,255,255,0.2);
-                border: none;
-                color: white;
-                padding: 0.3rem 0.8rem;
-                border-radius: 20px;
-                cursor: pointer;
-                transition: all 0.3s;
-                font-size: 0.9rem;
-            }
+    .et-day-header {
+        background: var(--hp-surface-3);
+        color: var(--hp-text-md);
+        text-align: center;
+        padding: 9px 4px;
+        font-weight: 700;
+        font-size: 11.5px;
+        letter-spacing: .4px;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--hp-border);
+    }
 
-                .calendar-nav button:hover {
-                    background: rgba(255,255,255,0.3);
-                    transform: translateY(-2px);
-                }
+    .et-calendar-day {
+        min-height: 96px;
+        border: 1px solid var(--hp-border);
+        padding: 6px 4px;
+        background: var(--hp-surface);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        text-align: center;
+        transition: background .15s ease, box-shadow .15s ease;
+    }
+    .et-calendar-day:hover { background: var(--hp-surface-2); box-shadow: inset 0 0 0 1px var(--hp-border-md); }
 
-        .month-title {
-            font-size: 2.2rem;
-            font-weight: 300;
-            margin: 0;
-        }
+    .et-calendar-day.et-weekend { background: var(--hp-surface-2); }
+    .et-calendar-day.et-other-month { background: var(--hp-surface-2); color: var(--hp-text-faint); }
+    .et-calendar-day.et-other-month .et-day-number { color: var(--hp-text-faint); }
 
-        .year-subtitle {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-top: 0.3rem;
-        }
+    .et-calendar-day.et-today {
+        background: rgba(45,122,181,.08);
+        border-color: var(--hp-blue-mid);
+        box-shadow: inset 0 0 0 1px var(--hp-blue-mid);
+    }
+    .et-calendar-day.et-today .et-day-number { color: var(--hp-blue-mid); }
 
-        .calendar-controls {
-            background: white;
-            padding: 0.8rem;
-            margin-bottom: 0.8rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
+    .et-day-number {
+        font-size: 14.5px;
+        font-weight: 700;
+        color: var(--hp-text);
+        margin-bottom: 4px;
+    }
 
-            .calendar-controls h5 {
-                font-size: 1.2rem;
-                margin-bottom: 0;
-            }
+    .et-attendance-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        width: 100%;
+    }
 
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 0;
-            border-top: 1px solid #e9ecef;
-        }
+    .et-status-badge {
+        padding: 2px 9px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 10.5px;
+        letter-spacing: .2px;
+        min-width: 26px;
+        display: inline-block;
+    }
 
-        .day-header {
-            background-color: #495057;
-            color: white;
-            text-align: center;
-            padding: 0.6rem 0.3rem;
-            font-weight: 600;
-            font-size: 1rem;
-            letter-spacing: 0.3px;
-        }
+    .et-time-info,
+    .et-description {
+        font-size: 10.5px;
+        color: var(--hp-text-muted);
+        line-height: 1.25;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 
-        .calendar-day {
-            min-height: 100px;
-            max-height: 110px;
-            border: 1px solid #e9ecef;
-            padding: 0.3rem;
-            position: relative;
-            background-color: white;
-            transition: all 0.2s;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
+    /* Status colors — mapped to the theme's semantic tokens instead of
+       arbitrary Bootstrap-alert pastels, so every color used here already
+       means the same thing elsewhere in the app. */
+    .et-status-P    { background: rgba(16,185,129,.14);  color: #047857; }
+    .et-status-A    { background: rgba(239,68,68,.12);   color: #b91c1c; }
+    .et-status-HD   { background: rgba(16,185,129,.10);  color: #047857; border: 1px dashed rgba(16,185,129,.45); }
+    .et-status-H    { background: rgba(245,158,11,.16);  color: #92400e; }
+    .et-status-W    { background: var(--hp-surface-3);   color: var(--hp-text-muted); }
+    .et-status-PL   { background: rgba(59,130,246,.12);  color: #1d4ed8; }
+    .et-status-COMP { background: rgba(45,122,181,.14);  color: var(--hp-blue-dark); }
+    .et-status-SHL  { background: rgba(59,130,246,.12);  color: #1d4ed8; }
+    .et-status-LWP  { background: var(--hp-surface);     color: var(--hp-danger); border: 1px solid rgba(239,68,68,.35); }
+    .et-status-NOT_JOINED,
+    .et-status-LEFT { background: var(--hp-surface-3);   color: var(--hp-text-faint); }
+    .et-status-FUTURE { background: var(--hp-surface);   color: var(--hp-text-faint); border: 1px dashed var(--hp-border-md); }
 
-            .calendar-day:hover {
-                background-color: #f8f9fa;
-                transform: scale(1.02);
-                z-index: 10;
-                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            }
+    /* Monthly summary tiles */
+    .et-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+    }
 
-            .calendar-day.other-month {
-                background-color: #f8f9fa;
-                color: #6c757d;
-            }
+    /* Legend */
+    .et-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+    .et-legend-item { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--hp-text-md); }
+    .et-legend-swatch { width: 13px; height: 13px; border-radius: 4px; flex-shrink: 0; }
 
-            .calendar-day.today {
-                background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-                border-color: #ff6b6b;
-                font-weight: bold;
-            }
+    @@media (max-width: 768px) {
+        .et-calendar-day { min-height: 66px; padding: 4px 2px; }
+        .et-month-title { font-size: 17px; }
+        .et-cal-banner .btn span { display: none; }
+        .et-status-badge { font-size: 9.5px; padding: 1px 7px; }
+        .et-time-info, .et-description { font-size: 9px; }
+    }
+</style>
 
-        .day-number {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.15rem;
-            text-align: center;
-        }
+<div class="wms-form-page">
 
-        .other-month .day-number {
-            color: #adb5bd;
-        }
-
-        .attendance-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            margin-bottom: 0.1rem;
-            min-width: 30px;
-            display: inline-block;
-        }
-
-        .time-info {
-            font-size: 0.8rem;
-            color: #6c757d;
-            margin-top: 0.05rem;
-            line-height: 1.0;
-        }
-
-        .description {
-            font-size: 0.8rem;
-            color: #495057;
-            margin-top: 0.05rem;
-            line-height: 1.0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 100%;
-        }
-        /* Status Colors */
-        .status-P {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-A {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .status-W {
-            background: #e2e3e5;
-            color: #383d41;
-        }
-
-        .status-H {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-PL {
-            background: #cce7ff;
-            color: #004085;
-        }
-
-        .status-COMP {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .status-HD {
-            background: #fde2e4;
-            color: #842029;
-        }
-
-        .status-LWP {
-            background: #f8f9fa;
-            color: #495057;
-            border: 1px solid #dee2e6;
-        }
-
-        .status-SHL {
-            background: #e7c3ff;
-            color: #6f42c1;
-        }
-
-        .status-NOT_JOINED {
-            background: #f8f9fa;
-            color: #6c757d;
-        }
-
-        .status-LEFT {
-            background: #f8f9fa;
-            color: #6c757d;
-        }
-
-        .status-FUTURE {
-            background: #ffffff;
-            color: #adb5bd;
-            border: 1px dashed #dee2e6;
-        }
-
-        .holiday-indicator {
-            position: absolute;
-            top: 0.3rem;
-            right: 0.3rem;
-            background: #ffc107;
-            color: #000;
-            border-radius: 50%;
-            width: 15px;
-            height: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6rem;
-            font-weight: bold;
-        }
-
-        .weekend-indicator {
-            background-color: rgba(108, 117, 125, 0.05);
-        }
-        /* Summary Cards */
-        .summary-cards {
-            background: white;
-            padding: 0.8rem;
-            margin-top: 0.8rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-    .attedence-summary-card {
-            text-align: center;
-            padding: 0.6rem;
-            border-radius: 6px;
-            margin-bottom: 0.3rem;
-        }
-
-        .attedence-summary-card h6 {
-                margin: 0;
-                font-size: 0.8rem;
-                text-transform: uppercase;
-                letter-spacing: 0.3px;
-            }
-
-        .attedence-summary-card .value {
-                font-size: 1.4rem;
-                font-weight: bold;
-                margin-top: 0.2rem;
-            }
-        /* Legend */
-        .legend {
-            background: white;
-            padding: 0.8rem;
-            margin-top: 0.8rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-            .legend h6 {
-                font-size: 1rem;
-                margin-bottom: 0.5rem;
-            }
-
-        .legend-item {
-            display: inline-flex;
-            align-items: center;
-            margin: 0.1rem 0.4rem;
-            font-size: 0.85rem;
-        }
-
-        .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 2px;
-            margin-right: 0.3rem;
-        }
-        /* Container adjustments */
-        .container-fluid {
-            padding: 0.5rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        /* Form controls */
-        .form-select {
-            font-size: 0.9rem;
-            padding: 0.4rem 0.8rem;
-        }
-
-        .btn {
-            font-size: 0.9rem;
-            padding: 0.4rem 0.8rem;
-        }
-        /* Responsive adjustments */
-        @@media (max-width: 768px) {
-            body
-
-        {
-            padding: 5px;
-            font-size: 0.9rem;
-        }
-
-        .calendar-day {
-            min-height: 60px;
-            max-height: 60px;
-            padding: 0.25rem;
-        }
-
-        .month-title {
-            font-size: 1.8rem;
-        }
-
-        .status-badge {
-            font-size: 0.8rem;
-            padding: 0.15rem 0.4rem;
-        }
-
-        .day-header {
-            padding: 0.4rem 0.2rem;
-            font-size: 0.9rem;
-        }
-
-        .calendar-header {
-            padding: 0.8rem;
-        }
-
-        .time-info, .description {
-            font-size: 0.7rem;
-        }
-
-        }
-        @@media (max-width: 576px) {
-            .calendar-day
-
-        {
-            min-height: 55px;
-            max-height: 55px;
-        }
-
-        .status-badge {
-            font-size: 0.75rem;
-            padding: 0.1rem 0.3rem;
-        }
-
-        .day-number {
-            font-size: 1.1rem;
-        }
-
-        .time-info, .description {
-            font-size: 0.65rem;
-        }
-
-        }
-    </style>
-
-
-    <div class="container-fluid">
-        <!-- Calendar Controls -->
-        <div class="calendar-controls">
-            <div class="row align-items-center">
-                <div class="col-md-4 col-12 mb-2 mb-md-0">
-                    <h5 class="mb-0">
-                        <i class="fas fa-calendar-alt me-2 text-primary"></i>My Attendance Calendar
-                    </h5>
-                </div>
-            <!-- Replace the existing dropdown section with this -->
-            <div class="col-md-4 col-12 mb-2 mb-md-0">
-                <label for="monthSelect" class="form-label fw-bold">
-                    <i class="fas fa-calendar me-2"></i>Month/Year
-                </label>
-                <select class="form-select" id="monthSelect" onchange="loadCalendar()">
-                    <!-- Options will be populated dynamically by JavaScript -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="bx bx-calendar-alt" style="color:var(--hp-blue-mid);margin-right:6px;"></i>My Attendance Calendar</h6>
+            <div class="d-flex align-items-center gap-2">
+                <label for="monthSelect" class="mb-0" style="font-size:12px;font-weight:600;color:var(--hp-text-muted);white-space:nowrap;">Month / Year</label>
+                <select class="form-select form-select-sm" id="monthSelect" style="width:auto;min-width:160px;" onchange="loadCalendar()">
+                    <!-- Options populated dynamically by JavaScript -->
                 </select>
             </div>
-               @*  <div class="col-md-4 col-12 d-flex align-items-end justify-content-md-end">
-                    <button class="btn btn-primary me-2" onclick="loadCalendar()">
-                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                    </button>
-                    <button class="btn btn-outline-success" onclick="exportCalendar()">
-                        <i class="fas fa-download me-1"></i>Export
-                    </button>
-                </div> *@
-            </div>
         </div>
-        <!-- Calendar Container -->
-        <div class="calendar-container">
-            <!-- Calendar Header -->
-            <div class="calendar-header">
-                <div class="calendar-nav">
-                    <button onclick="previousMonth()">
-                        <i class="fas fa-chevron-left me-1"></i>Previous
-                    </button>
-                    <div>
-                        <h1 class="month-title" id="monthTitle">August</h1>
-                        <div class="year-subtitle" id="yearSubtitle">2025</div>
-                    </div>
-                    <button onclick="nextMonth()">
-                        Next<i class="fas fa-chevron-right ms-1"></i>
-                    </button>
-                </div>
+    </div>
+
+    <div class="card et-calendar-card mb-3">
+        <div class="et-cal-banner">
+            <button type="button" class="btn btn-light btn-sm" onclick="previousMonth()">
+                <i class="bx bx-chevron-left"></i><span>Previous</span>
+            </button>
+            <div class="et-cal-title">
+                <div class="et-month-title" id="monthTitle">August</div>
+                <div class="et-year-subtitle" id="yearSubtitle">2025</div>
             </div>
-            <!-- Calendar Grid -->
-            <div class="calendar-grid" id="calendarGrid">
-                <!-- Day Headers -->
-                <div class="day-header">Sunday</div>
-                <div class="day-header">Monday</div>
-                <div class="day-header">Tuesday</div>
-                <div class="day-header">Wednesday</div>
-                <div class="day-header">Thursday</div>
-                <div class="day-header">Friday</div>
-                <div class="day-header">Saturday</div>
-                <!-- Calendar Days will be populated by JavaScript -->
-            </div>
+            <button type="button" class="btn btn-light btn-sm" onclick="nextMonth()">
+                <span>Next</span><i class="bx bx-chevron-right"></i>
+            </button>
         </div>
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-            <h6 class="mb-2"><i class="fas fa-chart-bar me-2"></i>Monthly Summary</h6>
-            <div class="row">
-                <div class="col-md-2 col-4 mb-2">
-                <div class="attedence-summary-card status-P">
-                        <h6>Present</h6>
-                        <div class="value" id="totalPresent">0</div>
-                    </div>
-                </div>
-                <div class="col-md-2 col-4 mb-2">
-                <div class="attedence-summary-card status-A">
-                        <h6>Absent</h6>
-                        <div class="value" id="totalAbsent">0</div>
-                    </div>
-                </div>
-                <div class="col-md-2 col-4 mb-2">
-                <div class="attedence-summary-card status-W">
-                        <h6>Weekends</h6>
-                        <div class="value" id="totalWeekends">0</div>
-                    </div>
-                </div>
-                <div class="col-md-2 col-4 mb-2">
-                <div class="attedence-summary-card status-H">
-                        <h6>Holidays</h6>
-                        <div class="value" id="totalHolidays">0</div>
-                    </div>
-                </div>
-                <div class="col-md-2 col-4 mb-2">
-                <div class="attedence-summary-card status-PL">
-                        <h6>Leaves</h6>
-                        <div class="value" id="totalLeaves">0</div>
-                    </div>
-                </div>
-                <div class="col-md-2 col-4 mb-2">
-                <div class="attedence-summary-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                        <h6>Attendance %</h6>
-                        <div class="value" id="attendancePercentage">0%</div>
-                    </div>
-                </div>
-            </div>
+
+        <div class="et-calendar-grid" id="calendarGrid">
+            <div class="et-day-header">Sun</div>
+            <div class="et-day-header">Mon</div>
+            <div class="et-day-header">Tue</div>
+            <div class="et-day-header">Wed</div>
+            <div class="et-day-header">Thu</div>
+            <div class="et-day-header">Fri</div>
+            <div class="et-day-header">Sat</div>
+            <!-- Calendar days populated by JavaScript -->
         </div>
-        <!-- Legend -->
-        <div class="legend">
-            <h6><i class="fas fa-info-circle me-2"></i>Legend</h6>
-            <div class="row">
-                <div class="col-md-6 col-12">
-                    <div class="legend-item">
-                        <div class="legend-color status-P"></div>
-                        <span>Present (P)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color status-A"></div>
-                        <span>Absent (A)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color status-W"></div>
-                        <span>Weekend (W)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color status-H"></div>
-                        <span>Holiday (H)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color status-HD"></div>
-                        <span>Half Day (HD)</span>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="bx bx-bar-chart-alt-2" style="color:var(--hp-blue-mid);margin-right:6px;"></i>Monthly Summary</h6>
+        </div>
+        <div class="card-body">
+            <div class="et-summary-grid">
+                <div class="hrms-stat-card hrms-stat-green">
+                    <div class="hrms-stat-icon"><i class="bx bx-check-circle"></i></div>
+                    <div class="hrms-stat-info">
+                        <div class="hrms-stat-num" id="totalPresent">0</div>
+                        <div class="hrms-stat-label">Present</div>
                     </div>
                 </div>
-                <div class="col-md-6 col-12">
-                    <div class="legend-item">
-                        <div class="legend-color status-PL"></div>
-                        <span>Paid Leave (PL)</span>
+                <div class="hrms-stat-card hrms-stat-red">
+                    <div class="hrms-stat-icon"><i class="bx bx-x-circle"></i></div>
+                    <div class="hrms-stat-info">
+                        <div class="hrms-stat-num" id="totalAbsent">0</div>
+                        <div class="hrms-stat-label">Absent</div>
                     </div>
-                    <div class="legend-item">
-                        <div class="legend-color status-COMP"></div>
-                        <span>Compensatory Off (COMP)</span>
+                </div>
+                <div class="hrms-stat-card hrms-stat-blue">
+                    <div class="hrms-stat-icon"><i class="bx bx-calendar-week"></i></div>
+                    <div class="hrms-stat-info">
+                        <div class="hrms-stat-num" id="totalWeekends">0</div>
+                        <div class="hrms-stat-label">Weekends</div>
                     </div>
-                    @* <div class="legend-item">
-                        <div class="legend-color status-SHL"></div>
-                        <span>Sick Leave (SHL)</span>
-                    </div> *@
-                    <div class="legend-item">
-                        <div class="legend-color status-LWP"></div>
-                        <span>Leave Without Pay (LWP)</span>
+                </div>
+                <div class="hrms-stat-card hrms-stat-orange">
+                    <div class="hrms-stat-icon"><i class="bx bx-gift"></i></div>
+                    <div class="hrms-stat-info">
+                        <div class="hrms-stat-num" id="totalHolidays">0</div>
+                        <div class="hrms-stat-label">Holidays</div>
+                    </div>
+                </div>
+                <div class="hrms-stat-card hrms-stat-blue">
+                    <div class="hrms-stat-icon"><i class="bx bx-calendar-minus"></i></div>
+                    <div class="hrms-stat-info">
+                        <div class="hrms-stat-num" id="totalLeaves">0</div>
+                        <div class="hrms-stat-label">Leaves</div>
+                    </div>
+                </div>
+                <div class="hrms-stat-card hrms-stat-green">
+                    <div class="hrms-stat-icon"><i class="bx bx-trending-up"></i></div>
+                    <div class="hrms-stat-info">
+                        <div class="hrms-stat-num" id="attendancePercentage">0%</div>
+                        <div class="hrms-stat-label">Attendance %</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-   // Replace the existing JavaScript section in your code with this updated version
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="bx bx-info-circle" style="color:var(--hp-blue-mid);margin-right:6px;"></i>Legend</h6>
+        </div>
+        <div class="card-body">
+            <div class="et-legend">
+                <div class="et-legend-item"><span class="et-legend-swatch et-status-P"></span>Present (P)</div>
+                <div class="et-legend-item"><span class="et-legend-swatch et-status-A"></span>Absent (A)</div>
+                <div class="et-legend-item"><span class="et-legend-swatch et-status-W"></span>Weekend (W)</div>
+                <div class="et-legend-item"><span class="et-legend-swatch et-status-H"></span>Holiday (H)</div>
+                <div class="et-legend-item"><span class="et-legend-swatch et-status-HD"></span>Half Day (HD)</div>
+                <div class="et-legend-item"><span class="et-legend-swatch et-status-PL"></span>Paid Leave (PL)</div>
+                <div class="et-legend-item"><span class="et-legend-swatch et-status-COMP"></span>Compensatory Off (COMP)</div>
+                <div class="et-legend-item"><span class="et-legend-swatch et-status-LWP"></span>Leave Without Pay (LWP)</div>
+            </div>
+        </div>
+    </div>
+
+</div>
 <script>
     const EmployeeId = localStorage.getItem("EmployeeId");
     var Token = localStorage.getItem("authToken");
@@ -553,29 +267,24 @@
     const companyDetails = JSON.parse(savedCompany || '{}');
     const companyId = parseInt(companyDetails.CompanyId);
 
-    // Get current date
     const today = new Date();
     const currentActualYear = today.getFullYear();
-    const currentActualMonth = today.getMonth() + 1; // JavaScript months are 0-based
+    const currentActualMonth = today.getMonth() + 1;
 
     let currentYear = currentActualYear;
     let currentMonth = currentActualMonth;
 
-    // Sample data - replace with actual API calls
     let AttedanceCalanderData = [];
 
-    // Function to populate the month dropdown dynamically
     function populateMonthDropdown() {
         const monthSelect = document.getElementById('monthSelect');
-        monthSelect.innerHTML = ''; // Clear existing options
+        monthSelect.innerHTML = '';
 
         const monthNames = [
             'January', 'February', 'March', 'April', 'May', 'June',
             'July', 'August', 'September', 'October', 'November', 'December'
         ];
 
-        // Generate options for current month and all previous months
-        // Going back 24 months (2 years) - you can adjust this as needed
         const totalMonthsToShow = 24;
 
         for (let i = 0; i < totalMonthsToShow; i++) {
@@ -588,7 +297,6 @@
             option.value = `${optionYear}-${monthValue}`;
             option.textContent = `${monthNames[optionMonth - 1]} ${optionYear}`;
 
-            // Select current month by default
             if (optionYear === currentActualYear && optionMonth === currentActualMonth) {
                 option.selected = true;
             }
@@ -628,7 +336,7 @@
                     Month: currentMonth,
                     Year: currentYear
                 }),
-                success: function(data) {
+                success: function (data) {
                     if (data.isSuccess) {
                         AttedanceCalanderData = data.data;
                         resolve();
@@ -636,7 +344,7 @@
                         reject("Failed: Data indicates failure");
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     console.error("AJAX Error: " + status + " - " + error);
                     reject(error);
                 }
@@ -662,7 +370,7 @@
 
     function populateCalendar() {
         const grid = document.getElementById('calendarGrid');
-        const headers = grid.querySelectorAll('.day-header');
+        const headers = grid.querySelectorAll('.et-day-header');
         grid.innerHTML = '';
         headers.forEach(header => grid.appendChild(header));
 
@@ -681,15 +389,15 @@
 
     function createDayElement(date, currentMonth, today) {
         const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day';
+        dayDiv.className = 'et-calendar-day';
 
         const isCurrentMonth = date.getMonth() + 1 === currentMonth;
         const isToday = date.toDateString() === today.toDateString();
         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
-        if (!isCurrentMonth) dayDiv.classList.add('other-month');
-        if (isToday) dayDiv.classList.add('today');
-        if (isWeekend) dayDiv.classList.add('weekend-indicator');
+        if (!isCurrentMonth) dayDiv.classList.add('et-other-month');
+        if (isToday) dayDiv.classList.add('et-today');
+        if (isWeekend) dayDiv.classList.add('et-weekend');
 
         const dateStr = getLocalDateString(date);
         const attendanceData = AttedanceCalanderData?.attedanceCalanderDays?.find(d => {
@@ -699,8 +407,8 @@
         });
 
         dayDiv.innerHTML = `
-            <div class="day-number">${date.getDate()}</div>
-            <div class="attendance-info">
+            <div class="et-day-number">${date.getDate()}</div>
+            <div class="et-attendance-info">
                 ${createAttendanceInfo(attendanceData, isWeekend, isCurrentMonth)}
             </div>
         `;
@@ -713,24 +421,24 @@
 
         if (!attendanceData) {
             if (isWeekend) {
-                return '<div class="status-badge status-W">W</div>';
+                return '<div class="et-status-badge et-status-W">W</div>';
             }
-            return '<div class="status-badge status-FUTURE">-</div>';
+            return '<div class="et-status-badge et-status-FUTURE">-</div>';
         }
 
-        let html = `<div class="status-badge status-${attendanceData.attendanceStatus}">${attendanceData.attendanceStatus}</div>`;
+        let html = `<div class="et-status-badge et-status-${attendanceData.attendanceStatus}">${attendanceData.attendanceStatus}</div>`;
 
         if (attendanceData.inTime && attendanceData.outTime) {
-            html += `<div class="time-info">${attendanceData.inTime} - ${attendanceData.outTime}</div>`;
+            html += `<div class="et-time-info">${attendanceData.inTime} - ${attendanceData.outTime}</div>`;
         }
 
         if (attendanceData.workingHours) {
-            html += `<div class="time-info">${attendanceData.workingHours}h</div>`;
+            html += `<div class="et-time-info">${attendanceData.workingHours}h</div>`;
         }
 
         if (attendanceData.statusDescription || attendanceData.holidayName || attendanceData.leaveReason) {
             const description = attendanceData.statusDescription || attendanceData.holidayName || attendanceData.leaveReason;
-            html += `<div class="description">${description}</div>`;
+            html += `<div class="et-description">${description}</div>`;
         }
 
         return html;
@@ -747,7 +455,6 @@
         }
     }
 
-    // Function to check if we can navigate to next month
     function canNavigateNext() {
         if (currentYear < currentActualYear) {
             return true;
@@ -757,34 +464,27 @@
         return false;
     }
 
-    // Function to check if we can navigate to previous month
     function canNavigatePrevious() {
-        // You can set a limit here, for example, going back only 24 months
         const limitDate = new Date(currentActualYear, currentActualMonth - 24, 1);
         const currentViewDate = new Date(currentYear, currentMonth - 1, 1);
         return currentViewDate >= limitDate;
     }
 
-    // Function to update navigation button states
     function updateNavigationButtons() {
         const prevButton = document.querySelector('button[onclick="previousMonth()"]');
         const nextButton = document.querySelector('button[onclick="nextMonth()"]');
 
         if (prevButton) {
             prevButton.disabled = !canNavigatePrevious();
-            prevButton.style.opacity = canNavigatePrevious() ? '1' : '0.5';
         }
 
         if (nextButton) {
             nextButton.disabled = !canNavigateNext();
-            nextButton.style.opacity = canNavigateNext() ? '1' : '0.5';
         }
     }
 
     function previousMonth() {
-        if (!canNavigatePrevious()) {
-            return; // Don't navigate if we can't go back
-        }
+        if (!canNavigatePrevious()) return;
 
         if (currentMonth === 1) {
             currentMonth = 12;
@@ -793,16 +493,13 @@
             currentMonth--;
         }
 
-        // Update dropdown selection
         const monthValue = currentMonth.toString().padStart(2, '0');
         document.getElementById('monthSelect').value = `${currentYear}-${monthValue}`;
         loadCalendar();
     }
 
     function nextMonth() {
-        if (!canNavigateNext()) {
-            return; // Don't navigate if we can't go forward (beyond current month)
-        }
+        if (!canNavigateNext()) return;
 
         if (currentMonth === 12) {
             currentMonth = 1;
@@ -811,20 +508,13 @@
             currentMonth++;
         }
 
-        // Update dropdown selection
         const monthValue = currentMonth.toString().padStart(2, '0');
         document.getElementById('monthSelect').value = `${currentYear}-${monthValue}`;
         loadCalendar();
     }
 
-    function exportCalendar() {
-        alert('Export functionality would be implemented here');
-    }
-
-    // Initialize calendar on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        populateMonthDropdown(); // Populate dropdown first
+    document.addEventListener('DOMContentLoaded', function () {
+        populateMonthDropdown();
         loadCalendar();
     });
 </script>
-

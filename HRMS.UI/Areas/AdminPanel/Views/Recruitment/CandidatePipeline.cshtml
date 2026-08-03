@@ -14,6 +14,31 @@
     .kanban-column.drag-over { outline: 2px dashed #2F6F8E; }
     .kanban-card .cand-name { font-weight: 600; font-size: 13px; }
     .kanban-card .cand-meta { color: #778899; font-size: 11px; }
+    .kanban-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; }
+    .kanban-history-btn {
+        flex-shrink: 0;
+        border: none;
+        background: transparent;
+        color: #778899;
+        font-size: 13px;
+        line-height: 1;
+        padding: 2px;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    .kanban-history-btn:hover { color: #2F6F8E; background: #EEF3F6; }
+
+    .pipeline-history-item { border-left: 2px solid #D0D8DC; padding: 2px 0 14px 14px; margin-left: 4px; position: relative; }
+    .pipeline-history-item::before {
+        content: ''; position: absolute; left: -5px; top: 4px; width: 8px; height: 8px;
+        border-radius: 50%; background: #2F6F8E;
+    }
+    .pipeline-history-item:last-child { padding-bottom: 0; }
+    .pipeline-history-stages { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+    .pipeline-history-stages i { color: #778899; font-size: 14px; }
+    .pipeline-history-meta { display: flex; gap: 14px; color: #778899; font-size: 11.5px; margin-top: 2px; }
+    .pipeline-history-meta i { font-size: 12px; margin-right: 3px; }
+    .pipeline-history-remarks { font-size: 12px; color: #495057; margin-top: 4px; font-style: italic; }
 </style>
 
 <div class="wms-form-page">
@@ -30,6 +55,24 @@
     </div>
 </div>
 
+</div>
+
+<div class="wms-modal-overlay" id="pipelineHistoryModal">
+    <div class="wms-modal wms-modal-lg">
+        <div class="wms-modal-header">
+            <div class="wms-modal-header-icon"><i class="bx bx-history"></i></div>
+            <div class="wms-modal-header-text">
+                <div class="wms-modal-title">Pipeline History &mdash; <span id="historyCandName"></span></div>
+            </div>
+            <button type="button" class="wms-modal-close" onclick="closePipelineHistoryModal()" aria-label="Close"><i class="bx bx-x"></i></button>
+        </div>
+        <div class="wms-modal-body">
+            <div id="historyTimeline"></div>
+        </div>
+        <div class="wms-modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closePipelineHistoryModal()">Close</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -121,8 +164,12 @@
             $col.append('<div class="kanban-column-header"><span>' + stage.stageName + '</span><span class="badge bg-secondary">' + stageCards.length + '</span></div>');
 
             stageCards.forEach(function (c) {
+                var escapedName = (c.FullName || '').replace(/'/g, "\\'");
                 var $card = $('<div class="kanban-card" draggable="true" data-app-id="' + c.CandidateApplicationId + '"></div>');
-                $card.append('<div class="cand-name">' + c.FullName + '</div>');
+                var $topRow = $('<div class="kanban-card-top"></div>');
+                $topRow.append('<div class="cand-name">' + c.FullName + '</div>');
+                $topRow.append('<button type="button" class="kanban-history-btn" title="View Pipeline History" onclick="viewCandidateHistory(' + c.CandidateApplicationId + ', \'' + escapedName + '\')"><i class="bx bx-history"></i></button>');
+                $card.append($topRow);
                 $card.append('<div class="cand-meta">' + (c.CurrentEmployer || '') + ' &middot; ' + (c.TotalExperienceYears || 0) + ' yrs</div>');
                 if (c.OverallScore != null) {
                     $card.append('<div class="mt-1"><span class="badge" style="background:' + recommendationColor(c.Recommendation) + '">' + c.OverallScore + ' - ' + (c.Recommendation || '') + '</span></div>');
@@ -159,5 +206,94 @@
             },
             error: function () { showToast('Move failed.', 'error'); loadKanban($('#ddlJobPosition').val()); }
         });
+    }
+
+    // GetPipelineHistoryByApplicationId returns a typed POCO list (CandidatePipelineHistory),
+    // so — unlike GetKanbanBoardData's raw dynamic Dapper rows — this is camelCase JSON.
+    function viewCandidateHistory(candidateApplicationId, candidateName) {
+        $('#historyCandName').text(candidateName || '');
+        $('#historyTimeline').html('<div class="text-center text-muted py-3">Loading...</div>');
+        document.getElementById('pipelineHistoryModal').classList.add('open');
+
+        $.ajax({
+            url: '@baseUrl/CandidatePipelineAPI/GetPipelineHistoryByApplicationId/' + candidateApplicationId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response.isSuccess) resolveActionByNames(response.data || []);
+                else $('#historyTimeline').html('<div class="text-center text-muted py-3">' + (response.responseMessage || 'No stage history recorded yet.') + '</div>');
+            },
+            error: function () { $('#historyTimeline').html('<div class="text-center text-danger py-3">Failed to load pipeline history.</div>'); }
+        });
+    }
+
+    // ActionBy on CandidatePipelineHistory is only a raw employee id, with no
+    // join to a name anywhere server-side. Resolve it here via the existing
+    // EmployeeMasterAPI/GetEmployeeById lookup instead of touching the (untracked)
+    // stored procedure — results are cached across history views in this session.
+    var employeeNameCache = {};
+
+    function resolveActionByNames(rows) {
+        var idsToFetch = [];
+        rows.forEach(function (r) {
+            if (r.actionBy && !employeeNameCache[r.actionBy] && idsToFetch.indexOf(r.actionBy) === -1) {
+                idsToFetch.push(r.actionBy);
+            }
+        });
+
+        if (!idsToFetch.length) { renderHistoryTimeline(rows); return; }
+
+        var pending = idsToFetch.length;
+        idsToFetch.forEach(function (id) {
+            $.ajax({
+                url: '@baseUrl/EmployeeMasterAPI/GetEmployeeById/' + id,
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    if (res.isSuccess && res.data) {
+                        var label = res.data.fullName || ('Emp ID: ' + id);
+                        if (res.data.alfaEmployeeCode) label += ' (' + res.data.alfaEmployeeCode + ')';
+                        employeeNameCache[id] = label;
+                    }
+                },
+                complete: function () {
+                    pending--;
+                    if (pending === 0) renderHistoryTimeline(rows);
+                }
+            });
+        });
+    }
+
+    function closePipelineHistoryModal() {
+        document.getElementById('pipelineHistoryModal').classList.remove('open');
+    }
+
+    function fmtHistoryDate(dateStr) {
+        var d = new Date(dateStr);
+        if (!dateStr || isNaN(d)) return '-';
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
+               d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderHistoryTimeline(rows) {
+        if (!rows.length) {
+            $('#historyTimeline').html('<div class="text-center text-muted py-3">No stage history recorded yet.</div>');
+            return;
+        }
+        var html = '';
+        rows.forEach(function (r) {
+            html += '<div class="pipeline-history-item">' +
+                        '<div class="pipeline-history-stages">' +
+                            (r.fromStageName ? ('<span>' + r.fromStageName + '</span><i class="bx bx-right-arrow-alt"></i>') : '<span class="text-muted">Applied</span><i class="bx bx-right-arrow-alt"></i>') +
+                            '<span class="fw-bold">' + r.toStageName + '</span>' +
+                        '</div>' +
+                        '<div class="pipeline-history-meta">' +
+                            '<span><i class="bx bx-calendar"></i>' + fmtHistoryDate(r.transitionDate) + '</span>' +
+                            (r.actionBy ? ('<span><i class="bx bx-user"></i>' + (employeeNameCache[r.actionBy] || ('Emp ID: ' + r.actionBy)) + '</span>') : '') +
+                        '</div>' +
+                        (r.remarks ? '<div class="pipeline-history-remarks">' + r.remarks + '</div>' : '') +
+                    '</div>';
+        });
+        $('#historyTimeline').html(html);
     }
 </script>

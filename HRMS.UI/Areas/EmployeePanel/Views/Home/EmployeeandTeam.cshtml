@@ -1,391 +1,276 @@
-﻿@{
+@{
 	ViewData["Title"] = "Employee & Team";
 	Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
 	string baseUrl = ViewBag.BaseUrl;
 	string apiBase = ViewBag.BaseUrlAPI;
-	var uri = new Uri(baseUrl);
-	string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
-
 }
 <style>
-	.notification-list-container ul {
-		max-height: 180px;
-		overflow-y: auto;
-		padding-left: 20px;
-		margin: 0;
-		border: 1px solid #ddd;
+	/* Page-local overrides only — everything else (cards, buttons, form
+	   fields, DevExtreme grid skin) comes from the shared theme CSS. */
+
+	.et-avatar {
+		width: 92px;
+		height: 92px;
+		object-fit: cover;
+		border-radius: 50%;
+		border: 3px solid var(--hp-surface-3);
+		box-shadow: var(--hp-shadow-sm);
 	}
 
-	/* Yellow border without shadow */
+	.et-profile-name { font-size: 16px; font-weight: 700; color: var(--hp-text); }
+	.et-profile-role { font-size: 12.5px; color: var(--hp-text-muted); margin-top: 2px; }
 
-	.yellow-border {
-		border: 2px solid #ffc107 !important;
-		border-radius: 10px;
+	.et-last-login {
+		font-size: 12px;
+		color: var(--hp-text-muted);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		margin: 14px 0 0;
+		padding-top: 14px;
+		border-top: 1px solid var(--hp-border);
 	}
+	.et-last-login i { font-size: 14px; color: var(--hp-blue-mid); }
 
-		.yellow-border .list-group {
-			border-bottom: none;
-		}
+	.et-stat-row { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+	.et-stat-row .hrms-stat-card { padding: 10px 14px; }
+	.et-stat-row .hrms-stat-num { font-size: 19px; }
 
-		.yellow-border .card-body,
-		.yellow-border .list-group-item:last-child {
-			border-bottom: none !important;
-		}
-
-	#aboutmeid {
-		min-height: 400px;
-	}
-
-	#rightSideCard {
-		min-height: 500px;
-	}
-
-	.form-control-sm, .form-select-sm {
-		height: calc(1.5em + .5rem + 2px);
-		font-size: 0.875rem;
-		padding: .25rem .5rem;
-	}
-
-	.text-center-cell {
-		text-align: center !important;
-	}
-
-		.text-center-cell > div {
-			text-align: center !important;
-		}
-
-
-	.list-group-item {
-		font-size: 14px;
-		padding: 8px 12px;
+	#aboutmeid .list-group-item {
+		font-size: 13px;
+		padding: 9px 2px;
 		border: none;
-		border-bottom: 1px solid #eee;
+		border-bottom: 1px solid var(--hp-border);
+		color: var(--hp-text-md);
 	}
+	#aboutmeid .list-group-item:last-child { border-bottom: none; }
+	#aboutmeid .list-group-item i { color: var(--hp-blue-mid); margin-right: 7px; font-size: 14px; width: 14px; text-align: center; }
+	#aboutmeid .list-group-item > span:first-child { color: var(--hp-text); font-weight: 600; }
+	#aboutmeid .list-group-item.et-warning > span:last-child { color: var(--hp-danger); font-weight: 700; }
 
-	/* Custom Tab Styling */
-	.nav-tabs {
-		border-bottom: 1px solid #dee2e6;
-		margin-bottom: 15px;
-	}
-
-		.nav-tabs .nav-item {
-			margin-bottom: 0;
-		}
-
-		.nav-tabs .nav-link {
-			border: 1px solid transparent;
-			border-top-left-radius: 0.25rem;
-			border-top-right-radius: 0.25rem;
-			color: #3e4b6d;
-			background-color: #f8f9fa;
-			padding: 0.5rem 1rem;
-			font-size: 14px;
-			font-weight: 500;
-			transition: all 0.2s ease;
-			margin-right: 2px;
-		}
-
-			.nav-tabs .nav-link:hover {
-				border-color: #dee2e6 #dee2e6 transparent;
-				background-color: #e9ecef;
-				color: #212529;
-			}
-
-			.nav-tabs .nav-link.active,
-			.nav-tabs .nav-link.active:hover {
-				color: #212529;
-				background-color: #fff;
-				border-color: #dee2e6 #dee2e6 #fff;
-				border-bottom-color: #fff;
-				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-			}
-
-			.nav-tabs .nav-link i {
-				margin-right: 0.5rem;
-			}
-
-	/* Ensure tab content is visible */
-	.tab-content {
-		padding: 10px;
-		border: 1px solid #dee2e6;
-		border-top: none;
-		background-color: #fff;
-		border-bottom-left-radius: 0.25rem;
-		border-bottom-right-radius: 0.25rem;
-	}
-
-	/* Fix for tab buttons in your layout */
+	/* Theme-native underline tabs (replaces default Bootstrap gray tab chrome) */
 	#attendanceTabs {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 2px;
+		gap: 4px;
+		border-bottom: 1px solid var(--hp-border);
+		margin-bottom: 16px;
+	}
+	#attendanceTabs .nav-link {
+		border: none;
+		border-bottom: 2px solid transparent;
+		border-radius: 0;
+		color: var(--hp-text-muted);
+		background: transparent;
+		padding: 9px 12px;
+		font-size: 13px;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		transition: color .15s ease, border-color .15s ease;
+	}
+	#attendanceTabs .nav-link i { font-size: 15px; }
+	#attendanceTabs .nav-link:hover { color: var(--hp-blue-mid); }
+	#attendanceTabs .nav-link.active,
+	#attendanceTabs .nav-link.active:hover {
+		color: var(--hp-blue-mid);
+		background: transparent;
+		border-bottom-color: var(--hp-blue-mid);
 	}
 
-
+	.text-center-cell { text-align: center !important; }
+	.text-center-cell > div { text-align: center !important; }
 </style>
 
 <div class="wms-form-page">
 
-<div class="card mb-3">
-	<div class="card-header">
-		<h6 class="mb-0">Employee &amp; Team Dashboard</h6>
+	<div class="card mb-3">
+		<div class="card-header">
+			<h6 class="mb-0"><i class="bx bx-group" style="color:var(--hp-blue-mid);margin-right:6px;"></i>Employee &amp; Team Dashboard</h6>
+		</div>
 	</div>
-</div>
 
-<!-- Profile, About Me, and Right Side Card Layout -->
-<div class="row align-items-stretch" style="margin-bottom:30px;">
-	<!-- Left Column (Profile + About Me) -->
-	<div class="col-md-3">
+	<!-- Profile, About Me, and My Team panel -->
+	<div class="row align-items-stretch">
+		<!-- Left column: Profile + About Me -->
+		<div class="col-md-4 col-lg-3 d-flex flex-column gap-3 mb-3">
 
-		<div id="profileid" class="card mb-3 radius-10 yellow-border">
-			<div class="card-body text-center">
-				<img id="profilePhoto" src="/images/default-avatar.png" class="rounded-circle mb-3" alt="Profile Photo" width="100" height="100" />
-				<h5 id="profileName" class="text-dark mb-1"></h5>
-				<p id="profileRole" class="text-muted mb-2"></p>
+			<div id="profileid" class="card">
+				<div class="card-body text-center">
+					<img id="profilePhoto" src="/images/default-avatar.png" class="et-avatar mb-2 mx-auto" alt="Profile Photo" />
+					<div class="et-profile-name" id="profileName">&nbsp;</div>
+					<div class="et-profile-role" id="profileRole"></div>
 
-				<hr />
-				<div class="mb-2">
-					<strong class="text-dark">Last Login:</strong>
-					<span id="lastLogin" class="text-muted float-end text-end"></span>
+					<div class="et-stat-row">
+						<div class="hrms-stat-card hrms-stat-blue">
+							<div class="hrms-stat-icon"><i class="bx bx-user"></i></div>
+							<div class="hrms-stat-info">
+								<div class="hrms-stat-num is-loading" id="directTeamCount">--</div>
+								<div class="hrms-stat-label">Direct Team Members</div>
+							</div>
+						</div>
+						<div class="hrms-stat-card hrms-stat-green">
+							<div class="hrms-stat-icon"><i class="bx bx-sitemap"></i></div>
+							<div class="hrms-stat-info">
+								<div class="hrms-stat-num is-loading" id="indirectTeamCount">--</div>
+								<div class="hrms-stat-label">In-Direct Team Members</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="et-last-login">
+						<i class="bx bx-time-five"></i>
+						<span>Last login: <strong id="lastLogin">-</strong></span>
+					</div>
 				</div>
-				<hr />
-				<div class="text-start">
-					<div class="mb-2">
-						<strong class="text-dark">Direct Team Members:</strong>
-						<span id="directTeamCount" class="text-muted  float-end text-end"></span>
-					</div>
-					<div class="mb-2">
-						<strong class="text-dark">In-Direct Team Members:</strong>
-						<span id="indirectTeamCount" class="text-muted  float-end text-end"></span>
-					</div>
+			</div>
+
+			<div id="aboutmeid" class="card flex-fill">
+				<div class="card-body">
+					<h6 class="text-center mb-3" style="font-weight:700;color:var(--hp-text);">
+						<i class="bx bx-id-card" style="color:var(--hp-blue-mid);margin-right:6px;"></i>About Me
+					</h6>
+					<ul class="list-group list-group-flush small">
+						<li class="list-group-item d-flex justify-content-between">
+							<span><i class="bx bx-buildings"></i>Branch</span>
+							<span id="branch">-</span>
+						</li>
+						<li class="list-group-item d-flex justify-content-between">
+							<span><i class="bx bx-briefcase-alt-2"></i>Designation</span>
+							<span id="designation">-</span>
+						</li>
+						<li class="list-group-item d-flex justify-content-between">
+							<span><i class="bx bx-network-chart"></i>Department</span>
+							<span id="department">-</span>
+						</li>
+						<li class="list-group-item d-flex justify-content-between">
+							<span><i class="bx bx-calendar-check"></i>Joining Date</span>
+							<span id="joiningDate">-</span>
+						</li>
+						<li class="list-group-item d-flex justify-content-between">
+							<span><i class="bx bx-map"></i>Address</span>
+							<span id="address">-</span>
+						</li>
+						<li class="list-group-item d-flex justify-content-between" id="warningRow">
+							<span><i class="bx bx-error-circle"></i>Warning Card</span>
+							<span id="warningCard">0</span>
+						</li>
+					</ul>
 				</div>
 			</div>
 		</div>
 
-		<!-- About Me Card -->
-		<div id="aboutmeid" class="card mb-3 radius-10 yellow-border">
-			<div class="card-body">
-				<h5 class="text-dark mb-3 text-center">About Me</h5>
-				<ul class="list-group  small">
-					<li class="list-group-item d-flex justify-content-between">
-						<strong class="text-dark">Branch:</strong>
-						<span id="branch"></span>
-					</li>
-					<li class="list-group-item d-flex justify-content-between">
-						<strong class="text-dark">Designation:</strong>
-						<span id="designation"></span>
-					</li>
-					<li class="list-group-item d-flex justify-content-between">
-						<strong class="text-dark">Department:</strong>
-						<span id="department"></span>
-					</li>
-					<li class="list-group-item d-flex justify-content-between">
-						<strong class="text-dark">Joining Date:</strong>
-						<span id="joiningDate"></span>
-					</li>
-					<li class="list-group-item d-flex justify-content-between">
-						<strong class="text-dark">Address:</strong>
-						<span id="address"></span>
-					</li>
-					<li class="list-group-item d-flex justify-content-between text-danger">
-						<strong class="text-dark">Warning Card:</strong>
-						<span id="warningCard"></span>
-					</li>
-				</ul>
-			</div>
-		</div>
-	</div>
-
-	<!-- Right Column (New Card beside the 2 stacked) -->
-	<div class="col-md-9 d-flex">
-		<div id="rightSideCard" class="card mb-3 radius-10 yellow-border w-100">
-			<div class="card-body">
-				<!-- Heading and Buttons Row -->
-				<div class="d-flex justify-content-between align-items-center mb-3">
-					<h5 class="text-dark mb-0">My Team</h5>
+		<!-- Right column: My Team panel -->
+		<div class="col-md-8 col-lg-9 mb-3">
+			<div id="rightSideCard" class="card h-100">
+				<div class="card-header d-flex justify-content-between align-items-center">
+					<h6 class="mb-0"><i class="bx bx-group" style="color:var(--hp-blue-mid);margin-right:6px;"></i>My Team</h6>
 					<div class="d-flex gap-2">
-						<button type="button" class="btn btn-primary btn-sm" id="myInOutBtn">My In-Out</button>
-						<button type="button" class="btn btn-primary btn-sm" id="myProfileBtn">My Profile</button>
+						<button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="myInOutBtn">
+							<i class="bx bx-log-in-circle"></i><span>My In-Out</span>
+						</button>
+						<button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="myProfileBtn">
+							<i class="bx bx-user-circle"></i><span>My Profile</span>
+						</button>
 					</div>
 				</div>
+				<div class="card-body">
 
-				<!-- Tabs -->
-				<ul class="nav nav-tabs" id="attendanceTabs" role="tablist">
-					<li class="nav-item">
-						<button class="nav-link active" id="team-tab" data-bs-toggle="tab" data-bs-target="#teamid" type="button" role="tab">
-							<i class="fas fa-list-alt me-2"></i>My Team Leave
-						</button>
-					</li>
-					<li class="nav-item">
-						<button class="nav-link" id="direct-tab" data-bs-toggle="tab" data-bs-target="#directid" type="button" role="tab">
-							<i class="fas fa-list-alt me-2"></i>Direct Reportees
-						</button>
-					</li>
-					<li class="nav-item">
-						<button class="nav-link" id="indirect-tab" data-bs-toggle="tab" data-bs-target="#indirectid" type="button" role="tab">
-							<i class="fas fa-list-alt me-2"></i>Indirect Reportees
-						</button>
-					</li>
-					<li class="nav-item">
-						<button class="nav-link" id="Member-tab" data-bs-toggle="tab" data-bs-target="#memberid" type="button" role="tab">
-							<i class="fas fa-list-alt me-2"></i>My Members In-Out
-						</button>
-					</li>
-				</ul>
+					<ul class="nav nav-tabs" id="attendanceTabs" role="tablist">
+						<li class="nav-item">
+							<button class="nav-link active" id="team-tab" data-bs-toggle="tab" data-bs-target="#teamid" type="button" role="tab">
+								<i class="bx bx-calendar-week"></i>My Team Leave
+							</button>
+						</li>
+						<li class="nav-item">
+							<button class="nav-link" id="direct-tab" data-bs-toggle="tab" data-bs-target="#directid" type="button" role="tab">
+								<i class="bx bx-user"></i>Direct Reportees
+							</button>
+						</li>
+						<li class="nav-item">
+							<button class="nav-link" id="indirect-tab" data-bs-toggle="tab" data-bs-target="#indirectid" type="button" role="tab">
+								<i class="bx bx-sitemap"></i>Indirect Reportees
+							</button>
+						</li>
+						<li class="nav-item">
+							<button class="nav-link" id="Member-tab" data-bs-toggle="tab" data-bs-target="#memberid" type="button" role="tab">
+								<i class="bx bx-log-in-circle"></i>My Members In-Out
+							</button>
+						</li>
+					</ul>
 
-
-
-				<div class="col-12  mt-3">
 					<div class="tab-content" id="attendanceTabContent">
 
-
 						<div class="tab-pane fade show active" id="teamid" role="tabpanel">
-							<div class="grid-container">
-								<div class="grid-wrapper " style="position: relative; ">
-									<div id="grid-multi-loader" class="grid-loader justify-content-center align-items-center flex-column "
-										 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
-										<img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
-										<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
-
-									</div>
-									<div id="GridTagMulti">
-										<div id="teamleavecount"></div>
-										<div id="teamleavegrid"></div>
-									</div>
-
-									<div id="spnNoRecordteamleave" class="text-center py-5 text-muted" style="display:none;">No Record Found!</div>
-
-								</div>
-
-							</div>
+							<div id="teamleavecount" class="hp-record-count"></div>
+							<div id="teamleavegrid"></div>
 						</div>
 
-						<!-- First In Last Out Tab -->
-						<div class="tab-pane fade show active" id="directid" role="tabpanel">
-							<div class="grid-container">
-								<div class="grid-wrapper " style="position: relative; ">
-									<div id="grid-first-loader" class="grid-loader justify-content-center align-items-center flex-column "
-										 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
-										<img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
-										<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
-
-									</div>
-									<div id="GridTagFirst">
-										<div id="directcount"></div>
-										<div id="directgrid"></div>
-									</div>
-									<div id="spnNoRecorddirect" class="text-center py-5 text-muted" style="display:none;">No Record Found!</div>
-
-								</div>
-							</div>
+						<div class="tab-pane fade" id="directid" role="tabpanel">
+							<div id="directcount" class="hp-record-count"></div>
+							<div id="directgrid"></div>
 						</div>
 
-						<!-- Multiple Punches Tab -->
 						<div class="tab-pane fade" id="indirectid" role="tabpanel">
-							<div class="grid-container">
-								<div class="grid-wrapper " style="position: relative; ">
-									<div id="grid-multi-loader" class="grid-loader justify-content-center align-items-center flex-column "
-										 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
-										<img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
-										<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
-
-									</div>
-									<div id="GridTagMulti">
-										<div id="indirectcount"></div>
-										<div id="indirectgrid"></div>
-									</div>
-
-									<div id="spnNoRecordindirect" class="text-center py-5 text-muted" style="display:none;">No Record Found!</div>
-
-								</div>
-
-							</div>
+							<div id="indirectcount" class="hp-record-count"></div>
+							<div id="indirectgrid"></div>
 						</div>
 
 						<div class="tab-pane fade" id="memberid" role="tabpanel">
-							<div class="grid-container">
-								<div class="grid-wrapper " style="position: relative; ">
-									<div id="grid-multi-loader" class="grid-loader justify-content-center align-items-center flex-column "
-										 style="display: none;  inset: 0; background: rgba(255,255,255,0.6); z-index: 10; ">
-										<img src="@baseDomainUrl/loders/loder.png" class="grid-logo-spinner" style="width: 30px; height: 30px; animation: spin 1s linear infinite;" />
-										<div class="grid-loading-text text-dark" style="font-size: 16px;">Loading...</div>
-
-									</div>
-
-									<div class="row ">
-										<div class="col-sm-3 mb-2">
-											<label for="fromDate" class="fixed-label">From<span class="text-danger">*</span>:</label>
-											<input type="date" class="form-control form-control-sm" id="fromDate" />
-										</div>
-
-										<div class="col-sm-3 mb-2">
-											<label for="toDate" class="fixed-label">From<span class="text-danger">*</span>:</label>
-											<input type="date" class="form-control form-control-sm" id="toDate" />
-										</div>
-
-										<div class="col-sm-3 mb-2">
-											<label for="ddlMember" class="fixed-label">Employee Code:</label>
-
-											<select id="ddlMember" class="form-select form-control-sm">
-
-												<option value="">Select</option>
-											</select>
-										</div>
-
-										<div class="col-sm-3 mt-3">
-											<div class="d-flex btn-group-custom action-buttons" id="actionButtons">
-												<button type="button" id="btnGo" class="btn btn-primary" style="background-color:#2395c6; color:white;"> Go</button>
-
-												<button type="button" class="btn btn-secondary" onclick="resetDetails()">
-													Clear
-												</button>
-											</div>
-
-										</div>
-									</div>
-
-
-									<div id="GridTagMulti">
-										<div id="rowCountInout"></div>
-										<div id="gridInout"></div>
-									</div>
-
-									<div id="spnNoRecord" class="text-center py-5 text-muted" style="display:none;">No Record Found!</div>
-
+							<div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+								<div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+									<label for="fromDate">From</label>
+									<input type="date" id="fromDate" />
 								</div>
-
+								<div class="fg fg-req" style="flex:1 1 160px;min-width:150px;">
+									<label for="toDate">To</label>
+									<input type="date" id="toDate" />
+								</div>
+								<div class="fg" style="flex:1 1 220px;min-width:200px;">
+									<label for="ddlMember">Employee Code</label>
+									<select id="ddlMember">
+										<option value="">Select</option>
+									</select>
+								</div>
+								<div class="d-flex gap-2" style="flex-shrink:0;">
+									<button type="button" id="btnGo" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+										<i class="bx bx-search"></i><span>Go</span>
+									</button>
+									<button type="button" class="btn btn-secondary btn-sm" onclick="resetDetails()">Clear</button>
+								</div>
 							</div>
+							<div class="divider"></div>
+
+							<div id="rowCountInout" class="hp-record-count"></div>
+							<div id="gridInout"></div>
+							<div id="spnNoRecord" class="text-center py-5 text-muted" style="display:none;">No Record Found!</div>
 						</div>
-
-
 
 					</div>
 				</div>
-				
 			</div>
 		</div>
 
-
-
 	</div>
-
-</div>
 
 </div>
 <script>
 	const apiBase = '@apiBase';
 	const Empid = parseInt(localStorage.getItem("EmployeeId"));
-		const savedCompany = localStorage.getItem('selectedCompany');
+	const savedCompany = localStorage.getItem('selectedCompany');
 	const companyDetails = JSON.parse(savedCompany || '{}');
 	const Compid = parseInt(companyDetails.CompanyId);
-
-	 const Token=localStorage.getItem("authToken");
+	const Token = localStorage.getItem("authToken");
 
 	var now = new Date();
 	var firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-	 // Format dates as YYYY-MM-DD for the date input
-	var formatDate = function(date) {
+	// Named to avoid clashing with the global window.formatDate defined in
+	// compoffleavemodal.js (which returns a display string like "Aug 1, 2026"
+	// that native <input type="date"> silently rejects).
+	function toInputDateStr(date) {
 		var d = new Date(date),
 			month = '' + (d.getMonth() + 1),
 			day = '' + d.getDate(),
@@ -395,30 +280,48 @@
 		if (day.length < 2) day = '0' + day;
 
 		return [year, month, day].join('-');
-	};
+	}
+
+	function toDisplayDateStr(dateStr) {
+		const date = new Date(dateStr);
+		if (isNaN(date)) return '-';
+		const day = String(date.getDate()).padStart(2, '0');
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const year = date.getFullYear();
+		return `${day}/${month}/${year}`;
+	}
+
+	function toDisplayDateTimeStr(dateString) {
+		const date = new Date(dateString);
+		if (isNaN(date)) return '-';
+		const day = String(date.getDate()).padStart(2, '0');
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const year = date.getFullYear();
+		const hours = String(date.getHours()).padStart(2, '0');
+		const minutes = String(date.getMinutes()).padStart(2, '0');
+		const seconds = String(date.getSeconds()).padStart(2, '0');
+		return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+	}
 
 	$(document).ready(function () {
 		loadpersonaldata();
 		loaddirectindirectdata();
-			Getteamleave();
-
-
+		Getteamleave();
 	});
-	function resetDetails()
-	{
-		$('#btnGo').prop("disabled",false);
-		 $('#fromDate').val(formatDate(firstDayOfMonth));
-		$('#toDate').val(formatDate(now));
-		 $('#ddlMember').val('');
+
+	function resetDetails() {
+		$('#btnGo').prop("disabled", false);
+		$('#fromDate').val(toInputDateStr(firstDayOfMonth));
+		$('#toDate').val(toInputDateStr(now));
+		$('#ddlMember').val('');
 		const fromDate = $('#fromDate').val();
-			const toDate = $('#toDate').val();
-			const memberId = $('#ddlMember').val();
-			if (!fromDate || !toDate) return showToast("Please select from date and to date", "warn");
-		  loadPunchDetails(Empid, Compid, memberId, fromDate,toDate);
+		const toDate = $('#toDate').val();
+		const memberId = $('#ddlMember').val();
+		if (!fromDate || !toDate) return showToast("Please select from date and to date", "warn");
+		loadPunchDetails(Empid, Compid, memberId, fromDate, toDate);
 	}
 
-
-	 document.getElementById("myInOutBtn").addEventListener("click", function () {
+	document.getElementById("myInOutBtn").addEventListener("click", function () {
 		window.location.href = "@baseUrl/EmployeePanel/Employee/Index";
 	});
 
@@ -426,35 +329,30 @@
 		window.location.href = "@baseUrl/EmployeePanel/Employee/MyProfile";
 	});
 
-	// document.getElementById("empHistoryBtn").addEventListener("click", function () {
-	// 	window.location.href = "@baseUrl/EmployeePanel/Home/Salary";
-	// });
-
-		function loadpersonaldata() {
+	function loadpersonaldata() {
 		$.ajax({
 			url: `${apiBase}/EmployeeMasterAPI/EmployeePersonalInformation?empid=${Empid}&Compid=${Compid}`,
 			method: 'GET',
 			contentType: 'application/json',
 			success: function (data) {
-
 				if (data.isSuccess && Array.isArray(data.data) && data.data.length > 0) {
-					let emp = data.data[0]; // ✅ Access first object from array
+					let emp = data.data[0];
 
-					// Profile card data
 					$('#profileName').text(emp.fullName || '-');
-					$('#lastLogin').text(emp.lastLogin ? formatDateTime(emp.lastLogin) : '-');
-						const profileUrl = emp.employeeProfileUrl?.trim();
-	                $('#profilePhoto').attr('src', profileUrl ? profileUrl : 'default-avatar.png');
+					$('#profileRole').text(emp.designationName || '');
+					$('#lastLogin').text(emp.lastLogin ? toDisplayDateTimeStr(emp.lastLogin) : '-');
+					const profileUrl = emp.employeeProfileUrl?.trim();
+					$('#profilePhoto').attr('src', profileUrl ? profileUrl : '/images/default-avatar.png');
 
-					// About Me card data
 					$('#branch').text(emp.branchName || '-');
 					$('#designation').text(emp.designationName || '-');
 					$('#department').text(emp.departmentName || '-');
-					$('#joiningDate').text(emp.joiningDate ? formatDate(emp.joiningDate) : '-');
+					$('#joiningDate').text(emp.joiningDate ? toDisplayDateStr(emp.joiningDate) : '-');
 					$('#address').text(emp.permanentAddress || 'N/A');
-					$('#warningCard').text(emp.warningCard || '0');
 
-					
+					const warningCount = emp.warningCard || 0;
+					$('#warningCard').text(warningCount);
+					$('#warningRow').toggleClass('et-warning', Number(warningCount) > 0);
 				} else {
 					console.warn("No employee data found.");
 				}
@@ -465,92 +363,62 @@
 		});
 	}
 
-
-		function formatDate(dateStr) {
-		const date = new Date(dateStr);
-		const day = String(date.getDate()).padStart(2, '0');        // 01 to 31
-		const month = String(date.getMonth() + 1).padStart(2, '0'); // 01 to 12
-		const year = date.getFullYear();                            // 2025
-
-		return `${day}/${month}/${year}`; // DD/MM/YYYY
-	}
-
-
-		function formatDateTime(dateString) {
-		const date = new Date(dateString);
-		if (isNaN(date)) return '-';
-
-		const day = String(date.getDate()).padStart(2, '0');
-		const month = String(date.getMonth() + 1).padStart(2, '0'); // Months start from 0
-		const year = date.getFullYear();
-
-		const hours = String(date.getHours()).padStart(2, '0');
-		const minutes = String(date.getMinutes()).padStart(2, '0');
-		const seconds = String(date.getSeconds()).padStart(2, '0');
-
-		return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-	}
-
-
-
-		function loaddirectindirectdata() {
+	function loaddirectindirectdata() {
 		$.ajax({
 			url: `${apiBase}/EmployeeDashBoardAPI/GetCountDirectOrIndirectEmployees?empid=${Empid}&Compid=${Compid}`,
 			method: 'GET',
 			contentType: 'application/json',
 			success: function (data) {
-
 				if (data.isSuccess && Array.isArray(data.data) && data.data.length > 0) {
-					let emp = data.data[0]; // ✅ Access first object from array
-
-					$('#directTeamCount').text(emp.directMember || '0');
-					$('#indirectTeamCount').text(emp.indirectMember || '0');
+					let emp = data.data[0];
+					$('#directTeamCount').removeClass('is-loading').text(emp.directMember || '0');
+					$('#indirectTeamCount').removeClass('is-loading').text(emp.indirectMember || '0');
 				} else {
 					console.warn("No employee data found.");
+					$('#directTeamCount, #indirectTeamCount').removeClass('is-loading').text('0');
 				}
 			},
 			error: function (xhr) {
+				$('#directTeamCount, #indirectTeamCount').removeClass('is-loading').text('0');
 				showToast('Server error: ' + (xhr.responseText || 'Unable to load data.'), 'error');
 			}
 		});
 	}
-		let fromDateStr = '';  // globally declared variable
+
+	let fromDateStr = '';
 
 	$('#direct-tab').on('click', function () {
-		fromDateStr = 'direct';		
-		
+		fromDateStr = 'direct';
 		loaddirectdetails(fromDateStr);
 	});
 
 	$('#indirect-tab').on('click', function () {
 		fromDateStr = 'indirect';
-		  
 		loadindirectdetails(fromDateStr);
 	});
 
-	 function loaddirectdetails(type) {
+	function loaddirectdetails(type) {
 		$.ajax({
 			url: `${apiBase}/EmployeeDashBoardAPI/GetDirectIndirectEmployee?EmployeeId=${Empid}&Compid=${Compid}&Action=${type}`,
 			method: 'GET',
 			contentType: 'application/json',
 			success: function (response) {
 				if (response.isSuccess && response.data && response.data.length > 0) {
-
 					$("#directgrid").dxDataGrid({
 						dataSource: response.data,
-						keyExpr: "employeeCode",  // assuming leaveType is unique
+						keyExpr: "employeeCode",
 						showBorders: true,
 						columnAutoWidth: true,
 						columns: [
-							{ dataField: "employeeCode", caption: "Code" ,cssClass: "text-center-cell"},
-							{ dataField: "fullName", caption: "Name",cssClass: "text-center-cell" }
+							{ dataField: "employeeCode", caption: "Code", cssClass: "text-center-cell" },
+							{ dataField: "fullName", caption: "Name", cssClass: "text-center-cell" }
 						],
 						onContentReady(e) {
 							$('#directcount').html('Total Records: ' + e.component.totalCount());
-					    }
+						}
 					});
 				} else {
-					$("#directgrid").html('<div class="text-muted text-center">No direct member found</div>');
+					$("#directgrid").html('<div class="text-muted text-center py-4">No direct member found</div>');
 				}
 			},
 			error: function () {
@@ -567,22 +435,21 @@
 			contentType: 'application/json',
 			success: function (responses) {
 				if (responses.isSuccess && responses.data && responses.data.length > 0) {
-
 					$("#indirectgrid").dxDataGrid({
 						dataSource: responses.data,
-						keyExpr: "employeeCode",  
+						keyExpr: "employeeCode",
 						showBorders: true,
 						columnAutoWidth: true,
 						columns: [
-							{ dataField: "employeeCode", caption: "Code" ,cssClass: "text-center-cell"},
-							{ dataField: "fullName", caption: "Name",cssClass: "text-center-cell" }
+							{ dataField: "employeeCode", caption: "Code", cssClass: "text-center-cell" },
+							{ dataField: "fullName", caption: "Name", cssClass: "text-center-cell" }
 						],
 						onContentReady(e) {
 							$('#indirectcount').html('Total Records: ' + e.component.totalCount());
 						}
 					});
 				} else {
-					$("#indirectgrid").html('<div class="text-muted text-center">No indirect member found</div>');
+					$("#indirectgrid").html('<div class="text-muted text-center py-4">No indirect member found</div>');
 				}
 			},
 			error: function () {
@@ -592,43 +459,38 @@
 		});
 	}
 
-
-	 $('#fromDate,#ddlMember,#toDate').focus(function(){
-		$('#btnGo').prop("disabled",false);
+	$('#fromDate,#ddlMember,#toDate').focus(function () {
+		$('#btnGo').prop("disabled", false);
 	});
 
-	 $('#btnGo').click(function () {
-			 $('#btnGo').prop("disabled",true);
-			const fromDate = $('#fromDate').val();
-			const toDate = $('#toDate').val();
-			const memberId = $('#ddlMember').val();
-			if (!fromDate || !toDate) return  showToast("Please select from date and to date", "warn");
+	$('#btnGo').click(function () {
+		$('#btnGo').prop("disabled", true);
+		const fromDate = $('#fromDate').val();
+		const toDate = $('#toDate').val();
+		const memberId = $('#ddlMember').val();
+		if (!fromDate || !toDate) return showToast("Please select from date and to date", "warn");
 
-				loadPunchDetails(Empid, Compid, memberId, fromDate,toDate);
-		});
-
-		$('#Member-tab').on('click', function () {
-			bindMember();
-	     resetDetails();
+		loadPunchDetails(Empid, Compid, memberId, fromDate, toDate);
 	});
 
+	$('#Member-tab').on('click', function () {
+		bindMember();
+		resetDetails();
+	});
 
-
-	 async function loadPunchDetails(Empid, Compid, memberId, fromDate,toDate) {
-		 
-		 var drpMemberId=memberId?memberId:0;
-		 $('#grid-loader').addClass('d-flex').show();
+	async function loadPunchDetails(Empid, Compid, memberId, fromDate, toDate) {
+		var drpMemberId = memberId ? memberId : 0;
 		try {
 			const response = await fetch('@apiBase/EmployeeInOut/GetDateWiseAttendanceDetails', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${Token}` // optional, if needed
+					'Authorization': `Bearer ${Token}`
 				},
 				body: JSON.stringify({
 					employeeId: Empid,
 					companyId: Compid,
-					memberId:drpMemberId,
+					memberId: drpMemberId,
 					fromDate: fromDate,
 					toDate: toDate
 				})
@@ -640,58 +502,45 @@
 
 			const data = await response.json();
 			if (data.isSuccess && Array.isArray(data.data)) {
-				$('#gridTag').show();
 				$('#spnNoRecord').hide();
 				$('#gridInout').dxDataGrid({
 					dataSource: data.data,
 					rowHeight: 40,
 					width: '100%',
-					   columns: [
-							{ dataField: 'employeeCode', caption: 'Employee Code' },
-							{ dataField: 'fullName', caption: 'Full Name' },
-							{ dataField: 'branchName', caption: 'Branch' },
-							{ dataField: 'companyName', caption: 'Company Name' },
-							{
-								dataField: 'shiftDate',
-								caption: 'Shift Date',
-								dataType: 'date',
-								format: 'dd-MM-yyyy'
-							},
-							{
-								dataField: 'inTime',
-								caption: 'In Time'
-
-							},
-							{
-								dataField: 'outTime',
-								caption: 'Out Time'
-
-							},
-							{
-								dataField: 'workingHours',
-								caption: 'Working Hours',
-								dataType: 'number',
-								format: '#0.00',
-								alignment: 'left'
-							},
-							{ dataField: 'attendanceStatus', caption: 'Attendance Status' },
-							{
-								dataField: 'salaryDay',
-								caption: 'Salary Day',
-								dataType: 'number',
-								format: '#0.0',
-								alignment: 'left'
-
-							}
-
-						],
+					columns: [
+						{ dataField: 'employeeCode', caption: 'Employee Code' },
+						{ dataField: 'fullName', caption: 'Full Name' },
+						{ dataField: 'branchName', caption: 'Branch' },
+						{ dataField: 'companyName', caption: 'Company Name' },
+						{
+							dataField: 'shiftDate',
+							caption: 'Shift Date',
+							dataType: 'date',
+							format: 'dd-MM-yyyy'
+						},
+						{ dataField: 'inTime', caption: 'In Time' },
+						{ dataField: 'outTime', caption: 'Out Time' },
+						{
+							dataField: 'workingHours',
+							caption: 'Working Hours',
+							dataType: 'number',
+							format: '#0.00',
+							alignment: 'left'
+						},
+						{ dataField: 'attendanceStatus', caption: 'Attendance Status' },
+						{
+							dataField: 'salaryDay',
+							caption: 'Salary Day',
+							dataType: 'number',
+							format: '#0.0',
+							alignment: 'left'
+						}
+					],
 					columnsAutoWidth: false,
 					wordWrapEnabled: false,
 					showBorders: true,
 					rowAlternationEnabled: false,
 					grouping: { autoExpandAll: false },
-					// paging: { pageSize: 10 },
-					// pager: { showPageSizeSelector: false, allowedPageSizes: [10, 25, 50, 100] },
 					headerFilter: { visible: false },
 					filterRow: { visible: false, applyFilter: "auto" },
 					allowColumnResizing: true,
@@ -705,93 +554,77 @@
 						scrollByThumb: true
 					},
 					onContentReady(e) {
-							$('#rowCountInout').html('Total Records: ' + e.component.totalCount());
+						$('#rowCountInout').html('Total Records: ' + e.component.totalCount());
 					}
 				});
 			} else {
-				 $('#gridTag').hide();
 				$('#spnNoRecord').show();
 			}
-			$('#grid-loader').removeClass('d-flex').hide();
 		} catch (error) {
-
-			$('#grid-loader').removeClass('d-flex').hide();
-			console.error('Failed to load  In/Out records:', error);
+			console.error('Failed to load In/Out records:', error);
 			showToast("Failed to load In/Out records.", "error");
 		}
 	}
-	async function bindMember(){
-		
-	   $.ajax({
-				url: '@apiBase/EmployeeInOut/GetEmployeesByReportingManager/'+Empid,
-				method: 'GET',
-				headers: {
-					'Authorization': `Bearer ${Token}`
-				},
-				success: function(data) {
-					if(data.isSuccess){
-						var dropdown = $('#ddlMember');
-						dropdown.empty();
-						dropdown.append('<option disabled selected value="">Select</option>');
-						$.each(data.data, function(index, member) {
-							dropdown.append($('<option>', {
-								value: member.employeeId,
-								text:  member.employeeCode+" - "+member.fullName
-							}));
-						});
 
-
-					}
-				},
-				error: function(error) {
-					console.error('Error fetching grade data:', error);
+	async function bindMember() {
+		$.ajax({
+			url: '@apiBase/EmployeeInOut/GetEmployeesByReportingManager/' + Empid,
+			method: 'GET',
+			headers: {
+				'Authorization': `Bearer ${Token}`
+			},
+			success: function (data) {
+				if (data.isSuccess) {
+					var dropdown = $('#ddlMember');
+					dropdown.empty();
+					dropdown.append('<option disabled selected value="">Select</option>');
+					$.each(data.data, function (index, member) {
+						dropdown.append($('<option>', {
+							value: member.employeeId,
+							text: member.employeeCode + " - " + member.fullName
+						}));
+					});
 				}
-			});
+			},
+			error: function (error) {
+				console.error('Error fetching grade data:', error);
+			}
+		});
+	}
 
-	 }
-
-	 $('#team-tab').on('click', function () {
-			Getteamleave();
+	$('#team-tab').on('click', function () {
+		Getteamleave();
 	});
 
-
-	
-
 	function Getteamleave() {
-		
-		
 		$.ajax({
 			url: `${apiBase}/EmployeeDashBoardAPI/GetMyteamleave?empid=${Empid}&Compid=${Compid}`,
 			method: 'GET',
 			contentType: 'application/json',
 			success: function (responses) {
 				if (responses.isSuccess && responses.data && responses.data.length > 0) {
-					
-					console.log("responses",responses);
-					
 					$("#teamleavegrid").dxDataGrid({
 						dataSource: responses.data,
-						//keyExpr: "employeeCode",  // assuming leaveType is unique
 						showBorders: true,
 						columnAutoWidth: true,
 						columns: [
-							{ dataField: "fullName", caption: "Name",cssClass: "text-center-cell" },
-							{ dataField: "fromDate", caption: "FromDate",cssClass: "text-center-cell" ,dataType: "date",format: "dd/MM/yyyy" },
-							{ dataField: "toDate", caption: "ToDate",cssClass: "text-center-cell", dataType: "date",format: "dd/MM/yyyy" },
-							{ dataField: "no_Of_Date", caption: "NoOfDate",cssClass: "text-center-cell" },
-							{ dataField: "leave_Type", caption: "Leave_Type",cssClass: "text-center-cell" }
+							{ dataField: "fullName", caption: "Name", cssClass: "text-center-cell" },
+							{ dataField: "fromDate", caption: "FromDate", cssClass: "text-center-cell", dataType: "date", format: "dd/MM/yyyy" },
+							{ dataField: "toDate", caption: "ToDate", cssClass: "text-center-cell", dataType: "date", format: "dd/MM/yyyy" },
+							{ dataField: "no_Of_Date", caption: "NoOfDate", cssClass: "text-center-cell" },
+							{ dataField: "leave_Type", caption: "Leave_Type", cssClass: "text-center-cell" }
 						],
 						onContentReady(e) {
 							$('#teamleavecount').html('Total Records: ' + e.component.totalCount());
 						}
 					});
 				} else {
-					$("#teamleavegrid").html('<div class="text-muted text-center">No indirect member found</div>');
+					$("#teamleavegrid").html('<div class="text-muted text-center py-4">No team leave found</div>');
 				}
 			},
 			error: function () {
-				console.error("Failed to load indirect member.");
-				showToast("Could not load indirect member", "error");
+				console.error("Failed to load team leave.");
+				showToast("Could not load team leave", "error");
 			}
 		});
 	}

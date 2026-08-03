@@ -75,7 +75,7 @@ async function openExportModal(report) {
 
     showBtnExportLoder();
     if (report ==="Employee Master") {
-        const selectedOption = $('input[name="options"]:checked').val();
+        const selectedOption = $('input[name="employeeFilter"]:checked').val();
         let data = null;
 
         if (selectedOption === "LeftEmployee") {
@@ -288,7 +288,7 @@ function clearAllColumns() {
     updateSelectedColumns();
 }
 
-function performExport() {
+async function performExport() {
     const format = document.getElementById('exportFormat').value;
     if (selectedColumnsList.length === 0) {
         alert('Please select at least one column to export.');
@@ -296,192 +296,91 @@ function performExport() {
     }
     showBtnExportDataLoder();
 
-    // Create export data with selected columns in the specified order
-    const exportData = sampleData.map(row => {
-        const newRow = {};
-        selectedColumnsList.forEach(col => {
-            // Use the original key to access data, but display name for headers
-            newRow[col.displayName] = row[col.key];
+    try {
+        // Create export data with selected columns in the specified order
+        const exportData = sampleData.map(row => {
+            const newRow = {};
+            selectedColumnsList.forEach(col => {
+                // Use the original key to access data, but display name for headers
+                newRow[col.displayName] = row[col.key];
+            });
+            return newRow;
         });
-        return newRow;
-    });
 
-    switch (format) {
-        case 'xlsx':
-            exportToExcel(exportData);
-            break;
-        case 'csv':
-            exportToCSV(exportData);
-            break;
-        case 'json':
-            exportToJSON(exportData);
-            break;
-    }
-    hideBtnExportDataLoder();
-}
-
-//function exportToExcel(data) {
-//    try {
-//        // Create worksheet with headers (using display names)
-//        const ws = XLSX.utils.json_to_sheet(data);
-
-//        // Create workbook
-//        const wb = XLSX.utils.book_new();
-//        XLSX.utils.book_append_sheet(wb, ws, "Employee Data");
-
-//        // Style headers
-//        selectedColumnsList.forEach((col, index) => {
-//            const cellRef = XLSX.utils.encode_cell({ r: 0, c: index });
-//            if (ws[cellRef]) {
-//                ws[cellRef].s = {
-//                    font: { bold: true },
-//                    alignment: { horizontal: "center" }
-//                };
-//            }
-//        });
-
-//        // Set column widths
-//        ws['!cols'] = selectedColumnsList.map(() => ({ wch: 25 }));
-
-//        // Export
-//        XLSX.writeFile(wb, "employee_export_" + new Date().toISOString().slice(0, 10) + ".xlsx");
-//    } catch (error) {
-//        console.error("Export error:", error);
-//        alert("Error exporting data. Please check console.");
-//    }
-//}
-function exportToExcel(data) {
-    try {
-        // Create worksheet with headers
-        const ws = XLSX.utils.json_to_sheet(data);
-
-        // Create workbook
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Employee Data");
-
-        // Get the range of the worksheet
-        const range = XLSX.utils.decode_range(ws['!ref']);
-
-        // Calculate column widths based on content
-        const colWidths = [];
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-            let maxWidth = 10; // minimum width
-
-            // Check all rows for this column
-            for (let R = range.s.r; R <= range.e.r; ++R) {
-                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                const cell = ws[cellAddress];
-
-                if (cell && cell.v) {
-                    const cellLength = cell.v.toString().length;
-                    maxWidth = Math.max(maxWidth, cellLength + 2); // +2 for padding
-                }
-            }
-
-            // Cap maximum width at 50 characters
-            colWidths.push({ wch: Math.min(maxWidth, 50) });
+        switch (format) {
+            case 'xlsx':
+                await exportToExcel(exportData);
+                break;
+            case 'csv':
+                exportToCSV(exportData);
+                break;
+            case 'json':
+                exportToJSON(exportData);
+                break;
         }
-
-        // Apply column widths
-        ws['!cols'] = colWidths;
-
-        // Apply styles to all cells (if styling is supported)
-        if (range) {
-            for (let R = range.s.r; R <= range.e.r; ++R) {
-                for (let C = range.s.c; C <= range.e.c; ++C) {
-                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-
-                    // Ensure cell exists
-                    if (!ws[cellAddress]) {
-                        ws[cellAddress] = { v: "", t: "s" };
-                    }
-
-                    // Initialize style object
-                    if (!ws[cellAddress].s) {
-                        ws[cellAddress].s = {};
-                    }
-
-                    // Apply borders to all cells
-                    ws[cellAddress].s.border = {
-                        top: { style: "thin" },
-                        bottom: { style: "thin" },
-                        left: { style: "thin" },
-                        right: { style: "thin" }
-                    };
-
-                    // Style header row (first row)
-                    if (R === range.s.r) {
-                        ws[cellAddress].s.font = {
-                            bold: true,
-                            sz: 12
-                        };
-                        ws[cellAddress].s.fill = {
-                            patternType: "solid",
-                            fgColor: { rgb: "DDDDDD" }
-                        };
-                        ws[cellAddress].s.alignment = {
-                            horizontal: "center",
-                            vertical: "center"
-                        };
-                    } else {
-                        // Style data rows
-                        ws[cellAddress].s.alignment = {
-                            horizontal: "left",
-                            vertical: "center"
-                        };
-                    }
-                }
-            }
-        }
-
-        // Alternative approach if styling doesn't work - use writeFileXLSX
-        try {
-            XLSX.writeFileXLSX(wb, "employee_export_" + new Date().toISOString().slice(0, 10) + ".xlsx");
-        } catch (xlsxError) {
-            // Fallback to regular writeFile
-            XLSX.writeFile(wb, "employee_export_" + new Date().toISOString().slice(0, 10) + ".xlsx");
-        }
-
-
-    } catch (error) {
-        console.error("Export error:", error);
-        alert("Error exporting data: " + error.message);
+    } finally {
+        hideBtnExportDataLoder();
     }
 }
 
-// Alternative simplified version if styling still doesn't work
-function exportToExcelSimple(data) {
+// Uses ExcelJS (already loaded globally) instead of the free SheetJS/XLSX
+// build — SheetJS's community build silently drops every cell.s style
+// object on write, so bold headers/borders/font size never actually showed
+// up in the downloaded file no matter what was set here. ExcelJS applies
+// styling for real.
+async function exportToExcel(data) {
     try {
-        // Create worksheet
-        const ws = XLSX.utils.json_to_sheet(data);
+        const headers = selectedColumnsList.map(function (col) { return col.displayName; });
 
-        // Create workbook
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Employee Data");
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Employee Data');
 
-        // Auto-fit columns based on content
-        const range = XLSX.utils.decode_range(ws['!ref']);
-        const colWidths = [];
+        ws.addRow(headers);
+        data.forEach(function (row) {
+            ws.addRow(headers.map(function (h) { return row[h] != null ? row[h] : ''; }));
+        });
 
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-            let maxWidth = 8;
-            for (let R = range.s.r; R <= range.e.r; ++R) {
-                const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
-                if (cell && cell.v) {
-                    maxWidth = Math.max(maxWidth, cell.v.toString().length + 2);
-                }
-            }
-            colWidths.push({ wch: Math.min(maxWidth, 50) });
+        const thinBorder = {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' }
+        };
+
+        ws.getRow(1).eachCell(function (cell) {
+            cell.font = { bold: true, size: 10 };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDDDDD' } };
+            cell.border = thinBorder;
+        });
+
+        for (var r = 2; r <= ws.rowCount; r++) {
+            ws.getRow(r).eachCell({ includeEmpty: true }, function (cell) {
+                cell.font = { size: 10 };
+                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                cell.border = thinBorder;
+            });
         }
 
-        ws['!cols'] = colWidths;
+        // Auto-fit column widths based on the longest value in each column.
+        // Using getColumn(n) by 1-based index rather than ws.columns.forEach —
+        // ws.columns is only populated if it was explicitly assigned, so
+        // iterating it directly here would silently do nothing.
+        headers.forEach(function (header, idx) {
+            var maxLen = (header || '').toString().length;
+            data.forEach(function (row) {
+                var v = row[header];
+                if (v != null && v !== '') maxLen = Math.max(maxLen, v.toString().length);
+            });
+            ws.getColumn(idx + 1).width = Math.min(Math.max(maxLen + 2, 10), 50);
+        });
 
-        // Export
-        XLSX.writeFile(wb, "employee_export_" + new Date().toISOString().slice(0, 10) + ".xlsx");
-
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/octet-stream' });
+        saveAs(blob, 'employee_export_' + new Date().toISOString().slice(0, 10) + '.xlsx');
     } catch (error) {
-        console.error("Export error:", error);
-        alert("Error exporting data: " + error.message);
+        console.error('Export error:', error);
+        alert('Error exporting data: ' + error.message);
     }
 }
 function exportToCSV(data) {
