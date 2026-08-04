@@ -1,0 +1,456 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Attendance Self-Service Request";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+    var uri = new Uri(baseUrl);
+    string baseDomainUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+}
+
+<title>Attendance Self-Service Request</title>
+
+<style>
+    .ar-statusbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fff;
+        border: 1px solid var(--border, #D0DCE8);
+        border-radius: 8px;
+        padding: 10px 16px;
+        margin-bottom: 16px;
+    }
+
+    .ar-status-pills { display: flex; align-items: center; gap: 6px; }
+
+    .ar-status-pill {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #94A3B8;
+        padding: 5px 14px;
+        border-radius: 20px;
+        background: #F1F5F9;
+    }
+
+    .ar-status-pill.active { background: #2F6F8E; color: #fff; }
+    .ar-status-pill.active.rejected { background: #C62828; }
+
+    .ar-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px; }
+
+    .ar-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 18px; }
+    .ar-field label { font-size: 12.5px; font-weight: 600; color: #3B5068; }
+    .ar-field .ar-static { font-size: 13.5px; color: var(--text, #1A1A1A); padding: 6px 0; }
+
+    .ar-field input, .ar-field select, .ar-field textarea {
+        border: 1px solid #B8C4CC;
+        border-radius: var(--r-sm, 6px);
+        padding: 6px 10px;
+        font-size: 13.5px;
+        font-family: inherit;
+    }
+
+    .ar-field textarea { resize: vertical; min-height: 70px; }
+
+    .ar-radio-row { display: flex; gap: 18px; padding: 4px 0; }
+    .ar-radio-row label { font-size: 13.5px; font-weight: 400; color: var(--text, #1A1A1A); display: flex; align-items: center; gap: 6px; }
+
+    @@media (max-width: 900px) {
+        .ar-info-grid { grid-template-columns: 1fr; }
+    }
+
+    .att-req-daytype, .att-req-checkin, .att-req-checkout {
+        width: 100%;
+        min-width: 110px;
+        padding: 5px 6px;
+        font-size: 12px;
+        line-height: 1.4;
+        border: 1px solid #CBD5E1;
+        border-radius: 5px;
+        font-family: inherit;
+        color: var(--wg-text, #1A1A1A);
+        background: #fff;
+        box-sizing: border-box;
+    }
+
+    .att-req-daytype:focus, .att-req-checkin:focus, .att-req-checkout:focus {
+        outline: none;
+        border-color: #2F6F8E;
+        box-shadow: 0 0 0 2px rgba(47, 111, 142, 0.15);
+    }
+</style>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Attendance Self-Service Request (Admin)</h6>
+            <a href="@Url.Action("AttendanceRegularization", "Report")" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bx bx-arrow-back"></i> Back
+            </a>
+        </div>
+        <div class="card-body">
+
+            <div class="ar-statusbar">
+                <div>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnSendToApprove">Submit Request</button>
+                </div>
+                <div class="ar-status-pills">
+                    <span class="ar-status-pill" id="pillDraft">Draft</span>
+                    <span class="ar-status-pill" id="pillToApprove">To Approve</span>
+                </div>
+            </div>
+
+            <div class="ar-info-grid">
+                <div>
+                    <div class="ar-field">
+                        <label for="ddlEmployee">Employee:</label>
+                        <select id="ddlEmployee">
+                            <option value="">-- Select Employee --</option>
+                        </select>
+                        <span class="field-validation-error" id="spnEmployee" style="display:none;color:#C62828;font-size:12px;">Please select an employee</span>
+                    </div>
+
+                    <div class="ar-field">
+                        <label>Request Type:</label>
+                        <div class="ar-radio-row">
+                            <label><input type="radio" name="requestType" id="rtCreate" value="Create" checked> Create Attendance</label>
+                            <label><input type="radio" name="requestType" id="rtUpdate" value="Update"> Update Existing Attendance</label>
+                        </div>
+                    </div>
+
+                    <div class="ar-field">
+                        <label for="dtAttendanceDate">Date of Attendance:</label>
+                        <input type="date" id="dtAttendanceDate" disabled>
+                        <span class="field-validation-error" id="spnDate" style="display:none;color:#C62828;font-size:12px;">Please select a date</span>
+                    </div>
+
+                    <div class="ar-field">
+                        <label for="ddlReason">Reason:</label>
+                        <select id="ddlReason" disabled>
+                            <option value="">-- Select Reason --</option>
+                        </select>
+                        <span class="field-validation-error" id="spnReason" style="display:none;color:#C62828;font-size:12px;">Please select a reason</span>
+                    </div>
+
+                    <div class="ar-field">
+                        <label for="txtRemark">Remark:</label>
+                        <textarea id="txtRemark" placeholder="Additional details (optional)" disabled></textarea>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="ar-field">
+                        <label>Employee Code:</label>
+                        <div class="ar-static" id="txtEmployeeCode">-</div>
+                    </div>
+
+                    <div class="ar-field">
+                        <label>Work Location:</label>
+                        <div class="ar-static" id="txtWorkLocation">-</div>
+                    </div>
+
+                    <div class="ar-field">
+                        <label>Reporting Manager:</label>
+                        <div class="ar-static" id="txtReportingManager">-</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header">
+            <h6 class="mb-0">Attendance Records</h6>
+        </div>
+        <div class="card-body">
+            <div id="gridContainerAttendanceRecords"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const apiBase = '@baseDomainUrl/api';
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany') || '{}');
+    const CompanyId = companyDetails ? companyDetails.CompanyId : null;
+    const AdminEmployeeId = localStorage.getItem('EmployeeId');
+    const Token = localStorage.getItem('authToken');
+
+    var approvalReasons = [];
+    var recordsGrid = null;
+    var dayType = 'Full Day';
+    var isSubmitting = false;
+    var existingRequestId = null;
+    var selectedEmpId = null;
+    var selectedEmpName = '';
+
+    function loadEmployeeDropdown() {
+        $.ajax({
+            url: apiBase + '/EmployeeMasterAPI/GetAllEmployee?companyId=' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                var $dd = $('#ddlEmployee');
+                $dd.empty().append('<option value="">-- Select Employee --</option>');
+                if (res.isSuccess && res.data) {
+                    res.data.forEach(function (e) {
+                        $dd.append('<option value="' + e.id + '" data-code="' + (e.employeeCode || '') + '" data-branch="' + (e.branchName || '') + '">' + e.fullName + ' (' + (e.employeeCode || '') + ')</option>');
+                    });
+                }
+            },
+            error: function () { showToast('Unable to load employee list.', 'error'); }
+        });
+    }
+
+    function loadReasons(selectedId) {
+        $.ajax({
+            url: apiBase + '/CommonReasonsAPI/GetcancellationReasons',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                approvalReasons = (response.isSuccess && response.data) ? response.data : [];
+                var $dd = $('#ddlReason');
+                $dd.empty().append('<option value="">-- Select Reason --</option>');
+                approvalReasons.forEach(function (r) {
+                    $dd.append('<option value="' + r.reasonId + '">' + r.reason + '</option>');
+                });
+                if (selectedId) $dd.val(selectedId);
+            },
+            error: function () { approvalReasons = []; }
+        });
+    }
+
+    function fmtDateTime(v) {
+        if (!v) return '-';
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        var day = String(d.getDate()).padStart(2, '0');
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var hh = String(d.getHours()).padStart(2, '0');
+        var mm = String(d.getMinutes()).padStart(2, '0');
+        return day + '/' + month + '/' + d.getFullYear() + ' ' + hh + ':' + mm;
+    }
+
+    function setStatusPill(state) {
+        $('.ar-status-pill').removeClass('active rejected');
+        if (state === 'Draft') $('#pillDraft').addClass('active');
+        else if (state === 'ToApprove') $('#pillToApprove').addClass('active');
+    }
+
+    function toLocalInputValue(v) {
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '';
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+
+    function renderRecordsGrid(row) {
+        var data = [{
+            type: dayType,
+            checkIn: row && row.inTime ? row.inTime : null,
+            checkOut: row && row.outTime ? row.outTime : null
+        }];
+
+        var columns = [
+            {
+                header: 'Type', width: '160px',
+                render: function () {
+                    var opts = ['Full Day', 'First Half', 'Second Half'];
+                    var html = '<select class="att-req-daytype" onchange="_onDayTypeChange(this)">';
+                    opts.forEach(function (o) {
+                        html += '<option value="' + o + '"' + (o === dayType ? ' selected' : '') + '>' + o + '</option>';
+                    });
+                    html += '</select>';
+                    return html;
+                }
+            },
+            {
+                header: 'Check In', width: '220px',
+                render: function (v, r) {
+                    return '<input type="datetime-local" class="att-req-checkin" value="' + (r.checkIn ? toLocalInputValue(r.checkIn) : '') + '">';
+                }
+            },
+            {
+                header: 'Check Out', width: '220px',
+                render: function (v, r) {
+                    return '<input type="datetime-local" class="att-req-checkout" value="' + (r.checkOut ? toLocalInputValue(r.checkOut) : '') + '">';
+                }
+            }
+        ];
+
+        if (!recordsGrid) {
+            recordsGrid = WMSGrid.create({
+                container: 'gridContainerAttendanceRecords',
+                title: 'Attendance Records',
+                icon: 'bx-time-five',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false, search: false, toolbar: false }
+            });
+        } else {
+            recordsGrid.setData(data);
+        }
+    }
+
+    window._onDayTypeChange = function (sel) { dayType = sel.value; };
+
+    function resetForm() {
+        existingRequestId = null;
+        dayType = 'Full Day';
+        $('#dtAttendanceDate').val('');
+        $('#ddlReason').val('');
+        $('#txtRemark').val('');
+        setStatusPill('Draft');
+        renderRecordsGrid(null);
+    }
+
+    function lookupExistingRequest(dateStr) {
+        existingRequestId = null;
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/GetSelfServiceRequestByEmpAndDate?EmpId=' + selectedEmpId + '&ForDate=' + dateStr,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess && res.data) {
+                    var d = res.data;
+                    existingRequestId = d.attendanceRegularizationId;
+                    dayType = d.day || 'Full Day';
+                    loadReasons(d.reason);
+                    $('#txtRemark').val(d.remark || '');
+                    renderRecordsGrid({ inTime: d.inTime, outTime: d.outTime });
+                } else {
+                    renderRecordsGrid(null);
+                    showToast(res.responseMessage || 'No existing attendance request found for this date. Use "Create Attendance" to add one.', 'error');
+                }
+            },
+            error: function () {
+                renderRecordsGrid(null);
+                showToast('Unable to look up existing attendance request.', 'error');
+            }
+        });
+    }
+
+    function handleDateChange(dateStr) {
+        if ($('#rtUpdate').is(':checked')) {
+            lookupExistingRequest(dateStr);
+        } else {
+            existingRequestId = null;
+            renderRecordsGrid(null);
+        }
+    }
+
+    $('#ddlEmployee').on('change', function () {
+        var $opt = $(this).find('option:selected');
+        selectedEmpId = $(this).val() ? parseInt($(this).val()) : null;
+        selectedEmpName = $opt.text() || '';
+
+        if (!selectedEmpId) {
+            $('#txtEmployeeCode, #txtWorkLocation, #txtReportingManager').text('-');
+            $('#dtAttendanceDate, #ddlReason, #txtRemark').prop('disabled', true);
+            resetForm();
+            return;
+        }
+
+        $('#spnEmployee').hide();
+        $('#txtEmployeeCode').text($opt.data('code') || '-');
+        $('#txtWorkLocation').text($opt.data('branch') || '-');
+        $('#dtAttendanceDate, #ddlReason, #txtRemark').prop('disabled', false);
+
+        $.ajax({
+            url: apiBase + '/LeaveApplication/GetReportingperson?Empid=' + selectedEmpId,
+            method: 'POST',
+            dataType: 'json',
+            success: function (response) {
+                $('#txtReportingManager').text((response.isSuccess && response.data && response.data.fullName) || '-');
+            }
+        });
+
+        loadReasons();
+        resetForm();
+    });
+
+    $('#dtAttendanceDate').on('change', function () {
+        var v = $(this).val();
+        if (v) { $('#spnDate').hide(); handleDateChange(v); }
+    });
+
+    $('input[name="requestType"]').on('change', function () {
+        var v = $('#dtAttendanceDate').val();
+        if (v) handleDateChange(v);
+    });
+
+    $('#btnSendToApprove').on('click', async function () {
+        if (isSubmitting) return;
+
+        var isUpdateMode = $('#rtUpdate').is(':checked');
+        var dateVal = $('#dtAttendanceDate').val();
+        var reasonId = $('#ddlReason').val();
+        var hasError = false;
+
+        if (!selectedEmpId) { $('#spnEmployee').show(); hasError = true; } else { $('#spnEmployee').hide(); }
+        if (!dateVal) { $('#spnDate').show(); hasError = true; } else { $('#spnDate').hide(); }
+        if (!reasonId) { $('#spnReason').show(); hasError = true; } else { $('#spnReason').hide(); }
+        if (isUpdateMode && !existingRequestId) {
+            showToast('No existing attendance request found for this date to update. Switch to "Create Attendance" instead.', 'error');
+            hasError = true;
+        }
+        if (hasError) return;
+
+        isSubmitting = true;
+        setBtnLoading('#btnSendToApprove', 'Submit Request');
+
+        var checkInVal = $('.att-req-checkin').val();
+        var checkOutVal = $('.att-req-checkout').val();
+        var inIso = checkInVal ? new Date(checkInVal).toISOString() : null;
+        var outIso = checkOutVal ? new Date(checkOutVal).toISOString() : null;
+
+        var payload = [{
+            AttendanceRegularizationId: isUpdateMode ? existingRequestId : 0,
+            EmpId: selectedEmpId,
+            FullName: selectedEmpName || '',
+            BranchName: $('#txtWorkLocation').text() || '',
+            ForDate: dateVal,
+            ShiftTime: '',
+            InTime: inIso,
+            OutTime: outIso,
+            Day: dayType,
+            Reason: reasonId.toString(),
+            Remark: $('#txtRemark').val() || null,
+            CreatedBy: AdminEmployeeId,
+            UpdatedBy: AdminEmployeeId
+        }];
+
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/' + (isUpdateMode ? 'UpdateAttendanceSelfServiceRequest' : 'CreateAttendanceSelfServiceRequest'),
+            method: isUpdateMode ? 'PUT' : 'POST',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            data: JSON.stringify(payload),
+            success: function (res) {
+                if (res.isSuccess) {
+                    showToast(res.responseMessage || 'Request saved.', 'success');
+                    setStatusPill('ToApprove');
+                    renderRecordsGrid({ inTime: inIso, outTime: outIso });
+                } else {
+                    showToast(res.responseMessage || 'Unable to submit request.', 'error');
+                }
+            },
+            error: function (xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Something went wrong.';
+                showToast(msg, 'error');
+            },
+            complete: function () {
+                isSubmitting = false;
+                setBtnNormal('#btnSendToApprove', 'Submit Request');
+            }
+        });
+    });
+
+    $(document).ready(function () {
+        loadEmployeeDropdown();
+        setStatusPill('Draft');
+        renderRecordsGrid(null);
+    });
+</script>

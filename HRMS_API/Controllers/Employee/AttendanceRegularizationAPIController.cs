@@ -204,6 +204,108 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+
+        // Employee self-service Attendance Request page ("Create Attendance" / "Update
+        // Existing Attendance" radios). Lets the front-end discover whether a request
+        // already exists for the chosen date, so "Update" can load and edit it instead
+        // of creating a duplicate.
+        [HttpGet("GetSelfServiceRequestByEmpAndDate")]
+        public async Task<APIResponse> GetSelfServiceRequestByEmpAndDate(int EmpId, DateTime ForDate)
+        {
+            try
+            {
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x =>
+                    x.EmpId == EmpId && x.ForDate == ForDate.Date && x.IsEnabled == true && x.IsDeleted == false);
+
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No existing attendance request found for this date." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully" };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse { isSuccess = false, Data = err.Message, ResponseMessage = "Unable to retrieve record, please try again later!" };
+            }
+        }
+
+        [HttpPost("CreateAttendanceSelfServiceRequest")]
+        public async Task<APIResponse> CreateAttendanceSelfServiceRequest([FromBody] List<AttendanceRegularization> attendances)
+        {
+            try
+            {
+                if (attendances == null || attendances.Count == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No attendance details received." };
+
+                var attendance = attendances.First();
+                if (!attendance.ForDate.HasValue)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Date of attendance is required." };
+
+                var result = await _unitOfWork.AttendanceRegularizationRepository.CreateSelfServiceRequest(attendance);
+                if (!result.isSuccess)
+                    return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+
+                var employeeDetails = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(Convert.ToInt32(attendance.CreatedBy));
+                if (employeeDetails != null)
+                {
+                    var notification = new NotificationRemainders()
+                    {
+                        NotificationMessage = $"{employeeDetails.FullName} has requested approval for attendance on Date: {attendance.ForDate:dd-MM-yyyy}",
+                        NotificationTime = DateTime.UtcNow,
+                        SenderId = employeeDetails.Id.ToString(),
+                        ReceiverIds = employeeDetails.ReportingManagerId.ToString(),
+                        NotificationType = NotificationType.AttendanceApplication,
+                        NotificationAffectedId = Convert.ToInt32(attendance.CreatedBy)
+                    };
+                    var savedNotification = await _unitOfWork.NotificationRemainderRepository.CreateNotificationRemainder(notification);
+                    if (savedNotification.Success > 0)
+                    {
+                        notification.NotificationRemainderId = savedNotification.Success;
+                        var reportingConnection = NotificationRemainderConnectionManager.GetConnections(employeeDetails.ReportingManagerId.ToString());
+                        if (reportingConnection.Any())
+                            await _hubContext.Clients.Clients(reportingConnection).SendAsync("ReceiveNotificationRemainder", notification);
+                    }
+                }
+
+                return new APIResponse { isSuccess = true, Data = attendance, ResponseMessage = result.ResponseMessage };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse { isSuccess = false, Data = err.Message, ResponseMessage = err.Message };
+            }
+        }
+
+        [HttpPut("UpdateAttendanceSelfServiceRequest")]
+        public async Task<APIResponse> UpdateAttendanceSelfServiceRequest([FromBody] List<AttendanceRegularization> attendances)
+        {
+            try
+            {
+                if (attendances == null || attendances.Count == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No attendance details received." };
+
+                var attendance = attendances.First();
+                if (attendance.AttendanceRegularizationId <= 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "AttendanceRegularizationId is required to update a request." };
+
+                var existing = await _unitOfWork.AttendanceRegularizationRepository.GetAsync(x =>
+                    x.AttendanceRegularizationId == attendance.AttendanceRegularizationId && x.IsEnabled == true && x.IsDeleted == false);
+                if (existing == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Attendance regularization request not found." };
+
+                if (existing.EmpId != attendance.EmpId)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "You are not authorized to update this request." };
+
+                var result = await _unitOfWork.AttendanceRegularizationRepository.UpdateSelfServiceRequest(attendance);
+                if (!result.isSuccess)
+                    return new APIResponse { isSuccess = false, ResponseMessage = result.ResponseMessage };
+
+                return new APIResponse { isSuccess = true, Data = attendance, ResponseMessage = result.ResponseMessage };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse { isSuccess = false, Data = err.Message, ResponseMessage = err.Message };
+            }
+        }
+
         //[HttpPut("UpdateAttendanceRegularization")]
         //public async Task<APIResponse> UpdateAttendanceRegularization(List<AttendanceRegularization> attendances)
         //{
@@ -512,6 +614,31 @@ namespace HRMS_API.Controllers.Employee
                 };
             }
         }
+
+        // Backs the new "Team Attendance Approval" ESS page (reporting manager view).
+        [HttpPost("GetTeamAttendanceRegularizationForManager")]
+        public async Task<APIResponse> GetTeamAttendanceRegularizationForManager([FromBody] AttendanceRegularizationSearchFilterVM attendance)
+        {
+            try
+            {
+                if (attendance == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "LoggedInUserId is required." };
+
+                var data = await _unitOfWork.AttendanceRegularizationRepository.GetTeamAttendanceRegularizationForManager(attendance);
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Data Fetched successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records, please try again later!" };
+            }
+        }
+
         [HttpPost("GetAttendanceRegularizationApprovalForHRD")]
         public async Task<APIResponse> GetAttendanceRegularizationApprovalForHRD([FromBody] AttendanceRegularizationSearchFilterVM attendance)
         {

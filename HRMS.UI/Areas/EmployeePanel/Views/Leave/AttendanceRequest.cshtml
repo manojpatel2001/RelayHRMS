@@ -87,6 +87,27 @@
     @@media (max-width: 900px) {
         .ar-info-grid { grid-template-columns: 1fr; }
     }
+
+    /* ── Attendance Records grid — Type / Check In / Check Out cells ── */
+    .att-req-daytype, .att-req-checkin, .att-req-checkout {
+        width: 100%;
+        min-width: 110px;
+        padding: 5px 6px;
+        font-size: 12px;
+        line-height: 1.4;
+        border: 1px solid #CBD5E1;
+        border-radius: 5px;
+        font-family: inherit;
+        color: var(--wg-text, #1A1A1A);
+        background: #fff;
+        box-sizing: border-box;
+    }
+
+    .att-req-daytype:focus, .att-req-checkin:focus, .att-req-checkout:focus {
+        outline: none;
+        border-color: #2F6F8E;
+        box-shadow: 0 0 0 2px rgba(47, 111, 142, 0.15);
+    }
 </style>
 
 <div class="wms-form-page">
@@ -212,6 +233,7 @@
     var viewOnly = false;
     var limitedReasonIds = [];
     var unlimitedReasonIds = [];
+    var existingRequestId = null;
 
     function loadReasonConfiguration() {
         $.ajax({
@@ -434,9 +456,51 @@
         });
     }
 
+    function lookupExistingRequest(dateStr) {
+        existingRequestId = null;
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/GetSelfServiceRequestByEmpAndDate?EmpId=' + Empid + '&ForDate=' + dateStr,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess && res.data) {
+                    var d = res.data;
+                    existingRequestId = d.attendanceRegularizationId;
+                    dayType = d.day || 'Full Day';
+                    lookedUpShift.shiftTime = d.shiftTime || '';
+                    lookedUpShift.attendanceStatus = d.status || '';
+                    loadReasons(d.reason);
+                    $('#txtRemark').val(d.remark || '');
+                    renderRecordsGrid({ inTime: d.inTime, outTime: d.outTime });
+                } else {
+                    renderRecordsGrid(null);
+                    showToast(res.responseMessage || 'No existing attendance request found for this date. Use "Create Attendance" to add one.', 'error');
+                }
+            },
+            error: function () {
+                renderRecordsGrid(null);
+                showToast('Unable to look up existing attendance request.', 'error');
+            }
+        });
+    }
+
+    function handleDateChange(dateStr) {
+        if ($('#rtUpdate').is(':checked')) {
+            lookupExistingRequest(dateStr);
+        } else {
+            existingRequestId = null;
+            lookupDayAttendance(dateStr);
+        }
+    }
+
     $('#dtAttendanceDate').on('change', function () {
         var v = $(this).val();
-        if (v) { $('#spnDate').hide(); lookupDayAttendance(v); }
+        if (v) { $('#spnDate').hide(); handleDateChange(v); }
+    });
+
+    $('input[name="requestType"]').on('change', function () {
+        var v = $('#dtAttendanceDate').val();
+        if (v) handleDateChange(v);
     });
 
     function loadExistingRequest(id) {
@@ -472,23 +536,20 @@
         });
     }
 
-    function computeDuration(inIso, outIso) {
-        if (!inIso || !outIso) return null;
-        var a = new Date(inIso), b = new Date(outIso);
-        if (isNaN(a.getTime()) || isNaN(b.getTime())) return null;
-        var hrs = (b - a) / 3600000;
-        return hrs > 0 ? Math.round(hrs * 100) / 100 : null;
-    }
-
     $('#btnSendToApprove').on('click', async function () {
         if (isSubmitting) return;
 
+        var isUpdateMode = $('#rtUpdate').is(':checked');
         var dateVal = $('#dtAttendanceDate').val();
         var reasonId = $('#ddlReason').val();
         var hasError = false;
 
         if (!dateVal) { $('#spnDate').show(); hasError = true; } else { $('#spnDate').hide(); }
         if (!reasonId) { $('#spnReason').show(); hasError = true; } else { $('#spnReason').hide(); }
+        if (isUpdateMode && !existingRequestId) {
+            showToast('No existing attendance request found for this date to update. Switch to "Create Attendance" instead.', 'error');
+            hasError = true;
+        }
         if (hasError) return;
 
         isSubmitting = true;
@@ -506,6 +567,7 @@
         var outIso = checkOutVal ? new Date(checkOutVal).toISOString() : null;
 
         var payload = [{
+            AttendanceRegularizationId: isUpdateMode ? existingRequestId : 0,
             EmpId: Empid,
             FullName: EmployeeName || '',
             BranchName: $('#txtWorkLocation').text() || '',
@@ -513,21 +575,16 @@
             ShiftTime: lookedUpShift.shiftTime || '',
             InTime: inIso,
             OutTime: outIso,
-            Duration: computeDuration(inIso, outIso),
             Day: dayType,
-            Status: lookedUpShift.attendanceStatus || '',
             Reason: reasonId.toString(),
             Remark: $('#txtRemark').val() || null,
-            IsApproved: false,
-            IsPending: true,
-            IsRejected: false,
-            IsLocked: false,
-            CreatedBy: Empid.toString()
+            CreatedBy: Empid.toString(),
+            UpdatedBy: Empid.toString()
         }];
 
         $.ajax({
-            url: apiBase + '/AttendanceRegularizationAPI/CreateAttendanceRegularization',
-            method: 'POST',
+            url: apiBase + '/AttendanceRegularizationAPI/' + (isUpdateMode ? 'UpdateAttendanceSelfServiceRequest' : 'CreateAttendanceSelfServiceRequest'),
+            method: isUpdateMode ? 'PUT' : 'POST',
             contentType: 'application/json',
             data: JSON.stringify(payload),
             success: function (res) {

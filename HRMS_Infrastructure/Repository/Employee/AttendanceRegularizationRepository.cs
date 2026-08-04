@@ -193,6 +193,97 @@ namespace HRMS_Infrastructure.Repository.Employee
             return response;
         }
 
+        // Employee self-service Attendance Request page (Create Attendance / Update Existing
+        // Attendance): unlike Create/Update above, which call SP_AttendanceRegularization and
+        // always derive InTime/OutTime from ShiftTime+Day, these call SP_AttendanceSelfServiceRequest
+        // so a manually-entered check-in/check-out actually determines the saved Duration.
+        public async Task<APIResponse> CreateSelfServiceRequest(AttendanceRegularization model)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Action", "INSERT");
+                    parameters.Add("@EmpId", model.EmpId);
+                    parameters.Add("@FullName", model.FullName);
+                    parameters.Add("@BranchName", model.BranchName);
+                    parameters.Add("@ForDate", model.ForDate);
+                    parameters.Add("@ShiftTime", model.ShiftTime);
+                    parameters.Add("@InTime", model.InTime);
+                    parameters.Add("@OutTime", model.OutTime);
+                    parameters.Add("@Day", model.Day);
+                    parameters.Add("@Reason", model.Reason);
+                    parameters.Add("@Remark", model.Remark);
+                    parameters.Add("@CreatedBy", model.CreatedBy);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
+
+                    await connection.ExecuteAsync(
+                        "SP_AttendanceSelfServiceRequest",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                    response.Data = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
+            }
+            return response;
+        }
+
+        public async Task<APIResponse> UpdateSelfServiceRequest(AttendanceRegularization model)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@Action", "UPDATE");
+                    parameters.Add("@Id", model.AttendanceRegularizationId);
+                    parameters.Add("@EmpId", model.EmpId);
+                    parameters.Add("@FullName", model.FullName);
+                    parameters.Add("@BranchName", model.BranchName);
+                    parameters.Add("@ForDate", model.ForDate);
+                    parameters.Add("@ShiftTime", model.ShiftTime);
+                    parameters.Add("@InTime", model.InTime);
+                    parameters.Add("@OutTime", model.OutTime);
+                    parameters.Add("@Day", model.Day);
+                    parameters.Add("@Reason", model.Reason);
+                    parameters.Add("@Remark", model.Remark);
+                    parameters.Add("@CreatedBy", model.UpdatedBy);
+                    parameters.Add("@Success", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+                    parameters.Add("@ResponseMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: -1);
+
+                    await connection.ExecuteAsync(
+                        "SP_AttendanceSelfServiceRequest",
+                        parameters,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    response.isSuccess = parameters.Get<bool>("@Success");
+                    response.ResponseMessage = parameters.Get<string>("@ResponseMessage");
+                    response.Data = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = $"An error occurred: {ex.Message}";
+                response.Data = null;
+            }
+            return response;
+        }
+
         public async Task<APIResponse> Update(AttendanceRegularization model)
         {
             var response = new APIResponse();
@@ -343,6 +434,31 @@ namespace HRMS_Infrastructure.Repository.Employee
             catch (Exception ex)
             {
 
+                return new List<AttendanceRegularizationVM>();
+            }
+        }
+
+        // Backs the new "Team Attendance Approval" ESS page: unlike GetAttendanceRegularizationApproval
+        // (restricted to 2 reason types for managers, everything else routed to HR), this scopes purely
+        // by Users.ReportingManagerId = @LoggedInUserId across all reasons.
+        public async Task<List<AttendanceRegularizationVM>> GetTeamAttendanceRegularizationForManager(AttendanceRegularizationSearchFilterVM attendance)
+        {
+            try
+            {
+                var searchbyParam = new SqlParameter("@SearchBy", (object?)attendance.SearchBy ?? DBNull.Value);
+                var searchforParam = new SqlParameter("@SearchValue", (object?)attendance.SearchValue ?? DBNull.Value);
+                var fromdateParam = new SqlParameter("@FromDate", (object?)attendance.FromDate ?? DBNull.Value);
+                var todateParam = new SqlParameter("@ToDate", (object?)attendance.ToDate ?? DBNull.Value);
+                var statustypeParam = new SqlParameter("@Status", (object?)attendance.Status ?? DBNull.Value);
+                var userlogin = new SqlParameter("@LoggedInUserId", (object?)attendance.LoggedInUserId ?? DBNull.Value);
+
+                return await _db.Set<AttendanceRegularizationVM>()
+              .FromSqlRaw("EXEC [dbo].[GetTeamAttendanceRegularizationForManager] @SearchBy, @SearchValue, @FromDate,@ToDate, @Status,@LoggedInUserId",
+                  searchbyParam, searchforParam, fromdateParam, todateParam, statustypeParam, userlogin)
+              .ToListAsync();
+            }
+            catch (Exception ex)
+            {
                 return new List<AttendanceRegularizationVM>();
             }
         }

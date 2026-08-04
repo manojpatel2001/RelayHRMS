@@ -1,0 +1,312 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Team Attendance Approval";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string apiBase = ViewBag.BaseUrlAPI;
+    string UIBaseUrl = Configuration["UIBaseUrlSettings:baseUrl"];
+}
+
+<title>Team Attendance Approval</title>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Team Attendance Approval</h6>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="goBack()">Back</button>
+        </div>
+        <div class="card-body">
+            <div class="sec-lbl" style="margin-top:0">Search Panel</div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div class="fg" style="flex:1 1 160px;min-width:150px;">
+                    <label for="team_searchby">Search By</label>
+                    <select id="team_searchby">
+                        <option value="1">Emp Name</option>
+                        <option value="2">Emp Code</option>
+                        <option value="3">Reason</option>
+                    </select>
+                </div>
+
+                <div class="fg" style="flex:1 1 190px;min-width:170px;">
+                    <label for="team_searchfor">Search For</label>
+                    <input type="text" id="team_searchfor" placeholder="Enter search text" />
+                </div>
+
+                <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                    <label for="team_fromdate">From Date</label>
+                    <input type="date" id="team_fromdate" />
+                </div>
+
+                <div class="fg" style="flex:1 1 150px;min-width:140px;">
+                    <label for="team_todate">To Date</label>
+                    <input type="date" id="team_todate" />
+                </div>
+
+                <div style="flex:0 0 auto;">
+                    <span class="sec-lbl" style="margin-top:0;margin-bottom:6px;font-size:var(--fs-xs);display:block;">Status</span>
+                    <div class="d-flex gap-3">
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="team_type" id="team_r2">
+                            <label class="form-check-label" for="team_r2">Pending</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="team_type" id="team_r3">
+                            <label class="form-check-label" for="team_r3">Approved</label>
+                        </div>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="radio" name="team_type" id="team_r4">
+                            <label class="form-check-label" for="team_r4">Rejected</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2" style="flex-shrink:0;">
+                    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="team_btnGo">
+                        <i class="bx bx-search"></i>
+                        <span class="btn-spinner-icon"></span>
+                        <span class="btn-label-text">Go</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="team_btnClear">Clear</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="team_actionButtons" class="d-flex justify-content-end gap-2 mb-3" style="display:none;">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="team_btnApprove">
+                    <i class="bx bx-check"></i>
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Approve</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="team_btnReject" style="color:#C62828;border-color:#EF9A9A">
+                    <i class="bx bx-x"></i>
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Reject</span>
+                </button>
+            </div>
+
+            <div id="gridContainerTeamApproval"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const EmployeeId = localStorage.getItem('EmployeeId');
+    const apiBase = '@apiBase';
+
+    function goBack() {
+        window.location.href = '@UIBaseUrl/EmployeePanel/Home/index';
+    }
+
+    function getSearchByText(value) {
+        const map = { '1': 'EmpName', '2': 'EmpCode', '3': 'Reason' };
+        return map[value] || null;
+    }
+
+    function fmtDate(v) {
+        if (!v) return '-';
+        const d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        return day + '/' + month + '/' + d.getFullYear();
+    }
+
+    function fmtDateTime(v) {
+        if (!v) return '-';
+        const d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        return day + '/' + month + '/' + d.getFullYear() + ' ' + hours + ':' + mins;
+    }
+
+    function statusOf(row) {
+        if (row.isApproved) return 'Approved';
+        if (row.isRejected) return 'Rejected';
+        if (row.isPending) return 'Pending';
+        return '';
+    }
+
+    function statusPill(row) {
+        const s = statusOf(row);
+        if (s === 'Approved') return '<span class="wg-pill wg-pill-green">Approved</span>';
+        if (s === 'Rejected') return '<span class="wg-pill wg-pill-red">Rejected</span>';
+        if (s === 'Pending') return '<span class="wg-pill wg-pill-amber">Pending</span>';
+        return '-';
+    }
+
+    let team_selectedIds = {};
+    let team_currentRows = [];
+    let team_grid = null;
+    let team_isLoading = false;
+    let team_isProcessing = false;
+
+    function team_getStatus() {
+        if ($('#team_r2').is(':checked')) return 'Pending';
+        if ($('#team_r3').is(':checked')) return 'Approved';
+        if ($('#team_r4').is(':checked')) return 'Rejected';
+        return null;
+    }
+
+    window._toggleTeamRow = function (id, checked) {
+        if (checked) team_selectedIds[id] = true;
+        else delete team_selectedIds[id];
+    };
+
+    function team_getSelectedRows() {
+        return team_currentRows.filter(function (r) { return !!team_selectedIds[r.attendanceRegularizationId]; });
+    }
+
+    function team_renderGrid(data) {
+        const columns = [
+            {
+                header: '', sortable: false, width: '40px',
+                render: function (v, row) {
+                    const checked = team_selectedIds[row.attendanceRegularizationId] ? ' checked' : '';
+                    return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleTeamRow(' + row.attendanceRegularizationId + ', this.checked)">';
+                }
+            },
+            { field: 'employeeCode', header: 'Code', width: '80px' },
+            { field: 'fullName', header: 'Name', width: '180px' },
+            { header: 'Date', sortable: false, width: '100px', render: function (v, row) { return fmtDate(row.forDate); } },
+            { header: 'App Date', sortable: false, width: '100px', render: function (v, row) { return fmtDate(row.createdDate); } },
+            { header: 'In Time', sortable: false, width: '140px', render: function (v, row) { return fmtDateTime(row.inTime); } },
+            { header: 'Out Time', sortable: false, width: '140px', render: function (v, row) { return fmtDateTime(row.outTime); } },
+            { field: 'duration', header: 'Duration', width: '80px' },
+            { field: 'day', header: 'Day', width: '100px' },
+            { field: 'reason', header: 'Reason', width: '150px' },
+            { field: 'remark', header: 'Remark', width: '150px' },
+            { header: 'Status', sortable: false, width: '90px', render: function (v, row) { return statusPill(row); } },
+            { header: 'Approved By', sortable: false, width: '150px', render: function (v, row) { return row.updatedBy || '-'; } },
+            {
+                header: 'Approved Date', sortable: false, width: '120px',
+                render: function (v, row) { return row.updatedDate ? fmtDate(row.updatedDate) : '-'; }
+            }
+        ];
+
+        if (!team_grid) {
+            team_grid = WMSGrid.create({
+                container: 'gridContainerTeamApproval',
+                title: 'Team Attendance Requests',
+                icon: 'bx-time-five',
+                exportName: 'TeamAttendanceApproval',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false }
+            });
+        } else {
+            team_grid.setData(data);
+        }
+    }
+
+    $('#team_btnGo').on('click', function () {
+        if (team_isLoading) return;
+
+        const model = {
+            SearchBy: getSearchByText($('#team_searchby').val()),
+            SearchValue: $('#team_searchfor').val(),
+            FromDate: $('#team_fromdate').val() || null,
+            ToDate: $('#team_todate').val() || null,
+            Status: team_getStatus(),
+            LoggedInUserId: EmployeeId
+        };
+
+        team_isLoading = true;
+        setBtnLoading('#team_btnGo', 'Go');
+        team_selectedIds = {};
+
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/GetTeamAttendanceRegularizationForManager',
+            type: 'POST',
+            data: JSON.stringify(model),
+            contentType: 'application/json',
+            success: function (res) {
+                if (res.isSuccess && res.data && res.data.length > 0) {
+                    team_currentRows = res.data;
+                    team_renderGrid(team_currentRows);
+                    $('#team_actionButtons').show();
+                } else {
+                    team_currentRows = [];
+                    team_grid = null;
+                    $('#gridContainerTeamApproval').empty();
+                    $('#team_actionButtons').hide();
+                    showToast(res.responseMessage || 'No Data Found', 'info');
+                }
+            },
+            error: function (xhr, status, error) {
+                team_currentRows = [];
+                team_grid = null;
+                $('#gridContainerTeamApproval').empty();
+                $('#team_actionButtons').hide();
+                showToast('Error loading data: ' + error, 'error');
+            },
+            complete: function () {
+                team_isLoading = false;
+                setBtnNormal('#team_btnGo', 'Go');
+            }
+        });
+    });
+
+    $('#team_btnClear').click(function () {
+        $('#team_searchby').val('1');
+        $('#team_searchfor').val('');
+        $('#team_fromdate').val('');
+        $('#team_todate').val('');
+        $("input[name='team_type']").prop('checked', false);
+        $('#team_r2').prop('checked', true);
+        team_selectedIds = {};
+        team_currentRows = [];
+        team_grid = null;
+        $('#gridContainerTeamApproval').empty();
+        $('#team_actionButtons').hide();
+    });
+
+    $('#team_btnApprove').click(function () { team_updateStatus('Approved'); });
+    $('#team_btnReject').click(function () { team_updateStatus('Rejected'); });
+
+    function team_updateStatus(status) {
+        if (team_isProcessing) return;
+
+        const selectedRows = team_getSelectedRows();
+        if (selectedRows.length === 0) { showToast('Please select at least one record.', 'warn'); return; }
+        if (status === 'Approved' && selectedRows.some(r => r.isApproved)) { showToast('Already Approved.', 'error'); return; }
+        if (status === 'Rejected' && selectedRows.some(r => r.isApproved)) { showToast('Approved records cannot be rejected.', 'error'); return; }
+
+        selectedRows.forEach(r => { r.status = status; r.createdBy = EmployeeId; });
+
+        team_isProcessing = true;
+        const btnSel = status === 'Approved' ? '#team_btnApprove' : '#team_btnReject';
+        setBtnLoading(btnSel, status === 'Approved' ? 'Approving...' : 'Rejecting...');
+
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/UpdateAttendanceRegularization',
+            type: 'PUT',
+            data: JSON.stringify(selectedRows),
+            contentType: 'application/json',
+            success: function (res) {
+                if (res.isSuccess) {
+                    showToast(res.responseMessage || 'Status updated.', 'success');
+                    team_selectedIds = {};
+                    $('#team_btnGo').click();
+                } else {
+                    showToast(res.responseMessage || 'Update failed.', 'error');
+                }
+            },
+            error: function () { showToast('Something went wrong during update.', 'error'); },
+            complete: function () {
+                team_isProcessing = false;
+                setBtnNormal(btnSel, status === 'Approved' ? 'Approve' : 'Reject');
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        $('#team_r2').prop('checked', true);
+        $('#team_btnGo').click();
+    });
+</script>
