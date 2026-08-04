@@ -235,6 +235,23 @@
             opacity: 1 !important;
         }
 
+        /* Chrome/Edge autofill (saved email+password) ignores author
+           background/color entirely and forces its own (near-white) fill —
+           that's what was making the autofilled text unreadable and the
+           white eye icon invisible against it. The only way to override an
+           autofilled field's background is this inset box-shadow trick;
+           -webkit-text-fill-color is likewise required instead of `color`. */
+        .form-control:-webkit-autofill,
+        .form-control:-webkit-autofill:hover,
+        .form-control:-webkit-autofill:focus,
+        .form-control:-webkit-autofill:active {
+            -webkit-text-fill-color: #fff !important;
+            -webkit-box-shadow: 0 0 0 1000px #16283d inset !important;
+            box-shadow: 0 0 0 1000px #16283d inset !important;
+            caret-color: #fff;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
         .form-control:focus {
             border-color: #4a90c4;
             box-shadow: 0 0 0 3px rgba(74,144,196,.18);
@@ -599,6 +616,20 @@
         $(document).ready(function () {
             localStorage.removeItem("PreviousPageUrl");
             localStorage.setItem("PreviousPageUrl", window.location.href);
+
+            /* Chrome applies :-webkit-autofill's forced dark-on-light look
+               transiently while its autofill suggestion dropdown is open —
+               i.e. exactly while the field is focused and being typed into
+               — and only lets our CSS override take back over once the
+               field blurs, which is what "dark while typing, white after"
+               actually is. CSS pseudo-classes alone can't be forced to
+               re-evaluate mid-interaction, so reassert the color directly
+               as an inline style on every keystroke/focus, which always
+               wins over the browser's internal autofill styling. */
+            $('.form-control').on('input focus keyup', function () {
+                this.style.setProperty('color', '#fff', 'important');
+                this.style.setProperty('-webkit-text-fill-color', '#fff', 'important');
+            });
 
             /* Enter key on inputs */
             $('#inputEmailAddress, #inputChoosePassword').keypress(function (e) {
