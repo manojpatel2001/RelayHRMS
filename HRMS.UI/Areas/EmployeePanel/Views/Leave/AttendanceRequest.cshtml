@@ -1,0 +1,569 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Attendance Request";
+    Layout = "~/Areas/EmployeePanel/Views/Shared/_EmployeeLayout.cshtml";
+    string apiBase = ViewBag.BaseUrlAPI;
+    int? requestId = ViewBag.RequestId;
+}
+
+<title>Attendance Request</title>
+
+<style>
+    /* ── Odoo-style status bar ─────────────────────────────────────── */
+    .ar-statusbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fff;
+        border: 1px solid var(--border, #D0DCE8);
+        border-radius: 8px;
+        padding: 10px 16px;
+        margin-bottom: 16px;
+    }
+
+    .ar-status-pills {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ar-status-pill {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #94A3B8;
+        padding: 5px 14px;
+        border-radius: 20px;
+        background: #F1F5F9;
+    }
+
+    .ar-status-pill.active {
+        background: #2F6F8E;
+        color: #fff;
+    }
+
+    .ar-status-pill.active.rejected {
+        background: #C62828;
+    }
+
+    /* ── Two-column readonly-style info grid ───────────────────────── */
+    .ar-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 48px;
+    }
+
+    .ar-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 18px;
+    }
+
+    .ar-field label {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #3B5068;
+    }
+
+    .ar-field .ar-static {
+        font-size: 13.5px;
+        color: var(--text, #1A1A1A);
+        padding: 6px 0;
+    }
+
+    .ar-field input, .ar-field select, .ar-field textarea {
+        border: 1px solid #B8C4CC;
+        border-radius: var(--r-sm, 6px);
+        padding: 6px 10px;
+        font-size: 13.5px;
+        font-family: inherit;
+    }
+
+    .ar-field textarea { resize: vertical; min-height: 70px; }
+
+    .ar-radio-row { display: flex; gap: 18px; padding: 4px 0; }
+    .ar-radio-row label { font-size: 13.5px; font-weight: 400; color: var(--text, #1A1A1A); display: flex; align-items: center; gap: 6px; }
+
+    @@media (max-width: 900px) {
+        .ar-info-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Attendance Request</h6>
+            <a href="@Url.Action("Attendance", "Leave", new { area = "EmployeePanel" })" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bx bx-arrow-back"></i> Back
+            </a>
+        </div>
+        <div class="card-body">
+
+            <div class="ar-statusbar">
+                <div>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnSendToApprove" style="display:none;">Send to approve</button>
+                </div>
+                <div class="ar-status-pills">
+                    <span class="ar-status-pill" id="pillDraft">Draft</span>
+                    <span class="ar-status-pill" id="pillToApprove">To Approve</span>
+                    <span class="ar-status-pill" id="pillDone">Done</span>
+                </div>
+            </div>
+
+            <div class="ar-info-grid">
+                <div>
+                    <div class="ar-field">
+                        <label>Employee:</label>
+                        <div class="ar-static" id="txtEmployeeName">-</div>
+                    </div>
+
+                    <div class="ar-field">
+                        <label>Request Type:</label>
+                        <div class="ar-radio-row">
+                            <label><input type="radio" name="requestType" id="rtCreate" value="Create" checked> Create Attendance</label>
+                            <label><input type="radio" name="requestType" id="rtUpdate" value="Update"> Update Existing Attendance</label>
+                        </div>
+                    </div>
+
+                    <div class="ar-field">
+                        <label for="dtAttendanceDate">Date of Attendance:</label>
+                        <input type="date" id="dtAttendanceDate">
+                        <span class="field-validation-error" id="spnDate" style="display:none;color:#C62828;font-size:12px;">Please select a date</span>
+                    </div>
+
+                    <div class="ar-field">
+                        <label>Company:</label>
+                        <div class="ar-static" id="txtCompanyName">-</div>
+                    </div>
+
+                    <div class="ar-field">
+                        <label for="ddlReason">Reason:</label>
+                        <select id="ddlReason">
+                            <option value="">-- Select Reason --</option>
+                        </select>
+                        <span class="field-validation-error" id="spnReason" style="display:none;color:#C62828;font-size:12px;">Please select a reason</span>
+                    </div>
+
+                    <div class="ar-field">
+                        <label for="txtRemark">Remark:</label>
+                        <textarea id="txtRemark" placeholder="Additional details (optional)"></textarea>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="ar-field">
+                        <label>Employee Code:</label>
+                        <div class="ar-static" id="txtEmployeeCode">-</div>
+                    </div>
+
+                    <div class="ar-field">
+                        <label>Work Location:</label>
+                        <div class="ar-static" id="txtWorkLocation">-</div>
+                    </div>
+
+                    <div class="ar-field">
+                        <label>Reporting Manager:</label>
+                        <div class="ar-static" id="txtReportingManager">-</div>
+                    </div>
+
+                    <div class="ar-field">
+                        <label>Approved By:</label>
+                        <div class="ar-static" id="txtApprovedBy">-</div>
+                    </div>
+
+                    <div class="ar-field">
+                        <label>Approve By Employee:</label>
+                        <div class="ar-static" id="txtApproveByEmployee">-</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header">
+            <h6 class="mb-0">Attendance Records</h6>
+        </div>
+        <div class="card-body">
+            <div id="gridContainerAttendanceRecords"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const apiBase = '@apiBase';
+    const requestId = @(requestId.HasValue ? requestId.Value.ToString() : "null");
+    const Empid = parseInt(localStorage.getItem("EmployeeId"));
+    const EmployeeName = localStorage.getItem("EmployeeName");
+    const savedCompany = localStorage.getItem('selectedCompany');
+    const companyDetails = JSON.parse(savedCompany || '{}');
+    const Compid = parseInt(companyDetails.CompanyId);
+    const CompanyName = companyDetails.CompanyName || '';
+    const Token = localStorage.getItem('authToken');
+
+    var approvalReasons = [];
+    var recordsGrid = null;
+    var dayType = 'Full Day';
+    var lookedUpShift = { shiftTime: '', attendanceStatus: '' };
+    var isSubmitting = false;
+    var viewOnly = false;
+    var limitedReasonIds = [];
+    var unlimitedReasonIds = [];
+
+    function loadReasonConfiguration() {
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/GetAttendanceReasonsByLimitType',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                if (response.isSuccess && response.data && response.data.length > 0) {
+                    limitedReasonIds = response.data.filter(function (r) { return r.reasonType === 'Limited'; }).map(function (r) { return r.reasonId.toString(); });
+                    unlimitedReasonIds = response.data.filter(function (r) { return r.reasonType === 'Unlimited'; }).map(function (r) { return r.reasonId.toString(); });
+                } else {
+                    limitedReasonIds = [];
+                    unlimitedReasonIds = [];
+                }
+            },
+            error: function () { limitedReasonIds = []; unlimitedReasonIds = []; }
+        });
+    }
+
+    /* Attendance Limit lives on the Employee Master page (AdditionalInformation.cshtml,
+       "Attendance Limit" field) and is only enforced for reasons tagged "Limited" —
+       Unlimited reasons (e.g. Working from Home) bypass this check entirely, matching
+       the existing bulk Add Attendance tool's validateAttendanceRequestLimit logic. */
+    async function validateAttendanceRequestLimit(reasonId, forDate) {
+        if (limitedReasonIds.length === 0 && unlimitedReasonIds.length === 0) {
+            await new Promise(function (resolve) { setTimeout(resolve, 1000); });
+        }
+
+        var reasonStr = (reasonId || '').toString();
+        if (unlimitedReasonIds.includes(reasonStr)) return true;
+        if (!limitedReasonIds.includes(reasonStr)) return true; // unconfigured reason — let backend decide
+
+        var d = new Date(forDate);
+        var month = d.getMonth() + 1;
+        var year = d.getFullYear();
+
+        try {
+            var employeeDetails = await $.ajax({
+                type: 'GET',
+                url: apiBase + '/AttendanceRegularizationAPI/GetEmployeeDetails?EmpId=' + Empid,
+                headers: { 'Authorization': 'Bearer ' + Token }
+            });
+            var currentMonthCount = await $.ajax({
+                type: 'GET',
+                url: apiBase + '/AttendanceRegularizationAPI/GetEmployeeAttendanceRequestsCountForCurrentMonth?EmpId=' + Empid + '&month=' + month + '&year=' + year,
+                headers: { 'Authorization': 'Bearer ' + Token }
+            });
+
+            if (!employeeDetails?.isSuccess || !currentMonthCount?.isSuccess) {
+                showToast('Unable to fetch your attendance limit details.', 'error');
+                return false;
+            }
+
+            var monthlyLimit = employeeDetails.data?.[0]?.attendanceLimit || 0;
+            var currentLimitedRequests = currentMonthCount.data?.[0]?.limitedRequestsCount || 0;
+
+            if (monthlyLimit === 0) {
+                showToast('No monthly attendance limit is set for your account. Please contact HR to configure it on your Employee Master record.', 'error');
+                return false;
+            }
+
+            if (currentLimitedRequests + 1 > monthlyLimit) {
+                showToast('Monthly attendance request limit exceeded. Limit: ' + monthlyLimit + ', already submitted: ' + currentLimitedRequests + '.', 'error');
+                return false;
+            }
+
+            return true;
+        } catch (e) {
+            showToast('Unable to validate attendance limit. Please try again.', 'error');
+            return false;
+        }
+    }
+
+    function fmtDateTime(v) {
+        if (!v) return '-';
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '-';
+        var day = String(d.getDate()).padStart(2, '0');
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var hh = String(d.getHours()).padStart(2, '0');
+        var mm = String(d.getMinutes()).padStart(2, '0');
+        return day + '/' + month + '/' + d.getFullYear() + ' ' + hh + ':' + mm;
+    }
+
+    function setStatusPill(state) {
+        $('.ar-status-pill').removeClass('active rejected');
+        if (state === 'Draft') $('#pillDraft').addClass('active');
+        else if (state === 'ToApprove') $('#pillToApprove').addClass('active');
+        else if (state === 'Done') $('#pillDone').addClass('active');
+        else if (state === 'Rejected') $('#pillDone').addClass('active rejected');
+    }
+
+    function renderRecordsGrid(row) {
+        var data = [{
+            type: dayType,
+            checkIn: row && row.inTime ? row.inTime : null,
+            checkOut: row && row.outTime ? row.outTime : null
+        }];
+
+        var columns = [
+            {
+                header: 'Type', width: '160px',
+                render: function () {
+                    if (viewOnly) return dayType;
+                    var opts = ['Full Day', 'First Half', 'Second Half'];
+                    var html = '<select class="att-req-daytype" onchange="_onDayTypeChange(this)">';
+                    opts.forEach(function (o) {
+                        html += '<option value="' + o + '"' + (o === dayType ? ' selected' : '') + '>' + o + '</option>';
+                    });
+                    html += '</select>';
+                    return html;
+                }
+            },
+            {
+                header: 'Check In', width: '220px',
+                render: function (v, r) {
+                    if (viewOnly) return fmtDateTime(r.checkIn);
+                    return '<input type="datetime-local" class="att-req-checkin" value="' + (r.checkIn ? toLocalInputValue(r.checkIn) : '') + '">';
+                }
+            },
+            {
+                header: 'Check Out', width: '220px',
+                render: function (v, r) {
+                    if (viewOnly) return fmtDateTime(r.checkOut);
+                    return '<input type="datetime-local" class="att-req-checkout" value="' + (r.checkOut ? toLocalInputValue(r.checkOut) : '') + '">';
+                }
+            }
+        ];
+
+        if (!recordsGrid) {
+            recordsGrid = WMSGrid.create({
+                container: 'gridContainerAttendanceRecords',
+                title: 'Attendance Records',
+                icon: 'bx-time-five',
+                data: data,
+                columns: columns,
+                perPage: 100000,
+                features: { pagination: false, perPage: false, paginationInfo: false, search: false, toolbar: false }
+            });
+        } else {
+            recordsGrid.setData(data);
+        }
+    }
+
+    window._onDayTypeChange = function (sel) { dayType = sel.value; };
+
+    function toLocalInputValue(v) {
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '';
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+
+    function loadReasons(selectedId) {
+        $.ajax({
+            url: apiBase + '/CommonReasonsAPI/GetcancellationReasons',
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (response) {
+                approvalReasons = (response.isSuccess && response.data) ? response.data : [];
+                var $dd = $('#ddlReason');
+                $dd.empty().append('<option value="">-- Select Reason --</option>');
+                approvalReasons.forEach(function (r) {
+                    $dd.append('<option value="' + r.reasonId + '">' + r.reason + '</option>');
+                });
+                if (selectedId) $dd.val(selectedId);
+            },
+            error: function () { approvalReasons = []; }
+        });
+    }
+
+    function loadEmployeeProfile() {
+        $('#txtEmployeeName').text(EmployeeName || '-');
+        $('#txtCompanyName').text(CompanyName || '-');
+
+        $.ajax({
+            url: apiBase + '/EmployeeMasterAPI/GetEmployeeById/' + Empid,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess && res.data) {
+                    $('#txtEmployeeCode').text(res.data.employeeCode || '-');
+                    $('#txtWorkLocation').text(res.data.branchName || '-');
+                }
+            }
+        });
+
+        $.ajax({
+            url: apiBase + '/LeaveApplication/GetReportingperson?Empid=' + Empid,
+            method: 'POST',
+            dataType: 'json',
+            success: function (response) {
+                if (response.isSuccess && response.data) {
+                    $('#txtReportingManager').text(response.data.fullName || '-');
+                }
+            }
+        });
+    }
+
+    function lookupDayAttendance(dateStr) {
+        var formData = new FormData();
+        formData.append('EmpId', Empid);
+        formData.append('StartDate', dateStr);
+        formData.append('EndDate', dateStr);
+        formData.append('RecordType', 'All');
+
+        $.ajax({
+            url: apiBase + '/EmployeeInOut/GetEmployeeInOutReport',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (response) {
+                var row = (response && response.isSuccess && response.data && response.data.length > 0) ? response.data[0] : null;
+                lookedUpShift.shiftTime = row ? (row.shiftTime || '') : '';
+                lookedUpShift.attendanceStatus = row ? (row.attendanceStatus || '') : '';
+                renderRecordsGrid(row);
+            },
+            error: function () { renderRecordsGrid(null); }
+        });
+    }
+
+    $('#dtAttendanceDate').on('change', function () {
+        var v = $(this).val();
+        if (v) { $('#spnDate').hide(); lookupDayAttendance(v); }
+    });
+
+    function loadExistingRequest(id) {
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/GetById/' + id,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (!res.isSuccess || !res.data) { showToast('Record not found.', 'error'); return; }
+                var d = res.data;
+                viewOnly = true;
+
+                $('#dtAttendanceDate').val(d.forDate ? d.forDate.substring(0, 10) : '').prop('disabled', true);
+                $('input[name="requestType"]').prop('disabled', true);
+                $('#ddlReason').prop('disabled', true);
+                $('#txtRemark').val(d.remark || '').prop('disabled', true);
+                dayType = d.day || 'Full Day';
+
+                loadReasons(d.reason);
+
+                $('#txtApprovedBy').text(d.updatedBy || '-');
+                $('#txtApproveByEmployee').text(d.updatedBy || '-');
+
+                if (d.isApproved) setStatusPill('Done');
+                else if (d.isRejected) setStatusPill('Rejected');
+                else setStatusPill('ToApprove');
+
+                $('#btnSendToApprove').hide();
+
+                renderRecordsGrid({ inTime: d.inTime, outTime: d.outTime });
+            },
+            error: function () { showToast('Unable to load the request.', 'error'); }
+        });
+    }
+
+    function computeDuration(inIso, outIso) {
+        if (!inIso || !outIso) return null;
+        var a = new Date(inIso), b = new Date(outIso);
+        if (isNaN(a.getTime()) || isNaN(b.getTime())) return null;
+        var hrs = (b - a) / 3600000;
+        return hrs > 0 ? Math.round(hrs * 100) / 100 : null;
+    }
+
+    $('#btnSendToApprove').on('click', async function () {
+        if (isSubmitting) return;
+
+        var dateVal = $('#dtAttendanceDate').val();
+        var reasonId = $('#ddlReason').val();
+        var hasError = false;
+
+        if (!dateVal) { $('#spnDate').show(); hasError = true; } else { $('#spnDate').hide(); }
+        if (!reasonId) { $('#spnReason').show(); hasError = true; } else { $('#spnReason').hide(); }
+        if (hasError) return;
+
+        isSubmitting = true;
+        setBtnLoading('#btnSendToApprove', 'Send to approve');
+        var isLimitValid = await validateAttendanceRequestLimit(reasonId, dateVal);
+        if (!isLimitValid) {
+            isSubmitting = false;
+            setBtnNormal('#btnSendToApprove', 'Send to approve');
+            return;
+        }
+
+        var checkInVal = $('.att-req-checkin').val();
+        var checkOutVal = $('.att-req-checkout').val();
+        var inIso = checkInVal ? new Date(checkInVal).toISOString() : null;
+        var outIso = checkOutVal ? new Date(checkOutVal).toISOString() : null;
+
+        var payload = [{
+            EmpId: Empid,
+            FullName: EmployeeName || '',
+            BranchName: $('#txtWorkLocation').text() || '',
+            ForDate: dateVal,
+            ShiftTime: lookedUpShift.shiftTime || '',
+            InTime: inIso,
+            OutTime: outIso,
+            Duration: computeDuration(inIso, outIso),
+            Day: dayType,
+            Status: lookedUpShift.attendanceStatus || '',
+            Reason: reasonId.toString(),
+            Remark: $('#txtRemark').val() || null,
+            IsApproved: false,
+            IsPending: true,
+            IsRejected: false,
+            IsLocked: false,
+            CreatedBy: Empid.toString()
+        }];
+
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/CreateAttendanceRegularization',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function (res) {
+                if (res.isSuccess) {
+                    showToast(res.responseMessage || 'Sent for approval.', 'success');
+                    setStatusPill('ToApprove');
+                    $('#btnSendToApprove').hide();
+                    $('#dtAttendanceDate, input[name="requestType"], #ddlReason, #txtRemark').prop('disabled', true);
+                    viewOnly = true;
+                    renderRecordsGrid({ inTime: inIso, outTime: outIso });
+                } else {
+                    showToast(res.responseMessage || 'Unable to submit request.', 'error');
+                }
+            },
+            error: function (xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.responseMessage) || 'Something went wrong.';
+                showToast(msg, 'error');
+            },
+            complete: function () {
+                isSubmitting = false;
+                setBtnNormal('#btnSendToApprove', 'Send to approve');
+            }
+        });
+    });
+
+    $(document).ready(function () {
+        loadEmployeeProfile();
+        loadReasonConfiguration();
+
+        if (requestId) {
+            loadExistingRequest(requestId);
+        } else {
+            loadReasons();
+            setStatusPill('Draft');
+            $('#btnSendToApprove').show();
+            renderRecordsGrid(null);
+        }
+    });
+</script>

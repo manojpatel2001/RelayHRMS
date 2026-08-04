@@ -69,6 +69,14 @@ namespace HRMS.UI.Areas.EmployeePanel.Controllers
 
             return View();
         }
+        public IActionResult AttendanceRequest(int? id)
+        {
+            ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
+            ViewBag.BaseUrlAPI = _configuration["BaseUrlSettings:baseUrl"];
+            ViewBag.RequestId = id;
+
+            return View();
+        }
         public IActionResult AttendanceRegularizationApproval()
         {
             ViewBag.BaseUrl = _configuration["UIBaseUrlSettings:baseUrl"];
