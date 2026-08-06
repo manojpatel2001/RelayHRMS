@@ -9,7 +9,7 @@
 <title>Attendance Request</title>
 
 <style>
-    /* ── Odoo-style status bar ─────────────────────────────────────── */
+    /* ── Status bar: submit action + monthly limit balance ─────────── */
     .ar-statusbar {
         display: flex;
         align-items: center;
@@ -17,46 +17,50 @@
         background: #fff;
         border: 1px solid var(--border, #D0DCE8);
         border-radius: 8px;
-        padding: 10px 16px;
-        margin-bottom: 16px;
+        padding: 8px 16px;
+        margin-bottom: 12px;
     }
 
-    .ar-status-pills {
+    .ar-limit-info {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #3B5068;
         display: flex;
         align-items: center;
         gap: 6px;
     }
 
-    .ar-status-pill {
+    .ar-limit-badge {
         font-size: 12.5px;
-        font-weight: 600;
-        color: #94A3B8;
-        padding: 5px 14px;
+        font-weight: 700;
+        padding: 4px 12px;
         border-radius: 20px;
-        background: #F1F5F9;
+        background: #E1ECF4;
+        color: #2F6F8E;
     }
 
-    .ar-status-pill.active {
-        background: #2F6F8E;
-        color: #fff;
+    .ar-limit-badge.warn {
+        background: #FFF3E0;
+        color: #E65100;
     }
 
-    .ar-status-pill.active.rejected {
-        background: #C62828;
+    .ar-limit-badge.exceeded {
+        background: #FFEBEE;
+        color: #C62828;
     }
 
-    /* ── Two-column readonly-style info grid ───────────────────────── */
+    /* ── Three-column readonly-style info grid ─────────────────────── */
     .ar-info-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0 48px;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0 32px;
     }
 
     .ar-field {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        margin-bottom: 18px;
+        gap: 3px;
+        margin-bottom: 12px;
     }
 
     .ar-field label {
@@ -79,12 +83,16 @@
         font-family: inherit;
     }
 
-    .ar-field textarea { resize: vertical; min-height: 70px; }
+    .ar-field textarea { resize: vertical; min-height: 54px; }
 
     .ar-radio-row { display: flex; gap: 18px; padding: 4px 0; }
     .ar-radio-row label { font-size: 13.5px; font-weight: 400; color: var(--text, #1A1A1A); display: flex; align-items: center; gap: 6px; }
 
-    @@media (max-width: 900px) {
+    @@media (max-width: 1200px) {
+        .ar-info-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @@media (max-width: 700px) {
         .ar-info-grid { grid-template-columns: 1fr; }
     }
 
@@ -125,10 +133,9 @@
                 <div>
                     <button type="button" class="btn btn-primary btn-sm" id="btnSendToApprove" style="display:none;">Send to approve</button>
                 </div>
-                <div class="ar-status-pills">
-                    <span class="ar-status-pill" id="pillDraft">Draft</span>
-                    <span class="ar-status-pill" id="pillToApprove">To Approve</span>
-                    <span class="ar-status-pill" id="pillDone">Done</span>
+                <div class="ar-limit-info">
+                    Monthly Attendance Request Limit:
+                    <span class="ar-limit-badge" id="txtLimitBalance">-</span>
                 </div>
             </div>
 
@@ -149,10 +156,14 @@
 
                     <div class="ar-field">
                         <label for="dtAttendanceDate">Date of Attendance:</label>
-                        <input type="date" id="dtAttendanceDate">
+                        <input type="date" id="dtAttendanceDate" max="@DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd")">
                         <span class="field-validation-error" id="spnDate" style="display:none;color:#C62828;font-size:12px;">Please select a date</span>
+                        <span class="field-validation-error" id="spnDateFuture" style="display:none;color:#C62828;font-size:12px;">Today's date and future dates are not allowed</span>
+                        <span class="field-validation-error" id="spnDateDuplicate" style="display:none;color:#C62828;font-size:12px;"></span>
                     </div>
+                </div>
 
+                <div>
                     <div class="ar-field">
                         <label>Company:</label>
                         <div class="ar-static" id="txtCompanyName">-</div>
@@ -186,16 +197,6 @@
                     <div class="ar-field">
                         <label>Reporting Manager:</label>
                         <div class="ar-static" id="txtReportingManager">-</div>
-                    </div>
-
-                    <div class="ar-field">
-                        <label>Approved By:</label>
-                        <div class="ar-static" id="txtApprovedBy">-</div>
-                    </div>
-
-                    <div class="ar-field">
-                        <label>Approve By Employee:</label>
-                        <div class="ar-static" id="txtApproveByEmployee">-</div>
                     </div>
                 </div>
             </div>
@@ -318,12 +319,55 @@
         return day + '/' + month + '/' + d.getFullYear() + ' ' + hh + ':' + mm;
     }
 
-    function setStatusPill(state) {
-        $('.ar-status-pill').removeClass('active rejected');
-        if (state === 'Draft') $('#pillDraft').addClass('active');
-        else if (state === 'ToApprove') $('#pillToApprove').addClass('active');
-        else if (state === 'Done') $('#pillDone').addClass('active');
-        else if (state === 'Rejected') $('#pillDone').addClass('active rejected');
+    /* Shows how many "Limited"-reason attendance requests are left this month
+       against the Attendance Limit configured on the Employee Master page.
+       Defaults to the current calendar month; re-fetched for whichever
+       month the selected Date of Attendance falls in, since that's the
+       month the request would actually be counted against on submit. */
+    function loadAttendanceLimitBalance(forDate) {
+        var d = forDate ? new Date(forDate) : new Date();
+        var month = d.getMonth() + 1;
+        var year = d.getFullYear();
+
+        $.when(
+            $.ajax({ type: 'GET', url: apiBase + '/AttendanceRegularizationAPI/GetEmployeeDetails?EmpId=' + Empid, headers: { 'Authorization': 'Bearer ' + Token } }),
+            $.ajax({ type: 'GET', url: apiBase + '/AttendanceRegularizationAPI/GetEmployeeAttendanceRequestsCountForCurrentMonth?EmpId=' + Empid + '&month=' + month + '&year=' + year, headers: { 'Authorization': 'Bearer ' + Token } })
+        ).done(function (employeeDetailsResp, currentMonthCountResp) {
+            var employeeDetails = employeeDetailsResp[0];
+            var currentMonthCount = currentMonthCountResp[0];
+            var $badge = $('#txtLimitBalance');
+
+            if (!employeeDetails?.isSuccess || !currentMonthCount?.isSuccess) {
+                $badge.text('Unavailable').removeClass('warn exceeded');
+                return;
+            }
+
+            var monthlyLimit = employeeDetails.data?.[0]?.attendanceLimit || 0;
+            var used = currentMonthCount.data?.[0]?.limitedRequestsCount || 0;
+
+            if (monthlyLimit === 0) {
+                $badge.text('Not configured').removeClass('warn exceeded');
+                return;
+            }
+
+            var remaining = Math.max(0, monthlyLimit - used);
+            $badge.text(remaining + ' of ' + monthlyLimit + ' remaining');
+            $badge.removeClass('warn exceeded');
+            if (remaining === 0) $badge.addClass('exceeded');
+            else if (remaining <= Math.ceil(monthlyLimit * 0.2)) $badge.addClass('warn');
+        }).fail(function () {
+            $('#txtLimitBalance').text('Unavailable').removeClass('warn exceeded');
+        });
+    }
+
+    // Today is blocked here too, so the ceiling is the end of yesterday
+    // (23:59) — any moment on today's date or later compares greater than
+    // that and gets rejected, not just moments after the current time.
+    function maxAllowedDateTimeLocal() {
+        var d = new Date();
+        d.setDate(d.getDate() - 1);
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T23:59';
     }
 
     function renderRecordsGrid(row) {
@@ -332,6 +376,8 @@
             checkIn: row && row.inTime ? row.inTime : null,
             checkOut: row && row.outTime ? row.outTime : null
         }];
+
+        var maxDt = maxAllowedDateTimeLocal();
 
         var columns = [
             {
@@ -351,14 +397,14 @@
                 header: 'Check In', width: '220px',
                 render: function (v, r) {
                     if (viewOnly) return fmtDateTime(r.checkIn);
-                    return '<input type="datetime-local" class="att-req-checkin" value="' + (r.checkIn ? toLocalInputValue(r.checkIn) : '') + '">';
+                    return '<input type="datetime-local" class="att-req-checkin" max="' + maxDt + '" value="' + (r.checkIn ? toLocalInputValue(r.checkIn) : '') + '">';
                 }
             },
             {
                 header: 'Check Out', width: '220px',
                 render: function (v, r) {
                     if (viewOnly) return fmtDateTime(r.checkOut);
-                    return '<input type="datetime-local" class="att-req-checkout" value="' + (r.checkOut ? toLocalInputValue(r.checkOut) : '') + '">';
+                    return '<input type="datetime-local" class="att-req-checkout" max="' + maxDt + '" value="' + (r.checkOut ? toLocalInputValue(r.checkOut) : '') + '">';
                 }
             }
         ];
@@ -377,6 +423,17 @@
             recordsGrid.setData(data);
         }
     }
+
+    // The `max` attribute blocks the picker UI from future date/time, but a
+    // manually-typed future value isn't reliably rejected by every browser —
+    // enforce it here too, delegated since these inputs are re-created by the grid.
+    $(document).on('change', '.att-req-checkin, .att-req-checkout', function () {
+        var v = $(this).val();
+        if (v && v > maxAllowedDateTimeLocal()) {
+            $(this).val('');
+            showToast("Today's date and future date/time are not allowed for Check In / Check Out.", 'warn');
+        }
+    });
 
     window._onDayTypeChange = function (sel) { dayType = sel.value; };
 
@@ -484,18 +541,74 @@
         });
     }
 
+    /* Once a request is raised for a date, the employee shouldn't be able to keep
+       raising more for the same date while it's still Pending or already Approved —
+       only a Rejected request should be re-raiseable. Only applies to "Create
+       Attendance" mode; "Update Existing Attendance" is specifically for editing
+       that same still-open request, not a duplicate. */
+    var createBlockedByExisting = false;
+
+    function checkDuplicateRequestForCreate(dateStr) {
+        createBlockedByExisting = false;
+        $('#spnDateDuplicate').hide();
+
+        $.ajax({
+            url: apiBase + '/AttendanceRegularizationAPI/GetSelfServiceRequestByEmpAndDate?EmpId=' + Empid + '&ForDate=' + dateStr,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            success: function (res) {
+                if (res.isSuccess && res.data && !res.data.isRejected) {
+                    createBlockedByExisting = true;
+                    var statusLabel = res.data.isApproved ? 'already approved' : 'pending approval';
+                    $('#spnDateDuplicate')
+                        .text('An attendance request for this date is ' + statusLabel + '. Use "Update Existing Attendance" to modify it instead of raising a new one.')
+                        .show();
+                }
+            }
+            // No matching request (isSuccess:false) is the normal case — nothing to block.
+        });
+    }
+
     function handleDateChange(dateStr) {
+        createBlockedByExisting = false;
+        $('#spnDateDuplicate').hide();
+
         if ($('#rtUpdate').is(':checked')) {
             lookupExistingRequest(dateStr);
         } else {
             existingRequestId = null;
+            checkDuplicateRequestForCreate(dateStr);
             lookupDayAttendance(dateStr);
         }
+        loadAttendanceLimitBalance(dateStr);
+    }
+
+    // Today itself is blocked too (attendance requests are only for past days,
+    // since today's punch may still be in progress) — so the latest allowed
+    // date is yesterday, not today.
+    function maxAllowedDateStr() {
+        var d = new Date();
+        d.setDate(d.getDate() - 1);
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
     }
 
     $('#dtAttendanceDate').on('change', function () {
         var v = $(this).val();
-        if (v) { $('#spnDate').hide(); handleDateChange(v); }
+        if (!v) return;
+
+        // The `max` attribute blocks the calendar picker from future dates, but a
+        // manually-typed future date isn't reliably rejected by every browser —
+        // enforce it here too so both entry paths are actually blocked.
+        if (v > maxAllowedDateStr()) {
+            $(this).val('');
+            $('#spnDateFuture').show();
+            showToast("Today's date and future dates are not allowed for Date of Attendance.", 'warn');
+            return;
+        }
+
+        $('#spnDate, #spnDateFuture').hide();
+        handleDateChange(v);
     });
 
     $('input[name="requestType"]').on('change', function () {
@@ -520,13 +633,7 @@
                 dayType = d.day || 'Full Day';
 
                 loadReasons(d.reason);
-
-                $('#txtApprovedBy').text(d.updatedBy || '-');
-                $('#txtApproveByEmployee').text(d.updatedBy || '-');
-
-                if (d.isApproved) setStatusPill('Done');
-                else if (d.isRejected) setStatusPill('Rejected');
-                else setStatusPill('ToApprove');
+                loadAttendanceLimitBalance(d.forDate);
 
                 $('#btnSendToApprove').hide();
 
@@ -545,9 +652,21 @@
         var hasError = false;
 
         if (!dateVal) { $('#spnDate').show(); hasError = true; } else { $('#spnDate').hide(); }
+        if (dateVal && dateVal > maxAllowedDateStr()) { $('#spnDateFuture').show(); hasError = true; } else { $('#spnDateFuture').hide(); }
         if (!reasonId) { $('#spnReason').show(); hasError = true; } else { $('#spnReason').hide(); }
         if (isUpdateMode && !existingRequestId) {
             showToast('No existing attendance request found for this date to update. Switch to "Create Attendance" instead.', 'error');
+            hasError = true;
+        }
+        if (!isUpdateMode && createBlockedByExisting) {
+            $('#spnDateDuplicate').show();
+            showToast('A request for this date already exists and is not rejected. Use "Update Existing Attendance" instead of raising a new one.', 'error');
+            hasError = true;
+        }
+        var maxDt = maxAllowedDateTimeLocal();
+        if (($('.att-req-checkin').val() && $('.att-req-checkin').val() > maxDt) ||
+            ($('.att-req-checkout').val() && $('.att-req-checkout').val() > maxDt)) {
+            showToast("Today's date and future date/time are not allowed for Check In / Check Out.", 'warn');
             hasError = true;
         }
         if (hasError) return;
@@ -563,8 +682,17 @@
 
         var checkInVal = $('.att-req-checkin').val();
         var checkOutVal = $('.att-req-checkout').val();
-        var inIso = checkInVal ? new Date(checkInVal).toISOString() : null;
-        var outIso = checkOutVal ? new Date(checkOutVal).toISOString() : null;
+
+        // datetime-local gives "YYYY-MM-DDTHH:mm" in the browser's local wall-clock
+        // time with no timezone info. Passing that through `new Date(...).toISOString()`
+        // converts it to UTC (e.g. 09:00 IST -> "03:30:00.000Z"), but the rest of this
+        // app — including the list page that displays these values — stores and reads
+        // InTime/OutTime as naive local wall-clock strings with no UTC conversion at
+        // all, so that conversion silently shifted times by the IST offset (-5:30) once
+        // displayed back. Send the naive local value through unchanged instead.
+        var toNaiveLocalIso = function (v) { return v ? (v.length === 16 ? v + ':00' : v) : null; };
+        var inIso = toNaiveLocalIso(checkInVal);
+        var outIso = toNaiveLocalIso(checkOutVal);
 
         var payload = [{
             AttendanceRegularizationId: isUpdateMode ? existingRequestId : 0,
@@ -590,11 +718,9 @@
             success: function (res) {
                 if (res.isSuccess) {
                     showToast(res.responseMessage || 'Sent for approval.', 'success');
-                    setStatusPill('ToApprove');
-                    $('#btnSendToApprove').hide();
-                    $('#dtAttendanceDate, input[name="requestType"], #ddlReason, #txtRemark').prop('disabled', true);
-                    viewOnly = true;
-                    renderRecordsGrid({ inTime: inIso, outTime: outIso });
+                    setTimeout(function () {
+                        window.location.href = '@Url.Action("Attendance", "Leave", new { area = "EmployeePanel" })';
+                    }, 900);
                 } else {
                     showToast(res.responseMessage || 'Unable to submit request.', 'error');
                 }
@@ -618,7 +744,7 @@
             loadExistingRequest(requestId);
         } else {
             loadReasons();
-            setStatusPill('Draft');
+            loadAttendanceLimitBalance();
             $('#btnSendToApprove').show();
             renderRecordsGrid(null);
         }
