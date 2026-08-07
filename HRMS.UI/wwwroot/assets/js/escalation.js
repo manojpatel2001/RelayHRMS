@@ -1,11 +1,12 @@
+// Escalation is now a tab inside the single "Welcome Back" notification
+// modal (compoffleavemodal.js owns that modal's lifecycle/tab-switching),
+// not a separate standalone popup. Its own document-ready trigger — gated
+// by `localStorage.getItem("EmployeeId")=='14'` — was leftover test/debug
+// code hardcoded to one specific employee, which is what caused this to
+// only ever appear as an extra popup for that one account. The fetch is now
+// called from compoffleavemodal.js's own sequence alongside the other tabs,
+// driven by real data (hasEscalationData) instead of a hardcoded ID.
 
-$(document).ready(async function () {
-    var notiEsc = localStorage.getItem('EscalationSummary');
-    if (notiEsc == 'true' && localStorage.getItem("EmployeeId")=='14' ) {
-        await fetchUpcomingEscalaionProbation();
-
-    }
-});
 var companyDetailsESc = JSON.parse(localStorage.getItem('selectedCompany'));
 var CompanyIdEsc = companyDetailsESc.CompanyId;
 
@@ -16,49 +17,51 @@ $("#btnExportEscalation").click(function () {
     downloadPendingProbationGridExcel();
 })
 
-$("#btnfetchUpcomingEscalaionProbation").click(async function () {
-    if (localStorage.getItem("EmployeeId") === '14') {
-        await fetchUpcomingEscalaionProbation();
-    } else {
-        showToast("You are not authorized to access this report.", "error");
-    }
-});
-
-
-
 async function fetchUpcomingEscalaionProbation() {
     try {
+        $('#escalationLoader').show();
 
-        $.ajax({
+        return $.ajax({
             type: "GET",
             url: BaseUrlLayout + '/ApprovalMasterAPI/GetEscalationDueList/' + CompanyIdEsc,
             contentType: 'application/json',
-
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem("authToken")
             },
             success: function (data) {
-                if (data.isSuccess) {
-                    escalationRows = data.data || [];
-                    $('#escalatioModel').modal('show');
+                if (data.isSuccess && data.data && data.data.length > 0) {
+                    hasEscalationData = true;
+                    escalationRows = data.data;
+                    $('#escalationTotal').text(escalationRows.length);
                     renderEscalationGrid(escalationRows);
-                    localStorage.removeItem('EscalationSummary');
-                }
-                else
-                {
-                    $('#escalatioModel').modal('hide');
+                } else {
+                    hasEscalationData = false;
+                    $('#upEscalationContainer').empty();
+                    $('#upEscalationContainer').append('<div class="text-center py-3">No escalation records found</div>');
                 }
 
-
+                escalationLoaded = true;
+                hideLoadingIndicators('escalation');
+                checkAllDataLoaded();
             },
             error: function (xhr, status, error) {
                 console.error("AJAX Error:", status, error);
-
+                hasEscalationData = false;
+                escalationLoaded = true;
+                hideLoadingIndicators('escalation');
+                $('#upEscalationContainer').empty();
+                $('#upEscalationContainer').append('<div class="text-center py-3 text-danger">Error loading escalation records</div>');
+                checkAllDataLoaded();
             }
         });
     } catch (e) {
         console.error("Error in escalation:", e);
-
+        hasEscalationData = false;
+        escalationLoaded = true;
+        hideLoadingIndicators('escalation');
+        $('#upEscalationContainer').empty();
+        $('#upEscalationContainer').append('<div class="text-center py-3 text-danger">Error loading escalation records</div>');
+        checkAllDataLoaded();
     }
 }
 
@@ -140,4 +143,3 @@ function downloadPendingProbationGridExcel() {
             showToast("Failed to export Excel", "error");
         });
 }
-

@@ -59,6 +59,7 @@
                     <div class="col-sm-9 col-lg-4">
                         <input type="date" class="form-control form-control-sm" id="extraworkdateid">
                         <span class="error-msg" id="extraworkdateid-error">Date of extra work is required</span>
+                        <span class="error-msg" id="extraworkdateid-joining-error"></span>
                     </div>
                 </div>
 
@@ -99,6 +100,18 @@
     const Empid = parseInt(localStorage.getItem("EmployeeId"));
     const EmployeeName = localStorage.getItem("EmployeeName");
 
+    // An employee can't apply Comp-Off for extra work done before they joined.
+    let employeeJoiningDate = null;
+    $.ajax({
+        type: 'GET',
+        url: apiBase + '/EmployeeMasterAPI/GetEmployeeById/' + Empid,
+        success: function (res) {
+            if (res.isSuccess && res.data && res.data.dateOfJoining) {
+                employeeJoiningDate = new Date(res.data.dateOfJoining);
+            }
+        }
+    });
+
       $(document).ready(function () {
         // Initialize form fields
         $('#employeeid').val(EmployeeName);
@@ -119,6 +132,15 @@
             if (!$('#extraworkdateid').val()) {
                 $('#extraworkdateid-error').show();
                 isValid = false;
+            } else if (employeeJoiningDate && !isNaN(employeeJoiningDate.getTime())) {
+                var joining = new Date(employeeJoiningDate);
+                joining.setHours(0, 0, 0, 0);
+                var selectedWorkDate = new Date($('#extraworkdateid').val());
+                selectedWorkDate.setHours(0, 0, 0, 0);
+                if (selectedWorkDate < joining) {
+                    $('#extraworkdateid-joining-error').text('Comp-Off can only be applied from your joining date, ' + joining.toLocaleDateString('en-GB') + '.').show();
+                    isValid = false;
+                }
             }
             if (!$('#extraworkhrid').val()) {
                 $('#extraworkhrid-error').show();

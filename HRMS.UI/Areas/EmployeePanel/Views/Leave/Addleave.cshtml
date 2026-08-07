@@ -193,6 +193,7 @@
                             <span class="field-validation-error error-message" id="halfDayCurrentDateError" style="display:none;">Half day leave can only be applied for current date</span>
                             <span class="field-validation-error error-message" id="shortLeaveDateError" style="display:none;">Short leave can only be applied for past or current date</span>
                             <span class="field-validation-error error-message" id="futureDateError" style="display:none;">Cannot apply leave for future dates with this leave type</span>
+                            <span class="field-validation-error error-message" id="beforeJoiningError" style="display:none;"></span>
                         </div>
                         <div class="fg fg-req" style="flex:1 1 220px;min-width:200px;">
                             <label for="todateid">To Date</label>
@@ -334,6 +335,18 @@
     // Cache for attendance data to avoid multiple API calls
     let attendanceCache = {};
     let cacheTimeout = 5 * 60 * 1000; // 5 minutes cache
+
+    // An employee can't apply leave for a date before they joined.
+    let employeeJoiningDate = null;
+    $.ajax({
+        type: 'GET',
+        url: apiBase + '/EmployeeMasterAPI/GetEmployeeById/' + Empid,
+        success: function (res) {
+            if (res.isSuccess && res.data && res.data.dateOfJoining) {
+                employeeJoiningDate = new Date(res.data.dateOfJoining);
+            }
+        }
+    });
 
         function showBtnLoder()
         {
@@ -593,6 +606,16 @@
         const currentDateTime = new Date();
         currentDateTime.setHours(0, 0, 0, 0);
         selectedDateTime.setHours(0, 0, 0, 0);
+
+        if (employeeJoiningDate && !isNaN(employeeJoiningDate.getTime())) {
+            const joining = new Date(employeeJoiningDate);
+            joining.setHours(0, 0, 0, 0);
+            if (selectedDateTime < joining) {
+                $('#formdateid').addClass('is-invalid').val('');
+                $('#beforeJoiningError').text('Leave can only be applied from your joining date, ' + joining.toLocaleDateString('en-GB') + '.').show();
+                return false;
+            }
+        }
 
         if (leaveTypeName === 'Short Leave' && selectedDateTime > currentDateTime) {
             $('#formdateid').addClass('is-invalid');
@@ -2206,6 +2229,18 @@
             $('#todateid').addClass('is-invalid');
             $('#toDateError').show();
             hasError = true;
+        }
+
+        if (fromDate && employeeJoiningDate && !isNaN(employeeJoiningDate.getTime())) {
+            const joining = new Date(employeeJoiningDate);
+            joining.setHours(0, 0, 0, 0);
+            const selectedFrom = new Date(fromDate);
+            selectedFrom.setHours(0, 0, 0, 0);
+            if (selectedFrom < joining) {
+                $('#formdateid').addClass('is-invalid');
+                $('#beforeJoiningError').text('Leave can only be applied from your joining date, ' + joining.toLocaleDateString('en-GB') + '.').show();
+                hasError = true;
+            }
         }
 
         if (fromDate && toDate) {

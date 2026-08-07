@@ -3,42 +3,57 @@ let compOffLoaded = false;
 let upcomingProbationLoaded = false;
 let pendingProbationLoaded = false;
 let loanLoaded = false;
+let escalationLoaded = false;
 
 // Global variables to track if tabs have data
 let hasCompOffData = false;
 let hasUpcomingProbationData = false;
 let hasPendingProbationData = false;
 let hasLoanData = false;
+let hasEscalationData = false;
+
+// Guards checkAllDataLoaded()'s tab-selection/modal.show() logic from running
+// more than once. It's called once per fetch's completion (4 total), and
+// without this guard every one of them that completes AFTER the point all 4
+// flags are already true would redundantly re-run that logic and re-invoke
+// modal.show() on a fresh bootstrap.Modal instance — which is what showed up
+// as multiple stacked popups after login.
+let modalDecisionMade = false;
 
 // Show loading indicators for all tabs initially
 function showLoadingIndicators() {
-    $('.leave-balance-modal-container #compOffLoader, .leave-balance-modal-container #upcomingProbationLoader, .leave-balance-modal-container #pendingProbationLoader').show();
-    $('.leave-balance-modal-container #compOffLoading, .leave-balance-modal-container #upcomingProbationLoading, .leave-balance-modal-container #pendingProbationLoading').show();
-    $('.leave-balance-modal-container #compOffContent, .leave-balance-modal-container #upcomingProbationContent, .leave-balance-modal-container #pendingProbationContent').hide();
+    $('#compOffLoader, #upcomingProbationLoader, #pendingProbationLoader').show();
+    $('#compOffLoading, #upcomingProbationLoading, #pendingProbationLoading').show();
+    $('#compOffContent, #upcomingProbationContent, #pendingProbationContent').hide();
 }
 
 // Hide loading indicators and show content for a specific tab
 function hideLoadingIndicators(tabId) {
     switch (tabId) {
         case 'compOff':
-            $('.leave-balance-modal-container #compOffLoader').hide();
-            $('.leave-balance-modal-container #compOffLoading').hide();
-            $('.leave-balance-modal-container #compOffContent').show();
+            $('#compOffLoader').hide();
+            $('#compOffLoading').hide();
+            $('#compOffContent').show();
             break;
         case 'upcomingProbation':
-            $('.leave-balance-modal-container #upcomingProbationLoader').hide();
-            $('.leave-balance-modal-container #upcomingProbationLoading').hide();
-            $('.leave-balance-modal-container #upcomingProbationContent').show();
+            $('#upcomingProbationLoader').hide();
+            $('#upcomingProbationLoading').hide();
+            $('#upcomingProbationContent').show();
             break;
         case 'pendingProbation':
-            $('.leave-balance-modal-container #pendingProbationLoader').hide();
-            $('.leave-balance-modal-container #pendingProbationLoading').hide();
-            $('.leave-balance-modal-container #pendingProbationContent').show();
+            $('#pendingProbationLoader').hide();
+            $('#pendingProbationLoading').hide();
+            $('#pendingProbationContent').show();
             break;
         case 'loan':
-            $('.leave-balance-modal-container #loanLoader').hide();
-            $('.leave-balance-modal-container #loanLoading').hide();
-            $('.leave-balance-modal-container #loanContent').show();
+            $('#loanLoader').hide();
+            $('#loanLoading').hide();
+            $('#loanContent').show();
+            break;
+        case 'escalation':
+            $('#escalationLoader').hide();
+            $('#escalationLoading').hide();
+            $('#escalationContent').show();
             break;
     }
 }
@@ -46,33 +61,49 @@ function hideLoadingIndicators(tabId) {
 // Check if all data is loaded and set active tab
 function checkAllDataLoaded() {
     // Wait until all APIs finish
-    if (!(compOffLoaded && upcomingProbationLoaded && pendingProbationLoaded && loanLoaded)) {
+    if (!(compOffLoaded && upcomingProbationLoaded && pendingProbationLoaded && loanLoaded && escalationLoaded)) {
         return;
     }
 
-    const container = $('.leave-balance-modal-container');
+    // Only decide the active tab / show the modal once — see the comment on
+    // modalDecisionMade's declaration above.
+    if (modalDecisionMade) {
+        return;
+    }
+    modalDecisionMade = true;
+
+    // Selectors below are plain ID/class lookups rather than scoped to
+    // .leave-balance-modal-container — once shown, Bootstrap relocates
+    // #leaveBalanceModal to be a direct child of <body>, so anything still
+    // scoped to that container silently matches zero elements from that
+    // point on (all these IDs are unique page-wide anyway).
 
     // ----------------------------
     // Hide tabs without data
     // ----------------------------
     if (!hasCompOffData) {
-        container.find('#compOffTab').closest('li').hide();
-        container.find('#compOff').removeClass('active show');
+        $('#compOffTab').closest('li').hide();
+        $('#compOff').removeClass('active show');
     }
 
     if (!hasUpcomingProbationData) {
-        container.find('#upCommingProbationTab').closest('li').hide();
-        container.find('#upCommingProbation').removeClass('active show');
+        $('#upCommingProbationTab').closest('li').hide();
+        $('#upCommingProbation').removeClass('active show');
     }
 
     if (!hasPendingProbationData) {
-        container.find('#pendingProbationTab').closest('li').hide();
-        container.find('#pendingProbation').removeClass('active show');
+        $('#pendingProbationTab').closest('li').hide();
+        $('#pendingProbation').removeClass('active show');
     }
 
     if (!hasLoanData) {
-        container.find('#loanTab').closest('li').hide();
-        container.find('#loan').removeClass('active show');
+        $('#loanTab').closest('li').hide();
+        $('#loan').removeClass('active show');
+    }
+
+    if (!hasEscalationData) {
+        $('#escalationTab').closest('li').hide();
+        $('#escalation').removeClass('active show');
     }
 
     // ----------------------------
@@ -97,25 +128,29 @@ function checkAllDataLoaded() {
         activeTabId = '#loanTab';
         activePaneId = '#loan';
     }
+    else if (hasEscalationData) {
+        activeTabId = '#escalationTab';
+        activePaneId = '#escalation';
+    }
 
     // ----------------------------
     // No data in all tabs → do NOT open modal
     // ----------------------------
     if (!activeTabId) {
-        container.find('#noRecordsMessage').show();
+        $('#noRecordsMessage').show();
         return;
     }
 
     // ----------------------------
     // Activate selected tab
     // ----------------------------
-    container.find('#reportTabs button').removeClass('active');
-    container.find('.tab-pane').removeClass('active show');
+    $('#reportTabs button').removeClass('active');
+    $('.tab-pane').removeClass('active show');
 
-    container.find(activeTabId).addClass('active');
-    container.find(activePaneId).addClass('active show');
+    $(activeTabId).addClass('active');
+    $(activePaneId).addClass('active show');
 
-    container.find('#noRecordsMessage').hide();
+    $('#noRecordsMessage').hide();
 
     // ----------------------------
     // Show modal
@@ -130,7 +165,7 @@ function checkAllDataLoaded() {
 // Fetch Comp-Off Leave Data
 async function fetchCompOffLeave() {
     try {
-        $('.leave-balance-modal-container #compOffLoader').show();
+        $('#compOffLoader').show();
 
         const response = await $.ajax({
             url: BaseUrlLayout + '/NotificationRemainderAPI/GetRemainingCompOffLeave/' + localStorage.getItem('EmployeeId'),
@@ -140,11 +175,11 @@ async function fetchCompOffLeave() {
         if (response.data && response.data.length > 0) {
             hasCompOffData = true;
             renderLeaveRecords(response.data, 'compOff');
-            $(".leave-balance-modal-container #compOffTotal").text(getTotalBalance(response.data));
+            $("#compOffTotal").text(getTotalBalance(response.data));
         } else {
             hasCompOffData = false;
-            $('.leave-balance-modal-container #compOffRecordsContainer').empty();
-            $('.leave-balance-modal-container #compOffRecordsContainer').append('<div class="text-center py-3">No comp-off records found</div>');
+            $('#compOffRecordsContainer').empty();
+            $('#compOffRecordsContainer').append('<div class="text-center py-3">No comp-off records found</div>');
         }
 
         compOffLoaded = true;
@@ -155,8 +190,8 @@ async function fetchCompOffLeave() {
         hasCompOffData = false;
         compOffLoaded = true;
         hideLoadingIndicators('compOff');
-        $('.leave-balance-modal-container #compOffRecordsContainer').empty();
-        $('.leave-balance-modal-container #compOffRecordsContainer').append('<div class="text-center py-3 text-danger">Error loading comp-off records</div>');
+        $('#compOffRecordsContainer').empty();
+        $('#compOffRecordsContainer').append('<div class="text-center py-3 text-danger">Error loading comp-off records</div>');
         checkAllDataLoaded();
     }
 }
@@ -164,9 +199,9 @@ async function fetchCompOffLeave() {
 // Fetch Pending Probation Data
 async function fetchPendingProbation() {
     try {
-        $('.leave-balance-modal-container #pendingProbationLoader').show();
+        $('#pendingProbationLoader').show();
 
-        $.ajax({
+        return $.ajax({
             type: "POST",
             url: BaseUrlLayout + '/ApprovalManagementAPI/GetPendingApprovalRequests',
             contentType: 'application/json',
@@ -180,12 +215,12 @@ async function fetchPendingProbation() {
             success: function (data) {
                 if (data.isSuccess && data.data && data.data.length > 0) {
                     hasPendingProbationData = true;
-                    $(".leave-balance-modal-container #pendingProbationTotal").text(data.data.length);
+                    $("#pendingProbationTotal").text(data.data.length);
                     setupPendingProbationGrid(data.data);
                 } else {
                     hasPendingProbationData = false;
-                    $(".leave-balance-modal-container #pendingProbationRecordsContainer").empty();
-                    $(".leave-balance-modal-container #pendingProbationRecordsContainer").append('<div class="text-center py-3">No pending probation records found</div>');
+                    $("#pendingProbationRecordsContainer").empty();
+                    $("#pendingProbationRecordsContainer").append('<div class="text-center py-3">No pending probation records found</div>');
                 }
 
                 pendingProbationLoaded = true;
@@ -197,8 +232,8 @@ async function fetchPendingProbation() {
                 hasPendingProbationData = false;
                 pendingProbationLoaded = true;
                 hideLoadingIndicators('pendingProbation');
-                $(".leave-balance-modal-container #pendingProbationRecordsContainer").empty();
-                $(".leave-balance-modal-container #pendingProbationRecordsContainer").append('<div class="text-center py-3 text-danger">Error loading pending probation records</div>');
+                $("#pendingProbationRecordsContainer").empty();
+                $("#pendingProbationRecordsContainer").append('<div class="text-center py-3 text-danger">Error loading pending probation records</div>');
                 checkAllDataLoaded();
             }
         });
@@ -207,8 +242,8 @@ async function fetchPendingProbation() {
         hasPendingProbationData = false;
         pendingProbationLoaded = true;
         hideLoadingIndicators('pendingProbation');
-        $(".leave-balance-modal-container #pendingProbationRecordsContainer").empty();
-        $(".leave-balance-modal-container #pendingProbationRecordsContainer").append('<div class="text-center py-3 text-danger">Error loading pending probation records</div>');
+        $("#pendingProbationRecordsContainer").empty();
+        $("#pendingProbationRecordsContainer").append('<div class="text-center py-3 text-danger">Error loading pending probation records</div>');
         checkAllDataLoaded();
     }
 }
@@ -216,9 +251,9 @@ async function fetchPendingProbation() {
 // Fetch Upcoming Probation Data
 async function fetchUpcomingProbation() {
     try {
-        $('.leave-balance-modal-container #upcomingProbationLoader').show();
+        $('#upcomingProbationLoader').show();
 
-        $.ajax({
+        return $.ajax({
             type: "POST",
             url: BaseUrlLayout + '/ApprovalManagementAPI/GetUpcomingProbationDetails',
             contentType: 'application/json',
@@ -231,12 +266,12 @@ async function fetchUpcomingProbation() {
             success: function (data) {
                 if (data.isSuccess && data.data && data.data.length > 0) {
                     hasUpcomingProbationData = true;
-                    $(".leave-balance-modal-container #upcomingProbationTotal").text(data.data[0].TotalCount || data.data.length);
+                    $("#upcomingProbationTotal").text(data.data[0].TotalCount || data.data.length);
                     setupUpcomingProbationGrid(data.data);
                 } else {
                     hasUpcomingProbationData = false;
-                    $(".leave-balance-modal-container #upCommingProbationRecordsContainer").empty();
-                    $(".leave-balance-modal-container #upCommingProbationRecordsContainer").append('<div class="text-center py-3">No upcoming probation records found</div>');
+                    $("#upCommingProbationRecordsContainer").empty();
+                    $("#upCommingProbationRecordsContainer").append('<div class="text-center py-3">No upcoming probation records found</div>');
                 }
 
                 upcomingProbationLoaded = true;
@@ -248,8 +283,8 @@ async function fetchUpcomingProbation() {
                 hasUpcomingProbationData = false;
                 upcomingProbationLoaded = true;
                 hideLoadingIndicators('upcomingProbation');
-                $(".leave-balance-modal-container #upCommingProbationRecordsContainer").empty();
-                $(".leave-balance-modal-container #upCommingProbationRecordsContainer").append('<div class="text-center py-3 text-danger">Error loading upcoming probation records</div>');
+                $("#upCommingProbationRecordsContainer").empty();
+                $("#upCommingProbationRecordsContainer").append('<div class="text-center py-3 text-danger">Error loading upcoming probation records</div>');
                 checkAllDataLoaded();
             }
         });
@@ -258,8 +293,8 @@ async function fetchUpcomingProbation() {
         hasUpcomingProbationData = false;
         upcomingProbationLoaded = true;
         hideLoadingIndicators('upcomingProbation');
-        $(".leave-balance-modal-container #upCommingProbationRecordsContainer").empty();
-        $(".leave-balance-modal-container #upCommingProbationRecordsContainer").append('<div class="text-center py-3 text-danger">Error loading upcoming probation records</div>');
+        $("#upCommingProbationRecordsContainer").empty();
+        $("#upCommingProbationRecordsContainer").append('<div class="text-center py-3 text-danger">Error loading upcoming probation records</div>');
         checkAllDataLoaded();
     }
 }
@@ -268,7 +303,7 @@ async function fetchUpcomingProbation() {
 // Fetch Loan Data
 async function fetchLoanData() {
     try {
-        $('.leave-balance-modal-container #loanLoader').show();
+        $('#loanLoader').show();
         const requestUrl = BaseUrlLayout + '/LoanApplicationAPI/GetPendingLoanApprovalRequests';
         const requestData = {
             ApproverEmployeeId: parseInt(localStorage.getItem("EmployeeId")),
@@ -276,7 +311,7 @@ async function fetchLoanData() {
             StatusId: 7
         };
 
-        $.ajax({
+        return $.ajax({
             type: "GET",
             url: requestUrl,
             data: requestData,
@@ -292,7 +327,7 @@ async function fetchLoanData() {
 
                     if (loanData.length > 0) {
                         hasLoanData = true;
-                        $(".leave-balance-modal-container #loanTotal").text(loanData.length);
+                        $("#loanTotal").text(loanData.length);
 
                         loanLoaded = true;
                         hideLoadingIndicators('loan');
@@ -307,8 +342,8 @@ async function fetchLoanData() {
                         hasLoanData = false;
                         loanLoaded = true;
                         hideLoadingIndicators('loan');
-                        $(".leave-balance-modal-container #loanRecordsContainer").empty();
-                        $(".leave-balance-modal-container #loanRecordsContainer").append(
+                        $("#loanRecordsContainer").empty();
+                        $("#loanRecordsContainer").append(
                             '<div class="text-center py-3">No loan records found</div>'
                         );
                         checkAllDataLoaded();
@@ -317,8 +352,8 @@ async function fetchLoanData() {
                     hasLoanData = false;
                     loanLoaded = true;
                     hideLoadingIndicators('loan');
-                    $(".leave-balance-modal-container #loanRecordsContainer").empty();
-                    $(".leave-balance-modal-container #loanRecordsContainer").append(
+                    $("#loanRecordsContainer").empty();
+                    $("#loanRecordsContainer").append(
                         '<div class="text-center py-3">No loan records found</div>'
                     );
                     checkAllDataLoaded();
@@ -329,8 +364,8 @@ async function fetchLoanData() {
                 hasLoanData = false;
                 loanLoaded = true;
                 hideLoadingIndicators('loan');
-                $(".leave-balance-modal-container #loanRecordsContainer").empty();
-                $(".leave-balance-modal-container #loanRecordsContainer").append(
+                $("#loanRecordsContainer").empty();
+                $("#loanRecordsContainer").append(
                     '<div class="text-center py-3 text-danger">Error loading loan records</div>'
                 );
                 checkAllDataLoaded();
@@ -341,8 +376,8 @@ async function fetchLoanData() {
         hasLoanData = false;
         loanLoaded = true;
         hideLoadingIndicators('loan');
-        $(".leave-balance-modal-container #loanRecordsContainer").empty();
-        $(".leave-balance-modal-container #loanRecordsContainer").append(
+        $("#loanRecordsContainer").empty();
+        $("#loanRecordsContainer").append(
             '<div class="text-center py-3 text-danger">Error loading loan records</div>'
         );
         checkAllDataLoaded();
@@ -352,7 +387,7 @@ async function fetchLoanData() {
 function setupLoanGrid(data) {
     console.log("Setting up loan grid with data:", data);
 
-    const container = $(".leave-balance-modal-container #loanRecordsContainer");
+    const container = $("#loanRecordsContainer");
 
     if (container.length === 0) {
         console.error("Loan container not found!");
@@ -481,7 +516,7 @@ function setupLoanGrid(data) {
 }
 
 function setupLoanGrid(data) {
-    $(".leave-balance-modal-container #loanRecordsContainer").dxDataGrid({
+    $("#loanRecordsContainer").dxDataGrid({
         dataSource: data || [],
         columns: [
             { dataField: 'requesterName', caption: 'Requester', alignment: 'left', minWidth: 200 },
@@ -534,7 +569,7 @@ function setupLoanGrid(data) {
 
 // Setup Pending Probation Grid
 function setupPendingProbationGrid(data) {
-    $(".leave-balance-modal-container #pendingProbationRecordsContainer").dxDataGrid({
+    $("#pendingProbationRecordsContainer").dxDataGrid({
         dataSource: data || [],
         columns: [
             { dataField: 'RequesterName', caption: 'Requester', alignment: 'left', minWidth: 200 },
@@ -586,7 +621,7 @@ function setupPendingProbationGrid(data) {
 }
 
 function setupUpcomingProbationGrid(data) {
-    $(".leave-balance-modal-container #upCommingProbationRecordsContainer").dxDataGrid({
+    $("#upCommingProbationRecordsContainer").dxDataGrid({
         dataSource: data || [],
         columns: [
             { dataField: 'EmployeeName', caption: 'Employee Name', alignment: 'left', minWidth: 250 },
@@ -633,15 +668,15 @@ function renderLeaveRecords(data, tabId) {
     if (!data) return;
 
     if (data.length > 0) {
-        $('.leave-balance-modal-container #employeeName').text(data[0].Name);
-        $('.leave-balance-modal-container #employeeCode').text(data[0].EmployeeCode);
+        $('#employeeName').text(data[0].Name);
+        $('#employeeCode').text(data[0].EmployeeCode);
     }
 
     const containerId = `${tabId}RecordsContainer`;
-    $(`.leave-balance-modal-container #${containerId}`).empty();
+    $(`#${containerId}`).empty();
 
     if (data.length === 0) {
-        $(`.leave-balance-modal-container #${containerId}`).append('<div class="text-center py-3">No comp-off records found</div>');
+        $(`#${containerId}`).append('<div class="text-center py-3">No comp-off records found</div>');
         return;
     }
 
@@ -695,7 +730,7 @@ function renderLeaveRecords(data, tabId) {
                 </div>
             </div>
         `;
-        $(`.leave-balance-modal-container #${containerId}`).append(recordHtml);
+        $(`#${containerId}`).append(recordHtml);
     });
 }
 
@@ -721,5 +756,16 @@ $(document).ready(async function () {
         await fetchPendingProbation();
         await fetchUpcomingProbation();
         await  fetchLoanData();
+
+        // escalation.js (and the #escalation tab) is only loaded on the Admin
+        // layout — on pages that don't include it, mark it loaded-with-no-data
+        // immediately so checkAllDataLoaded()'s gate doesn't wait forever.
+        if (typeof fetchUpcomingEscalaionProbation === 'function') {
+            await fetchUpcomingEscalaionProbation();
+        } else {
+            escalationLoaded = true;
+            hasEscalationData = false;
+            checkAllDataLoaded();
+        }
     }
 });

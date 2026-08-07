@@ -10,7 +10,7 @@ function openCompanyModal(partialUrl, apiUrl, CompanyList, callback) {
         success: function (html) {
             $('#companyModalContainer').html(html);
             $('#companyModal').fadeIn();
-            loadCompanyDetails(CompanyList, callback);
+            loadCompanyDetails(CompanyList, callback, apiUrl);
             bindCompanyModalEvents(callback);
         },
         error: function () {
@@ -20,7 +20,7 @@ function openCompanyModal(partialUrl, apiUrl, CompanyList, callback) {
 }
 
 // Load company data and populate boxes
-function loadCompanyDetails(CompanyList, callback) {
+function loadCompanyDetails(CompanyList, callback, apiUrl) {
     $('#companyLoader').show();
 
     // Get the container element
@@ -34,6 +34,30 @@ function loadCompanyDetails(CompanyList, callback) {
         return;
     }
 
+    // CompanyList here is the JWT's embedded snapshot from login time — if a
+    // company was renamed since then, this box would otherwise keep showing
+    // the old name until the user logs out and back in. Refresh just the
+    // display name live before rendering; which companies/IDs appear is still
+    // entirely determined by the JWT snapshot, so permission scoping is
+    // untouched — only the label can change.
+    var nameRequests = apiUrl
+        ? $.map(CompanyList, function (company) {
+            return $.ajax({ url: apiUrl + '/CompanyDetailsAPI/GetByCompanyId/' + company.CompanyId, type: 'GET' })
+                .then(function (res) {
+                    if (res && res.isSuccess && res.data && res.data.companyName) {
+                        company.CompanyName = res.data.companyName;
+                    }
+                })
+                .catch(function () { /* keep the JWT-snapshot name on failure */ });
+        })
+        : [];
+
+    $.when.apply($, nameRequests).always(function () {
+        renderCompanyBoxes(CompanyList, callback, container);
+    });
+}
+
+function renderCompanyBoxes(CompanyList, callback, container) {
     $.each(CompanyList, function (index, company) {
         const box = $(`
             <div class="company-box">

@@ -159,6 +159,7 @@
                         <input type="date" id="dtAttendanceDate" max="@DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd")">
                         <span class="field-validation-error" id="spnDate" style="display:none;color:#C62828;font-size:12px;">Please select a date</span>
                         <span class="field-validation-error" id="spnDateFuture" style="display:none;color:#C62828;font-size:12px;">Today's date and future dates are not allowed</span>
+                        <span class="field-validation-error" id="spnDateBeforeJoining" style="display:none;color:#C62828;font-size:12px;"></span>
                         <span class="field-validation-error" id="spnDateDuplicate" style="display:none;color:#C62828;font-size:12px;"></span>
                     </div>
                 </div>
@@ -235,6 +236,7 @@
     var limitedReasonIds = [];
     var unlimitedReasonIds = [];
     var existingRequestId = null;
+    var employeeJoiningDate = null;
 
     function loadReasonConfiguration() {
         $.ajax({
@@ -474,6 +476,7 @@
                 if (res.isSuccess && res.data) {
                     $('#txtEmployeeCode').text(res.data.employeeCode || '-');
                     $('#txtWorkLocation').text(res.data.branchName || '-');
+                    employeeJoiningDate = res.data.dateOfJoining ? new Date(res.data.dateOfJoining) : null;
                 }
             }
         });
@@ -593,6 +596,23 @@
         return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
     }
 
+    // An employee can't have attendance before they even joined — dateVal
+    // ("YYYY-MM-DD") is compared against the joining date fetched in
+    // loadEmployeeProfile(). Returns false (and lets the caller proceed) if
+    // the joining date hasn't loaded yet rather than blocking everything.
+    function isBeforeJoiningDate(dateStr) {
+        if (!employeeJoiningDate || isNaN(employeeJoiningDate.getTime())) return false;
+        var d = new Date(dateStr);
+        d.setHours(0, 0, 0, 0);
+        var joining = new Date(employeeJoiningDate);
+        joining.setHours(0, 0, 0, 0);
+        return d < joining;
+    }
+
+    function joiningDateLabel() {
+        return employeeJoiningDate ? employeeJoiningDate.toLocaleDateString('en-GB') : '';
+    }
+
     $('#dtAttendanceDate').on('change', function () {
         var v = $(this).val();
         if (!v) return;
@@ -607,7 +627,14 @@
             return;
         }
 
-        $('#spnDate, #spnDateFuture').hide();
+        if (isBeforeJoiningDate(v)) {
+            $(this).val('');
+            $('#spnDateBeforeJoining').text('Attendance requests are only allowed from your joining date, ' + joiningDateLabel() + '.').show();
+            showToast('Attendance requests are only allowed from your joining date, ' + joiningDateLabel() + '.', 'warn');
+            return;
+        }
+
+        $('#spnDate, #spnDateFuture, #spnDateBeforeJoining').hide();
         handleDateChange(v);
     });
 
@@ -653,6 +680,12 @@
 
         if (!dateVal) { $('#spnDate').show(); hasError = true; } else { $('#spnDate').hide(); }
         if (dateVal && dateVal > maxAllowedDateStr()) { $('#spnDateFuture').show(); hasError = true; } else { $('#spnDateFuture').hide(); }
+        if (dateVal && isBeforeJoiningDate(dateVal)) {
+            $('#spnDateBeforeJoining').text('Attendance requests are only allowed from your joining date, ' + joiningDateLabel() + '.').show();
+            hasError = true;
+        } else {
+            $('#spnDateBeforeJoining').hide();
+        }
         if (!reasonId) { $('#spnReason').show(); hasError = true; } else { $('#spnReason').hide(); }
         if (isUpdateMode && !existingRequestId) {
             showToast('No existing attendance request found for this date to update. Switch to "Create Attendance" instead.', 'error');

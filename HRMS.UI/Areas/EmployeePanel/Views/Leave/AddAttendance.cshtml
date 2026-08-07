@@ -1040,6 +1040,24 @@
         showToast("Please provide valid date range.", 'warn');
         return;
     }
+
+    // An employee can't have attendance to regularize before they joined.
+    const empDetailsForJoining = await $.ajax({
+        type: "GET",
+        url: '@baseDomainUrl/api/EmployeeMasterAPI/GetEmployeeById/' + empId,
+        headers: { 'Authorization': 'Bearer ' + Token }
+    }).catch(function () { return null; });
+
+    if (empDetailsForJoining && empDetailsForJoining.isSuccess && empDetailsForJoining.data && empDetailsForJoining.data.dateOfJoining) {
+        const joiningDate = new Date(empDetailsForJoining.data.dateOfJoining);
+        const selectedStartDate = new Date(dateRange.startDate);
+        if (selectedStartDate < joiningDate) {
+            const formattedJoiningDate = joiningDate.toLocaleDateString('en-GB');
+            showToast(`Attendance Regularisation is only allowed from ${formattedJoiningDate}.`, "warn");
+            return;
+        }
+    }
+
         showLoder(); // Show loader before AJAX call
         const formData = new FormData();
         formData.append("EmpId", empId);

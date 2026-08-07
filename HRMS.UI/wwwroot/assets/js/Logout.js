@@ -95,6 +95,23 @@ $(document).ready(async function () {
         $(".user-name").text(FullName);
         $(".designation").text(Designation);
 
+        // `company` above is the JWT/localStorage snapshot from login time — if
+        // the company was renamed since then, refresh the badge (and the cached
+        // copy, so the next page load is already correct) with the live name.
+        if (company && company.CompanyId) {
+            $.ajax({
+                url: BaseUrlLayout + '/CompanyDetailsAPI/GetByCompanyId/' + company.CompanyId,
+                type: 'GET',
+                success: function (res) {
+                    if (res && res.isSuccess && res.data && res.data.companyName && res.data.companyName !== company.CompanyName) {
+                        company.CompanyName = res.data.companyName;
+                        $('.companyNameLayout').text(company.CompanyName);
+                        localStorage.setItem('selectedCompany', JSON.stringify(company));
+                    }
+                }
+            });
+        }
+
         document.querySelectorAll('.custom-tooltip').forEach((el) => {
             el.setAttribute('data-tooltip', el.textContent);
         });
