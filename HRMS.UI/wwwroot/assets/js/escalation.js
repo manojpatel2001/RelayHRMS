@@ -79,7 +79,7 @@ function renderEscalationGrid(rows) {
             title: 'Pending Probation',
             icon: 'bx-time-five',
             perPage: 10,
-            height: '50vh',
+            height: '360px',
             data: rows,
             features: { export: false },
             columns: [

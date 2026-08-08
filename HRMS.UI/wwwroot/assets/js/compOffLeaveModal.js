@@ -518,6 +518,7 @@ function setupLoanGrid(data) {
 function setupLoanGrid(data) {
     $("#loanRecordsContainer").dxDataGrid({
         dataSource: data || [],
+        height: 360,
         columns: [
             { dataField: 'requesterName', caption: 'Requester', alignment: 'left', minWidth: 200 },
             { dataField: 'levelNo', caption: 'Level', alignment: 'left', minWidth: 120 },
@@ -571,6 +572,7 @@ function setupLoanGrid(data) {
 function setupPendingProbationGrid(data) {
     $("#pendingProbationRecordsContainer").dxDataGrid({
         dataSource: data || [],
+        height: 360,
         columns: [
             { dataField: 'RequesterName', caption: 'Requester', alignment: 'left', minWidth: 200 },
             { dataField: 'CurrentLevelSequence', caption: 'Level', alignment: 'left', minWidth: 120 },
@@ -623,6 +625,7 @@ function setupPendingProbationGrid(data) {
 function setupUpcomingProbationGrid(data) {
     $("#upCommingProbationRecordsContainer").dxDataGrid({
         dataSource: data || [],
+        height: 360,
         columns: [
             { dataField: 'EmployeeName', caption: 'Employee Name', alignment: 'left', minWidth: 250 },
             { dataField: 'DaysRemaining', caption: 'Days Remaining', alignment: 'center', minWidth: 120 },
