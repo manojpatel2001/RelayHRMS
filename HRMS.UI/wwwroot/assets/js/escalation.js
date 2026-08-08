@@ -18,6 +18,13 @@ $("#btnExportEscalation").click(function () {
 })
 
 async function fetchUpcomingEscalaionProbation() {
+    if (typeof isNotifTabAllowed === 'function' && !isNotifTabAllowed('view-notif-escalation')) {
+        hasEscalationData = false;
+        escalationLoaded = true;
+        hideLoadingIndicators('escalation');
+        checkAllDataLoaded();
+        return;
+    }
     try {
         $('#escalationLoader').show();
 

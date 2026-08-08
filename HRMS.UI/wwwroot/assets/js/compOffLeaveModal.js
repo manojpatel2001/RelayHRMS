@@ -20,6 +20,38 @@ let hasEscalationData = false;
 // as multiple stacked popups after login.
 let modalDecisionMade = false;
 
+// Which notification tabs the logged-in user's role is allowed to see, driven
+// by the same Role Permission admin screen (AdminPanel > Manage Role & Permission)
+// used everywhere else in the app — NOT hardcoded per tab/employee. Each tab is
+// gated by one of these slugs (created under group "Manage Notification Modal
+// Role"): view-notif-compoff, view-notif-upcomingprobation,
+// view-notif-pendingprobation, view-notif-loan, view-notif-escalation.
+// Admins toggle these per role the same way they toggle any other permission.
+let notifPermissions = [];
+
+async function loadNotificationTabPermissions() {
+    try {
+        var token = localStorage.getItem('authToken');
+        if (!token) { notifPermissions = []; return; }
+
+        var userId = parseInt(jwt_decode(token).Id);
+        var res = await $.ajax({
+            url: BaseUrlLayout + '/RolePermissionAPI/GetAllUserAndRolePermissionList/' + userId,
+            type: 'GET',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        notifPermissions = (res && res.isSuccess && res.data) ? res.data : [];
+    } catch (e) {
+        console.error('Error loading notification tab permissions:', e);
+        notifPermissions = [];
+    }
+}
+
+function isNotifTabAllowed(slug) {
+    return notifPermissions.includes(slug);
+}
+
 // Show loading indicators for all tabs initially
 function showLoadingIndicators() {
     $('#compOffLoader, #upcomingProbationLoader, #pendingProbationLoader').show();
@@ -164,6 +196,13 @@ function checkAllDataLoaded() {
 
 // Fetch Comp-Off Leave Data
 async function fetchCompOffLeave() {
+    if (!isNotifTabAllowed('view-notif-compoff')) {
+        hasCompOffData = false;
+        compOffLoaded = true;
+        hideLoadingIndicators('compOff');
+        checkAllDataLoaded();
+        return;
+    }
     try {
         $('#compOffLoader').show();
 
@@ -198,6 +237,13 @@ async function fetchCompOffLeave() {
 
 // Fetch Pending Probation Data
 async function fetchPendingProbation() {
+    if (!isNotifTabAllowed('view-notif-pendingprobation')) {
+        hasPendingProbationData = false;
+        pendingProbationLoaded = true;
+        hideLoadingIndicators('pendingProbation');
+        checkAllDataLoaded();
+        return;
+    }
     try {
         $('#pendingProbationLoader').show();
 
@@ -250,6 +296,13 @@ async function fetchPendingProbation() {
 
 // Fetch Upcoming Probation Data
 async function fetchUpcomingProbation() {
+    if (!isNotifTabAllowed('view-notif-upcomingprobation')) {
+        hasUpcomingProbationData = false;
+        upcomingProbationLoaded = true;
+        hideLoadingIndicators('upcomingProbation');
+        checkAllDataLoaded();
+        return;
+    }
     try {
         $('#upcomingProbationLoader').show();
 
@@ -302,6 +355,13 @@ async function fetchUpcomingProbation() {
 
 // Fetch Loan Data
 async function fetchLoanData() {
+    if (!isNotifTabAllowed('view-notif-loan')) {
+        hasLoanData = false;
+        loanLoaded = true;
+        hideLoadingIndicators('loan');
+        checkAllDataLoaded();
+        return;
+    }
     try {
         $('#loanLoader').show();
         const requestUrl = BaseUrlLayout + '/LoanApplicationAPI/GetPendingLoanApprovalRequests';
@@ -755,6 +815,7 @@ $(document).ready(async function () {
 
     var noti = localStorage.getItem('NotificationSummary');
     if (noti == 'true') {
+        await loadNotificationTabPermissions();
         await fetchCompOffLeave();
         await fetchPendingProbation();
         await fetchUpcomingProbation();
