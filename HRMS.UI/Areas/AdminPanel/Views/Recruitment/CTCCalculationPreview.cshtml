@@ -1,0 +1,407 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "CTC Calculation Preview";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<style>
+    .ctc-preview-report .sec-card {
+        border: 1px solid #D0D8DC;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        margin-bottom: 16px;
+    }
+
+    .ctc-preview-report .sec-card-hdr {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        background: #DDE6ED;
+        border-bottom: 1px solid #D0D8DC;
+        font-weight: 700;
+        font-size: 12.5px;
+        color: #3B5068;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+    }
+
+    .ctc-preview-report table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "Inter", system-ui, sans-serif;
+        font-size: 13px;
+    }
+
+    .ctc-preview-report thead th {
+        background: #DDE6ED;
+        padding: 8px 12px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #3B5068;
+        text-align: left;
+        border-bottom: 2px solid #B8C4CC;
+    }
+
+    .ctc-preview-report tbody td {
+        padding: 9px 12px;
+        border-bottom: 1px solid #D8E2E8;
+        color: #1A1A1A;
+    }
+
+    .ctc-preview-report tbody tr:nth-child(even) td {
+        background: #F5F8FA;
+    }
+
+    .ctc-preview-report .amount {
+        font-weight: 600;
+        color: #1A1A1A;
+        text-align: right;
+    }
+
+    .ctc-preview-report .row-total td {
+        background: #DDE6ED !important;
+        font-weight: 700;
+        border-bottom: none;
+    }
+
+    .ctc-preview-report .row-net td {
+        background: #E8F5E9 !important;
+        color: #2E7D32;
+        font-weight: 700;
+        border-bottom: none;
+    }
+
+    .ctc-preview-report .row-ctc td {
+        background: #E3F2FD !important;
+        color: #1565C0;
+        font-weight: 700;
+        border-bottom: none;
+    }
+
+    .ctc-preview-summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .ctc-preview-summary-card {
+        border: 1px solid #D8E2E8;
+        border-radius: 8px;
+        background: #F9FBFC;
+        padding: 14px 16px;
+        text-align: center;
+    }
+
+    .ctc-preview-summary-card h4 {
+        margin: 0 0 6px 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: #778899;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+    }
+
+    .ctc-preview-summary-card .amount {
+        font-size: 1.4em;
+        font-weight: 700;
+        color: #2F6F8E;
+    }
+
+    .badge-calc-type {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 700;
+        background: #E3F2FD;
+        color: #1565C0;
+    }
+
+    /* ── Compact side-by-side Earnings / Deductions ── */
+    .ctc-compact-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 10px;
+    }
+    @@media (max-width: 767px) {
+        .ctc-compact-grid { grid-template-columns: 1fr; }
+    }
+    .ctc-compact-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "Inter", system-ui, sans-serif;
+        font-size: 13.5px;
+    }
+    .ctc-compact-table thead th {
+        background: #F5F8FA;
+        padding: 8px 12px;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: #8895A7;
+        text-align: left;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        border-bottom: 1px solid #E4EAEF;
+    }
+    .ctc-compact-table tbody td {
+        padding: 8px 12px;
+        border-bottom: 1px solid #EEF2F5;
+        color: #1A1A1A;
+    }
+    .ctc-compact-table tbody tr:nth-child(even) td {
+        background: #FAFBFC;
+    }
+    .ctc-compact-table .amount { text-align: right; }
+    .ctc-compact-table .row-total td {
+        font-weight: 700;
+        border-bottom: none;
+        border-top: 1px solid #D8E2E8;
+    }
+    .ctc-compact-summary {
+        text-align: right;
+        padding: 4px 4px 14px;
+        font-size: 15px;
+    }
+    .ctc-compact-summary .net { color: #2E7D32; font-weight: 700; }
+    .ctc-compact-summary .ctc { color: #1565C0; font-weight: 700; margin-left: 22px; }
+</style>
+
+<div class="wms-form-page">
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="bx bx-calculator"></i> CTC Calculation Preview</h6>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3" style="font-size:13px;">
+                Pick any Salary Structure Template and a Gross Salary to see exactly what it would produce —
+                before assigning it to an employee. Uses the same calculation engine as Employee Master's live allowance preview.
+            </p>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="fg-req">Salary Structure Template</label>
+                    <select id="ddlPreviewTemplate" class="form-select"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="fg-req">Gross Salary</label>
+                    <input type="number" id="txtPreviewGrossSalary" class="form-control" placeholder="e.g. 50000" min="0" step="1">
+                </div>
+                <div class="col-md-3">
+                    <label>Basic Salary <small class="text-muted">(optional override)</small></label>
+                    <input type="number" id="txtPreviewBasicSalary" class="form-control" placeholder="Leave blank to use template formula" min="0" step="1">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="chkPreviewIsPFApplicable" checked>
+                        <label class="form-check-label" for="chkPreviewIsPFApplicable">PF Applicable</label>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnCalculatePreview">
+                    <i class="bx bx-calculator"></i> Calculate Preview
+                </button>
+            </div>
+            <div class="field-validation-error mt-2" id="spnPreviewError" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div id="previewResults" class="ctc-preview-report" style="display:none;">
+
+        <div class="ctc-compact-grid">
+            <div class="sec-card mb-0">
+                <div class="sec-card-hdr"><i class="bx bx-wallet"></i> Earnings</div>
+                <table class="ctc-compact-table">
+                    <thead><tr><th>Component</th><th class="amount">Amount</th></tr></thead>
+                    <tbody>
+                        <tr><td>Basic Salary</td><td id="basicSalary" class="amount"></td></tr>
+                        <tr><td>House Rent Allowance (HRA)</td><td id="hra" class="amount"></td></tr>
+                        <tr><td>Conveyance Allowances</td><td id="conveyanceAllowance" class="amount"></td></tr>
+                        <tr><td>Medical Allowances</td><td id="medicalAllowance" class="amount"></td></tr>
+                        <tr><td>Child Education Allowance (CEA)</td><td id="childEducationAllowance" class="amount"></td></tr>
+                        <tr><td>Deputation Allowance</td><td id="deputationAllowance" class="amount"></td></tr>
+                        <tr class="row-total"><td>Total Earnings</td><td id="totalGross" class="amount"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="sec-card mb-0">
+                <div class="sec-card-hdr"><i class="bx bx-trending-down"></i> Deductions</div>
+                <table class="ctc-compact-table">
+                    <thead><tr><th>Component</th><th class="amount">Amount</th></tr></thead>
+                    <tbody id="deductionsTableBody">
+                        <!-- rows injected by JS; zero-value deductions are omitted for a cleaner view -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="ctc-compact-summary">
+            <span class="net">Net Salary: <span id="summaryNet"></span></span>
+            <span class="ctc">CTC: <span id="summaryCtc"></span></span>
+        </div>
+
+        <div class="sec-card">
+            <div class="sec-card-hdr" style="cursor:pointer;" id="toggleComponentsBtn">
+                <i class="bx bx-list-ul"></i> Resolved Template Components
+                <i class="bx bx-chevron-down ms-auto" id="toggleComponentsIcon"></i>
+            </div>
+            <table id="componentsTable" style="display:none;">
+                <thead>
+                    <tr><th>Component</th><th>Category</th><th>Calculation</th><th class="amount">Computed Amount (₹)</th></tr>
+                </thead>
+                <tbody id="componentsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="previewNoResults" style="display:none;padding:30px;text-align:center;color:#778899;">
+        <i class="bx bx-info-circle" style="font-size:2rem;"></i>
+        <p class="mb-0 mt-2" id="previewNoResultsText">No preview yet — pick a template and Gross Salary above, then Calculate.</p>
+    </div>
+
+</div>
+
+<script>
+    var companyDetails = JSON.parse(localStorage.getItem('selectedCompany'));
+    var CompanyId = companyDetails ? companyDetails.CompanyId : null;
+    var Token = localStorage.getItem('authToken');
+    var previewTemplates = [];
+
+    function loadPreviewTemplates() {
+        $.ajax({
+            url: '@baseUrl/SalaryStructureAPI/GetAllTemplates?companyId=' + CompanyId,
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + Token },
+            _silentLoader: true,
+            success: function (response) {
+                if (response.isSuccess) {
+                    previewTemplates = response.data || [];
+                    var el = document.getElementById('ddlPreviewTemplate');
+                    el.innerHTML = '';
+                    var ph = document.createElement('option');
+                    ph.value = '';
+                    ph.textContent = 'Select a template';
+                    el.appendChild(ph);
+                    previewTemplates.forEach(function (t) {
+                        var o = document.createElement('option');
+                        o.value = t.salaryStructureTemplateId;
+                        var scopeLabel = t.gradeName ? (t.gradeName + (t.designationName ? ' / ' + t.designationName : '')) : 'Company-wide';
+                        o.textContent = t.templateName + ' — ' + (t.companyName || 'Company ' + t.companyId) + ' (' + scopeLabel + ')' + (t.isDefault ? ' [Default]' : '');
+                        el.appendChild(o);
+                    });
+                }
+            }
+        });
+    }
+
+    function formatCurrency(value) {
+        var v = value || 0;
+        return '₹' + v.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    }
+
+    function bindPreviewResults(d) {
+        document.getElementById('previewNoResults').style.display = 'none';
+        document.getElementById('previewResults').style.display = '';
+
+        // Resolved components table (raw, exactly as the template defines them) — collapsed by default
+        var tbody = document.getElementById('componentsTableBody');
+        tbody.innerHTML = '';
+        (d.components || []).forEach(function (c) {
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td>' + (c.componentName || '') + '</td>' +
+                '<td>' + (c.componentCategory || '') + '</td>' +
+                '<td><span class="badge-calc-type">' + (c.calculationType || '') + '</span></td>' +
+                '<td class="amount">' + formatCurrency(c.amount) + '</td>';
+            tbody.appendChild(tr);
+        });
+
+        // Earnings — always shown, even when 0, since these are the template's own fixed columns
+        $('#basicSalary').text(formatCurrency(d.basicSalary));
+        $('#hra').text(formatCurrency(d.hra));
+        $('#conveyanceAllowance').text(formatCurrency(d.conveyanceAllowance));
+        $('#medicalAllowance').text(formatCurrency(d.medicalAllowance));
+        $('#childEducationAllowance').text(formatCurrency(d.childEducationAllowance));
+        $('#deputationAllowance').text(formatCurrency(d.deputationAllowance));
+        $('#totalGross').text(formatCurrency(d.totalGrossSalary));
+
+        // Deductions — only list the ones that actually apply, to keep the view clean
+        var deductionRows = [
+            { label: 'PF', value: d.employeePF },
+            { label: 'ESIC', value: d.employeeESI },
+            { label: 'Professional Tax', value: d.professionalTax },
+            { label: 'Group Medical', value: d.groupMedical },
+            { label: 'Term Insurance', value: d.termInsurance }
+        ];
+        var dTbody = document.getElementById('deductionsTableBody');
+        dTbody.innerHTML = '';
+        deductionRows.filter(function (r) { return r.value > 0; }).forEach(function (r) {
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + r.label + '</td><td class="amount">' + formatCurrency(r.value) + '</td>';
+            dTbody.appendChild(tr);
+        });
+        var totalRow = document.createElement('tr');
+        totalRow.className = 'row-total';
+        totalRow.innerHTML = '<td>Total Deductions</td><td class="amount">' + formatCurrency(d.totalDeductions) + '</td>';
+        dTbody.appendChild(totalRow);
+
+        $('#summaryNet').text(formatCurrency(d.netSalary));
+        $('#summaryCtc').text(formatCurrency(d.ctc));
+    }
+
+    $('#btnCalculatePreview').on('click', function () {
+        var templateId = $('#ddlPreviewTemplate').val();
+        var grossSalary = $('#txtPreviewGrossSalary').val();
+        var basicSalary = $('#txtPreviewBasicSalary').val();
+        var isPFApplicable = $('#chkPreviewIsPFApplicable').is(':checked');
+
+        $('#spnPreviewError').hide();
+
+        if (!templateId) { $('#spnPreviewError').text('Please select a template.').show(); return; }
+        if (!grossSalary || Number(grossSalary) <= 0) { $('#spnPreviewError').text('Please enter a Gross Salary.').show(); return; }
+
+        $.ajax({
+            url: '@baseUrl/SalaryStructureAPI/PreviewAllowance',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                SalaryStructureTemplateId: parseInt(templateId),
+                GrossSalary: Number(grossSalary),
+                BasicSalary: basicSalary ? Number(basicSalary) : null,
+                CompanyId: CompanyId,
+                IsPFApplicable: isPFApplicable
+            }),
+            success: function (response) {
+                if (response.isSuccess) {
+                    bindPreviewResults(response.data);
+                } else {
+                    document.getElementById('previewResults').style.display = 'none';
+                    document.getElementById('previewNoResults').style.display = '';
+                    document.getElementById('previewNoResultsText').textContent = response.responseMessage || 'Unable to compute preview.';
+                }
+            },
+            error: function () {
+                $('#spnPreviewError').text('Unable to compute preview. Please try again.').show();
+            }
+        });
+    });
+
+    $('#toggleComponentsBtn').on('click', function () {
+        var table = document.getElementById('componentsTable');
+        var icon = document.getElementById('toggleComponentsIcon');
+        var expanded = table.style.display !== 'none';
+        table.style.display = expanded ? 'none' : '';
+        icon.className = expanded ? 'bx bx-chevron-down ms-auto' : 'bx bx-chevron-up ms-auto';
+    });
+
+    $(document).ready(function () {
+        loadPreviewTemplates();
+    });
+</script>

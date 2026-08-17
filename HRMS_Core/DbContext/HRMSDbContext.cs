@@ -132,6 +132,9 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<vmGetAllCompanyDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllDirectorDetails>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllCompanyDetailsList>().HasNoKey().ToView(null);
+            modelBuilder.Entity<VMUserCompanyPermissionListItem>().HasNoKey().ToView(null);
+            modelBuilder.Entity<VMUserCompanyPermissionByCompany>().HasNoKey().ToView(null);
+            modelBuilder.Entity<VMUserCompanyPermissionAll>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetAllEmployee>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmGetNextEmployeeCode>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmPageMaster>().HasNoKey().ToView(null);

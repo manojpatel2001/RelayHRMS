@@ -50,10 +50,11 @@ CREATE OR ALTER PROCEDURE [dbo].[GetAllSalaryStructureTemplates]
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT t.*, g.GradeName, d.DesignationName
+    SELECT t.*, g.GradeName, d.DesignationName, c.CompanyName
     FROM [dbo].[SalaryStructureTemplate] t
     LEFT JOIN [dbo].[Grade] g ON g.GradeId = t.GradeId
     LEFT JOIN [dbo].[Designation] d ON d.DesignationId = t.DesignationId
+    LEFT JOIN [dbo].[CompanyDetails] c ON c.CompanyId = t.CompanyId
     WHERE t.IsDeleted = 0 AND (@CompanyId IS NULL OR t.CompanyId = @CompanyId)
     ORDER BY t.TemplateName;
 END

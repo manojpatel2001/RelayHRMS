@@ -21,5 +21,6 @@ namespace HRMS_Core.Recruitment
         // Joined display fields
         public string? GradeName { get; set; }
         public string? DesignationName { get; set; }
+        public string? CompanyName { get; set; }
     }
 }

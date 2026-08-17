@@ -101,5 +101,27 @@ namespace HRMS_API.Controllers.Recruitment
             try { return await _unitOfWork.SalaryStructureRepository.GetComponentsByTemplateId(salaryStructureTemplateId); }
             catch { return new APIResponse { isSuccess = false, ResponseMessage = "Unable to retrieve components. Please try again later." }; }
         }
+
+        public class PreviewAllowanceRequest
+        {
+            public int SalaryStructureTemplateId { get; set; }
+            public decimal GrossSalary { get; set; }
+            public decimal? BasicSalary { get; set; }
+            public int CompanyId { get; set; }
+            public bool IsPFApplicable { get; set; }
+        }
+
+        [HttpPost("PreviewAllowance")]
+        public async Task<APIResponse> PreviewAllowance([FromBody] PreviewAllowanceRequest request)
+        {
+            try
+            {
+                if (request == null || request.SalaryStructureTemplateId == 0 || request.CompanyId == 0)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Template and Company are required." };
+
+                return await _unitOfWork.SalaryStructureRepository.PreviewAllowance(request.SalaryStructureTemplateId, request.GrossSalary, request.BasicSalary, request.CompanyId, request.IsPFApplicable);
+            }
+            catch { return new APIResponse { isSuccess = false, ResponseMessage = "Unable to compute preview. Please try again later." }; }
+        }
     }
 }

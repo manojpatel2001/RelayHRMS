@@ -1,0 +1,392 @@
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Company Access";
+    Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Company Access <span class="text-muted" style="font-size:12px;font-weight:400;">(users with access to more than one company)</span></h6>
+            <button id="btnAddCompanyAccess" type="button" class="btn btn-primary btn-sm">Add</button>
+        </div>
+        <div class="card-body">
+            <div id="gridContainerCompanyAccess"></div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .ca-tree-toggle { display:inline-flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+    .ca-tree-toggle i { font-size:16px; color:#64748B; transition:transform .15s; }
+    .ca-tree-toggle.expanded i { transform:rotate(90deg); }
+    .ca-tree { margin-top:8px; border-left:2px solid #D0D8DC; padding-left:10px; display:flex; flex-direction:column; gap:6px; }
+    .ca-tree-item { display:flex; align-items:center; gap:10px; }
+    .ca-tree-company { min-width:160px; font-weight:600; color:#1A4558; }
+    .ca-tree-actions { margin-left:auto; display:flex; gap:4px; }
+</style>
+
+<div class="modal fade" id="companyAccessModal" tabindex="-1" aria-labelledby="companyAccessModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title btn-heading-title" id="companyAccessModalLabel">
+                    <span class="formType">Add</span> Company Access
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-body-font">
+                <div class="fg fg-req">
+                    <label for="ddlCompanyAccessEmployee">Employee</label>
+                    <select id="ddlCompanyAccessEmployee">
+                        <option value="0">Select</option>
+                    </select>
+                    <span id="spnCompanyAccessEmployee" class="field-validation-error" style="display:none;">Please Select Employee</span>
+                </div>
+                <div class="fg fg-req mt-3">
+                    <label for="ddlCompanyAccessModalCompany">Companies</label>
+                    <select id="ddlCompanyAccessModalCompany" multiple size="6"></select>
+                    <small class="text-muted d-block mt-1">Select an employee first. Hold Ctrl (Cmd on Mac) to pick more than one company.</small>
+                    <span id="spnCompanyAccessCompany" class="field-validation-error" style="display:none;">Please Select at least one Company</span>
+                </div>
+                <div class="fg mt-3">
+                    <label class="d-flex align-items-center gap-2" style="margin-bottom:0;">
+                        <input type="checkbox" id="chkCompanyAccessIsAdmin" style="width:16px;height:16px;" />
+                        Admin for the selected companies
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer btn-heading-title">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnSaveCompanyAccess">
+                    <span class="btn-spinner-icon"></span>
+                    <span class="btn-label-text">Save</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const user = `${localStorage.getItem('EmployeeId')}`;
+
+        var defaultCompanyId;
+        try {
+            defaultCompanyId = JSON.parse(localStorage.getItem('selectedCompany')).CompanyId;
+        } catch (e) {
+            defaultCompanyId = null;
+        }
+
+        let UserCompanyPermissionId = 0;
+        let _isEditMode = false;
+        let _companyAccessCache = {};      // userCompanyPermissionId -> row (all assignments, system-wide)
+        let _allCompanies = [];
+        let _employees = [];               // this session's own-company employee list (Add modal's Employee source)
+
+        var grid = WMSGrid.create({
+            container: 'gridContainerCompanyAccess',
+            title: 'Users With Access To Multiple Companies',
+            icon: 'bx-buildings',
+            perPage: 10,
+            columns: [
+                { field: 'employeeCode', header: 'Employee Code', width: '130px' },
+                { field: 'employeeName', header: 'Employee Name', width: '200px' },
+                {
+                    field: 'companies', header: 'Companies', width: '480px', sortable: false,
+                    render: function (companies, row) {
+                        var empId = row.employeeId;
+                        var treeItems = companies.map(function (c) {
+                            return '<div class="ca-tree-item">' +
+                                '<span class="ca-tree-company">' + c.companyName + '</span>' +
+                                (c.isAdmin
+                                    ? '<span class="wg-pill wg-pill-green">Admin</span>'
+                                    : '<span class="wg-pill wg-pill-red">No</span>') +
+                                '<span class="ca-tree-actions">' +
+                                    '<button class="wg-btn wg-btn-primary" onclick="_editCompanyAccess(' + c.userCompanyPermissionId + ')"><i class="bx bx-edit"></i></button> ' +
+                                    '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" onclick="_deleteCompanyAccess(' + c.userCompanyPermissionId + ',\'' + (row.employeeName || '').replace(/'/g, "\\'") + '\')"><i class="bx bx-trash"></i></button>' +
+                                '</span>' +
+                            '</div>';
+                        }).join('');
+
+                        return '<div class="ca-tree-toggle" id="ca-toggle-' + empId + '" onclick="_toggleCompanyTree(' + empId + ')">' +
+                                    '<i class="bx bx-chevron-right"></i>' +
+                                    '<span class="wg-pill wg-pill-blue">' + companies.length + ' companies</span>' +
+                                '</div>' +
+                                '<div id="ca-tree-' + empId + '" class="ca-tree d-none">' + treeItems + '</div>';
+                    }
+                }
+            ]
+        });
+
+        // Rows come back flat (one per employee-company pair); group them by
+        // employee so each employee occupies a single grid row, with their
+        // companies rendered as a collapsible tree inside that row's own cell
+        // rather than as additional rows.
+        function groupByEmployee(rows) {
+            var byEmployee = {};
+            rows.forEach(function (r) {
+                if (!byEmployee[r.employeeId]) {
+                    byEmployee[r.employeeId] = {
+                        employeeId: r.employeeId,
+                        employeeCode: r.employeeCode,
+                        employeeName: r.employeeName,
+                        companies: []
+                    };
+                }
+                byEmployee[r.employeeId].companies.push({
+                    userCompanyPermissionId: r.userCompanyPermissionId,
+                    companyId: r.companyId,
+                    companyName: r.companyName,
+                    isAdmin: r.isAdmin
+                });
+            });
+            return Object.values(byEmployee).filter(function (g) { return g.companies.length > 1; });
+        }
+
+        window._toggleCompanyTree = function (employeeId) {
+            $('#ca-tree-' + employeeId).toggleClass('d-none');
+            $('#ca-toggle-' + employeeId).toggleClass('expanded');
+        };
+
+        function loadCompanyOptions() {
+            $.ajax({
+                url: '@baseUrl/CompanyDetailsAPI/GetAllCompanyDetailsList', type: 'GET',
+                success: function (data) {
+                    _allCompanies = data.isSuccess ? (data.data || []) : [];
+                },
+                error: function () { showToast('Failed to load companies.', 'error'); }
+            });
+        }
+
+        function loadEmployeeOptions() {
+            if (!defaultCompanyId) return;
+            $.ajax({
+                url: '@baseUrl/UserPermissionAPI/GetAllEmployeeListByCompanyId/' + defaultCompanyId, type: 'GET',
+                success: function (data) {
+                    _employees = data.isSuccess ? (data.data || []) : [];
+                    var dropdown = $('#ddlCompanyAccessEmployee');
+                    dropdown.empty();
+                    dropdown.append($('<option>', { value: '0', text: 'Select', selected: true, disabled: true }));
+                    _employees.forEach(function (emp) {
+                        dropdown.append($('<option>', { value: emp.employeeId, text: emp.employeeCode + ' - ' + emp.fullName }));
+                    });
+                },
+                error: function () { showToast('Failed to load employees.', 'error'); }
+            });
+        }
+
+        // Grid only shows employees who already have access to more than one
+        // company — every other assignment is fetched too (needed so the Add
+        // modal knows which companies are already granted) but filtered out
+        // of what's displayed.
+        function loadCompanyAccessGrid() {
+            grid.showLoader();
+            $.ajax({
+                url: '@baseUrl/UserCompanyPermissionAPI/GetAll',
+                type: 'GET', _silentLoader: true,
+                success: function (data) {
+                    var rows = data.isSuccess ? (data.data || []) : [];
+                    _companyAccessCache = {};
+                    rows.forEach(function (r) { _companyAccessCache[r.userCompanyPermissionId] = r; });
+                    grid.setData(groupByEmployee(rows));
+                    grid.hideLoader();
+                },
+                error: function () { grid.hideLoader(); showToast('Failed to load company access list.', 'error'); }
+            });
+        }
+
+        // Populates the Companies multi-select for whichever employee is
+        // currently picked, excluding companies that employee already has
+        // (except, in edit mode, the one company the row being edited is for).
+        function bindCompanyMultiSelect(employeeId) {
+            var assignedIds = Object.values(_companyAccessCache)
+                .filter(function (r) { return String(r.employeeId) === String(employeeId); })
+                .map(function (r) { return r.companyId; })
+                .filter(function (id) { return id !== (_companyAccessCache[UserCompanyPermissionId] || {}).companyId; });
+
+            var select = $('#ddlCompanyAccessModalCompany');
+            select.empty();
+            _allCompanies.forEach(function (c) {
+                if (assignedIds.indexOf(c.companyId) === -1) {
+                    select.append($('<option>', { value: c.companyId, text: c.companyName }));
+                }
+            });
+        }
+
+        $('#ddlCompanyAccessEmployee').on('change', function () {
+            if (_isEditMode) return;
+            var employeeId = $(this).val();
+            $('#ddlCompanyAccessModalCompany').prop('disabled', !employeeId || employeeId === '0');
+            bindCompanyMultiSelect(employeeId);
+        });
+
+        $(document).ready(function () {
+            loadCompanyOptions();
+            loadEmployeeOptions();
+            loadCompanyAccessGrid();
+        });
+
+        $('#btnAddCompanyAccess').click(function () {
+            resetCompanyAccessForm();
+            _isEditMode = false;
+            $('#companyAccessModalLabel .formType').text('Add');
+            $('#ddlCompanyAccessEmployee').prop('disabled', false);
+            $('#companyAccessModal').modal('show');
+        });
+
+        $('#btnSaveCompanyAccess').click(function () {
+            if (!validateCompanyAccessForm()) return;
+
+            if (_isEditMode) {
+                saveEdit();
+            } else {
+                saveNewMulti();
+            }
+        });
+
+        // Creates one permission row per selected company. Each request is
+        // wrapped so it always "succeeds" from Promise.all's point of view —
+        // jQuery's $.when() abandons the rest of the batch as soon as one
+        // request fails, which would silently drop results for a bulk save
+        // like this one.
+        function saveNewMulti() {
+            setBtnLoading('#btnSaveCompanyAccess', 'Saving...');
+
+            const employeeId = $('#ddlCompanyAccessEmployee').val();
+            const isAdmin = $('#chkCompanyAccessIsAdmin').is(':checked');
+            const companyIds = $('#ddlCompanyAccessModalCompany').val() || [];
+
+            const requests = companyIds.map(function (companyId) {
+                return new Promise(function (resolve) {
+                    $.ajax({
+                        url: '@baseUrl/UserCompanyPermissionAPI/Create', type: 'POST', contentType: 'application/json',
+                        data: JSON.stringify({
+                            EmployeeId: employeeId,
+                            CompanyId: companyId,
+                            IsAdmin: isAdmin,
+                            CreatedBy: user
+                        })
+                    })
+                    .done(function (response) { resolve(response); })
+                    .fail(function () { resolve({ isSuccess: false, responseMessage: 'Request failed' }); });
+                });
+            });
+
+            Promise.all(requests).then(function (responses) {
+                var successCount = responses.filter(function (r) { return r && r.isSuccess; }).length;
+                var failMessages = responses.filter(function (r) { return !r || !r.isSuccess; })
+                    .map(function (r) { return (r && r.responseMessage) || 'Request failed'; });
+
+                if (successCount > 0) {
+                    showToast(successCount + ' of ' + companyIds.length + ' company assignment(s) saved successfully.', successCount === companyIds.length ? 'success' : 'warning');
+                }
+                if (failMessages.length > 0) {
+                    showToast(failMessages.join(' | '), 'error');
+                }
+                if (successCount > 0) {
+                    $('#companyAccessModal').modal('hide');
+                    loadCompanyAccessGrid();
+                }
+                setBtnNormal('#btnSaveCompanyAccess', 'Save');
+            });
+        }
+
+        function saveEdit() {
+            setBtnLoading('#btnSaveCompanyAccess', 'Updating...');
+
+            const model = {
+                UserCompanyPermissionId: UserCompanyPermissionId,
+                EmployeeId: $('#ddlCompanyAccessEmployee').val(),
+                CompanyId: $('#ddlCompanyAccessModalCompany').val()[0],
+                IsAdmin: $('#chkCompanyAccessIsAdmin').is(':checked'),
+                UpdatedBy: user
+            };
+
+            $.ajax({
+                url: '@baseUrl/UserCompanyPermissionAPI/Update', type: 'PUT', contentType: 'application/json',
+                data: JSON.stringify(model),
+                success: function (response) {
+                    showToast(response.responseMessage, response.isSuccess ? 'success' : 'error');
+                    if (response.isSuccess) {
+                        $('#companyAccessModal').modal('hide');
+                        loadCompanyAccessGrid();
+                    }
+                    setBtnNormal('#btnSaveCompanyAccess', 'Update');
+                },
+                error: function (err) {
+                    console.error(err);
+                    setBtnNormal('#btnSaveCompanyAccess', 'Update');
+                }
+            });
+        }
+
+        function resetCompanyAccessForm() {
+            UserCompanyPermissionId = 0;
+            $('#ddlCompanyAccessEmployee').val('0').prop('disabled', false);
+            $('#ddlCompanyAccessModalCompany').empty().prop('disabled', true);
+            $('#chkCompanyAccessIsAdmin').prop('checked', false);
+            $('#spnCompanyAccessCompany, #spnCompanyAccessEmployee').hide();
+            setBtnNormal('#btnSaveCompanyAccess', 'Save');
+        }
+
+        window._editCompanyAccess = function (userCompanyPermissionId) {
+            const rowData = _companyAccessCache[userCompanyPermissionId];
+            if (!rowData) return;
+
+            resetCompanyAccessForm();
+            UserCompanyPermissionId = userCompanyPermissionId;
+            _isEditMode = true;
+            $('#companyAccessModalLabel .formType').text('Edit');
+            $('#chkCompanyAccessIsAdmin').prop('checked', !!rowData.isAdmin);
+            $('#spnCompanyAccessCompany, #spnCompanyAccessEmployee').hide();
+            setBtnNormal('#btnSaveCompanyAccess', 'Update');
+
+            // Edit only ever applies to the one employee/company pair the row
+            // represents — both fields are shown for context but locked.
+            $('#ddlCompanyAccessEmployee').empty()
+                .append($('<option>', { value: rowData.employeeId, text: rowData.employeeCode + ' - ' + rowData.employeeName, selected: true }))
+                .prop('disabled', true);
+
+            $('#ddlCompanyAccessModalCompany').empty()
+                .append($('<option>', { value: rowData.companyId, text: rowData.companyName, selected: true }))
+                .prop('disabled', true);
+
+            $('#companyAccessModal').modal('show');
+        };
+
+        window._deleteCompanyAccess = function (userCompanyPermissionId, employeeName) {
+            wmsConfirm('Are you sure you want to remove <strong>"' + employeeName + '"</strong>\'s access to this company?<br><small style="color:#E53E3E;display:block;margin-top:4px">This action cannot be undone.</small>', function () {
+                var deleteObj = { id: userCompanyPermissionId, deletedBy: localStorage.getItem('EmployeeId') };
+                $.ajax({
+                    url: '@baseUrl/UserCompanyPermissionAPI/Delete',
+                    type: 'DELETE', contentType: 'application/json',
+                    data: JSON.stringify(deleteObj),
+                    success: function (response) {
+                        showToast(response.responseMessage, response.isSuccess ? 'success' : 'error');
+                        if (response.isSuccess) loadCompanyAccessGrid();
+                    },
+                    error: function () { showToast('Something went wrong. Please try again.', 'error'); }
+                });
+            });
+        };
+
+        function validateCompanyAccessForm() {
+            let isValid = true;
+
+            if (!$('#ddlCompanyAccessEmployee').val() || $('#ddlCompanyAccessEmployee').val() === '0') {
+                $('#spnCompanyAccessEmployee').show(); isValid = false;
+            } else { $('#spnCompanyAccessEmployee').hide(); }
+
+            var selectedCompanies = $('#ddlCompanyAccessModalCompany').val() || [];
+            if (selectedCompanies.length === 0) {
+                $('#spnCompanyAccessCompany').show(); isValid = false;
+            } else { $('#spnCompanyAccessCompany').hide(); }
+
+            return isValid;
+        }
+    })();
+</script>

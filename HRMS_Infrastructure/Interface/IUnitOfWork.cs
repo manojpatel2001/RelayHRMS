@@ -179,6 +179,8 @@ namespace HRMS_Infrastructure.Interface
         IInterviewFeedbackRepository InterviewFeedbackRepository { get; }
         ISelectionDecisionRepository SelectionDecisionRepository { get; }
         ISalaryStructureRepository SalaryStructureRepository { get; }
+        IEmployeeSalaryStructureTemplateRepository EmployeeSalaryStructureTemplateRepository { get; }
+        ICompanyStatutorySettingRepository CompanyStatutorySettingRepository { get; }
         IOfferSalaryFitmentRepository OfferSalaryFitmentRepository { get; }
         IOfferRepository OfferRepository { get; }
         IOfferApprovalRepository OfferApprovalRepository { get; }

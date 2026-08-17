@@ -15,10 +15,14 @@ namespace HRMS_Infrastructure.Repository.Recruitment
     public class SalaryStructureRepository : ISalaryStructureRepository
     {
         private readonly string _connectionString;
+        private readonly ICompanyStatutorySettingRepository _statutorySettingRepository;
+        private readonly SalaryStructureCalculationService _calculationService;
 
         public SalaryStructureRepository(HRMSDbContext db)
         {
             _connectionString = db.Database.GetDbConnection().ConnectionString;
+            _statutorySettingRepository = new CompanyStatutorySettingRepository(db);
+            _calculationService = new SalaryStructureCalculationService();
         }
 
         public async Task<APIResponse> GetAllTemplates(int? companyId)
@@ -207,6 +211,71 @@ namespace HRMS_Infrastructure.Repository.Recruitment
                 response.isSuccess = true;
                 response.ResponseMessage = "Success!";
                 response.Data = result.AsList();
+            }
+            catch (Exception ex)
+            {
+                response.isSuccess = false;
+                response.ResponseMessage = ex.Message;
+            }
+            return response;
+        }
+
+        // Computes the full CTC breakdown for an EXPLICITLY chosen template —
+        // no employee/grade resolution involved — so HR can review a template
+        // on its own before assigning it to anyone. Reuses the exact same
+        // SalaryStructureCalculationService as Employee Master's live
+        // allowance preview (see EmployeeSalaryAllowanceRepository.ComputeAsync),
+        // just addressed by TemplateId instead of a resolved one.
+        public async Task<APIResponse> PreviewAllowance(int salaryStructureTemplateId, decimal grossSalary, decimal? basicSalary, int companyId, bool isPFApplicable)
+        {
+            var response = new APIResponse();
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+
+                var components = (await connection.QueryAsync<SalaryStructureComponent>(
+                    "GetSalaryStructureComponentsByTemplateId", new { SalaryStructureTemplateId = salaryStructureTemplateId }, commandType: CommandType.StoredProcedure)).AsList();
+
+                if (components.Count == 0)
+                {
+                    response.isSuccess = false;
+                    response.ResponseMessage = "This template has no components configured yet — add some on the Salary Structure Master page first.";
+                    return response;
+                }
+
+                var allowance = _calculationService.ComputeAllowance(components, grossSalary, manualBasicOverride: basicSalary);
+
+                var statutorySetting = await _statutorySettingRepository.GetByCompanyId(companyId) ?? new CompanyStatutorySetting { CompanyId = companyId };
+
+                var termInsurance = await connection.ExecuteScalarAsync<decimal?>(
+                    "SELECT dbo.fn_GetTermInsuranceDeduction(@GrossSalary, @ProcessingDate, @CompanyId)",
+                    new { GrossSalary = grossSalary, ProcessingDate = DateTime.Today, CompanyId = companyId }) ?? 0m;
+
+                var deductions = _calculationService.ComputeStatutoryDeductions(statutorySetting, allowance.BasicSalary, allowance.TotalGrossSalary, grossSalary, isPFApplicable, termInsurance);
+
+                response.isSuccess = true;
+                response.ResponseMessage = "Success!";
+                response.Data = new CTCCalculationPreviewResult
+                {
+                    BasicSalary = allowance.BasicSalary,
+                    HRA = allowance.HRA,
+                    ConveyanceAllowance = allowance.ConveyanceAllowance,
+                    ChildEducationAllowance = allowance.ChildEducationAllowance,
+                    MedicalAllowance = allowance.MedicalAllowance,
+                    DeputationAllowance = allowance.DeputationAllowance,
+                    TotalGrossSalary = allowance.TotalGrossSalary,
+                    EmployeePF = deductions.EmployeePF,
+                    EmployerPF = deductions.EmployerPF,
+                    EmployeeESI = deductions.EmployeeESI,
+                    EmployerESI = deductions.EmployerESI,
+                    ProfessionalTax = deductions.ProfessionalTax,
+                    GroupMedical = deductions.GroupMedical,
+                    TermInsurance = deductions.TermInsurance,
+                    TotalDeductions = deductions.TotalDeductions,
+                    NetSalary = allowance.TotalGrossSalary - deductions.TotalDeductions,
+                    CTC = allowance.TotalGrossSalary + deductions.EmployerPF + deductions.EmployerESI,
+                    Components = allowance.Components
+                };
             }
             catch (Exception ex)
             {

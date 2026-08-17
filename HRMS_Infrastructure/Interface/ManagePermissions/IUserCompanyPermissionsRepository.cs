@@ -15,5 +15,8 @@ namespace HRMS_Infrastructure.Interface.ManagePermissions
         Task<SP_Response> UpdateUserCompanyPermissions(VMUserCompanyPermission model);
         Task<SP_Response> DeleteUserCompanyPermissions(DeleteRecordVM model);
         Task<List<vmGetAllCompanyDetailsList>> GetCompanyPermissionsListByEmployeeId(int EmployeeId);
+        Task<List<VMUserCompanyPermissionListItem>> GetUserCompanyPermissionsByEmployeeId(int EmployeeId);
+        Task<List<VMUserCompanyPermissionByCompany>> GetUserCompanyPermissionsByCompanyId(int CompanyId);
+        Task<List<VMUserCompanyPermissionAll>> GetAllUserCompanyPermissions();
     }
 }

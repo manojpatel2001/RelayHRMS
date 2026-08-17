@@ -100,5 +100,55 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                 return new List<vmGetAllCompanyDetailsList>() ;
             }
         }
+
+        public async Task<List<VMUserCompanyPermissionListItem>> GetUserCompanyPermissionsByEmployeeId(int EmployeeId)
+        {
+            try
+            {
+                var result = await _db.Set<VMUserCompanyPermissionListItem>().FromSqlInterpolated($@"
+                EXEC GetUserCompanyPermissionsByEmployeeId
+                    @EmployeeId = {EmployeeId}
+            ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<VMUserCompanyPermissionListItem>();
+            }
+        }
+
+        public async Task<List<VMUserCompanyPermissionByCompany>> GetUserCompanyPermissionsByCompanyId(int CompanyId)
+        {
+            try
+            {
+                var result = await _db.Set<VMUserCompanyPermissionByCompany>().FromSqlInterpolated($@"
+                EXEC GetUserCompanyPermissionsByCompanyId
+                    @CompanyId = {CompanyId}
+            ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<VMUserCompanyPermissionByCompany>();
+            }
+        }
+
+        public async Task<List<VMUserCompanyPermissionAll>> GetAllUserCompanyPermissions()
+        {
+            try
+            {
+                var result = await _db.Set<VMUserCompanyPermissionAll>().FromSqlInterpolated($@"
+                EXEC GetAllUserCompanyPermissions
+            ").ToListAsync();
+
+                return result;
+            }
+            catch
+            {
+                return new List<VMUserCompanyPermissionAll>();
+            }
+        }
     }
 }

@@ -1,0 +1,230 @@
+@inject IConfiguration Configuration
+@{
+    string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
+}
+
+<div class="wms-form-page">
+    <div class="sec-lbl">Company Access</div>
+    <div class="alert alert-info py-2 px-3 mb-3" style="font-size:12.5px;">
+        <i class="bx bx-info-circle"></i>
+        Grants this user access to the selected companies. Note: the company-picker shown right after login
+        currently only appears for Super Admin logins — regular users won't see a switcher yet even once
+        granted access here.
+    </div>
+
+    <form id="companyAccessForm">
+        <div class="form-grid-3">
+            <div class="fg fg-req">
+                <label for="ddlCompanyAccess">Company</label>
+                <select id="ddlCompanyAccess">
+                    <option value="">Select</option>
+                </select>
+                <span id="spnCompanyAccess" class="field-validation-error" style="display:none;">Please Select Company</span>
+            </div>
+
+            <div class="fg" style="align-self:end;">
+                <label class="d-flex align-items-center gap-2" style="margin-bottom:8px;">
+                    <input type="checkbox" id="chkCompanyAccessIsAdmin" style="width:16px;height:16px;" />
+                    Admin for this company
+                </label>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-2">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnResetCompanyAccess">Reset</button>
+            <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnSaveCompanyAccess">
+                <span class="btn-spinner-icon"></span>
+                <span class="btn-label-text">Save</span>
+            </button>
+        </div>
+    </form>
+
+    <div class="divider"></div>
+    <div id="gridContainerCompanyAccess" class="mt-2"></div>
+</div>
+
+<script>
+    (function () {
+        const user = `${localStorage.getItem('EmployeeId')}`;
+        let EmployeeIdCompanyAccess = localStorage.getItem('CurrentEmployeeId');
+
+        let UserCompanyPermissionId = 0;
+        let _companyAccessCache = {};
+        let _allCompanies = [];
+
+        var grid = WMSGrid.create({
+            container: 'gridContainerCompanyAccess',
+            title: 'Assigned Companies',
+            icon: 'bx-buildings',
+            perPage: 10,
+            columns: [
+                { field: 'companyName', header: 'Company', width: '220px' },
+                {
+                    field: 'isAdmin', header: 'Admin', width: '110px',
+                    render: function (v) {
+                        return v
+                            ? '<span class="wg-pill wg-pill-green">Yes</span>'
+                            : '<span class="wg-pill wg-pill-red">No</span>';
+                    }
+                },
+                {
+                    field: 'otherAssignedUsers', header: 'Also Assigned To', width: '240px',
+                    render: function (v) {
+                        if (!v) return '<span style="color:#9CA3AF;">No one else</span>';
+                        var names = v.split(', ');
+                        var preview = names.slice(0, 2).join(', ');
+                        var extra = names.length > 2 ? ' <span class="wg-pill wg-pill-blue" title="' + v.replace(/"/g, '&quot;') + '">+' + (names.length - 2) + ' more</span>' : '';
+                        return '<span title="' + v.replace(/"/g, '&quot;') + '">' + preview + '</span>' + extra;
+                    }
+                },
+                {
+                    header: 'Actions', sortable: false, stickyRight: true, width: '120px',
+                    render: function (v, row) {
+                        return '<button class="wg-btn wg-btn-primary" onclick="_editCompanyAccess(' + row.userCompanyPermissionId + ')"><i class="bx bx-edit"></i></button> ' +
+                               '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" onclick="_deleteCompanyAccess(' + row.userCompanyPermissionId + ',\'' + (row.companyName || '').replace(/'/g, "\\'") + '\')"><i class="bx bx-trash"></i></button>';
+                    }
+                }
+            ]
+        });
+
+        function loadCompanyAccess() {
+            grid.showLoader();
+            $.ajax({
+                url: '@baseUrl/UserCompanyPermissionAPI/GetByEmployeeId/' + EmployeeIdCompanyAccess,
+                type: 'GET', _silentLoader: true,
+                success: function (data) {
+                    var rows = data.isSuccess ? (data.data || []) : [];
+                    _companyAccessCache = {};
+                    rows.forEach(function (r) { _companyAccessCache[r.userCompanyPermissionId] = r; });
+                    grid.setData(rows);
+                    grid.hideLoader();
+                    bindCompanyDropdown();
+                },
+                error: function () { grid.hideLoader(); showToast('Failed to load company access.', 'error'); }
+            });
+        }
+
+        function loadAllCompanies() {
+            $.ajax({
+                url: '@baseUrl/CompanyDetailsAPI/GetAllCompanyDetailsList', type: 'GET',
+                success: function (data) {
+                    _allCompanies = data.isSuccess ? (data.data || []) : [];
+                    bindCompanyDropdown();
+                },
+                error: function () { console.error('Failed to load companies.'); }
+            });
+        }
+
+        // Only offer companies not already assigned (except the one currently being edited).
+        function bindCompanyDropdown() {
+            var assignedIds = Object.values(_companyAccessCache)
+                .map(function (r) { return r.companyId; })
+                .filter(function (id) { return id !== (_companyAccessCache[UserCompanyPermissionId] || {}).companyId; });
+
+            var dropdown = $('#ddlCompanyAccess');
+            var currentVal = dropdown.val();
+            dropdown.empty();
+            dropdown.append($('<option>', { value: '', text: 'Select', selected: true, disabled: true }));
+            _allCompanies.forEach(function (c) {
+                if (assignedIds.indexOf(c.companyId) === -1) {
+                    dropdown.append($('<option>', { value: c.companyId, text: c.companyName }));
+                }
+            });
+            if (currentVal) dropdown.val(currentVal);
+        }
+
+        $(document).ready(function () {
+            loadCompanyAccess();
+            loadAllCompanies();
+        });
+
+        $('#btnSaveCompanyAccess').click(function () {
+            if (!validateCompanyAccessForm()) return;
+
+            setBtnLoading('#btnSaveCompanyAccess', UserCompanyPermissionId > 0 ? 'Updating...' : 'Saving...');
+
+            const model = {
+                EmployeeId: EmployeeIdCompanyAccess,
+                UserCompanyPermissionId: UserCompanyPermissionId || 0,
+                CompanyId: $('#ddlCompanyAccess').val(),
+                IsAdmin: $('#chkCompanyAccessIsAdmin').is(':checked'),
+                CreatedBy: UserCompanyPermissionId == 0 ? user : null,
+                UpdatedBy: UserCompanyPermissionId == 0 ? null : user
+            };
+            const isNew = UserCompanyPermissionId === 0;
+            const url = isNew ? '@baseUrl/UserCompanyPermissionAPI/Create' : '@baseUrl/UserCompanyPermissionAPI/Update';
+            const method = isNew ? 'POST' : 'PUT';
+
+            $.ajax({
+                url: url, type: method, contentType: 'application/json',
+                data: JSON.stringify(model),
+                success: function (response) {
+                    if (response.isSuccess) {
+                        showToast(response.responseMessage, 'success');
+                        resetCompanyAccessForm();
+                        loadCompanyAccess();
+                    } else {
+                        showToast(response.responseMessage, 'error');
+                    }
+                    setBtnNormal('#btnSaveCompanyAccess', UserCompanyPermissionId > 0 ? 'Update' : 'Save');
+                },
+                error: function (err) {
+                    console.error(err);
+                    setBtnNormal('#btnSaveCompanyAccess', UserCompanyPermissionId > 0 ? 'Update' : 'Save');
+                }
+            });
+        });
+
+        $('#btnResetCompanyAccess').click(function () { resetCompanyAccessForm(); });
+
+        function resetCompanyAccessForm() {
+            UserCompanyPermissionId = 0;
+            $('#ddlCompanyAccess').val('');
+            $('#chkCompanyAccessIsAdmin').prop('checked', false);
+            $('#spnCompanyAccess').hide();
+            setBtnNormal('#btnSaveCompanyAccess', 'Save');
+            bindCompanyDropdown();
+        }
+
+        window._editCompanyAccess = function (userCompanyPermissionId) {
+            const rowData = _companyAccessCache[userCompanyPermissionId];
+            if (!rowData) return;
+
+            UserCompanyPermissionId = userCompanyPermissionId;
+            bindCompanyDropdown();
+            $('#ddlCompanyAccess').val(rowData.companyId);
+            $('#chkCompanyAccessIsAdmin').prop('checked', !!rowData.isAdmin);
+            $('#spnCompanyAccess').hide();
+            setBtnNormal('#btnSaveCompanyAccess', 'Update');
+        };
+
+        window._deleteCompanyAccess = function (userCompanyPermissionId, companyName) {
+            wmsConfirm('Are you sure you want to remove access to <strong>"' + companyName + '"</strong>?<br><small style="color:#E53E3E;display:block;margin-top:4px">This action cannot be undone.</small>', function () {
+                var deleteObj = { id: userCompanyPermissionId, deletedBy: localStorage.getItem('EmployeeId') };
+                $.ajax({
+                    url: '@baseUrl/UserCompanyPermissionAPI/Delete',
+                    type: 'DELETE', contentType: 'application/json',
+                    data: JSON.stringify(deleteObj),
+                    success: function (response) {
+                        showToast(response.responseMessage, response.isSuccess ? 'success' : 'error');
+                        if (response.isSuccess) {
+                            if (UserCompanyPermissionId === userCompanyPermissionId) resetCompanyAccessForm();
+                            loadCompanyAccess();
+                        }
+                    },
+                    error: function () { showToast('Something went wrong. Please try again.', 'error'); }
+                });
+            });
+        };
+
+        function validateCompanyAccessForm() {
+            let isValid = true;
+
+            if (!$('#ddlCompanyAccess').val()) {
+                $('#spnCompanyAccess').show(); isValid = false;
+            } else { $('#spnCompanyAccess').hide(); }
+
+            return isValid;
+        }
+    })();
+</script>

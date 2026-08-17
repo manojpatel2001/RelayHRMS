@@ -17,5 +17,7 @@ namespace HRMS_Infrastructure.Interface.Recruitment
         Task<APIResponse> UpdateComponent(SalaryStructureComponent model);
         Task<APIResponse> DeleteComponent(DeleteRecordVM model);
         Task<APIResponse> GetComponentsByTemplateId(int salaryStructureTemplateId);
+
+        Task<APIResponse> PreviewAllowance(int salaryStructureTemplateId, decimal grossSalary, decimal? basicSalary, int companyId, bool isPFApplicable);
     }
 }

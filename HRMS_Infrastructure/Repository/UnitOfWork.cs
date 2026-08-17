@@ -206,6 +206,8 @@ namespace HRMS_Infrastructure.Repository
             InterviewFeedbackRepository = new InterviewFeedbackRepository(_dbContext);
             SelectionDecisionRepository = new SelectionDecisionRepository(_dbContext);
             SalaryStructureRepository = new SalaryStructureRepository(_dbContext);
+            EmployeeSalaryStructureTemplateRepository = new EmployeeSalaryStructureTemplateRepository(_dbContext);
+            CompanyStatutorySettingRepository = new CompanyStatutorySettingRepository(_dbContext);
             OfferSalaryFitmentRepository = new OfferSalaryFitmentRepository(_dbContext);
             OfferRepository = new OfferRepository(_dbContext);
             OfferApprovalRepository = new OfferApprovalRepository(_dbContext);
@@ -383,6 +385,8 @@ namespace HRMS_Infrastructure.Repository
         public IInterviewFeedbackRepository InterviewFeedbackRepository { get; set; }
         public ISelectionDecisionRepository SelectionDecisionRepository { get; set; }
         public ISalaryStructureRepository SalaryStructureRepository { get; set; }
+        public IEmployeeSalaryStructureTemplateRepository EmployeeSalaryStructureTemplateRepository { get; set; }
+        public ICompanyStatutorySettingRepository CompanyStatutorySettingRepository { get; set; }
         public IOfferSalaryFitmentRepository OfferSalaryFitmentRepository { get; set; }
         public IOfferRepository OfferRepository { get; set; }
         public IOfferApprovalRepository OfferApprovalRepository { get; set; }

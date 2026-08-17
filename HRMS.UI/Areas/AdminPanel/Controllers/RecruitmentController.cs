@@ -55,6 +55,11 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
             return View();
         }
 
+        public IActionResult CTCCalculationPreview()
+        {
+            return View();
+        }
+
         public IActionResult CandidateOnboarding()
         {
             return View();

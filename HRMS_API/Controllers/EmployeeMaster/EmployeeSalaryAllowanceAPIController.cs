@@ -40,7 +40,7 @@ namespace HRMS_API.Controllers.EmployeeMaster
             {
                 var data = await _unitOfWork.EmployeeSalaryAllowanceRepository.GetLiveEmployeeSalaryAllowance(salaryPara);
                 if (data == null)
-                    return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No Salary Structure Template is configured for this employee, and no Grade/Designation default exists for this company. Assign one under Employee Master before calculating allowance." };
 
                 return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Records fetched successfully." };
             }

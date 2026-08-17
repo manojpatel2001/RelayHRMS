@@ -40,6 +40,10 @@ namespace HRMS.UI.Areas.AdminPanel.Controllers
         {
             return PartialView("_Salary");
         }
+        public IActionResult CompanyAccess()
+        {
+            return PartialView("_CompanyAccess");
+        }
         public IActionResult LoadCompanyModal()
         {
             return PartialView("_CompanyModal");

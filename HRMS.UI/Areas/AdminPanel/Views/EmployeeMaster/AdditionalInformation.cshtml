@@ -324,6 +324,9 @@
 			<li class="nav-item" role="presentation">
 				<button class="nav-link py-2" type="button" role="tab" data-tabname="Salary"><i class="bx bx-coin-stack"></i> Salary</button>
 			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link py-2" type="button" role="tab" data-tabname="CompanyAccess"><i class="bx bx-buildings"></i> Company Access</button>
+			</li>
 			</ul>
 		</div>
 
@@ -429,6 +432,11 @@
 										<label for="txtBasicSalary">Basic Salary</label>
 										<input type="text" data-decimal id="txtBasicSalary" placeholder="Basic Salary">
 										<span class="field-validation-error" id="spnBasicSalary" style="display:none;">Please Enter Basic Salary</span>
+									</div>
+
+									<div class="fg">
+										<label for="ddlSalaryStructureTemplate">Salary Structure Template <small id="spnTemplateSource" style="color:#8da0b3"></small></label>
+										<select id="ddlSalaryStructureTemplate"></select>
 									</div>
 
 									<div class="fg fg-req">
@@ -556,6 +564,7 @@
 				<div id="Attachments" class="partial-section d-none"></div>
 				<div id="Allowance" class="partial-section d-none"></div>
 				<div id="Salary" class="partial-section d-none"></div>
+				<div id="CompanyAccess" class="partial-section d-none"></div>
 			</div>
 		</div>
 	</div>
@@ -670,7 +679,8 @@
 						bindGrade(response.data.grades);
 						bindRole(response.data.roles);
 						bindEmployeeType(response.data.employeeTypes);
-						bindShift(response.data.shifts);						
+						bindShift(response.data.shifts);
+						await loadSalaryStructureTemplates();
 						fillEmployeeForm(response.data.employees);
 				
 					} else {
@@ -743,6 +753,74 @@
 			function bindGrade(data) {
 				fillSelect('ddlGrade', data, 'gradeId', 'gradeName', 'Grade');
 			}
+
+			// Salary Structure Templates are managed under Admin > Recruitment >
+			// Salary Structure Master. Here we let HR override this one
+			// employee's template; leaving it blank means the employee follows
+			// whichever template is flagged as the default for their Grade.
+			function loadSalaryStructureTemplates() {
+				return $.ajax({
+					url: '@baseUrl/SalaryStructureAPI/GetAllTemplates',
+					method: 'GET',
+					data: { companyId: CurrentCompanyId },
+					_silentLoader: true,
+					success: function (response) {
+						if (response.isSuccess) {
+							fillSelect('ddlSalaryStructureTemplate', response.data, 'salaryStructureTemplateId', 'templateName', 'Use Grade Default');
+						}
+					}
+				});
+			}
+
+			function loadEmployeeEffectiveTemplate(gradeId, designationId) {
+				if (!CurrentEmployeeId) return;
+				$.ajax({
+					url: '@baseUrl/EmployeeSalaryStructureTemplateAPI/GetEffectiveTemplate',
+					method: 'GET',
+					data: { employeeId: CurrentEmployeeId, companyId: CurrentCompanyId, gradeId: gradeId, designationId: designationId },
+					_silentLoader: true,
+					success: function (response) {
+						var el = document.getElementById('ddlSalaryStructureTemplate');
+						if (response.isSuccess && response.data && response.data.salaryStructureTemplateId) {
+							if (el._wmsSetValue) { el._wmsSetValue(response.data.salaryStructureTemplateId); } else { el.value = response.data.salaryStructureTemplateId; }
+							$('#spnTemplateSource').text(response.data.resolvedFrom === 'Employee' ? '(explicitly assigned)' : '(Grade default)');
+						} else {
+							if (el._wmsSetValue) { el._wmsSetValue(''); } else { el.value = ''; }
+							$('#spnTemplateSource').text('(none configured)');
+						}
+					}
+				});
+			}
+
+			$(document).on('change', '#ddlSalaryStructureTemplate', function () {
+				var templateId = $(this).val();
+				if (!CurrentEmployeeId) return;
+
+				var request = templateId
+					? $.ajax({
+						url: '@baseUrl/EmployeeSalaryStructureTemplateAPI/AssignTemplateToEmployee',
+						method: 'POST',
+						contentType: 'application/json',
+						data: JSON.stringify({ EmployeeId: parseInt(CurrentEmployeeId), SalaryStructureTemplateId: parseInt(templateId), CompanyId: CurrentCompanyId, CreatedBy: parseInt(UserId) })
+					})
+					: $.ajax({
+						url: '@baseUrl/EmployeeSalaryStructureTemplateAPI/UnassignEmployeeTemplate',
+						method: 'POST',
+						data: { employeeId: CurrentEmployeeId, updatedBy: UserId }
+					});
+
+				request.done(function (response) {
+					if (response.isSuccess) {
+						showToast(templateId ? 'Salary structure template assigned.' : 'Reverted to the Grade default template.', 'success');
+						$('#spnTemplateSource').text(templateId ? '(explicitly assigned)' : '(Grade default)');
+						if (typeof window.loadLiveSalaryAllowance === 'function') window.loadLiveSalaryAllowance();
+					} else {
+						showToast(response.responseMessage || 'Unable to update the template assignment.', 'error');
+					}
+				}).fail(function () {
+					showToast('Unable to update the template assignment.', 'error');
+				});
+			});
 
 			function bindRole(data) {
 				fillSelect('ddlRole', data, 'roleId', 'roleName', 'Role');
@@ -955,6 +1033,7 @@
 		  wmsSetValue('ddlShift', employee.shiftMasterId);
 		  wmsSetValue('ddlShift', employee.shiftMasterId);
 		  wmsSetValue('ddlDesignation', employee.designationId);
+		  loadEmployeeEffectiveTemplate(employee.gradeId, employee.designationId);
 
 		  await LoadWeekOffMaster();
 		
@@ -1505,7 +1584,8 @@
 		"ReportingContract": "@Url.Action("Reporting", "PartialView")",
 		"Attachments": "@Url.Action("Attachments", "PartialView")",
 		"Allowance": "@Url.Action("Allowance", "PartialView")",
-		"Salary": "@Url.Action("Salary", "PartialView")"
+		"Salary": "@Url.Action("Salary", "PartialView")",
+		"CompanyAccess": "@Url.Action("CompanyAccess", "PartialView")"
 	};
 
 	$(document).ready(function () {
@@ -1555,9 +1635,7 @@
 
 	$(document).ready(function () {
 	  $('#viewEmployeeHistroy').on('click', function () {
-		const baseUIOrginUrl = window.location.origin;
-		window.location.href = baseUIOrginUrl + '/EmployeeMaster/EmployeeHistory';
-
+		window.location.href = '@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeHistory';
 	  });
 	});
 
