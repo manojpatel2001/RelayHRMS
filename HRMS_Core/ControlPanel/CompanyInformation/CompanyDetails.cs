@@ -18,6 +18,10 @@ namespace HRMS_Core.ControlPanel.CompanyInformation
         [Key]
         public int CompanyId { get; set; }
         public string? CompanyName { get; set; }
+        public string? ShortName { get; set; }
+        public string? GSTIN { get; set; }
+        public string? RegisteredStateGST { get; set; }
+        public string? District { get; set; }
         public string? CompanyAddress { get; set; }
         public int? CityId { get; set; }
         public int? StateId { get; set; }

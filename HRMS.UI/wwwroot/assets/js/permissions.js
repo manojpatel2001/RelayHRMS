@@ -221,6 +221,7 @@
             $("#drpCompanyInformationMenu").show();
             $("#AddCompanyDetails").show();
             $("#companyInfo").show();
+            $("#sidebarCompanyInfo").show();
             $(".liTicketStatus").show();
             $(".drpSkillMaster").show();
         }
@@ -397,11 +398,11 @@
             if (permissions.includes("view-changecompanyswitch")) { }
             if (permissions.includes("block-changecompanyswitch")) { }
 
-            if (permissions.includes("view-companydetails")) { }
-            if (permissions.includes("block-companydetails")) { }
+            if (permissions.includes("view-companydetails")) { $("#sidebarCompanyInfo").show(); }
+            if (permissions.includes("block-companydetails")) { $("#sidebarCompanyInfo").hide(); }
 
-            if (permissions.includes("view-companyinformation")) { }
-            if (permissions.includes("block-companyinformation")) { }
+            if (permissions.includes("view-companyinformation")) { $("#sidebarCompanyInfo").show(); }
+            if (permissions.includes("block-companyinformation")) { $("#sidebarCompanyInfo").hide(); }
 
             if (permissions.includes("view-companystructure")) { }
             if (permissions.includes("block-companystructure")) { }
