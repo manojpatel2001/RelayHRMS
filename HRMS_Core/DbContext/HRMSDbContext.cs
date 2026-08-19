@@ -243,6 +243,7 @@ namespace HRMS_Core.DbContext
 
             modelBuilder.Entity<GetYearlyLeaveReportRequest>().HasNoKey().ToView(null);
             modelBuilder.Entity<YearlyLeaveReportViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<LeaveTransactionDetailViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<LeaveApplicationReportModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<TicketFollowUp>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmUserLogin>().HasNoKey().ToView(null);

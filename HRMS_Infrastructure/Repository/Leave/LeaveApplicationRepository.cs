@@ -297,6 +297,27 @@ namespace HRMS_Infrastructure.Repository.Leave
             }
         }
 
+        public async Task<List<LeaveTransactionDetailViewModel>> GetLeaveTransactionDetail(LeaveTransactionDetailRequest request)
+        {
+            try
+            {
+                var result = await _db.Set<LeaveTransactionDetailViewModel>()
+                    .FromSqlInterpolated($@"EXEC GetLeaveTransactionDetail
+                        @EmpId = {request.EmpId},
+                        @LeaveType = {request.LeaveType},
+                        @TransactionType = {request.TransactionType},
+                        @Year = {request.Year},
+                        @Month = {request.Month}")
+                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetLeaveTransactionDetail Error: " + ex.Message);
+                return new List<LeaveTransactionDetailViewModel>();
+            }
+        }
+
         public async Task<List<LeaveApplicationReportModel>> GetLeaveApplicationsReport(GetYearlyLeaveReportRequest request)
         {
             try

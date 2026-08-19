@@ -26,6 +26,7 @@ namespace HRMS_Infrastructure.Interface.Leave
         Task<HRMS_Core.Leave.LeaveApplication?> GetLeaveApplicationById(int leaveApplicationId);
         Task<CompoffLeaveBalanceViewModel?> GetLastLeaveBalanceDate(int Emp_Id);
         Task<List<YearlyLeaveReportViewModel>> GetYearlyLeaveReport(GetYearlyLeaveReportRequest request);
+        Task<List<LeaveTransactionDetailViewModel>> GetLeaveTransactionDetail(LeaveTransactionDetailRequest request);
         Task<List<LeaveApplicationReportModel>> GetLeaveApplicationsReport(GetYearlyLeaveReportRequest request);
         Task<List<VMYearlyLeaveReport>> GetYearlyLeaveReportAsync(SearchVmYearlyLeaveReport filter);
     }

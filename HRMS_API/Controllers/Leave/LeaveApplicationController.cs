@@ -468,6 +468,40 @@ namespace HRMS_API.Controllers.Leave
             }
         }
 
+        [HttpPost("GetLeaveTransactionDetail")]
+        public async Task<APIResponse> GetLeaveTransactionDetail([FromBody] LeaveTransactionDetailRequest request)
+        {
+            try
+            {
+                var data = await _unitOfWork.LeaveApplicationRepository.GetLeaveTransactionDetail(request);
+
+                if (data == null || data.Count == 0)
+                {
+                    return new APIResponse
+                    {
+                        isSuccess = false,
+                        ResponseMessage = "No transaction details found."
+                    };
+                }
+
+                return new APIResponse
+                {
+                    isSuccess = true,
+                    Data = data,
+                    ResponseMessage = "Transaction details fetched successfully."
+                };
+            }
+            catch (Exception err)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    Data = err.Message,
+                    ResponseMessage = "Unable to retrieve transaction details. Please try again later!"
+                };
+            }
+        }
+
         [HttpPost("GetLeaveApplicationsReport")]
         public async Task<APIResponse> GetLeaveApplicationsReport([FromBody] GetYearlyLeaveReportRequest request)
         {

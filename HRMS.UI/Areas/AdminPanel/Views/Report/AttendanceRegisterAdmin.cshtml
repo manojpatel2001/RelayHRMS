@@ -270,12 +270,36 @@
         window._toggleAttRow = function (id, checked) {
             if (checked) selectedIds[id] = true;
             else delete selectedIds[id];
+            _syncSelectAllAttCheckbox();
         };
+
+        window._toggleAllAttRows = function (checked) {
+            if (!grid) return;
+            grid.getData().forEach(function (r) {
+                if (checked) selectedIds[r.id] = true;
+                else delete selectedIds[r.id];
+            });
+            grid.refresh();
+            _syncSelectAllAttCheckbox();
+        };
+
+        function _syncSelectAllAttCheckbox() {
+            var headerChk = document.getElementById('attSelectAllChk');
+            if (!headerChk || !grid) return;
+            var rows = grid.getData();
+            var total = rows.length;
+            var selectedCount = rows.filter(function (r) { return !!selectedIds[r.id]; }).length;
+            headerChk.checked = total > 0 && selectedCount === total;
+            headerChk.indeterminate = selectedCount > 0 && selectedCount < total;
+        }
 
         function renderEmployeeGrid(data) {
             var columns = [
                 {
                     header: '', sortable: false, width: '40px',
+                    headerRender: function () {
+                        return '<input type="checkbox" class="form-check-input" id="attSelectAllChk" title="Select all" onclick="_toggleAllAttRows(this.checked)">';
+                    },
                     render: function (v, row) {
                         var checked = selectedIds[row.id] ? ' checked' : '';
                         return '<input type="checkbox" class="form-check-input"' + checked + ' onclick="_toggleAttRow(' + row.id + ', this.checked)">';
@@ -300,6 +324,7 @@
             } else {
                 grid.setData(data);
             }
+            _syncSelectAllAttCheckbox();
         }
 
         function onFind() {

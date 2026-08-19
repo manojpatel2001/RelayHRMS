@@ -12,14 +12,9 @@ namespace HRMS_Core.VM.CompanyInformation
     {
         public int? CompanyId { get; set; }
         public string? CompanyName { get; set; }
-        // NotMapped until the GetByCompanyDetailsId stored procedure is updated to return these columns.
-        [NotMapped]
         public string? ShortName { get; set; }
-        [NotMapped]
         public string? GSTIN { get; set; }
-        [NotMapped]
         public string? RegisteredStateGST { get; set; }
-        [NotMapped]
         public string? District { get; set; }
         public string? CompanyAddress { get; set; }
         public int? CityId { get; set; }

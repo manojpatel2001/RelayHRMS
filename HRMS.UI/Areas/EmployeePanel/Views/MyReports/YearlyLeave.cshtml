@@ -67,6 +67,17 @@
         .table-container.show {
             display: block;
         }
+
+    .leave-cell-clickable {
+        cursor: pointer;
+        color: #1e3a5f;
+        text-decoration: underline dotted;
+        text-underline-offset: 3px;
+    }
+
+        .leave-cell-clickable:hover {
+            background-color: #eaf1fb;
+        }
 </style>
 
 <div class="wms-form-page">
@@ -148,6 +159,20 @@
 
 </div>
 
+<div class="modal fade" id="leaveTxnDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="leaveTxnDetailModalTitle">Transaction Details</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="leaveTxnDetailBody"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     $(document).ready(function() {
         initializePage();
@@ -189,6 +214,22 @@
 
     function formatValue(val) {
         return (val !== null && val !== undefined) ? val : '-';
+    }
+
+    var reportYear = new Date().getFullYear();
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    function escapeHtmlAttr(str) {
+        return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function monthCell(row, monthNo, monthKey) {
+        const val = row[monthKey];
+        const isDrillable = (row.rowType === 'Credit' || row.rowType === 'Debit') && val !== null && val !== undefined;
+        if (isDrillable) {
+            return `<td class="leave-cell-clickable" data-leavetype="${escapeHtmlAttr(row.leaveType)}" data-rowtype="${escapeHtmlAttr(row.rowType)}" data-month="${monthNo}" title="Click to view transaction details">${formatValue(val)}</td>`;
+        }
+        return `<td>${formatValue(val)}</td>`;
     }
 
     function buildTable(apiData) {
@@ -288,19 +329,20 @@
                     // Type column
                     html += `<td>${row.rowType}</td>`;
 
-                    // Month columns
-                    html += `<td>${formatValue(row.jan)}</td>`;
-                    html += `<td>${formatValue(row.feb)}</td>`;
-                    html += `<td>${formatValue(row.mar)}</td>`;
-                    html += `<td>${formatValue(row.apr)}</td>`;
-                    html += `<td>${formatValue(row.may)}</td>`;
-                    html += `<td>${formatValue(row.jun)}</td>`;
-                    html += `<td>${formatValue(row.jul)}</td>`;
-                    html += `<td>${formatValue(row.aug)}</td>`;
-                    html += `<td>${formatValue(row.sep)}</td>`;
-                    html += `<td>${formatValue(row.oct)}</td>`;
-                    html += `<td>${formatValue(row.nov)}</td>`;
-                    html += `<td>${formatValue(row.dec)}</td>`;
+                    // Month columns — Credit/Debit cells are clickable to drill into
+                    // the individual LeaveTransactions rows behind that monthly total.
+                    html += monthCell(row, 1, 'jan');
+                    html += monthCell(row, 2, 'feb');
+                    html += monthCell(row, 3, 'mar');
+                    html += monthCell(row, 4, 'apr');
+                    html += monthCell(row, 5, 'may');
+                    html += monthCell(row, 6, 'jun');
+                    html += monthCell(row, 7, 'jul');
+                    html += monthCell(row, 8, 'aug');
+                    html += monthCell(row, 9, 'sep');
+                    html += monthCell(row, 10, 'oct');
+                    html += monthCell(row, 11, 'nov');
+                    html += monthCell(row, 12, 'dec');
 
                     // Closing
                     html += `<td>${formatValue(row.closing)}</td>`;
@@ -371,6 +413,7 @@
                 success: function (res) {
 
                     if (res.isSuccess) {
+                        reportYear = new Date(txtformdate).getFullYear();
                         buildTable(res.data);
                     } else {
                         showToast(res.responseMessage || 'No Data', 'info');
@@ -396,5 +439,64 @@
             $("#spnfromdate").hide();
             $("#spntodate").hide();
         });
+
+        $(document).on('click', '.leave-cell-clickable', function () {
+            const leaveType = $(this).data('leavetype');
+            const rowType = $(this).data('rowtype');
+            const monthNo = parseInt($(this).data('month'));
+
+            $('#leaveTxnDetailModalTitle').text(rowType + ' Details — ' + leaveType + ' — ' + monthNames[monthNo - 1] + ' ' + reportYear);
+            $('#leaveTxnDetailBody').html('<div class="text-center text-muted py-3">Loading...</div>');
+            const modal = new bootstrap.Modal(document.getElementById('leaveTxnDetailModal'));
+            modal.show();
+
+            $.ajax({
+                url: '@(baseDomainUrl + "/api/LeaveApplication/GetLeaveTransactionDetail")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    EmpId: parseInt(EmployeeId),
+                    LeaveType: leaveType,
+                    TransactionType: rowType,
+                    Year: reportYear,
+                    Month: monthNo
+                }),
+                headers: { 'Authorization': 'Bearer ' + Token },
+                success: function (res) {
+                    if (res.isSuccess && res.data && res.data.length) {
+                        renderTxnDetailTable(res.data, rowType);
+                    } else {
+                        $('#leaveTxnDetailBody').html('<div class="text-center text-muted py-3">No transaction details found.</div>');
+                    }
+                },
+                error: function () {
+                    $('#leaveTxnDetailBody').html('<div class="text-center text-danger py-3">Unable to load transaction details.</div>');
+                }
+            });
+        });
+    }
+
+    function renderTxnDetailTable(rows, rowType) {
+        const isDebit = rowType === 'Debit';
+        let html = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr>';
+        if (isDebit) html += '<th>Application ID</th>';
+        html += '<th>Date</th><th>Days</th>';
+        if (isDebit) html += '<th>From</th><th>To</th><th>Status</th>';
+        html += '<th>Reason</th></tr></thead><tbody>';
+        rows.forEach(function (r) {
+            html += '<tr>';
+            if (isDebit) html += `<td>${r.leaveApplicationId || '-'}</td>`;
+            html += `<td>${formatDate(r.transactionDate)}</td>`;
+            html += `<td>${formatValue(r.days)}</td>`;
+            if (isDebit) {
+                html += `<td>${formatDate(r.fromDate)}</td>`;
+                html += `<td>${formatDate(r.toDate)}</td>`;
+                html += `<td>${r.leaveStatus || '-'}</td>`;
+            }
+            html += `<td>${r.applicationReason || r.transactionReason || '-'}</td>`;
+            html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+        $('#leaveTxnDetailBody').html(html);
     }
 </script>

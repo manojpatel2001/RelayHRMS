@@ -610,7 +610,7 @@
                 if (col.stickyRight) th.classList.add('wg-action-col');
 
                 var arrow = sortable ? '<i class="wg-sort-arrow bx bx-sort-alt-2" style="font-size:13px;margin-left:3px;opacity:0.4;"></i>' : '';
-                th.innerHTML = esc(col.header || '') + arrow;
+                th.innerHTML = (typeof col.headerRender === 'function' ? col.headerRender(col) : esc(col.header || '')) + arrow;
                 if (sortable && i === state.sortCol) {
                     th.classList.add('wg-sort-' + state.sortDir);
                 }
