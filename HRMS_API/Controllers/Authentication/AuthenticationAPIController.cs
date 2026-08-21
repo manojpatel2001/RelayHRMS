@@ -152,6 +152,81 @@ namespace HRMS_API.Controllers.Authentication
             }
         }
 
+        [HttpPost("ImpersonateLogin")]
+        [Authorize(Roles = "Super Admin")]
+        public async Task<APIResponse> ImpersonateLogin(vmImpersonateLoginRequest model)
+        {
+            if (model == null || model.TargetEmployeeId <= 0)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Target employee is required." };
+            }
+
+            if (string.IsNullOrWhiteSpace(model.Reason))
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "A reason is required to log in as another user." };
+            }
+
+            var target = await _unitOfWork.EmployeeManageRepository.GetEmployeeById(model.TargetEmployeeId);
+            if (target == null)
+            {
+                return new APIResponse { isSuccess = false, ResponseMessage = "Employee not found." };
+            }
+
+            string ip = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                                ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+            string userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+            string deviceType = GetDeviceType(userAgent);
+
+            var adminIdClaim = User.FindFirst("Id")?.Value;
+            int.TryParse(adminIdClaim, out int adminId);
+            var adminEmail = User.FindFirst(JwtRegisteredClaimNames.Email)?.Value ?? User.FindFirst(ClaimTypes.Email)?.Value;
+
+            var emp_company = await _unitOfWork.UserCompanyPermissionsRepository.GetCompanyPermissionsListByEmployeeId((int)target.Id);
+
+            var userDetails = new UserDetailsDto
+            {
+                Id = (int)target.Id,
+                Email = target.Email,
+                FullName = target.FullName,
+                EmployeeCode = target.EmployeeCode,
+                Designation = target.DesignationName,
+                BranchId = target.BranchId,
+                ProfileUrl = target.EmployeeProfileUrl,
+                Password = target.Password,
+                RoleName = target.RoleName,
+                RoleSlug = target.RoleSlug,
+                Company = JsonSerializer.Serialize(emp_company),
+                IsPasswordChange = true
+            };
+
+            int loginHistoryId = await _unitOfWork.SuperAdminDetailsRepository.InsertLoginHistory(new LoginHistory
+            {
+                EmpID = (int)target.Id,
+                IPAddress = ip,
+                BrowserInfo = userAgent,
+                DeviceType = deviceType,
+                LoginStatus = true,
+                SessionID = "impersonation"
+            });
+            userDetails.LoginHistoryID = loginHistoryId;
+
+            await _unitOfWork.SuperAdminDetailsRepository.InsertImpersonationLog(new ImpersonationLog
+            {
+                AdminId = adminId,
+                AdminEmail = adminEmail,
+                TargetEmployeeId = (int)target.Id,
+                TargetEmail = target.Email,
+                CompanyId = target.CompanyId,
+                IPAddress = ip,
+                BrowserInfo = userAgent,
+                Reason = model.Reason
+            });
+
+            var token = GenerateJwtToken(userDetails);
+
+            return new APIResponse { isSuccess = true, Data = new { Token = token }, ResponseMessage = "Impersonation started." };
+        }
+
         private string GenerateJwtToken(UserDetailsDto user)
         {
             var jwtSettings = _configuration.GetSection("Jwt");

@@ -65,6 +65,8 @@ namespace HRMS_API.Controllers.ManagePermissions
                     Name = vmRole.RoleName,
                     Description = vmRole.Description,
                     Slug = vmRole.Slug,
+                    AccessLevel = vmRole.AccessLevel,
+                    IsEnabled = vmRole.IsEnabled,
                 };
                 var result = await _roleManager.CreateAsync(newRoleData);
 
@@ -115,6 +117,8 @@ namespace HRMS_API.Controllers.ManagePermissions
                 existingRole.Name = vmRole.RoleName;
                 existingRole.Description = vmRole.Description;
                 existingRole.Slug = vmRole.Slug;
+                existingRole.AccessLevel = vmRole.AccessLevel;
+                existingRole.IsEnabled = vmRole.IsEnabled;
                 var result = await _roleManager.UpdateAsync(existingRole);
 
                 if (!result.Succeeded)

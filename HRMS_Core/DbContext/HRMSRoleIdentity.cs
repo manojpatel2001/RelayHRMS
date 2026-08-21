@@ -12,6 +12,7 @@ namespace HRMS_Core.DbContext
     {
         public string? Description {  get; set; }
         public string? Slug {  get; set; }
+        public string? AccessLevel { get; set; }
         public bool IsDeleted {  get; set; }=false;
         public bool IsEnabled { get; set; } = true;
         public HRMSRoleIdentity() : base() { }

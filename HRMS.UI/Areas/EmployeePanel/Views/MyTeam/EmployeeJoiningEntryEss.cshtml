@@ -424,10 +424,15 @@
     });
 
     $(document).ready(function () {
-        employeeJoiningDataTable();
+        // Deferred until permissions are loaded so the very first render of
+        // the per-row Update/Delete buttons (gated above) reflects the real
+        // permission list, not the pre-load default of "hidden".
+        PermGuard.onReady(function () { employeeJoiningDataTable(); });
         loadRefrence();
         loadDocumentType();
         loadBindRelationShiptOption();
+
+        PermGuard.applyActions('ess-myteam-employeejoiningentryess', { create: '#addEmployeeJoining' });
 
         $('#ddlSearchBy').on('change', function () {
             $('#txtSearchFor').prop('disabled', $(this).val() === '0');
@@ -476,12 +481,24 @@
             {
                 header: 'Actions', sortable: false, stickyRight: true, width: '120px',
                 render: function (v, row) {
-                    return '<button class="wg-btn wg-btn-primary" title="Update" onclick="_editEmployeeJoining(' + row.ManpowerRequisitionId + ')"><i class="bx bx-edit"></i></button> ' +
-                           '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteEmployeeJoining(' + row.ManpowerRequisitionId + ',\'' + escJoiningAttr(row.EmployeeName) + '\')"><i class="bx bx-trash"></i></button>';
+                    var html = '';
+                    if (PermGuard.has('edit-ess-myteam-employeejoiningentryess')) {
+                        html += '<button class="wg-btn wg-btn-primary" title="Update" onclick="_editEmployeeJoining(' + row.ManpowerRequisitionId + ')"><i class="bx bx-edit"></i></button> ';
+                    }
+                    if (PermGuard.has('delete-ess-myteam-employeejoiningentryess')) {
+                        html += '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteEmployeeJoining(' + row.ManpowerRequisitionId + ',\'' + escJoiningAttr(row.EmployeeName) + '\')"><i class="bx bx-trash"></i></button>';
+                    }
+                    return html;
                 }
             }
         ],
         features: { export: true }
+    });
+
+    // Deferred so the toolbar's Export Excel button isn't hidden based on the
+    // pre-load default (permissions not fetched yet).
+    PermGuard.onReady(function () {
+        if (!PermGuard.has('export-ess-myteam-employeejoiningentryess')) employeeJoiningGrid.setFeature('export', false);
     });
 
     // Main data table

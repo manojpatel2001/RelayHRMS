@@ -101,6 +101,7 @@ namespace HRMS_Infrastructure.Interface
         IReportingManagerDetailsRepository ReportingManagerDetailsRepository { get; }
 
         IEmployeeDashboardRepository EmployeeDashboardRepository { get; }
+        IBirthdayWishRepository BirthdayWishRepository { get; }
         IMonthlySalaryDetailsRepository MonthlySalaryDetailsRepository { get; }
         IMyProfileRepository myProfileRepository { get; }
         IEmployeeDirectory employeeDirectory { get; }

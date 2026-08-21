@@ -9,7 +9,12 @@ function openCompanyModal(partialUrl, apiUrl, CompanyList, callback) {
         type: 'GET',
         success: function (html) {
             $('#companyModalContainer').html(html);
-            $('#companyModal').fadeIn();
+            // Plain flex, not .fadeIn() — jQuery's fade helpers default to
+            // display:block, which would break the centered flex layout.
+            // The fade/pop animation itself is already handled by the
+            // company-modal.css keyframes, which replay automatically
+            // whenever display flips from none to flex.
+            $('#companyModal').css('display', 'flex');
             loadCompanyDetails(CompanyList, callback, apiUrl);
             bindCompanyModalEvents(callback);
         },
@@ -21,16 +26,16 @@ function openCompanyModal(partialUrl, apiUrl, CompanyList, callback) {
 
 // Load company data and populate boxes
 function loadCompanyDetails(CompanyList, callback, apiUrl) {
-    $('#companyLoader').show();
+    $('#companyLoader').css('display', 'flex');
 
     // Get the container element
     const container = $('.company-box-container');
-    container.hide().empty(); // Clear existing content
+    container.css('display', 'none').empty(); // Clear existing content
 
     // Check if CompanyList exists and has data
     if (!CompanyList || CompanyList.length === 0) {
-        $('#companyLoader').hide();
-        container.show();
+        $('#companyLoader').css('display', 'none');
+        container.html('<div class="company-box-empty"><i class="bx bx-buildings" style="font-size:28px;display:block;margin-bottom:8px;"></i>No companies found for this account.</div>').css('display', 'flex');
         return;
     }
 
@@ -57,11 +62,25 @@ function loadCompanyDetails(CompanyList, callback, apiUrl) {
     });
 }
 
+// A small fixed palette (not random) so the same company always gets the
+// same avatar color across renders/logins, cycled by name hash.
+var _companyAvatarColors = ['#3E6A8C', '#2E7D6B', '#8A5A44', '#5B5FA6', '#B0793A', '#4B7F52'];
+
+function _companyAvatarColor(name) {
+    var hash = 0;
+    for (var i = 0; i < (name || '').length; i++) { hash = (hash * 31 + name.charCodeAt(i)) >>> 0; }
+    return _companyAvatarColors[hash % _companyAvatarColors.length];
+}
+
 function renderCompanyBoxes(CompanyList, callback, container) {
     $.each(CompanyList, function (index, company) {
-        const box = $(`
-            <div class="company-box">
-                ${company.CompanyName || 'Unknown Company'}
+        var name = company.CompanyName || 'Unknown Company';
+        var initial = name.trim().charAt(0).toUpperCase() || '?';
+        var box = $(`
+            <div class="company-box" title="${name}">
+                <span class="company-box-avatar" style="background:${_companyAvatarColor(name)}">${initial}</span>
+                <span class="company-box-name">${name}</span>
+                <i class="bx bx-chevron-right company-box-arrow"></i>
             </div>
         `);
 
@@ -75,21 +94,21 @@ function renderCompanyBoxes(CompanyList, callback, container) {
         const companyData = $(this).data('company');
 
         // Hide modal and execute callback
-        $('#companyModal').fadeOut();
+        $('#companyModal').css('display', 'none');
         if (typeof callback === 'function') {
             callback(companyData);
         }
     });
 
-    $('#companyLoader').hide();
-    container.show();
+    $('#companyLoader').css('display', 'none');
+    container.css('display', 'flex');
 }
 
 // Handle close button and prevent accidental modal close
 function bindCompanyModalEvents(callback) {
     // Handle close button
     $('.close-company').off('click').on('click', function () {
-        $('#companyModal').fadeOut();
+        $('#companyModal').css('display', 'none');
         if (typeof callback === 'function') callback(null);
     });
 
@@ -97,7 +116,7 @@ function bindCompanyModalEvents(callback) {
     $('#companyModal').off('click').on('click', function (e) {
         // Only close if clicking outside modal content
         if ($(e.target).is('#companyModal')) {
-            $('#companyModal').fadeOut();
+            $('#companyModal').css('display', 'none');
             if (typeof callback === 'function') callback(null);
         }
     });

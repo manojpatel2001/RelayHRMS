@@ -174,6 +174,77 @@
 //    "view-warningmaster",
 //    "view-weekoffmaster"
 //]
+
+// ════════════════════════════════════════════════════════════════════════
+// PermGuard — small shared API so individual pages can gate their own
+// Add/Edit/Delete/Export buttons against the same permission list this file
+// already fetches for sidebar filtering, without each page re-fetching it.
+// Usage on a page:
+//   PermGuard.applyActions('ess-leave-attendance', { create: '#btnAdd' });
+// For per-row grid buttons (Edit/Delete inside a render callback), call
+// PermGuard.has('edit-ess-leave-attendance') directly inside that callback —
+// wrap the grid's initial data load in PermGuard.onReady(...) so the first
+// render already reflects the real permission list.
+// ════════════════════════════════════════════════════════════════════════
+// Many buttons across the app carry Bootstrap display-utility classes
+// (d-flex, d-inline-flex, etc.), which are defined with `!important`
+// (e.g. `.d-inline-flex{display:inline-flex!important}`). jQuery's plain
+// .hide()/.show() only ever set a NON-important inline `display` style,
+// which a `!important` stylesheet rule on the same element always wins
+// against — so a PermGuard-driven .hide() call can silently succeed from
+// JS's perspective while the element stays visibly unchanged on screen.
+// Patching .hide()/.show() to also toggle a `!important`-backed class
+// closes that gap everywhere at once, for every already-wired page, without
+// having to special-case every button that happens to use a utility class.
+(function ($) {
+    if (!$ || !$.fn || $.fn._pgPatched) return;
+    if (!document.getElementById('pg-force-hide-style')) {
+        var s = document.createElement('style');
+        s.id = 'pg-force-hide-style';
+        s.textContent = '.pg-force-hidden{display:none!important}';
+        document.head.appendChild(s);
+    }
+    var origHide = $.fn.hide;
+    var origShow = $.fn.show;
+    $.fn.hide = function () {
+        this.addClass('pg-force-hidden');
+        return origHide.apply(this, arguments);
+    };
+    $.fn.show = function () {
+        this.removeClass('pg-force-hidden');
+        return origShow.apply(this, arguments);
+    };
+    $.fn._pgPatched = true;
+})(window.jQuery || window.$);
+
+window.PermGuard = (function () {
+    var ready = false;
+    var list = [];
+    var isSuperAdmin = false;
+    var callbacks = [];
+
+    function markReady() {
+        ready = true;
+        callbacks.forEach(function (cb) { cb(); });
+        callbacks = [];
+    }
+
+    return {
+        _setSuperAdmin: function () { isSuperAdmin = true; markReady(); },
+        _setPermissions: function (arr) { list = arr || []; markReady(); },
+        has: function (slug) { return isSuperAdmin || list.indexOf(slug) !== -1; },
+        onReady: function (cb) { if (ready) cb(); else callbacks.push(cb); },
+        applyActions: function (baseSlug, selectors) {
+            this.onReady(function () {
+                if (selectors.create && !window.PermGuard.has('create-' + baseSlug)) $(selectors.create).hide();
+                if (selectors.edit && !window.PermGuard.has('edit-' + baseSlug)) $(selectors.edit).hide();
+                if (selectors.delete && !window.PermGuard.has('delete-' + baseSlug)) $(selectors.delete).hide();
+                if (selectors.export && !window.PermGuard.has('export-' + baseSlug)) $(selectors.export).hide();
+            });
+        }
+    };
+})();
+
 (async function () {
     document.getElementById("loader").style.display = "flex";
     async function loadUserPermision() {
@@ -190,7 +261,6 @@
             const dataPermission = await response.json();
 
             if (dataPermission.isSuccess) {
-                //console.log(dataPermission);
                 permissions = dataPermission.data;
             }
             else {
@@ -224,26 +294,63 @@
             $("#sidebarCompanyInfo").show();
             $(".liTicketStatus").show();
             $(".drpSkillMaster").show();
+            window.PermGuard._setSuperAdmin();
         }
 
-        if (roleSlug == "ess" || roleSlug == "admin")
+        if (roleSlug != "super-admin")
         {
+            // Any authenticated non-Super-Admin gets permission-based sidebar
+            // enforcement — this used to only match the literal "ess"/"admin"
+            // slugs, so custom roles created via Role Master (e.g. "Branch
+            // User", whose Slug is whatever free text was typed at creation)
+            // never had their permissions applied at all.
             await loadUserPermision();
-            /*Ess switch*/
-            if (permissions.includes("view-essswitch")) {
-                $("#dropdownESSSwitch").show();
-            }
-            if (permissions.includes("block-essswitch")) {
-                $("#dropdownESSSwitch").hide();
-            }
+            window.PermGuard._setPermissions(permissions);
 
-            /*Admin switch*/
-            if (permissions.includes("view-adminswitch")) {
-                $("#dropdownAdminSwitch").show();
-            }
-            if (permissions.includes("block-adminswitch")) {
-                $("#dropdownAdminSwitch").hide();
-            }
+            // Generic AdminPanel sidebar visibility — driven by the Page & Menu tab
+            // on the Role Permissions screen. Each sidebar link in _AdminLayout.cshtml
+            // carries data-menu-slug="view-..."; hide any link whose slug isn't in
+            // this role's permission list, then collapse any group left with no
+            // visible links. Replaces the old per-page hardcoded checks below, most
+            // of which were empty stubs that never actually hid anything.
+            document.querySelectorAll('#sidebar-link [data-menu-slug]').forEach(function (el) {
+                if (permissions.includes(el.getAttribute('data-menu-slug'))) {
+                    $(el).show();
+                } else {
+                    $(el).hide();
+                }
+            });
+            document.querySelectorAll('#sidebar-link .sb-group').forEach(function (g) {
+                if ($(g).find('.sb-link:visible').length === 0) {
+                    $(g).hide();
+                } else {
+                    $(g).show();
+                }
+            });
+            // Lifts the head-level anti-flash rule (html.perm-pending — see layout
+            // <head>) only now that BOTH the per-link and per-group passes above
+            // have finished, so the sidebar is never revealed mid-filter — group
+            // headers (e.g. "Employee", "Salary Details") don't carry data-menu-slug
+            // themselves, so removing this any earlier left them visible while their
+            // links were still being sorted out.
+            document.documentElement.classList.remove('perm-pending');
+
+            // Panel-switch links ("Switch to Admin" / "Switch to ESS") used to be
+            // gated by their own separate view-adminswitch/view-essswitch
+            // permissions — but those are leftovers from before the Page & Menu
+            // Visibility rework: they have no Panel assigned, so they don't appear
+            // anywhere in the Role/User Permission grids and could never actually
+            // be granted. Instead, show each switch automatically whenever the
+            // user has been granted at least one real page in that panel (by role
+            // or by a personal override), so granting an Admin-panel page to an
+            // ESS-landing role (or vice versa) is enough on its own to reach it.
+            var hasAnyAdminPage = permissions.some(function (s) {
+                return s.indexOf('view-') === 0 && s.indexOf('view-ess-') !== 0 && s !== 'view-adminswitch' && s !== 'view-essswitch';
+            });
+            var hasAnyEssPage = permissions.some(function (s) { return s.indexOf('view-ess-') === 0; });
+
+            $("#dropdownESSSwitch").toggle(hasAnyEssPage);
+            $("#dropdownAdminSwitch").toggle(hasAnyAdminPage);
 
 
             // EmployeeLayout Permission

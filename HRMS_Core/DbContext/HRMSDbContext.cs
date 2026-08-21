@@ -183,6 +183,10 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<ReportingManagerDetails>().HasNoKey().ToView(null);
 
             modelBuilder.Entity<WishesReportVM>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmBirthdayWish>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmBirthdayWishComment>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmToggleBirthdayWishLikeResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<vmBirthdayWishActionResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<RecentEmployeeVM>().HasNoKey().ToView(null);
 
             modelBuilder.Entity<EmpInOutVM>().HasNoKey().ToView(null);
@@ -244,6 +248,8 @@ namespace HRMS_Core.DbContext
             modelBuilder.Entity<GetYearlyLeaveReportRequest>().HasNoKey().ToView(null);
             modelBuilder.Entity<YearlyLeaveReportViewModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<LeaveTransactionDetailViewModel>().HasNoKey().ToView(null);
+            modelBuilder.Entity<HRMS_Core.VM.ManagePermision.vmGetUserPermissionOverride>().HasNoKey().ToView(null);
+            modelBuilder.Entity<HRMS_Core.VM.ManagePermision.vmEmployeeRole>().HasNoKey().ToView(null);
             modelBuilder.Entity<LeaveApplicationReportModel>().HasNoKey().ToView(null);
             modelBuilder.Entity<TicketFollowUp>().HasNoKey().ToView(null);
             modelBuilder.Entity<vmUserLogin>().HasNoKey().ToView(null);

@@ -57,7 +57,12 @@
     var currentRows = [];
 
     $(document).ready(function () {
-        PendingApprovalDataTable();
+        // Wrapped so the grid's first paint (its per-row Evaluate action,
+        // gated below in the render callback) already reflects the real
+        // permission list instead of racing ahead of it.
+        PermGuard.onReady(function () {
+            PendingApprovalDataTable();
+        });
     });
 
     function fmtDate(v) {
@@ -122,8 +127,16 @@
             {
                 header: 'Action', sortable: false, width: '160px', stickyRight: true,
                 render: function (v, row) {
-                    return '<button type="button" class="wg-btn wg-btn-outline" title="View Details" onclick="_viewDetails(' + row.currentApprovalRequestLevelId + ')"><i class="bx bx-history"></i></button> ' +
-                           '<button type="button" class="wg-btn wg-btn-primary" title="Evaluate" onclick="_evaluate(' + row.currentApprovalRequestLevelId + ')"><i class="bx bx-edit"></i></button>';
+                    var html = '<button type="button" class="wg-btn wg-btn-outline" title="View Details" onclick="_viewDetails(' + row.currentApprovalRequestLevelId + ')"><i class="bx bx-history"></i></button>';
+                    // This view is shared: reachable from the ESS sidebar
+                    // (slug "ess-manageprobation-probation") AND from the Admin
+                    // sidebar under a differently-prefixed slug with no "ess-"
+                    // segment ("manageprobation-probation") — check both so
+                    // access granted via either panel's permission grid works.
+                    if (PermGuard.has('edit-ess-manageprobation-probation') || PermGuard.has('edit-manageprobation-probation')) {
+                        html += ' <button type="button" class="wg-btn wg-btn-primary" title="Evaluate" onclick="_evaluate(' + row.currentApprovalRequestLevelId + ')"><i class="bx bx-edit"></i></button>';
+                    }
+                    return html;
                 }
             }
         ];

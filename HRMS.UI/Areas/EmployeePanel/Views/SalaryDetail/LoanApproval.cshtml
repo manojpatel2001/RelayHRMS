@@ -115,8 +115,13 @@
         }
 
         $(function () {
-            // Load loan statuses first, then load the grid
-            loadLoanStatuses();
+            // Deferred until permissions are loaded so the very first render of
+            // the per-row "Update Status" button (gated below) reflects the real
+            // permission list, not the pre-load default of "hidden".
+            PermGuard.onReady(function () {
+                // Load loan statuses first, then load the grid
+                loadLoanStatuses();
+            });
 
             // Close button handlers
             $('#loanStatusModal .close, #loanStatusModal [data-dismiss="modal"]').on('click', function () {
@@ -284,6 +289,8 @@
                 {
                     header: 'Action', sortable: false, width: '90px', stickyRight: true,
                     render: function (v, row) {
+                        // Updating loan status is an edit of the approval record.
+                        if (!PermGuard.has('edit-ess-salarydetail-loanapproval')) return '';
                         var idx = currentRows.indexOf(row);
                         return '<button class="wg-btn wg-btn-primary" title="Update Status" onclick="_openStatusModalByIdx(' + idx + ')"><i class="bx bx-edit"></i></button>';
                     }
@@ -300,6 +307,11 @@
                     columns: columns,
                     perPage: 100000,
                     features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+                // Deferred so the toolbar's Export Excel button isn't hidden based
+                // on the pre-load default (permissions not fetched yet).
+                PermGuard.onReady(function () {
+                    if (!PermGuard.has('export-ess-salarydetail-loanapproval')) grid.setFeature('export', false);
                 });
             } else {
                 grid.setData(data);

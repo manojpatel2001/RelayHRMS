@@ -481,6 +481,7 @@
 	var companyDetails = JSON.parse(localStorage.getItem('selectedCompany') || '{}');
 	var CompanyId     = companyDetails.CompanyId;
 	var EmployeeId    = localStorage.getItem('EmployeeId');
+	var IsSuperAdmin  = localStorage.getItem('RoleSlug') === 'super-admin';
 
 	// export-data.js's openExportModal()/loadEmployeeMasterData() read a
 	// bare global CompanyId — expose it since this page's own CompanyId is
@@ -510,11 +511,21 @@
 				render: function (v) { return v ? new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; }
 			},
 			{
-				header: 'Actions', sortable: false, stickyRight: true, width: '120px',
+				header: 'Actions', sortable: false, stickyRight: true, width: '160px',
 				render: function (v, row) {
-					return '<button class="wg-btn wg-btn-primary" title="Edit" onclick="_editEmployee(' + row.id + ')"><i class="bx bx-edit"></i></button> ' +
+					var loginAsBtn = IsSuperAdmin
+						? '<button class="wg-btn wg-btn-outline" style="color:#1565C0;border-color:#90CAF9" title="Login as this user" onclick="_loginAsEmployee(' + row.id + ',\'' + (row.fullName || '').replace(/'/g, "\\'") + '\')"><i class="bx bx-log-in-circle"></i></button> '
+						: '';
+					var editBtn = PermGuard.has('edit-employeemaster')
+						? '<button class="wg-btn wg-btn-primary" title="Edit" onclick="_editEmployee(' + row.id + ')"><i class="bx bx-edit"></i></button> '
+						: '';
+					var deleteBtn = PermGuard.has('delete-employeemaster')
+						? '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteEmployee(' + row.id + ',\'' + (row.fullName || '').replace(/'/g, "\\'") + '\')"><i class="bx bx-trash"></i></button>'
+						: '';
+					return editBtn +
 					       '<button class="wg-btn wg-btn-outline" title="View History" onclick="_viewEmployeeHistory(' + row.id + ')"><i class="bx bx-history"></i></button> ' +
-					       '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteEmployee(' + row.id + ',\'' + (row.fullName || '').replace(/'/g, "\\'") + '\')"><i class="bx bx-trash"></i></button>';
+					       loginAsBtn +
+					       deleteBtn;
 				}
 			}
 		],
@@ -561,6 +572,74 @@
 		localStorage.removeItem('CurrentEmployeeId');
 		localStorage.setItem('CurrentEmployeeId', id);
 		window.location.href = '@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeHistory';
+	};
+
+	window._loginAsEmployee = function (id, name) {
+		wmsConfirm('You are about to log in as <strong>"' + name + '"</strong>.<br><small style="color:#E65100;display:block;margin-top:4px">This action is logged for audit purposes.</small>', function () {
+			var reason = prompt('Please enter a reason for logging in as "' + name + '":');
+			if (reason === null) return;
+			reason = reason.trim();
+			if (!reason) {
+				showToast('A reason is required to log in as another user.', 'error');
+				return;
+			}
+
+			$.ajax({
+				url: '@baseUrl/AuthenticationAPI/ImpersonateLogin',
+				type: 'POST',
+				contentType: 'application/json',
+				headers: { 'Authorization': 'Bearer ' + Token },
+				_silentLoader: true,
+				data: JSON.stringify({ TargetEmployeeId: id, Reason: reason }),
+				success: function (response) {
+					if (!response.isSuccess) {
+						showToast(response.responseMessage || 'Unable to log in as this user.', 'error');
+						return;
+					}
+
+					var newToken = response.data.token;
+					var decoded  = jwt_decode(newToken);
+					var CompanyList  = JSON.parse(decoded.Company || '[]');
+					var firstCompany = CompanyList[0];
+
+					localStorage.setItem('ImpersonationAdminSnapshot', JSON.stringify({
+						authToken:    localStorage.getItem('authToken'),
+						EmployeeId:   localStorage.getItem('EmployeeId'),
+						EmployeeName: localStorage.getItem('EmployeeName'),
+						EmployeeCode: localStorage.getItem('EmployeeCode'),
+						RoleSlug:     localStorage.getItem('RoleSlug'),
+						selectedCompany: localStorage.getItem('selectedCompany')
+					}));
+					localStorage.setItem('IsImpersonating', 'true');
+
+					localStorage.setItem('authToken',    newToken);
+					localStorage.setItem('EmployeeId',   decoded.Id);
+					localStorage.setItem('EmployeeName', decoded.FullName);
+					localStorage.setItem('EmployeeCode', decoded.EmployeeCode);
+					localStorage.setItem('RoleSlug',     decoded.RoleSlug);
+					localStorage.removeItem('CurrentEmployeeId');
+
+					localStorage.removeItem('selectedCompany');
+					localStorage.setItem('selectedCompany', JSON.stringify(firstCompany));
+					// "admin"/"super-admin" go to the Admin panel; "ess" and any custom
+					// role created via Role Master (e.g. "Branch User") go to the
+					// Employee panel, where their sidebar is filtered by permissions.js.
+					if (decoded.RoleSlug === 'admin' || decoded.RoleSlug === 'super-admin') {
+						window.location.href = '@UIBaseUrlLayout/AdminPanel/Home/index';
+					} else {
+						window.location.href = '@UIBaseUrlLayout/EmployeePanel/Home/index';
+					}
+				},
+				error: function () { showToast('Error starting impersonation.', 'error'); }
+			});
+		}, {
+			title: 'Login As User',
+			confirmText: 'Yes, Login',
+			cancelText: 'Cancel',
+			headerColor: '#1565C0',
+			confirmColor: '#1565C0',
+			confirmIcon: 'bx-log-in-circle'
+		});
 	};
 
 	window._deleteEmployee = function (id, name) {
@@ -1032,10 +1111,13 @@
 		bindWeekOff();
 		bindInitial();
 		loadEmployeeRecords();
-		loadTable('@baseUrl/EmployeeMasterAPI/GetAllEmployeeActiveOrLeft/false');
+		PermGuard.onReady(function () {
+			loadTable('@baseUrl/EmployeeMasterAPI/GetAllEmployeeActiveOrLeft/false');
+		});
 		$.get('@Url.Action("Allowance", "PartialView")', function (response) {
 			$('#SalaryPartialView').html(response);
 		});
+		PermGuard.applyActions('employeemaster', { create: '#addEmployee', export: '#btnExport' });
 	});
 })();
 </script>

@@ -120,6 +120,98 @@ namespace HRMS_API.Controllers.ManagePermissions
             }
         }
 
-        
+        [HttpPost("CreateUserPermissionOverride")]
+        public async Task<APIResponse> CreateUserPermissionOverride([FromBody] vmUserPermissionOverride model)
+        {
+            try
+            {
+                if (model == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Override details cannot be null." };
+
+                var result = await _unitOfWork.UserPermissionRepository.CreateUserPermissionOverride(model);
+
+                if (result.Id > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = "Override saved successfully." };
+
+                return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong!" };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to save override. Please try again later." };
+            }
+        }
+
+        [HttpPost("RemoveUserPermissionOverride")]
+        public async Task<APIResponse> RemoveUserPermissionOverride([FromBody] vmUserPermissionOverride model)
+        {
+            try
+            {
+                if (model == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Override details cannot be null." };
+
+                var result = await _unitOfWork.UserPermissionRepository.RemoveUserPermissionOverride(model);
+
+                if (result.Id > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = "Override removed successfully." };
+
+                return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong!" };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to remove override. Please try again later." };
+            }
+        }
+
+        [HttpPost("ResetUserPermissionOverrides")]
+        public async Task<APIResponse> ResetUserPermissionOverrides([FromBody] vmRoleManagePermission model)
+        {
+            try
+            {
+                if (model == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Reset details cannot be null." };
+
+                var result = await _unitOfWork.UserPermissionRepository.ResetUserPermissionOverrides(model);
+
+                if (result.Id > 0)
+                    return new APIResponse { isSuccess = true, ResponseMessage = "Overrides reset successfully." };
+
+                return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong!" };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to reset overrides. Please try again later." };
+            }
+        }
+
+        [HttpPost("GetUserPermissionOverrides")]
+        public async Task<APIResponse> GetUserPermissionOverrides([FromBody] vmRoleManagePermission model)
+        {
+            try
+            {
+                var data = await _unitOfWork.UserPermissionRepository.GetUserPermissionOverrides(model);
+                return new APIResponse { isSuccess = true, Data = data ?? new List<vmGetUserPermissionOverride>(), ResponseMessage = "Records fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve records. Please try again later." };
+            }
+        }
+
+        [HttpGet("GetEmployeeRole/{employeeId}/{companyId}")]
+        public async Task<APIResponse> GetEmployeeRole(int employeeId, int companyId)
+        {
+            try
+            {
+                var data = await _unitOfWork.UserPermissionRepository.GetEmployeeRole(employeeId, companyId);
+                if (data == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "No role found for this employee." };
+
+                return new APIResponse { isSuccess = true, Data = data, ResponseMessage = "Record fetched successfully." };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse { isSuccess = false, Data = ex.Message, ResponseMessage = "Unable to retrieve record. Please try again later." };
+            }
+        }
     }
 }

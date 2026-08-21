@@ -14,5 +14,6 @@ namespace HRMS_Infrastructure.Interface.SuperAdmin
         Task<SuperAdminDetails?> GetSuperAdminByCredentials(vmLogin vmLogin);
         Task<int> InsertLoginHistory(LoginHistory model);
         Task UpdateLogoutTime(int loginHistoryId);
+        Task<int> InsertImpersonationLog(ImpersonationLog model);
     }
 }

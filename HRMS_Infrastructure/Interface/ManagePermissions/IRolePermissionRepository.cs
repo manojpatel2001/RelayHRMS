@@ -14,6 +14,7 @@ namespace HRMS_Infrastructure.Interface.ManagePermissions
         Task<List<vmGetAllRolesWithPermissionByCompanyId>> GetAllRolesWithPermissionByCompanyId(int CompanyId);
         Task<List<vmGetAllPermissionByRoleId>> GetAllPermissionByRoleId(vmRoleManagePermission vmRole);
         Task<VMCommonResult> CreateRolePermission(RolePermission permission);
+        Task<VMCommonResult> RemoveRolePermission(RolePermission permission);
         
         Task<List<RoleManagePermissionDto>> GetAllRolesWithPermissionByRoleId(vmRoleManagePermission vmRole);
         Task<List<vmGetEmployeeRolesAndPermissions>> GetEmployeeRolesAndPermissions(int EmployeeId);

@@ -81,8 +81,13 @@
     var manpowerStatusList = [];
 
     $(() => {
-        // Load manpower statuses first, then load the grid
-        loadManpowerStatuses();
+        // Wrapped so the grid's first paint (its per-row Update Status action,
+        // gated below in the cellTemplate callback) already reflects the real
+        // permission list instead of racing ahead of it.
+        PermGuard.onReady(function () {
+            // Load manpower statuses first, then load the grid
+            loadManpowerStatuses();
+        });
 
         // Close button handlers
         $('#manpowerStatusModal .close, #manpowerStatusModal [data-dismiss="modal"]').on('click', function() {
@@ -279,6 +284,13 @@
                                 type: 'buttons',
                                 width: '100px',
                                 cellTemplate: function (container, options) {
+                                    // This view is shared: reachable from the ESS sidebar
+                                    // (slug "ess-manpowerapproval") AND from the Admin
+                                    // sidebar under a differently-prefixed slug with no
+                                    // "ess-" segment ("manpowerapproval") — check both so
+                                    // access granted via either panel's permission grid works.
+                                    if (!PermGuard.has('edit-ess-manpowerapproval') && !PermGuard.has('edit-manpowerapproval')) return;
+
                                     var actionContainer = $('<div/>').addClass('d-flex justify-content-center').appendTo(container);
 
                                     // Edit Icon Button with Bootstrap Icons

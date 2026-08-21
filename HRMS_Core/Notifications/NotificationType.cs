@@ -28,6 +28,9 @@
         public static readonly string OfferApprovalAction = "Offer Approval Action";
         public static readonly string OfferAccepted = "Offer Accepted";
         public static readonly string OfferDeclined = "Offer Declined";
+        public static readonly string BirthdayWish = "Birthday Wish";
+        public static readonly string BirthdayWishLike = "Birthday Wish Like";
+        public static readonly string BirthdayWishComment = "Birthday Wish Comment";
     }
 
 }

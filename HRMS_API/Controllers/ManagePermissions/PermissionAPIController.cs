@@ -146,25 +146,38 @@ namespace HRMS_API.Controllers.ManagePermissions
                 if (data == null || !data.Any())
                     return new APIResponse { isSuccess = false, ResponseMessage = "No records found." };
 
+                var isMenuType = string.Equals(PermissionType, "Menu", StringComparison.OrdinalIgnoreCase);
+
                 var groupData = data
-                    .GroupBy(g => g.GroupName)
+                    .GroupBy(g => new { g.Panel, g.GroupName })
                     .Select(g => new
                     {
-                        GroupName = g.Key,
+                        Panel = g.Key.Panel,
+                        GroupName = g.Key.GroupName,
                         PermissionRoleTypeName = g.Select(x => x.PermissionRoleTypeName).FirstOrDefault(),
-                        Permissions = g
-                            .Select(x => new
-                            {
-                                x.PermissionId,
-                                PermissionName = x.FirstPermissionName,
-                                x.Slug,
-                            })
-                            .OrderBy(p =>
-                                actionOrder.IndexOf(p.PermissionName) >= 0
-                                    ? actionOrder.IndexOf(p.PermissionName)
-                                    : int.MaxValue // Put unknown actions at the end
-                            )
-                            .ToList()
+                        Permissions = isMenuType
+                            ? g
+                                .Select(x => new
+                                {
+                                    x.PermissionId,
+                                    PermissionName = x.PermissionName,
+                                    x.Slug,
+                                })
+                                .OrderBy(p => p.PermissionName)
+                                .ToList()
+                            : g
+                                .Select(x => new
+                                {
+                                    x.PermissionId,
+                                    PermissionName = x.FirstPermissionName,
+                                    x.Slug,
+                                })
+                                .OrderBy(p =>
+                                    actionOrder.IndexOf(p.PermissionName) >= 0
+                                        ? actionOrder.IndexOf(p.PermissionName)
+                                        : int.MaxValue // Put unknown actions at the end
+                                )
+                                .ToList()
                     })
                     .ToList();
 

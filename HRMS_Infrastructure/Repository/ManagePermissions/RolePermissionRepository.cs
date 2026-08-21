@@ -56,7 +56,28 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
                     @RoleId = {permission.RoleId},
                     @PermissionIds = {permission.PermissionIds},
                     @CompanyId = {permission.CompanyId}
-                    
+
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> RemoveRolePermission(RolePermission permission)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageRolePermission
+                    @Action = {"REMOVE"},
+                    @RoleId = {permission.RoleId},
+                    @PermissionIds = {permission.PermissionIds},
+                    @CompanyId = {permission.CompanyId}
+
                 ").ToListAsync();
 
                 return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };

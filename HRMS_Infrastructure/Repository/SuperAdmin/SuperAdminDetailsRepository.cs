@@ -87,5 +87,35 @@ namespace HRMS_Infrastructure.Repository.SuperAdmin
                 }
             }
         }
+
+        public async Task<int> InsertImpersonationLog(ImpersonationLog model)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                try
+                {
+                    var param = new DynamicParameters();
+                    param.Add("@AdminId", model.AdminId);
+                    param.Add("@AdminEmail", model.AdminEmail);
+                    param.Add("@TargetEmployeeId", model.TargetEmployeeId);
+                    param.Add("@TargetEmail", model.TargetEmail);
+                    param.Add("@CompanyId", model.CompanyId);
+                    param.Add("@IPAddress", model.IPAddress);
+                    param.Add("@BrowserInfo", model.BrowserInfo);
+                    param.Add("@Reason", model.Reason);
+
+                    var result = await connection.ExecuteScalarAsync<int>(
+                        "InsertImpersonationLog", param, commandType: CommandType.StoredProcedure
+                    );
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"ImpersonationLog Insert Error: {ex.Message}");
+                    return 0;
+                }
+            }
+        }
     }
 }

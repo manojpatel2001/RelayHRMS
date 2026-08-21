@@ -97,6 +97,89 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
             }
         }
 
+        public async Task<VMCommonResult> CreateUserPermissionOverride(vmUserPermissionOverride permission)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageUserPermissionOverride
+                    @Action = {"CREATE"},
+                    @EmployeeId = {permission.EmployeeId},
+                    @PermissionIds = {permission.PermissionIds},
+                    @CompanyId = {permission.CompanyId},
+                    @IsGranted = {permission.IsGranted}
+                ").ToListAsync();
 
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> RemoveUserPermissionOverride(vmUserPermissionOverride permission)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageUserPermissionOverride
+                    @Action = {"REMOVE"},
+                    @EmployeeId = {permission.EmployeeId},
+                    @PermissionIds = {permission.PermissionIds},
+                    @CompanyId = {permission.CompanyId}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<VMCommonResult> ResetUserPermissionOverrides(vmRoleManagePermission model)
+        {
+            try
+            {
+                var result = await _db.Set<VMCommonResult>().FromSqlInterpolated($@"
+                EXEC ManageUserPermissionOverride
+                    @Action = {"RESET"},
+                    @EmployeeId = {model.EmployeeId},
+                    @CompanyId = {model.CompanyId}
+                ").ToListAsync();
+
+                return result?.FirstOrDefault() ?? new VMCommonResult { Id = 0 };
+            }
+            catch
+            {
+                return new VMCommonResult { Id = 0 };
+            }
+        }
+
+        public async Task<List<vmGetUserPermissionOverride>> GetUserPermissionOverrides(vmRoleManagePermission model)
+        {
+            try
+            {
+                return await _db.Set<vmGetUserPermissionOverride>().FromSqlInterpolated($"EXEC GetUserPermissionOverrides @EmployeeId={model.EmployeeId}, @CompanyId={model.CompanyId}").ToListAsync();
+            }
+            catch
+            {
+                return new List<vmGetUserPermissionOverride>();
+            }
+        }
+
+        public async Task<vmEmployeeRole?> GetEmployeeRole(int employeeId, int companyId)
+        {
+            try
+            {
+                var result = await _db.Set<vmEmployeeRole>().FromSqlInterpolated($"EXEC GetEmployeeRoleByEmployeeId @EmployeeId={employeeId}, @CompanyId={companyId}").ToListAsync();
+                return result?.FirstOrDefault();
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }

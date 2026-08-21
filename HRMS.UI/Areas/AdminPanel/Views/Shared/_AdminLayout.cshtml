@@ -12,6 +12,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@(ViewData["Title"] != null ? ViewData["Title"] + " — HRMS" : "Admin Panel — HRMS")</title>
     <link rel="icon" href="~/assets/images/relayfevicon.jpeg" type="image/png" />
+    <style>html.perm-pending #sidebar-link { visibility: hidden; }</style>
+    <script>
+        (function () {
+            // Sidebar links start visible by default; permissions.js only hides the
+            // disallowed ones (and collapses now-empty groups) after an async fetch
+            // resolves near the bottom of the page — on a slow network that leaves a
+            // window where the full, unfiltered menu is briefly visible. Hide the
+            // whole sidebar synchronously, before it even renders, for any
+            // non-Super-Admin role — visibility (not display) so it still occupies
+            // its normal layout space and so permissions.js's later
+            // ".sb-link:visible" checks still see correct element dimensions.
+            // permissions.js reveals it once every link AND group has been sorted.
+            var rs = localStorage.getItem('RoleSlug');
+            if (rs && rs !== 'super-admin') {
+                document.documentElement.classList.add('perm-pending');
+            }
+        })();
+    </script>
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -190,11 +208,84 @@
         }
         .sidebar .sb-dash-link:hover::after     { opacity: .80; }
         .sidebar .sb-dash-link.is-active::after { opacity: 1; }
+
+        /* ── Sub-menu icon badges ──
+           Small plain icons were easy to miss next to the page name, so give
+           every sub-menu link's icon a colored rounded badge, matching the
+           weight/visibility of the reference design. !important throughout —
+           these were still invisible after a plain override, so nothing else
+           is allowed to win here. */
+        .sidebar #sidebar-link a.sb-link .sb-ic {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 26px !important;
+            height: 26px !important;
+            min-width: 26px !important;
+            border-radius: 7px !important;
+            background: #EAF1F8 !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        .sidebar #sidebar-link a.sb-link .sb-ic i {
+            display: inline-block !important;
+            font-size: 14px !important;
+            line-height: 1 !important;
+            color: #3E6A8C !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        .sidebar #sidebar-link a.sb-link.is-active .sb-ic {
+            background: #3E6A8C !important;
+        }
+        .sidebar #sidebar-link a.sb-link.is-active .sb-ic i {
+            color: #fff !important;
+        }
     </style>
 
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
+
+    <!-- ══ Impersonation banner — shown only while viewing as another user ══ -->
+    <div id="impersonationBanner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:100000;background:#E65100;color:#fff;padding:8px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:12px;">
+        <i class="bx bx-log-in-circle"></i>
+        <span id="impersonationBannerText">Viewing as another user</span>
+        <button id="impersonationReturnBtn" style="background:#fff;color:#E65100;border:none;border-radius:5px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;">Return to Admin</button>
+    </div>
+    <script>
+        function _renderImpersonationBanner() {
+            var banner = document.getElementById('impersonationBanner');
+            if (localStorage.getItem('IsImpersonating') !== 'true') {
+                banner.style.display = 'none';
+                return;
+            }
+            var nameEl = document.getElementById('impersonationBannerText');
+            nameEl.textContent = 'Viewing as ' + (localStorage.getItem('EmployeeName') || 'another user') + ' — impersonated';
+            banner.style.display = 'flex';
+        }
+        _renderImpersonationBanner();
+        window.addEventListener('pageshow', _renderImpersonationBanner);
+
+        document.getElementById('impersonationReturnBtn').onclick = function () {
+            var snap = JSON.parse(localStorage.getItem('ImpersonationAdminSnapshot') || 'null');
+            if (!snap || !snap.authToken) {
+                localStorage.clear();
+                window.location.href = '@UIBaseUrlLayout/AuthManage/Login';
+                return;
+            }
+            localStorage.setItem('authToken', snap.authToken);
+            localStorage.setItem('EmployeeId', snap.EmployeeId || '');
+            localStorage.setItem('EmployeeName', snap.EmployeeName || '');
+            localStorage.setItem('EmployeeCode', snap.EmployeeCode || '');
+            localStorage.setItem('RoleSlug', snap.RoleSlug || '');
+            localStorage.setItem('selectedCompany', snap.selectedCompany || '{}');
+            localStorage.removeItem('IsImpersonating');
+            localStorage.removeItem('ImpersonationAdminSnapshot');
+            localStorage.removeItem('CurrentEmployeeId');
+            window.location.href = '@UIBaseUrlLayout/AdminPanel/Home/index';
+        };
+    </script>
 
     <!-- ══ Page Loader — WMS premium dot spinner ══ -->
     <div id="loader" class="wg-page-loader" style="display:none">
@@ -374,7 +465,7 @@
                 <div id="sidebar-link">
 
                     <!-- Dashboard -->
-                    <a href="@UIBaseUrlLayout/AdminPanel/Home/index" class="sb-dash-link">
+                    <a href="@UIBaseUrlLayout/AdminPanel/Home/index" class="sb-dash-link" data-menu-slug="view-home">
                         <span class="sb-ic"><i class="bx bx-home-circle"></i></span>
                         <span class="sb-label">Dashboard</span>
                     </a>
@@ -387,42 +478,24 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyInformation/CompanyDetails" class="sb-link" id="sidebarCompanyInfo">
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyInformation/CompanyDetails" class="sb-link" id="sidebarCompanyInfo" data-menu-slug="view-companydetails">
                                 <span class="sb-ic"><i class="bx bx-building"></i></span>
                                 <span class="sb-label">Company Details</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyAccess/CompanyAccess" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyAccess/CompanyAccess" class="sb-link" data-menu-slug="view-companyaccess">
                                 <span class="sb-ic"><i class="bx bx-buildings"></i></span>
                                 <span class="sb-label">Company Access</span>
                             </a>
-                            <!-- Role & Permission -->
-                            <a href="@UIBaseUrlLayout/AdminPanel/ManageRole/ManageRole" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-shield"></i></span>
-                                <span class="sb-label">Manage Role</span>
-                            </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/PermissionMaster/PermissionMaster" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-shield"></i></span>
-                                <span class="sb-label">Manage Permission</span>
-                            </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/ImportData/Index" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/ImportData/Index" class="sb-link" data-menu-slug="view-importdata">
                                 <span class="sb-ic"><i class="bx bx-import"></i></span>
                                 <span class="sb-label">Import Data</span>
                             </a>
-                            <!-- Assign Permission -->
-                            <a href="@UIBaseUrlLayout/AdminPanel/ManageRolePermission/RolePermission" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-key"></i></span>
-                                <span class="sb-label">Assign Role</span>
-                            </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/ManageUserPermission/UserPermission" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-key"></i></span>
-                                <span class="sb-label">Assign User</span>
-                            </a>
                             <!-- Approvals -->
-                            <a href="@UIBaseUrlLayout/AdminPanel/ManageApproval/ApprovalMaster" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageApproval/ApprovalMaster" class="sb-link" data-menu-slug="view-manageapproval-approvalmaster">
                                 <span class="sb-ic"><i class="bx bx-check-circle"></i></span>
                                 <span class="sb-label">Approval Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/ManageApproval/ApprovalManagement" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageApproval/ApprovalManagement" class="sb-link" data-menu-slug="view-manageapproval-approvalmanagement">
                                 <span class="sb-ic"><i class="bx bx-check-circle"></i></span>
                                 <span class="sb-label">Approval Management</span>
                             </a>
@@ -437,17 +510,17 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/AdminPanel/ManageRole/ManageRole" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageRole/ManageRole" class="sb-link" data-menu-slug="view-managerole">
                                 <span class="sb-ic"><i class="bx bx-shield"></i></span>
-                                <span class="sb-label">Roles</span>
+                                <span class="sb-label">Role Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/PermissionMaster/PermissionMaster" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-shield"></i></span>
-                                <span class="sb-label">Permissions</span>
-                            </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/ManageUserPermission/UserPermission" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageRolePermission/RolePermission" class="sb-link" data-menu-slug="view-managerolepermission-rolepermission">
                                 <span class="sb-ic"><i class="bx bx-key"></i></span>
-                                <span class="sb-label">Page Access</span>
+                                <span class="sb-label">Role Permission</span>
+                            </a>
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageUserPermission/UserPermission" class="sb-link" data-menu-slug="view-manageuserpermission-userpermission">
+                                <span class="sb-ic"><i class="bx bx-key"></i></span>
+                                <span class="sb-label">User Permissions</span>
                             </a>
                         </div>
                     </div>
@@ -460,36 +533,36 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/State" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/State" class="sb-link" data-menu-slug="view-jobmaster-state">
+                                <span class="sb-ic"><i class="bx bx-map"></i></span>
                                 <span class="sb-label">State Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageBranch" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageBranch" class="sb-link" data-menu-slug="view-jobmaster-managebranch">
+                                <span class="sb-ic"><i class="bx bx-git-branch"></i></span>
                                 <span class="sb-label">Branch Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageDepartment" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageDepartment" class="sb-link" data-menu-slug="view-jobmaster-managedepartment">
+                                <span class="sb-ic"><i class="bx bx-sitemap"></i></span>
                                 <span class="sb-label">Department Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageDesignation" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageDesignation" class="sb-link" data-menu-slug="view-jobmaster-managedesignation">
+                                <span class="sb-ic"><i class="bx bx-id-card"></i></span>
                                 <span class="sb-label">Designation Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageGrade" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageGrade" class="sb-link" data-menu-slug="view-jobmaster-managegrade">
+                                <span class="sb-ic"><i class="bx bx-medal"></i></span>
                                 <span class="sb-label">Grade Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/Reason" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/Reason" class="sb-link" data-menu-slug="view-jobmaster-reason">
+                                <span class="sb-ic"><i class="bx bx-comment-detail"></i></span>
                                 <span class="sb-label">Reason Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageShifts" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/ManageShifts" class="sb-link" data-menu-slug="view-jobmaster-manageshifts">
+                                <span class="sb-ic"><i class="bx bx-time-five"></i></span>
                                 <span class="sb-label">Shift Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/UniformMaster" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/UniformMaster" class="sb-link" data-menu-slug="view-othermaster-uniformmaster">
+                                <span class="sb-ic"><i class="bx bx-package"></i></span>
                                 <span class="sb-label">Uniform Master</span>
                             </a>
                         </div>
@@ -503,8 +576,8 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/NewsAnnouncement" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/JobMaster/NewsAnnouncement" class="sb-link" data-menu-slug="view-jobmaster-newsannouncement">
+                                <span class="sb-ic"><i class="bx bx-news"></i></span>
                                 <span class="sb-label">News &amp; Announcements</span>
                             </a>
                         </div>
@@ -518,36 +591,36 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/OrganizationPolicy" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/OrganizationPolicy" class="sb-link" data-menu-slug="view-othermaster-organizationpolicy">
+                                <span class="sb-ic"><i class="bx bx-book"></i></span>
                                 <span class="sb-label">Organization Policy</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/GeoLocationMasterAssign" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/GeoLocationMasterAssign" class="sb-link" data-menu-slug="view-othermaster-geolocationmasterassign">
+                                <span class="sb-ic"><i class="bx bx-map-pin"></i></span>
                                 <span class="sb-label">Geo Location</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/TicketType" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/TicketType" class="sb-link" data-menu-slug="view-othermaster-tickettype">
+                                <span class="sb-ic"><i class="bx bx-purchase-tag"></i></span>
                                 <span class="sb-label">Ticket Type</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/TicketStatus" class="sb-link liTicketStatus" style="display:none;">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/TicketStatus" class="sb-link liTicketStatus" style="display:none;" data-menu-slug="view-othermaster-ticketstatus">
+                                <span class="sb-ic"><i class="bx bx-list-check"></i></span>
                                 <span class="sb-label">Ticket Status</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/PasswordManager/ResetPassword" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/PasswordManager/ResetPassword" class="sb-link" data-menu-slug="view-passwordmanager-resetpassword">
+                                <span class="sb-ic"><i class="bx bx-lock-open-alt"></i></span>
                                 <span class="sb-label">Reset Employee Password</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/SkillMaster" class="sb-link drpSkillMaster" style="display:none;">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/SkillMaster" class="sb-link drpSkillMaster" style="display:none;" data-menu-slug="view-othermaster-skillmaster">
+                                <span class="sb-ic"><i class="bx bx-brain"></i></span>
                                 <span class="sb-label">Skill Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/EmployeeHolidayMarking" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/EmployeeHolidayMarking" class="sb-link" data-menu-slug="view-othermaster-employeeholidaymarking">
+                                <span class="sb-ic"><i class="bx bx-calendar-check"></i></span>
                                 <span class="sb-label">Employee Holiday Marking</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/AttendanceLock" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/AttendanceLock" class="sb-link" data-menu-slug="view-othermaster-attendancelock">
+                                <span class="sb-ic"><i class="bx bx-lock-alt"></i></span>
                                 <span class="sb-label">Attendance Lock</span>
                             </a>
                         </div>
@@ -561,63 +634,63 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/AdminPanel/Manpower/ManpowerRequisition" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Manpower/ManpowerRequisition" class="sb-link" data-menu-slug="view-manpower-manpowerrequisition">
                                 <span class="sb-ic"><i class="bx bx-group"></i></span>
                                 <span class="sb-label">Manpower Requisition</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Manpower/EmployeeJoiningEntry" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Manpower/EmployeeJoiningEntry" class="sb-link" data-menu-slug="view-manpower-employeejoiningentry">
                                 <span class="sb-ic"><i class="bx bx-group"></i></span>
                                 <span class="sb-label">Employee Joining Entry</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/ManPowerApproval/ManPowerApproval" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/ManPowerApproval/ManPowerApproval" class="sb-link" data-menu-slug="view-manpowerapproval">
                                 <span class="sb-ic"><i class="bx bx-group"></i></span>
                                 <span class="sb-label">Man Power Approval</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Manpower/ManpowerRequisitionApprovalStatus" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Manpower/ManpowerRequisitionApprovalStatus" class="sb-link" data-menu-slug="view-manpower-manpowerrequisitionapprovalstatus">
                                 <span class="sb-ic"><i class="bx bx-group"></i></span>
                                 <span class="sb-label">Requisition Approval Status</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/JobPositionMaster" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/JobPositionMaster" class="sb-link" data-menu-slug="view-recruitment-jobpositionmaster">
                                 <span class="sb-ic"><i class="bx bx-briefcase"></i></span>
                                 <span class="sb-label">Job Position Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/JobPosting" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/JobPosting" class="sb-link" data-menu-slug="view-recruitment-jobposting">
                                 <span class="sb-ic"><i class="bx bx-globe"></i></span>
                                 <span class="sb-label">Job Posting</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/CandidateApplication" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/CandidateApplication" class="sb-link" data-menu-slug="view-recruitment-candidateapplication">
                                 <span class="sb-ic"><i class="bx bx-user"></i></span>
                                 <span class="sb-label">Candidate Applications</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/CandidatePipeline" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-trello"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/CandidatePipeline" class="sb-link" data-menu-slug="view-recruitment-candidatepipeline">
+                                <span class="sb-ic"><i class="bx bx-columns"></i></span>
                                 <span class="sb-label">Candidate Pipeline</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/InterviewScheduling" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/InterviewScheduling" class="sb-link" data-menu-slug="view-recruitment-interviewscheduling">
                                 <span class="sb-ic"><i class="bx bx-calendar-event"></i></span>
                                 <span class="sb-label">Interview Scheduling</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/SalaryStructureMaster" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/SalaryStructureMaster" class="sb-link" data-menu-slug="view-recruitment-salarystructuremaster">
                                 <span class="sb-ic"><i class="bx bx-wallet"></i></span>
                                 <span class="sb-label">Salary Structure Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/CTCCalculationPreview" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/CTCCalculationPreview" class="sb-link" data-menu-slug="view-recruitment-ctccalculationpreview">
                                 <span class="sb-ic"><i class="bx bx-calculator"></i></span>
                                 <span class="sb-label">CTC Calculation Preview</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/OfferManagement" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/OfferManagement" class="sb-link" data-menu-slug="view-recruitment-offermanagement">
                                 <span class="sb-ic"><i class="bx bx-file"></i></span>
                                 <span class="sb-label">Offer Management</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/OfferApprovalConfig" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/OfferApprovalConfig" class="sb-link" data-menu-slug="view-recruitment-offerapprovalconfig">
                                 <span class="sb-ic"><i class="bx bx-list-ol"></i></span>
                                 <span class="sb-label">Offer Approval Config</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/CandidateOnboarding" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/CandidateOnboarding" class="sb-link" data-menu-slug="view-recruitment-candidateonboarding">
                                 <span class="sb-ic"><i class="bx bx-user-check"></i></span>
                                 <span class="sb-label">Candidate Onboarding</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/CandidateDocumentTypeMaster" class="sb-link">
+                            <a href="@UIBaseUrlLayout/AdminPanel/Recruitment/CandidateDocumentTypeMaster" class="sb-link" data-menu-slug="view-recruitment-candidatedocumenttypemaster">
                                 <span class="sb-ic"><i class="bx bx-file-blank"></i></span>
                                 <span class="sb-label">Document Type Master</span>
                             </a>
@@ -632,20 +705,20 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/BankMaster" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/BankMaster" class="sb-link" data-menu-slug="view-companystructure-bankmaster">
+                                <span class="sb-ic"><i class="bx bx-money"></i></span>
                                 <span class="sb-label">Bank Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/WeekOffMaster" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/WeekOffMaster" class="sb-link" data-menu-slug="view-companystructure-weekoffmaster">
+                                <span class="sb-ic"><i class="bx bx-calendar-minus"></i></span>
                                 <span class="sb-label">WeekOff Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/HolidayMaster" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/HolidayMaster" class="sb-link" data-menu-slug="view-companystructure-holidaymaster">
+                                <span class="sb-ic"><i class="bx bx-calendar"></i></span>
                                 <span class="sb-label">Holiday Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/WarningMaster" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/CompanyStructure/WarningMaster" class="sb-link" data-menu-slug="view-companystructure-warningmaster">
+                                <span class="sb-ic"><i class="bx bx-error-circle"></i></span>
                                 <span class="sb-label">Warning Master</span>
                             </a>
                         </div>
@@ -659,52 +732,52 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeMaster" class="sb-link" data-menu-slug="view-employeemaster">
+                                <span class="sb-ic"><i class="bx bx-user-circle"></i></span>
                                 <span class="sb-label">Employee Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeHistory" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/EmployeeMaster/EmployeeHistory" class="sb-link" data-menu-slug="view-employeemaster-employeehistory">
+                                <span class="sb-ic"><i class="bx bx-history"></i></span>
                                 <span class="sb-label">Employee History</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/LeftEmployee/LeftEmployeeDetails" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/LeftEmployee/LeftEmployeeDetails" class="sb-link" data-menu-slug="view-leftemployee-leftemployeedetails">
+                                <span class="sb-ic"><i class="bx bx-user-x"></i></span>
                                 <span class="sb-label">Left Employee Details</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/EmployeeIncrement/EmployeeIncrementApplication" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/EmployeeIncrement/EmployeeIncrementApplication" class="sb-link" data-menu-slug="view-employeeincrement-employeeincrementapplication">
+                                <span class="sb-ic"><i class="bx bx-trending-up"></i></span>
                                 <span class="sb-label">Increment Application</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/GradeAllowance/GradeAllowance" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/GradeAllowance/GradeAllowance" class="sb-link" data-menu-slug="view-gradeallowance">
+                                <span class="sb-ic"><i class="bx bx-gift"></i></span>
                                 <span class="sb-label">Gradewise Allowance</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Increment/EmployeeIncrement" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Increment/EmployeeIncrement" class="sb-link" data-menu-slug="view-increment-employeeincrement">
+                                <span class="sb-ic"><i class="bx bx-line-chart"></i></span>
                                 <span class="sb-label">Employee Increment</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceRegularization" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceRegularization" class="sb-link" data-menu-slug="view-report-attendanceregularization">
+                                <span class="sb-ic"><i class="bx bx-time"></i></span>
                                 <span class="sb-label">Attendance Regularization</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceSelfServiceRequest" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceSelfServiceRequest" class="sb-link" data-menu-slug="view-report-attendanceselfservicerequest">
+                                <span class="sb-ic"><i class="bx bx-send"></i></span>
                                 <span class="sb-label">Attendance Self-Service Request</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/ManageProbation/Probation" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/EmployeePanel/ManageProbation/Probation" class="sb-link" data-menu-slug="view-manageprobation-probation">
+                                <span class="sb-ic"><i class="bx bx-check-double"></i></span>
                                 <span class="sb-label">Probation Over</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/ManageProbation/ProbationConfirmation" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/ManageProbation/ProbationConfirmation" class="sb-link" data-menu-slug="view-manageprobation-probationconfirmation">
+                                <span class="sb-ic"><i class="bx bx-clipboard"></i></span>
                                 <span class="sb-label">Probation Review &amp; Confirmation</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Employeetransfer/Employeetransfer" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Employeetransfer/Employeetransfer" class="sb-link" data-menu-slug="view-employeetransfer">
+                                <span class="sb-ic"><i class="bx bx-transfer"></i></span>
                                 <span class="sb-label">Employee Transfer</span>
                             </a>
-                            <a href="javascript:;" class="sb-link" id="btnfetchUpcomingEscalaionProbation">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="javascript:;" class="sb-link" id="btnfetchUpcomingEscalaionProbation" data-menu-slug="view-manageprobation-probation">
+                                <span class="sb-ic"><i class="bx bx-hourglass"></i></span>
                                 <span class="sb-label">Pending Probation</span>
                             </a>
                         </div>
@@ -718,20 +791,20 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/Index" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/Index" class="sb-link" data-menu-slug="view-salarydetails">
+                                <span class="sb-ic"><i class="bx bx-credit-card"></i></span>
                                 <span class="sb-label">Salary Master</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/AddLoanApplication" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/AddLoanApplication" class="sb-link" data-menu-slug="view-salarydetails-addloanapplication">
+                                <span class="sb-ic"><i class="bx bx-receipt"></i></span>
                                 <span class="sb-label">Loan Application</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/FullandfinalsettlementReport" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/FullandfinalsettlementReport" class="sb-link" data-menu-slug="view-salarydetails-fullandfinalsettlementreport">
+                                <span class="sb-ic"><i class="bx bx-file-blank"></i></span>
                                 <span class="sb-label">Full &amp; Final Settlement</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/SalaryPayableDaysOverride" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/SalaryDetails/SalaryPayableDaysOverride" class="sb-link" data-menu-slug="view-salarydetails-salarypayabledaysoverride">
+                                <span class="sb-ic"><i class="bx bx-edit"></i></span>
                                 <span class="sb-label">Salary Payable Days Override</span>
                             </a>
                         </div>
@@ -745,20 +818,20 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/AdminLeaveApproval" class="sb-link essAdminLeaveApproval">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/AdminLeaveApproval" class="sb-link essAdminLeaveApproval" data-menu-slug="view-leave-adminleaveapproval">
+                                <span class="sb-ic"><i class="bx bx-check-circle"></i></span>
                                 <span class="sb-label">Admin Leave Approval</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/DashboardReport/CompOffApprovalApplicationAdmin" class="sb-link essAdminLeaveApproval">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/DashboardReport/CompOffApprovalApplicationAdmin" class="sb-link essAdminLeaveApproval" data-menu-slug="view-dashboardreport-compoffapprovalapplicationadmin">
+                                <span class="sb-ic"><i class="bx bx-time"></i></span>
                                 <span class="sb-label">Comp Off Application</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/LeaveTransaction" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/OtherMaster/LeaveTransaction" class="sb-link" data-menu-slug="view-othermaster-leavetransaction">
+                                <span class="sb-ic"><i class="bx bx-calendar-alt"></i></span>
                                 <span class="sb-label">Leave Manage</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/LeavecancellationRequestRepotAdmin" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/LeavecancellationRequestRepotAdmin" class="sb-link" data-menu-slug="view-report-leavecancellationrequestrepotadmin">
+                                <span class="sb-ic"><i class="bx bx-calendar-x"></i></span>
                                 <span class="sb-label">Leave Cancellation</span>
                             </a>
                         </div>
@@ -772,40 +845,40 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/Reports" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/Reports" class="sb-link" data-menu-slug="view-report-reports">
+                                <span class="sb-ic"><i class="bx bx-bar-chart-square"></i></span>
                                 <span class="sb-label">All Reports</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceRegisterAdmin" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/AttendanceRegisterAdmin" class="sb-link" data-menu-slug="view-report-attendanceregisteradmin">
+                                <span class="sb-ic"><i class="bx bx-table"></i></span>
                                 <span class="sb-label">Attendance Register</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/SalaryRegisterAdmin" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/SalaryRegisterAdmin" class="sb-link" data-menu-slug="view-report-salaryregisteradmin">
+                                <span class="sb-ic"><i class="bx bx-spreadsheet"></i></span>
                                 <span class="sb-label">Salary Register</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/DashboardReport/EmpInOutReportForAdmin" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/DashboardReport/EmpInOutReportForAdmin" class="sb-link" data-menu-slug="view-dashboardreport-empinoutreportforadmin">
+                                <span class="sb-ic"><i class="bx bx-log-in-circle"></i></span>
                                 <span class="sb-label">Employee In Out Report</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/LeaveBalanceAdmin" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/LeaveBalanceAdmin" class="sb-link" data-menu-slug="view-report-leavebalanceadmin">
+                                <span class="sb-ic"><i class="bx bx-pie-chart-alt"></i></span>
                                 <span class="sb-label">Leave Balance Report</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/TodaysAttendanceForAdmin" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/TodaysAttendanceForAdmin" class="sb-link" data-menu-slug="view-report-todaysattendanceforadmin">
+                                <span class="sb-ic"><i class="bx bx-calendar-check"></i></span>
                                 <span class="sb-label">Today's Attendance</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/ActiveInActiveUsers" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/ActiveInActiveUsers" class="sb-link" data-menu-slug="view-report-activeinactiveusers">
+                                <span class="sb-ic"><i class="bx bx-toggle-left"></i></span>
                                 <span class="sb-label">Active / Inactive Users</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/WhosOffReport" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/WhosOffReport" class="sb-link" data-menu-slug="view-report-whosoffreport">
+                                <span class="sb-ic"><i class="bx bx-walk"></i></span>
                                 <span class="sb-label">Who's Off Report</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/AdminPanel/Report/LeaveYearlySummary" class="sb-link">
-                                <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
+                            <a href="@UIBaseUrlLayout/AdminPanel/Report/LeaveYearlySummary" class="sb-link" data-menu-slug="view-report-leaveyearlysummary">
+                                <span class="sb-ic"><i class="bx bx-list-ol"></i></span>
                                 <span class="sb-label">Yearly Leave Summary</span>
                             </a>
                         </div>
@@ -1035,7 +1108,7 @@
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <h6 class="fw-bold text-dark mb-0"><i class="bx bx-trending-up text-primary me-1"></i>Pending Probation Escalations</h6>
                                         <button type="button" class="btn btn-success btn-sm d-inline-flex align-items-center gap-1" id="btnExportEscalation">
-                                            <i class="bx bx-file-excel"></i> Export
+                                            <i class="bx bx-spreadsheet"></i> Export
                                         </button>
                                     </div>
                                     <div class="leave-records-container" id="upEscalationContainer"></div>
@@ -1103,7 +1176,7 @@
 
     <script src="~/assets/js/companymodalloader.js"></script>
     <script src="~/assets/js/logout.js"></script>
-    <script src="~/assets/js/permissions.js"></script>
+    <script src="~/assets/js/permissions.js" asp-append-version="true"></script>
     <script src="~/assets/js/logindetails.js"></script>
     <script src="~/assets/js/common-input-handler.js"></script>
     <script src="~/assets/js/notification-remainder.js"></script>

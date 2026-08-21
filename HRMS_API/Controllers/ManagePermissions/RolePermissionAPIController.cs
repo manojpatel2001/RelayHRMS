@@ -68,6 +68,32 @@ namespace HRMS_API.Controllers.ManagePermissions
             }
         }
 
+        [HttpPost("RemoveRolePermission")]
+        public async Task<APIResponse> RemoveRolePermission([FromBody] RolePermission permission)
+        {
+            try
+            {
+                if (permission == null)
+                    return new APIResponse { isSuccess = false, ResponseMessage = "Role Permission details cannot be null." };
+
+                var removedResult = await _unitOfWork.RolePermissionRepository.RemoveRolePermission(permission);
+
+                if (removedResult.Id > 0)
+                {
+                    return new APIResponse { isSuccess = true, ResponseMessage = "Permission has been removed successfully" };
+                }
+                return new APIResponse { isSuccess = false, ResponseMessage = "Some thing went wrong!" };
+            }
+            catch (Exception ex)
+            {
+                return new APIResponse
+                {
+                    isSuccess = false,
+                    ResponseMessage = "Some thing went wrong!"
+                };
+            }
+        }
+
         [HttpPost("GetAllPermissionByRoleId")]
         public async Task<APIResponse> GetAllPermissionByRoleId(vmRoleManagePermission vmRole)
         {

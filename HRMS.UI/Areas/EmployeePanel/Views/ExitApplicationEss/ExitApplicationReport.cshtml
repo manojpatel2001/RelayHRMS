@@ -356,7 +356,16 @@
         }
 
         $(document).ready(function () {
-            loadExitApplicationData();
+            // Wrapped so loadExitApplicationData's own Add/Delete show/hide
+            // business logic (below) already sees the real permission list
+            // instead of racing ahead of it -- that function's success/error
+            // handlers gate #btnAdd/#btnDelete themselves rather than relying
+            // on a separate PermGuard.applyActions call, since which of the
+            // two is shown already depends on whether the employee has an
+            // existing exit application.
+            PermGuard.onReady(function () {
+                loadExitApplicationData();
+            });
 
             // Back button handler
             $("#btnBack").click(function () {
@@ -454,12 +463,12 @@
                     if (res.isSuccess && res.data) {
                         let gridData = Array.isArray(res.data) ? res.data : [res.data];
                         $("#btnAdd").hide();
-                        $("#btnDelete").show();
+                        if (PermGuard.has('delete-ess-exitapplicationess-exitapplicationreport')) { $("#btnDelete").show(); } else { $("#btnDelete").hide(); }
                         currentRows = gridData;
                         selectedIds = {};
                         renderGrid(gridData);
                     } else {
-                        $("#btnAdd").show();
+                        if (PermGuard.has('create-ess-exitapplicationess-exitapplicationreport')) { $("#btnAdd").show(); } else { $("#btnAdd").hide(); }
                         $("#btnDelete").hide();
                         currentRows = [];
                         selectedIds = {};
@@ -468,7 +477,7 @@
                 },
                 error: function (xhr, status, error) {
                     console.error('AJAX Error:', error);
-                    $("#btnAdd").show();
+                    if (PermGuard.has('create-ess-exitapplicationess-exitapplicationreport')) { $("#btnAdd").show(); } else { $("#btnAdd").hide(); }
                     $("#btnDelete").hide();
                     currentRows = [];
                     selectedIds = {};
@@ -513,6 +522,7 @@
             }
             // If HR hasn't approved yet, allow fill/update
             if (!isApprovedByHR) {
+                if (!PermGuard.has('edit-ess-exitapplicationess-exitapplicationreport')) return '<span class="text-muted">-</span>';
                 var label = isFormFilled ? 'Update NOC Form' : 'Fill NOC Form';
                 var cls = isFormFilled ? 'wg-btn-outline' : 'wg-btn-primary';
                 return '<button class="wg-btn ' + cls + '" onclick="_openNocModalByIdx(' + idx + ', false)">' + label + '</button>';

@@ -427,7 +427,8 @@
        ON READY
     ══════════════════════════════════════════════════════════════════════ */
     $(document).ready(function () {
-        loadEmployeeTransfers(CompanyId);
+        PermGuard.onReady(function () { loadEmployeeTransfers(CompanyId); });
+        PermGuard.applyActions('employeetransfer', { create: '#addTransfer' });
         BindBranchDropdownForTransfer();
         loadTransferReportingPersonDropdown();
 
@@ -604,10 +605,19 @@
                     {
                         header: 'Actions', sortable: false, stickyRight: true, width: '170px', align: 'center',
                         render: function (v, row) {
-                            return '<button type="button" class="wg-btn wg-btn-outline" title="Edit" onclick="UpdateTransferData(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-edit"></i></button> ' +
+                            var editBtn = PermGuard.has('edit-employeetransfer')
+                                ? '<button type="button" class="wg-btn wg-btn-outline" title="Edit" onclick="UpdateTransferData(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-edit"></i></button> '
+                                : '';
+                            var exportBtn = PermGuard.has('export-employeetransfer')
+                                ? '<button type="button" class="wg-btn wg-btn-outline" title="Export PDF" onclick="ExportTransferLetterToPDF(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-download"></i></button> '
+                                : '';
+                            var deleteBtn = PermGuard.has('delete-employeetransfer')
+                                ? '<button type="button" class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="DeleteTransfer(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-trash"></i></button>'
+                                : '';
+                            return editBtn +
                                    '<button type="button" class="wg-btn wg-btn-outline" title="Preview Letter" onclick="PreviewTransferLetter(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-show"></i></button> ' +
-                                   '<button type="button" class="wg-btn wg-btn-outline" title="Export PDF" onclick="ExportTransferLetterToPDF(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-download"></i></button> ' +
-                                   '<button type="button" class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="DeleteTransfer(allTransfers.find(function(r){return r.transferId===' + row.transferId + ';}))"><i class="bx bx-trash"></i></button>';
+                                   exportBtn +
+                                   deleteBtn;
                         }
                     }
                 ],
@@ -639,6 +649,9 @@
 
                     allTransfers = response.data || [];
                     renderTransferGrid(allTransfers);
+                    PermGuard.onReady(function () {
+                        if (!PermGuard.has('export-employeetransfer')) $('#transferGrid_exportBtn').hide();
+                    });
                     resolve(allTransfers);
                 },
                 error: function (xhr) {

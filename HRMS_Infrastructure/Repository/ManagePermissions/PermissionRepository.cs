@@ -131,8 +131,9 @@ namespace HRMS_Infrastructure.Repository.ManagePermissions
             {
                 return await _db.Set<PermissionDto>().FromSqlInterpolated($"EXEC GetAllGroupPermissionList @PermissionType={PermissionType}").ToListAsync();
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine("GetAllGroupPermissionList Error: " + ex.Message);
                 return new List<PermissionDto>();
             }
         }

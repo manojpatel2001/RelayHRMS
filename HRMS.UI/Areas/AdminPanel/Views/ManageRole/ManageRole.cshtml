@@ -1,60 +1,156 @@
 @inject IConfiguration Configuration
 @{
-	ViewData["Title"] = "Manage Role";
+	ViewData["Title"] = "Role Master";
 	Layout = "~/Areas/AdminPanel/Views/Shared/_AdminLayout.cshtml";
 	string baseUrl = Configuration["BaseUrlSettings:baseUrl"];
 }
+
+<style>
+	.role-form-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 16px;
+		align-items: flex-end;
+	}
+
+		.role-form-row .fg {
+			flex: 1 1 220px;
+			min-width: 200px;
+		}
+
+	.role-status-toggle {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		height: 38px;
+		padding-left: 2.5em;
+	}
+
+		.role-status-toggle .form-check-input {
+			width: 2.4em;
+			height: 1.3em;
+			min-height: 0;
+			padding: 0;
+			margin-left: -2.5em;
+			margin-top: 0;
+			cursor: pointer;
+		}
+
+		.role-status-toggle .role-status-label {
+			font-weight: 600;
+			font-size: 13px;
+			color: #16A34A;
+		}
+
+		.role-status-toggle .form-check-input:not(:checked) ~ .role-status-label {
+			color: #94A3B8;
+		}
+
+	.role-pill {
+		display: inline-block;
+		padding: 3px 10px;
+		border-radius: 20px;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: .3px;
+	}
+
+		.role-pill.active {
+			background: #DCFCE7;
+			color: #16A34A;
+		}
+
+		.role-pill.inactive {
+			background: #F1F5F9;
+			color: #64748B;
+		}
+</style>
 
 <div class="wms-form-page">
 
 <div class="card">
 	<div class="card-header d-flex justify-content-between align-items-center">
-		<h6 class="mb-0">Manage Role</h6>
-		<button id="addRole" type="button" class="btn btn-primary btn-sm">Add Role</button>
+		<h6 class="mb-0"><span class="formType">Add New</span> Role</h6>
+		<button type="button" class="btn btn-secondary btn-sm" id="btnCancelRoleForm" style="display:none;">
+			<i class="bx bx-x"></i> Cancel
+		</button>
+	</div>
+	<div class="card-body">
+		<div class="role-form-row">
+			<div class="fg fg-req">
+				<label for="txtRoleName">Role Name</label>
+				<input type="text" placeholder="e.g. Regional Manager" id="txtRoleName" autocomplete="off" />
+				<span class="field-validation-error" id="spnRoleName" style="display:none;">Please enter a role name.</span>
+			</div>
+			<div class="fg fg-req">
+				<label for="txtSlug">Slug</label>
+				<input type="text" placeholder="e.g. regional-manager" id="txtSlug" autocomplete="off" />
+				<span class="field-validation-error" id="spnSlug" style="display:none;">Please enter a slug.</span>
+			</div>
+			<div class="fg fg-req">
+				<label for="ddlAccessLevel">Access Level</label>
+				<select id="ddlAccessLevel">
+					<option value="" selected disabled>-- Select Access Level --</option>
+					<option value="All Modules">All Modules</option>
+					<option value="Admin Panel">Admin Panel</option>
+					<option value="Employee Panel">Employee Panel</option>
+					<option value="Reports Only">Reports Only</option>
+					<option value="Custom">Custom</option>
+				</select>
+				<span class="field-validation-error" id="spnAccessLevel" style="display:none;">Please select an access level.</span>
+			</div>
+			<div class="fg">
+				<label>Status</label>
+				<div class="form-check form-switch role-status-toggle">
+					<input type="checkbox" class="form-check-input" role="switch" id="chkIsEnabled" checked />
+					<span class="role-status-label" id="lblIsEnabled">Active</span>
+				</div>
+			</div>
+			<div class="fg" style="flex:2 1 320px;">
+				<label for="txtDescription">Description</label>
+				<input type="text" placeholder="Brief description of this role" id="txtDescription" autocomplete="off" />
+			</div>
+		</div>
+		<div class="d-flex justify-content-end gap-2 mt-3">
+			<button type="button" class="btn btn-secondary btn-sm" id="btnClearRoleForm">
+				<i class="bx bx-eraser"></i> Clear
+			</button>
+			<button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnAddRole">
+				<span class="btn-spinner-icon"></span>
+				<i class="bx bx-save"></i>
+				<span class="btn-label-text">Save Role</span>
+			</button>
+		</div>
+	</div>
+</div>
+
+<div class="card">
+	<div class="card-header d-flex justify-content-between align-items-center">
+		<h6 class="mb-0">All Roles</h6>
 	</div>
 	<div class="card-body">
 		<div id="gridContainerRole"></div>
 	</div>
 </div>
 
-<div class="modal fade" id="addRoleModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="viewRoleModal" tabindex="-1" aria-hidden="true">
 	<div class="modal-dialog">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h6 class="modal-title"><span class="formType">Add</span> Role</h6>
+				<h6 class="modal-title">Role Details</h6>
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body modal-body-font">
-				<div class="row">
-					<div class="col-12">
-						<div class="fg fg-req">
-							<label for="txtRoleName">Role Name</label>
-							<input type="text" placeholder="Role Name" id="txtRoleName" autocomplete="off" />
-							<span class="field-validation-error" id="spnRoleName" style="display:none;">Please enter a role name.</span>
-						</div>
-					</div>
-					<div class="col-12">
-						<div class="fg fg-req">
-							<label for="txtSlug">Slug</label>
-							<input type="text" placeholder="Slug" id="txtSlug" autocomplete="off" />
-							<span class="field-validation-error" id="spnSlug" style="display:none;">Please enter a slug.</span>
-						</div>
-					</div>
-					<div class="col-12">
-						<div class="fg fg-req">
-							<label for="txtDescription">Description</label>
-							<input type="text" placeholder="Description" id="txtDescription" autocomplete="off" />
-							<span class="field-validation-error" id="spnDescription" style="display:none;">Please enter a description.</span>
-						</div>
-					</div>
+				<div class="row gy-2">
+					<div class="col-6"><strong>Role Name</strong><div id="vwRoleName">-</div></div>
+					<div class="col-6"><strong>Slug</strong><div id="vwSlug">-</div></div>
+					<div class="col-6"><strong>Access Level</strong><div id="vwAccessLevel">-</div></div>
+					<div class="col-6"><strong>Status</strong><div id="vwIsEnabled">-</div></div>
+					<div class="col-12"><strong>Description</strong><div id="vwDescription">-</div></div>
 				</div>
 			</div>
 			<div class="modal-footer">
-				<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-				<button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" id="btnAddRole">
-					<span class="btn-spinner-icon"></span>
-					<span class="btn-label-text">Save</span>
-				</button>
+				<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
 			</div>
 		</div>
 	</div>
@@ -76,14 +172,27 @@
 		icon: 'bx-shield',
 		perPage: 10,
 		columns: [
-			{ field: 'name',        header: 'Role Name',   width: '200px' },
-			{ field: 'slug',        header: 'Slug',        width: '160px' },
-			{ field: 'description', header: 'Description', width: '260px' },
+			{ field: 'name',           header: 'Role Name',       width: '180px' },
+			{ field: 'accessLevel',    header: 'Access Level',    width: '160px', render: function (v) { return v || '-'; } },
+			{ field: 'description',    header: 'Description',     width: '240px' },
 			{
-				header: 'Actions', sortable: false, stickyRight: true, width: '130px',
+				field: 'isEnabled', header: 'Is Active', width: '110px',
+				render: function (v) {
+					return v ? '<span class="role-pill active">Active</span>' : '<span class="role-pill inactive">Inactive</span>';
+				}
+			},
+			{
+				header: 'Actions', sortable: false, stickyRight: true, width: '170px',
 				render: function (v, row) {
-					return '<button class="wg-btn wg-btn-primary" onclick="_editRole(' + row.id + ')"><i class="bx bx-edit"></i> Edit</button> ' +
-					       '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" onclick="_deleteRole(' + row.id + ',\'' + (row.name || '').replace(/'/g, "\\'") + '\')"><i class="bx bx-trash"></i></button>';
+					var html = '';
+					if (PermGuard.has('edit-managerole')) {
+						html += '<button class="wg-btn wg-btn-primary" onclick="_editRole(' + row.id + ')"><i class="bx bx-edit"></i> Edit</button> ';
+					}
+					html += '<button class="wg-btn wg-btn-outline" onclick="_viewRole(' + row.id + ')"><i class="bx bx-show"></i> View</button> ';
+					if (PermGuard.has('delete-managerole')) {
+						html += '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" onclick="_deleteRole(' + row.id + ',\'' + (row.name || '').replace(/'/g, "\\'") + '\')"><i class="bx bx-trash"></i></button>';
+					}
+					return html;
 				}
 			}
 		],
@@ -107,18 +216,23 @@
 		});
 	}
 
-	$('#addRole').on('click', function () { resetForm(); $('#addRoleModal').modal('show'); });
-	$('#addRoleModal').on('hidden.bs.modal', function () { resetForm(); });
+	$('#chkIsEnabled').on('change', function () {
+		$('#lblIsEnabled').text(this.checked ? 'Active' : 'Inactive');
+	});
+
+	$('#btnClearRoleForm, #btnCancelRoleForm').on('click', function () { resetForm(); });
 
 	$('#btnAddRole').on('click', function () {
 		var name = $('#txtRoleName').val().trim();
 		var slug = $('#txtSlug').val().trim();
+		var accessLevel = $('#ddlAccessLevel').val();
 		var desc = $('#txtDescription').val().trim();
+		var isEnabled = $('#chkIsEnabled').is(':checked');
 
 		var isValid = true;
 		if (!name) { $('#spnRoleName').show(); $('#txtRoleName').addClass('is-invalid'); isValid = false; } else { $('#spnRoleName').hide(); $('#txtRoleName').removeClass('is-invalid'); }
 		if (!slug) { $('#spnSlug').show(); $('#txtSlug').addClass('is-invalid'); isValid = false; } else { $('#spnSlug').hide(); $('#txtSlug').removeClass('is-invalid'); }
-		if (!desc) { $('#spnDescription').show(); $('#txtDescription').addClass('is-invalid'); isValid = false; } else { $('#spnDescription').hide(); $('#txtDescription').removeClass('is-invalid'); }
+		if (!accessLevel) { $('#spnAccessLevel').show(); $('#ddlAccessLevel').addClass('is-invalid'); isValid = false; } else { $('#spnAccessLevel').hide(); $('#ddlAccessLevel').removeClass('is-invalid'); }
 		if (!isValid) return;
 
 		setBtnLoading('#btnAddRole', RoleId > 0 ? 'Updating...' : 'Saving...');
@@ -128,20 +242,20 @@
 			type:        RoleId > 0 ? 'PUT' : 'POST',
 			contentType: 'application/json', _silentLoader: true,
 			headers:     { 'Authorization': 'Bearer ' + Token },
-			data:        JSON.stringify({ RoleId: RoleId, RoleName: name, Slug: slug, Description: desc }),
+			data:        JSON.stringify({ RoleId: RoleId, RoleName: name, Slug: slug, Description: desc, AccessLevel: accessLevel, IsEnabled: isEnabled }),
 			success: function (r) {
 				if (r.isSuccess) {
 					showToast(r.responseMessage || (RoleId > 0 ? 'Role updated.' : 'Role created.'), 'success');
-					$('#addRoleModal').modal('hide');
+					resetForm();
 					loadRoleTable();
 				} else {
 					showToast(r.responseMessage || 'Something went wrong.', 'error');
-					setBtnNormal('#btnAddRole', RoleId > 0 ? 'Update' : 'Save');
+					setBtnNormal('#btnAddRole', RoleId > 0 ? 'Update Role' : 'Save Role');
 				}
 			},
 			error: function () {
 				showToast('Something went wrong. Please try again.', 'error');
-				setBtnNormal('#btnAddRole', RoleId > 0 ? 'Update' : 'Save');
+				setBtnNormal('#btnAddRole', RoleId > 0 ? 'Update Role' : 'Save Role');
 			}
 		});
 	});
@@ -149,9 +263,13 @@
 	function resetForm() {
 		RoleId = 0;
 		$('#txtRoleName, #txtSlug, #txtDescription').val('').removeClass('is-invalid');
-		$('#spnRoleName, #spnSlug, #spnDescription').hide();
-		$('.formType').text('Add');
-		setBtnNormal('#btnAddRole', 'Save');
+		$('#ddlAccessLevel').val('').removeClass('is-invalid');
+		$('#chkIsEnabled').prop('checked', true);
+		$('#lblIsEnabled').text('Active');
+		$('#spnRoleName, #spnSlug, #spnAccessLevel').hide();
+		$('.formType').text('Add New');
+		$('#btnCancelRoleForm').hide();
+		setBtnNormal('#btnAddRole', 'Save Role');
 	}
 
 	window._editRole = function (id) {
@@ -162,9 +280,24 @@
 		$('#txtRoleName').val(data.name || '');
 		$('#txtSlug').val(data.slug || '');
 		$('#txtDescription').val(data.description || '');
+		$('#ddlAccessLevel').val(data.accessLevel || '');
+		$('#chkIsEnabled').prop('checked', !!data.isEnabled);
+		$('#lblIsEnabled').text(data.isEnabled ? 'Active' : 'Inactive');
 		$('.formType').text('Update');
-		setBtnNormal('#btnAddRole', 'Update');
-		$('#addRoleModal').modal('show');
+		$('#btnCancelRoleForm').show();
+		setBtnNormal('#btnAddRole', 'Update Role');
+		$('html, body').animate({ scrollTop: 0 }, 200);
+	};
+
+	window._viewRole = function (id) {
+		var data = _roleCache[id];
+		if (!data) return;
+		$('#vwRoleName').text(data.name || '-');
+		$('#vwSlug').text(data.slug || '-');
+		$('#vwAccessLevel').text(data.accessLevel || '-');
+		$('#vwIsEnabled').html(data.isEnabled ? '<span class="role-pill active">Active</span>' : '<span class="role-pill inactive">Inactive</span>');
+		$('#vwDescription').text(data.description || '-');
+		$('#viewRoleModal').modal('show');
 	};
 
 	window._deleteRole = function (id, name) {
@@ -183,6 +316,17 @@
 		});
 	};
 
-	$(document).ready(function () { loadRoleTable(); });
+	$(document).ready(function () {
+		PermGuard.onReady(function () {
+			loadRoleTable();
+			grid.setFeature('export', PermGuard.has('export-managerole'));
+			// #btnAddRole is a dual-purpose Save button (create when the form is
+			// blank, update when editing an existing row via _editRole) — hide it
+			// only if neither action is permitted.
+			if (!PermGuard.has('create-managerole') && !PermGuard.has('edit-managerole')) {
+				$('#btnAddRole').closest('.d-flex').hide();
+			}
+		});
+	});
 })();
 </script>

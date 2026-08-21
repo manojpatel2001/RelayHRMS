@@ -321,6 +321,67 @@
     background: #fff;
 }
 
+/* ── Birthday Wish panel (Today only) ───────────────────────────── */
+.ess-bday-card-wrap { margin-bottom: 7px; }
+.ess-bday-card-wrap .ess-bday-card { margin-bottom: 0; }
+.ess-wish-toggle {
+    position: absolute; bottom: 8px; right: 8px;
+    font-size: 10.5px; font-weight: 600; color: #2d7ab5;
+    display: flex; align-items: center; gap: 3px;
+}
+.ess-wish-panel {
+    background: #f6faff;
+    border: 1px solid #e4edf4; border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 10px;
+    margin-top: -7px;
+    margin-bottom: 7px;
+}
+.ess-wish-compose { display: flex; gap: 6px; margin-bottom: 8px; }
+.ess-wish-compose textarea {
+    flex: 1; resize: vertical; min-height: 34px;
+    font-size: 12px; padding: 6px 8px;
+    border: 1px solid #d0dce8; border-radius: 6px; font-family: inherit;
+}
+.ess-wish-send-btn {
+    align-self: flex-end;
+    background: #2d7ab5; color: #fff; border: none;
+    border-radius: 6px; padding: 6px 12px;
+    font-size: 11.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.ess-wish-send-btn:hover { background: #1e3a5f; }
+.ess-wish-feed { display: flex; flex-direction: column; gap: 8px; }
+.ess-wish-item { display: flex; gap: 8px; }
+.ess-wish-item img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.ess-wish-body { flex: 1; min-width: 0; background: #fff; border: 1px solid #e4edf4; border-radius: 8px; padding: 7px 10px; }
+.ess-wish-name { font-size: 11.5px; font-weight: 700; color: #1e3a5f; }
+.ess-wish-msg  { font-size: 12px; color: #33475b; margin-top: 1px; word-break: break-word; }
+.ess-wish-meta { display: flex; align-items: center; gap: 12px; margin-top: 5px; }
+.ess-wish-time { font-size: 10px; color: #8da0b3; }
+.ess-wish-like-btn, .ess-wish-comment-toggle {
+    background: none; border: none; cursor: pointer;
+    font-size: 11px; color: #5a7088; display: flex; align-items: center; gap: 3px; padding: 0;
+}
+.ess-wish-like-btn:hover, .ess-wish-comment-toggle:hover { color: #2d7ab5; }
+.ess-wish-like-btn.active { color: #e0245e; font-weight: 600; }
+.ess-wish-comments { margin-top: 7px; padding-top: 7px; border-top: 1px dashed #e4edf4; }
+.ess-comment-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.ess-comment-item { display: flex; align-items: flex-start; gap: 6px; }
+.ess-comment-item img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex-shrink: 0; margin-top: 2px; }
+.ess-comment-name { font-size: 11px; font-weight: 700; color: #1e3a5f; }
+.ess-comment-text { font-size: 11.5px; color: #33475b; }
+.ess-comment-compose { display: flex; gap: 6px; }
+.ess-comment-compose input {
+    flex: 1; font-size: 11.5px; padding: 5px 8px;
+    border: 1px solid #d0dce8; border-radius: 14px;
+}
+.ess-comment-compose button {
+    background: #2d7ab5; color: #fff; border: none;
+    border-radius: 14px; padding: 5px 12px;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+}
+.ess-comment-compose button:hover { background: #1e3a5f; }
+
 /* Happy-birthday footer banner — shown only when today's list is
    non-empty (no fabricated "always on" celebration state). */
 .ess-happy-banner {
@@ -1033,7 +1094,7 @@ function loadBirthday() {
         success: function(resp) {
             var members = Array.isArray(resp.data) ? resp.data : [];
             var buckets = bucketByDate(members);
-            renderBucketPane('bdayTodayPane', 'bdayTodayCount', buckets.today, buildBdayCard, 'bx-cake', 'No birthdays today.');
+            renderBucketPane('bdayTodayPane', 'bdayTodayCount', buckets.today, buildBdayCardToday, 'bx-cake', 'No birthdays today.');
             renderBucketPane('bdayWeekPane', 'bdayWeekCount', buckets.week, buildBdayCard, 'bx-cake', 'No birthdays this week.');
             renderBucketPane('bdayMonthPane', 'bdayMonthCount', buckets.month, buildBdayCard, 'bx-cake', 'No birthdays this month.');
             $('#happyBdayBanner').toggleClass('show', buckets.today.length > 0);
@@ -1057,6 +1118,199 @@ function buildBdayCard(m) {
         '<div class="ess-bday-date">' + formatDDMMYYYY(m.date) + '</div>' +
         '</div>';
 }
+
+/* ── Birthday Wish (Today only) — Facebook-style Like/Comment ──── */
+function buildBdayCardToday(m) {
+    var img = m.employeeProfileUrl || (baseDomain + '/default-image/avatar-2.png');
+    var isSelf = parseInt(m.id) === Empid;
+    return '<div class="ess-bday-card-wrap">' +
+        '<div class="ess-bday-card" onclick="toggleWishPanel(' + m.id + ')" style="cursor:pointer;">' +
+            '<img src="' + img + '" onerror="this.src=\'' + baseDomain + '/default-image/avatar-2.png\'" alt=""/>' +
+            '<div class="ess-bday-text">' +
+                '<div class="ess-bday-name">' + (m.employeeCode ? m.employeeCode + ' – ' : '') + (m.fullName || '') + '</div>' +
+                '<div class="ess-bday-info">' + (m.designationName || '') + (m.departmentName ? ' | ' + m.departmentName : '') + '</div>' +
+                '<div class="ess-bday-info">' + (m.branchName || '') + '</div>' +
+            '</div>' +
+            '<div class="ess-wish-toggle"><i class="bx bx-chat"></i> Wish</div>' +
+        '</div>' +
+        '<div class="ess-wish-panel" id="wishPanel-' + m.id + '" style="display:none;" data-loaded="0">' +
+            (isSelf ? '' :
+                '<div class="ess-wish-compose">' +
+                    '<textarea id="wishInput-' + m.id + '" placeholder="Write a birthday wish…" rows="2"></textarea>' +
+                    '<button class="ess-wish-send-btn" onclick="submitWish(' + m.id + ')">Send Wish</button>' +
+                '</div>'
+            ) +
+            '<div class="ess-wish-feed" id="wishFeed-' + m.id + '"><div class="ess-empty-state"><i class="bx bx-loader-alt"></i><p>Loading…</p></div></div>' +
+        '</div>' +
+        '</div>';
+}
+
+function timeAgo(dateString) {
+    var d = new Date(dateString);
+    if (isNaN(d)) return '';
+    var diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diffSec < 60) return 'just now';
+    var diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return diffMin + 'm ago';
+    var diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return diffHr + 'h ago';
+    return formatDDMMM(dateString);
+}
+
+window.toggleWishPanel = function (employeeId) {
+    var panel = document.getElementById('wishPanel-' + employeeId);
+    if (!panel) return;
+    var opening = panel.style.display === 'none';
+    panel.style.display = opening ? 'block' : 'none';
+    if (opening && panel.getAttribute('data-loaded') === '0') {
+        panel.setAttribute('data-loaded', '1');
+        loadWishFeed(employeeId);
+    }
+};
+
+function loadWishFeed(employeeId) {
+    $.ajax({
+        url: apiBase + '/BirthdayWishAPI/GetBirthdayWishes/' + employeeId + '/' + Compid + '/' + Empid,
+        type: 'GET',
+        success: function (resp) {
+            var wishes = (resp.isSuccess && Array.isArray(resp.data)) ? resp.data : [];
+            var $feed = $('#wishFeed-' + employeeId);
+            if (!wishes.length) {
+                $feed.html('<div class="ess-empty-state"><i class="bx bx-message-rounded"></i><p>No wishes yet. Be the first!</p></div>');
+                return;
+            }
+            var html = '';
+            wishes.forEach(function (w) { html += buildWishItem(w); });
+            $feed.html(html);
+        },
+        error: function () {
+            $('#wishFeed-' + employeeId).html('<div class="ess-empty-state"><i class="bx bx-error"></i><p>Failed to load wishes.</p></div>');
+        }
+    });
+}
+
+function buildWishItem(w) {
+    var img = w.wishedByProfileUrl || (baseDomain + '/default-image/avatar-2.png');
+    var likeActiveCls = w.isLikedByMe ? ' active' : '';
+    return '<div class="ess-wish-item" id="wishItem-' + w.birthdayWishId + '" onclick="event.stopPropagation();">' +
+        '<img src="' + img + '" onerror="this.src=\'' + baseDomain + '/default-image/avatar-2.png\'" alt=""/>' +
+        '<div class="ess-wish-body">' +
+            '<div class="ess-wish-name">' + (w.wishedByName || '') + '</div>' +
+            '<div class="ess-wish-msg">' + $('<div>').text(w.message || '').html() + '</div>' +
+            '<div class="ess-wish-meta">' +
+                '<span class="ess-wish-time">' + timeAgo(w.createdDate) + '</span>' +
+                '<button class="ess-wish-like-btn' + likeActiveCls + '" onclick="toggleLike(' + w.birthdayWishId + ', this)"><i class="bx bx-heart"></i> <span class="ess-wish-like-count">' + w.likeCount + '</span></button>' +
+                '<button class="ess-wish-comment-toggle" onclick="toggleCommentsForWish(' + w.birthdayWishId + ')"><i class="bx bx-comment"></i> <span class="ess-wish-comment-count">' + w.commentCount + '</span> comment' + (w.commentCount === 1 ? '' : 's') + '</button>' +
+            '</div>' +
+            '<div class="ess-wish-comments" id="wishComments-' + w.birthdayWishId + '" style="display:none;" data-loaded="0"></div>' +
+        '</div>' +
+        '</div>';
+}
+
+window.toggleLike = function (wishId, btnEl) {
+    var $btn = $(btnEl);
+    var wasActive = $btn.hasClass('active');
+    var $count = $btn.find('.ess-wish-like-count');
+    var current = parseInt($count.text()) || 0;
+    // Optimistic UI update, reconciled below once the server responds.
+    $btn.toggleClass('active', !wasActive);
+    $count.text(wasActive ? Math.max(0, current - 1) : current + 1);
+
+    $.ajax({
+        url: apiBase + '/BirthdayWishAPI/ToggleBirthdayWishLike',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ BirthdayWishId: wishId, EmployeeId: Empid }),
+        error: function () {
+            // Roll back on failure.
+            $btn.toggleClass('active', wasActive);
+            $count.text(current);
+            showToast && showToast('Unable to update like.', 'error');
+        }
+    });
+};
+
+window.toggleCommentsForWish = function (wishId) {
+    var panel = document.getElementById('wishComments-' + wishId);
+    if (!panel) return;
+    var opening = panel.style.display === 'none';
+    panel.style.display = opening ? 'block' : 'none';
+    if (opening && panel.getAttribute('data-loaded') === '0') {
+        panel.setAttribute('data-loaded', '1');
+        loadWishComments(wishId);
+    }
+};
+
+function loadWishComments(wishId) {
+    $.ajax({
+        url: apiBase + '/BirthdayWishAPI/GetBirthdayWishComments/' + wishId,
+        type: 'GET',
+        success: function (resp) {
+            var comments = (resp.isSuccess && Array.isArray(resp.data)) ? resp.data : [];
+            var html = '<div class="ess-comment-list">';
+            comments.forEach(function (c) {
+                var img = c.profileUrl || (baseDomain + '/default-image/avatar-2.png');
+                html += '<div class="ess-comment-item">' +
+                    '<img src="' + img + '" onerror="this.src=\'' + baseDomain + '/default-image/avatar-2.png\'" alt=""/>' +
+                    '<div><span class="ess-comment-name">' + (c.employeeName || '') + '</span> ' +
+                    '<span class="ess-comment-text">' + $('<div>').text(c.commentText || '').html() + '</span></div>' +
+                    '</div>';
+            });
+            html += '</div>' +
+                '<div class="ess-comment-compose">' +
+                    '<input type="text" id="commentInput-' + wishId + '" placeholder="Write a comment…" onclick="event.stopPropagation();" onkeydown="if(event.key===\'Enter\'){submitComment(' + wishId + ');}"/>' +
+                    '<button onclick="submitComment(' + wishId + ')">Post</button>' +
+                '</div>';
+            $('#wishComments-' + wishId).html(html);
+        }
+    });
+}
+
+window.submitWish = function (employeeId) {
+    var $input = $('#wishInput-' + employeeId);
+    var message = ($input.val() || '').trim();
+    if (!message) return;
+
+    $.ajax({
+        url: apiBase + '/BirthdayWishAPI/CreateBirthdayWish',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ BirthdayEmployeeId: employeeId, WishedByEmployeeId: Empid, CompanyId: Compid, Message: message }),
+        success: function (resp) {
+            if (resp.isSuccess) {
+                $input.val('');
+                loadWishFeed(employeeId);
+            } else {
+                showToast && showToast(resp.responseMessage || 'Unable to post wish.', 'error');
+            }
+        },
+        error: function () { showToast && showToast('Unable to post wish.', 'error'); }
+    });
+};
+
+window.submitComment = function (wishId) {
+    var $input = $('#commentInput-' + wishId);
+    var commentText = ($input.val() || '').trim();
+    if (!commentText) return;
+
+    $.ajax({
+        url: apiBase + '/BirthdayWishAPI/CreateBirthdayWishComment',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ BirthdayWishId: wishId, EmployeeId: Empid, CommentText: commentText }),
+        success: function (resp) {
+            if (resp.isSuccess) {
+                $input.val('');
+                loadWishComments(wishId);
+                var $countEl = $('#wishItem-' + wishId + ' .ess-wish-comment-count');
+                $countEl.text((parseInt($countEl.text()) || 0) + 1);
+            } else {
+                showToast && showToast(resp.responseMessage || 'Unable to post comment.', 'error');
+            }
+        },
+        error: function () { showToast && showToast('Unable to post comment.', 'error'); }
+    });
+};
 
 /* ── Work + Marriage Anniversary, combined (Today / Week / Month) ── */
 function loadAnniversaries() {

@@ -130,6 +130,7 @@ namespace HRMS_Infrastructure.Repository
             ReportingManagerDetailsRepository = new ReportingManagerDetailsRepository(_dbContext);
 
             EmployeeDashboardRepository = new EmployeeDashboardRepository(_dbContext);
+            BirthdayWishRepository = new BirthdayWishRepository(_dbContext);
             MonthlySalaryDetailsRepository =new MonthlySalaryDetailsRepository(_dbContext);
 
             employeeDirectory = new EmployeeDirecotryRepository(_dbContext);
@@ -297,6 +298,7 @@ namespace HRMS_Infrastructure.Repository
         public IReportingManagerDetailsRepository ReportingManagerDetailsRepository { get; set; }
 
         public IEmployeeDashboardRepository EmployeeDashboardRepository { get; set; }
+        public IBirthdayWishRepository BirthdayWishRepository { get; set; }
 
         public IMonthlySalaryDetailsRepository MonthlySalaryDetailsRepository { get; set; }
 

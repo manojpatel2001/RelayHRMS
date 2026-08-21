@@ -123,7 +123,14 @@
     }
 
     $(document).ready(function () {
-        loadLeaveApplications();
+        // Toolbar Export button and the Delete wrap below both depend on the
+        // real permission list to render correctly the first time, so gate
+        // the initial load behind PermGuard.onReady rather than firing it
+        // immediately (mirrors the per-row grid guidance for a first-paint
+        // that already reflects this role's permissions).
+        PermGuard.onReady(function () {
+            loadLeaveApplications();
+        });
 
         $('#goButtonId').click(function () {
             if (isLoadingLeave) return;
@@ -245,7 +252,9 @@
             $('#btnDeleteWrap').hide();
         } else {
             $('#btnApproveWrap, #btnRejectWrap').hide();
-            $('#btnDeleteWrap').show();
+            // Delete here removes an already Approved/Rejected leave
+            // application, so it's gated by the standard delete- permission.
+            $('#btnDeleteWrap').toggle(PermGuard.has('delete-ess-leave-leaveapproval'));
         }
 
         var columns = [
@@ -271,9 +280,13 @@
                 header: 'Actions', sortable: false, stickyRight: true, width: '100px', align: 'center',
                 render: function (v, row) {
                     if (getSelectedStatus() === 'Pending') {
+                        // Approve/Reject is a workflow action, not one of the
+                        // standard create/edit/delete/export verbs, so it's
+                        // intentionally left ungated here.
                         return '<button type="button" class="wg-btn wg-btn-outline" title="Approve" onclick="RowApprove(' + row.leaveApplicationid + ')"><i class="bx bx-check"></i></button> ' +
                                '<button type="button" class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Reject" onclick="RowReject(' + row.leaveApplicationid + ')"><i class="bx bx-x"></i></button>';
                     }
+                    if (!PermGuard.has('delete-ess-leave-leaveapproval')) return '';
                     return '<button type="button" class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="RowDelete(' + row.leaveApplicationid + ')"><i class="bx bx-trash"></i></button>';
                 }
             }
@@ -301,14 +314,13 @@
                             }
                             leaveGrid.refresh();
                         }
-                    },
-                    {
-                        id: 'leaveExportExcel',
-                        label: 'Export to Excel',
-                        icon: 'bx-download',
-                        onClick: function (e, gridData) { exportLeaveToExcel(gridData); }
                     }
-                ],
+                ].concat(PermGuard.has('export-ess-leave-leaveapproval') ? [{
+                    id: 'leaveExportExcel',
+                    label: 'Export to Excel',
+                    icon: 'bx-download',
+                    onClick: function (e, gridData) { exportLeaveToExcel(gridData); }
+                }] : []),
                 columns: columns
             });
         } else {

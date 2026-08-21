@@ -450,13 +450,21 @@
 
 
 		$(() => {
-			
+
 			setTicketDate();
 			localStorage.removeItem('ticketApplicationLocalstorage');
-			
-			TicketApplicationDataTable();
+
+			// Wrapped in onReady so the grid's very first paint (and its
+			// per-row Update/Delete/Follow-Up action buttons, gated below in
+			// the cellTemplate callbacks) already reflects the real
+			// permission list instead of racing ahead of it.
+			PermGuard.onReady(function () {
+				TicketApplicationDataTable();
+			});
 			bindDepartment();
 			bindTicketPriority();
+
+			PermGuard.applyActions('ess-ticketrequest', { create: '#sendRequestBtn' });
 		});
 
 		function setTicketDate(){
@@ -552,7 +560,7 @@
 								  width: '50px',
 								  cellTemplate: function (container, options) {
 									// Check if the ticket status is not "Close"
-									if (options.data.ticketStatusName !== "Close") {
+									if (options.data.ticketStatusName !== "Close" && PermGuard.has('edit-ess-ticketrequest')) {
 									  const buttonElement = $(`
 										<div class="d-flex order-actions">
 										  <a href="javascript:;" class="edit-action" title="Follow Up Ticket Request">
@@ -579,6 +587,7 @@
 									   type: 'buttons',
 									   width: '50px',
 									   cellTemplate: function (container, options) {
+													   if (!PermGuard.has('edit-ess-ticketrequest')) return;
 
 													   var buttonElement = $('<div class="d-flex order-actions">' +
 															  '<a href="javascript:;" class="edit-action" title="Update Ticket Request">' +
@@ -606,6 +615,8 @@
 									   type: 'buttons',
 									   width: '50px',
 									   cellTemplate: function (container, options) {
+										   if (!PermGuard.has('delete-ess-ticketrequest')) return;
+
 										   var buttonElement = $('<div class="d-flex order-actions">' +
 											   '<a href="javascript:;" class="delete-action" title="Delete Ticket Request">' +
 											   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">' +

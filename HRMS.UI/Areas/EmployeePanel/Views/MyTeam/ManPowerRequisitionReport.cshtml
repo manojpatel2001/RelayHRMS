@@ -51,7 +51,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">Manpower Requisition Report</h6>
-            <a href='@Url.Action("ManPowerRequisitionEss", "MyTeam", new { area = "EmployeePanel" })' class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+            <a id="btnAddManpower" href='@Url.Action("ManPowerRequisitionEss", "MyTeam", new { area = "EmployeePanel" })' class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
                 <i class="bx bx-plus"></i> Add Manpower
             </a>
         </div>
@@ -353,7 +353,12 @@
         $(document).ready(function () {
             loadLogoAsBase64('@baseAPIDomainUrl/default-image/relaylogo.jpeg');
 
-            fetchManpowerData();
+            // Deferred until permissions are loaded so the very first render of
+            // the per-row Edit/Delete buttons (gated below) reflects the real
+            // permission list, not the pre-load default of "hidden".
+            PermGuard.onReady(function () { fetchManpowerData(); });
+
+            PermGuard.applyActions('ess-myteam-manpowerrequisitionreport', { create: '#btnAddManpower', export: '#btnExportExcel' });
 
             $('#ddlSearchBy').on('change', function () {
                 $('#txtSearchFor').prop('disabled', $(this).val() === '0');
@@ -439,7 +444,9 @@
 
         function toggleDeleteBtn() {
             var anySelected = Object.keys(selectedIds).length > 0;
-            $('#bulkDeleteBtn').toggle(anySelected);
+            // Combined with the permission check so a later toggle (e.g. selecting a
+            // row) can't re-show this button for a role without delete permission.
+            $('#bulkDeleteBtn').toggle(anySelected && PermGuard.has('delete-ess-myteam-manpowerrequisitionreport'));
         }
 
         window._toggleMpRow = function (id, checked) {
@@ -588,10 +595,12 @@
                     render: function (v, row) {
                         var status = (row.Status || '').trim();
                         var canEdit = (status === 'Pending' || status === '' || status === 'N/A');
+                        var canEditPerm = PermGuard.has('edit-ess-myteam-manpowerrequisitionreport');
+                        var canDeletePerm = PermGuard.has('delete-ess-myteam-manpowerrequisitionreport');
                         var html = '<div class="d-flex gap-1">';
-                        if (canEdit) {
-                            html += '<button class="wg-btn wg-btn-primary" title="Edit" onclick="_editMpRow(' + row.ManpowerRequisitionId + ')"><i class="bx bx-edit"></i></button>';
-                            html += '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteMpRow(' + row.ManpowerRequisitionId + ')"><i class="bx bx-trash"></i></button>';
+                        if (canEdit && (canEditPerm || canDeletePerm)) {
+                            if (canEditPerm) html += '<button class="wg-btn wg-btn-primary" title="Edit" onclick="_editMpRow(' + row.ManpowerRequisitionId + ')"><i class="bx bx-edit"></i></button>';
+                            if (canDeletePerm) html += '<button class="wg-btn wg-btn-outline" style="color:#C62828;border-color:#EF9A9A" title="Delete" onclick="_deleteMpRow(' + row.ManpowerRequisitionId + ')"><i class="bx bx-trash"></i></button>';
                         } else {
                             html += '<span class="text-muted">-</span>';
                         }
@@ -611,6 +620,12 @@
                     columns: columns,
                     perPage: 100000,
                     features: { pagination: false, perPage: false, paginationInfo: false }
+                });
+                // Deferred so the toolbar's own Export Excel button isn't hidden
+                // based on the pre-load default (permissions not fetched yet).
+                // This is separate from the custom #btnExportExcel button above.
+                PermGuard.onReady(function () {
+                    if (!PermGuard.has('export-ess-myteam-manpowerrequisitionreport')) grid.setFeature('export', false);
                 });
             } else {
                 grid.setData(data);

@@ -12,6 +12,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@(ViewData["Title"] != null ? ViewData["Title"] + " — HRMS" : "ESS Panel — HRMS")</title>
     <link rel="icon" href="~/assets/images/relayfevicon.jpeg" type="image/png" />
+    <style>html.perm-pending #sidebar-link { visibility: hidden; }</style>
+    <script>
+        (function () {
+            // Sidebar links start visible by default; permissions.js only hides the
+            // disallowed ones (and collapses now-empty groups) after an async fetch
+            // resolves near the bottom of the page — on a slow network that leaves a
+            // window where the full, unfiltered menu is briefly visible. Hide the
+            // whole sidebar synchronously, before it even renders, for any
+            // non-Super-Admin role — visibility (not display) so it still occupies
+            // its normal layout space and so permissions.js's later
+            // ".sb-link:visible" checks still see correct element dimensions.
+            // permissions.js reveals it once every link AND group has been sorted.
+            var rs = localStorage.getItem('RoleSlug');
+            if (rs && rs !== 'super-admin') {
+                document.documentElement.classList.add('perm-pending');
+            }
+        })();
+    </script>
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -182,6 +200,46 @@
 </head>
 <body>
 
+    <!-- ══ Impersonation banner — shown only while viewing as another user ══ -->
+    <div id="impersonationBanner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:100000;background:#E65100;color:#fff;padding:8px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:12px;">
+        <i class="bx bx-log-in-circle"></i>
+        <span id="impersonationBannerText">Viewing as another user</span>
+        <button id="impersonationReturnBtn" style="background:#fff;color:#E65100;border:none;border-radius:5px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;">Return to Admin</button>
+    </div>
+    <script>
+        function _renderImpersonationBanner() {
+            var banner = document.getElementById('impersonationBanner');
+            if (localStorage.getItem('IsImpersonating') !== 'true') {
+                banner.style.display = 'none';
+                return;
+            }
+            var nameEl = document.getElementById('impersonationBannerText');
+            nameEl.textContent = 'Viewing as ' + (localStorage.getItem('EmployeeName') || 'another user') + ' — impersonated';
+            banner.style.display = 'flex';
+        }
+        _renderImpersonationBanner();
+        window.addEventListener('pageshow', _renderImpersonationBanner);
+
+        document.getElementById('impersonationReturnBtn').onclick = function () {
+            var snap = JSON.parse(localStorage.getItem('ImpersonationAdminSnapshot') || 'null');
+            if (!snap || !snap.authToken) {
+                localStorage.clear();
+                window.location.href = '@UIBaseUrlLayout/AuthManage/Login';
+                return;
+            }
+            localStorage.setItem('authToken', snap.authToken);
+            localStorage.setItem('EmployeeId', snap.EmployeeId || '');
+            localStorage.setItem('EmployeeName', snap.EmployeeName || '');
+            localStorage.setItem('EmployeeCode', snap.EmployeeCode || '');
+            localStorage.setItem('RoleSlug', snap.RoleSlug || '');
+            localStorage.setItem('selectedCompany', snap.selectedCompany || '{}');
+            localStorage.removeItem('IsImpersonating');
+            localStorage.removeItem('ImpersonationAdminSnapshot');
+            localStorage.removeItem('CurrentEmployeeId');
+            window.location.href = '@UIBaseUrlLayout/AdminPanel/Home/index';
+        };
+    </script>
+
     <!-- ══ Page Loader — WMS premium dot spinner ══ -->
     <div id="loader" class="wg-page-loader" style="display:none">
         <div class="wg-dot-spinner">
@@ -339,7 +397,7 @@
                 <div id="sidebar-link">
 
                     <!-- Dashboard -->
-                    <a href="@UIBaseUrlLayout/EmployeePanel/Home/index" class="sb-dash-link essDashboard">
+                    <a href="@UIBaseUrlLayout/EmployeePanel/Home/index" class="sb-dash-link essDashboard" data-menu-slug="view-ess-home">
                         <span class="sb-ic"><i class="bx bx-home-circle"></i></span>
                         <span class="sb-label">Dashboard</span>
                     </a>
@@ -352,48 +410,48 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/EmployeePanel/Employee/MyProfile" class="sb-link essMyProfile">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Employee/MyProfile" class="sb-link essMyProfile" data-menu-slug="view-ess-employee-myprofile">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">My Profile</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/Employee/Index" class="sb-link essMyInout">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Employee/Index" class="sb-link essMyInout" data-menu-slug="view-ess-employee">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">My In Out</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/EmployeeDirectory/Index" class="sb-link essEmployeeDirectory">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/EmployeeDirectory/Index" class="sb-link essEmployeeDirectory" data-menu-slug="view-ess-employeedirectory">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Employee Directory</span>
                             </a>
                             <!-- Ticket -->
-                            <a href="@UIBaseUrlLayout/EmployeePanel/TicketRequest/TicketRequest" class="sb-link essTicketRequest">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/TicketRequest/TicketRequest" class="sb-link essTicketRequest" data-menu-slug="view-ess-ticketrequest">
                                 <span class="sb-ic"><i class="bx bx-support"></i></span>
                                 <span class="sb-label">Ticket Request</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/TicketRequest/TicketApplication" class="sb-link essTicketRequest">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/TicketRequest/TicketApplication" class="sb-link essTicketRequest" data-menu-slug="view-ess-ticketrequest-ticketapplication">
                                 <span class="sb-ic"><i class="bx bx-support"></i></span>
                                 <span class="sb-label">Ticket Application</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/ManageProbation/Probation" class="sb-link essProbationOver">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/ManageProbation/Probation" class="sb-link essProbationOver" data-menu-slug="view-ess-manageprobation-probation">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Probation Over</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/ProbationSelfRating/ProbationEvaluation" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/ProbationSelfRating/ProbationEvaluation" class="sb-link" data-menu-slug="view-ess-probationselfrating-probationevaluation">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Probation Evaluation</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/ExitApplicationEss/ExitApplicationReport" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/ExitApplicationEss/ExitApplicationReport" class="sb-link" data-menu-slug="view-ess-exitapplicationess-exitapplicationreport">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Exit Application</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/ExitApplicationEss/ExitApproval" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/ExitApplicationEss/ExitApproval" class="sb-link" data-menu-slug="view-ess-exitapplicationess-exitapproval">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Exit Approval</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/ExitApplicationEss/ExitClearanceApproval" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/ExitApplicationEss/ExitClearanceApproval" class="sb-link" data-menu-slug="view-ess-exitapplicationess-exitclearanceapproval">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Exit Clearance Approval</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/ManPowerApproval/ManPowerApproval" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/ManPowerApproval/ManPowerApproval" class="sb-link" data-menu-slug="view-ess-manpowerapproval">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Man Power Approval</span>
                             </a>
@@ -408,11 +466,11 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyInterviews/InterviewFeedback" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyInterviews/InterviewFeedback" class="sb-link" data-menu-slug="view-ess-myinterviews-interviewfeedback">
                                 <span class="sb-ic"><i class="bx bx-calendar-check"></i></span>
                                 <span class="sb-label">My Interviews</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/OfferApprovalEss/OfferApprovalEss" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/OfferApprovalEss/OfferApprovalEss" class="sb-link" data-menu-slug="view-ess-offerapprovaless">
                                 <span class="sb-ic"><i class="bx bx-check-shield"></i></span>
                                 <span class="sb-label">Offer Approvals</span>
                             </a>
@@ -427,40 +485,40 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/LeaveApplication" class="sb-link essLeaveApplication">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/LeaveApplication" class="sb-link essLeaveApplication" data-menu-slug="view-ess-leave-leaveapplication">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Leave Application</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/LeaveApproval" class="sb-link essLeaveApproval">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/LeaveApproval" class="sb-link essLeaveApproval" data-menu-slug="view-ess-leave-leaveapproval">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Leave Approval</span>
                             </a>
                             <!-- Comp Off -->
-                            <a href="@UIBaseUrlLayout/EmployeePanel/CompOffApplication/Index" class="sb-link essCompOffMenu essCompOffApplication">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/CompOffApplication/Index" class="sb-link essCompOffMenu essCompOffApplication" data-menu-slug="view-ess-compoffapplication">
                                 <span class="sb-ic"><i class="bx bx-time"></i></span>
                                 <span class="sb-label">Comp Off Application</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/CompOffApplication/CompOffApproval" class="sb-link essCompOffMenu essCompOffApproval">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/CompOffApplication/CompOffApproval" class="sb-link essCompOffMenu essCompOffApproval" data-menu-slug="view-ess-compoffapplication-compoffapproval">
                                 <span class="sb-ic"><i class="bx bx-time"></i></span>
                                 <span class="sb-label">Comp Off Approval</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/AttendanceRegularizationApproval" class="sb-link essAttedenceRegularization">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/AttendanceRegularizationApproval" class="sb-link essAttedenceRegularization" data-menu-slug="view-ess-leave-attendanceregularizationapproval">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Attendance Regularization Approval</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/TeamAttendanceApproval" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/TeamAttendanceApproval" class="sb-link" data-menu-slug="view-ess-leave-teamattendanceapproval">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Team Attendance Approval</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/Attendance" class="sb-link essAddAttedenceRegularization">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/Attendance" class="sb-link essAddAttedenceRegularization" data-menu-slug="view-ess-leave-attendance">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Attendance Request</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/ReportingWiseLeavecancellationReport" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/ReportingWiseLeavecancellationReport" class="sb-link" data-menu-slug="view-ess-leave-reportingwiseleavecancellationreport">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Leave Cancellation Approval</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/EmpLeavecancellationReport" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/Leave/EmpLeavecancellationReport" class="sb-link" data-menu-slug="view-ess-leave-empleavecancellationreport">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Add Leave Cancellation</span>
                             </a>
@@ -475,15 +533,15 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/EmployeePanel/SalaryDetail/SalarySlip" class="sb-link essItDeclarationForm">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/SalaryDetail/SalarySlip" class="sb-link essItDeclarationForm" data-menu-slug="view-ess-salarydetail-salaryslip">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Salary Slip</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/SalaryDetail/EmpLoanApproval" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/SalaryDetail/EmpLoanApproval" class="sb-link" data-menu-slug="view-ess-salarydetail-emploanapproval">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Loan Application</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/SalaryDetail/LoanApproval" class="sb-link">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/SalaryDetail/LoanApproval" class="sb-link" data-menu-slug="view-ess-salarydetail-loanapproval">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Loan Approval</span>
                             </a>
@@ -498,23 +556,23 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyTeam/MemberInOutRecord" class="sb-link essMemberInOutRecord">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyTeam/MemberInOutRecord" class="sb-link essMemberInOutRecord" data-menu-slug="view-ess-myteam-memberinoutrecord">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Member In Out Record</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyTeam/MemberDetails" class="sb-link essMemberDetails">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyTeam/MemberDetails" class="sb-link essMemberDetails" data-menu-slug="view-ess-myteam-memberdetails">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Member Details</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/Index" class="sb-link essMyReports">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/Index" class="sb-link essMyReports" data-menu-slug="view-ess-myreports">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">My Reports</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyTeam/ManPowerRequisitionReport" class="sb-link essMyReports essManpowerMenu" style="display:none;">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyTeam/ManPowerRequisitionReport" class="sb-link essMyReports essManpowerMenu" style="display:none;" data-menu-slug="view-ess-myteam-manpowerrequisitionreport">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">ManPower Requisition</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyTeam/EmployeeJoiningEntryEss" class="sb-link essMyReports essJoiningMenu" style="display:none;">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyTeam/EmployeeJoiningEntryEss" class="sb-link essMyReports essJoiningMenu" style="display:none;" data-menu-slug="view-ess-myteam-employeejoiningentryess">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Employee Joining Entry</span>
                             </a>
@@ -529,39 +587,39 @@
                             <i class="bx bx-chevron-down sb-group-chevron"></i>
                         </div>
                         <div class="sb-group-body">
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/AttendanceRegister" class="sb-link essAttedanceRegister">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/AttendanceRegister" class="sb-link essAttedanceRegister" data-menu-slug="view-ess-myreports-attendanceregister">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Attendance Register</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/LeaveApproval" class="sb-link essAttedanceRegister">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/LeaveApproval" class="sb-link essAttedanceRegister" data-menu-slug="view-ess-myreports-leaveapproval">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Leave Approval</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/LeaveBalance" class="sb-link essAttedanceRegister">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/LeaveBalance" class="sb-link essAttedanceRegister" data-menu-slug="view-ess-myreports-leavebalance">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Leave Balance</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/YearlyLeave" class="sb-link essAttedanceRegister">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/YearlyLeave" class="sb-link essAttedanceRegister" data-menu-slug="view-ess-myreports-yearlyleave">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Yearly Leave Balance</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/leaveapplicationreport" class="sb-link essAttedanceRegister">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/leaveapplicationreport" class="sb-link essAttedanceRegister" data-menu-slug="view-ess-myreports-leaveapplicationreport">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Leave Application</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/SalarySlipReport" class="sb-link essAttedanceRegister">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/SalarySlipReport" class="sb-link essAttedanceRegister" data-menu-slug="view-ess-myreports-salaryslipreport">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Salary Slip Report</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/YearlySalarySummary" class="sb-link essAttedanceRegister">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/YearlySalarySummary" class="sb-link essAttedanceRegister" data-menu-slug="view-ess-myreports-yearlysalarysummary">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Yearly Salary Report</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/Compoffavailbalance" class="sb-link essAttedanceRegister">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/Compoffavailbalance" class="sb-link essAttedanceRegister" data-menu-slug="view-ess-myreports-compoffavailbalance">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">CompOff Available Balance</span>
                             </a>
-                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/Compoffleaveadjustment" class="sb-link essAttedanceRegister">
+                            <a href="@UIBaseUrlLayout/EmployeePanel/MyReports/Compoffleaveadjustment" class="sb-link essAttedanceRegister" data-menu-slug="view-ess-myreports-compoffleaveadjustment">
                                 <span class="sb-ic"><i class="bx bx-right-arrow-alt"></i></span>
                                 <span class="sb-label">Compoff Leave Adjustment</span>
                             </a>
@@ -761,7 +819,7 @@
 
     <script src="~/assets/js/companymodalloader.js"></script>
     <script src="~/assets/js/logout.js"></script>
-    <script src="~/assets/js/permissions.js"></script>
+    <script src="~/assets/js/permissions.js" asp-append-version="true"></script>
     <script src="~/assets/js/logindetails.js"></script>
     <script src="~/assets/js/common-input-handler.js"></script>
     <script src="~/assets/js/notification-remainder.js"></script>
