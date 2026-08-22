@@ -285,8 +285,11 @@ window.PermGuard = (function () {
          UserId = parseInt(decodedToken.Id);
         if (roleSlug == "super-admin")
         {
-            //$("#dropdownESSSwitch").show();
-            //$("#dropdownAdminSwitch").show();
+            // A true Super Admin (from SuperAdminDetails, not an Employee-table
+            // role) should always be able to reach both panels — these were
+            // previously commented out, so Super Admin never saw "Switch to ESS".
+            $("#dropdownESSSwitch").show();
+            $("#dropdownAdminSwitch").show();
             $("#drpManageRoleAndPermission").show();
             $("#drpCompanyInformationMenu").show();
             $("#AddCompanyDetails").show();
