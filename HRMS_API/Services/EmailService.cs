@@ -26,7 +26,7 @@ namespace HRMS_API.Services
 
         /// <summary>
         /// Sends an email using a template and dynamic placeholders.
-        /// Returns true if successful, false if failed or disabled.
+        /// Returns true if successful, false if failed or disabled..
         /// </summary>
         public async Task<bool> SendEmailAsync(EmailRequest request)
         {

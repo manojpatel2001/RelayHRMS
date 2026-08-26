@@ -15,7 +15,7 @@ namespace HRMS_Core.Migrations
         // DB; a prior migration adding some of them was authored but never
         // recorded as applied). Trimmed Up()/Down() down to just the one
         // column that's genuinely missing so this migration is safe to run;
-        // the Designer.cs/snapshot still reflect the full current model.
+        // the Designer.cs/snapshot still reflect the full current model..
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
