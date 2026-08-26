@@ -61,6 +61,9 @@ namespace HRMS_Core.VM.EmployeeMaster
         public bool? IsPermissionPunchInOut { get; set; } = false;
         public bool? IsLeft { get; set; } = false;
         public bool? IsPFApplicable { get; set; } = true;
+        public bool? IsMobileAccess { get; set; } = false;
+        public int? IsSelfiRequired { get; set; }
+        public bool? IsGeofencingRequired { get; set; } = false;
         //base model
         public bool? IsDeleted { get; set; } = false;
         public bool? IsEnabled { get; set; } = true;

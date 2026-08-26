@@ -51,6 +51,9 @@ namespace HRMS_Core.VM.UpdateEmployee
         public int? WeekOffDetailsId { get; set; }
         public bool? IsPermissionPunchInOut { get; set; } = false;
         public bool? IsPFApplicable { get; set; } = true;
+        public bool? IsMobileAccess { get; set; } = false;
+        public int? IsSelfiRequired { get; set; }
+        public bool? IsGeofencingRequired { get; set; } = false;
      
        
         public string? CreatedByName { get; set; }

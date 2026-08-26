@@ -530,6 +530,28 @@
 										<input class="form-check-input" type="checkbox" id="gmp">
 										<label class="form-check-label" for="gmp">GMP</label>
 									</div>
+									<div class="form-check">
+										<input class="form-check-input" type="checkbox" id="mobileAccess">
+										<label class="form-check-label" for="mobileAccess">Mobile Access</label>
+									</div>
+									<div class="form-check">
+										<input class="form-check-input" type="checkbox" id="isSelfiRequired" disabled>
+										<label class="form-check-label" for="isSelfiRequired">Is Selfi Required</label>
+									</div>
+									<div class="form-check">
+										<input class="form-check-input" type="checkbox" id="geoFencing" disabled>
+										<label class="form-check-label" for="geoFencing">Geo Fencing</label>
+									</div>
+								</div>
+
+								<!-- Shown only when Geo Fencing is on — the mobile app derives its actual
+								     geofence enforcement from AssignGeoLocation, not from the Geo Fencing
+								     flag itself, so a zone must be picked here or the flag has no effect
+								     (or worse, the app has nothing to validate the employee's location against). -->
+								<div class="fg" id="geoLocationFieldWrap" style="display:none;margin-top:14px;">
+									<label>Assigned Geo Location(s) <span style="color:#dc3545">*</span></label>
+									<div id="geoLocationCheckboxList" style="border:1px solid #D0D8DC;border-radius:8px;max-height:140px;overflow-y:auto;padding:10px;display:flex;flex-wrap:wrap;gap:14px;"></div>
+									<span class="field-validation-error" id="spnGeoLocationField" style="display:none;">Please select at least one geo location — required when Geo Fencing is on.</span>
 								</div>
 
 								<div class="emp-actions-bar d-flex justify-content-center gap-2 mt-3">
@@ -845,6 +867,85 @@
 				$('#probation').prop('checked', selectedText === 'Probation');
 			});
 
+			// "Is Selfi Required" and "Geo Fencing" are only meaningful for
+			// employees who have Mobile Access — disable and clear both
+			// whenever Mobile Access is turned off.
+			$('#mobileAccess').on('change', function () {
+				var mobileAccessEnabled = $(this).is(':checked');
+				$('#isSelfiRequired, #geoFencing').prop('disabled', !mobileAccessEnabled);
+				if (!mobileAccessEnabled) {
+					$('#isSelfiRequired, #geoFencing').prop('checked', false);
+					$('#geoLocationFieldWrap').hide();
+					$('.geoLocationCheckbox').prop('checked', false);
+					$('#spnGeoLocationField').hide();
+				}
+			});
+
+			// Geo Location picker only matters once Geo Fencing is on.
+			$('#geoFencing').on('change', function () {
+				var checked = $(this).is(':checked');
+				$('#geoLocationFieldWrap').toggle(checked);
+				if (!checked) {
+					$('.geoLocationCheckbox').prop('checked', false);
+					$('#spnGeoLocationField').hide();
+				}
+			});
+
+			var _geoLocationOptionsLoaded = false;
+			function loadGeoLocationOptions() {
+				if (_geoLocationOptionsLoaded) return $.Deferred().resolve().promise();
+				return new Promise(function (resolve) {
+					$.ajax({
+						url: '@baseUrl/GeoLocationAPI/GetAllGeoLocations/' + CurrentCompanyId,
+						method: 'GET',
+						success: function (data) {
+							var locations = (data && data.isSuccess && data.data) ? data.data : [];
+							var $list = $('#geoLocationCheckboxList').empty();
+							locations.forEach(function (loc) {
+								// <span>, not <label> — this theme resets <label> to display:block
+								// app-wide, which broke the inline checkbox+text alignment.
+								var $item = $('<span>').css({
+									display: 'inline-flex', alignItems: 'center', gap: '6px',
+									fontSize: '13px', whiteSpace: 'nowrap', cursor: 'pointer'
+								});
+								var $checkbox = $('<input>').attr({ type: 'checkbox', class: 'geoLocationCheckbox' })
+									.css({ margin: 0, verticalAlign: 'middle' })
+									.val(loc.geoLocationId);
+								var $text = $('<span>').text(loc.geoLocationName || '');
+								$item.append($checkbox).append($text);
+								$item.on('click', function (e) {
+									if (e.target !== $checkbox[0]) $checkbox.prop('checked', !$checkbox.prop('checked'));
+								});
+								$list.append($item);
+							});
+							_geoLocationOptionsLoaded = true;
+							resolve();
+						},
+						error: function () { resolve(); }
+					});
+				});
+			}
+			loadGeoLocationOptions();
+
+			// Pre-checks this employee's currently assigned zones (if any) when
+			// opening the edit form with Geo Fencing already on.
+			async function prefillAssignedGeoLocations(employeeId) {
+				try {
+					const res = await $.ajax({
+						url: '@baseUrl/GeoLocationAPI/GetAssignGeoLocationsWithLocation/' + CurrentCompanyId,
+						method: 'GET'
+					});
+					if (res && res.isSuccess && res.data) {
+						var row = res.data.find(function (r) { return String(r.employeeId) === String(employeeId); });
+						if (row && row.geoLocationIds) {
+							row.geoLocationIds.split(',').forEach(function (id) {
+								$('.geoLocationCheckbox[value="' + id.trim() + '"]').prop('checked', true);
+							});
+						}
+					}
+				} catch (e) { /* no existing assignment — leave unchecked */ }
+			}
+
 			async function LoadWeekOffMaster() {
 				return new Promise((resolve, reject) => {
 					let branchId = $('#ddlBranch').val();
@@ -1055,6 +1156,15 @@
 		   $('#probation').prop('checked', employee.probation || false);	
 	       $('#gtl').prop('checked', employee.isGTL === false ? false : true);
            $('#gmp').prop('checked', employee.isGMP === true ? true : false);
+		   $('#mobileAccess').prop('checked', employee.isMobileAccess || false);
+		   $('#isSelfiRequired').prop('checked', employee.isSelfiRequired == 1);
+		   $('#geoFencing').prop('checked', employee.isGeofencingRequired || false);
+		   $('#mobileAccess').trigger('change');
+		   if ($('#geoFencing').is(':checked')) {
+			   $('#geoLocationFieldWrap').show();
+			   await loadGeoLocationOptions();
+			   await prefillAssignedGeoLocations(employee.id);
+		   }
 		   wmsSetValue('ddlWeekOfAssign', employee.weekOffDetailsId);
 		  $('#txtAttendanceLimit').val(employee.attendanceLimit !== null && employee.attendanceLimit !== undefined ? employee.attendanceLimit : '');
 		  $('#txtPassword').val(employee.password || '');
@@ -1122,6 +1232,12 @@
 		    var probation = $('#probation').is(':checked');
 			var gtl = $('#gtl').is(':checked');
             var gmp = $('#gmp').is(':checked');
+				var mobileAccess = $('#mobileAccess').is(':checked');
+				// Is Selfi Required / Geo Fencing only apply when Mobile Access is on —
+				// force them off in the submitted payload otherwise, regardless of checkbox state.
+				var isSelfiRequired = mobileAccess && $('#isSelfiRequired').is(':checked') ? 1 : 0;
+				var geoFencing = mobileAccess && $('#geoFencing').is(':checked');
+				var geoLocationIds = $('.geoLocationCheckbox:checked').map(function () { return $(this).val(); }).get();
 			 var attendanceLimit = $('#txtAttendanceLimit').val().trim();
 			 var remark = $('#txtRemark').val().trim();
 			var Company = CurrentCompanyId;;
@@ -1302,6 +1418,13 @@
 				// 			$('#spnProbationCompletionPeriod').hide();
 				// }
 
+				if (geoFencing && geoLocationIds.length === 0) {
+					$('#spnGeoLocationField').show();
+					isValid = false;
+				} else {
+					$('#spnGeoLocationField').hide();
+				}
+
 				if (!isValid) {
 				  hideBtnLoder();
 					return;
@@ -1342,6 +1465,9 @@
 						 ReportingManagerId:reportingManager==""? null:reportingManager,
 						Pt: pt === "" ? false : pt,
 						IsPFApplicable:isPFApplicable,
+					IsMobileAccess: mobileAccess,
+					IsSelfiRequired: isSelfiRequired,
+					IsGeofencingRequired: geoFencing,
 						// Default values for properties not present in the JavaScript object
 
 
@@ -1369,7 +1495,26 @@
 						if (response.isSuccess) {
 						showToast(response.responseMessage, 'success');
 								 // loadEmployeeRecords();
-								   
+
+						// Keep AssignGeoLocation in sync with the Geo Fencing flag —
+						// the mobile app enforces geofencing based on that table's
+						// contents, not on IsGeofencingRequired directly, so leaving
+						// them out of sync would make the checkbox misleading.
+						if (geoFencing && geoLocationIds.length > 0) {
+							$.ajax({
+								url: '@baseUrl/GeoLocationAPI/UpdateAssignGeoLocation',
+								type: 'POST',
+								contentType: 'application/json',
+								data: JSON.stringify({ EmployeeIds: `${CurrentEmployeeId}`, GeoLocationIds: geoLocationIds.join(','), CreatedBy: UserId })
+							});
+						} else if (!geoFencing) {
+							$.ajax({
+								url: '@baseUrl/GeoLocationAPI/DeleteAssignGeoLocation',
+								type: 'DELETE',
+								contentType: 'application/json',
+								data: JSON.stringify({ EmployeeIds: `${CurrentEmployeeId}`, CreatedBy: UserId })
+							});
+						}
 
 						} else {
 							showToast(response.responseMessage, 'error');

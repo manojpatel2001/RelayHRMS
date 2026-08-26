@@ -89,6 +89,10 @@ namespace HRMS_Core.DbContext
         public int? WeekOffDetailsId { get; set; }
         public bool? IsPermissionPunchInOut { get; set; } = false;
         public int? IsSelfiRequired { get; set; }
+        // Gates whether this employee is eligible/available for geo-zone
+        // assignment on the "Location Assign to Employee" screen — separate
+        // from AssignGeoLocation, which is the actual zone assignment itself.
+        public bool? IsGeofencingRequired { get; set; } = false;
 
 
         //PersionalInfo

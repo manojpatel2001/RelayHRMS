@@ -215,6 +215,20 @@ namespace HRMS_Infrastructure.Repository.OtherMaster
                             var employees = (await multi.ReadAsync<vmEmployeeListDto>()).AsList();
                             var locations = (await multi.ReadAsync<GeoLocation>()).AsList();
 
+                            // "Location Assign to Employee" should offer every company employee
+                            // who has Mobile Access on (Geo Fencing itself is not a prerequisite —
+                            // assigning a zone is how Geo Fencing gets enabled for them). The
+                            // GetAllEmployeeAndLocation stored procedure already filters on
+                            // IsMobileAccess too; this is a redundant-but-harmless second check.
+                            var eligibleEmployeeIds = await _db.HRMSUserIdentities
+                                .Where(u => u.IsMobileAccess == true)
+                                .Select(u => u.Id)
+                                .ToListAsync();
+
+                            employees = employees
+                                .Where(e => e.Id.HasValue && eligibleEmployeeIds.Contains(e.Id.Value))
+                                .ToList();
+
                             return (employees, locations);
                         }
                         catch (Exception ex)

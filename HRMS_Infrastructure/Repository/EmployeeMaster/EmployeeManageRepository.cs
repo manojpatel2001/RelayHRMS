@@ -79,7 +79,10 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                         @WeekOffDetailsId = {employee.WeekOffDetailsId},
                         @IsPermissionPunchInOut = {employee.IsPermissionPunchInOut},
                         @IsPFApplicable = {employee.IsPFApplicable},
-                        
+                        @IsMobileAccess = {employee.IsMobileAccess},
+                        @IsSelfiRequired = {employee.IsSelfiRequired},
+                        @IsGeofencingRequired = {employee.IsGeofencingRequired},
+
                         -- Personal Info
                         @Gender = {employee.Gender},
                         @PersonalEmailId = {employee.PersonalEmailId},
@@ -229,6 +232,9 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     parameters.Add("@IsPFApplicable", employee.IsPFApplicable);
                     parameters.Add("@WeekOffDetailsId", employee.WeekOffDetailsId);
                     parameters.Add("@IsPermissionPunchInOut", employee.IsPermissionPunchInOut);
+                    parameters.Add("@IsMobileAccess", employee.IsMobileAccess);
+                    parameters.Add("@IsSelfiRequired", employee.IsSelfiRequired);
+                    parameters.Add("@IsGeofencingRequired", employee.IsGeofencingRequired);
                     parameters.Add("@Gender", employee.Gender);
                     parameters.Add("@PersonalEmailId", employee.PersonalEmailId);
                     parameters.Add("@FatherName", employee.FatherName);
@@ -404,6 +410,9 @@ namespace HRMS_Infrastructure.Repository.EmployeeMaster
                     parameters.Add("@IsPFApplicable", employee.IsPFApplicable);
                     parameters.Add("@WeekOffDetailsId", employee.WeekOffDetailsId);
                     parameters.Add("@IsPermissionPunchInOut", employee.IsPermissionPunchInOut);
+                    parameters.Add("@IsMobileAccess", employee.IsMobileAccess);
+                    parameters.Add("@IsSelfiRequired", employee.IsSelfiRequired);
+                    parameters.Add("@IsGeofencingRequired", employee.IsGeofencingRequired);
                     parameters.Add("@AttendanceLimit", employee.AttendanceLimit);
                     parameters.Add("@Remark", employee.Remark);
                     parameters.Add("@IsGMP", employee.IsGMP);

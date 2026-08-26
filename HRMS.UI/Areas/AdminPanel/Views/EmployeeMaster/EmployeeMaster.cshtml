@@ -377,6 +377,18 @@
 						<input class="form-check-input" type="checkbox" id="gmp">
 						<label class="form-check-label" for="gmp">GMP</label>
 					</div>
+					<div class="form-check">
+						<input class="form-check-input" type="checkbox" id="mobileAccess">
+						<label class="form-check-label" for="mobileAccess">Mobile Access</label>
+					</div>
+					<div class="form-check">
+						<input class="form-check-input" type="checkbox" id="isSelfiRequired" disabled>
+						<label class="form-check-label" for="isSelfiRequired">Is Selfi Required</label>
+					</div>
+					<div class="form-check">
+						<input class="form-check-input" type="checkbox" id="geoFencing" disabled>
+						<label class="form-check-label" for="geoFencing">Geo Fencing</label>
+					</div>
 				</div>
 			</form>
 		</div>
@@ -706,6 +718,17 @@
 		$(this).toggleClass('bx-show bx-hide');
 	});
 
+	// "Is Selfi Required" and "Geo Fencing" are only meaningful for
+	// employees who have Mobile Access — disable and clear both
+	// whenever Mobile Access is turned off.
+	$('#mobileAccess').on('change', function () {
+		var mobileAccessEnabled = $(this).is(':checked');
+		$('#isSelfiRequired, #geoFencing').prop('disabled', !mobileAccessEnabled);
+		if (!mobileAccessEnabled) {
+			$('#isSelfiRequired, #geoFencing').prop('checked', false);
+		}
+	});
+
 	$('#txtNumberEmpCode').on('blur', async function () { await GetExistEmployeeCode(); });
 
 	$('#txtGrossSalary, #txtBasicSalary').on('blur', async function () {
@@ -756,6 +779,11 @@
 		var probation          = $('#probation').is(':checked');
 		var gtl                = $('#gtl').is(':checked');
 		var gmp                = $('#gmp').is(':checked');
+		var mobileAccess       = $('#mobileAccess').is(':checked');
+		// Is Selfi Required / Geo Fencing only apply when Mobile Access is on —
+		// force them off in the submitted payload otherwise, regardless of checkbox state.
+		var isSelfiRequired    = mobileAccess && $('#isSelfiRequired').is(':checked') ? 1 : 0;
+		var geoFencing         = mobileAccess && $('#geoFencing').is(':checked');
 		var patternPassword    = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@@$!%*?&])[A-Za-z\d@@$!%*?&]{8,}$/;
 
 		var isValid = true;
@@ -826,6 +854,9 @@
 			EmployeeSignatureUrl:   null,
 			WeekOffDetailsId:       weekOfAssignId || null,
 			IsPermissionPunchInOut: checkInOut,
+			IsMobileAccess:         mobileAccess,
+			IsSelfiRequired:        isSelfiRequired,
+			IsGeofencingRequired:   geoFencing,
 			Remark:                 remark || null
 		};
 
@@ -869,6 +900,9 @@
 		$('#probation').prop('checked', false);
 		$('#gtl').prop('checked', true);
 		$('#gmp').prop('checked', false);
+		$('#mobileAccess').prop('checked', false);
+		$('#isSelfiRequired').prop('checked', false).prop('disabled', true);
+		$('#geoFencing').prop('checked', false).prop('disabled', true);
 
 		$('[id^="spn"]').hide();
 		$('#txtPassword').val('Relay@@123');
